@@ -1,6 +1,7 @@
-import { Grid, NumberInput, Slider, Stack, Switch } from '@mantine/core';
+import { Grid, Slider, Stack, Switch } from '@mantine/core';
 import type { Treachery } from '@shared/assets/schema';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { RangeField } from '@ui/control/RangeField';
 import type { z } from 'zod';
 
 type IconAdjustments = Pick<z.infer<typeof Treachery>, 'iconScale' | 'iconOffset' | 'iconInvert' | 'iconOpacity'>;
@@ -78,37 +79,14 @@ export function CardIconScaleControl({
   description?: string;
 }>) {
   return (
-    <ControlBlock
+    <RangeField
       title={label}
       description={description}
-      tool={
-        <NumberInput
-          aria-label={label}
-          w={96}
-          min={0.5}
-          max={2}
-          step={0.05}
-          decimalScale={2}
-          value={draft.iconScale ?? 1}
-          onChange={(value) => {
-            if (typeof value === 'number') {
-              patch({ iconScale: value });
-            }
-          }}
-        />
-      }
-      input={
-        <Slider
-          aria-label={`${label} slider`}
-          thumbLabel={`${label} slider`}
-          min={0.5}
-          max={2}
-          step={0.05}
-          value={draft.iconScale ?? 1}
-          onChange={(value) => patch({ iconScale: value })}
-          label={(value) => value.toFixed(2)}
-        />
-      }
+      min={0.5}
+      max={2}
+      step={0.05}
+      value={draft.iconScale ?? 1}
+      onChange={(value) => patch({ iconScale: value })}
     />
   );
 }
@@ -124,32 +102,15 @@ function IconOffsetControls({
   return (
     <Grid>
       <Grid.Col span={{ base: 12, xs: 6 }}>
-        <ControlBlock
+        <RangeField
           title="Horizontal offset"
+          name="Horizontal icon offset"
           description="Move the icon left with a negative value or right with a positive value."
-          tool={
-            <NumberInput
-              aria-label="Horizontal icon offset"
-              w={96}
-              step={1}
-              value={offset[0]}
-              onChange={(value) => {
-                if (typeof value === 'number') {
-                  patch({ iconOffset: [value, offset[1]] });
-                }
-              }}
-            />
-          }
-          input={
-            <Slider
-              aria-label="Horizontal icon offset slider"
-              min={-60}
-              max={60}
-              step={1}
-              value={offset[0]}
-              onChange={(value) => patch({ iconOffset: [value, offset[1]] })}
-            />
-          }
+          min={-60}
+          max={60}
+          typedBeyondRange
+          value={offset[0]}
+          onChange={(value) => patch({ iconOffset: [value, offset[1]] })}
         />
       </Grid.Col>
       <Grid.Col span={{ base: 12, xs: 6 }}>
@@ -169,33 +130,15 @@ export function CardIconVerticalOffsetControl({
 }>) {
   const offset = draft.iconOffset ?? [0, 0];
   return (
-    <ControlBlock
+    <RangeField
       title="Vertical offset"
+      name="Vertical icon offset"
       description="Move the icon up with a negative value or down with a positive value."
-      tool={
-        <NumberInput
-          aria-label="Vertical icon offset"
-          w={96}
-          step={1}
-          value={offset[1]}
-          onChange={(value) => {
-            if (typeof value === 'number') {
-              patch({ iconOffset: [offset[0], value] });
-            }
-          }}
-        />
-      }
-      input={
-        <Slider
-          aria-label="Vertical icon offset slider"
-          thumbLabel="Vertical icon offset slider"
-          min={-60}
-          max={60}
-          step={1}
-          value={offset[1]}
-          onChange={(value) => patch({ iconOffset: [offset[0], value] })}
-        />
-      }
+      min={-60}
+      max={60}
+      typedBeyondRange
+      value={offset[1]}
+      onChange={(value) => patch({ iconOffset: [offset[0], value] })}
     />
   );
 }

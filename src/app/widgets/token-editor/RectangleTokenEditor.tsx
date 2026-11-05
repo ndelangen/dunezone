@@ -1,10 +1,11 @@
-import { Alert, Divider, Group, NumberInput, Select, Slider, Stack, Switch, Text, Textarea } from '@mantine/core';
+import { Alert, Divider, Group, Select, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { RangeField } from '@ui/control/RangeField';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import type { ReactNode } from 'react';
@@ -102,49 +103,6 @@ export function RectangleProof({ face }: { face: RectangleFaceDraft }) {
     <TokenFrame shape="rectangle">
       <RectangleToken {...face} />
     </TokenFrame>
-  );
-}
-
-/** A slider for reach with an unclamped number beside it for precision, the pattern `DecalControls` already uses. */
-function PlacementControl({
-  title,
-  description,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-}: {
-  title: string;
-  description?: string;
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-}) {
-  return (
-    <ControlBlock
-      title={title}
-      description={description}
-      tool={
-        <NumberInput
-          aria-label={title}
-          w={96}
-          step={step}
-          decimalScale={2}
-          value={value}
-          onChange={(next) => {
-            if (typeof next === 'number') {
-              onChange(next);
-            }
-          }}
-        />
-      }
-      input={
-        <Slider aria-label={`${title} slider`} min={min} max={max} step={step} value={value} onChange={onChange} />
-      }
-    />
   );
 }
 
@@ -270,7 +228,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
               />
             }
           />
-          <PlacementControl
+          <RangeField
             title="Opacity"
             description="1 is fully opaque, and it multiplies with the muted treatment."
             value={decal.opacity}
@@ -358,15 +316,16 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
               />
             }
           />
-          <PlacementControl
+          <RangeField
             title="Size"
+            typedBeyondRange
             description={`Cap height in face units; the face is ${FACE_HEIGHT} tall.`}
             value={text.size}
             onChange={(value) => setText(index, { size: value })}
             min={4}
             max={160}
           />
-          <PlacementControl
+          <RangeField
             title="Opacity"
             value={text.opacity}
             onChange={(value) => setText(index, { opacity: value })}
@@ -375,15 +334,17 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
             step={0.05}
           />
           <Group grow align="flex-start">
-            <PlacementControl
+            <RangeField
               title={`Text ${index + 1} horizontal offset`}
+              typedBeyondRange
               value={text.offset[0]}
               onChange={(value) => setText(index, { offset: [value, text.offset[1]] })}
               min={-FACE_WIDTH}
               max={FACE_WIDTH}
             />
-            <PlacementControl
+            <RangeField
               title={`Text ${index + 1} vertical offset`}
+              typedBeyondRange
               value={text.offset[1]}
               onChange={(value) => setText(index, { offset: [text.offset[0], value] })}
               min={-FACE_HEIGHT}
