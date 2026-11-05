@@ -234,6 +234,7 @@ describe('AssetExplainer sector lines', () => {
     const lines = guides(boardBlock(true));
     expect(lines).toHaveLength(2);
     expect(lines[0]!.attributes).toMatchObject({ fill: 'none', stroke: '#000000', 'stroke-opacity': 0.3 });
+    expect(lines[0]!.attributes['stroke-dasharray']).toMatch(/^[\d.]+ [\d.]+$/);
     const shapes = rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(boardBlock(true)));
     expect(shapes.findIndex(({ attributes }) => 'data-rulebook-guide' in attributes)).toBe(0);
   });
