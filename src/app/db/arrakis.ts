@@ -1,6 +1,8 @@
 import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
+import { ARRAKIS_BOARD_SLUG } from '@shared/boards/arrakisOfficial';
 import { BoardDefinition } from '@shared/boards/schema';
 import type { Board } from '@shared/boards/schema';
+import type { BoardCapture } from '@shared/play/capture';
 import { useMemo } from 'react';
 
 import { useLiveQuery } from '@app/db/core/live';
@@ -15,6 +17,8 @@ export type ArrakisBoard = Readonly<{
   geometry: ComponentGeometry;
   /** The board's own territories, for drawing tints and placing pieces on it. */
   definition: Board;
+  /** The board as a table captures it, for a practice table without a game behind it. */
+  capture: BoardCapture;
 }>;
 
 /**
@@ -31,12 +35,14 @@ export function useArrakisBoard(): ArrakisBoard | null | undefined {
     if (!found?.imageUrl || !found.geometry || !definition.success) {
       return null;
     }
+    const board = definition.data as Board;
     return {
       assetId: found.assetId,
       name: found.name,
       imageUrl: found.imageUrl,
       geometry: found.geometry,
-      definition: definition.data as Board,
+      definition: board,
+      capture: { asset: { id: found.assetId, slug: ARRAKIS_BOARD_SLUG, name: found.name }, definition: board },
     };
   }, [found]);
 }

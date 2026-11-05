@@ -1,10 +1,12 @@
 import { AssetCapture } from '@shared/play/assetCapture';
+import type { BoardCapture } from '@shared/play/capture';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
+import { useArrakisBoard } from '@db/arrakis';
 import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
 
@@ -68,10 +70,14 @@ export function useTutorialTable(
 ) {
   /* The players at the table greet the learner by their own name when they answer a chat message. */
   const username = useCurrentProfile().data?.username ?? undefined;
+  /* The table plays on the saved Arrakis, which arrives after the table opens; a Reset keeps it. */
+  const board = useArrakisBoard()?.capture;
   const [table] = useState(() => {
     const origin = window.location.origin;
+    const shown: { board?: BoardCapture } = {};
     const open = () => {
       const local = new LocalTable(start());
+      local.setBoard(shown.board);
       local.open();
       opening?.(playersAt(() => local));
       return local;
@@ -108,9 +114,13 @@ export function useTutorialTable(
         deliver(holder.current.frame());
       },
     };
-    return { runtime, control, holder };
+    return { runtime, control, holder, shown };
   });
   useEffect(() => table.runtime.greet(username), [table, username]);
+  useEffect(() => {
+    table.shown.board = board;
+    table.holder.current.setBoard(board);
+  }, [table, board]);
   /* The table keeps time only while the chapter is open, so leaving it stops the table's timers. */
   useEffect(() => {
     const { holder, runtime } = table;

@@ -1,4 +1,5 @@
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import type { BoardCapture } from '@shared/play/capture';
 import { describeCardDraw } from '@shared/play/cardDraw';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
@@ -72,6 +73,8 @@ export class LocalTable {
   private readonly pingTimes: number[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The board the table plays on: the saved Arrakis, once the page has read it. */
+  private board: BoardCapture | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */
@@ -107,8 +110,18 @@ export class LocalTable {
       () => this.session.actors.seats(),
       (userId) => this.factionFor(userId),
       undefined,
-      0
+      0,
+      () => this.board?.definition
     );
+  }
+
+  /** Puts the table on a board, and shows the page the table on it. */
+  setBoard(board: BoardCapture | undefined) {
+    if (board === this.board) {
+      return;
+    }
+    this.board = board;
+    this.deliver(this.frame());
   }
 
   private factionFor(userId: string) {
@@ -146,6 +159,7 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
+        ...(this.board ? { board: this.board } : {}),
         ...(reviewableStage(room.snapshot.stage)
           ? {
               review: this.session.reviews.current(),
