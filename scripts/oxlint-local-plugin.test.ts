@@ -405,3 +405,41 @@ export const Help = {
     expect(reports(output)).toBe(0);
   });
 });
+
+describe('form-error', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(form-error)').length - 1;
+
+  test('reports a red Mantine Alert outside the kit, however its colour is spelled', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert, Alert as Callout } from '@mantine/core';
+export const probe = [
+  <Alert color="red" title="Could not save">Try again</Alert>,
+  <Callout color={'red.6'}>Try again</Callout>,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(2);
+  });
+
+  test('leaves other colours, other Alerts and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+import { Alert as Banner } from './banner';
+export const probe = [<Alert color="yellow">Heads up</Alert>, <Banner color="red" />, <Alert color={tone} />];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+export const probe = <Alert color="red">Failed</Alert>;
+`,
+      'src/app/ui/block'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});

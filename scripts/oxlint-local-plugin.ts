@@ -702,6 +702,68 @@ const storyOwnsItsStatesRule: Rule = {
   },
 };
 
+const FORM_ERROR_RULE_NAME = 'form-error';
+
+/* The palette colour that makes a Mantine Alert read as a failure, with or without a shade, `red` or `red.6`. */
+const FAILURE_COLOUR = 'red';
+
+/**
+ * Keeps every failure on the kit's FormError, which carries the title, the colour and the live region together.
+ * Hand-made red Alerts had drifted: some left out `role="alert"`, so a screen reader never heard the failure, and some had no title.
+ * The rule reads a Mantine `Alert` whose `color` is a red string literal;
+ * a colour chosen at run time is left to review.
+ */
+const formErrorRule: Rule = {
+  meta: {
+    name: FORM_ERROR_RULE_NAME,
+    messages: {
+      formError: 'A red Alert is a failure. Use FormError from @ui/block/FormError, which titles and announces it.',
+    },
+  },
+  create(context) {
+    /* The local names bound to Mantine's Alert. */
+    const alerts = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === 'ImportSpecifier' &&
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name === 'Alert'
+          ) {
+            alerts.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'color') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement' || element.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (!alerts.has(element.name.name)) {
+          return;
+        }
+        const value = node.value;
+        const literal =
+          value?.type === 'Literal'
+            ? value.value
+            : value?.type === 'JSXExpressionContainer' && value.expression.type === 'Literal'
+              ? value.expression.value
+              : undefined;
+        if (typeof literal === 'string' && literal.split('.')[0] === FAILURE_COLOUR) {
+          context.report({ node: element, messageId: 'formError' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -715,5 +777,6 @@ export default {
     [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
     [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
+    [FORM_ERROR_RULE_NAME]: formErrorRule,
   },
 };

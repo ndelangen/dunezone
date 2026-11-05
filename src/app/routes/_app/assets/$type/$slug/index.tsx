@@ -9,12 +9,13 @@
  * Its slug stays reserved so the address survives, but the page renders the same body a slug that never existed would get, matching the ruleset detail page.
  * That is deliberately not a claim that nothing was ever here, and nothing of the deleted row reaches the client to leak.
  */
-import { Alert, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, assetTypeNoun, holdsDeckMembership, isAssetType } from '@shared/assets/types';
 import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -739,16 +740,8 @@ function LoadedAssetDetail({
       <PageLayout.Content>
         <Stack gap="xl">
           {groupActions.error}
-          {conversion.error ? (
-            <Alert color="red" role="alert" title="Could not convert card">
-              {conversion.error.message}
-            </Alert>
-          ) : null}
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {conversion.error ? <FormError title="Could not convert card">{conversion.error.message}</FormError> : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>

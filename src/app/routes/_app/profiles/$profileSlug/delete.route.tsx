@@ -1,4 +1,4 @@
-import { Alert, Button, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
+import { Alert, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
@@ -6,10 +6,11 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, UserRoundSearch } from 'lucide-react';
+import { ArrowLeft, UserRoundSearch, UserRoundX } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
@@ -165,14 +166,9 @@ function AccountDeletionPage() {
                 closeOnEscape
               >
                 <Popover.Target>
-                  <Button
-                    type="button"
-                    variant="light"
-                    leftSection={<UserRoundSearch size={16} aria-hidden />}
-                    onClick={() => setPickerOpen((open) => !open)}
-                  >
+                  <LabeledAction icon={<UserRoundSearch size={16} />} onClick={() => setPickerOpen((open) => !open)}>
                     {replacement ? 'Change replacement owner' : 'Choose a replacement owner'}
-                  </Button>
+                  </LabeledAction>
                 </Popover.Target>
                 <Popover.Dropdown>
                   {pickerOpen ? (
@@ -192,17 +188,15 @@ function AccountDeletionPage() {
                   <Text>
                     New owner: <strong>{replacement.username}</strong>
                   </Text>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    color="gray"
+                  <LabeledAction
+                    icon={<UserRoundX size={16} />}
                     onClick={() => {
                       setReplacement(null);
                       setAcknowledged(false);
                     }}
                   >
                     Use no replacement
-                  </Button>
+                  </LabeledAction>
                 </Group>
               ) : (
                 <Alert color="orange" title="No replacement selected">

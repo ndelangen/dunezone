@@ -1,6 +1,7 @@
 import { Alert, NumberInput, Slider, Stack } from '@mantine/core';
 import { CustomCardAssetInput } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
+import { FormError } from '@ui/block/FormError';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
@@ -149,20 +150,14 @@ export function CustomCardEditor({
     <WorkbenchLayout.Workbench>
       <WorkbenchLayout.Chapters>
         <div onBlurCapture={onSettle}>
-          {tokensError ? (
-            <Alert title="Linked tokens need attention" color="red">
-              {tokensError}
-            </Alert>
-          ) : null}
+          {tokensError ? <FormError title="Linked tokens need attention">{tokensError}</FormError> : null}
           {missingTokens ? (
             <Alert title="Linked token unavailable" color="yellow">
               A linked token has been deleted or cannot be read. Replace it in its layer tab, or remove the layer.
             </Alert>
           ) : null}
           {!validated.success ? (
-            <Alert title="Layers need attention" color="red">
-              {validated.error.issues[0]?.message}
-            </Alert>
+            <FormError title="Layers need attention">{validated.error.issues[0]?.message}</FormError>
           ) : null}
           <ConnectedTabs<CustomCardChapter>
             value={

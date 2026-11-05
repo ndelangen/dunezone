@@ -1,6 +1,7 @@
-import { Alert, Group, Text, TextInput } from '@mantine/core';
+import { Group, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -112,11 +113,7 @@ export function DriftedAssetPage({
           <Text size="sm" c="dimmed">
             Deleting it is still open to you. The drifted data blocks the editor, not the delete.
           </Text>
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           <Group>
             <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
@@ -202,9 +199,7 @@ export function useAssetGroupActions({
     accessActions,
     status: groupAccessStatus(assignedGroup?.name ?? null),
     error: setAssetGroup.error ? (
-      <Alert color="red" variant="light" role="alert" title="Could not change group">
-        {setAssetGroup.error.message}
-      </Alert>
+      <FormError title="Could not change group">{setAssetGroup.error.message}</FormError>
     ) : null,
   };
 }
@@ -240,9 +235,5 @@ export function SaveErrorAlert({ error }: { error: Error | null }) {
   if (!error) {
     return null;
   }
-  return (
-    <Alert color="red" variant="light" role="alert" title="Could not save">
-      {mutationErrorMessage(error)}
-    </Alert>
-  );
+  return <FormError title="Could not save">{mutationErrorMessage(error)}</FormError>;
 }

@@ -1,22 +1,11 @@
-import {
-  Accordion,
-  Button,
-  Group,
-  Loader,
-  NumberInput,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Accordion, Group, Loader, NumberInput, Select, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core';
 import type { RulebookBattleSideValue } from '@shared/rulebooks/battleStep';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { lazy, Suspense, useState } from 'react';
 
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
@@ -43,42 +32,26 @@ export function BattleSourceControl({
   card?: boolean;
   onChange: (source: RulebookSourceReference | undefined) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   const resolved = projectRulebookSource(source, references.assetsById, references.factionsById);
+  const choose = `Choose ${title.toLowerCase()}`;
   return (
-    <ControlBlock
+    <PickerField
       title={title}
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" aria-label={`Choose ${title.toLowerCase()}`} onClick={() => setOpened(!opened)}>
-              {resolved.status === 'ready'
-                ? resolved.name
-                : source
-                  ? 'Unavailable source'
-                  : `Choose ${title.toLowerCase()}`}
-            </Button>
-            {source ? (
-              <Button variant="subtle" aria-label={`Clear ${title.toLowerCase()}`} onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading sources" />}>
-              <RulebookSourcePicker
-                purpose={card ? 'card' : 'illustration'}
-                initialKind={source?.kind ?? (card ? 'asset' : 'faction-member')}
-                onPick={(next) => {
-                  onChange(next);
-                  setOpened(false);
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={resolved.status === 'ready' ? resolved.name : source ? 'Unavailable source' : choose}
+      chooseLabel={choose}
+      onClear={source ? () => onChange(undefined) : undefined}
+      loadingLabel="Loading sources"
+      picker={(close) => (
+        <RulebookSourcePicker
+          purpose={card ? 'card' : 'illustration'}
+          initialKind={source?.kind ?? (card ? 'asset' : 'faction-member')}
+          onPick={(next) => {
+            onChange(next);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
@@ -105,49 +78,33 @@ function BattleFactionFields({
   const faction = value.factionId ? references.factionsById[value.factionId] : undefined;
   const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
   return (
-    <>
-      <ControlBlock
-        title="Faction"
-        input={
-          <Stack gap="sm">
-            <Group gap="sm">
-              <Button
-                variant="default"
-                aria-label={`Choose ${label.toLowerCase()} faction`}
-                onClick={() => setOpenPicker(openPicker === 'faction' ? null : 'faction')}
-              >
-                {faction?.name ?? (value.factionId ? 'Unavailable faction' : 'Choose faction')}
-              </Button>
-              {value.factionId ? (
-                <Button variant="subtle" onClick={() => update({ factionId: undefined, troops: [] })}>
-                  Clear faction
-                </Button>
-              ) : null}
-            </Group>
-            {openPicker === 'faction' ? (
-              <Suspense fallback={<Loader size="sm" aria-label="Loading factions" />}>
-                <FactionPicker
-                  copy={{
-                    title: 'Choose faction',
-                    intro: 'Use this faction and its troop artwork in the battle plan.',
-                    errorTitle: 'Factions could not be loaded',
-                    emptyMessage: 'No factions are available.',
-                    confirmTitle: 'Selected faction',
-                    confirmLabel: 'Use faction',
-                    confirmIntent: 'positive',
-                  }}
-                  onPick={(picked) => {
-                    update({ factionId: picked.id, troops: picked.id === value.factionId ? value.troops : [] });
-                    setOpenPicker(null);
-                  }}
-                  onCancel={() => setOpenPicker(null)}
-                />
-              </Suspense>
-            ) : null}
-          </Stack>
-        }
-      />
-    </>
+    <PickerField
+      title="Faction"
+      chosen={faction?.name ?? (value.factionId ? 'Unavailable faction' : 'Choose faction')}
+      chooseLabel={`Choose ${label.toLowerCase()} faction`}
+      onClear={value.factionId ? () => update({ factionId: undefined, troops: [] }) : undefined}
+      loadingLabel="Loading factions"
+      opened={openPicker === 'faction'}
+      onOpenChange={(opened) => setOpenPicker(opened ? 'faction' : null)}
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Use this faction and its troop artwork in the battle plan.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            update({ factionId: picked.id, troops: picked.id === value.factionId ? value.troops : [] });
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
+    />
   );
 }
 

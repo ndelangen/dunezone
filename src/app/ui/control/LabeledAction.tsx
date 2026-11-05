@@ -7,15 +7,15 @@ import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 
-export interface LabeledActionProps extends Pick<ButtonProps, 'size'> {
+export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
   children: string;
   /** The glyph before the words. Required: a worded button without one is the text-only button the app does not use. Marked decorative here, since the words carry the meaning. */
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
   intent?: ActionIntent;
-  /** How loudly the action renders, in IconAction's words; omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
-  emphasis?: ActionEmphasis;
+  /** How loudly the action renders, in IconAction's words, framed only: without a tile a worded action is the text-only button the app does not use. Omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
+  emphasis?: Extract<ActionEmphasis, 'standard' | 'strong'>;
   /** Why the action cannot run right now, as a sentence; the button stays hoverable and focusable and this is its hover text and description, as on `IconAction`. */
   disabledReason?: string;
   /**
@@ -69,15 +69,18 @@ export function LabeledAction({
         <Tooltip label={disabledReason}>
           <Button
             size={buttonProps.size}
+            justify={buttonProps.justify}
             color={color}
             variant={variant}
             vars={vars}
             leftSection={leftSection}
             ref={ref}
-            type="button"
+            type={renderRoot ? undefined : type}
+            form={form}
             data-disabled
             aria-disabled
             aria-describedby={reasonId}
+            /* Keeps its type so a form's Enter lands here and stops, the way a disabled submit button stops it. */
             onClick={(event) => event.preventDefault()}
             className={className}
           >

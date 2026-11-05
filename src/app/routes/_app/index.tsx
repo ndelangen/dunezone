@@ -220,7 +220,6 @@ function AssetInvitation() {
           Browse Assets
         </CallToAction>
         <LabeledAction
-          emphasis="quiet"
           icon={<Plus size={16} />}
           renderRoot={(props) => <Link {...props} to="/assets/$type/create" params={{ type: 'card-treachery' }} />}
         >
@@ -282,11 +281,7 @@ function OnlineRulebooks() {
         <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
           Read the Rulesets
         </CallToAction>
-        <LabeledAction
-          emphasis="quiet"
-          icon={<PenLine size={16} />}
-          renderRoot={(props) => <Link {...props} to="/rulesets/create" />}
-        >
+        <LabeledAction icon={<PenLine size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
           Write your own
         </LabeledAction>
       </Group>
@@ -433,11 +428,7 @@ function PortraitCopy() {
         <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/media" />}>
           Meet the whole cast
         </CallToAction>
-        <LabeledAction
-          emphasis="quiet"
-          icon={<Plus size={16} />}
-          renderRoot={(props) => <Link {...props} to="/factions/create" />}
-        >
+        <LabeledAction icon={<Plus size={16} />} renderRoot={(props) => <Link {...props} to="/factions/create" />}>
           Create a faction
         </LabeledAction>
       </Group>
@@ -514,7 +505,6 @@ function AllianceInvitation() {
           Form an alliance
         </CallToAction>
         <LabeledAction
-          emphasis="quiet"
           icon={<UsersRound size={16} />}
           renderRoot={(props) => <Link {...props} to="/groups/$groupSlug" params={{ groupSlug: 'dreamers' }} />}
         >
@@ -609,11 +599,7 @@ function CommunityCopy() {
         >
           Meet the Space Orks
         </CallToAction>
-        <LabeledAction
-          emphasis="quiet"
-          icon={<Compass size={16} />}
-          renderRoot={(props) => <Link {...props} to="/factions" />}
-        >
+        <LabeledAction icon={<Compass size={16} />} renderRoot={(props) => <Link {...props} to="/factions" />}>
           Explore more factions
         </LabeledAction>
       </Group>

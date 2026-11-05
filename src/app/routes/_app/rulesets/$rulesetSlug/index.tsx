@@ -1,4 +1,4 @@
-import { Alert, Avatar, Badge, Box, Button, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Alert, Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -8,6 +8,7 @@ import { getRulebookSize } from '@shared/rulebooks/settings';
 import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
@@ -19,6 +20,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
@@ -26,7 +28,6 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
@@ -34,6 +35,7 @@ import {
   FileText,
   History,
   Layers3,
+  MessageCircleQuestion,
   MessageCircleQuestionMark,
   Pencil,
   RefreshCw,
@@ -354,13 +356,12 @@ function RulesetFaqPreview({
       />
       {questionCount > items.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<MessageCircleQuestion size={16} />}
             renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
           >
-            All {questionCount} questions
-          </Button>
+            {`All ${questionCount} questions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Section>
@@ -674,11 +675,7 @@ function RulesetDetailPage() {
                   {routeNotice.message}
                 </Alert>
               ) : null}
-              {mutationError ? (
-                <Alert color="red" title="The change could not be saved" role="alert">
-                  {mutationError}
-                </Alert>
-              ) : null}
+              {mutationError ? <FormError title="The change could not be saved">{mutationError}</FormError> : null}
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">
@@ -714,12 +711,12 @@ function RulesetDetailPage() {
                     <FactionCard key={faction._id} faction={faction} />
                   ))}
                   {factionCount > page.factionPreview.length ? (
-                    <Button
-                      variant="default"
+                    <LabeledAction
+                      icon={<TopicIcon topic="factions" size={16} />}
                       renderRoot={(props) => <Link {...props} to="/factions" search={{ ruleset: r.slug }} />}
                     >
-                      All {factionCount} factions
-                    </Button>
+                      {`All ${factionCount} factions`}
+                    </LabeledAction>
                   ) : null}
                 </Stack>
               ) : (

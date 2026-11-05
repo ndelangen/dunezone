@@ -1,6 +1,7 @@
 import { Alert, Anchor, Button, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
 import { changes } from '@shared/jsonDiff';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
@@ -93,11 +94,7 @@ function GameDebugger() {
                 disabled={state.loading}
               />
               {state.loading && <Text role="status">Opening {state.name}…</Text>}
-              {state.error && (
-                <Alert color="negative" title="Cannot open report" role="alert">
-                  {state.error}
-                </Alert>
-              )}
+              {state.error && <FormError title="Cannot open report">{state.error}</FormError>}
               {report && (
                 <Group justify="space-between">
                   <Text>{state.name}</Text>

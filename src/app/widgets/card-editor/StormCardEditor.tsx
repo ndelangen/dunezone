@@ -3,6 +3,7 @@ import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StormCardAsset } from '@shared/assets/schema';
 import { StormCardAssetInput } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
+import { FormError } from '@ui/block/FormError';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -145,9 +146,9 @@ export function StormCardEditor({
             ]}
           />
           {tokensError || !validation.success ? (
-            <Alert title="Card needs attention" color="red">
+            <FormError title="Card needs attention">
               {tokensError ?? (!validation.success ? validation.error.issues[0]?.message : '')}
-            </Alert>
+            </FormError>
           ) : null}
         </div>
       </WorkbenchLayout.Chapters>

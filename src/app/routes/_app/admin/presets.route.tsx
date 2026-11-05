@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Anchor, Button, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
@@ -12,6 +12,7 @@ import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { PairedProofLayout } from '@ui/layout/PairedProofLayout';
 import { Surface } from '@ui/surface/Surface';
@@ -327,7 +328,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
         id={`preset-${preset.key}`}
         action={
           <Group gap="sm">
-            {changed ? <Badge variant="outline">Draft</Badge> : null}
+            {changed ? <StatusBadge tone="pending">Draft</StatusBadge> : null}
             <Button
               variant="subtle"
               size="compact-sm"

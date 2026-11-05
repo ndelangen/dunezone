@@ -394,14 +394,14 @@ The language, each word earned by usage the survey found rather than invented:
 | `muted` | recedes behind the content it names | `Eyebrow` |
 | `accent` | ties the label to the brand | `Eyebrow` |
 | `inverse` | legible on dark artwork | `Eyebrow` |
-| `silent` | no chrome at all, even hovered | `IconAction`, `LabeledAction` |
-| `quiet` | blends in until hovered | `IconAction`, `LabeledAction` |
+| `silent` | no chrome at all, even hovered | `IconAction` |
+| `quiet` | blends in until hovered | `IconAction` |
 | `standard` | a tinted tile; the everyday weight | `IconAction`, `LabeledAction` |
 | `strong` | fully filled; the action a row leads with | `IconAction`, `LabeledAction` |
 
 The words marked `any` are context-free and belong to any component that needs them. The rest are
 scoped to the component that earned them, and a component adding a word takes it from this table
-before inventing one. The `IconAction` four, shared by its worded sibling `LabeledAction`, are a loudness axis rather than a meaning: they rename
+before inventing one. The `IconAction` four (its worded sibling `LabeledAction` takes only the framed two, since an unframed worded button is a text-only button) are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
@@ -443,6 +443,18 @@ them all.
 *Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
 status, and [`StatusInfo`](../../src/app/ui/control/StatusInfo.tsx) gathers a toolbar's statuses
 behind one glyph whose popover lists them all.*
+
+### A failure is a FormError
+
+When an attempt did not happen, the page says so with
+[`FormError`](../../src/app/ui/block/FormError.tsx): a title naming what failed, the reason under it,
+and a live region so a screen reader hears it the moment it appears. A failure the reader settles on
+the spot, such as a settings conflict, carries its choices in FormError's `action`, under the words. A
+hand-made red Alert is the failure drawn a second way, usually without a title or without the
+announcement.
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/form-error` rejects a Mantine `Alert`
+with a red colour outside `src/app/ui`.*
 
 ### Destructive actions are held, not asked twice
 

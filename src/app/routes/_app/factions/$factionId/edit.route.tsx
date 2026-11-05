@@ -3,6 +3,7 @@ import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -252,11 +253,7 @@ function FactionEditPage() {
                 {routeNotice.message}
               </Alert>
             ) : null}
-            {deleteFaction.error ? (
-              <Alert color="red" variant="light" role="alert" title="Could not delete">
-                {deleteFaction.error.message}
-              </Alert>
-            ) : null}
+            {deleteFaction.error ? <FormError title="Could not delete">{deleteFaction.error.message}</FormError> : null}
             <FactionEditor
               nameField={nameField}
               key={faction._id}
