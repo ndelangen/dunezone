@@ -1,10 +1,11 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame, finishTransitions } from '@sb/storyWaits';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { territoryAtTable } from '@shared/play/territoryPlacement';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
@@ -213,7 +214,7 @@ export const MarkerNamesItsTerritory = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
-    const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+    const carthag = ARRAKIS_OFFICIAL.geometry.parts.find((part) => part.key === 'carthag')!;
     await dragBattleMarker(
       document,
       [
@@ -226,7 +227,7 @@ export const MarkerNamesItsTerritory = meta.story({
         await expect(action).toMatchObject({ kind: 'battle-start' });
         /* The game names the battle for the territory under the marker. */
         const anchor = (action as { anchor: Vector3Tuple }).anchor;
-        await expect(territoryAtTable({}, anchor)?.name).toBe('Carthag');
+        await expect(territoryAtTable({ board: arrakisBoardCapture.definition }, anchor)?.name).toBe('Carthag');
       }
     );
   },

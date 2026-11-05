@@ -1,6 +1,4 @@
 import { Accordion, ColorInput, Group, NumberInput, Select, Stack, Switch, TextInput, Textarea } from '@mantine/core';
-import { resolveRulebookBoardDefinition, RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
-import { boardHighlightTints } from '@shared/rulebooks/boardHighlightTints';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -8,6 +6,7 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { createContext, lazy, useContext } from 'react';
 
+import { useArrakisFace } from '@app/db/arrakis';
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
@@ -23,15 +22,12 @@ const emptyReferences = { assetsById: {}, factionsById: {} };
 /* The editor's resolved references, for the parts of a saved board the fields below offer. */
 const BoardReferences = createContext<RulebookEditorReferences>(emptyReferences);
 
-/** A board's named parts: the maintained Arrakis definition's, or a saved board's as its references resolved them. */
+/** A board's named parts, as its references resolved them. */
 function useBoardParts(boardId: string) {
-  const references = useContext(BoardReferences);
-  return (
-    resolveRulebookBoardDefinition(boardId)?.geometry.parts ?? references.assetsById[boardId]?.geometry?.parts ?? []
-  );
+  return useContext(BoardReferences).assetsById[boardId]?.geometry?.parts ?? [];
 }
 
-/** The maintained boards and saved board assets in one field, each beside its face. */
+/** The saved boards in one field, each beside its face. */
 function BoardChoice({
   boardId,
   references,
@@ -45,21 +41,15 @@ function BoardChoice({
   return (
     <ControlBlock
       title="Board"
-      description={'The board the scene draws: the Arrakis map, or a saved board.\nSaved boards take tints and tokens.'}
+      description="The board the scene draws, with its tints and tokens."
       input={
         <BoardPicker
           label="Board"
-          value={boardId}
-          fixed={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({
-            id: board.id,
-            name: board.name,
-            previewSrc: board.imageUrl,
-            collection: 'Maintained boards',
-          }))}
+          value={boardId || null}
           selected={
-            resolveRulebookBoardDefinition(boardId)
-              ? undefined
-              : { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+            boardId
+              ? { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+              : undefined
           }
           onPick={onChange}
         />
@@ -68,14 +58,15 @@ function BoardChoice({
   );
 }
 
-const emptyBoard: RulebookBoardSceneValue = {
-  boardId: 'arrakis',
-  caption: '',
-  players: [],
-  troops: [],
-  highlights: [],
-  annotations: [],
-};
+/** A new scene's board: the saved Arrakis, or none while it loads or the site has none published, so the author picks one. */
+export function useNewSceneBoardId() {
+  return useArrakisFace()?.assetId ?? '';
+}
+
+/** An empty scene on a board. */
+export function emptyBoardScene(boardId: string): RulebookBoardSceneValue {
+  return { boardId, caption: '', players: [], troops: [], highlights: [], annotations: [] };
+}
 
 function FactionControl({
   label,
@@ -738,32 +729,15 @@ function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
   );
 }
 
-/**
- * A scene moved from the maintained board onto a saved one carries its highlights over as tints, which a saved board draws instead.
- * Tints and tokens draw on the maintained board too, so moving back keeps what the scene showed.
- * A scene that already has tints keeps them and its highlights as they are.
- */
-function withBoard(value: RulebookBoardSceneValue, boardId: string): RulebookBoardSceneValue {
-  const carry =
-    !resolveRulebookBoardDefinition(boardId) &&
-    resolveRulebookBoardDefinition(value.boardId) &&
-    value.highlights.length &&
-    !value.tints?.length;
-  return carry
-    ? { ...value, boardId, highlights: [], tints: boardHighlightTints(value.highlights) }
-    : { ...value, boardId };
-}
-
 function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps) {
   const [ui, setUi] = useRulebookMarkupUi();
-  const saved = !resolveRulebookBoardDefinition(value.boardId);
   return (
     <BoardReferences.Provider value={references}>
       <Stack gap="md">
         <BoardChoice
           boardId={value.boardId}
           references={references}
-          onChange={(boardId) => onChange(withBoard(value, boardId))}
+          onChange={(boardId) => onChange({ ...value, boardId })}
         />
         <Textarea
           label="Caption"
@@ -793,7 +767,7 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
           <BoardPlayerFields value={value} references={references} onChange={onChange} />
           <BoardTroopFields value={value} references={references} onChange={onChange} />
           <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
-          {!saved || value.highlights.length ? (
+          {value.highlights.length ? (
             <BoardHighlightFields value={value} references={references} onChange={onChange} />
           ) : null}
           <BoardRouteFields value={value} references={references} onChange={onChange} />
@@ -926,6 +900,7 @@ export function PieceMovementEdit({
   onChange,
   references = emptyReferences,
 }: RulebookBlockEditorProps<'piece-movement'>) {
+  const boardId = useNewSceneBoardId();
   return (
     <Stack gap="md">
       <Group grow>
@@ -958,7 +933,9 @@ export function PieceMovementEdit({
       <Switch
         label="Include board scene"
         checked={Boolean(value.board)}
-        onChange={(event) => onChange({ ...value, board: event.currentTarget.checked ? { ...emptyBoard } : undefined })}
+        onChange={(event) =>
+          onChange({ ...value, board: event.currentTarget.checked ? emptyBoardScene(boardId) : undefined })
+        }
       />
       {value.board ? (
         <BoardSceneFields

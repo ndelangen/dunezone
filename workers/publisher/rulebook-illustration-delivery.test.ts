@@ -412,28 +412,4 @@ describe('annotated Rulebook illustration delivery', () => {
     expect(response.status).toBe(200);
     expect(svg).not.toContain('data:image/jpeg;base64,');
   });
-
-  test('maintained board illustration and highlights arrive in one self-contained SVG', async () => {
-    const f = fixture();
-    const board = { kind: 'board' as const, boardId: 'arrakis' };
-    f.set({
-      ok: true,
-      status: 'found',
-      design: 'illustrated',
-      source: { status: 'board', boardId: 'arrakis' },
-      configuration: {
-        source: board,
-        numbering: 'automatic',
-        colorMode: 'automatic',
-        items: [{ id: 'one', label: 'saved', target: { kind: 'named', key: 'arrakeen', source: board } }],
-      },
-    });
-    const response = await serve(f);
-    const svg = await response.text();
-    expect(response.status).toBe(200);
-    expect(svg).toContain('data:image/svg+xml;base64,');
-    expect(svg).toContain('<path');
-    expect(svg).not.toContain('target unavailable');
-    expect(f.bucket.get).not.toHaveBeenCalled();
-  });
 });

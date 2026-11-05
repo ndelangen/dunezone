@@ -190,6 +190,7 @@ import type {
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDropStatus,
 } from './rulebookPageDetailsEdit';
+import { emptyBoardScene, useNewSceneBoardId } from './rulebookSceneBlockEditors';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 
@@ -872,10 +873,10 @@ function emptyBattleExample() {
   };
 }
 
-function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
+function createBlock(kind: RulebookBlockKind, id: string, boardId: string): RulebookBlockDraft {
   switch (kind) {
     case 'board-scene':
-      return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+      return { id, kind, ...emptyBoardScene(boardId) };
     case 'piece-transfer':
       return { id, kind, left: { label: '', pieces: [] }, right: { label: '', pieces: [] } };
     case 'piece-movement':
@@ -1804,6 +1805,7 @@ function RulebookWorkspace({
     flush: flushRailDragPosition,
     cancel: cancelRailDragPosition,
   } = useCoalescedDragPosition(processRailDragPosition);
+  const newSceneBoardId = useNewSceneBoardId();
 
   if (!active || !activePage || !projectedActivePage) {
     return (
@@ -1881,7 +1883,7 @@ function RulebookWorkspace({
       entity: {
         kind: 'block',
         pageId: page.id,
-        block: createBlock(kind, blockId),
+        block: createBlock(kind, blockId, newSceneBoardId),
       },
       placement: {
         container: { kind: 'block-region', pageId: page.id, regionKey },

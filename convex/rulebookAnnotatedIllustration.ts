@@ -14,7 +14,6 @@ import {
   rulebookIllustrationConfigurationSchema,
 } from '../src/shared/rulebooks/annotatedIllustration';
 import type { RulebookAnnotatedIllustrationResolution } from '../src/shared/rulebooks/annotatedIllustration';
-import { resolveRulebookBoardDefinition } from '../src/shared/rulebooks/boardDefinitions';
 import { rulebookEditionContentsV1Schema } from '../src/shared/rulebooks/contents';
 import { DEFAULT_RULEBOOK_SETTINGS } from '../src/shared/rulebooks/settings';
 import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '../src/shared/rulebooks/sources';
@@ -48,9 +47,7 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
       : { status: 'unavailable' };
   }
   if (reference.kind === 'board') {
-    return resolveRulebookBoardDefinition(reference.boardId)
-      ? { status: 'board', boardId: reference.boardId }
-      : resolveSavedBoard(ctx, reference);
+    return resolveSavedBoard(ctx, reference);
   }
   if (reference.kind === 'faction-member') {
     if (!parseFactionMemberPublicationId(`${reference.factionId}.${reference.memberId}`)) {

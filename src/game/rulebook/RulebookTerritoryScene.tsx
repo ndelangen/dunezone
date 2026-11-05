@@ -28,7 +28,7 @@ export type RulebookTerritorySceneProps = Readonly<{
   labels: readonly (Point & { text: string; width: number })[];
 }>;
 
-/** Callers place pieces in board coordinates; this scene keeps the maintained board and its territory outlines aligned. */
+/** Callers place pieces in board coordinates; this scene keeps the board and its territory outlines aligned. */
 export function RulebookTerritoryScene({
   label,
   size = 'compact',

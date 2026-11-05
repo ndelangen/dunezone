@@ -1,7 +1,8 @@
 /* @vitest-environment jsdom */
-import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, RADIUS } from '@shared/boards/geometry';
 import { propertyId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { nextToMove, movementOrder } from '@shared/play/movement';
 import type { PieceAction } from '@shared/play/protocol';
@@ -39,7 +40,7 @@ const act = (action: PieceAction, seat = table.seat) =>
     seat
   );
 const point = (name: string): Vector3Tuple => {
-  const board = retainedArrakisBoard();
+  const board = arrakisBoardCapture.definition;
   const face = boardTerritories(board).find(
     (face) =>
       board.properties[face.key]!.name.toLowerCase() === name.toLowerCase() ||

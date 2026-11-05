@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-import { legacyHighlightTint } from '../boards/spiceHighlights';
 import { tintTerritorySchema } from '../boards/tints';
 
 /* Far more than one card's spice; bounds what one placement spawns. */
@@ -28,7 +27,7 @@ export const spiceBlowSchema = z.strictObject({
 });
 export type SpiceBlow = z.infer<typeof spiceBlowSchema>;
 
-type LegacyCard = { highlights?: unknown; amount?: unknown; board?: unknown };
+type StoredCard = { amount?: unknown; board?: unknown };
 type LinkedBoard = {
   asset_id?: unknown;
   tints?: { territories?: unknown; stamps?: unknown; outline?: unknown }[];
@@ -62,14 +61,7 @@ function linkedSpots(link: LinkedBoard): [number, number][] {
   return tokens.flatMap(({ x, y }) => (inFrame(x) && inFrame(y) ? [[x, y] as [number, number]] : []));
 }
 
-/* Legacy highlights, as the card editor carries them onto a saved board: regions are not a place to put spice. */
-function highlightTerritories(card: LegacyCard): string[] {
-  return (
-    legacyHighlightTint(strings(card.highlights) as Parameters<typeof legacyHighlightTint>[0], '')?.territories ?? []
-  );
-}
-
-function linkOf(card: LegacyCard): LinkedBoard | undefined {
+function linkOf(card: StoredCard): LinkedBoard | undefined {
   return card.board && typeof card.board === 'object' ? (card.board as LinkedBoard) : undefined;
 }
 
@@ -79,22 +71,19 @@ function boardIdOf(link: LinkedBoard | undefined): { boardId?: string } {
   return typeof id === 'string' && id.length <= MAX_BOARD_ID ? { boardId: id } : {};
 }
 
-/*
- * Where the card puts its spice. A card linked to a board shows only that board's map, so it names the territories its board stamps
- * with spice, else its first filled tint; its retained classic highlights are no longer drawn. An unlinked card names its highlights.
- */
-function blowTerritories(card: LegacyCard, link: LinkedBoard | undefined): string[] {
+/* Where the card puts its spice: the territories its board stamps with spice, else its first filled tint; a card without a board names none. */
+function blowTerritories(link: LinkedBoard | undefined): string[] {
   if (!link) {
-    return highlightTerritories(card);
+    return [];
   }
   const stamped = stampedTerritories(link);
   return stamped.length ? stamped : firstFilledTerritories(link);
 }
 
 /* The blow as the card describes it, before the schema checks it. */
-function blowInput(card: LegacyCard) {
+function blowInput(card: StoredCard) {
   const link = linkOf(card);
-  const territories = blowTerritories(card, link);
+  const territories = blowTerritories(link);
   const spots = link ? linkedSpots(link).slice(0, MAX_BLOW_SPOTS) : [];
   return {
     amount: card.amount,
@@ -104,7 +93,7 @@ function blowInput(card: LegacyCard) {
   };
 }
 
-function isCard(data: unknown): data is LegacyCard {
+function isCard(data: unknown): data is StoredCard {
   return typeof data === 'object' && data !== null;
 }
 

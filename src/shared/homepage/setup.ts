@@ -4,9 +4,7 @@ import type { StoredPiece } from '../play/model';
 import { factionSupplyLayout } from '../play/setupLayout';
 import { item, piece, place } from '../play/setupSupply';
 import { cardBaySlotPositions } from '../play/tableFurnitureLayout';
-import { BOARD_RADIUS } from '../play/tableGeometry';
 import { tableSeatAngles } from '../play/tableSettings';
-import board from '../rulebooks/boards/arrakis.json';
 import artworkManifest from './artwork.json';
 
 function homepagePieces(origin: string): StoredPiece[] {
@@ -44,26 +42,37 @@ function homepagePieces(origin: string): StoredPiece[] {
   return [...pieces, ...treacheryPieces(artwork)];
 }
 
+/** The table point in the middle of each territory the homepage table starts troops in, on Arrakis Official. */
+export const HOMEPAGE_TERRITORY_POINTS = {
+  arrakeen: [1.23, -2.81],
+  carthag: [-0.11, -2.52],
+  tueks: [2.89, 1.65],
+  tabr: [-2.85, -1.73],
+  'false-wall-south': [1.72, 1.67],
+  polar: [-0.07, 0.11],
+  'imperial-basin': [0.68, -2],
+} as const satisfies Record<string, readonly [x: number, z: number]>;
+
+/* Each faction's starting troops: the faction, how many, and where. */
+const STARTING_TROOPS: ReadonlyArray<
+  readonly [faction: number, count: number, keyof typeof HOMEPAGE_TERRITORY_POINTS]
+> = [
+  [0, 10, 'arrakeen'],
+  [1, 10, 'carthag'],
+  [3, 5, 'tueks'],
+  [4, 5, 'tabr'],
+  [4, 5, 'false-wall-south'],
+  [5, 1, 'polar'],
+  [5, 1, 'imperial-basin'],
+];
+
 function placeStartingTroops(pieces: StoredPiece[]) {
-  const placements: Array<[number, number, string]> = [
-    [0, 10, 'arrakeen'],
-    [1, 10, 'carthag'],
-    [3, 5, 'tueks'],
-    [4, 5, 'tabr'],
-    [4, 5, 'false-wall-south'],
-    [5, 1, 'polar'],
-    [5, 1, 'imperial-basin'],
-  ];
-  for (const [faction, count, territory] of placements) {
+  for (const [faction, count, territory] of STARTING_TROOPS) {
+    const [x, z] = HOMEPAGE_TERRITORY_POINTS[territory];
     const reserve = pieces.find((p) => p.id === `reserve-${faction}-0`)!;
-    const area = board.geometry.parts.find((part) => part.key === territory)!;
     const troops = reserve.items.splice(0, count);
     pieces.push(
-      place({ ...reserve, id: `starting-${faction}-${territory}`, items: troops, zoneId: territory }, [
-        (area.x + area.width / 2 - 0.5) * BOARD_RADIUS * 2,
-        0,
-        (area.y + area.height / 2 - 0.5) * BOARD_RADIUS * 2,
-      ])
+      place({ ...reserve, id: `starting-${faction}-${territory}`, items: troops, zoneId: territory }, [x, 0, z])
     );
     Object.assign(reserve, place(reserve, reserve.position));
   }

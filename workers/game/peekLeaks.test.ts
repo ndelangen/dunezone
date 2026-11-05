@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { MOVEMENT_PHASE_ID } from '../../src/shared/play/movement';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
@@ -31,7 +32,10 @@ function peekedRoom(stage: Partial<GameSnapshot> = {}) {
   const room = new Room(
     { ...initialSnapshot(), roster: hostedFixturePlan.roster, ...stage },
     () => ['harkonnen', 'atreides'],
-    (id) => FACTIONS[id]
+    (id) => FACTIONS[id],
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
   );
   room.accept(room.command(alice, { kind: 'peek', pieceId: DECK }, room.snapshot.revision, LATER));
   const granted = new Set(room.snapshot.table.pieces.find((piece) => piece.id === DECK)!.items.map((item) => item.id));

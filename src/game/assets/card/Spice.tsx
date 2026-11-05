@@ -1,9 +1,6 @@
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokens } from '@shared/assets/schema';
-import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Board } from '@shared/boards/schema';
-import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
-import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -23,9 +20,8 @@ import type { SpiceMapEditing } from './SpiceBoardMap';
 import { spiceIconSrc, standardSpiceText } from './spiceText';
 
 /**
- * A card with a `board` link draws that board, resolved by the caller into `boardDefinition` and `boardTokens`, in place of the legacy Arrakis vector.
- * A link whose board is missing draws an empty map rather than the wrong one;
- * cards without a link keep the legacy map until Stage 1.5 migrates them.
+ * A card draws the board it links, resolved by the caller into `boardDefinition` and `boardTokens`.
+ * A card without a board, or whose board is missing, draws an empty map rather than the wrong one.
  */
 export const SpiceCard: FC<
   z.infer<typeof Spice> & {
@@ -43,7 +39,6 @@ export const SpiceCard: FC<
   iconOffset = [0, 0],
   text,
   amount,
-  highlights,
   overlays,
   board,
   boardDefinition,
@@ -53,12 +48,6 @@ export const SpiceCard: FC<
 }) => {
   const frontStyle = useResolvedCardFront('card-spice', {}, suppliedFrontStyle);
   const resolveOverlay = useAssetResolver();
-  /* A card without a board link draws the stock Arrakis board, its highlights carried as one tint; kept while they stay the same, so the map is drawn once. */
-  const highlightKey = highlights.join(',');
-  const classicTints = useMemo(() => {
-    const tint = legacyHighlightTint(highlightKey ? (highlightKey.split(',') as typeof highlights) : [], subName);
-    return tint ? [tint] : [];
-  }, [highlightKey, subName]);
   const iconSize = 85 * iconScale;
 
   return (
@@ -101,27 +90,23 @@ export const SpiceCard: FC<
       <CardTitle className={styles.title} text={name} />
       <CardTitle className={styles.subtitle} text={subName} baseSize={40} />
 
-      {board ? (
-        boardDefinition ? (
-          <SpiceBoardMap
-            board={boardDefinition}
-            tints={board.tints}
-            tokens={board.tokens}
-            tokenAssets={boardTokens}
-            look={board.look}
-            editing={mapEditing}
-          />
-        ) : (
-          <div
-            className={`${unique.map} ${board.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}
-            data-missing-board
-          />
-        )
+      {board && boardDefinition ? (
+        <SpiceBoardMap
+          board={boardDefinition}
+          tints={board.tints}
+          tokens={board.tokens}
+          tokenAssets={boardTokens}
+          look={board.look}
+          editing={mapEditing}
+        />
       ) : (
-        <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints} />
+        <div
+          className={`${unique.map} ${board?.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}
+          data-missing-board
+        />
       )}
 
-      {/* Images an author placed on the map, in the classic map's 100-unit frame, over the classic or the linked board alike. */}
+      {/* Images an author placed on the map, in a 100-unit frame over the board. */}
       {overlays?.length ? (
         <svg
           className={`${unique.map_overlay} ${board?.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}

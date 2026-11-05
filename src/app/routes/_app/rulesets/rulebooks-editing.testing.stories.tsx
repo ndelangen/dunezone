@@ -1,6 +1,5 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { completeHold } from '@ui/control/useHoldToConfirm.stories.fixture';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
@@ -442,13 +441,14 @@ export const RawJsonReferencePreflight = meta.story({
       throw new Error('Expected an editable Rulebook.');
     }
     const deck = (await loadAssetPage('deck', 'house-treachery'))!;
+    const arrakis = (await loadAssetPage('board', 'arrakis-official'))!;
     const faction = (await loadFaction('house-atreides')).faction;
     const value = { settings: before.draft.settings, contents: structuredClone(before.draft.contents) };
     value.contents.pagesById.RULE.blocksById = {
       TEST: {
         id: 'TEST',
         kind: 'board-scene',
-        boardId: RULEBOOK_BOARD_DEFINITIONS[0].id,
+        boardId: arrakis.asset.id,
         caption: 'Validated scene',
         players: [],
         troops: [],

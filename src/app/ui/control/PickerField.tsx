@@ -1,4 +1,4 @@
-import { Combobox, Group, Input, InputBase, Loader, Stack } from '@mantine/core';
+import { Box, Combobox, Input, InputBase, Loader, Stack } from '@mantine/core';
 import { X } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -41,7 +41,7 @@ type OpenState =
  * Picks one thing from a picker that opens in place, and clears it again.
  *
  * Callers own the picker, the chosen thing's name and what clearing means;
- * this owns the arrangement: the field that names the choice and opens the picker, the clear action beside it, and the spinner while a lazily loaded picker arrives.
+ * this owns the arrangement: the field that names the choice and opens the picker, the clear action inside its right edge, and the spinner while a lazily loaded picker arrives.
  * The picker comes in as a slot so the field itself never fetches.
  * The field names a value rather than an action, so it wears a select's input look (box, placeholder, chevron) and not a button's.
  * It exists because the rulebook editor wrote this control six times, each with its own text-only Clear button.
@@ -67,13 +67,12 @@ export function PickerField({
       description={description}
       input={
         <Stack gap="sm">
-          <Group gap="sm" wrap="nowrap">
+          <Box pos="relative">
             <InputBase
               component="button"
               type="button"
               pointer
-              flex={1}
-              rightSection={<Combobox.Chevron />}
+              rightSection={onClear ? <span /> : <Combobox.Chevron />}
               rightSectionPointerEvents="none"
               aria-label={chooseLabel && onClear ? `${chooseLabel}: ${chosen}` : chooseLabel}
               aria-expanded={opened}
@@ -82,15 +81,19 @@ export function PickerField({
               {onClear ? chosen : <Input.Placeholder>{chosen}</Input.Placeholder>}
             </InputBase>
             {onClear ? (
-              <IconAction
-                label={clearLabel}
-                emphasis="quiet"
-                intent="neutral"
-                icon={<X size={16} aria-hidden />}
-                onClick={onClear}
-              />
+              /* Sits over the field's right section where the chevron was, as a clearable select's X does; a sibling, since a button cannot hold a button. */
+              <Box pos="absolute" top="50%" right={4} style={{ transform: 'translateY(-50%)' }}>
+                <IconAction
+                  label={clearLabel}
+                  size="sm"
+                  emphasis="quiet"
+                  intent="neutral"
+                  icon={<X size={14} aria-hidden />}
+                  onClick={onClear}
+                />
+              </Box>
             ) : null}
-          </Group>
+          </Box>
           {opened ? (
             <Suspense fallback={<Loader size="sm" aria-label={loadingLabel} />}>
               {picker(() => setOpened(false))}

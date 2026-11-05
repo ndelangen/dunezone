@@ -1,4 +1,3 @@
-import { retainedArrakisBoard } from '../boards/geometry';
 import { isFactionToken } from './factionToken';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
@@ -13,11 +12,6 @@ import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
  * Both work from the one layout the page predicts and the game confirms.
  */
 
-/** A table without a captured board plays on the rulebook Arrakis the page draws for it. */
-function tableBoard(state: Pick<TableState, 'board'>) {
-  return state.board ?? retainedArrakisBoard();
-}
-
 /** Whether a piece takes part in a territory's packing: a loose, unlocked round stack such as troops, a leader or spice. */
 export function packsInTerritory(piece: TablePiece): boolean {
   return (
@@ -31,9 +25,9 @@ export function packsInTerritory(piece: TablePiece): boolean {
   );
 }
 
-/** The territory a table point lies in on the table's board, if any. */
+/** The territory a table point lies in on the table's board, if any; a table without a board has none. */
 export function territoryAtTable(state: Pick<TableState, 'board'>, [x, , z]: Readonly<Vector3Tuple>) {
-  return territoryShapeAt(tableBoard(state), [x, z]);
+  return state.board && territoryShapeAt(state.board, [x, z]);
 }
 
 function body(piece: TablePiece, at: Readonly<Vector3Tuple> = piece.position): FitBody {

@@ -3,6 +3,7 @@ import type { FunctionReference } from 'convex/server';
 
 import { SPICE_CARD_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
 import { SpiceAsset } from '../src/shared/assets/schema';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import type { Board } from '../src/shared/boards/geometry';
 import type { BoardTint } from '../src/shared/boards/markup';
 import { propertyId } from '../src/shared/boards/schema';
@@ -27,9 +28,6 @@ const migrations = new Migrations(components.migrations, {
   migrationsLocationPrefix: 'arrakisMigrations:',
   schema,
 });
-
-/** The saved Arrakis board's slug: the stock board every built-in Arrakis reference moves to. */
-export const ARRAKIS_BOARD_SLUG = 'arrakis-official';
 
 /** The id Rulebook Contents gave the built-in Arrakis board. */
 export const BUILT_IN_ARRAKIS_BOARD_ID = 'arrakis';

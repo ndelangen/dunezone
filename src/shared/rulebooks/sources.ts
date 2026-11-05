@@ -6,7 +6,6 @@ import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { CanonicalFactionStoredObject } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
-import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
   kind: z.literal('asset'),
@@ -98,11 +97,10 @@ export const RULEBOOK_STOCK_ARTWORK = [
   ]),
 ];
 const stockArtworkIds = new Set<string>(RULEBOOK_STOCK_ARTWORK);
-export const RULEBOOK_BOARD_ARTWORK = RULEBOOK_BOARD_DEFINITIONS;
 
-/** Only a saved board takes Sector lines; the built-in Arrakis artwork already prints its own, so lines over it would draw twice. */
+/** A board takes Sector lines. */
 export function rulebookSourceTakesSectorLines(source: RulebookSourceReference | undefined) {
-  return source?.kind === 'board' && !RULEBOOK_BOARD_DEFINITIONS.some(({ id }) => id === source.boardId);
+  return source?.kind === 'board';
 }
 
 export function rulebookArtworkName(path: string): string {
@@ -114,27 +112,12 @@ export function rulebookArtworkName(path: string): string {
     .replaceAll('_', ' ');
 }
 
-/** Maintained artwork resolves locally; database-backed sources, saved boards among them, resolve in the owning route query. */
+/** Maintained artwork resolves locally; database-backed sources, boards among them, resolve in the owning route query. */
 export function resolveRulebookArtworkSource(reference: RulebookSourceReference): RulebookResolvedSource | null {
   if (reference.kind === 'stock') {
     return stockArtworkIds.has(reference.artworkId)
       ? { status: 'ready', reference, name: rulebookArtworkName(reference.artworkId), imageUrl: reference.artworkId }
       : { status: 'unavailable', reference };
-  }
-  if (reference.kind === 'board') {
-    const board = RULEBOOK_BOARD_ARTWORK.find(({ id }) => id === reference.boardId);
-    return board
-      ? {
-          status: 'ready',
-          reference,
-          name: board.name,
-          imageUrl: board.imageUrl,
-          width: board.geometry.width,
-          height: board.geometry.height,
-          geometry: board.geometry,
-          publicationRevision: board.revision,
-        }
-      : null;
   }
   return null;
 }

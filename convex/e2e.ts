@@ -1,6 +1,10 @@
 import { v } from 'convex/values';
 
+import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
+import { arrakisBoardCapture } from '../src/shared/boards/arrakisPreset';
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
+import arrakisOfficialGeometry from '../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import type { Id, TableNames } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -224,6 +228,25 @@ export const seedBaseline = mutation({
       is_deleted: false,
       image_cover: null,
       cover: null,
+    });
+
+    /* The saved Arrakis, published as production's is, so a Rulebook scene can draw it and point at its territories without a publisher. */
+    const arrakisId = await ctx.db.insert('assets', {
+      type: 'board',
+      slug: ARRAKIS_BOARD_SLUG,
+      data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+      owner_id: ownerUser._id as Id<'users'>,
+      group_id: null,
+      created_at: now,
+      updated_at: now,
+      is_deleted: false,
+    });
+    await ctx.db.insert('publication_assets', {
+      asset_type: 'board',
+      asset_id: arrakisId,
+      cache_token: 'e2e-arrakis-official',
+      published_at: Date.now(),
+      component_geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),
     });
 
     return {

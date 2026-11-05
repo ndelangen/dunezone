@@ -69,9 +69,8 @@ neither palette imports the other.
 
 ## Artwork outside these swatches
 
-The built-in [`arrakis-map.svg`](../../src/app/widgets/tabletop/assets/arrakis-map.svg) supplies its
-own fills and strokes to `boardMapGeometry.ts`. Retained boards receive their complete artwork
-through [`authoredBoardTexture.tsx`](../../src/app/widgets/tabletop/authoredBoardTexture.tsx), which
+Every table plays on a board asset, whether its ruleset's or the bundled Arrakis preset, and
+receives its complete artwork through [`authoredBoardTexture.tsx`](../../src/app/widgets/tabletop/authoredBoardTexture.tsx), which
 renders the game board asset and its decals. Those full images supersede the temporary terrain fills.
 
 Published faction tokens, troops, leaders and cards retain their image colours. Their material sides

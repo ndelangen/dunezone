@@ -32,17 +32,18 @@ export const signedIn = {
  * The create page checks the chosen ruleset the way the table captures it, and refuses one whose faces are unpublished.
  */
 export function publishEverything(baseline: StorybookDatabase) {
-  for (const row of baseline.assets) {
-    if (!row.$key || !isPublicationAssetType(row.type)) {
-      continue;
-    }
-    for (const id of [SEED_REF_TOKEN, `${SEED_REF_TOKEN}.back`]) {
-      baseline.publication_assets.push({
-        asset_type: row.type,
-        asset_id: refText(row.$key, id),
-        cache_token: 'story',
-        published_at: 0,
-      });
+  /* The baseline already publishes some faces, such as the saved Arrakis board; a face has one publication. */
+  const published = new Set(
+    baseline.publication_assets.map((publication) => JSON.stringify([publication.asset_type, publication.asset_id]))
+  );
+  const faces = baseline.assets.flatMap((row) =>
+    row.$key && isPublicationAssetType(row.type)
+      ? [SEED_REF_TOKEN, `${SEED_REF_TOKEN}.back`].map((id) => ({ type: row.type, assetId: refText(row.$key!, id) }))
+      : []
+  );
+  for (const { type, assetId } of faces) {
+    if (!published.has(JSON.stringify([type, assetId]))) {
+      baseline.publication_assets.push({ asset_type: type, asset_id: assetId, cache_token: 'story', published_at: 0 });
     }
   }
 }
