@@ -32,8 +32,12 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
 bun run play:bot:watch          # http://127.0.0.1:4747
 ```
 
-A page on your machine. With the stack running, paste the game's URL, list the factions the bots should draft and press
-Start bots: each faction gets its own bot process and account, as `play:bot:table` starts them. Each bot shows its status
+A page on your machine, and the **seat harness**: one process that holds every bot's seat and serves all their tools as a
+single MCP server at http://127.0.0.1:4747/mcp. With the stack running, paste the game's URL, list the factions the bots
+should draft and press Start bots. Each faction's account joins the game as a person's page does (the table sees the seat
+request and approves it) and gets a seat token. The agent CLI that thinks for that seat connects to `/mcp` with the token in
+its connection header, so the model acts only for its own seat and never sees the token. Each seat keeps its own memory,
+notes and log. The same shape could later run in the game Worker, so players bring their own model. Each bot shows its status
 (connected, asking for a seat, seated, playing, thinking, stopped, with the error if it stopped) and a Stop button. Below
 that, per bot: whether it is thinking, what woke it (or why a message did not), every
 tool call and whether the room refused it, what it concluded, how long it thought, and its tokens (with the share read from

@@ -10,6 +10,7 @@ import path from 'node:path';
 
 import type { Brain, PlayBot, Thought } from './bot';
 import { serveTools } from './tool-server';
+import type { ToolEndpoint } from './tool-server';
 
 const bridge = path.join(import.meta.dirname, 'mcp-stdio.ts');
 const THINK_TIMEOUT_MS = 6 * 60_000;
@@ -39,31 +40,38 @@ function run(command: string, args: string[], input: string, env: NodeJS.Process
  * Where a bot's CLI runs: a directory of its own outside the repository, so two bots never share the CLI's per-directory
  * state (its project memory and sessions) and neither reads the repository's instructions.
  */
-type BrainOptions = { model?: string; bun?: string; workdir?: string };
+type BrainOptions = {
+  model?: string;
+  bun?: string;
+  workdir?: string;
+  /**
+   * Where the CLI reaches the seat's tools. The harness passes its own MCP address and the seat's token; without it each
+   * wake serves the bot's tools on a port of its own.
+   */
+  tools?: (bot: PlayBot) => Promise<ToolEndpoint>;
+};
 
 /**
  * Claude Code in print mode, with only the game tools and nothing on the machine.
  * It skips the user's own settings and CLAUDE.md, keeps no session, and writes no auto-memory, so one wake or one bot
  * leaves nothing another can read; the bot's notes are its only memory.
  */
-export function claudeBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): Brain {
+export function claudeBrain({ model, workdir, tools: endpoint = serveTools }: BrainOptions = {}): Brain {
   return {
     name: `Claude Code${model ? ` (${model})` : ''}`,
     async think(prompt: string, bot: PlayBot) {
-      const tools = await serveTools(bot);
+      const tools = await endpoint(bot);
       try {
+        /* The seat's token goes in the connection's header, written to a file only this run reads, never into the prompt. */
         const config = path.join(mkdtempSync(path.join(tmpdir(), 'play-bot-')), 'mcp.json');
         writeFileSync(
           config,
           JSON.stringify({
             mcpServers: {
-              dune: {
-                command: bun,
-                args: [bridge],
-                env: { PLAY_BOT_TOOLS_URL: tools.url, PLAY_BOT_TOOLS_TOKEN: tools.token },
-              },
+              dune: { type: 'http', url: `${tools.url}/mcp`, headers: { Authorization: `Bearer ${tools.token}` } },
             },
-          })
+          }),
+          { mode: 0o600 }
         );
         const args = [
           '-p',
@@ -92,11 +100,11 @@ export function claudeBrain({ model, bun = 'bun', workdir }: BrainOptions = {}):
 }
 
 /** Codex in exec mode, with the game tools as its one MCP server and a read-only sandbox. */
-export function codexBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): Brain {
+export function codexBrain({ model, bun = 'bun', workdir, tools: endpoint = serveTools }: BrainOptions = {}): Brain {
   return {
     name: `Codex${model ? ` (${model})` : ''}`,
     async think(prompt: string, bot: PlayBot) {
-      const tools = await serveTools(bot);
+      const tools = await endpoint(bot);
       try {
         const toml = (value: unknown) => JSON.stringify(value);
         const args = [

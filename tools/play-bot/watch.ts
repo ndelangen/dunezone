@@ -1,7 +1,7 @@
 /*
  * The bots' launcher and live view, on this machine only. Paste the game's URL, list the factions the bots should draft,
- * and press Start: each faction gets its own `play:bot` process with its own stack account, exactly as
- * `play:bot:table` starts them. Each bot then has a column with its status (connected, asking for a seat, seated,
+ * and press Start: each faction gets a seat of its own with its own stack account, held by the harness in this process
+ * (`harness.ts`), whose tools this server serves as one MCP endpoint at /mcp, a seat token per seat. Each bot then has a column with its status (connected, asking for a seat, seated,
  * playing, thinking, stopped), what woke it, each tool it called, what it concluded, how long it thought and its tokens.
  *
  *   bun run play:bot:watch                  # http://127.0.0.1:4747, bots under tools/play-bot/out/bots
@@ -11,19 +11,20 @@
  * is given and never creates one. A bot's private notes stay hidden unless you tick "Show private notes", so a
  * recording does not give its plans away.
  */
-import { spawn } from 'node:child_process';
-import type { ChildProcess } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { IncomingMessage } from 'node:http';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { Harness } from './harness';
+import { DEFAULT_STACK, readStack } from './seat';
+
 const { values } = parseArgs({
   options: {
     dir: { type: 'string', default: path.join(import.meta.dirname, 'out/bots') },
     port: { type: 'string', default: '4747' },
-    stack: { type: 'string', default: path.join(import.meta.dirname, 'out/stack.json') },
+    stack: { type: 'string', default: DEFAULT_STACK },
   },
 });
 const root = path.resolve(values.dir!);
@@ -31,41 +32,14 @@ const MAX_EVENTS = 400;
 /* Starting bots needs the stack's accounts; watching a demo's folder does not. */
 const canLaunch = root === path.join(import.meta.dirname, 'out/bots') && existsSync(values.stack!);
 
-type Launched = { child: ChildProcess; faction: string; output: string[]; exit?: string };
-/** The bots this page started, by their folder name (the account's address before the @). */
-const launched = new Map<string, Launched>();
+/* Every seat this page starts lives in this one process, and all their tools are this server's one MCP endpoint. */
+const port = Number(values.port);
+const harness = new Harness(() => `http://127.0.0.1:${port}`);
 
-function accounts(): { name: string; email: string }[] {
-  const stack = JSON.parse(readFileSync(values.stack!, 'utf8')) as { accounts: { bots?: { name: string; email: string }[] } };
-  return stack.accounts.bots ?? [];
-}
-
-/** One `play:bot` process per faction, account 1 for the first, as `play:bot:table` does. */
-function launch(game: string, factions: string[], brain: string) {
-  const bots = accounts();
-  if (factions.length > bots.length) {
-    throw new Error(`The stack has ${bots.length} bot accounts; start it with --bots ${factions.length}.`);
-  }
-  factions.forEach((faction, index) => {
-    const id = bots[index]!.email.split('@')[0]!;
-    if (launched.get(id)?.exit === undefined && launched.has(id)) {
-      return;
-    }
-    const child = spawn(
-      process.execPath,
-      [path.join(import.meta.dirname, 'local.ts'), '--game', game, '--account', String(index + 1), '--want', faction, '--brain', brain],
-      { stdio: ['ignore', 'pipe', 'pipe'] }
-    );
-    const entry: Launched = { child, faction, output: [] };
-    const keep = (chunk: Buffer) => {
-      entry.output.push(...chunk.toString().split('\n').filter(Boolean));
-      entry.output.splice(0, Math.max(0, entry.output.length - 30));
-    };
-    child.stdout?.on('data', keep);
-    child.stderr?.on('data', keep);
-    child.on('exit', (code, signal) => (entry.exit = signal ?? `exit ${code}`));
-    launched.set(id, entry);
-  });
+/** One seat per faction, account 1 for the first, as `play:bot:table` does. */
+function launch(game: string, factions: string[], brain: 'claude' | 'codex') {
+  const stack = readStack(values.stack);
+  factions.forEach((faction, index) => harness.join({ stack, game, account: index + 1, want: faction, brain }));
 }
 
 /* A page on another site could post here too; a JSON body from this page's own origin is the only thing accepted. */
@@ -129,18 +103,19 @@ function readNotes(folder: string): string {
 
 function state(withNotes: boolean) {
   const folders = new Map(botFolders().map((folder) => [path.relative(root, folder) || path.basename(folder), folder]));
-  for (const id of launched.keys()) {
+  const seats = new Map(harness.states().map((seat) => [seat.id, seat]));
+  for (const id of seats.keys()) {
     folders.set(id, folders.get(id) ?? path.join(root, id));
   }
   const bots = [...folders].map(([id, folder]) => {
     const all = existsSync(path.join(folder, 'events.jsonl')) ? readEvents(folder) : [];
     /* A bot's file holds every game it played; the column starts at its newest connection. */
     const start = all.findLastIndex((event) => event.kind === 'status' && event.state === 'connected');
-    const run = launched.get(id);
+    const run = seats.get(id);
     return {
       id,
       events: start >= 0 ? all.slice(start) : all,
-      ...(run ? { process: { faction: run.faction, exit: run.exit ?? null, output: run.output.slice(-6) } } : {}),
+      ...(run ? { process: { faction: run.want, exit: run.ended ?? null, output: run.ended ? [run.ended] : [] } } : {}),
       ...(withNotes && existsSync(folder) ? { notes: readNotes(folder) } : {}),
     };
   });
@@ -312,9 +287,13 @@ setInterval(refresh, 1500);
 </body>
 </html>`;
 
-const port = Number(values.port);
 createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+  /* The seats' MCP: what each seat's agent CLI connects to, with its seat token. */
+  if (['/mcp', '/tools', '/call'].includes(url.pathname)) {
+    void harness.serve(request, response);
+    return;
+  }
   const json = (status: number, value: unknown) => {
     response.writeHead(status, { 'content-type': 'application/json' });
     response.end(JSON.stringify(value));
@@ -327,7 +306,7 @@ createServer((request, response) => {
     void body(request, port)
       .then((data) => {
         if (url.pathname === '/stop') {
-          launched.get(String(data.id))?.child.kill('SIGINT');
+          harness.stop(String(data.id));
           json(200, { ok: true });
           return;
         }
@@ -350,8 +329,6 @@ createServer((request, response) => {
 }).listen(port, '127.0.0.1', () => console.log(`Bots: http://127.0.0.1:${port} (${canLaunch ? 'start and watch' : 'watch only'}, ${root})`));
 
 process.on('SIGINT', () => {
-  for (const { child } of launched.values()) {
-    child.kill('SIGINT');
-  }
+  harness.stopAll();
   process.exit(0);
 });
