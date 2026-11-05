@@ -170,6 +170,69 @@ describe('Play account deletion', () => {
     expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('acknowledged');
   });
 
+  test('retiring the expired hosted fixture room settles its deletions, drops its routing and retries until its room retires', async () => {
+    const subject = await fixture();
+    await subject.t.run(
+      async (ctx) =>
+        await ctx.db.patch(subject.game._id, {
+          fixture_key: PLAY_FIXTURE_KEY,
+          ruleset_id: undefined,
+          minimum_players: undefined,
+          creator_id: undefined,
+          state: 'expired',
+        })
+    );
+    const { event } = await startDeletion(subject);
+    const responses = [new Response(null, { status: 403 }), new Response(null, { status: 200 })];
+    const fetch = vi.fn(
+      async (_url: string, _init?: RequestInit) => responses.shift() ?? new Response(null, { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetch);
+
+    await subject.t.action(internal.playDeletion.retireFixtureRoom, { gameId: subject.game._id, attempt: 0 });
+    await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    const stored = await subject.t.run(async (ctx) => ({
+      game: await ctx.db.get(subject.game._id),
+      event: await ctx.db.get(event._id),
+      routings: await ctx.db.query('play_game_accounts').collect(),
+    }));
+    expect(stored.game?.state).toBe('expired');
+    expect(stored.event?.state).toBe('acknowledged');
+    expect(stored.routings).toEqual([]);
+    const retirements = fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'));
+    expect(retirements).toHaveLength(2);
+    expect(retirements[1]).toEqual([
+      `https://dune.zone/__play/games/${subject.game._id}/retire`,
+      expect.objectContaining({ body: JSON.stringify({ gameId: subject.game._id, secret: subject.game.secret }) }),
+    ]);
+  });
+
+  test('a hosted fixture room that never retires keeps its deletions pending', async () => {
+    const subject = await fixture();
+    await subject.t.run(
+      async (ctx) =>
+        await ctx.db.patch(subject.game._id, {
+          fixture_key: PLAY_FIXTURE_KEY,
+          ruleset_id: undefined,
+          minimum_players: undefined,
+          creator_id: undefined,
+          state: 'expired',
+        })
+    );
+    const { event } = await startDeletion(subject);
+    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 403 }));
+    vi.stubGlobal('fetch', fetch);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await subject.t.action(internal.playDeletion.retireFixtureRoom, { gameId: subject.game._id, attempt: 0 });
+    await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
+
+    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toHaveLength(17);
+    expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('pending');
+    expect(await subject.t.run(async (ctx) => await ctx.db.query('play_game_accounts').collect())).toHaveLength(1);
+  });
+
   test('a deletion for a game that is not ready waits out its backoff instead of staying due', async () => {
     const subject = await fixture();
     const { event } = await startDeletion(subject);

@@ -10,6 +10,8 @@ import {
   FactionWriteSchema,
   HistoricalFactionPublicationSchema,
   toStoredHeroKey,
+  TroopBattleValues,
+  withSupportNames,
 } from './schema';
 
 describe('faction schema', () => {
@@ -124,5 +126,19 @@ describe('faction schema', () => {
     };
 
     expect(Background.safeParse(background).success).toBe(false);
+  });
+
+  it('reads the funded troop values as the supported ones, a supported value wins, and the write contract refuses the funded names', () => {
+    expect(withSupportNames({ strength: 1, fundedStrength: 2, fundingCost: 0 })).toEqual({
+      strength: 1,
+      supportedStrength: 2,
+      supportCost: 0,
+    });
+    expect(withSupportNames({ strength: 1, fundedStrength: 2, supportedStrength: 3 })).toEqual({
+      strength: 1,
+      supportedStrength: 3,
+    });
+    expect(TroopBattleValues.safeParse({ strength: 1, supportedStrength: 2 }).success).toBe(true);
+    expect(TroopBattleValues.safeParse({ strength: 1, supportedStrength: 2, fundedStrength: 2 }).success).toBe(false);
   });
 });
