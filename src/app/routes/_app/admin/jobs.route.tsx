@@ -1,11 +1,12 @@
-import { Anchor, Badge, Button, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Badge, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { BriefcaseBusiness } from 'lucide-react';
+import { BriefcaseBusiness, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
@@ -211,16 +212,20 @@ function PublicationJobsDashboard() {
           </Surface>
 
           <Group justify="center" aria-label="Publication job pages">
-            <Button variant="default" disabled={cursors.length === 1} onClick={() => dispatch({ kind: 'previous' })}>
+            <LabeledAction
+              icon={<ChevronLeft size={16} />}
+              disabledReason={cursors.length === 1 ? 'This is the first page.' : undefined}
+              onClick={() => dispatch({ kind: 'previous' })}
+            >
               Previous
-            </Button>
-            <Button
-              variant="default"
-              disabled={result.isDone}
+            </LabeledAction>
+            <LabeledAction
+              icon={<ChevronRight size={16} />}
+              disabledReason={result.isDone ? 'This is the last page.' : undefined}
               onClick={() => dispatch({ kind: 'next', cursor: result.continueCursor })}
             >
               Next
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       </PageLayout.Content>
