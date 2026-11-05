@@ -616,10 +616,12 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Anonymised snapshot
 
-`.github/workflows/anonymised-snapshot.yml` runs once a week (Mondays) and on manual dispatch, from `main`
+`.github/workflows/anonymised-snapshot.yml` runs once a week and on manual dispatch, from `main`
 only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
 which exports production the way `dev-rebuild.yml` does, anonymises the export through
-`scripts/snapshot-anonymise.ts`, and scans the written snapshot.
+`scripts/snapshot-anonymise.ts`, and scans the written snapshot. Its schedule ticks daily, and
+`scripts/snapshot-refresh-due.ts` skips every tick after the first run that succeeds since Monday 00:00 UTC,
+so a run stopped by a failed release recovers the next day. A manual dispatch always runs.
 The script reads the raw export into memory and deletes it before anonymising, whether the read
 succeeded or not, and the job's last step deletes its directory whatever happened before.
 
