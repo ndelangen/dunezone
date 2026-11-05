@@ -51,9 +51,10 @@ import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRu
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 

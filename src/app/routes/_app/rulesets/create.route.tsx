@@ -15,11 +15,11 @@ import { useReducer } from 'react';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateRuleset } from '@db/rulesets';
 import { pageHead } from '@app/routes/pageTitle';
-import { RoutePending } from '@app/routes/routeStates';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   head: () => pageHead('Create ruleset'),

@@ -31,8 +31,9 @@ import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 

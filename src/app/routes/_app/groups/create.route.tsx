@@ -11,10 +11,10 @@ import { useRef, useState } from 'react';
 import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { RoutePending } from '@app/routes/routeStates';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/groups/create')({
   head: () => pageHead('Start group'),

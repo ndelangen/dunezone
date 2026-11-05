@@ -3,7 +3,6 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -51,6 +50,7 @@ import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes
 import { RouteLoadError } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession, faqQuestionHasChanges } from './faqEditingSession';
@@ -241,16 +241,17 @@ function FaqDetailPage() {
 
   if (!item) {
     return (
-      <PageMessage
+      <RoutePending
         title="FAQ"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
+        loading="Loading question"
       >
-        <LoadPending title="Loading question">This question and its answers are still loading.</LoadPending>
-      </PageMessage>
+        This question and its answers are still loading.
+      </RoutePending>
     );
   }
 

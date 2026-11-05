@@ -16,9 +16,10 @@ import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
   loader: async ({ params }) => ({ ruleset: await loadRulesetBySlug(params.rulesetSlug) }),

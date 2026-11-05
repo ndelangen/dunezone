@@ -15,8 +15,9 @@ import { ArrowLeft, BookOpen, History } from 'lucide-react';
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions')({
   loader: async ({ params, location }) => {

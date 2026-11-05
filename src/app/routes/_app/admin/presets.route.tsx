@@ -26,7 +26,6 @@ import {
 } from '@db/backgroundPresets';
 import { BackgroundPickerView } from '@app/pickers/BackgroundPicker.parts';
 import { pageHead } from '@app/routes/pageTitle';
-import { RoutePending } from '@app/routes/routeStates';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundComposer, emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -34,6 +33,7 @@ import { INITIAL_CUSTOM_CARD_DRAFT } from '@app/widgets/card-editor/customCardPr
 import { INITIAL_TREACHERY_DRAFT } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { HomeworldCard } from '@game/assets/card/Homeworld';

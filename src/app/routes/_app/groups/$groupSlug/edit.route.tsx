@@ -15,10 +15,11 @@ import { useRef, useState } from 'react';
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 /* The form's id, so Save can sit in the toolbar with every other page's Save and still submit it. */
 const GROUP_EDIT_FORM_ID = 'group-edit-form';

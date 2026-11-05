@@ -10,8 +10,8 @@ import { useReducer } from 'react';
 import { authProviderNames } from '@db/accounts';
 import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
-import { RoutePending } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/connect')({
   head: () => ({

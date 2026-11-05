@@ -19,8 +19,9 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { FactionHeadingHints } from './FactionHeadingHints';

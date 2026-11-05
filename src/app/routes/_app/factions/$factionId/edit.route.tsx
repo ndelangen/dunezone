@@ -16,7 +16,7 @@ import { loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -29,6 +29,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from '../factionNameField';

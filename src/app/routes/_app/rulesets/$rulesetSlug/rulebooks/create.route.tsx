@@ -22,9 +22,10 @@ import { useId, useReducer } from 'react';
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './create.module.css';

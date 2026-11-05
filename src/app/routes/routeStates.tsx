@@ -1,5 +1,4 @@
 import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { errorMessage } from '@ui/content/errorMessage';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
@@ -35,22 +34,6 @@ export function RouteLoadError({ title, size, back, what, error }: RouteLoadErro
       <LoadError title={what} stale={isStaleClientData(error)}>
         {errorMessage(error)}
       </LoadError>
-    </PageMessage>
-  );
-}
-
-export interface RoutePendingProps extends RouteStateFrame {
-  /** What is loading, as the pending heading: "Loading faction". */
-  loading: string;
-  /** One sentence on what the reader is waiting for. */
-  children: string;
-}
-
-/** A route's `pendingComponent`: the page frame with a `LoadPending` inside. */
-export function RoutePending({ title, size, back, loading, children }: RoutePendingProps) {
-  return (
-    <PageMessage size={size} title={title} back={back}>
-      <LoadPending title={loading}>{children}</LoadPending>
     </PageMessage>
   );
 }
