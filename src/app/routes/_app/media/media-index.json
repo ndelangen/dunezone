@@ -12970,55 +12970,60 @@
     "tags": ["apocrypha", "eye", "pupil", "crossed bands"],
     "subjects": ["symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "805caa6ecbe9a81d990cd5ebe8275c514eccf3bb2e1c4c11915f2beefd7fe0d6"
+    "sourceHash": "ad1c00501b3bce3ff17d37a98a6faef40c5e117da2a7801313ee37a97381d211"
   },
   "/vector/emblem/atreides-extended.svg": {
     "description": "Bird in profile with an upright fan-shaped wing, pointed tail and hooked legs.",
     "tags": ["atreides", "extended", "hawk", "bird", "wing"],
     "subjects": ["creatures", "symbols"],
-    "credit": "dune-logo-trace",
-    "sourceHash": "c615289e86f113abfaf98014b16e1b5e4f5669a1fbec1ee1a92a947d87904cd5"
+    "credit": "prelude-cover-emblem-trace",
+    "creditDetail": "From the cover of Dune: House Atreides.",
+    "sourceHash": "43216b31913294d397244e7a68225abccce9e889c7c1386d9ce91e273af9a8d9"
   },
   "/vector/emblem/bene-gesserit-2021.svg": {
     "description": "Symmetrical looping emblem with paired eye-shaped gaps and four curled ends.",
     "tags": ["bene gesserit", "2021", "loops", "eyes"],
     "subjects": ["symbols"],
-    "credit": "dune-logo-trace",
-    "sourceHash": "d1c4301a8153eda491e82e8f36682bd4c3327abcb8f3eccc6ab22c9ebea20860"
+    "credit": "dune-screen-crest-trace",
+    "creditDetail": "From Dune: Part One (2021), Dune: Part Two (2024) and Dune: Prophecy (2024).",
+    "sourceHash": "4bdbafa0ec871442220445b9b102a2a43c58f14f64092b139e9e39a44438e8e6"
   },
   "/vector/emblem/corrino-extended.svg": {
     "description": "Lion head in profile with an open mouth and a pointed radiating mane.",
     "tags": ["corrino", "extended", "lion", "mane"],
     "subjects": ["creatures", "symbols"],
-    "credit": "dune-logo-trace",
-    "sourceHash": "4b73f9176cab2e02083a216fced38a402f05a0f84fa1e03b8aef65802506b33f"
+    "credit": "prelude-cover-emblem-trace",
+    "creditDetail": "From the cover of Dune: House Corrino.",
+    "sourceHash": "9478ec4f73b60946b4c0aafcbd1045b19bd03371923d84236378101550e59ab6"
   },
   "/vector/emblem/dune-encyclopedia.svg": {
     "description": "Open book with three page lines on each side, a bird-shaped mark above and a pointed stem below.",
     "tags": ["dune encyclopedia", "book", "pages"],
     "subjects": ["culture", "symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "a7221bdc654776e4eecf651b1b28d0d076632f99d969345480afbfe6bac324e4"
+    "sourceHash": "5ed7f59c66d1789b3d082bb4be8c76885b48750787f3ce30de09e9ae36b7f99e"
   },
   "/vector/emblem/expanded-dune.svg": {
     "description": "Inverted triangular emblem with a central notch and two descending outer strokes.",
     "tags": ["expanded dune", "triangle", "notch"],
     "subjects": ["symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "7fc11abf555a8e1a1db1ef7bf6fd4b5916992dc066122a04a6f2a323a95e853a"
+    "sourceHash": "5931519ed8884d9d19a7b17cbb79b6d1b19b40983b4762a9fb688c2eadef4874"
   },
   "/vector/emblem/harkonnen-dune-prophecy.svg": {
     "description": "Two opposing curved spikes, one pointing up and one down.",
     "tags": ["harkonnen", "dune prophecy", "spikes"],
     "subjects": ["symbols"],
-    "credit": "dune-logo-trace",
-    "sourceHash": "78429846d0ea5027ae4da3702c57ac983ba6f55435728cc18e9ff8070481b296"
+    "credit": "dune-screen-crest-trace",
+    "creditDetail": "From Dune: Prophecy (HBO, 2024).",
+    "sourceHash": "274fd526b271ef81eb7f389e0edea5424e3f4edef8b41a9a5f5e0c333194f31e"
   },
   "/vector/emblem/harkonnen-extended.svg": {
     "description": "Rearing winged creature with an angular beak, claws and a long curved tail.",
     "tags": ["harkonnen", "extended", "winged creature", "claws", "tail"],
     "subjects": ["creatures", "symbols"],
-    "credit": "dune-logo-trace",
+    "credit": "prelude-cover-emblem-trace",
+    "creditDetail": "From the cover of Dune: House Harkonnen.",
     "sourceHash": "56d5caabbb1d270fa1ec50cbe372dd76ff438bf602b593fc03d9819d220ad4f8"
   },
   "/vector/emblem/house-atreus-fan-art.svg": {
@@ -13026,36 +13031,36 @@
     "tags": ["house atreus", "fan art", "felines", "column", "dots"],
     "subjects": ["creatures", "symbols", "culture"],
     "credit": "dune-logo-trace",
-    "creditDetail": "Based on fan art.",
-    "sourceHash": "6195d1456b9525e4e762c2338656fd3455e167fad8bf7ff2ffd313fbd8d9ec15"
+    "creditDetail": "Based on fan art by an unnamed artist.",
+    "sourceHash": "f5434ba36ed1916a4456551db171603b6de12054e6707480e638fb53ee719f7a"
   },
   "/vector/emblem/lynch-dune.svg": {
     "description": "Stepped tower divided by a rectangular brick grid, with a small upper window, an open doorway and three triangular roof pieces.",
     "tags": ["Lynch's Dune", "Lynch", "tower", "pyramid", "bricks", "doorway"],
     "subjects": ["places", "symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "7c20c9d40911a5e4d0b425b58541810ae5018ea4b082ec0996d84101a72f99be"
+    "sourceHash": "74bbea9596a9a86525fb35aa1e164870aca37175da619abdb9e26546ace6b04a"
   },
   "/vector/emblem/original-dune.svg": {
     "description": "Three pointed lobes above a toothed mouth and oval center, framed by curled side strokes and two bowed lower bands.",
     "tags": ["original dune", "worm", "mouth", "teeth", "lobes"],
     "subjects": ["creatures", "symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "f4f11db26f4e0af5ed3187d1a139589ae576103f6f7c4f0187e7d38c388588f0"
+    "sourceHash": "23b8fd17983fde61bd689b219c21b89c912253657999db0c76bf066daf481cea"
   },
   "/vector/emblem/real-world.svg": {
     "description": "Round globe with curved meridians, horizontal latitude bands and a central vertical line.",
     "tags": ["real world", "globe", "earth", "meridians", "latitude"],
     "subjects": ["places", "symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "33b4dc071e5598a210d56747d328a8c3895b811c7fcefdb14a164506264b5fac"
+    "sourceHash": "4ee80bdef7b902506bd5eef41ad718505eea119dd19e01ce6b542c568f6faaf6"
   },
   "/vector/emblem/sci-fi-miniseries.svg": {
     "description": "Twelve curved knives arranged radially around an open center, with separate short handles.",
     "tags": ["sci fi", "miniseries", "knives", "radial", "sunburst"],
     "subjects": ["weapons", "symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "841b07a8b1195e24df9115690dc1f7477a575f1ebe5d8ae83157d5c2b7e9267f"
+    "sourceHash": "1bd2c10a307a0a5fa1fd05f3c7f36036cb12944bcf34d1c8bf7dc789ce7dfb8b"
   },
   "/vector/emblem/sunburst-buckle-matt-griffin.svg": {
     "description": "Wide ornamental buckle with pointed ends, a rising half-sun, radiating rays, a dotted arch and a diamond clasp.",
@@ -13070,7 +13075,7 @@
     "tags": ["Villeneuve", "sunburst", "rays", "circle", "base"],
     "subjects": ["symbols"],
     "credit": "dune-logo-trace",
-    "sourceHash": "3f34bed6d117efaf27e907eb4c44eac788a47d697f8f0d21214dcbaf6a29d03f"
+    "sourceHash": "516e8e29823f1e3f28025c01e8fc9a8c913d3f316f5c282d3ef3c653eaf1aa1c"
   },
   "/vector/decal/muaddib.svg": {
     "description": "A crouching Muad'Dib kangaroo mouse with large ears, folded hind feet and a long tail.",
