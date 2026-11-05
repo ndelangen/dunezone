@@ -30,7 +30,6 @@ async function setup(revision: number) {
   const token = await owner.mutation(api.assets.create, { type: 'token-disc', data: tokenData });
   const card = {
     ...publishingSpiceCard,
-    highlights: [],
     board: {
       asset_id: board.id,
       tints: [{ id: 'blow', name: 'Spice blow', color: '#e8b923', territories: ['arsunt'], types: ['stronghold'] }],

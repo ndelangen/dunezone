@@ -39,3 +39,9 @@ export function legacyHighlightTint(highlights: readonly LegacyHighlight[], name
     ...(types.length ? { types } : {}),
   };
 }
+
+/** Stored card data without its `highlights` key; every other key is kept exactly as stored. */
+export function withoutHighlights(data: Record<string, unknown>): Record<string, unknown> {
+  const { highlights: _highlights, ...rest } = data;
+  return rest;
+}

@@ -6,6 +6,7 @@ import type { z } from 'zod';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
@@ -81,9 +82,17 @@ describe('a snapshot load', () => {
           asset('token-disc', `token-${mode}`, { front: publishingTokenFace, back })
         ),
       ];
+      /* A Spice card in its moved shape: linked to a board, without the old highlight list. */
+      const spice = await ctx.db.insert('assets', {
+        ...owned,
+        type: 'card-spice',
+        slug: 'moved-spice',
+        data: { ...publishingSpiceCard, board: { asset_id: token, tints: [], tokens: [] } },
+      });
       return [
         deck,
         token,
+        spice,
         ...(await Promise.all(modeRows)),
         await ctx.db.insert('factions', {
           ...owned,
