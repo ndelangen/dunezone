@@ -20,14 +20,6 @@ export const Route = createFileRoute('/_app/admin/jobs')({
   component: PublicationJobsDashboard,
 });
 
-function PublicationJobsLoading() {
-  return (
-    <AdminPageLoading size="compact" title="Publication jobs">
-      The durable work queue is still loading.
-    </AdminPageLoading>
-  );
-}
-
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
 function PublicationJobsDashboard() {
   const [listing, dispatch] = useReducer(
@@ -57,7 +49,11 @@ function PublicationJobsDashboard() {
   const pickupMutation = useSetPublicationPickupEnabled();
 
   if (result === undefined) {
-    return <PublicationJobsLoading />;
+    return (
+      <AdminPageLoading size="compact" title="Publication jobs">
+        The durable work queue is still loading.
+      </AdminPageLoading>
+    );
   }
 
   return (

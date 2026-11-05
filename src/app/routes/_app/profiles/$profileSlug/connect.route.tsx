@@ -1,7 +1,6 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Alert, Button, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -11,6 +10,7 @@ import { useReducer } from 'react';
 import { authProviderNames } from '@db/accounts';
 import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
+import { RoutePending } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/connect')({
@@ -33,9 +33,9 @@ function ConnectAccountPage() {
 
 function ConnectionPending() {
   return (
-    <PageMessage title="Connect sign-in method">
-      <LoadPending title="Checking the connection">The sign-in result is loading.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Connect sign-in method" loading="Checking the connection">
+      The sign-in result is loading.
+    </RoutePending>
   );
 }
 

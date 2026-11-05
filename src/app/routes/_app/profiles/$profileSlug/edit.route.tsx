@@ -27,6 +27,7 @@ import type { AuthProvider } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+import { RoutePending } from '@app/routes/routeStates';
 import { setMotionOverride, useMotionPreference } from '@app/styles/motion';
 import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -563,12 +564,13 @@ function ProfileSettingsPage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage
+        <RoutePending
           title="Profile settings"
           back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+          loading="Loading your profile"
         >
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </PageMessage>
+          Checking whether you are signed in.
+        </RoutePending>
       );
     case 'signed-out':
       return (

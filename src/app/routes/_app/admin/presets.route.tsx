@@ -10,7 +10,6 @@ import type { FamilyPreset, DiscoveryPreset } from '@shared/backgrounds/families
 import { resolveBackgroundValues, customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -27,6 +26,7 @@ import {
 } from '@db/backgroundPresets';
 import { BackgroundPickerView } from '@app/pickers/BackgroundPicker.parts';
 import { pageHead } from '@app/routes/pageTitle';
+import { RoutePending } from '@app/routes/routeStates';
 import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { BackgroundComposer, emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -127,9 +127,13 @@ function PresetsPage() {
   const library = usePresetLibrary();
   if (!library) {
     return (
-      <PageMessage title="Presets" back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}>
-        <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
-      </PageMessage>
+      <RoutePending
+        title="Presets"
+        back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}
+        loading="Loading presets"
+      >
+        Loading the saved designs.
+      </RoutePending>
     );
   }
   if (!library.ready) {

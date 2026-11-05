@@ -3,7 +3,6 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -46,10 +45,10 @@ import type { ReactNode } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import type { FaqReferencePreview } from '@db/faq';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -117,18 +116,16 @@ function FaqDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage
+    <RouteLoadError
       title="FAQ"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="This question could not be loaded"
+      error={error}
+    />
   );
 }
 

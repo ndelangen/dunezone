@@ -8,13 +8,10 @@ import { getRulebookSize } from '@shared/rulebooks/settings';
 import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -51,10 +48,10 @@ import { useCurrentProfile } from '@db/profiles';
 import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
 import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -419,19 +416,21 @@ const backToRulesets = <PageMessage.Back to="/rulesets">Back to rulesets</PageMe
 
 function RulesetDetailPending() {
   return (
-    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-      <LoadPending title="Loading ruleset">The ruleset details are still loading.</LoadPending>
-    </PageMessage>
+    <RoutePending size="compact" title="Ruleset" back={backToRulesets} loading="Loading ruleset">
+      The ruleset details are still loading.
+    </RoutePending>
   );
 }
 
 function RulesetDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-      <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      size="compact"
+      title="Ruleset"
+      back={backToRulesets}
+      what="Ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 

@@ -211,7 +211,7 @@ fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all
 
 An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
 declares around the band and the page, named `page-frame`, as wide as the page between the shell's
-gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+gutters, or a Layout's container when one sits between, as `ColumnsWithRailLayout`'s does.
 A page composition needs no container of its own. A component that lays out its own children by
 width names the container it asks, so a container inserted above it cannot move it. When that layout
 is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
@@ -249,7 +249,7 @@ conditions written in TypeScript and container queries are checked in review. Ca
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested
 `<Stack><Group><Grid>`. Spacing belongs to a Layout: a custom component built on Mantine primitives
 that arranges two or more **named compound slots**, as in
-`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>`, so composition
+`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout>`, so composition
 reads top-down and large content never rides inside a prop. A leaf never carries page margin (only
 for unavoidable third-party constraints), one slot is a passthrough rather than a Layout, and Layouts
 respond by **container query, not media query**, so they lay out by the room they are given.

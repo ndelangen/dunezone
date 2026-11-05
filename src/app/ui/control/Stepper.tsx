@@ -31,6 +31,12 @@ export type StepperProps = {
   suffix?: ReactNode;
   format?: (value: number) => string;
   size?: 'sm' | 'md';
+  /** False when a typed value stays as entered: the step is then only what − and + move by. */
+  snap?: boolean;
+  /**
+   * When the wheel steps the count: over the stepper (`hover`), or only while its field has focus (`focus`), so a window that scrolls past a stepper never changes the value on the way.
+   */
+  wheel?: 'hover' | 'focus';
 };
 
 /**
@@ -50,6 +56,8 @@ export function Stepper({
   suffix,
   format = String,
   size = 'md',
+  snap = true,
+  wheel: wheelSteps = 'hover',
 }: StepperProps) {
   const [draft, setDraftState] = useState<string | null>(null);
   const settled = useRef(false);
@@ -73,7 +81,10 @@ export function Stepper({
   /* What the field holds now: a valid typed count, or the committed one. */
   const current = () => {
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
-    return Number.isFinite(typed) ? Math.round(typed / step) * step : value;
+    if (!Number.isFinite(typed)) {
+      return value;
+    }
+    return snap ? Math.round(typed / step) * step : typed;
   };
   /* A step from the wheel, a key or a button starts from what the field shows, typed or not, and settles the field. */
   const stepBy = (delta: number) => {
@@ -90,7 +101,7 @@ export function Stepper({
       return;
     }
     const wheel = (event: WheelEvent) => {
-      if (disabled || !event.deltaY) {
+      if (disabled || !event.deltaY || (wheelSteps === 'focus' && !group.contains(document.activeElement))) {
         return;
       }
       event.preventDefault();
@@ -104,7 +115,8 @@ export function Stepper({
     const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
     /* A whole step is exact; a fractional one allows for floating-point error. */
     const steps = typed / step;
-    const onStep = Number.isInteger(step) ? Number.isInteger(steps) : Math.abs(steps - Math.round(steps)) < 1e-9;
+    const onStep =
+      !snap || (Number.isInteger(step) ? Number.isInteger(steps) : Math.abs(steps - Math.round(steps)) < 1e-9);
     return Number.isFinite(typed) && onStep && typed >= min && typed <= max;
   };
   const invalid = draft !== null && !typedFits();

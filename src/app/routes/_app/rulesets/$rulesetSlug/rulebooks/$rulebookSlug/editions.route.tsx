@@ -1,13 +1,10 @@
 import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
-import { errorMessage } from '@ui/content/errorMessage';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -16,9 +13,9 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, BookOpen, History } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rulebookSlug/editions')({
@@ -36,9 +33,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
   head: ({ loaderData }) => pageHead(loaderData ? `Editions of ${loaderData.rulebook.name}` : 'Editions'),
   errorComponent: RulebookEditionHistoryError,
   pendingComponent: () => (
-    <PageMessage title="Editions">
-      <LoadPending title="Loading Editions">Loading the Edition history.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Editions" loading="Loading Editions">
+      Loading the Edition history.
+    </RoutePending>
   ),
   component: RulebookEditionHistoryPage,
 });
@@ -46,18 +43,16 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
 function RulebookEditionHistoryError({ error }: ErrorComponentProps) {
   const params = Route.useParams();
   return (
-    <PageMessage
+    <RouteLoadError
       title="Editions"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="Editions could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="Editions could not be loaded"
+      error={error}
+    />
   );
 }
 

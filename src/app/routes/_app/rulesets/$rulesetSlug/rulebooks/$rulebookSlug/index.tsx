@@ -2,13 +2,10 @@ import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
-import { errorMessage } from '@ui/content/errorMessage';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -20,9 +17,9 @@ import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError, RoutePending } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
@@ -99,9 +96,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
     });
   },
   pendingComponent: () => (
-    <PageMessage title="Rulebook">
-      <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Rulebook" loading="Loading Rulebook">
+      Loading the selected Edition.
+    </RoutePending>
   ),
   errorComponent: RulebookReaderError,
   component: RulebookReaderPage,
@@ -110,18 +107,16 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
 function RulebookReaderError({ error }: ErrorComponentProps) {
   const { rulesetSlug } = Route.useParams();
   return (
-    <PageMessage
+    <RouteLoadError
       title="Rulebook"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="Rulebook could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -351,9 +346,9 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
   const published = data.body.kind === 'html' && loadedPublication?.href === data.body.href ? loadedPublication : null;
   if (data.body.kind === 'html' && !published) {
     return (
-      <PageMessage title={data.rulebook.name}>
-        <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
-      </PageMessage>
+      <RoutePending title={data.rulebook.name} loading="Loading Rulebook">
+        Loading the selected Edition.
+      </RoutePending>
     );
   }
   return <RulebookReader data={data} published={published} />;
