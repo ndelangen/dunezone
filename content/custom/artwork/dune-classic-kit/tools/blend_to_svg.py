@@ -218,12 +218,24 @@ def ink_reach(item, min_width):
     return 0 if item['filled'] else max(item['w'], min_width) / 2
 
 
-def render_svg(items):
+def min_stroke_width(items):
     xs = [p.x for i in items for p in i['pts']]
-    min_width = (max(xs) - min(xs)) * 0.003
+    return (max(xs) - min(xs)) * 0.003
+
+
+def ink_bounds(items, min_width):
+    """SVG-space box holding every point, widened by its item's stroke reach."""
     reach = [(p, ink_reach(i, min_width)) for i in items for p in i['pts']]
-    x0, x1 = min(p.x - r for p, r in reach), max(p.x + r for p, r in reach)
-    y0, y1 = min(-p.y - r for p, r in reach), max(-p.y + r for p, r in reach)
+    x0 = min(p.x - r for p, r in reach)
+    x1 = max(p.x + r for p, r in reach)
+    y0 = min(-p.y - r for p, r in reach)
+    y1 = max(-p.y + r for p, r in reach)
+    return x0, y0, x1, y1
+
+
+def render_svg(items):
+    min_width = min_stroke_width(items)
+    x0, y0, x1, y1 = ink_bounds(items, min_width)
     pad = 0.01 * max(x1 - x0, y1 - y0)
     body = ''.join(path_element(i, min_width) for i in items)
     view = f'{x0 - pad:.4f} {y0 - pad:.4f} {x1 - x0 + 2 * pad:.4f} {y1 - y0 + 2 * pad:.4f}'
