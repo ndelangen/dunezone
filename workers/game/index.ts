@@ -49,7 +49,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { SPECTATOR_COLOR } from './actors';
+import { SPECTATOR_COLOR, STORED_DISPLAY_NAME_LENGTH } from './actors';
+import type { PassProfile } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
@@ -83,9 +84,11 @@ type Connection = {
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
   viewer?: Viewer;
-  /* The player's public avatar and profile slug as their admission carried them; the actor directory keeps them. */
-  avatarUrl?: string | null;
-  profileSlug?: string | null;
+  /*
+   * The player's name, avatar and profile slug as their pass carried them, with when that pass was issued; the actor directory keeps them.
+   * They stay apart from the viewer, which the room reconciles from the directory, so a paused tab's renewal still carries its rename to the directory when it resumes.
+   */
+  profile?: PassProfile;
   /* Whether the player already held the most seats one player may when this connection was admitted. */
   seatLimitReached?: boolean;
   /* The seat pass this connection entered with, or its latest renewal. */
@@ -177,6 +180,17 @@ const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try a
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
 const carryHistoryKey = (connectionId: string) => `carry-history:${connectionId}`;
+
+/** The profile a seat pass carries for its player, with when Convex issued the pass. */
+function passProfile(pass: SeatPassPayload): PassProfile {
+  return {
+    userId: pass.actorId,
+    displayName: pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
+    avatarUrl: pass.avatarUrl,
+    profileSlug: pass.profileSlug,
+    issuedAt: pass.issuedAt,
+  };
+}
 /* Set while the room is quiet with its sweep stopped, the only state it hibernates in; a restart without it lost work in flight. */
 const QUIET_KEY = 'quiet';
 /* The summary interval a quiet room has not written yet, kept until it wakes. */
@@ -1137,15 +1151,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const { pass } = checked;
+    connection.profile = passProfile(pass);
     connection.viewer = {
       connectionId: connection.connectionId,
       userId: pass.actorId,
       viewerSeat: SPECTATOR_SEAT,
-      displayName: pass.displayName.slice(0, 160),
+      displayName: connection.profile.displayName,
       color: SPECTATOR_COLOR,
     };
-    connection.avatarUrl = pass.avatarUrl;
-    connection.profileSlug = pass.profileSlug;
     connection.sessionId = pass.sessionId;
     connection.pass = heldPass(pass);
     /* Unknown reads as at the limit, so a seat request waits for the answer rather than slipping past it. */
@@ -1175,9 +1188,21 @@ export class GameRoom extends DurableObject<GameEnv> {
       socket.close(SEAT_CHANGED_CLOSE_CODE, 'Seat changed.');
       return;
     }
-    connection.pass = heldPass(checked.pass);
-    connection.sessionId = checked.pass.sessionId;
+    this.holdRenewedPass(connection, checked.pass);
+  }
+
+  /** The connection holds the renewed pass and the profile it carries, and every view shows the player as that profile has them. */
+  private holdRenewedPass(connection: Connection, pass: SeatPassPayload) {
+    connection.pass = heldPass(pass);
+    connection.sessionId = pass.sessionId;
+    connection.profile = passProfile(pass);
+    connection.viewer!.displayName = connection.profile.displayName;
+    /* A rename reaches a page that stays connected through its next pass, not only through a reconnection; a paused tab's reaches the directory as it resumes. */
+    const renamed = connection.announced === 'authorized' && this.session.renewProfile(connection.profile);
     this.authorizationChanged();
+    if (renamed) {
+      this.refreshViews();
+    }
   }
 
   /* Asked once per admission; a failed read retries a few times and otherwise keeps the connection at the limit. */
@@ -1314,16 +1339,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** An authorized connection not yet announced as such takes its seat; one the room can no longer seat is denied. */
   private announceAuthorized(socket: WebSocket, connection: Connection) {
     try {
-      connection.viewer = this.session.viewer(
-        connection.connectionId,
-        connection.viewer!.userId,
-        connection.viewer!.displayName,
-        {
-          seatNewcomers: !this.metadata?.game,
-          avatarUrl: connection.avatarUrl,
-          profileSlug: connection.profileSlug,
-        }
-      );
+      connection.viewer = this.session.viewer(connection.connectionId, connection.profile!, {
+        seatNewcomers: !this.metadata?.game,
+      });
     } catch {
       this.deny(socket, false);
       return 'activity';

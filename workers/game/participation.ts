@@ -285,7 +285,7 @@ export class Participation {
   /**
    * After a seat empties: a drafting place is retired and everyone's drafting readiness clears;
    * after assignment the others keep theirs.
-   * A game with no player left is discarded for good.
+   * A game with no player left is discarded for good, unless it is finished: its players leaving is how a finished game ends, and it keeps its result and its replay.
    */
   private settle(change: SeatChange, seat: string, event: Pick<TableEvent, 'command' | 'message'>): StoredSnapshot {
     const { snapshot, controls, now } = change;
@@ -304,6 +304,9 @@ export class Participation {
         this.resolve(pending.id, 'closed', now);
       }
       controls.seatRequests = [];
+      next = { ...next, controls: { ...next.controls!, seatRequests: [] } };
+    }
+    if (this.actors.seated().length === 0 && snapshot.stage !== 'finished') {
       const discarded = this.event(next, 'stage', seatMessages.discarded());
       next = { ...this.next({ ...change, snapshot: next }, discarded), stage: 'discarded' };
     }

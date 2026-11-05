@@ -49,6 +49,7 @@ import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
+import type { PassProfile } from './actors';
 import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { CaptureStore } from './captures';
@@ -1197,7 +1198,7 @@ export class GameSession {
   }
   /** The identity the provisioning replay commands as (#1594): the creator at their seat, or a placeholder the room admits as a spectator. */
   provisionViewer(userId: string, displayName: string): Viewer {
-    return this.actors.viewer(`provision:${userId}`, userId, displayName, { seatNewcomers: false });
+    return this.actors.viewer(`provision:${userId}`, { userId, displayName, issuedAt: 0 }, { seatNewcomers: false });
   }
   /** The room's current snapshot, for a caller that judges its next command by the stage and revision. */
   currentSnapshot(): StoredSnapshot {
@@ -1233,6 +1234,14 @@ export class GameSession {
     const viewer = this.actors.viewer(...args);
     this.restampSeats(this.room!);
     return viewer;
+  }
+  /** A renewed pass's profile reaches the player's row and the seats shown; whether anything shown changed. */
+  renewProfile(profile: PassProfile): boolean {
+    const changed = this.actors.renewProfile(profile);
+    if (changed) {
+      this.restampSeats(this.room!);
+    }
+    return changed;
   }
   /** The snapshot's seats and roster are read again from the seat rows. */
   private restampSeats(room: Room) {
