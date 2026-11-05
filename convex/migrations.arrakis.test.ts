@@ -234,59 +234,65 @@ describe('Arrakis board migration', () => {
   );
 
   test(
-    'removes the emptied highlight list from stored cards and queued captures, and the verifies name what is left',
+    'removes the emptied highlight list from stored cards and their settled captures, and the verifies name what is left',
     async () => {
       const f = await rulebookFixture();
       migrationsTest.register(f.t);
       const boardId = await saveArrakis(f);
-      const onBoard = {
-        ...withoutList(publishingSpiceCard),
-        board: { asset_id: boardId, tints: [], tokens: [] },
-      };
+      const onBoard = { ...publishingSpiceCard, board: { asset_id: boardId, tints: [], tokens: [] } };
       const emptiedId = await insertCard(f, 'emptied', { ...onBoard, highlights: [] });
       const cleanId = await insertCard(f, 'clean', onBoard);
       const deletedId = await insertCard(f, 'deleted', { ...onBoard, highlights: ['arsunt'] }, true);
+      const brokenId = await insertCard(f, 'broken', { ...onBoard, highlights: null });
       /* A live list that still names a territory is kept for the verify to name, so its tint never silently goes missing. */
       const namingId = await insertCard(f, 'naming', { ...onBoard, highlights: ['arsunt'] });
-      const jobId = await f.t.run((ctx) =>
-        ctx.db.insert('publication_jobs', {
-          asset_type: 'card-spice',
-          asset_id: emptiedId,
-          asset_data: { assetId: emptiedId, slug: 'emptied', card: { ...onBoard, highlights: [] } },
-          status: 'error',
-          attempt_counter: 2,
-          created_at: 1,
-          updated_at: 1,
-        })
-      );
-      const jobData = async () => f.t.run(async (ctx) => (await ctx.db.get('publication_jobs', jobId))!.asset_data);
+      const queued = { assetId: emptiedId, slug: 'emptied', card: { ...onBoard, highlights: [] } };
+      const job = (status: 'error' | 'in_progress') =>
+        f.t.run((ctx) =>
+          ctx.db.insert('publication_jobs', {
+            asset_type: 'card-spice',
+            asset_id: emptiedId,
+            asset_data: queued,
+            status,
+            attempt_counter: 1,
+            created_at: 1,
+            updated_at: 1,
+          })
+        );
+      const erroredId = await job('error');
+      /* A running capture keeps the payload its completion hashes. */
+      const runningId = await job('in_progress');
+      const jobData = (id: Id<'publication_jobs'>) =>
+        f.t.run(async (ctx) => (await ctx.db.get('publication_jobs', id))!.asset_data);
 
       await expect(
-        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_verify_v1, {})
-      ).resolves.toMatchObject({ Status: expect.stringContaining(`publication job ${jobId}`) });
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_strip_v1, {});
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, {});
+        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_jobs_v1, {})
+      ).resolves.toMatchObject({ Status: expect.stringContaining(`publication job ${erroredId}`) });
+      /* The board-sized budget pages three cards at a time; one larger page runs them all here. */
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, { batchSize: 10 });
 
       expect(await cardData(f, emptiedId)).toEqual(onBoard);
       expect(await cardData(f, cleanId)).toEqual(onBoard);
       expect(await cardData(f, deletedId)).toEqual(onBoard);
+      expect(await cardData(f, brokenId)).toEqual(onBoard);
       expect(await cardData(f, namingId)).toEqual({ ...onBoard, highlights: ['arsunt'] });
-      expect(await jobData()).toEqual({ assetId: emptiedId, slug: 'emptied', card: onBoard });
+      expect(await jobData(erroredId)).toEqual({ ...queued, card: onBoard });
+      expect(await jobData(runningId)).toEqual(queued);
       expect(
-        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_verify_v1, { reset: true })
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_jobs_v1, { reset: true })
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
       await expect(
-        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_v1, {})
+        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_cards_v1, {})
       ).resolves.toMatchObject({
         Status: expect.stringContaining(`card-spice ${namingId} still carries a highlights list.`),
       });
 
       /* A second pass changes nothing, and once the live list is gone the verify passes. */
       await f.t.run((ctx) => ctx.db.delete('assets', namingId));
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, { reset: true });
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, { reset: true, batchSize: 10 });
       expect(await cardData(f, emptiedId)).toEqual(onBoard);
       expect(
-        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_v1, { reset: true })
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_cards_v1, { reset: true })
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
     },
     BUDGET_MS

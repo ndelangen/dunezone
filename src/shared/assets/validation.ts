@@ -1,5 +1,6 @@
 import { derive } from '../boards/geometry';
 import { BoardAsset } from '../boards/schema';
+import { withoutHighlights } from '../boards/spiceHighlights';
 import { renameLegacyEmblems } from '../legacyEmblem';
 import {
   BundleAssetInput,
@@ -54,8 +55,10 @@ function withoutEmptyHighlights(data: unknown): unknown {
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     return data;
   }
-  const { highlights, ...rest } = data as Record<string, unknown>;
-  return Array.isArray(highlights) && highlights.length === 0 ? rest : data;
+  const { highlights } = data as { highlights?: unknown };
+  return Array.isArray(highlights) && highlights.length === 0
+    ? withoutHighlights(data as Record<string, unknown>)
+    : data;
 }
 
 /**

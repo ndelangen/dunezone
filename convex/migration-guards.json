@@ -427,22 +427,17 @@
       "requires": ["arrakis_rulebook_edition_contents_v1"]
     },
     {
-      "id": "arrakis_spice_highlight_jobs_strip_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
       "id": "arrakis_spice_highlights_strip_v1",
       "phase": "widen",
       "requires": []
     },
     {
-      "id": "arrakis_spice_highlight_jobs_verify_v1",
+      "id": "arrakis_spice_highlights_verify_cards_v1",
       "phase": "widen",
-      "requires": ["arrakis_spice_highlight_jobs_strip_v1"]
+      "requires": ["arrakis_spice_highlights_strip_v1"]
     },
     {
-      "id": "arrakis_spice_highlights_verify_v1",
+      "id": "arrakis_spice_highlights_verify_jobs_v1",
       "phase": "widen",
       "requires": ["arrakis_spice_highlights_strip_v1"]
     }

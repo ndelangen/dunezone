@@ -7,12 +7,17 @@ import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import type { Board } from '../src/shared/boards/geometry';
 import type { BoardTint } from '../src/shared/boards/markup';
 import { propertyId } from '../src/shared/boards/schema';
-import { legacyHighlightTint } from '../src/shared/boards/spiceHighlights';
+import { legacyHighlightTint, withoutHighlights } from '../src/shared/boards/spiceHighlights';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
-import { enqueueAssetPublication, publicationScanBatchSize, supersedePendingPublication } from './lib/publication';
+import {
+  enqueueAssetPublication,
+  publicationJobsForAsset,
+  publicationScanBatchSize,
+  supersedePendingPublication,
+} from './lib/publication';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { syncSpiceCardRelations } from './lib/spiceCardBoard';
 import schema from './schema';
@@ -85,12 +90,6 @@ function covers(properties: Board['properties'], tints: readonly BoardTint[], ti
 /** A parsed card that is linked and keeps no old highlights. */
 const onBoardAlready = (card: { highlights?: readonly unknown[]; board?: unknown }) =>
   Boolean(card.board) && !card.highlights?.length;
-
-/** Stored card data without its `highlights` key; every other key is kept exactly as stored. */
-export function withoutHighlights(data: Record<string, unknown>): Record<string, unknown> {
-  const { highlights: _dropped, ...rest } = data;
-  return rest;
-}
 
 /**
  * A Spice card's data on the saved board: linked if it was not, its old highlight list removed once its tints draw it.
@@ -261,25 +260,27 @@ export const arrakis_rulebook_drafts_verify_v1 = verifyContents('rulebook_drafts
 export const arrakis_rulebook_edition_contents_verify_v1 = verifyContents('rulebook_edition_contents');
 
 /*
- * The highlight list no card draws any more is removed from every stored card (#1971).
- * Each id sorts after `arrakis_spice_cards_v1`, so on a snapshot replay the move runs first and these find nothing left.
+ * The highlight list no card draws any more is removed from every stored card and its queued captures (#1971).
+ * The strip sorts before both verifies and after `arrakis_spice_cards_v1`, so on a snapshot replay the move runs first and these find nothing left.
+ * Release 3 removes the field from the schema behind a narrow entry requiring the strip and both verifies.
  */
 
-/** Whether stored data still carries a `highlights` key. */
+/** Whether stored data still carries a `highlights` key, whatever it holds. */
 const hasHighlights = (data: unknown): data is Record<string, unknown> =>
   Boolean(data) && typeof data === 'object' && Object.hasOwn(data as object, 'highlights');
 
 /**
  * A stored Spice card without its old highlight list, or the same data when there is nothing to remove.
  * A live card keeps a list that still names territories, so the verify names it instead of a tint silently going missing;
- * a deleted card's list is removed whatever it holds.
+ * anything else under the key (an empty list, a value that is no list, or a deleted card's list) carries nothing and is removed.
  */
 export function spiceCardWithoutHighlights(data: unknown, isDeleted: boolean): unknown {
   if (!hasHighlights(data)) {
     return data;
   }
   const { highlights } = data;
-  return isDeleted || (Array.isArray(highlights) && highlights.length === 0) ? withoutHighlights(data) : data;
+  const naming = Array.isArray(highlights) && highlights.length > 0;
+  return naming && !isDeleted ? data : withoutHighlights(data);
 }
 
 /** A queued capture of a Spice card without its old highlight list, or the same payload when its card has none. */
@@ -288,31 +289,35 @@ export function spiceJobWithoutHighlights(assetData: unknown): unknown {
   return hasHighlights(card) ? { ...(assetData as object), card: withoutHighlights(card) } : assetData;
 }
 
-/** Removes the old highlight list from every stored Spice card; the card's face is unchanged, so nothing is captured again. */
+/*
+ * A capture running when the strip reaches its job is left alone: its completion hashes the payload it was given.
+ * The lifecycle holds a card's jobs to single digits, so reading them with the card stays within the board-sized budget.
+ */
+const settledJob = (job: Doc<'publication_jobs'>) => job.status !== 'in_progress';
+
+/**
+ * Removes the old highlight list from every stored Spice card and from the card each of its queued captures carries, so a job queued before the strip still parses once the field is gone.
+ * The face is unchanged, so nothing is captured again.
+ */
 export const arrakis_spice_highlights_strip_v1 = migrations.define({
   table: 'assets',
-  batchSize: 100,
+  /* Each card's jobs carry its board, so a batch stays at the board-sized budget. */
+  batchSize: publicationScanBatchSize(SPICE_CARD_ASSET_TYPE, 50),
   customRange: (q) => q.withIndex('by_type_and_slug', (index) => index.eq('type', SPICE_CARD_ASSET_TYPE)),
-  migrateOne: (_ctx, row) => {
+  migrateOne: async (ctx, row) => {
+    for (const job of await publicationJobsForAsset(ctx, row.type, row._id)) {
+      const asset_data = spiceJobWithoutHighlights(job.asset_data);
+      if (settledJob(job) && asset_data !== job.asset_data) {
+        await ctx.db.patch(job._id, { asset_data });
+      }
+    }
     const data = spiceCardWithoutHighlights(row.data, row.is_deleted);
     return data === row.data ? undefined : { data };
   },
 });
 
-/** Removes the old highlight list from the card each queued Spice capture carries, so a job queued before the strip still parses once the field is gone. */
-export const arrakis_spice_highlight_jobs_strip_v1 = migrations.define({
-  table: 'publication_jobs',
-  batchSize: 50,
-  customRange: (q) =>
-    q.withIndex('by_asset_type_status_created_at', (index) => index.eq('asset_type', SPICE_CARD_ASSET_TYPE)),
-  migrateOne: (_ctx, job) => {
-    const asset_data = spiceJobWithoutHighlights(job.asset_data);
-    return asset_data === job.asset_data ? undefined : { asset_data };
-  },
-});
-
 /** Fails on the first Spice card still carrying a highlight list, naming it. */
-export const arrakis_spice_highlights_verify_v1 = migrations.define({
+export const arrakis_spice_highlights_verify_cards_v1 = migrations.define({
   table: 'assets',
   batchSize: 100,
   customRange: (q) => q.withIndex('by_type_and_slug', (index) => index.eq('type', SPICE_CARD_ASSET_TYPE)),
@@ -323,14 +328,14 @@ export const arrakis_spice_highlights_verify_v1 = migrations.define({
   },
 });
 
-/** Fails on the first queued Spice capture whose card still carries a highlight list, naming it. */
-export const arrakis_spice_highlight_jobs_verify_v1 = migrations.define({
+/** Fails on the first settled Spice capture whose card still carries a highlight list, naming it. */
+export const arrakis_spice_highlights_verify_jobs_v1 = migrations.define({
   table: 'publication_jobs',
-  batchSize: 50,
+  batchSize: publicationScanBatchSize(SPICE_CARD_ASSET_TYPE, 50),
   customRange: (q) =>
     q.withIndex('by_asset_type_status_created_at', (index) => index.eq('asset_type', SPICE_CARD_ASSET_TYPE)),
   migrateOne: (_ctx, job) => {
-    if (spiceJobWithoutHighlights(job.asset_data) !== job.asset_data) {
+    if (settledJob(job) && spiceJobWithoutHighlights(job.asset_data) !== job.asset_data) {
       throw new Error(`publication job ${job._id} still captures a Spice card with a highlights list.`);
     }
   },
@@ -347,8 +352,7 @@ export const ARRAKIS_MIGRATION_IDS: Record<string, FunctionReference<'mutation',
   arrakis_spice_cards_verify_v1: internal.arrakisMigrations.arrakis_spice_cards_verify_v1,
   arrakis_rulebook_drafts_verify_v1: internal.arrakisMigrations.arrakis_rulebook_drafts_verify_v1,
   arrakis_rulebook_edition_contents_verify_v1: internal.arrakisMigrations.arrakis_rulebook_edition_contents_verify_v1,
-  arrakis_spice_highlight_jobs_strip_v1: internal.arrakisMigrations.arrakis_spice_highlight_jobs_strip_v1,
-  arrakis_spice_highlight_jobs_verify_v1: internal.arrakisMigrations.arrakis_spice_highlight_jobs_verify_v1,
   arrakis_spice_highlights_strip_v1: internal.arrakisMigrations.arrakis_spice_highlights_strip_v1,
-  arrakis_spice_highlights_verify_v1: internal.arrakisMigrations.arrakis_spice_highlights_verify_v1,
+  arrakis_spice_highlights_verify_cards_v1: internal.arrakisMigrations.arrakis_spice_highlights_verify_cards_v1,
+  arrakis_spice_highlights_verify_jobs_v1: internal.arrakisMigrations.arrakis_spice_highlights_verify_jobs_v1,
 };
