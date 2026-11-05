@@ -37,13 +37,16 @@ export const biddingStateSchema = z.object({
   deadline: count.nullable(),
   /*
    * The high bid and the passes as they stood when the bidder came to the faction it points at, which its own raises lower back to,
-   * and the deadline its turn had then, or that its first raise started, which lowering all the way back returns to.
+   * the deadline its turn had then, or that its first raise started, which lowering all the way back returns to,
+   * and the highest bid the turn reached.
    */
   turnStart: z
     .object({
       bid: z.object({ factionId: id, amount: count.min(1) }).nullable(),
       passed: z.array(id),
       deadline: count.nullable().optional(),
+      /* The highest bid this turn reached, which a raise must pass to renew the clock. */
+      high: count.optional(),
     })
     .optional(),
 });
@@ -244,14 +247,18 @@ function raiseBid(state: BiddingState, factionId: string, context: BiddingContex
   if (!context.eligible.includes(factionId)) {
     return refuse('Turn your faction token face up to bid.');
   }
-  const deadline = turnDeadline(state, context.now);
   /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
   const turnStart = state.turnStart ?? { bid: state.bid, passed: state.passed };
+  const amount = (state.bid?.amount ?? 0) + 1;
+  const high = turnStart.high ?? turnStart.bid?.amount ?? 0;
+  /* Only a bid higher than any this turn reached renews the clock, so raising again after lowering never buys time. */
+  const deadline =
+    amount > high ? turnDeadline(state, context.now) : (state.deadline ?? turnDeadline(state, context.now));
   return {
     ...state,
     /* A turn whose clock had not started yet takes the one its first raise starts, so lowering back cannot start it afresh. */
-    turnStart: { ...turnStart, deadline: turnStart.deadline ?? deadline },
-    bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
+    turnStart: { ...turnStart, deadline: turnStart.deadline ?? deadline, high: Math.max(high, amount) },
+    bid: { factionId, amount },
     passed: [],
     deadline,
   };
@@ -267,7 +274,9 @@ export function applyBidding(state: BiddingState, action: BiddingAction, context
         return state;
       }
       const next = { ...state, timed: action.enabled };
-      return { ...next, deadline: next.stage === 'open' ? turnDeadline(next, context.now) : null };
+      const deadline = next.stage === 'open' ? turnDeadline(next, context.now) : null;
+      /* The turn's clock starts over with the new setting, so lowering back never returns to one set before it, long past. */
+      return { ...next, deadline, ...(next.turnStart ? { turnStart: { ...next.turnStart, deadline } } : {}) };
     }
     case 'bid-start':
       return start(state, action.factionId, context);
