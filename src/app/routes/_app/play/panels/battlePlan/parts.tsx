@@ -1,10 +1,11 @@
 import { Button, Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
+import { Stepper } from '@ui/control/Stepper';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
-import { Check, Diff, Eye, EyeOff, Minus, Plus, SlidersHorizontal } from 'lucide-react';
-import type { ReactNode, WheelEvent } from 'react';
+import { Check, Diff, Eye, EyeOff, SlidersHorizontal } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -52,6 +53,7 @@ export function AdjustButton({
           max={20}
           step={0.5}
           snap={false}
+          wheel="focus"
           format={formatStrength}
           disabled={disabled}
           onChange={(next) => onEdit({ adjustment: next })}
@@ -99,125 +101,6 @@ function RollingNumber({ value, format = formatStrength }: { value: number; form
     return () => cancelAnimationFrame(frame);
   }, [value, motion]);
   return <>{format(motion ? shown : value)}</>;
-}
-
-type StepperProps = {
-  label: string;
-  value: number;
-  min?: number;
-  max?: number;
-  step?: number;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-  /** Shown after the value, such as "of 12". */
-  suffix?: ReactNode;
-  format?: (value: number) => string;
-  size?: 'sm' | 'md';
-  /** False when a typed value stays as entered: the step is then only what − and + move by. */
-  snap?: boolean;
-};
-
-/**
- * A count with − and + either side: one click per step, the wheel over it steps too, and typing commits on Enter or blur.
- * At either end the value knocks against its limit instead of silently refusing.
- */
-function Stepper({
-  label,
-  value,
-  min = 0,
-  max = Infinity,
-  step = 1,
-  disabled,
-  onChange,
-  suffix,
-  format = String,
-  size = 'md',
-  snap = true,
-}: StepperProps) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const [knock, setKnock] = useState<number | undefined>(undefined);
-  const bump = useBump(value);
-  const go = (next: number) => {
-    const bounded = Math.min(max, Math.max(min, next));
-    if (bounded === value) {
-      setKnock((before) => (before === 0 ? 1 : 0));
-      return;
-    }
-    onChange(bounded);
-  };
-  /* Only a field the player is typing in steps with the wheel, so scrolling past a stepper never changes the plan. */
-  const wheel = (event: WheelEvent<HTMLDivElement>) => {
-    if (disabled || !event.deltaY || !event.currentTarget.contains(document.activeElement)) {
-      return;
-    }
-    stepBy(event.deltaY < 0 ? step : -step);
-  };
-  /* What the field holds now: a valid typed count, or the plan's own. */
-  const current = () => {
-    const typed = draft === null || draft.trim() === '' ? NaN : Number(draft);
-    if (!Number.isFinite(typed)) {
-      return value;
-    }
-    return snap ? Math.round(typed / step) * step : typed;
-  };
-  /* A step from the wheel, a key or a button starts from what the field shows, typed or not, and settles the field. */
-  const stepBy = (delta: number) => {
-    go(current() + delta);
-    setDraft(null);
-  };
-  const commit = () => {
-    if (draft !== null) {
-      go(current());
-      setDraft(null);
-    }
-  };
-  return (
-    <div
-      className={clsx(styles.stepper, size === 'sm' && styles.stepperSmall)}
-      data-knock={knock}
-      data-disabled={disabled || undefined}
-      onWheel={wheel}
-      role="group"
-      aria-label={label}
-    >
-      <UnstyledButton
-        className={styles.stepButton}
-        aria-label={`Fewer: ${label}`}
-        disabled={disabled}
-        onClick={() => stepBy(-step)}
-      >
-        <Minus size={14} />
-      </UnstyledButton>
-      <input
-        className={styles.stepValue}
-        data-bump={bump}
-        aria-label={label}
-        inputMode="decimal"
-        disabled={disabled}
-        value={draft ?? format(value)}
-        onChange={(event) => setDraft(event.currentTarget.value)}
-        onFocus={(event) => event.currentTarget.select()}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            event.currentTarget.blur();
-          } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            event.preventDefault();
-            stepBy(event.key === 'ArrowUp' ? step : -step);
-          }
-        }}
-      />
-      {suffix ? <span className={styles.stepSuffix}>{suffix}</span> : null}
-      <UnstyledButton
-        className={styles.stepButton}
-        aria-label={`More: ${label}`}
-        disabled={disabled}
-        onClick={() => stepBy(step)}
-      >
-        <Plus size={14} />
-      </UnstyledButton>
-    </div>
-  );
 }
 
 /**
@@ -311,7 +194,7 @@ export function DialRow({
         }}
       />
       <span className={styles.dialStep}>
-        <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} onChange={onChange} />
+        <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} wheel="focus" onChange={onChange} />
       </span>
     </div>
   );

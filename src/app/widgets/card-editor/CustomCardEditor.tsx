@@ -4,7 +4,6 @@ import type { CustomCardTokens } from '@shared/assets/schema';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Layers3, LayoutTemplate } from 'lucide-react';
@@ -17,7 +16,7 @@ import { card } from '@game/data/sizes';
 
 import { cardHeadAndSymbolChapters, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
-import styles from './CustomCardEditor.module.css';
+import { CardProof } from './CardProof';
 import type { CardTokenPicker } from './CustomCardLayers';
 import { CustomCardLayerPanel, CustomCardLayers } from './CustomCardLayers';
 import type { CustomCardDraft } from './customCardPresets';
@@ -36,11 +35,11 @@ const LAYER_PRESENTATION = {
   text: { label: 'Text', topic: 'text' },
 } as const;
 
-function CardProof({ draft, tokens }: { draft: CustomCardDraft; tokens: z.infer<typeof CustomCardTokens> }) {
+function CustomCardProof({ draft, tokens }: { draft: CustomCardDraft; tokens: z.infer<typeof CustomCardTokens> }) {
   return (
-    <CanvasScale rounded canvasWidth={card.width} canvasHeight={card.height} frameClassName={styles.proofFrame}>
+    <CardProof>
       <CustomCard {...draft} tokens={tokens} />
-    </CanvasScale>
+    </CardProof>
   );
 }
 
@@ -218,7 +217,7 @@ export function CustomCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CardProof draft={draft} tokens={tokens} />
+        <CustomCardProof draft={draft} tokens={tokens} />
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

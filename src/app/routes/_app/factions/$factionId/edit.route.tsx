@@ -3,10 +3,7 @@ import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { errorMessage } from '@ui/content/errorMessage';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -17,9 +14,9 @@ import { useAuthoringAccountKey } from '@db/authoring';
 import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -32,6 +29,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from '../factionNameField';
@@ -56,15 +54,13 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
  */
 function FactionEditError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage
+    <RouteLoadError
       size="compact"
       title="Edit faction"
       back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
-    >
-      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="Faction could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -117,9 +113,9 @@ function FactionEditPage() {
 
   if (!viewerResolved) {
     return (
-      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
-        <LoadPending title="Loading faction">Checking what you can edit.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
+        Checking what you can edit.
+      </RoutePending>
     );
   }
 
@@ -135,9 +131,9 @@ function FactionEditPage() {
 
   if (!faction) {
     return (
-      <PageMessage size="compact" title="Edit faction" back={backToFaction}>
-        <LoadPending title="Loading faction">The faction is still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title="Edit faction" back={backToFaction} loading="Loading faction">
+        The faction is still loading.
+      </RoutePending>
     );
   }
 

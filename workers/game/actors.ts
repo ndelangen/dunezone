@@ -195,6 +195,30 @@ export class ActorDirectory {
       }));
   }
 
+  /**
+   * The connected spectators, by public name, avatar and profile slug, for Seats & spectators;
+   * ordered by name.
+   * Like `holders`, all three are as their last admission carried them.
+   */
+  watchers(userIds: readonly string[]): { userId: string; name: string; avatar: string | null; slug: string | null }[] {
+    if (!userIds.length) {
+      return [];
+    }
+    return this.storage.sql
+      .exec<{ user_id: string; display_name: string; avatar_url: string | null; profile_slug: string | null }>(
+        'SELECT user_id, display_name, avatar_url, profile_slug FROM actors WHERE deleted=0 AND seat=? AND user_id IN (SELECT value FROM json_each(?)) ORDER BY display_name COLLATE NOCASE, user_id',
+        SPECTATOR_SEAT,
+        JSON.stringify([...new Set(userIds)])
+      )
+      .toArray()
+      .map((row) => ({
+        userId: row.user_id,
+        name: row.display_name,
+        avatar: row.avatar_url ?? null,
+        slug: row.profile_slug ?? null,
+      }));
+  }
+
   /** Who holds each seat with the account behind it, for rows the scrub must find by user; never sent to a viewer. */
   occupants(): { seat: string; userId: string; name: string }[] {
     return this.storage.sql

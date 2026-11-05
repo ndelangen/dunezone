@@ -18,6 +18,7 @@ import { ProfilePicker } from '@app/pickers/ProfilePicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets', asset: 'Assets' } as const;
 
@@ -57,9 +58,9 @@ function AccountDeletionPage() {
 
   if (page.isPending) {
     return (
-      <PageMessage title="Delete account" back={backToSettings}>
-        <LoadPending title="Loading">Checking what deleting this account would affect.</LoadPending>
-      </PageMessage>
+      <RoutePending title="Delete account" back={backToSettings} loading="Loading">
+        Checking what deleting this account would affect.
+      </RoutePending>
     );
   }
 

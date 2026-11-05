@@ -1,7 +1,6 @@
 import { Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -15,6 +14,7 @@ import { pageHead } from '@app/routes/pageTitle';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/groups/create')({
   head: () => pageHead('Start group'),
@@ -46,9 +46,13 @@ function GroupCreatePage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage title="Start group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </PageMessage>
+        <RoutePending
+          title="Start group"
+          back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+          loading="Loading your profile"
+        >
+          Checking whether you are signed in.
+        </RoutePending>
       );
     case 'signed-out':
       return (

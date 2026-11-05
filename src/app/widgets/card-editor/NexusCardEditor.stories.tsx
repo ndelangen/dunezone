@@ -1,3 +1,4 @@
+import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { GF9_NEXUS_CARDS } from '@shared/assets/gf9Nexus';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -8,7 +9,7 @@ const meta = preview.meta({
   title: 'Nexus Card Editor',
   component: NexusCardEditor,
   args: {
-    nameField: <input aria-label="Name" readOnly value="Atreides" />,
+    nameField: <TextInput aria-label="Name" readOnly value="Atreides" />,
     draft: GF9_NEXUS_CARDS[0]!,
     patch: fn(),
     memory: INITIAL_NEXUS_MEMORY,

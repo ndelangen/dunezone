@@ -153,6 +153,16 @@ async function fresh(peer: ProtocolPeer) {
   peer.send({ type: 'sync' });
   return until(() => peer.messages.slice(before).find((message) => message.type === 'view'), 'No fresh view.');
 }
+/** A snapshot with the viewer's own spectator row unmarked, as a recalled frame carries it. */
+function withoutOwnSpectator<Snapshot extends { controls?: { spectators: readonly { own?: boolean }[] } }>(
+  snapshot: Snapshot
+): Snapshot {
+  if (!snapshot.controls) {
+    return snapshot;
+  }
+  const spectators = snapshot.controls.spectators.map(({ own: _own, ...spectator }) => spectator);
+  return { ...snapshot, controls: { ...snapshot.controls, spectators } };
+}
 async function command(peer: ProtocolPeer, action: PieceAction) {
   await until(
     () => peer.messages.findLast((message) => message.type === 'view' || message.type === 'admission')?.type === 'view',
@@ -259,7 +269,8 @@ try {
   await command(a, { kind: 'phase' });
   c.send({ type: 'history', step: 1 });
   const history = await until(() => c.messages.find((message) => message.type === 'history'), 'History unavailable.');
-  assert.deepEqual(history.snapshot, (await fresh(c)).snapshot);
+  /* A recalled frame marks no spectator as the viewer, so the live frame's own-row mark is set aside for the comparison. */
+  assert.deepEqual(history.snapshot, withoutOwnSpectator((await fresh(c)).snapshot));
   assert.equal(Object.hasOwn(history.snapshot, 'bank'), false);
   passed('Observers cannot mutate; authenticated phase playback reproduces the boundary');
   /* The storm moves only during Storm (#1138), and the storm is this script's probe command below, so return to Storm once the phase cooldown allows. */

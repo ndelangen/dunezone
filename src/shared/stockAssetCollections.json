@@ -2226,6 +2226,7 @@
       "/vector/generic/fremen.svg",
       "/vector/generic/great-house-emblem.svg",
       "/vector/generic/guild-eyes.svg",
+      "/vector/generic/harkonnen-ram.svg",
       "/vector/generic/honored-matres.svg",
       "/vector/generic/house-atreides.svg",
       "/vector/generic/house-corrino.svg",
@@ -2237,7 +2238,6 @@
       "/vector/generic/mercenaries.svg",
       "/vector/generic/peddlers.svg",
       "/vector/generic/qizarate.svg",
-      "/vector/generic/ram-skull.svg",
       "/vector/generic/sandworm.svg",
       "/vector/generic/sardaukar.svg",
       "/vector/generic/sisterhood.svg",
@@ -2289,7 +2289,7 @@
   {
     "label": "General symbols / Stargate",
     "keywords": "Stargate",
-    "assets": ["/vector/generic/apophis.svg", "/vector/generic/cronus.svg", "/vector/generic/ori.svg"]
+    "assets": ["/vector/generic/apophis.svg", "/vector/generic/ori.svg", "/vector/generic/oval-star.svg"]
   },
   {
     "label": "General symbols / Warhammer 40,000",

@@ -9,7 +9,7 @@ function PlainButton(props: Pick<ButtonProps, 'loading' | 'disabled'>) {
 
 /*
  * Mantine's Button under our theme. Its loading and disabled looks are its own, so the actions built on it
- * (`ConfirmDeleteButton`, `SubmitAction`) test that they turn them on rather than capturing them again (ADR-0005).
+ * (`ConfirmDeleteButton`) tests that it turns them on rather than capturing them again (ADR-0005).
  */
 const meta = preview.meta({
   title: 'Button',

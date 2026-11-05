@@ -3,8 +3,6 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -46,12 +44,13 @@ import type { ReactNode } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import type { FaqReferencePreview } from '@db/faq';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession, faqQuestionHasChanges } from './faqEditingSession';
@@ -117,18 +116,16 @@ function FaqDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage
+    <RouteLoadError
       title="FAQ"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="This question could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -199,6 +196,24 @@ function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>
   };
 }
 
+/** The question's frame while it and its answers load. */
+function FaqQuestionPending() {
+  const { rulesetSlug } = Route.useParams();
+  return (
+    <RoutePending
+      title="FAQ"
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+      loading="Loading question"
+    >
+      This question and its answers are still loading.
+    </RoutePending>
+  );
+}
+
 function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -243,18 +258,7 @@ function FaqDetailPage() {
   }, [item, answers]);
 
   if (!item) {
-    return (
-      <PageMessage
-        title="FAQ"
-        back={
-          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-            Back to ruleset
-          </PageMessage.Back>
-        }
-      >
-        <LoadPending title="Loading question">This question and its answers are still loading.</LoadPending>
-      </PageMessage>
-    );
+    return <FaqQuestionPending />;
   }
 
   /* The page is the same for everyone; its controls follow the viewer, whose capabilities are the signed-out ones until the session settles. */

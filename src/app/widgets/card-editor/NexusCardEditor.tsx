@@ -5,7 +5,6 @@ import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { ScrollText, Shield } from 'lucide-react';
@@ -17,11 +16,10 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { backgroundPresets } from '@game/data/backgrounds';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
+import { CardProof } from './CardProof';
 
 export type NexusDraft = z.infer<typeof NexusCardAsset>;
 export type NexusMemory = CardHeadMemory;
@@ -188,14 +186,9 @@ export function NexusCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CanvasScale
-          rounded
-          canvasWidth={CARD_SIZE.width}
-          canvasHeight={CARD_SIZE.height}
-          frameClassName={styles.proofFrame}
-        >
+        <CardProof>
           <NexusCard {...draft} frontStyle={frontStyle} />
-        </CanvasScale>
+        </CardProof>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );
