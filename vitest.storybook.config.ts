@@ -146,7 +146,7 @@ export default defineConfig({
       enabled: true,
       /* Match the addon's default so file boundaries do not resize desktop stories to Vitest's 414x896. */
       viewport: { width: 1200, height: 900 },
-      provider: playwright({ launchOptions: { executablePath: '/opt/pw-browsers/chromium' } }),
+      provider: playwright(),
       commands: {
         /* Called from .storybook/browserMotion.vitest.ts; a command, because Storybook turns off the CDP access a page-side call would need. */
         emulateReducedMotion: async ({ page }, reduce: boolean) => {

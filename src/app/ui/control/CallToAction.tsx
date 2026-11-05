@@ -33,7 +33,8 @@ interface CallToActionBaseProps {
 
 /**
  * Exactly one destination: the router's `Link` through `renderRoot`, or a plain anchor's `href` for a jump within this page (`#play-preview`), which a hash link keeps working before hydration.
- * Or `submit`, for a journey that starts by sending the form the button sits in (Create game); `busy` then holds a spinner while the form is on its way.
+ * Or `submit`, for a journey that starts by sending the form the button sits in (Create game);
+ * `busy` then holds a spinner while the form is on its way.
  */
 export type CallToActionProps = CallToActionBaseProps &
   (
