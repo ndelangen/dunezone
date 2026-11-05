@@ -3,6 +3,7 @@ import type { FunctionReference } from 'convex/server';
 
 import { SPICE_CARD_ASSET_TYPE } from '../src/shared/asset-publishing/publication';
 import { SpiceAsset } from '../src/shared/assets/schema';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import type { Board } from '../src/shared/boards/geometry';
 import type { BoardTint } from '../src/shared/boards/markup';
 import { propertyId } from '../src/shared/boards/schema';
@@ -27,9 +28,6 @@ const migrations = new Migrations(components.migrations, {
   migrationsLocationPrefix: 'arrakisMigrations:',
   schema,
 });
-
-/** The saved Arrakis board's slug: the stock board every built-in Arrakis reference moves to. */
-export const ARRAKIS_BOARD_SLUG = 'arrakis-official';
 
 /** The id Rulebook Contents gave the built-in Arrakis board. */
 export const BUILT_IN_ARRAKIS_BOARD_ID = 'arrakis';
@@ -85,8 +83,8 @@ function covers(properties: Board['properties'], tints: readonly BoardTint[], ti
 }
 
 /** A parsed card that is linked and keeps no old highlights. */
-const onBoardAlready = (card: { highlights: readonly unknown[]; board?: unknown }) =>
-  Boolean(card.board) && card.highlights.length === 0;
+const onBoardAlready = (card: { highlights?: readonly unknown[]; board?: unknown }) =>
+  Boolean(card.board) && !card.highlights?.length;
 
 /**
  * A Spice card's data on the saved board: linked if it was not, its old highlight list emptied once its tints draw it.
@@ -101,7 +99,7 @@ export function spiceCardOnBoard(data: unknown, board: SavedBoard): unknown {
   }
   const card = parsed.data;
   const stored = data as Record<string, unknown>;
-  const carried = legacyHighlightTint(card.highlights, card.subName);
+  const carried = legacyHighlightTint(card.highlights ?? [], card.subName);
   if (card.board) {
     return !carried || covers(board.properties, card.board.tints, carried) ? { ...stored, highlights: [] } : data;
   }

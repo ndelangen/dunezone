@@ -1,7 +1,5 @@
 import {
-  Alert,
   Anchor,
-  Button,
   Center,
   Combobox,
   Divider,
@@ -16,6 +14,10 @@ import {
 } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import type { ActionIntent } from '@ui/control/actionIntent';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
@@ -41,7 +43,8 @@ interface PickedFaction {
 }
 
 /* The picker owns the resolution, so a caller states the meaning and never a hue. */
-const CONFIRM_INTENT_COLOR = { positive: 'confirm', caution: 'orange' } as const;
+/* A pick that replaces work in progress takes the destructive tone; one that only adds takes the creating one. */
+const CONFIRM_INTENT = { positive: 'positive', caution: 'negative' } as const satisfies Record<string, ActionIntent>;
 
 /**
  * Everything the picker says, supplied by the caller.
@@ -156,11 +159,7 @@ export function FactionPicker(props: FactionPickerProps) {
           ) : null}
         </Stack>
       ) : null}
-      {error && (
-        <Alert color="red" title={copy.errorTitle} role="alert">
-          {error}
-        </Alert>
-      )}
+      {error && <FormError title={copy.errorTitle}>{error}</FormError>}
       {picker.isPending ? (
         <Center py="md">
           <Loader size="sm" aria-label="Loading factions" />
@@ -251,17 +250,18 @@ export function FactionPicker(props: FactionPickerProps) {
               </Text>
             ) : null}
             <Group justify="flex-end" gap="xs">
-              <Button type="button" variant="default" size="compact-sm" onClick={props.onCancel}>
+              <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={props.onCancel}>
                 Cancel
-              </Button>
-              <Button
-                type="button"
-                color={CONFIRM_INTENT_COLOR[props.copy.confirmIntent]}
+              </LabeledAction>
+              <LabeledAction
+                intent={CONFIRM_INTENT[props.copy.confirmIntent]}
+                emphasis="strong"
                 size="compact-sm"
+                icon={<Check size={14} />}
                 onClick={() => commit(selectedRow)}
               >
                 {props.copy.confirmLabel}
-              </Button>
+              </LabeledAction>
             </Group>
           </Stack>
         </>

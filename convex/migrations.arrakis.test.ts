@@ -6,12 +6,13 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { SPICE_BOARD_REVISION } from '../src/shared/assets/schema';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { arrakisBoard } from '../src/shared/boards/geometry';
 import { propertyId } from '../src/shared/boards/schema';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { ARRAKIS_BOARD_SLUG, contentsOnBoard } from './arrakisMigrations';
+import { contentsOnBoard } from './arrakisMigrations';
 import { rulebookDraftContentsHash, rulebookEditionContentsHash } from './lib/rulebookEditionContents';
 import { rulebookFixture } from './rulebooks.test.fixture';
 

@@ -12,7 +12,7 @@ import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
 import { labelForCount } from '@shared/play/tableState';
-import board from '@shared/rulebooks/boards/arrakis.json';
+import { ARRAKIS_OFFICIAL as board } from '@shared/rulebooks/fixtures/arrakisOfficial';
 
 import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';

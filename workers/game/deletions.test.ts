@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { nearestZone } from '../../src/shared/play/model';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { LEADER_SPACING, piecesOverlapAt } from '../../src/shared/play/tablePhysics';
@@ -153,7 +153,7 @@ describe('restoring a deleted piece (#2132)', () => {
 test('a piece restored into a territory packs around a stack another player is carrying, and their carry still lands', () => {
   const snapshot = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
   const troops = snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
-  const arrakeen = tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === 'Arrakeen')!;
+  const arrakeen = tableTerritories(arrakisBoardCapture.definition).find((territory) => territory.name === 'Arrakeen')!;
   const [x, z] = innermostPoint(arrakeen);
   const held = { ...troops, position: restingPositionAt([x, 0, z], troops) };
   const gone = { ...troops, id: 'deleted-troops', position: held.position };
@@ -165,7 +165,10 @@ test('a piece restored into a territory packs around a stack another player is c
       deletedPieces: [{ id: '7', piece: gone }],
     },
     () => ['harkonnen', 'atreides'],
-    (id) => FACTIONS[id]
+    (id) => FACTIONS[id],
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
   );
   target.begin(alice, {
     carryId: 'held',

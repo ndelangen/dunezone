@@ -1,7 +1,7 @@
 import { expect, test } from 'vite-plus/test';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
-import { RULEBOOK_BOARD_DEFINITIONS } from '../rulebooks/boardDefinitions';
+import { ARRAKIS_OFFICIAL } from '../rulebooks/fixtures/arrakisOfficial';
 import { boardComponentGeometry } from './componentGeometry';
 import { arrakisBoard, blankBoard, CENTER, derive, RADIUS } from './geometry';
 import type { Point } from './geometry';
@@ -20,12 +20,10 @@ function distanceToRings(point: Point, rings: readonly (readonly Point[])[]) {
   return nearest;
 }
 
-test('a saved Arrakis board gives a Rulebook every territory, group and sectors key the maintained Arrakis geometry highlights', () => {
+test('a saved Arrakis board gives a Rulebook every territory, group and sectors key Arrakis Official highlights', () => {
   const geometry = componentGeometrySchema.parse(boardComponentGeometry(arrakisBoard(), 1948, 1948));
   const keys = new Set(geometry.parts.map((part) => part.key));
-  const maintained = RULEBOOK_BOARD_DEFINITIONS[0]!.geometry.parts
-    .filter((part) => part.highlight)
-    .map((part) => part.key);
+  const maintained = ARRAKIS_OFFICIAL.geometry.parts.filter((part) => part.highlight).map((part) => part.key);
   expect(maintained.filter((key) => !keys.has(key))).toEqual([]);
   expect(geometry.parts.find((part) => part.key === 'strongholds')?.highlight?.paths).toHaveLength(5);
   const sectors = geometry.parts.find((part) => part.key === 'sectors')?.highlight?.paths ?? [];

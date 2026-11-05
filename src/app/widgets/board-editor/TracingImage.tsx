@@ -1,11 +1,12 @@
-import { Button, FileButton, Group, Popover, Slider, Stack, Text } from '@mantine/core';
+import { FileButton, Group, Popover, Slider, Stack, Text } from '@mantine/core';
 import { CENTER } from '@shared/boards/geometry';
 import type { Point } from '@shared/boards/geometry';
 import { FormError } from '@ui/block/FormError';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { useDismissToolbarOverflow } from '@ui/surface/Toolbar';
-import { Eye, EyeOff, ImagePlus, RotateCcw, X } from 'lucide-react';
+import { Eye, EyeOff, ImagePlus, ImageUp, RotateCcw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -305,9 +306,9 @@ export function TracingImagePanel({
               <Stack gap={4}>
                 <FileButton onChange={pick} accept="image/*" resetRef={input}>
                   {(props) => (
-                    <Button {...props} variant="default">
+                    <LabeledAction {...props} icon={<ImageUp size={16} />}>
                       {tracing ? 'Replace image…' : 'Choose image…'}
-                    </Button>
+                    </LabeledAction>
                   )}
                 </FileButton>
                 {error && <FormError title="Image could not be opened">{error}</FormError>}

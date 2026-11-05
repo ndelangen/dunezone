@@ -1,12 +1,15 @@
-import { Alert, Button, Group, Popover } from '@mantine/core';
+import { Alert, Group, Popover } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
+import { Replace } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
@@ -282,11 +285,7 @@ function RectangleEditSession({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">
@@ -302,7 +301,7 @@ function RectangleEditSession({
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={(disabled) => (
+            backPicker={() => (
               <Group gap="xs" wrap="nowrap">
                 <TruncatedText size="sm" flex={1}>
                   {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
@@ -310,16 +309,13 @@ function RectangleEditSession({
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
-                    <Button
-                      variant="default"
-                      color="gray"
+                    <LabeledAction
                       size="compact-sm"
-                      style={{ flexShrink: 0 }}
-                      disabled={disabled}
+                      icon={<Replace size={14} />}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
                       {state.memory.pickedBack ? 'Change' : 'Choose'}
-                    </Button>
+                    </LabeledAction>
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker

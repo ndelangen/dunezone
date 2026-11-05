@@ -4,7 +4,6 @@ import { isPublicationAssetType, resolvePublicationCapture } from '../asset-publ
 import { compareCodeUnits } from '../compareText';
 import { CanonicalFactionStoredObject, TroopArtwork } from '../factions/schema';
 import type { RulebookBattleSideValue } from './battleStep';
-import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { getRulebookCoverFooter } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
@@ -176,9 +175,7 @@ export function collectRulebookReferenceIds(
       assetIds.add(source.assetId);
     }
     if (source.kind === 'board') {
-      if (!resolveRulebookBoardDefinition(source.boardId)) {
-        assetIds.add(source.boardId);
-      }
+      assetIds.add(source.boardId);
       if (use.markupBoard) {
         markupBoardIds.add(source.boardId);
       }
@@ -261,9 +258,7 @@ export function assertRulebookReferences(
         asset(source.assetId, path, use.assetTypes);
         break;
       case 'board':
-        if (!resolveRulebookBoardDefinition(source.boardId)) {
-          asset(source.boardId, path, ['board']);
-        }
+        asset(source.boardId, path, ['board']);
         break;
       case 'stock':
         if (resolveRulebookArtworkSource(source)?.status !== 'ready') {

@@ -1,10 +1,12 @@
 import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
-import { RULEBOOK_BOARD_ARTWORK, RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
+import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TokenImage } from '@ui/content/TokenImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ArrowLeft, X } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { useRulebookFactionMembers, useRulebookFactionTroops } from '@db/rulebookSources';
@@ -171,9 +173,9 @@ export function RulebookSourcePicker({
           }}
           onPick={(picked) => onPick({ kind: 'asset', assetId: picked.id })}
         />
-        <Button variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
+        </LabeledAction>
       </Stack>
     );
   }
@@ -271,30 +273,22 @@ export function RulebookSourcePicker({
         />
       ) : null}
       {state.kind === 'board' ? (
-        <ControlBlock
-          title="Board"
-          input={
-            <AssetSelect
-              aria-label="Board"
-              value={null}
-              placeholder="Choose board"
-              data={RULEBOOK_BOARD_ARTWORK.map(({ id, name }) => ({ value: id, label: name }))}
-              getPreviewSrc={(value) => RULEBOOK_BOARD_ARTWORK.find(({ id }) => id === value)?.imageUrl}
-              onChange={(boardId) => {
-                if (boardId) {
-                  onPick({ kind: 'board', boardId });
-                }
-              }}
-            />
-          }
+        <AssetPicker
+          types={['board']}
+          copy={{
+            searchLabel: 'Find Board',
+            searchPlaceholder: 'Search Boards',
+            emptyMessage: 'No Boards are available.',
+          }}
+          onPick={(picked) => onPick({ kind: 'board', boardId: picked.id })}
         />
       ) : null}
       {state.kind === 'faction' || state.kind === 'faction-member' || state.kind === 'faction-troop' ? (
         state.factionId ? (
           <Stack gap="sm">
-            <Button variant="subtle" onClick={() => dispatch({ type: 'faction' })}>
+            <LabeledAction icon={<ArrowLeft size={16} />} onClick={() => dispatch({ type: 'faction' })}>
               Choose another faction
-            </Button>
+            </LabeledAction>
             {state.kind === 'faction-troop' ? (
               <FactionTroopChoices factionId={state.factionId} onPick={onPick} />
             ) : (
@@ -341,9 +335,9 @@ export function RulebookSourcePicker({
       ) : null}
       {state.kind !== 'faction' &&
       !((state.kind === 'faction-member' || state.kind === 'faction-troop') && !state.factionId) ? (
-        <Button variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
+        </LabeledAction>
       ) : null}
     </Stack>
   );

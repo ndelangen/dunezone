@@ -31,6 +31,10 @@ describe('stored prose write validation', () => {
     expect(() => parseAssetDataForWrite('card-spice', withoutAmount)).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, amount: 0 })).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['nowhere'] })).toThrow();
+    /* The classic list is on its way out: a card saved without one reads and writes like any other. */
+    const { highlights: _highlights, ...withoutHighlights } = publishingSpiceCard;
+    expect(parseAssetDataForWrite('card-spice', withoutHighlights).data).toEqual(withoutHighlights);
+    expect(SpiceAsset.safeParse(withoutHighlights).success).toBe(true);
   });
 
   it('allows blocks in ruleset About and FAQ answers, but keeps FAQ questions inline', () => {

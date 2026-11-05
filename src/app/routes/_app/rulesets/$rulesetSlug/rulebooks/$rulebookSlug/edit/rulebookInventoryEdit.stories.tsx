@@ -2,6 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { IllustratedInventoryStory } from './rulebookBlockEditors.shared.stories.fixture';
+import { references } from './rulebookBoardSceneMarkup.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Blocks/Inventory/Editing',
@@ -18,7 +19,7 @@ export const IllustratedInventory = meta.story({
         itemsById: {
           MAPA: {
             id: 'MAPA',
-            source: { kind: 'board', boardId: 'arrakis' },
+            source: { kind: 'board', boardId: 'saved-arrakis' },
             quantity: 1,
             text: 'Place troops on the territories.',
           },
@@ -30,6 +31,7 @@ export const IllustratedInventory = meta.story({
           },
         },
       }}
+      references={references}
     />
   ),
   play: async ({ canvasElement }) => {
@@ -39,7 +41,7 @@ export const IllustratedInventory = meta.story({
     handle.focus();
     await userEvent.keyboard('[Space][ArrowDown][Space]');
     await waitFor(() =>
-      expect(canvas.getByRole('button', { name: '2. Arrakis board' })).toHaveAttribute('aria-pressed', 'true')
+      expect(canvas.getByRole('button', { name: '2. Arrakis Official' })).toHaveAttribute('aria-pressed', 'true')
     );
     await expect(canvas.getByRole('textbox', { name: 'Quantity' })).toHaveValue('1');
     await userEvent.click(canvas.getByRole('button', { name: 'Add entry' }));

@@ -1,6 +1,10 @@
-import { Badge, Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { History, RotateCcw, Send } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -279,9 +283,9 @@ function HistoryStatus({
   return (
     <>
       {page.more && (
-        <Button variant="subtle" loading={loading} onClick={() => load(page.entries[0]!.sequence)}>
+        <LabeledAction icon={<History size={16} />} busy={loading} onClick={() => load(page.entries[0]!.sequence)}>
           Earlier messages
-        </Button>
+        </LabeledAction>
       )}
       <HistoryLoad load={page.load} retry={() => load()} />
       {!loading && !page.entries.length && (
@@ -375,17 +379,21 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
     case 'sent':
       return (
         <Group gap="sm">
-          <Badge variant="default">Pending</Badge>
+          <StatusBadge tone="pending">Pending</StatusBadge>
         </Group>
       );
     case 'failed':
       return (
         <>
           <Group gap="sm">
-            <Badge variant="default">Failed</Badge>
-            <Button variant="subtle" size="compact-sm" onClick={() => retry(request.requestId)}>
-              Retry
-            </Button>
+            <StatusBadge tone="negative">Failed</StatusBadge>
+            <IconAction
+              label="Retry"
+              size="sm"
+              emphasis="quiet"
+              icon={<RotateCcw size={14} aria-hidden />}
+              onClick={() => retry(request.requestId)}
+            />
           </Group>
           <Text size="xs" role="alert">
             {delivery.error}
@@ -397,9 +405,15 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
-    <Button type="submit" size="compact-sm" disabled={disabled}>
+    <LabeledAction
+      type="submit"
+      size="compact-sm"
+      emphasis="strong"
+      icon={<Send size={14} />}
+      disabledReason={disabled ? 'Write a message first.' : undefined}
+    >
       Send
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -417,9 +431,9 @@ function HistoryLoad({ load, retry }: Readonly<{ load: Page['load']; retry: () =
       return (
         <>
           <Text size="sm">{load.error}</Text>
-          <Button variant="default" onClick={retry}>
+          <LabeledAction icon={<RotateCcw size={16} aria-hidden />} onClick={retry}>
             Retry history
-          </Button>
+          </LabeledAction>
         </>
       );
   }

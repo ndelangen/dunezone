@@ -84,6 +84,12 @@
       "rules": { "local/story-owns-its-states": "error" }
     },
     {
+      /* A failure is the kit FormError, so every one is titled and announced the same way; the kit itself paints it. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**"],
+      "rules": { "local/form-error": "error" }
+    },
+    {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
       "files": ["src/**"],
       "excludeFiles": ["src/game/**"],

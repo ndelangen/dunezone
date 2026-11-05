@@ -25,7 +25,7 @@ export const SavedBoard = meta.story({
   },
 });
 
-/** The Board field lists the maintained map and the saved boards, each beside its face; the saved boards load once it opens. */
+/** The Board field lists the saved boards, each beside its face; the saved boards load once it opens. */
 export const ChooseABoard = meta.story({
   /* The story database's baseline catalogue holds a saved board, which the Board field lists once opened. */
   parameters: { database: db((baseline) => baseline) },
@@ -36,27 +36,10 @@ export const ChooseABoard = meta.story({
     const field = await canvas.findByRole('combobox', { name: 'Board' }, { timeout: 20_000 });
     await expect(field).toHaveValue('Arrakis Official');
     await userEvent.click(field);
-    await expect(await body.findByRole('option', { name: /Arrakis board/ })).toBeVisible();
+    await expect(await body.findByRole('option', { name: /Arrakis Official/ })).toBeVisible();
     await waitFor(() => expect(body.queryByRole('option', { name: /Loading saved boards/ })).toBeNull());
     /* Closing without a pick keeps the chosen board named, whether or not the catalogue holds it. */
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(field).toHaveValue('Arrakis Official'));
-  },
-});
-
-/** Picking the maintained map from the field moves the scene onto it, keeping its tints and tokens, which draw there too. */
-export const PickTheMaintainedBoard = meta.story({
-  parameters: { database: db((baseline) => baseline) },
-  render: () => <SceneEditorStory kind="board" initial={scene} references={references} />,
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const body = within(canvasElement.ownerDocument.body);
-    const field = await canvas.findByRole('combobox', { name: 'Board' }, { timeout: 20_000 });
-    await userEvent.click(field);
-    await userEvent.click(await body.findByRole('option', { name: /Arrakis board/ }));
-    await waitFor(() => expect(field).toHaveValue('Arrakis board'));
-    await expect(canvas.getByRole('button', { name: 'Tints (2)' })).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Tokens (2)' })).toBeVisible();
-    await expect(canvasElement.querySelectorAll('[data-tint]')).toHaveLength(2);
   },
 });

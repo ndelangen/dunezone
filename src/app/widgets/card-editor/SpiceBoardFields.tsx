@@ -1,11 +1,11 @@
-import { Button, Group, Slider, Stack, Text } from '@mantine/core';
+import { Group, Slider, Stack, Text } from '@mantine/core';
 import { SPICE_BOARD_LOOKS } from '@shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
-import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { Replace, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -38,9 +38,6 @@ export type SpiceBoardRead =
 
 /** The editor's state for the card's map that the live proof needs too: which tint paints and which token is open. */
 export type SpiceMapFocus = BoardMarkupFocus;
-
-/** The classic map's place among the boards; choosing it unlinks the card's board. */
-const CLASSIC_MAP = 'classic';
 
 const LOOK_LABELS: Record<Look['style'], string> = {
   burnt: 'Burnt in',
@@ -98,43 +95,29 @@ function LookChoice({
   );
 }
 
-/** The saved board the card draws, or the classic map, in one field with each board's face beside its name. */
+/** The saved board the card draws, in one field with each board's face beside its name. */
 function BoardChoice({
   link,
   read,
   boardSelect,
   onBoard,
-  onUnlink,
 }: Readonly<{
   link: Link | undefined;
   read: SpiceBoardRead;
   boardSelect: BoardSelect;
   onBoard: (id: string) => void;
-  onUnlink: () => void;
 }>) {
   const chosenName = read ? (read.boardName ?? 'Unavailable board') : 'Loading board...';
   return (
     <ControlBlock
       title="Board"
-      description={
-        "The board the card's map draws: the Arrakis map, or a saved board.\nSaving that board redraws this card."
-      }
+      description={"The board the card's map draws.\nSaving that board redraws this card."}
       input={boardSelect({
         label: 'Board',
-        value: link?.asset_id ?? CLASSIC_MAP,
-        fixed: [
-          {
-            id: CLASSIC_MAP,
-            name: 'The classic Arrakis map',
-            previewSrc: RULEBOOK_BOARD_DEFINITIONS[0]?.imageUrl ?? null,
-            collection: 'Classic map',
-          },
-        ],
+        value: link?.asset_id ?? null,
         selected: link ? { id: link.asset_id, name: chosenName, previewSrc: null } : undefined,
         onPick: (id) => {
-          if (id === CLASSIC_MAP) {
-            onUnlink();
-          } else if (id !== link?.asset_id) {
+          if (id !== link?.asset_id) {
             onBoard(id);
           }
         },
@@ -143,24 +126,19 @@ function BoardChoice({
   );
 }
 
-/**
- * The Map chapter: the board the card draws, and on a saved board its tints, painted on the card's own map with Play's controls.
- * A card on the classic map shows the board choice above `classic`, the legacy highlight list.
- */
+/** The Map chapter: the board the card draws, and its tints, painted on the card's own map with Play's controls. */
 export function SpiceMapFields({
   draft,
   onLink,
   read,
   focus,
   boardSelect,
-  classic,
 }: Readonly<{
-  draft: { board?: Link; highlights: Parameters<typeof legacyHighlightTint>[0]; subName: string };
+  draft: { board?: Link };
   onLink: (link: Link | undefined) => void;
   read: SpiceBoardRead;
   focus: SpiceMapFocus;
   boardSelect: BoardSelect;
-  classic: ReactNode;
 }>) {
   const link = draft.board;
   const choice = (
@@ -173,24 +151,12 @@ export function SpiceMapFields({
           onLink({ ...link, asset_id });
           return;
         }
-        /* The classic highlights carry over as the card's first tint, so linking a board keeps what the card showed. */
-        const carried = legacyHighlightTint(draft.highlights, draft.subName);
-        onLink({ asset_id, tints: carried ? [carried] : [], tokens: [] });
-      }}
-      onUnlink={() => {
-        focus.setBrush(null);
-        focus.setToken(null);
-        onLink(undefined);
+        onLink({ asset_id, tints: [], tokens: [] });
       }}
     />
   );
   if (!link) {
-    return (
-      <>
-        {choice}
-        {classic}
-      </>
-    );
+    return choice;
   }
 
   return (
@@ -242,13 +208,17 @@ export function SpiceTokenFields({
           <Stack gap="xs">
             {link.typeToken ? <Text>{typeToken?.name ?? 'Unavailable token'}</Text> : null}
             <Group>
-              <Button variant="default" onClick={() => setPickingType(true)}>
+              <LabeledAction icon={<Replace size={16} />} onClick={() => setPickingType(true)}>
                 {link.typeToken ? 'Change type token' : 'Choose type token'}
-              </Button>
+              </LabeledAction>
               {link.typeToken ? (
-                <Button variant="subtle" onClick={() => onLink({ ...link, typeToken: undefined })}>
+                <LabeledAction
+                  intent="negative"
+                  icon={<X size={16} />}
+                  onClick={() => onLink({ ...link, typeToken: undefined })}
+                >
                   Remove type token
-                </Button>
+                </LabeledAction>
               ) : null}
             </Group>
             {pickingType

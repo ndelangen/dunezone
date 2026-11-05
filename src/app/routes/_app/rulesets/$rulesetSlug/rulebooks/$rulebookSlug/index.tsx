@@ -2,6 +2,7 @@ import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
@@ -234,9 +235,9 @@ function ReaderStatus({
 }>) {
   if (locatorStatus === 'invalid') {
     return (
-      <Alert color="red" title="Selected-text link rejected" role="alert">
+      <FormError title="Selected-text link rejected">
         The link contains an invalid or oversized locator. Its decoded value was not rendered or used as a selector.
-      </Alert>
+      </FormError>
     );
   }
   if (targetMissing) {
@@ -759,11 +760,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {remove.error ? (
-              <Alert color="red" title="Rulebook could not be deleted" role="alert">
-                {remove.error.message}
-              </Alert>
-            ) : null}
+            {remove.error ? <FormError title="Rulebook could not be deleted">{remove.error.message}</FormError> : null}
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}

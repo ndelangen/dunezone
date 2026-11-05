@@ -8,8 +8,7 @@ import {
   RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES,
   rulebookAnnotationShapes,
 } from './assetExplainerAnnotations';
-import { resolveRulebookBoardDefinition } from './boardDefinitions';
-import { resolveRulebookBoardIllustration } from './boardIllustrations';
+import { ARRAKIS_OFFICIAL } from './fixtures/arrakisOfficial';
 import type { RulebookRenderBlockV1 } from './renderDocument';
 
 type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
@@ -243,23 +242,6 @@ describe('AssetExplainer sector lines', () => {
     expect(guides(boardBlock())).toEqual([]);
   });
 
-  it('draws no sector lines over the built-in board, whose artwork prints its own', () => {
-    const board = resolveRulebookBoardDefinition('arrakis')!;
-    const reference = { kind: 'board', boardId: board.id } as const;
-    const explainer = boardBlock(true);
-    explainer.source = {
-      status: 'ready',
-      reference,
-      name: board.name,
-      imageUrl: board.imageUrl,
-      geometry: board.geometry,
-      publicationRevision: board.revision,
-    };
-    explainer.items = [{ ...explainer.items[0]!, target: { kind: 'named', key: 'arrakeen', source: reference } }];
-    expect(board.geometry.parts.some(({ key }) => key === SECTORS_PART_KEY)).toBe(true);
-    expect(guides(explainer)).toEqual([]);
-  });
-
   it('never draws a territory the board names Sectors as sector lines', () => {
     const explainer = boardBlock(true);
     if (explainer.source.status !== 'ready' || !explainer.source.geometry) {
@@ -318,8 +300,8 @@ describe('AssetExplainer SVG composition', () => {
     ).toThrow('Invalid annotated source image');
   });
 
-  it('embeds the maintained board with its bounded highlight geometry', () => {
-    const board = resolveRulebookBoardDefinition('arrakis')!;
+  it('embeds a board with its bounded highlight geometry', () => {
+    const board = ARRAKIS_OFFICIAL;
     const source = { kind: 'board', boardId: board.id } as const;
     const original = block();
     original.source = {
@@ -333,7 +315,7 @@ describe('AssetExplainer SVG composition', () => {
     const projection = projectRulebookAssetExplainerAnnotations(original);
     const svg = composeRulebookAssetExplainerSvg({
       projection,
-      imageDataUrl: `data:image/svg+xml;base64,${btoa(resolveRulebookBoardIllustration(board.id)!.svg)}`,
+      imageDataUrl: `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1948 1948"/>')}`,
     });
     expect(svg).toContain('data-rulebook-highlight="NAME"');
     expect(svg).toContain('matrix(');

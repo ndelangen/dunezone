@@ -21,10 +21,13 @@ export const pickOne =
     </button>
   );
 
-/* Stand-in for the page's board field: the offered boards plus one saved fixture board, as a plain select. */
-export const boardSelect: BoardSelect = ({ label, value, fixed, onPick }) => (
-  <select aria-label={label} value={value} onChange={(event) => onPick(event.currentTarget.value)}>
-    {[...fixed, { id: 'arrakis-board', name: 'Arrakis' }].map((board) => (
+/* Stand-in for the page's board field: one saved fixture board, as a plain select. */
+export const boardSelect: BoardSelect = ({ label, value, onPick }) => (
+  <select aria-label={label} value={value ?? ''} onChange={(event) => onPick(event.currentTarget.value)}>
+    {[
+      { id: '', name: 'Choose board' },
+      { id: 'arrakis-board', name: 'Arrakis' },
+    ].map((board) => (
       <option key={board.id} value={board.id}>
         {board.name}
       </option>

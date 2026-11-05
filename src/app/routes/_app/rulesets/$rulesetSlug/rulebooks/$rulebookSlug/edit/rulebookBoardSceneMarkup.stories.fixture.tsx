@@ -1,7 +1,6 @@
 import { resolvePublicationCapture } from '@shared/asset-publishing/publicationTargets';
 import { boardComponentGeometry } from '@shared/boards/componentGeometry';
 import { arrakisBoard } from '@shared/boards/geometry';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import type { RulebookBlockDraft } from '@shared/rulebooks/contents';
 
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
@@ -10,14 +9,14 @@ export const BOARD = arrakisBoard();
 const capture = resolvePublicationCapture('board');
 const size = capture.output === 'image' ? capture : { widthPx: 1948, heightPx: 1948 };
 
-/* The saved Arrakis board recreates the maintained map exactly, in the same frame, so the maintained image stands in for its capture. */
+/* The saved Arrakis board, with the image Storybook answers for every published board face. */
 export const references: RulebookEditorReferences = {
   assetsById: {
     'saved-arrakis': {
       assetId: 'saved-arrakis',
       name: 'Arrakis Official',
       type: 'board',
-      imageUrl: RULEBOOK_BOARD_DEFINITIONS[0]!.imageUrl,
+      imageUrl: '/published/boards/saved-arrakis/board.jpg',
       width: size.widthPx,
       height: size.heightPx,
       geometry: boardComponentGeometry(BOARD, size.widthPx, size.heightPx),

@@ -1,5 +1,6 @@
-import { Alert, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { FactionNameSchema } from '@shared/factions/schema';
+import { FormError } from '@ui/block/FormError';
 import { forwardRef, useImperativeHandle, useRef } from 'react';
 
 import type { Faction } from '@db/factions';
@@ -78,9 +79,9 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       <div className={styles.root}>
         <Stack gap="sm">
           {errors.map((error) => (
-            <Alert color="red" variant="light" role="alert" key={error} title="Could not save">
+            <FormError title="Could not save" key={error}>
               {error}
-            </Alert>
+            </FormError>
           ))}
         </Stack>
 

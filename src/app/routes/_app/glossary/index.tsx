@@ -1,4 +1,4 @@
-import { Badge, Group, Select, Stack, Text } from '@mantine/core';
+import { Group, Select, Stack, Text } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
 import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
@@ -10,6 +10,7 @@ import type { TopicIconTopic } from '@ui/content/TopicIcon';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
@@ -105,11 +106,7 @@ function TermBody({ term }: { term: GlossaryTerm }) {
           <Text size="sm" fw={600}>
             Say {term.term.toLowerCase()} instead of
           </Text>
-          {term.avoid.map((avoided) => (
-            <Badge key={avoided.word} variant="outline" color="gray" size="sm" tt="none" className={styles.avoided}>
-              {avoided.word}
-            </Badge>
-          ))}
+          <ChipList items={term.avoid.map((avoided) => ({ key: avoided.word, label: avoided.word }))} />
         </Group>
       ) : null}
     </Stack>

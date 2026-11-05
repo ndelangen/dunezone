@@ -1,7 +1,8 @@
-import { Alert, Popover } from '@mantine/core';
+import { Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -236,16 +237,10 @@ function BundleEditSession({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {setCount.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not change the contents">
-              {mutationErrorMessage(setCount.error)}
-            </Alert>
+            <FormError title="Could not change the contents">{mutationErrorMessage(setCount.error)}</FormError>
           ) : null}
           <BundleEditor
             nameField={nameField}

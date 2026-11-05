@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { ReferencedIllustrationStory } from './rulebookBlockEditors.shared.stories.fixture';
+import { references } from './rulebookBoardSceneMarkup.stories.fixture';
 import { IllustrationSizeStory } from './rulebookIllustratedBook.stories.fixture';
 
 const meta = preview.meta({
@@ -12,12 +13,16 @@ const meta = preview.meta({
 export const ReferencedIllustration = meta.story({
   render: () => (
     <ReferencedIllustrationStory
-      initialValue={{ source: { kind: 'board', boardId: 'arrakis' }, caption: 'The northern hemisphere of Arrakis.' }}
+      initialValue={{
+        source: { kind: 'board', boardId: 'saved-arrakis' },
+        caption: 'The northern hemisphere of Arrakis.',
+      }}
+      references={references}
     />
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('button', { name: 'Arrakis board' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Arrakis Official' })).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Clear source' }));
     await expect(canvas.getByRole('textbox', { name: 'Caption' })).toHaveValue('The northern hemisphere of Arrakis.');
     await expect(canvas.getByRole('button', { name: 'Choose source' })).toBeVisible();

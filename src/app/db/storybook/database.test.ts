@@ -81,7 +81,10 @@ describe('Storybook database authoring', () => {
     const documents = scenario.create();
 
     expect(documents.findIndex(({ table }) => table === 'rulebook_editions')).toBeLessThan(
-      documents.findIndex(({ table }) => table === 'publication_assets')
+      documents.findIndex(
+        ({ table, value }) =>
+          table === 'publication_assets' && (value as { cache_token?: string }).cache_token === 'forward-reference'
+      )
     );
   });
 });

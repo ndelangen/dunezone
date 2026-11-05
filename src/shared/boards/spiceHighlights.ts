@@ -4,7 +4,7 @@ import type { Spice } from '../assets/schema';
 import { BOARD_TERRITORY_TYPES } from './markup';
 import type { BoardTint } from './markup';
 
-type LegacyHighlight = z.infer<typeof Spice>['highlights'][number];
+type LegacyHighlight = NonNullable<z.infer<typeof Spice>['highlights']>[number];
 
 /* The legacy regions name territory types; every other highlight is a territory slug spelled with hyphens. */
 const LEGACY_REGIONS: Partial<Record<LegacyHighlight, (typeof BOARD_TERRITORY_TYPES)[number]>> = {

@@ -53,7 +53,6 @@
     "generate:mantine-css": "bun run scripts/mantine-styles.ts",
     "generate:objs": "bun run ./scripts/generate-objs.ts",
     "generate:palette": "bun run scripts/generate-palette.ts",
-    "generate:rulebook-board": "node scripts/generate-rulebook-board.ts",
     "generate:vectors": "bun run ./scripts/generate-vectors.ts",
     "knip": "knip",
     "lint": "vp lint . --deny-warnings",

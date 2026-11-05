@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Anchor, Box, Button, Group, Pagination, Stack, Text } from '@mantine/core';
+import { Anchor, Box, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ErrorComponentProps } from '@tanstack/react-router';
@@ -12,6 +12,7 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { FaqList } from '@ui/list/FaqList';
@@ -20,7 +21,6 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -132,15 +132,14 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
       <FactionList factions={page.factions} />
       {page.listedFactionCount > page.factions.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<TopicIcon topic="factions" size={16} />}
             renderRoot={(props) => (
               <Link {...props} to="/factions" search={{ owner: page.profile.slug, sort: 'created' }} />
             )}
           >
-            All {factionCount} factions
-          </Button>
+            {`All ${factionCount} factions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Stack>

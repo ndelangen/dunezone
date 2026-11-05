@@ -1,14 +1,13 @@
-import { Button, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Select, Text } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE, parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import type { FaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
-import { CataloguePager } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
@@ -19,11 +18,12 @@ import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
 import { loadRulesetFaqPage, useRulesetFaqPage } from '@db/faq';
-import type { RulesetFaqArgs, RulesetFaqBrowseData, RulesetFaqPageData, RulesetFaqSearchData } from '@db/faq';
+import type { RulesetFaqArgs, RulesetFaqPageData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -284,137 +284,52 @@ type FaqResultsProps = {
   ref: Ref<HTMLDivElement>;
 };
 
-/** The page's body: a search's matches, or a browsed page with its pager. */
+/** The page's body: a search's matches, or a browsed page with its pager; an unrefined FAQ with nothing in it yet says so in its own words. */
 function FaqResults({ data, refined, loading, loaded, onLoadMore, ref }: FaqResultsProps) {
-  if ('mode' in data) {
-    return <SearchedFaq data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
-  }
-  return <BrowsedFaq data={data} refined={refined} />;
-}
-
-/** One page of the browsed FAQ with its pager, or why there is none: nothing matches the tag, or the address is past the last page. */
-function BrowsedFaq({ data, refined }: { data: RulesetFaqBrowseData; refined: boolean }) {
   const openQuestion = useOpenQuestion(data.ruleset.slug);
-  if (data.total === 0 && refined) {
-    return <NothingMatches capped={!data.complete} />;
-  }
-  if (data.page > 1 && data.items.length === 0) {
+  const rulesetSlug = data.ruleset.slug;
+  const renderList = (items: typeof data.items) => (
+    <FaqList emptyLabel="No FAQ items yet." items={items} rulesetSlug={rulesetSlug} onOpenQuestion={openQuestion} />
+  );
+  if (!refined && !('mode' in data) && data.total === 0) {
     return (
       <Surface padding="xl">
-        <PastTheEnd rulesetSlug={data.ruleset.slug} pageCount={data.pageCount} />
+        <EmptyResults title="Nothing here yet">No questions have been asked yet.</EmptyResults>
       </Surface>
     );
   }
   return (
-    <Stack gap="lg">
-      <FaqList
-        emptyLabel="No FAQ items yet."
-        items={data.items}
-        rulesetSlug={data.ruleset.slug}
-        onOpenQuestion={openQuestion}
-      />
-      {data.total > 0 ? (
-        <CataloguePager
-          page={data.page}
-          pageCount={data.pageCount}
-          pageSize={data.pageSize}
-          total={data.total}
-          complete={data.complete}
-          noun="questions"
-          label="FAQ pages"
-          pageLinkProps={(page) => ({
-            component: Link,
-            to: '/rulesets/$rulesetSlug/faq',
-            params: { rulesetSlug: data.ruleset.slug },
-            search: pageSearch(page),
-          })}
-        />
-      ) : null}
-    </Stack>
+    <CatalogueResults
+      results={
+        'mode' in data
+          ? {
+              kind: 'search',
+              entries: data.items,
+              hasMore: data.hasMore,
+              capped: data.capped,
+              loading,
+              loaded,
+              onLoadMore,
+            }
+          : {
+              kind: 'browse',
+              ...data,
+              entries: data.items,
+              pagerLabel: 'FAQ pages',
+              pageLinkProps: (page) => faqPageLink(rulesetSlug, page),
+            }
+      }
+      noun="questions"
+      noMatches="No question matches this search."
+      renderEntries={renderList}
+      ref={ref}
+    />
   );
 }
 
-/**
- * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
- * When the longer list arrives, focus moves to its first new row, so a keyboard reader carries on from where the list grew.
- */
-function SearchedFaq({
-  data,
-  loading,
-  loaded,
-  onLoadMore,
-  ref,
-}: {
-  data: RulesetFaqSearchData;
-  loading: boolean;
-  /** Whether the longer list asked for has arrived. */
-  loaded: boolean;
-  onLoadMore: () => void;
-  ref: Ref<HTMLDivElement>;
-}) {
-  const openQuestion = useOpenQuestion(data.ruleset.slug);
-  if (data.items.length === 0) {
-    return <NothingMatches capped={data.capped} />;
-  }
-  return (
-    <Stack gap="lg" aria-busy={loading} ref={ref}>
-      <FaqList
-        emptyLabel="No questions match."
-        items={data.items}
-        rulesetSlug={data.ruleset.slug}
-        onOpenQuestion={openQuestion}
-      />
-      {/* The rows say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? 'More questions loaded' : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
-/** No match among the questions checked; a capped search did not check them all, so another word may still find one. */
-function NothingMatches({ capped }: { capped: boolean }) {
-  return (
-    <Surface padding="xl">
-      <Stack gap="xs" align="center">
-        <Title order={2}>Nothing matches</Title>
-        <Text c="dimmed" ta="center">
-          No question matches this search.
-        </Text>
-        {capped ? (
-          <Text size="xs" c="dimmed" ta="center">
-            Only the first matches of this search were checked. Add a word to narrow it.
-          </Text>
-        ) : null}
-      </Stack>
-    </Surface>
-  );
-}
-
-/** A page past the end, from an old link or an FAQ that shrank: say where the results end and link there. */
-function PastTheEnd({ rulesetSlug, pageCount }: { rulesetSlug: string; pageCount: number }) {
-  return (
-    <Stack gap="sm" align="center">
-      <Title order={2}>Nothing on this page</Title>
-      <Text c="dimmed">
-        {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
-      </Text>
-      <Button
-        variant="default"
-        renderRoot={(props) => (
-          <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} search={pageSearch(pageCount)} />
-        )}
-      >
-        {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
-      </Button>
-    </Stack>
-  );
+/** The link to one page of a ruleset's browsed FAQ. */
+function faqPageLink(rulesetSlug: string, page: number) {
+  return { component: Link, to: '/rulesets/$rulesetSlug/faq', params: { rulesetSlug }, search: pageSearch(page) };
 }
 
 /** An unknown ruleset, or a page past the end, which carries where the results end. */
@@ -426,7 +341,7 @@ function RulesetFaqNotFound({ data }: NotFoundRouteProps) {
       {pageCount == null ? (
         <Text c="dimmed">This ruleset does not exist or was deleted.</Text>
       ) : (
-        <PastTheEnd rulesetSlug={rulesetSlug} pageCount={pageCount} />
+        <PastTheEnd pageCount={pageCount} noun="questions" pageLinkProps={(page) => faqPageLink(rulesetSlug, page)} />
       )}
     </PageMessage>
   );

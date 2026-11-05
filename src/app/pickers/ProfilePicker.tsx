@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Button,
   Center,
   Combobox,
   Group,
@@ -11,6 +10,8 @@ import {
   TextInput,
   useCombobox,
 } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, ChevronsDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useReplacementProfiles } from '@db/accountDeletion';
@@ -94,19 +95,25 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
             </Combobox.Options>
           </ScrollArea.Autosize>
           {picker.status === 'CanLoadMore' ? (
-            <Button type="button" variant="subtle" size="compact-sm" onClick={picker.loadMore}>
+            <LabeledAction size="compact-sm" icon={<ChevronsDown size={14} />} onClick={picker.loadMore}>
               Load more profiles
-            </Button>
+            </LabeledAction>
           ) : null}
         </Combobox>
       )}
       <Group justify="flex-end">
-        <Button type="button" variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
-        <Button type="button" disabled={!selected} onClick={() => selected && onPick(selected)}>
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          emphasis="strong"
+          icon={<Check size={16} />}
+          disabledReason={selected ? undefined : 'Pick a profile first.'}
+          onClick={() => selected && onPick(selected)}
+        >
           Use this profile
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
