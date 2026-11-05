@@ -9,7 +9,7 @@ import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 import styles from './LabeledAction.module.css';
 
-export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'> {
+interface LabeledActionCommonProps extends Pick<ButtonProps, 'size' | 'justify'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
   children: string;
   /**
@@ -35,20 +35,36 @@ export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'
   busy?: boolean;
   /** Makes the action a toggle that is on, as on `IconAction`: it announces as pressed and wears the selected tile, whatever its emphasis. Pass `false` for a toggle that is off, so it still announces as a toggle. */
   pressed?: boolean;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Makes the action a link, in practice the router's `Link`. */
   renderRoot?: RenderRoot;
-  /** Makes the action a plain anchor, for a destination outside the router, as on `IconAction`. */
-  href?: string;
-  target?: string;
-  rel?: string;
+  /** Placement only. */
+  className?: string;
+}
+
+/** A button: it runs a handler or submits a form. */
+interface LabeledActionButtonProps extends LabeledActionCommonProps {
+  href?: undefined;
+  target?: undefined;
+  rel?: undefined;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
   type?: 'button' | 'submit';
   /** Submits a form this action sits outside of, by that form's id. */
   form?: string;
-  /** Placement only. */
-  className?: string;
   ref?: Ref<HTMLButtonElement>;
 }
+
+/** A plain anchor, for a destination outside the router, as on `IconAction`. It renders an `<a>`, so it takes no button handler or ref. */
+interface LabeledActionLinkProps extends LabeledActionCommonProps {
+  href: string;
+  target?: string;
+  rel?: string;
+  onClick?: never;
+  type?: never;
+  form?: never;
+  ref?: never;
+}
+
+export type LabeledActionProps = LabeledActionButtonProps | LabeledActionLinkProps;
 
 /**
  * An action shown as a glyph and its words, for the places with room to say what it does.
