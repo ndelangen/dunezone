@@ -28,7 +28,6 @@ export const Watched = meta.story({
 /** IHasPinecone asks for seat 3: the request leads the window, with the one Approve a player needs. */
 export const SeatRequested = meta.story({
   args: seatsProps(requestSnapshot()),
-  parameters: { panelFrame: 'centre' },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('region', { name: 'Seat requests' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Approve IHasPinecone' })).toBeVisible();

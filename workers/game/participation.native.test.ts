@@ -202,6 +202,30 @@ describe('Explicit participation on a real game', () => {
     ]);
   });
 
+  it('names every connected spectator once, by public profile, until they take a seat or leave', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const spectators = async () => required(required(await syncView(a)).snapshot.controls).spectators;
+    const synthetic = (suffix: string) => ({
+      name: `Synthetic ${suffix.toUpperCase()}`,
+      avatar: `https://dune.zone/user-images/${suffix}.jpg`,
+      slug: `synthetic-${suffix}`,
+    });
+    expect(await spectators()).toEqual([synthetic('b')]);
+    /* A second tab of the same spectator is still one spectator. */
+    const c = await admit('c');
+    const secondTab = await admit('c');
+    expect(await spectators()).toEqual([synthetic('b'), synthetic('c')]);
+    secondTab.socket.close();
+    await eventually(() => secondTab.closed, 'second tab disconnected');
+    c.socket.close();
+    await eventually(() => c.closed, 'disconnected');
+    await eventually(async () => (await spectators()).length === 1, 'spectator left');
+    /* A spectator seated is a player, no longer a spectator. */
+    await seat(b, a);
+    expect(await spectators()).toEqual([]);
+  });
+
   it('keeps an offline player seated, retires a drafting place on departure and discards the game when the last player leaves', async () => {
     const a = await admit('a');
     const b = await admit('b');

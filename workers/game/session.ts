@@ -183,6 +183,8 @@ export class GameSession {
   private readonly captures: CaptureStore;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
+  /* The users connected as spectators, as the room last reconciled its connections; they are named in every view. */
+  private watching: string[] = [];
   private readonly history: SessionHistory;
   private readonly publicActions: PublicActions;
   private roomProjection?: RoomProjection;
@@ -731,6 +733,7 @@ export class GameSession {
       controls: {
         ...projected.controls,
         players: this.actors.holders(),
+        spectators: this.actors.watchers(this.watching),
         seatRequests: ownRequests(projected.controls.seatRequests, own),
       },
     };
@@ -1239,9 +1242,10 @@ export class GameSession {
     const controls = room.snapshot.controls ?? emptyPublicControls();
     room.snapshot = this.withRoster({ ...room.snapshot, controls: { ...controls, seats: this.actors.seats() } });
   }
-  /** A connection whose seat changed loses its activity, and the roster is read again. */
+  /** A connection whose seat changed loses its activity, and the roster is read again; the connected spectators are noted for every view. */
   refreshViewers(viewers: readonly Viewer[]) {
     const current = this.actors.currentViewers(viewers);
+    this.watching = current.flatMap((viewer) => (viewer?.viewerSeat === SPECTATOR_SEAT ? [viewer.userId] : []));
     viewers.forEach((viewer, index) => {
       if (current[index]?.viewerSeat !== viewer.viewerSeat) {
         this.clearActivity(viewer.connectionId);
