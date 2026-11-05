@@ -2755,6 +2755,12 @@ function RulebookRename({
   const [name, setName] = useState(rulebook.name);
   const rename = useRenameRulebook();
   const validName = rulebookNameSchema.safeParse(name);
+  /* Why Rename cannot run yet, if it cannot: the button shows it and Enter in the field honours it. */
+  const blocked = !validName.success
+    ? 'Enter a name for the Rulebook.'
+    : validName.data === rulebook.name
+      ? 'Type a new name first.'
+      : undefined;
   return (
     <Stack
       component="form"
@@ -2762,7 +2768,10 @@ function RulebookRename({
       gap="sm"
       onSubmit={(event) => {
         event.preventDefault();
-        if (validName.success && validName.data !== rulebook.name && !rename.isPending) {
+        if (rename.isPending) {
+          return;
+        }
+        if (blocked === undefined && validName.success) {
           rename.mutate(
             { rulebookId: rulebook._id, name: validName.data },
             {
@@ -2796,13 +2805,7 @@ function RulebookRename({
           emphasis="strong"
           icon={<PencilLine size={16} />}
           busy={rename.isPending}
-          disabledReason={
-            !validName.success
-              ? 'Enter a name for the Rulebook.'
-              : name.trim() === rulebook.name
-                ? 'Type a new name first.'
-                : undefined
-          }
+          disabledReason={blocked}
         >
           Rename Rulebook
         </LabeledAction>
