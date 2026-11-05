@@ -107,6 +107,7 @@ export function DecalControls({
               description="Move left with a negative value or right with a positive value."
               min={-offsetRange[0]}
               max={offsetRange[0]}
+              decimals={2}
               typedBeyondRange
               value={value.offset[0]}
               onChange={(next) => onChange({ ...value, offset: [next, value.offset[1]] })}
@@ -119,6 +120,7 @@ export function DecalControls({
               description="Move up with a negative value or down with a positive value."
               min={-offsetRange[1]}
               max={offsetRange[1]}
+              decimals={2}
               typedBeyondRange
               value={value.offset[1]}
               onChange={(next) => onChange({ ...value, offset: [value.offset[0], next] })}

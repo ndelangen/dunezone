@@ -21,8 +21,9 @@ const meta = testingPreview.meta({
 export const OpensAndCloses = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const choose = canvas.getByRole('button', { name: 'Choose left faction' });
+    const choose = canvas.getByRole('button', { name: 'Choose left faction: House Atreides' });
     await expect(choose).toHaveAttribute('aria-expanded', 'false');
+    await expect(canvas.queryByRole('button', { name: 'Use faction' })).toBeNull();
     await userEvent.click(choose);
     await expect(choose).toHaveAttribute('aria-expanded', 'true');
     await userEvent.click(canvas.getByRole('button', { name: 'Use faction' }));

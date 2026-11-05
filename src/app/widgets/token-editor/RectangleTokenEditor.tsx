@@ -319,6 +319,7 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
           <RangeField
             title="Size"
             typedBeyondRange
+            decimals={2}
             description={`Cap height in face units; the face is ${FACE_HEIGHT} tall.`}
             value={text.size}
             onChange={(value) => setText(index, { size: value })}

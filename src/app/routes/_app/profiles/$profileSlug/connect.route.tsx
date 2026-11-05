@@ -129,7 +129,7 @@ function ConnectionStatus({
     case 'failed':
       return (
         <FormError title="Merge paused">
-          {`An administrator can resume it from Accounts. ${connection.error}`}
+          {['An administrator can resume it from Accounts.', connection.error].filter(Boolean).join(' ')}
         </FormError>
       );
     case 'completed':

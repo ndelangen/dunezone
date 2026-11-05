@@ -1211,9 +1211,7 @@ function FactionReferenceControl({
       title={title}
       description={description}
       chosen={chosenName ?? 'Choose faction'}
-      chooseLabel={
-        title === 'Faction' ? undefined : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
-      }
+      chooseLabel={title === 'Faction' ? undefined : `Choose ${title.toLowerCase()}`}
       onClear={factionId ? () => onChange(undefined) : undefined}
       loadingLabel="Loading factions"
       picker={(close) => (

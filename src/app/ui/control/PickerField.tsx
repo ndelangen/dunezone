@@ -16,6 +16,7 @@ export interface PickerFieldProps {
   /**
    * What a screen reader calls the button, when the visible words lean on their surroundings:
    * "Choose left faction" for one of two sides that both read "Choose faction".
+   * Once something is chosen its name follows: "Choose left faction: Atreides".
    */
   chooseLabel?: string;
   /** Empties the field. Omit it while nothing is chosen: the clear action is not drawn and `chosen` reads as a placeholder. */
@@ -74,7 +75,7 @@ export function PickerField({
               flex={1}
               rightSection={<Combobox.Chevron />}
               rightSectionPointerEvents="none"
-              aria-label={chooseLabel}
+              aria-label={chooseLabel && onClear ? `${chooseLabel}: ${chosen}` : chooseLabel}
               aria-expanded={opened}
               onClick={() => setOpened(!opened)}
             >

@@ -258,6 +258,10 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       : clone
         ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
+  const missing =
+    draft.source === 'clone' && !clone
+      ? 'Choose a Rulebook to copy first.'
+      : 'Give the Rulebook a name and a size first.';
   return (
     <Stack
       component="form"
@@ -359,7 +363,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
           emphasis="strong"
           icon={<Plus size={16} />}
           busy={create.isPending}
-          disabledReason={input ? undefined : 'Give the Rulebook a name and a size first.'}
+          disabledReason={input ? undefined : missing}
         >
           Create Rulebook
         </LabeledAction>
