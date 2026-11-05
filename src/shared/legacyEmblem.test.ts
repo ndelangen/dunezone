@@ -5,7 +5,6 @@ import { ALL, EMBLEM } from './assetIds';
 import { assetPublishingFaction } from './factions/fixtures/assetPublishingFaction';
 import {
   FactionWriteSchema,
-  ImportedFactionSchema,
   HeroKeyedHistoricalFactionObject,
   heroKeyedDecoder,
   HistoricalFactionPublicationSchema,
@@ -55,12 +54,11 @@ describe('the old names', () => {
 });
 
 describe('decoders of stored data', () => {
-  test('read a faction from a frozen publication job or an import made before the rename as the renamed faction', () => {
+  test('read a faction from a frozen publication job made before the rename as the renamed faction', () => {
     expect(HistoricalFactionPublicationSchema.parse(legacyFaction).emblem).toBe('/vector/emblem/atreides.svg');
-    expect(ImportedFactionSchema.parse(legacyFaction).emblem).toBe('/vector/emblem/atreides.svg');
   });
 
-  test('refuse the old names from app saves and Convex rows, which the migration has rewritten', () => {
+  test('refuse the old names from app saves, imports and Convex rows', () => {
     expect(CanonicalFactionStoredObject.safeParse(legacyFaction).success).toBe(false);
     expect(FactionWriteSchema.safeParse(legacyFaction).success).toBe(false);
     expect(CanonicalFactionStoredObject.safeParse(assetPublishingFaction).success).toBe(true);

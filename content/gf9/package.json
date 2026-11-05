@@ -19539,13 +19539,34 @@
         "name": "Cielago North",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "cielago-north"
-        ],
         "amount": 8,
         "text": "East sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Cielago North in its east sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Cielago North in its east sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "cielago_north"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-cielago-south",
@@ -19555,13 +19576,34 @@
         "name": "Cielago South",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "cielago-south"
-        ],
         "amount": 12,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 12 spice in Cielago South in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 12 spice in Cielago South in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "cielago_south"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-the-minor-erg",
@@ -19571,13 +19613,34 @@
         "name": "The Minor Erg",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "the-minor-erg"
-        ],
         "amount": 8,
         "text": "Far North sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in The Minor Erg in its far north sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in The Minor Erg in its far north sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "the_minor_erg"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-red-chasm",
@@ -19587,13 +19650,34 @@
         "name": "Red Chasm",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "red-chasm"
-        ],
         "amount": 8,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Red Chasm."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Red Chasm.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "red_chasm"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-south-mesa",
@@ -19603,13 +19687,34 @@
         "name": "South Mesa",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "south-mesa"
-        ],
         "amount": 10,
         "text": "Middle sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in South Mesa in its middle sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in South Mesa in its middle sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "south_mesa"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-sihaya-ridge",
@@ -19619,13 +19724,34 @@
         "name": "Sihaya Ridge",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "sihaya-ridge"
-        ],
         "amount": 6,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Sihaya Ridge."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Sihaya Ridge.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "sihaya_ridge"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-old-gap",
@@ -19635,13 +19761,34 @@
         "name": "Old Gap",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "old-gap"
-        ],
         "amount": 6,
         "text": "Middle sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Old Gap in its middle sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Old Gap in its middle sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "old_gap"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-broken-land",
@@ -19651,13 +19798,34 @@
         "name": "Broken Land",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "broken-land"
-        ],
         "amount": 8,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Broken Land in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Broken Land in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "broken_land"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-rock-outcroppings",
@@ -19667,13 +19835,34 @@
         "name": "Rock Outcrops",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "rock-outcroppings"
-        ],
         "amount": 6,
         "text": "South sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Rock Outcroppings in its south sector. The face abbreviates Rock Outcroppings to fit the printed title."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Rock Outcroppings in its south sector. The face abbreviates Rock Outcroppings to fit the printed title.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "rock_outcroppings"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-hagga-basin",
@@ -19683,13 +19872,34 @@
         "name": "Hagga Basin",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "hagga-basin"
-        ],
         "amount": 6,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Hagga Basin in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Hagga Basin in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "hagga_basin"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-funeral-plain",
@@ -19699,13 +19909,34 @@
         "name": "Funeral Plain",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "funeral-plain"
-        ],
         "amount": 6,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Funeral Plain."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Funeral Plain.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "funeral_plain"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-the-great-flat",
@@ -19715,13 +19946,34 @@
         "name": "The Great Flat",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "the-great-flat"
-        ],
         "amount": 10,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in The Great Flat."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in The Great Flat.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "the_great_flat"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-habbanya-erg",
@@ -19731,13 +19983,34 @@
         "name": "Habbanya Erg",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "habbanya-erg"
-        ],
         "amount": 8,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Habbanya Erg in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Habbanya Erg in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "habbanya_erg"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-wind-pass-north",
@@ -19747,13 +20020,34 @@
         "name": "Wind Pass North",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "wind-pass-north"
-        ],
         "amount": 6,
         "text": "North sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Wind Pass North in its north sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Wind Pass North in its north sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "wind_pass_north"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-habbanya-ridge-flat",
@@ -19763,13 +20057,34 @@
         "name": "Habbanya R. Flat",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "habbanya-ridge-flat"
-        ],
         "amount": 10,
         "text": "East sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in Habbanya Ridge Flat in its east sector. The face abbreviates Habbanya Ridge Flat to fit the printed title."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in Habbanya Ridge Flat in its east sector. The face abbreviates Habbanya Ridge Flat to fit the printed title.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "habbanya_ridge_flat"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-shai-hulud",

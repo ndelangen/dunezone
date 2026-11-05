@@ -25,8 +25,9 @@ const ICON_PLACEMENT = {
  * Empty is legal forever.
  * Do not "fix" this inconsistency: the two floors describe two different situations.
  *
- * The key is required rather than optional, backfilled by `assets_about_v1`.
- * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
+ * The key is required rather than optional;
+ * every stored Asset carries it.
+ * `assets.data` is `v.any()`, so no Convex validator gates this.
  */
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
@@ -436,6 +437,10 @@ export const SpiceAssetInput = SpiceAsset.extend({
   /* The publisher renders every saved face in a browser, so an overlay may only name a bundled image, never an address the author chooses. */
   overlays: z
     .array(z.strictObject({ image: z.union([TEXTURE, BACKGROUND, ALL]), offset: OFFSET, scale: SCALE }))
+    .optional(),
+  /* No write may store the classic highlight list again; a board tint draws what it drew. An empty list is dropped before this parse. */
+  highlights: z
+    .never({ error: 'Spice highlights are no longer saved. Link a board and tint the territories instead.' })
     .optional(),
 });
 

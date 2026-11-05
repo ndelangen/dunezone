@@ -1015,7 +1015,6 @@ test('new native fields and bold content survive typed collection and preparatio
     name: 'Discovery fixture',
     subName: 'Discovery',
     icon: '/vector/icon/spice.svg',
-    highlights: [],
     amount: 6,
     text: 'Place *6 spice* here.',
     about: 'A fixture.',
