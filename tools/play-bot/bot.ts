@@ -76,10 +76,15 @@ export type BotOptions = {
   style?: string;
   /**
    * `all` wakes on every table message from another faction, `mentions` only when one names the bot's faction.
-   * `auto` (the default) is `all` at a two-seat table and `mentions` at a larger one, where two bots answering every
-   * table line would talk to each other without end. Private messages always wake it.
+   * `auto` (the default) is `all` at a two-seat table, or at any table when `quiet` names the other bots, and `mentions`
+   * otherwise, where two bots answering every table line would talk to each other without end. Private messages always wake it.
    */
   listen?: 'all' | 'mentions' | 'auto';
+  /**
+   * Authors whose table messages wake nobody unless they name this bot's faction: the other bots on this machine, so two
+   * bots never answer each other without end while every person's table line wakes them. The model never sees this list.
+   */
+  quiet?: string[];
   /** At most this many wakes in any ten minutes; a message past the limit wakes nothing, but the next wake reads it in the chat. */
   maxWakes?: number;
   /** The faction this bot means to play: the lobby drafts it and trades for it. */
@@ -265,7 +270,8 @@ export class PlayBot {
       const name = this.view.factionName(me);
       const names = [me, name, name.split(/\s+/u).at(-1) ?? name].map(escapeRegExp).join('|');
       const named = new RegExp(`\\b(${names})\\b`, 'iu').test(text);
-      if (message.peerId !== TABLE_CONVERSATION || this.listensToAll() || named) {
+      const quiet = (this.options.quiet ?? []).some((other) => other.toLowerCase() === author.toLowerCase());
+      if (message.peerId !== TABLE_CONVERSATION || named || (quiet ? false : this.listensToAll())) {
         this.wake(`${author} wrote (${where}): "${text}"`);
       }
       return;
@@ -277,7 +283,8 @@ export class PlayBot {
 
   private listensToAll() {
     const listen = this.options.listen ?? 'auto';
-    return listen === 'all' || (listen === 'auto' && this.view.seatedFactions().length <= 2);
+    /* With the other bots named as quiet, a person's table line can wake every bot without the bots talking in circles. */
+    return listen === 'all' || (listen === 'auto' && (this.options.quiet !== undefined || this.view.seatedFactions().length <= 2));
   }
 
   private readonly wakeTimes: number[] = [];

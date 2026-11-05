@@ -129,9 +129,9 @@ seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot i
    press Start bots with `fremen,harkonnen`: two harnesses, one per bot starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
    (`--factions` changes that). Approve both seat requests. The deal is random among the three drafted factions; during
    trading each bot offers a swap to whoever holds its faction, so accept the swap offers you get.
-6. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
-   messages only when its faction is named, and on every private message. Each bot wakes at most 12 times in ten minutes
-   (`--max-wakes`), so two bots cannot talk to each other without end.
+6. Write at the table as you would to people. Every bot wakes on each table line a person writes, and on every private
+   message. A line from another bot on this machine wakes a bot only when it names that bot's faction, so the bots never
+   answer each other in circles. Each bot also wakes at most 12 times in ten minutes (`--max-wakes`).
 
 The headless check: `bun run play:bot:demo -- tools/play-bot/three-player.demo.ts` (add `PLAY_BOT_BRAIN=claude` to have
 Claude Code think for both). It checks that naming one faction wakes only that bot and that neither bot ever sees the other's

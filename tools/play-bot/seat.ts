@@ -140,6 +140,8 @@ export async function joinSeat(options: SeatOptions): Promise<Seat> {
     listen: options.listen,
     maxWakes: options.maxWakes,
     want: options.want,
+    /* The stack's other bot accounts: their table lines wake this bot only when they name its faction. */
+    quiet: (stack.accounts.bots ?? []).map((bot) => bot.name).filter((name) => name !== account.name),
   });
   bot.log(`# ${access.name ?? gameId}: bot transcript (${brain.name}), ${new Date().toISOString()}\n`);
   bot.log(rulebook ? `Rulebook: ${rulebook.sections.length} sections from ${rulebookFile}.` : 'Rulebook: none copied.');
