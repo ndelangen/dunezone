@@ -83,8 +83,8 @@ function covers(properties: Board['properties'], tints: readonly BoardTint[], ti
 }
 
 /** A parsed card that is linked and keeps no old highlights. */
-const onBoardAlready = (card: { highlights: readonly unknown[]; board?: unknown }) =>
-  Boolean(card.board) && card.highlights.length === 0;
+const onBoardAlready = (card: { highlights?: readonly unknown[]; board?: unknown }) =>
+  Boolean(card.board) && !card.highlights?.length;
 
 /**
  * A Spice card's data on the saved board: linked if it was not, its old highlight list emptied once its tints draw it.
@@ -99,7 +99,7 @@ export function spiceCardOnBoard(data: unknown, board: SavedBoard): unknown {
   }
   const card = parsed.data;
   const stored = data as Record<string, unknown>;
-  const carried = legacyHighlightTint(card.highlights, card.subName);
+  const carried = legacyHighlightTint(card.highlights ?? [], card.subName);
   if (card.board) {
     return !carried || covers(board.properties, card.board.tints, carried) ? { ...stored, highlights: [] } : data;
   }

@@ -38,7 +38,6 @@ export const INITIAL_SPICE_DRAFT: SpiceDraft = {
   about: '',
   subName: 'Spice blow',
   icon: 'spice',
-  highlights: [],
   amount: 6,
 };
 
