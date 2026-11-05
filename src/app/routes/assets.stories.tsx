@@ -41,6 +41,9 @@ export const TreacheryCard = meta.story({
   play: async ({ canvasElement }) => {
     await expect(findDetailFace(canvasElement, 'Lasgun')).resolves.toBeVisible();
     await expect(storyPage(canvasElement).getByRole('link', { name: 'House Treachery ×3' })).toBeVisible();
+    /* The face is an image, so its rules are printed beside it as text a reader and a crawler can both reach. */
+    await expect(storyPage(canvasElement).getByRole('heading', { name: 'Card text' })).toBeVisible();
+    await expect(storyPage(canvasElement).getByText(/Kills the opposing leader/)).toBeVisible();
   },
 });
 export const Deck = meta.story({

@@ -25,6 +25,7 @@ import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
 import { errorMessage } from '@ui/content/errorMessage';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
@@ -49,6 +50,7 @@ import {
   Pencil,
   Replace,
 } from 'lucide-react';
+import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
 import { loadAssetDetailPage, useAssetDetailPage, useConvertTreacheryToCustom } from '@app/db/assets';
@@ -63,6 +65,8 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../assetEditorStates';
 import { compositionTiles, DUPLICATED_TILE_CAP, omissionNote } from './composition';
+import { assetFaceText } from './faceText';
+import type { FaceTextEntry } from './faceText';
 import styles from './index.module.css';
 
 type AssetPage = NonNullable<AssetPageData>;
@@ -94,7 +98,16 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: publicDescription(loaderData?.asset.data.about),
+      /* Most cards leave About empty, and then the printed rules are the best summary of the page. */
+      description:
+        publicDescription(loaderData?.asset.data.about) ||
+        (loaderData && isAssetType(params.type)
+          ? publicDescription(
+              assetFaceText(params.type, loaderData.asset.data)
+                .map((entry) => entry.source)
+                .join('\n\n')
+            )
+          : ''),
       image: loaderData?.asset.previewHref,
       social: {
         shape:
@@ -324,6 +337,45 @@ function AssetFaces({ page }: { page: AssetPage }) {
   );
 }
 
+/**
+ * The words printed on the face, as text: the face reaches the page as an image, and its rules should be readable, copyable and findable without it.
+ * It renders nothing when the face prints nothing beyond its name, the Shipped-by rule: an empty heading would state no fact.
+ * A face with several titled regions keeps their titles, the way the card prints them.
+ */
+function FaceTextSection({ type, entries }: { type: string; entries: FaceTextEntry[] }) {
+  if (entries.length === 0) {
+    return null;
+  }
+  return (
+    <Section
+      id="face-text"
+      icon={<TopicIcon topic="text" size={20} />}
+      title={type.startsWith('token-') ? 'Token text' : 'Card text'}
+    >
+      <Surface padding="lg">
+        <Stack gap="md">
+          {entries.map((entry, position) => {
+            /* A token label is printed as typed, its line breaks kept; everything else is the formatted text the editor wrote. */
+            const body = entry.plain ? (
+              <Text className={styles.plainFaceText}>{entry.source}</Text>
+            ) : (
+              <FormattedTextSource source={entry.source} />
+            );
+            return entry.label ? (
+              <Stack key={position} gap={4}>
+                <Eyebrow>{entry.label}</Eyebrow>
+                {body}
+              </Stack>
+            ) : (
+              <Fragment key={position}>{body}</Fragment>
+            );
+          })}
+        </Stack>
+      </Surface>
+    </Section>
+  );
+}
+
 /** Prose the face cannot carry. An empty About says so rather than vanishing: the field is part of the page, and its absence was read as the page missing it (Norbert, 2026-08-21). */
 function AboutSection({ about }: { about: string }) {
   return (
@@ -463,15 +515,32 @@ function isContainerType(type: string): boolean {
   return type in PER_TYPE_BODY;
 }
 
-function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: boolean }) {
+/** What the page leads with beside the render: a container's grid, or the words printed on a face. */
+function AssetDetailLead({
+  page,
+  duplicated,
+  faceText,
+}: {
+  page: AssetPage;
+  duplicated: boolean;
+  faceText: FaceTextEntry[];
+}) {
+  return (
+    <>
+      {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
+      <FaceTextSection type={page.asset.type} entries={faceText} />
+    </>
+  );
+}
+
+/** The facts about an asset rather than its face: which containers hold it, and its About. */
+function AssetDetailFacts({ page }: { page: AssetPage }) {
   const about =
     typeof (page.asset.data as { about?: unknown })?.about === 'string'
       ? (page.asset.data as { about: string }).about
       : '';
   return (
-    <Stack gap="lg">
-      {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
-      {/* Membership reads with the other facts rather than beside the render: the rail is the preview's, the column is the reader's (Norbert, 2026-08-21). */}
+    <>
       {holdsDeckMembership(page.asset.type) ? (
         <ContainerSection
           id="in-decks"
@@ -491,7 +560,7 @@ function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: bo
         />
       ) : null}
       <AboutSection about={about} />
-    </Stack>
+    </>
   );
 }
 
@@ -544,6 +613,8 @@ function LoadedAssetDetail({
   const navigate = Route.useNavigate();
   const container = isContainerType(asset.type);
   const duplicated = copies !== 'once';
+  const faceText = assetFaceText(asset.type, asset.data);
+  const factsBelow = !container && faceText.length > 0;
   /* Only a container holding an actual multiple offers the toggle: with every count at one, the two views are the same picture. */
   const hasCopies = container && page.members.some(({ count }) => count > 1);
   const memberNoun = asset.type === 'deck' ? 'card' : 'token';
@@ -746,7 +817,11 @@ function LoadedAssetDetail({
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
             <AsymmetricSplitLayout.Wide>
-              <AssetDetailBody page={page} duplicated={duplicated} />
+              <Stack gap="lg">
+                <AssetDetailLead page={page} duplicated={duplicated} faceText={faceText} />
+                {/* Without printed words the facts keep the column beside the render, so it is never left empty. */}
+                {factsBelow ? null : <AssetDetailFacts page={page} />}
+              </Stack>
             </AsymmetricSplitLayout.Wide>
 
             <AsymmetricSplitLayout.Narrow>
@@ -756,6 +831,8 @@ function LoadedAssetDetail({
               </Stack>
             </AsymmetricSplitLayout.Narrow>
           </AsymmetricSplitLayout>
+          {/* A face's printed words sit beside the render; the facts follow below at full width (Norbert, 2026-11-05). */}
+          {factsBelow ? <AssetDetailFacts page={page} /> : null}
           <RelatedFaq
             items={faq.relatedFaq}
             status={faq.faqStatus}

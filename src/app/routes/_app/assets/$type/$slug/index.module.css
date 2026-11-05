@@ -24,3 +24,8 @@
   width: 100%;
   height: auto;
 }
+
+/* A token label keeps the line breaks it is printed with. */
+.plainFaceText {
+  white-space: pre-line;
+}
