@@ -1,4 +1,4 @@
-import { Button, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
 import { useId } from 'react';
@@ -31,9 +31,16 @@ interface CallToActionBaseProps {
   disabledReason?: string;
 }
 
-/** Exactly one destination: the router's `Link` through `renderRoot`, or a plain anchor's `href` for a jump within this page (`#play-preview`), which a hash link keeps working before hydration. */
+/**
+ * Exactly one destination: the router's `Link` through `renderRoot`, or a plain anchor's `href` for a jump within this page (`#play-preview`), which a hash link keeps working before hydration.
+ * Or `submit`, for a journey that starts by sending the form the button sits in (Create game); `busy` then holds a spinner while the form is on its way.
+ */
 export type CallToActionProps = CallToActionBaseProps &
-  ({ renderRoot: RenderRoot; href?: never } | { href: string; renderRoot?: never });
+  (
+    | { renderRoot: RenderRoot; href?: never; submit?: never; busy?: never }
+    | { href: string; renderRoot?: never; submit?: never; busy?: never }
+    | { submit: true; busy?: boolean; renderRoot?: never; href?: never }
+  );
 
 const TrailingArrow: Partial<Record<NonNullable<CallToActionBaseProps['direction']>, typeof ArrowRight>> = {
   forward: ArrowRight,
@@ -55,49 +62,58 @@ export function CallToAction({
   disabledReason,
   renderRoot,
   href,
+  submit,
+  busy = false,
 }: CallToActionProps) {
   const reasonId = useId();
   const iconSize = size === 'sm' ? 15 : 17;
   const Arrow = TrailingArrow[direction];
   const variant = tone === 'artwork' ? 'artwork' : undefined;
   const sections = {
-    leftSection: direction === 'start' ? <Plus size={iconSize} aria-hidden /> : undefined,
+    leftSection: busy ? (
+      <Loader size="xs" color="currentColor" />
+    ) : direction === 'start' ? (
+      <Plus size={iconSize} aria-hidden />
+    ) : undefined,
     rightSection: Arrow ? <Arrow size={iconSize} aria-hidden /> : undefined,
   };
 
-  if (disabledReason != null) {
-    /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover; no root, so it leads nowhere. */
-    return (
-      <>
-        <Tooltip label={disabledReason}>
-          <Button
-            color="cta"
-            variant={variant}
-            size={size}
-            {...sections}
-            type="button"
-            data-disabled
-            aria-disabled
-            aria-describedby={reasonId}
-            onClick={(event) => event.preventDefault()}
-          >
-            {children}
-          </Button>
-        </Tooltip>
-        <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden>
-      </>
-    );
-  }
+  const disabled = disabledReason != null;
+  /*
+   * One tree for every state, so the button a reader is focused on stays that button when its reason comes or goes.
+   * Disabled is Mantine's own look without the `disabled` attribute that would swallow the hover, and with no root, so it leads nowhere.
+   * A submit keeps its type while it waits, so a form's Enter lands here and stops, the way a disabled submit button stops it.
+   */
+  const destination = disabled
+    ? { type: submit ? ('submit' as const) : ('button' as const) }
+    : submit
+      ? { type: 'submit' as const }
+      : href == null
+        ? { renderRoot }
+        : { component: 'a' as const, href };
   return (
-    <Button
-      color="cta"
-      variant={variant}
-      className={attention ? styles.attention : undefined}
-      size={size}
-      {...sections}
-      {...(href == null ? { renderRoot } : { component: 'a' as const, href })}
-    >
-      {children}
-    </Button>
+    <>
+      <Tooltip label={disabledReason} disabled={!disabled}>
+        <Button
+          color="cta"
+          variant={variant}
+          className={attention && !disabled ? styles.attention : undefined}
+          size={size}
+          {...sections}
+          {...destination}
+          data-disabled={disabled || undefined}
+          aria-disabled={disabled || busy || undefined}
+          aria-describedby={disabled ? reasonId : undefined}
+          onClick={(event: { preventDefault: () => void }) => {
+            if (disabled || busy) {
+              event.preventDefault();
+            }
+          }}
+        >
+          {children}
+        </Button>
+      </Tooltip>
+      {disabled ? <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden> : null}
+    </>
   );
 }

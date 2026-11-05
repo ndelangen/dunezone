@@ -16,11 +16,12 @@ import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
+import { CallToAction } from '@ui/control/CallToAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
-import { Dices, Plus } from 'lucide-react';
+import { Dices } from 'lucide-react';
 import type { Dispatch, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -245,16 +246,14 @@ export function CreateGamePass({
                 />
                 {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
                 <Stack gap="xs">
-                  <LabeledAction
-                    type="submit"
+                  <CallToAction
+                    submit
                     size="lg"
-                    emphasis="strong"
-                    icon={<Plus size={18} />}
                     busy={pending}
                     disabledReason={canCreate || pending ? undefined : waiting}
                   >
                     Create game
-                  </LabeledAction>
+                  </CallToAction>
                   <Text size="sm" c="dimmed" ta="center" role="status">
                     {waiting}
                   </Text>

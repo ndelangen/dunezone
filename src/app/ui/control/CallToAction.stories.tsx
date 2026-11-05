@@ -50,3 +50,8 @@ export const LongLabel = meta.story({
 export const Disabled = meta.story({
   args: { disabledReason: 'You’ll create a faction in a later step' },
 });
+
+/** A journey that starts by sending its form, Create game, while the form is on its way: the plus gives way to a spinner. */
+export const SubmitBusy = meta.story({
+  args: { renderRoot: undefined, submit: true, busy: true, children: 'Create game', size: 'lg' },
+});
