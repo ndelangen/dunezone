@@ -167,7 +167,17 @@
   },
   "dune-logo-trace": {
     "method": "traced",
-    "source": "a logo on the Dune Wiki (Fandom)"
+    "source": "an icon on the Dune Wiki (Fandom), whose maker is not named"
+  },
+  "prelude-cover-emblem-trace": {
+    "method": "traced",
+    "artist": "Jim Tierney",
+    "artistRole": "design",
+    "source": "the Dune Wiki (Fandom) redrawings of the 2019 Ace Books Prelude to Dune covers"
+  },
+  "dune-screen-crest-trace": {
+    "method": "traced",
+    "source": "the Dune Wiki (Fandom) redrawings of crests from the Dune films and series"
   },
   "gf9-icon": {
     "method": "traced",

@@ -1,3 +1,4 @@
+import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -14,7 +15,7 @@ const meta = preview.meta({
     </WorkbenchLayout>
   ),
   args: {
-    nameField: <input aria-label="Name" readOnly value="Planetologist" />,
+    nameField: <TextInput aria-label="Name" readOnly value="Planetologist" />,
     draft: GF9_LEADER_SKILLS[5]!,
     patch: fn(),
     memory: INITIAL_LEADER_SKILL_MEMORY,

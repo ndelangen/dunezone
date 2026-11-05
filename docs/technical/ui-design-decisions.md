@@ -211,7 +211,7 @@ fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all
 
 An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
 declares around the band and the page, named `page-frame`, as wide as the page between the shell's
-gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+gutters, or a Layout's container when one sits between, as `ColumnsWithRailLayout`'s does.
 A page composition needs no container of its own. A component that lays out its own children by
 width names the container it asks, so a container inserted above it cannot move it. When that layout
 is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
@@ -249,7 +249,7 @@ conditions written in TypeScript and container queries are checked in review. Ca
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested
 `<Stack><Group><Grid>`. Spacing belongs to a Layout: a custom component built on Mantine primitives
 that arranges two or more **named compound slots**, as in
-`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>`, so composition
+`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout>`, so composition
 reads top-down and large content never rides inside a prop. A leaf never carries page margin (only
 for unavoidable third-party constraints), one slot is a passthrough rather than a Layout, and Layouts
 respond by **container query, not media query**, so they lay out by the room they are given.
@@ -370,7 +370,7 @@ A forward-moving primary uses the shared bright yellow with dark text. The homep
 uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
 The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
-`CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
+`CallToAction` and a strong `IconAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -439,10 +439,8 @@ keyboard and touch. Where even the glyphs do not fit, they fold into one glyph w
 them all.
 
 *Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
-status, and `StatusMarkList` lists several inside the tooltip of the mark that stands in for them.
-`AuthoringToolbar` folds its marks, and turns Save into an icon, below 32rem of its own width, the
-room its widest caller needs. It also lists its statuses in a live region, because a screen reader
-does not announce a glyph whose name changes.*
+status, and [`StatusInfo`](../../src/app/ui/control/StatusInfo.tsx) gathers a toolbar's statuses
+behind one glyph whose popover lists them all.*
 
 ### Destructive actions are held, not asked twice
 

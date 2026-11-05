@@ -121,7 +121,7 @@ export const TECHNICAL_GLOSSARY: readonly TechnicalTerm[] = [
     id: 'slot',
     term: 'Slot',
     topic: 'page',
-    code: '<TriptychLayout.Left>',
+    code: '<ColumnsWithRailLayout.Rail>',
     explanation:
       'A named region that a layout positions, written as a child component such as PageLayout.Content. Every layout has at least two slots.',
     where: 'src/app/ui/layout',

@@ -20,7 +20,6 @@ import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validati
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -65,6 +64,7 @@ import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/Authorin
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 /**
  * The whole edit page for one ruleset, mounted with `key={r.slug}` so a rename remounts it and resets the draft.
@@ -452,9 +452,9 @@ function RulesetEditPage() {
 
   if (!page.viewerResolved) {
     return (
-      <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
-        <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title={`Edit ${r.name}`} back={guardBack} loading="Loading your profile">
+        Checking what you may change here.
+      </RoutePending>
     );
   }
 

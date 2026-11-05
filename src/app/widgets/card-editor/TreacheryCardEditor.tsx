@@ -2,7 +2,6 @@ import { Select, Stack } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { ScrollText } from 'lucide-react';
@@ -13,12 +12,11 @@ import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 import type { TreacheryAsset } from '@game/data/objects';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { cardDecalChapter } from './CardDecalChapter';
-import styles from './CardEditor.module.css';
 import { initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
+import { CardProof } from './CardProof';
 import { treacheryIdentityChapters } from './TreacheryIdentity';
 
 /* The draft model. */
@@ -45,14 +43,9 @@ const DECAL_OFFSET_RANGE = [450, 630] as const;
 
 function FillCard({ draft, frontStyle }: { draft: TreacheryDraft; frontStyle?: CardFrontStyle }) {
   return (
-    <CanvasScale
-      rounded
-      canvasWidth={CARD_SIZE.width}
-      canvasHeight={CARD_SIZE.height}
-      frameClassName={styles.proofFrame}
-    >
+    <CardProof>
       <TreacheryCard {...draft} frontStyle={frontStyle} />
-    </CanvasScale>
+    </CardProof>
   );
 }
 

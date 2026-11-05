@@ -20,9 +20,15 @@ type Actor = {
   deleted: number;
   avatar_url?: string | null;
   profile_slug?: string | null;
+  /* When the pass that last set the name, picture and link was issued; an older pass leaves them. */
+  profile_at?: number | null;
 };
 /* The public face an admission carries for a player; undefined means Convex did not say, null means none. */
 type PlayerProfile = { avatarUrl?: string | null; profileSlug?: string | null };
+/* A player's profile as a seat pass carries it, with the time Convex issued that pass. */
+export type PassProfile = PlayerProfile & { userId: string; displayName: string; issuedAt: number };
+/** The longest name the room stores; a pass may carry a longer one. */
+export const STORED_DISPLAY_NAME_LENGTH = 160;
 type Seat = {
   seat: string;
   position: number;
@@ -189,6 +195,30 @@ export class ActorDirectory {
       }));
   }
 
+  /**
+   * The connected spectators, by public name, avatar and profile slug, for Seats & spectators;
+   * ordered by name.
+   * Like `holders`, all three are as their last admission carried them.
+   */
+  watchers(userIds: readonly string[]): { userId: string; name: string; avatar: string | null; slug: string | null }[] {
+    if (!userIds.length) {
+      return [];
+    }
+    return this.storage.sql
+      .exec<{ user_id: string; display_name: string; avatar_url: string | null; profile_slug: string | null }>(
+        'SELECT user_id, display_name, avatar_url, profile_slug FROM actors WHERE deleted=0 AND seat=? AND user_id IN (SELECT value FROM json_each(?)) ORDER BY display_name COLLATE NOCASE, user_id',
+        SPECTATOR_SEAT,
+        JSON.stringify([...new Set(userIds)])
+      )
+      .toArray()
+      .map((row) => ({
+        userId: row.user_id,
+        name: row.display_name,
+        avatar: row.avatar_url ?? null,
+        slug: row.profile_slug ?? null,
+      }));
+  }
+
   /** Who holds each seat with the account behind it, for rows the scrub must find by user; never sent to a viewer. */
   occupants(): { seat: string; userId: string; name: string }[] {
     return this.storage.sql
@@ -291,34 +321,70 @@ export class ActorDirectory {
    * A fixture seats a newcomer at its lowest vacant station;
    * a real game seats nobody on admission, since its seats come from creation, requests and approvals, so a newcomer watches.
    */
-  viewer(
-    connectionId: string,
-    userId: string,
-    displayName: string,
-    options: { seatNewcomers: boolean } & PlayerProfile
-  ): Viewer {
-    let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', userId).toArray()[0];
+  viewer(connectionId: string, profile: PassProfile, options: { seatNewcomers: boolean }): Viewer {
+    let actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', profile.userId).toArray()[0];
     if (actor?.deleted) {
       throw new Error('Admission refused.');
     }
-    if (!actor) {
-      actor = this.create(userId, displayName, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT, options);
-    } else {
-      /* A player's picture and profile link follow their profile; each admission carries the current ones. */
-      if (options.avatarUrl !== undefined && options.avatarUrl !== (actor.avatar_url ?? null)) {
-        this.storage.sql.exec('UPDATE actors SET avatar_url=? WHERE user_id=?', options.avatarUrl, userId);
-      }
-      if (options.profileSlug !== undefined && options.profileSlug !== (actor.profile_slug ?? null)) {
-        this.storage.sql.exec('UPDATE actors SET profile_slug=? WHERE user_id=?', options.profileSlug, userId);
-      }
-    }
+    actor = actor
+      ? this.refreshProfile(actor, profile)
+      : this.create(profile.userId, profile, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT);
     return {
       connectionId,
-      userId,
+      userId: profile.userId,
       viewerSeat: actor.seat,
       displayName: actor.display_name,
       color: this.color(actor.seat),
     };
+  }
+
+  /**
+   * A player's name, picture and profile link follow their profile, as each pass carries it.
+   * Only a pass issued after the one that last set them can change them, so a device reconnecting with a pass from before a rename does not put the old name back.
+   * Returns the actor as stored.
+   */
+  private refreshProfile(actor: Actor, profile: PassProfile): Actor {
+    if (profile.issuedAt < (actor.profile_at ?? 0)) {
+      return actor;
+    }
+    const next = {
+      ...actor,
+      display_name: profile.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
+      avatar_url: profile.avatarUrl === undefined ? (actor.avatar_url ?? null) : profile.avatarUrl,
+      profile_slug: profile.profileSlug === undefined ? (actor.profile_slug ?? null) : profile.profileSlug,
+      profile_at: profile.issuedAt,
+    };
+    if (
+      next.display_name === actor.display_name &&
+      next.avatar_url === (actor.avatar_url ?? null) &&
+      next.profile_slug === (actor.profile_slug ?? null) &&
+      next.profile_at === actor.profile_at
+    ) {
+      return actor;
+    }
+    this.storage.sql.exec(
+      'UPDATE actors SET display_name=?, avatar_url=?, profile_slug=?, profile_at=? WHERE user_id=?',
+      next.display_name,
+      next.avatar_url,
+      next.profile_slug,
+      next.profile_at,
+      actor.user_id
+    );
+    return next;
+  }
+
+  /** Applies a renewed pass's profile to its admitted actor; whether anything shown about the player changed. */
+  renewProfile(profile: PassProfile): boolean {
+    const actor = this.storage.sql.exec<Actor>('SELECT * FROM actors WHERE user_id=?', profile.userId).toArray()[0];
+    if (!actor || actor.deleted) {
+      return false;
+    }
+    const next = this.refreshProfile(actor, profile);
+    return (
+      next.display_name !== actor.display_name ||
+      next.avatar_url !== actor.avatar_url ||
+      next.profile_slug !== actor.profile_slug
+    );
   }
 
   /**
@@ -375,26 +441,28 @@ export class ActorDirectory {
 
   /** The creator takes the first seat at creation, before anyone connects. */
   seatCreator(userId: string, displayName: string, seat: string, profile: PlayerProfile) {
-    this.create(userId, displayName, seat, profile);
+    this.create(userId, { ...profile, userId, displayName, issuedAt: Date.now() }, seat);
   }
 
-  private create(userId: string, displayName: string, seat: Viewer['viewerSeat'], profile: PlayerProfile): Actor {
+  private create(userId: string, profile: PassProfile, seat: Viewer['viewerSeat']): Actor {
     const actor = {
       user_id: userId,
       seat,
-      display_name: displayName.slice(0, 160),
+      display_name: profile.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
       deleted: 0,
       avatar_url: profile.avatarUrl ?? null,
       profile_slug: profile.profileSlug ?? null,
+      profile_at: profile.issuedAt,
     };
     this.storage.transactionSync(() => {
       this.storage.sql.exec(
-        'INSERT INTO actors (user_id, seat, display_name, deleted, avatar_url, profile_slug) VALUES(?,?,?,0,?,?)',
+        'INSERT INTO actors (user_id, seat, display_name, deleted, avatar_url, profile_slug, profile_at) VALUES(?,?,?,0,?,?,?)',
         actor.user_id,
         actor.seat,
         actor.display_name,
         actor.avatar_url,
-        actor.profile_slug
+        actor.profile_slug,
+        actor.profile_at
       );
       if (seat !== SPECTATOR_SEAT) {
         this.record(actor.user_id, actor.display_name, seat, 'joined', { cause: 'creation' });

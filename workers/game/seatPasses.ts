@@ -2,7 +2,10 @@ import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { verifySeatPass } from '../../src/shared/play/seatPass';
 
 /** What a connection keeps of the pass it entered with, or its latest renewal. */
-export type HeldPass = Pick<SeatPassPayload, 'actorId' | 'principalId' | 'sessionId' | 'sessionCreatedAt' | 'exp'>;
+export type HeldPass = Pick<
+  SeatPassPayload,
+  'actorId' | 'principalId' | 'sessionId' | 'sessionCreatedAt' | 'issuedAt' | 'exp'
+>;
 
 export type PassCheck = { ok: true; pass: SeatPassPayload } | { ok: false; reason: 'invalid' | 'expired' | 'revoked' };
 
@@ -73,6 +76,7 @@ export function heldPass(pass: SeatPassPayload): HeldPass {
     principalId: pass.principalId,
     sessionId: pass.sessionId,
     sessionCreatedAt: pass.sessionCreatedAt,
+    issuedAt: pass.issuedAt,
     exp: pass.exp,
   };
 }

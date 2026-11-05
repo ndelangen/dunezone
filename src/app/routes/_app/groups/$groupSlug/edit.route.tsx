@@ -3,10 +3,7 @@ import { groupInputSchema } from '@shared/groups/validation';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
-import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -17,11 +14,12 @@ import { useRef, useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 /* The form's id, so Save can sit in the toolbar with every other page's Save and still submit it. */
 const GROUP_EDIT_FORM_ID = 'group-edit-form';
@@ -151,11 +149,12 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/edit')({
  */
 function GroupEditError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
-      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Edit group"
+      back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+      what="Group could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -186,9 +185,9 @@ function GroupEditPage() {
 
   if (!editPage.viewerResolved) {
     return (
-      <PageMessage title={`Edit ${group.name}`} back={guardBack}>
-        <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
-      </PageMessage>
+      <RoutePending title={`Edit ${group.name}`} back={guardBack} loading="Loading your profile">
+        Checking what you may change here.
+      </RoutePending>
     );
   }
 

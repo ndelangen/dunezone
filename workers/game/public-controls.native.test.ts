@@ -678,9 +678,8 @@ describe('Hosted readiness and shared inventory through native commands', () => 
 
   it('masks by actor identity, not by name, and rolls back a failed history scrub', async () => {
     const a = await admit('a');
-    await admit('b');
-    await runtime.exec("UPDATE actors SET display_name='Synthetic A' WHERE user_id='user-b'");
-    const b = await admit('b');
+    /* The same name as A, as a profile may carry; the actor row keeps it from this admission on. */
+    const b = await admitPlayer(runtime, 'b', { displayName: 'Synthetic A' });
     const first = await act(a, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });
     const firstId = required(first.controls).requests[0].id;
     const second = await act(b, { kind: 'spawn-request', type: 'token-disc', slug: 'recovery' });

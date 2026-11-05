@@ -68,6 +68,16 @@ export const ALLIANCES_GUIDANCE: Guidance = {
   help: ALLIANCES_HELP,
 };
 
+export const SEATS_HELP = helpLines(
+  'A spectator asks for an open seat from Seats in the header, and any one player approves it here.',
+  'Signed-in spectators are listed by name; anyone watching signed out is only counted.'
+);
+
+export const SEATS_GUIDANCE: Guidance = {
+  description: 'Who is watching, and who asks for a seat.',
+  help: SEATS_HELP,
+};
+
 export const GAME_LENGTH_HELP = 'The turn wheel counts up to the last turn. Play can carry on past it.';
 
 export const GAME_LENGTH_GUIDANCE: Guidance = { description: 'How many turns the game lasts.', help: GAME_LENGTH_HELP };

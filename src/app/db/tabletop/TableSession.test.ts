@@ -176,7 +176,16 @@ describe('hosted public controls', () => {
     const snapshot = {
       ...initialSnapshot(),
       phase: 1,
-      controls: { seats: [], ready: [], requests: [], seatRequests: [], players: [], phaseChangedAt: 1 },
+      controls: {
+        seats: [],
+        ready: [],
+        requests: [],
+        seatRequests: [],
+        players: [],
+        spectators: [],
+        guests: 0,
+        phaseChangedAt: 1,
+      },
     };
     socket().deliver(view({ snapshot, phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS }));
     expect(table(client).phaseCooling).toBe(true);

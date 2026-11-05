@@ -10,11 +10,8 @@ import {
 import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
-import { errorMessage } from '@ui/content/errorMessage';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
@@ -24,10 +21,11 @@ import { useId, useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './create.module.css';
@@ -35,9 +33,9 @@ import styles from './create.module.css';
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/create')({
   loader: async ({ params }) => ({ page: await loadRulebookCreationPage(params.rulesetSlug) }),
   pendingComponent: () => (
-    <PageMessage title="Create Rulebook">
-      <LoadPending title="Loading Ruleset">Checking access and saved Rulebooks.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Create Rulebook" loading="Loading Ruleset">
+      Checking access and saved Rulebooks.
+    </RoutePending>
   ),
   errorComponent: CreateRulebookError,
   head: () => pageHead('Create rulebook'),
@@ -46,11 +44,12 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/crea
 
 function CreateRulebookError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Create Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Create Rulebook"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="Ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 

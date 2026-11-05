@@ -1,10 +1,7 @@
-import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { collectSlots } from './collectSlots';
 import styles from './FigureCaptionLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const FIGURE_SLOTS = ['FigureCaptionLayout.Figure', 'FigureCaptionLayout.Caption'] as const;
 
 const Figure: (props: PropsWithChildren) => null = () => null;
 
@@ -15,24 +12,9 @@ const Caption: (props: PropsWithChildren) => null = () => null;
  * From 26rem of its own width the figure stands beside its caption instead, where the caption still has the width to read.
  */
 function FigureCaptionLayoutBase({ children }: PropsWithChildren) {
-  let figure: ReactNode = null;
-  let caption: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('FigureCaptionLayout', FIGURE_SLOTS, child);
-      return;
-    }
-    if (child.type === Figure) {
-      figure = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Caption) {
-      caption = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('FigureCaptionLayout', FIGURE_SLOTS, child);
-  });
+  const slots = collectSlots('FigureCaptionLayout', { Figure, Caption }, children);
+  const figure = slots.Figure?.children;
+  const caption = slots.Caption?.children;
 
   return (
     <div className={styles.root}>

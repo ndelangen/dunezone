@@ -16,10 +16,6 @@ export const Route = createFileRoute('/_app/admin/accounts')({
   component: AccountManagement,
 });
 
-function AccountsLoading() {
-  return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
-}
-
 type AccountPage = NonNullable<ReturnType<typeof useAccountManagementPage>>;
 type ManagedProfile = AccountPage['profiles']['page'][number];
 type MergeOperation = AccountPage['operations'][number];
@@ -56,7 +52,7 @@ function AccountManagement() {
   const merge = useMergeAccounts();
   const resume = useResumeAccountMerge();
   if (!page) {
-    return <AccountsLoading />;
+    return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
   }
   const profiles = [
     ...new Map([...page.profiles.page, ...page.selected].map((profile) => [profile.userId, profile])).values(),

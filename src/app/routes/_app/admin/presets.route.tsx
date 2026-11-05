@@ -10,7 +10,6 @@ import type { FamilyPreset, DiscoveryPreset } from '@shared/backgrounds/families
 import { resolveBackgroundValues, customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -34,6 +33,7 @@ import { INITIAL_CUSTOM_CARD_DRAFT } from '@app/widgets/card-editor/customCardPr
 import { INITIAL_TREACHERY_DRAFT } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { HomeworldCard } from '@game/assets/card/Homeworld';
@@ -127,9 +127,13 @@ function PresetsPage() {
   const library = usePresetLibrary();
   if (!library) {
     return (
-      <PageMessage title="Presets" back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}>
-        <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
-      </PageMessage>
+      <RoutePending
+        title="Presets"
+        back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}
+        loading="Loading presets"
+      >
+        Loading the saved designs.
+      </RoutePending>
     );
   }
   if (!library.ready) {

@@ -494,10 +494,13 @@ export const HiddenZone = meta.story({
 
     /* Its menu places it on the table instead, beside the faction's own token, face down as a play from the hand. */
     const edge = zoneLeader.getBoundingClientRect();
+    const onTable = new Set(table.room.snapshot.table.pieces.map((candidate) => candidate.id));
     zoneLeader.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: edge.left, clientY: edge.top }));
     await userEvent.click(await page.findByRole('menuitem', { name: 'Place on table' }));
     await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
-    const placed = table.room.snapshot.table.pieces.find((candidate) => candidate.id === leader.id)!;
+    /* It leaves the hand under a new id, so nobody can tell which leader was played. */
+    const placed = table.room.snapshot.table.pieces.find((candidate) => !onTable.has(candidate.id))!;
+    await expect(placed.stackKey).toBe(stored.stackKey);
     const token = factionTokenOf(table.room.snapshot.table.pieces, faction)!;
     await expect(
       Math.hypot(placed.position[0] - token.position[0], placed.position[2] - token.position[2])
