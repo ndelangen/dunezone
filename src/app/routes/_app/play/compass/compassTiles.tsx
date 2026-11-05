@@ -1,4 +1,4 @@
-import { Clock3, EyeOff, Hand, Handshake, MessagesSquare, Swords } from 'lucide-react';
+import { Armchair, Clock3, EyeOff, Hand, Handshake, MessagesSquare, Swords } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { TileSpot } from './compassSpots';
@@ -98,6 +98,24 @@ function battleTile(windowOf: Windows): Tile {
   };
 }
 
+/*
+ * While a spectator asks for a seat, the top arm leads to Seats & spectators instead of the battle plan (Norbert, 2026-11-05),
+ * so a player sees the request the next time they open the compass. The arm keeps its key and letter.
+ */
+function seatsTile(windowOf: Windows, requests: number): Tile {
+  return {
+    spot: 'battle',
+    window: windowOf('seats'),
+    label: 'Seats & spectators',
+    detail: requests === 1 ? 'A spectator asks for a seat' : `${requests} spectators ask for a seat`,
+    icon: <Armchair {...ICON} />,
+    keys: '↑',
+    shortcut: SHORTCUTS.battle,
+    badge: requests,
+    disabled: !windowOf('seats'),
+  };
+}
+
 /** The five tiles, from the windows the table has right now. */
 export function tilesOf(windows: readonly TableWindow[], table: CompassTable | null): Record<TileSpot, Tile> {
   const windowOf: Windows = (key) => windows.find((entry) => entry.key === key);
@@ -132,6 +150,8 @@ export function tilesOf(windows: readonly TableWindow[], table: CompassTable | n
           keys: '↑',
           shortcut: SHORTCUTS.battle,
         }
-      : battleTile(windowOf),
+      : table?.seatRequests
+        ? seatsTile(windowOf, table.seatRequests)
+        : battleTile(windowOf),
   };
 }

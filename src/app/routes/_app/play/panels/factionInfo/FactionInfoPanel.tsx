@@ -30,8 +30,6 @@ export type FactionInfoPanelProps = Readonly<{
   /** The table's refusal of the last command sent from here. */
   error: string | null;
   vote: RemovalVoteView | null;
-  /** Requests for the seat, while it is open. */
-  requests: ReactNode;
   header: FactionInfoHeaderModel;
   /** The seat's trade action, while seats are traded. */
   trade: ReactNode;
@@ -88,7 +86,7 @@ function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
  * A seat's faction information: the header, the toolbar with every action on the seat under it, then the content.
  * The content leads with any vote against the seat's player and any request for the seat, then what the faction starts with.
  */
-export function FactionInfoPanel({ error, vote, requests, header, trade, details, onBallot }: FactionInfoPanelProps) {
+export function FactionInfoPanel({ error, vote, header, trade, details, onBallot }: FactionInfoPanelProps) {
   const ballot = vote && 'choice' in vote.ballot ? { choice: vote.ballot.choice, cast: onBallot } : null;
   return (
     <>
@@ -106,7 +104,6 @@ export function FactionInfoPanel({ error, vote, requests, header, trade, details
             ballot={ballot}
           />
           {vote && <OpenVote vote={vote} />}
-          {requests}
           {details && <FactionDetails faction={details} />}
         </Stack>
       </Section>

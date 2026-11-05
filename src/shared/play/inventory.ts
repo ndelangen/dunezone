@@ -75,6 +75,20 @@ export const publicControlsSchema = z.object({
       })
     )
     .default([]),
+  /*
+   * Who is watching without a seat, by public name, avatar and profile slug, stamped at send time like the players;
+   * a stored snapshot carries none. Signed-out watchers are only counted, never named.
+   */
+  spectators: z
+    .array(
+      z.object({
+        name: z.string(),
+        avatar: z.string().max(2048).nullable(),
+        slug: z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().default(null),
+      })
+    )
+    .default([]),
+  guests: tableCountSchema.default(0),
 });
 export const storedControlsSchema = publicControlsSchema.extend({
   requests: z.array(spawnRequestSchema.extend({ contents: storedSpawnContentsSchema })),
@@ -82,7 +96,16 @@ export const storedControlsSchema = publicControlsSchema.extend({
 export type PublicControls = z.infer<typeof publicControlsSchema>;
 export type StoredControls = z.infer<typeof storedControlsSchema>;
 export function emptyPublicControls(): StoredControls {
-  return { seats: [], ready: [], phaseChangedAt: 0, requests: [], seatRequests: [], players: [] };
+  return {
+    seats: [],
+    ready: [],
+    phaseChangedAt: 0,
+    requests: [],
+    seatRequests: [],
+    players: [],
+    spectators: [],
+    guests: 0,
+  };
 }
 export const publicActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('ready'), ready: z.boolean() }),

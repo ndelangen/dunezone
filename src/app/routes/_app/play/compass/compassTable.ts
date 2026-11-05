@@ -49,6 +49,8 @@ export type CompassTable = Readonly<{
   token: Readonly<{ faceUp: boolean; flip: () => void; inBidding?: boolean }> | null;
   /** The bidder's raise by one, lowering (null unless the viewer raised this turn) and pass, while it points at the viewer. */
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
+  /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
+  seatRequests?: number;
 }>;
 
 export const CompassTableContext = createContext<CompassTable | null>(null);

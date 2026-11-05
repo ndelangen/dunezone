@@ -4,6 +4,7 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { faction } from '../alliances.stories.fixture';
 import { clockSetup, sittingOutSetup } from '../bidding.stories.fixture';
 import { conversationMessages, conversationPair, gameMeta, install } from '../game.stories.fixture';
+import { requestSnapshot } from '../panels/seats/SeatsPanel.stories.fixture';
 import { battleStory } from '../playing.stories.fixture';
 import { playingSnapshot, productTransport } from '../product.stories.fixture';
 import type { Slots } from './useOpenWindows';
@@ -47,6 +48,16 @@ function allied(snapshot: GameSnapshot = playingSnapshot('seat-2')) {
 export const InBattle = meta.story({
   beforeEach: [
     install(() => productTransport('seat-2', battleStory('preparing'))),
+    () => pinned({ left: null, right: null }, false),
+  ],
+});
+
+/**
+ * A spectator asks for the open seat 3: Seats & spectators opens on its own for every player, and while the request is open the compass's top arm leads to it instead of the battle plan.
+ */
+export const SeatRequested = meta.story({
+  beforeEach: [
+    install(() => productTransport('seat-2', requestSnapshot())),
     () => pinned({ left: null, right: null }, false),
   ],
 });

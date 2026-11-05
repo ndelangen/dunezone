@@ -13,7 +13,7 @@ import {
 /*
  * The Faction info window on its own, for one seat of a six-seat game mid-play, as seat 2 sees it:
  * who sits there, their faction and alliance, what the faction starts with, and any vote against the player.
- * The seat's requests and trade have their own stories with the table.
+ * The seat's trade has its own stories with the table; requests for a seat are in Seats & spectators.
  */
 const meta = preview.meta({ ...factionInfoPanelMeta, title: 'Play/Panels/Faction info' });
 
