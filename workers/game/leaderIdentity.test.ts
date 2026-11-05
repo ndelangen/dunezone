@@ -2,6 +2,7 @@ import { expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
+import { piecesCanStack } from '../../src/shared/play/tablePhysics';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 import { RoomProjection } from './state';
@@ -85,4 +86,30 @@ test('the leader played out of the hand is still the player’s to turn over and
   expect(table.snapshot.table.pieces.find((piece) => piece.id === played.id)!.items[0]!.faceUp).toBe(true);
   send({ kind: 'hand-take', pieceId: played.id });
   expect(table.snapshot.factionInventories.atreides?.map((piece) => piece.id)).toEqual([played.id]);
+});
+
+test('face-down catalogue discs of one asset keep a shared key, so the page previews the merge the room makes', () => {
+  const { table } = room();
+  const troop = table.snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
+  const disc = (id: string, x: number) => ({
+    ...structuredClone(troop),
+    id,
+    owner: 'shared',
+    label: 'Marker',
+    stackKey: 'token:marker-asset',
+    position: [x, 0.14, 3] as [number, number, number],
+    items: [
+      {
+        id: `${id}-item`,
+        faceUp: false,
+        artwork: { front: FRONT, back: 'https://example.test/back.png', name: 'Marker', type: 'token-disc' },
+      },
+    ],
+  });
+  const [first, second] = [disc('disc-one', 3), disc('disc-two', 5)];
+  const projection = new RoomProjection('secret');
+  const [left, right] = [projection.piece(first), projection.piece(second)];
+  expect(left.stackKey).toBe(right.stackKey);
+  expect(piecesCanStack(left, right)).toBe(piecesCanStack(first, second));
+  expect(piecesCanStack(left, right)).toBe(true);
 });

@@ -3,7 +3,6 @@ import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 
 import {
-  isBattleLeader,
   publicBattleSchema,
   battleFaceSchema,
   storedBattlePlanSchema,
@@ -452,10 +451,11 @@ export class RoomProjection {
           ? 'leader:'
           : 'token:';
     /*
-     * A stack key names what a token is, so a leader's is told apart per piece: leaders never stack, and a face-down leader
-     * played out of a hand under new ids must not be named by its key. Troops and other tokens keep the key their kind shares, so their stacks still merge.
+     * A stack key names what a token is, so a faction leader's is told apart per piece: leaders never stack, and a face-down leader
+     * played out of a hand under new ids must not be named by its key.
+     * Troops and every other token keep the key their kind shares, face up or down, so the page previews the same merges the room makes.
      */
-    const named = prefix === 'leader:' || (isBattleLeader(piece) && piece.items.at(-1)?.faceUp === false);
+    const named = prefix === 'leader:';
     const projected: TablePiece = {
       ...piece,
       label: visible ? piece.label : publicPieceLabel(piece),
