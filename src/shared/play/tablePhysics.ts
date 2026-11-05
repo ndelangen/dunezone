@@ -1,3 +1,5 @@
+import { isBattleLeader } from './battle';
+import { topItemFaceUp } from './model';
 import type { TablePiece, Vector3Tuple } from './model';
 import { fromPieceFrame, POINTER_OUTLINE, isPointerToken, pointerCovers } from './pointerToken';
 import type { PlanePoint } from './pointerToken';
@@ -278,15 +280,21 @@ export function piecesOverlapAt(
   return boxOverlapsBox(aBox, { footprint: bFootprint, center: bCenter, orientation: b.orientation });
 }
 
+/** A token that may fight as a leader, lying face down: a hidden leader, which no other token may join or be joined by. */
+function isHiddenLeader(piece: TablePiece): boolean {
+  return isBattleLeader(piece) && !topItemFaceUp(piece);
+}
+
 /**
  * Troops and markers stack by their key.
+ * A face-down token that may fight as a leader never stacks, so that which leader it is cannot be told by what it stacks with.
  * Cards with one back belong together, whichever deck they were spawned from, and cards with different backs never do.
  * That is what lets two factions' Traitor decks combine and keeps Traitor and Treachery cards apart.
  * A back is its publication address and the word printed on it.
  * Only cards with no back at all fall back to the key.
  */
 export function piecesCanStack(a: TablePiece, b: TablePiece): boolean {
-  if (a.kind !== b.kind || isPointerToken(a)) {
+  if (a.kind !== b.kind || isPointerToken(a) || isHiddenLeader(a) || isHiddenLeader(b)) {
     return false;
   }
   const sameKey = a.stackKey !== null && a.stackKey === b.stackKey;

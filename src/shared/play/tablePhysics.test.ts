@@ -11,6 +11,7 @@ import {
   isCollisionFreePosition,
   isOverlapFreePosition,
   LEADER_SPACING,
+  piecesCanStack,
   piecesOverlapAt,
   piecesTouchForStack,
   restingAmongLeaders,
@@ -56,6 +57,43 @@ describe('leader disc physics', () => {
 
     expect(piecesOverlapAt(stack, stack.position, leader, [0.524, 0.38, 0])).toBe(true);
     expect(piecesOverlapAt(stack, stack.position, leader, [0.525, 0.38, 0])).toBe(false);
+  });
+});
+
+describe('hidden leader stacking', () => {
+  const disc = (id: string, faceUp: boolean) => {
+    const { loose } = troopFixtures();
+    return {
+      ...loose,
+      id,
+      stackKey: 'token:cheap-hero',
+      items: [
+        {
+          id: `${id}-item`,
+          faceUp,
+          artwork: { front: 'f.jpg', back: 'b.jpg', name: 'Cheap hero', type: 'token-disc' },
+        },
+      ],
+    };
+  };
+
+  test('face-up copies of a catalogue disc stack by their key', () => {
+    expect(piecesCanStack(disc('a', true), disc('b', true))).toBe(true);
+  });
+
+  test('a face-down disc that may fight as a leader stacks with nothing, so what it stacks with cannot name it', () => {
+    expect(piecesCanStack(disc('a', false), disc('b', false))).toBe(false);
+    expect(piecesCanStack(disc('a', false), disc('b', true))).toBe(false);
+    expect(piecesCanStack(disc('a', true), disc('b', false))).toBe(false);
+  });
+
+  test('face-down troops still stack', () => {
+    const { stack, loose } = troopFixtures();
+    const down = (piece: typeof loose) => ({
+      ...piece,
+      items: piece.items.map((item) => ({ ...item, faceUp: false })),
+    });
+    expect(piecesCanStack(down(stack), down(loose))).toBe(true);
   });
 });
 
