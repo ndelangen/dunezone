@@ -719,7 +719,7 @@ export class GameSession {
    * from the directory at send time and never stored; and for the requester alone, which pending
    * request is theirs. Nobody's id travels.
    */
-  private forViewer(projected: GameSnapshot, viewer: Viewer, people = this.people()): GameSnapshot {
+  private forViewer(projected: GameSnapshot, viewer: Viewer, people = this.people(), live = true): GameSnapshot {
     const board = this.captures.ruleset()?.board;
     if (board) {
       projected = { ...projected, board };
@@ -735,7 +735,7 @@ export class GameSession {
         players: people.players,
         /* Only the watcher's own row is marked, by account; nobody's id travels. */
         spectators: people.spectators.map(({ userId, ...spectator }) =>
-          userId === viewer.userId ? { ...spectator, own: true } : spectator
+          live && userId === viewer.userId ? { ...spectator, own: true } : spectator
         ),
         seatRequests: ownRequests(projected.controls.seatRequests, own),
       },
@@ -1312,7 +1312,8 @@ export class GameSession {
       step,
       lastStep: this.history.steps,
       recordedAt: this.history.recordedAt(step),
-      snapshot: this.forViewer(recalled, viewer),
+      /* A replay shows the same table to everyone who looks back, so no spectator row is marked as the viewer's. */
+      snapshot: this.forViewer(recalled, viewer, this.people(), false),
     };
   }
   conversationFaction(viewer: Viewer) {
