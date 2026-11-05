@@ -3,7 +3,6 @@ import { seatSubject } from '@shared/play/participation';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { publicControlsOf } from '../../multiplayer/publicControls';
 import { approvable, openSeats, seatLocked, seatWords } from '../../multiplayer/SeatRequests';
-import { isSpectator } from '../../multiplayer/tableFactions';
 import { SeatsPanel } from './SeatsPanel';
 import type { SeatRequestRow, SeatsPanelProps } from './SeatsPanel';
 
@@ -52,11 +51,7 @@ export function seatsPanelProps(table: TableProjection, onApprove: (requestId: s
   return {
     seats: seatsLine(table),
     requests: seatRequestRows(table),
-    /* A spectator sees themselves marked, as their own request is; names are all the table sends. */
-    spectators: controls.spectators.map((spectator) => ({
-      ...spectator,
-      own: isSpectator(table) && spectator.name === table.viewer.displayName,
-    })),
+    spectators: controls.spectators,
     guests: controls.guests,
     approve: approvable(table)
       ? {

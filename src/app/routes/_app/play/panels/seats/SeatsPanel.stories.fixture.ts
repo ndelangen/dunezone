@@ -59,6 +59,10 @@ export const observerProps = () => seatsProps(requestSnapshot(), SPECTATOR_SEAT)
 export function ownRequestProps(): SeatsPanelProps {
   const snapshot = requestSnapshot();
   snapshot.controls!.seatRequests = snapshot.controls!.seatRequests.map((request) => ({ ...request, own: true }));
+  /* The table marks the watcher's own row, as it marks their own request. */
+  snapshot.controls!.spectators = snapshot.controls!.spectators.map((spectator) =>
+    spectator.name === PINECONE.name ? { ...spectator, own: true } : spectator
+  );
   return seatsProps(snapshot, SPECTATOR_SEAT);
 }
 

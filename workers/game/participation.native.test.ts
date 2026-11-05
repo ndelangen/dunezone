@@ -216,6 +216,11 @@ describe('Explicit participation on a real game', () => {
     const c = await admit('c');
     const secondTab = await admit('c');
     expect(await spectators()).toEqual([synthetic('b'), synthetic('c')]);
+    /* Each spectator sees their own row marked, by account, and nobody else's. */
+    expect(required(required(await syncView(b)).snapshot.controls).spectators).toEqual([
+      { ...synthetic('b'), own: true },
+      synthetic('c'),
+    ]);
     secondTab.socket.close();
     await eventually(() => secondTab.closed, 'second tab disconnected');
     c.socket.close();

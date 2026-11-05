@@ -85,6 +85,8 @@ export const publicControlsSchema = z.object({
         name: z.string(),
         avatar: z.string().max(2048).nullable(),
         slug: z.string().min(1).max(PLAY_PROFILE_SLUG_MAX_LENGTH).nullable().default(null),
+        /* Present on the watcher's own row only. */
+        own: z.boolean().optional(),
       })
     )
     .default([]),

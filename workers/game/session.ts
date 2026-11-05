@@ -732,7 +732,11 @@ export class GameSession {
       ...projected,
       controls: {
         ...projected.controls,
-        ...people,
+        players: people.players,
+        /* Only the watcher's own row is marked, by account; nobody's id travels. */
+        spectators: people.spectators.map(({ userId, ...spectator }) =>
+          userId === viewer.userId ? { ...spectator, own: true } : spectator
+        ),
         seatRequests: ownRequests(projected.controls.seatRequests, own),
       },
     };
@@ -766,7 +770,9 @@ export class GameSession {
     return (viewer) => {
       const factionId = this.actors.factionFor(viewer.userId);
       const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
-      const audience = JSON.stringify([factionId ?? null, own ?? null]);
+      /* A spectator's view marks their own row, so each spectator watching is an audience of their own. */
+      const watching = viewer.viewerSeat === SPECTATOR_SEAT ? viewer.userId : null;
+      const audience = JSON.stringify([factionId ?? null, own ?? null, watching]);
       let snapshot = snapshots.get(audience);
       if (!snapshot) {
         snapshot = {
