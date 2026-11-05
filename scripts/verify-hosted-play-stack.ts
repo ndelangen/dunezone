@@ -52,6 +52,8 @@ const { values } = parseArgs({
      * that ruleset's real decks, factions, leaders and Traitors, and its images are served locally.
      */
     mirror: { type: 'string' },
+    /* With --serve: how many bot accounts to create (1 to 5), each a separate player with an ordinary name. */
+    bots: { type: 'string', default: '1' },
   },
 });
 const loadProfile = runnerProfiles.find((candidate) => candidate === values['load-profile']);
@@ -437,6 +439,9 @@ async function installMirrorMedia(source: NonNullable<typeof mirror>, workerOutp
   }
 }
 
+/* Ordinary first names for the bot accounts, so a seat's name gives nothing away. */
+const BOT_NAMES = ['Alex', 'Sam', 'Robin', 'Kim', 'Jordan'];
+
 /** The local ruleset a served stack seeds; the catalogue proxy answers reads of it from the mirror. */
 let servedRulesetId: string | undefined;
 
@@ -470,13 +475,28 @@ async function serveForPlay({
   const { ConvexHttpClient } = await import('convex/browser');
   const { setAdminAuth } = await import('./lib/convex-admin');
   const { provisionAccounts } = await import('./lib/synthetic-accounts');
+  const botCount = Number(values.bots);
+  if (!Number.isInteger(botCount) || botCount < 1 || botCount > BOT_NAMES.length) {
+    throw new Error(`--bots must be between 1 and ${BOT_NAMES.length}.`);
+  }
+  /*
+   * Each bot is its own account with an ordinary name and address, so nothing at the table marks a seat as a bot:
+   * a bot cannot tell another bot from a person, and plays as if everyone else is a person.
+   */
+  const bots = BOT_NAMES.slice(0, botCount).map((name) => ({
+    name,
+    email: `${name.toLowerCase()}@example.invalid`,
+    password: randomBytes(24).toString('hex'),
+  }));
   const accounts = {
-    player: { email: 'player@example.invalid', password: randomBytes(9).toString('base64url') },
-    bot: { email: 'bot@example.invalid', password: randomBytes(24).toString('hex') },
+    player: { name: 'Player', email: 'player@example.invalid', password: randomBytes(9).toString('base64url') },
+    /* `bot` stays for a runner that predates `bots`. */
+    bot: bots[0]!,
+    bots,
   };
   const admin = new ConvexHttpClient(backendUrl, { logger: false });
   setAdminAuth(admin, adminKey);
-  await provisionAccounts(admin, Object.values(accounts));
+  await provisionAccounts(admin, [accounts.player, ...bots]);
   const out = path.join(root, 'tools/play-bot/out');
   mkdirSync(out, { recursive: true });
   const stackFile = path.join(out, 'stack.json');
@@ -487,7 +507,7 @@ async function serveForPlay({
       `Play is up at ${origin}`,
       `1. Sign in at ${origin}/auth/login as ${accounts.player.email} with password ${accounts.player.password}`,
       `2. Create a game at ${origin}/play/create on "${rulesetName ?? 'Synthetic ruleset'}" with 2 players.`,
-      '3. Start a bot: bun run play:bot -- --game <the game page URL> --brain claude (or codex), then approve its seat request.',
+      `3. Start ${botCount === 1 ? 'the bot' : `each of the ${botCount} bots in its own terminal`}: bun run play:bot -- --game <the game page URL> --account <1${botCount > 1 ? `..${botCount}` : ''}> --brain claude (or codex), then approve its seat request.`,
       '4. Talk to the bot at the table: it acts only when someone writes to it.',
       `Accounts and addresses: ${stackFile}. Ctrl-C stops everything.`,
       '',

@@ -77,6 +77,8 @@ export const provisionAccounts = internalMutation({
         scrypt: v.string(),
         pbkdf2: v.string(),
         avatar: v.optional(profileAvatarValidator),
+        /* The display name a game shows for the account's seat; a local bot game gives each account an ordinary name. */
+        name: v.optional(v.string()),
       })
     ),
   },
@@ -84,7 +86,7 @@ export const provisionAccounts = internalMutation({
   handler: async (ctx, args) => {
     requireSyntheticBackend();
     const checksPbkdf2 = checksPbkdf2Passwords();
-    for (const { email, scrypt, pbkdf2, avatar } of args.accounts) {
+    for (const { email, scrypt, pbkdf2, avatar, name } of args.accounts) {
       requireSyntheticEmail(email);
       if (!SCRYPT_SECRET.test(scrypt) || !isPbkdf2Secret(pbkdf2)) {
         throw new Error('Synthetic accounts need a Scrypt secret and a PBKDF2 secret, not a password');
@@ -96,7 +98,8 @@ export const provisionAccounts = internalMutation({
       if (existing && !avatar) {
         continue;
       }
-      const userId = existing?.userId ?? (await ctx.db.insert('users', { email }));
+      const userId =
+        existing?.userId ?? (await ctx.db.insert('users', { email, ...(name ? { name: name.slice(0, 60) } : {}) }));
       const user = await ctx.db.get(userId);
       if (!user) {
         throw new Error('Failed to read the synthetic user after insert');

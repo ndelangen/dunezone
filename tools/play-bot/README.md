@@ -63,6 +63,31 @@ Emperor). The transcript and the bot's notes land in `tools/play-bot/out/`.
 
 `--style "<a sentence>"` gives the bot a personality and strength, and `--model` picks the model its CLI uses.
 
+## One person and two bots
+
+Each bot is a separate `bun run play:bot` process with its own account, its own notes and transcript under
+`tools/play-bot/out/bots/<name>/`, and its own CLI working directory outside the repository. Nothing at the table marks a
+seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot is told to treat every other player as a person.
+
+1. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
+2. Create a 3-player game as `player@example.invalid` and draft your faction.
+3. In two terminals: `bun run play:bot -- --game <URL> --account 1 --want fremen` and
+   `bun run play:bot -- --game <URL> --account 2 --want harkonnen`. Approve both seat requests.
+4. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
+   messages only when its faction is named, and on every private message. Each bot wakes at most 12 times in ten minutes
+   (`--max-wakes`), so two bots cannot talk to each other without end.
+
+The headless check: `bun run play:bot:demo -- tools/play-bot/three-player.demo.ts` (add `PLAY_BOT_BRAIN=claude` to have
+Claude Code think for both). It checks that naming one faction wakes only that bot and that neither bot ever sees the other's
+notes.
+
+Isolation of the CLI itself: Claude Code runs with `--setting-sources project,local` (so your own ~/.claude settings and
+CLAUDE.md stay out), `--no-session-persistence` and auto-memory off; Codex runs in the bot's own directory but still reads
+your ~/.codex configuration. Both use your machine's sign-in, so both bots share your subscription's usage.
+
+A game with only bots is possible in principle: a person still creates the game and holds its first seat, which a third
+bot cannot take over yet.
+
 ## Limits
 
 - The create page's preview of the ruleset still lists the local placeholder decks and factions; the game itself deals the

@@ -13,7 +13,8 @@ import { internal } from '../../convex/_generated/api';
 import type { ProfileAvatar } from '../../convex/lib/profileAvatar';
 import { adminMutationReference } from './convex-admin.ts';
 
-export type SyntheticAccount = { email: string; password: string; avatar?: ProfileAvatar };
+/* `name` becomes the profile's display name, which a game shows for the seat; without it a profile reads as nameless. */
+export type SyntheticAccount = { email: string; password: string; avatar?: ProfileAvatar; name?: string };
 
 /**
  * The secret Convex Auth's Password provider stores for `password` by default: Lucia's Scrypt with N 16384, r 16 and p 1, a 64-byte key, and the hex salt used as text.
@@ -54,9 +55,10 @@ export type ProvisionedAccount = FunctionArgs<typeof provisionReference>['accoun
 
 export async function provisionAccounts(admin: ProvisioningClient, accounts: SyntheticAccount[]) {
   const hashed = await Promise.all(
-    accounts.map(async ({ email, password, avatar }) => ({
+    accounts.map(async ({ email, password, avatar, name }) => ({
       email,
       ...(avatar ? { avatar } : {}),
+      ...(name ? { name } : {}),
       scrypt: await passwordSecret(password),
       pbkdf2: pbkdf2Secret(password),
     }))

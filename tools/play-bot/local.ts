@@ -9,13 +9,18 @@
  *   --brain claude|codex   which agent CLI thinks for it (default claude; it must be signed in on this machine)
  *   --model <name>         passed to that CLI
  *   --style "<text>"       its personality and strength, in a sentence or two
- *   --listen all|mentions  wake on every table message (default) or only when named
+ *   --account <n>          which of the stack's bot accounts plays (1 by default); run one process per bot
+ *   --listen all|mentions  wake on every table message, or only when named; by default `all` at a two-seat table and
+ *                          `mentions` at a larger one, where bots would otherwise answer each other without end
+ *   --max-wakes <n>        at most this many wakes in ten minutes (default 12), so no conversation runs away
  *   --seat <seat-id>       a particular open seat
  *   --want <faction>       the faction it drafts, and trades for if the deal gives it another
  *   --stack <file>         the stack file the launcher wrote (default tools/play-bot/out/stack.json)
- * Its transcript and private notes go to tools/play-bot/out/.
+ * Each bot is isolated: its transcript, private notes and its CLI's working directory live under
+ * tools/play-bot/out/bots/<account>/, and nothing tells it which other seats are bots. It treats every player as a person.
  */
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -34,7 +39,9 @@ const { values } = parseArgs({
     brain: { type: 'string', default: 'claude' },
     model: { type: 'string' },
     style: { type: 'string' },
-    listen: { type: 'string', default: 'all' },
+    listen: { type: 'string' },
+    account: { type: 'string', default: '1' },
+    'max-wakes': { type: 'string', default: '12' },
     seat: { type: 'string' },
     /* The faction you meant the bot to play; the game deals at random, so it warns when the deal went the other way. */
     want: { type: 'string' },
@@ -47,8 +54,13 @@ if (!values.game) {
 const stack = JSON.parse(readFileSync(values.stack!, 'utf8')) as {
   origin: string;
   backendUrl: string;
-  accounts: { bot: { email: string; password: string } };
+  accounts: { bot: { email: string; password: string }; bots?: { name: string; email: string; password: string }[] };
 };
+const accountIndex = Number(values.account) - 1;
+const account = (stack.accounts.bots ?? [{ name: 'bot', ...stack.accounts.bot }])[accountIndex];
+if (!account) {
+  throw new Error(`The stack has no bot account ${values.account}. Start it with --bots to create more.`);
+}
 const gameUrl = new URL(values.game, stack.origin);
 const address = decodeURIComponent(gameUrl.pathname.split('/').filter(Boolean).at(-1) ?? '');
 
@@ -56,7 +68,7 @@ const convex = new ConvexHttpClient(stack.backendUrl, { logger: false });
 async function signIn() {
   const result = (await convex.action(anyApi.auth.signIn, {
     provider: 'password',
-    params: { flow: 'signIn', email: stack.accounts.bot.email, password: stack.accounts.bot.password },
+    params: { flow: 'signIn', email: account.email, password: account.password },
   })) as { tokens?: { token: string } | null };
   if (!result.tokens?.token) {
     throw new Error('The bot account could not sign in.');
@@ -112,15 +124,21 @@ await new Promise<void>((resolve, reject) => {
 });
 
 const stamp = new Date().toISOString().replace(/[:.]/gu, '-');
-const out = path.join(import.meta.dirname, 'out');
+/* Everything this bot keeps lives in its own directory; no other bot reads or writes it. */
+const out = path.join(import.meta.dirname, 'out/bots', account.email.split('@')[0]!);
+/* The CLI runs outside the repository, so it finds no CLAUDE.md or AGENTS.md there, and in a directory of this bot's own. */
+const workdir = path.join(tmpdir(), 'dunezone-play-bot', account.email.split('@')[0]!);
+mkdirSync(workdir, { recursive: true });
+mkdirSync(out, { recursive: true });
 const brain =
-  values.brain === 'codex' ? codexBrain({ model: values.model }) : claudeBrain({ model: values.model });
+  values.brain === 'codex' ? codexBrain({ model: values.model, workdir }) : claudeBrain({ model: values.model, workdir });
 const bot = new PlayBot(transport, {
   brain,
   notesFile: path.join(out, `notes-${gameId}.md`),
   transcriptFile: path.join(out, `game-${stamp}.md`),
   style: values.style,
-  listen: values.listen === 'mentions' ? 'mentions' : 'all',
+  listen: values.listen === 'mentions' || values.listen === 'all' ? values.listen : 'auto',
+  maxWakes: Number(values['max-wakes']),
   want: values.want,
 });
 bot.log(`# ${access.name ?? gameId}: bot transcript (${brain.name}), ${new Date().toISOString()}\n`);

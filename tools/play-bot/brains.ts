@@ -14,9 +14,9 @@ import { serveTools } from './tool-server';
 const bridge = path.join(import.meta.dirname, 'mcp-stdio.ts');
 const THINK_TIMEOUT_MS = 6 * 60_000;
 
-function run(command: string, args: string[], input: string, env: NodeJS.ProcessEnv) {
+function run(command: string, args: string[], input: string, env: NodeJS.ProcessEnv, cwd = tmpdir()) {
   return new Promise<string>((resolve, reject) => {
-    const child = spawn(command, args, { env, stdio: ['pipe', 'pipe', 'pipe'], cwd: tmpdir() });
+    const child = spawn(command, args, { env, stdio: ['pipe', 'pipe', 'pipe'], cwd });
     let out = '';
     let err = '';
     const timer = setTimeout(() => child.kill('SIGTERM'), THINK_TIMEOUT_MS);
@@ -35,8 +35,18 @@ function run(command: string, args: string[], input: string, env: NodeJS.Process
   });
 }
 
-/** Claude Code in print mode, with only the game tools and nothing on the machine. */
-export function claudeBrain({ model, bun = 'bun' }: { model?: string; bun?: string } = {}): Brain {
+/*
+ * Where a bot's CLI runs: a directory of its own outside the repository, so two bots never share the CLI's per-directory
+ * state (its project memory and sessions) and neither reads the repository's instructions.
+ */
+type BrainOptions = { model?: string; bun?: string; workdir?: string };
+
+/**
+ * Claude Code in print mode, with only the game tools and nothing on the machine.
+ * It skips the user's own settings and CLAUDE.md, keeps no session, and writes no auto-memory, so one wake or one bot
+ * leaves nothing another can read; the bot's notes are its only memory.
+ */
+export function claudeBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): Brain {
   return {
     name: `Claude Code${model ? ` (${model})` : ''}`,
     async think(prompt: string, bot: PlayBot) {
@@ -66,9 +76,12 @@ export function claudeBrain({ model, bun = 'bun' }: { model?: string; bun?: stri
           'mcp__dune',
           '--output-format',
           'text',
+          '--setting-sources',
+          'project,local',
+          '--no-session-persistence',
           ...(model ? ['--model', model] : []),
         ];
-        return await run('claude', args, prompt, process.env);
+        return await run('claude', args, prompt, { ...process.env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' }, workdir);
       } finally {
         await tools.close();
       }
@@ -77,7 +90,7 @@ export function claudeBrain({ model, bun = 'bun' }: { model?: string; bun?: stri
 }
 
 /** Codex in exec mode, with the game tools as its one MCP server and a read-only sandbox. */
-export function codexBrain({ model, bun = 'bun' }: { model?: string; bun?: string } = {}): Brain {
+export function codexBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): Brain {
   return {
     name: `Codex${model ? ` (${model})` : ''}`,
     async think(prompt: string, bot: PlayBot) {
@@ -100,7 +113,7 @@ export function codexBrain({ model, bun = 'bun' }: { model?: string; bun?: strin
           ...(model ? ['--model', model] : []),
           '-',
         ];
-        return await run('codex', args, prompt, process.env);
+        return await run('codex', args, prompt, process.env, workdir);
       } finally {
         await tools.close();
       }

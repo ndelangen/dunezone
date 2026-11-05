@@ -47,8 +47,14 @@ export type BotOptions = {
   transcriptFile?: string;
   /** A few lines on how this bot should play: its personality and strength. */
   style?: string;
-  /** `all` wakes on every table message from another faction, `mentions` only when one names the bot's faction. */
-  listen?: 'all' | 'mentions';
+  /**
+   * `all` wakes on every table message from another faction, `mentions` only when one names the bot's faction.
+   * `auto` (the default) is `all` at a two-seat table and `mentions` at a larger one, where two bots answering every
+   * table line would talk to each other without end. Private messages always wake it.
+   */
+  listen?: 'all' | 'mentions' | 'auto';
+  /** At most this many wakes in any ten minutes; a message past the limit wakes nothing, but the next wake reads it in the chat. */
+  maxWakes?: number;
   /** The faction this bot means to play: the lobby drafts it and trades for it. */
   want?: string;
   log?: (line: string) => void;
@@ -66,6 +72,12 @@ type Tool = {
 const STEP_TIMEOUT_MS = 8000;
 const WAKE_DEBOUNCE_MS = 1500;
 const MAX_CHAINED_WAKES = 3;
+const WAKE_WINDOW_MS = 10 * 60_000;
+/* The room's refusal of a command sent against a revision that has since moved on. */
+const STALE_REFUSAL = /table changed/iu;
+const DEFAULT_MAX_WAKES = 12;
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 const commandSchema = (() => {
   const option = clientMessageSchema.options.find((entry) => entry.shape.type.value === 'command');
@@ -173,8 +185,11 @@ export class PlayBot {
     if (message.type === 'conversation-message' && message.message.senderFactionId !== me) {
       const { text, author } = message.message;
       const where = this.view.peerLabel(message.peerId);
-      const named = new RegExp(`\\b(${me}|${this.view.factionName(me)}|bot)\\b`, 'iu').test(text);
-      if (message.peerId !== TABLE_CONVERSATION || this.options.listen !== 'mentions' || named) {
+      /* Named by faction only: nothing at the table says which seats are bots, so "bot" names nobody in particular. */
+      const name = this.view.factionName(me);
+      const names = [me, name, name.split(/\s+/u).at(-1) ?? name].map(escapeRegExp).join('|');
+      const named = new RegExp(`\\b(${names})\\b`, 'iu').test(text);
+      if (message.peerId !== TABLE_CONVERSATION || this.listensToAll() || named) {
         this.wake(`${author} wrote (${where}): "${text}"`);
       }
       return;
@@ -184,8 +199,23 @@ export class PlayBot {
 
   /* ---------------------------------------------------------------- waking */
 
+  private listensToAll() {
+    const listen = this.options.listen ?? 'auto';
+    return listen === 'all' || (listen === 'auto' && this.view.seatedFactions().length <= 2);
+  }
+
+  private readonly wakeTimes: number[] = [];
+
   /** Queues a reason to think; reasons that arrive close together share one wake. */
   wake(reason: string) {
+    const now = Date.now();
+    const window = this.wakeTimes.filter((time) => now - time < WAKE_WINDOW_MS);
+    this.wakeTimes.splice(0, this.wakeTimes.length, ...window);
+    if (window.length >= (this.options.maxWakes ?? DEFAULT_MAX_WAKES)) {
+      this.log(`> Not waking (wake limit reached): ${reason}`);
+      return;
+    }
+    this.wakeTimes.push(now);
     this.log(`> Wake: ${reason}`);
     this.pendingReasons.push(reason);
     if (this.thinking) {
@@ -240,6 +270,7 @@ export class PlayBot {
     return [
       'You are an AI player in a game of Dune (the Gale Force Nine board game), seated at a Dune Play table.',
       'Dune Play is a sandbox virtual table: it does not enforce the rules, the players do, and the factions and rules may be homebrew.',
+      'Treat every other player as a person. You do not know who else is at the table beyond what the game and the chat show, and you never assume another player is an AI.',
       "Play to win as your faction, the way a strong human would: follow the phase, honour deals you make (or break them deliberately, as Dune allows), bluff when it helps, and keep private information private unless revealing it serves you.",
       this.options.style ? `Your play style: ${this.options.style}` : '',
       '',
@@ -298,7 +329,20 @@ export class PlayBot {
     return this.view.snapshot?.table.events[0]?.message ?? '';
   }
 
-  async command(action: PieceAction): Promise<{ ok: boolean; message: string }> {
+  /**
+   * Sends a command against the revision the bot last saw. At a busy table another player's move can land first; the room
+   * then refuses it as stale, so it is sent again on the fresh view, a few times at most, as a player clicks again.
+   */
+  async command(action: PieceAction, attempts = 4): Promise<{ ok: boolean; message: string }> {
+    let result = await this.commandOnce(action);
+    for (let attempt = 1; attempt < attempts && !result.ok && STALE_REFUSAL.test(result.message); attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 200 * attempt));
+      result = await this.commandOnce(action);
+    }
+    return result;
+  }
+
+  private async commandOnce(action: PieceAction): Promise<{ ok: boolean; message: string }> {
     const snapshot = this.view.snapshot;
     if (!snapshot) {
       return { ok: false, message: 'There is no game view yet.' };

@@ -18,45 +18,27 @@ import path from 'node:path';
 
 import { expect, it } from 'vite-plus/test';
 
-import type { PieceAction, ServerMessage } from '../../src/shared/play/protocol';
+import type { PieceAction } from '../../src/shared/play/protocol';
 import { setupStep } from '../../src/shared/play/setup';
-import type { NativeConnection, NativeView } from '../../workers/game/native-runtime.fixture.ts';
+import type { NativeView } from '../../workers/game/native-runtime.fixture.ts';
 import {
   admitPlayer,
-  createPeer,
-  createRuntime,
   eventually,
-  provision,
   required,
   seat,
   sendCommand,
   syncView,
 } from '../../workers/game/native-runtime.fixture.ts';
 import { PlayBot } from './bot';
-import type { Brain, Transport } from './bot';
+import type { Brain } from './bot';
 import { claudeBrain, codexBrain, scriptedBrain } from './brains';
 import { describeView } from './describe';
 import { namesFaction } from './lobby';
-import { readMirror } from './mirror';
+import { mirroredGame, nativeTransport } from './demo.fixture';
 
 const out = path.join(import.meta.dirname, 'out');
-const TUTORIAL_CATALOGUE = path.join(import.meta.dirname, '../../src/app/routes/_app/tutorial/setup/catalogue.json');
 const BOT_FACTION = process.env.PLAY_BOT_FACTION ?? 'Fremen';
 const HUMAN_FACTION = process.env.PLAY_HUMAN_FACTION ?? 'Emperor';
-
-function nativeTransport(connection: NativeConnection): Transport {
-  return {
-    send: (message) => connection.send(message),
-    keepalive: () => connection.keepalive(),
-    onMessage(listener) {
-      connection.socket.addEventListener('message', (event) => {
-        if (typeof event.data === 'string' && event.data !== 'pong') {
-          listener(JSON.parse(event.data) as ServerMessage);
-        }
-      });
-    },
-  };
-}
 
 /** What the scripted brain was woken by: the lines under "Why you were woken". */
 const wokenBy = (prompt: string) => /Why you were woken:\n([\s\S]*?)\n(?:Your private notes|$)/u.exec(prompt)?.[1] ?? '';
@@ -116,32 +98,10 @@ it('plays the opening of a 1v1 from the draft against a human', async () => {
   const notesFile = path.join(out, `demo-${stamp}-notes.md`);
   rmSync(notesFile, { force: true });
 
-  /* The game Worker reads the mirror's answers as it would read the catalogue's. */
-  const mirror = readMirror(process.env.PLAY_BOT_MIRROR ?? TUTORIAL_CATALOGUE);
-  const peer = await createPeer();
-  peer.game = {
-    rulesetId: mirror.ruleset.ruleset.id,
-    minimumPlayers: 2,
-    creator: { userId: 'user-a', displayName: 'Norbert', avatarUrl: null, profileSlug: 'synthetic-a' },
-  };
-  peer.testPhaseCooldownMs = 0;
-  peer.rulesets.set(mirror.ruleset.ruleset.id, mirror.ruleset);
-  for (const [key, answer] of mirror.assets) {
-    peer.catalogue.set(key, answer);
-  }
-  peer.draftable = mirror.draftable;
-  for (const [id, definition] of mirror.factions) {
-    peer.factions.set(id, definition);
-  }
-  /* The phase cooldown can be shortened only in the isolated local runtime, which these bindings name. */
-  const runtime = await createRuntime(peer, 'game', {
-    GIT_SHA: 'local-isolated',
-    APPLICATION_ORIGIN: 'http://127.0.0.1:8787',
-  });
-  expect((await provision(runtime)).status).toBe(200);
+  const { mirror, peer, runtime } = await mirroredGame(2, 'Norbert');
 
   const human = await admitPlayer(runtime, 'a');
-  const botConnection = await admitPlayer(runtime, 'b', { displayName: 'Dune Bot' });
+  const botConnection = await admitPlayer(runtime, 'b', { displayName: 'Alex' });
   const bot = new PlayBot(nativeTransport(botConnection), {
     brain: chooseBrain(),
     notesFile,
