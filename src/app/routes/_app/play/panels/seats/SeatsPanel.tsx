@@ -20,7 +20,7 @@ export type SeatRequestRow = Readonly<{
 }>;
 
 /** One signed-in spectator, by their public name and avatar. */
-export type SpectatorRow = Readonly<{ name: string; avatar: string | null; slug: string | null }>;
+type SpectatorRow = Readonly<{ name: string; avatar: string | null; slug: string | null }>;
 
 export type SeatsPanelProps = Readonly<{
   /** How the seats stand, such as "5 of 6 seats taken". */

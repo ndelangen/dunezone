@@ -190,7 +190,7 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
     playback: Boolean(table.playback),
     phase,
     phaseTab: phaseWindow(table, progress.activePhaseId),
-    events: [resultFocus(table), battleFocus(table), stageFocus(table), seatRequestFocus(table)],
+    events: [resultFocus(table), battleFocus(table), stageFocus(table), ...seatRequestFocus(table)],
   });
   if (next !== state) {
     setState(next);
@@ -234,14 +234,16 @@ function stageFocus(table: TableProjection) {
 
 /*
  * A spectator asking for a seat opens Seats & spectators once for every player, at each new request (Norbert, 2026-11-05).
+ * Each waiting request is its own event, so one withdrawn or approved never makes an older one that is still waiting look new.
  * Spectators, a past table and a finished game approve nothing, so it opens for none of them.
  */
 function seatRequestFocus(table: TableProjection) {
   if (!seatRequestsWaiting(table)) {
-    return null;
+    return [];
   }
-  const latest = seatRequestRows(table).findLast((row) => !row.own && !row.closed);
-  return latest ? { key: PANEL_WINDOWS.seats.key, token: `seat-request:${latest.id}` } : null;
+  return seatRequestRows(table)
+    .filter((row) => !row.own && !row.closed)
+    .map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
 }
 
 /* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */

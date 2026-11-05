@@ -9,7 +9,7 @@ import type { SeatRequestRow, SeatsPanelProps } from './SeatsPanel';
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
 
 /** How the seats stand: the players drafting, or the seats taken of the table's seats. */
-export function seatsLine(table: TableProjection): string {
+function seatsLine(table: TableProjection): string {
   const seated = publicControlsOf(table).seats.length;
   if (table.snapshot.stage === 'drafting') {
     return `${seated} ${seated === 1 ? 'player is' : 'players are'} drafting`;
