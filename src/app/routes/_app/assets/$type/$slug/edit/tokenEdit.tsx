@@ -3,6 +3,7 @@ import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
@@ -270,11 +271,7 @@ function TokenEditSession({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No token picked">

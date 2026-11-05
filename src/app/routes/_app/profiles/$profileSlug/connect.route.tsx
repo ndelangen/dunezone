@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Alert, Button, Group, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -77,11 +78,7 @@ function ConnectAccount({ token }: { token: string }) {
       <PageLayout.Content>
         <Surface padding="lg">
           <Stack>
-            {state.error && (
-              <Alert color="red" role="alert">
-                {state.error}
-              </Alert>
-            )}
+            {state.error && <FormError title="Connection could not finish">{state.error}</FormError>}
             <ConnectionStatus
               connection={connection}
               provider={provider}
@@ -129,9 +126,9 @@ function ConnectionStatus({
       );
     case 'failed':
       return (
-        <Alert color="red" role="alert">
-          The merge paused. An administrator can resume it from Accounts. {connection.error}
-        </Alert>
+        <FormError title="Merge paused">
+          {`An administrator can resume it from Accounts. ${connection.error}`}
+        </FormError>
       );
     case 'completed':
       return (

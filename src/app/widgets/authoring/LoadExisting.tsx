@@ -1,5 +1,6 @@
-import { Alert, Button, Center, Checkbox, Group, Loader, Popover, Stack, Text, Textarea } from '@mantine/core';
+import { Button, Center, Checkbox, Group, Loader, Popover, Stack, Text, Textarea } from '@mantine/core';
 import { rawAuthoringError } from '@shared/authoring/raw';
+import { FormError } from '@ui/block/FormError';
 import { IconAction } from '@ui/control/IconAction';
 import { Surface } from '@ui/surface/Surface';
 import { useDismissToolbarOverflow } from '@ui/surface/Toolbar';
@@ -268,11 +269,7 @@ function ChoiceState<Draft>({ choice, noun, note }: { choice: LoadChoice<Draft>;
         </Center>
       );
     case 'error':
-      return (
-        <Alert color="red" role="alert">
-          {choice.message}
-        </Alert>
-      );
+      return <FormError title={`This ${noun} cannot be loaded`}>{choice.message}</FormError>;
     case 'chosen':
       return (
         <Stack gap="xs">
@@ -382,11 +379,7 @@ function RawLoadInput<Draft>({
           });
         }}
       />
-      {state.error ? (
-        <Alert color="red" role="alert">
-          {state.error}
-        </Alert>
-      ) : null}
+      {state.error ? <FormError title="This JSON cannot be loaded">{state.error}</FormError> : null}
       {state.choice ? (
         <Text size="sm">
           Ready to load {state.choice.name}. Loading replaces unsaved changes. Reset still returns to the last saved

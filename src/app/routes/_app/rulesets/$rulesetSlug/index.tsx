@@ -8,6 +8,7 @@ import { getRulebookSize } from '@shared/rulebooks/settings';
 import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
@@ -674,11 +675,7 @@ function RulesetDetailPage() {
                   {routeNotice.message}
                 </Alert>
               ) : null}
-              {mutationError ? (
-                <Alert color="red" title="The change could not be saved" role="alert">
-                  {mutationError}
-                </Alert>
-              ) : null}
+              {mutationError ? <FormError title="The change could not be saved">{mutationError}</FormError> : null}
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">

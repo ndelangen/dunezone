@@ -1,8 +1,9 @@
-import { Alert, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { blankBoard, derive } from '@shared/boards/geometry';
 import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -161,11 +162,7 @@ export function BoardCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && (
-            <Alert color="red" role="alert">
-              {saving.error.message}
-            </Alert>
-          )}
+          {saving.error && <FormError title="Could not create">{saving.error.message}</FormError>}
           <BoardEditor
             state={state.editor}
             dispatch={(event) => dispatch({ kind: 'editor', event })}

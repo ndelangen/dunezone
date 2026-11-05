@@ -75,6 +75,7 @@ import {
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
@@ -83,6 +84,7 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { SaveAction } from '@ui/control/SaveAction';
 import { SortableItem } from '@ui/control/SortableItem';
@@ -96,6 +98,8 @@ import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar, useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  CloudDownload,
+  PenLine,
   BookMarked,
   Check,
   CircleAlert,
@@ -1456,7 +1460,7 @@ function controlRegionPanel(
       />
     );
   }
-  return <Alert color="red">This Control region has no matching editor.</Alert>;
+  return <FormError title="No editor for this region">This Control region has no matching editor.</FormError>;
 }
 
 type FilmstripProps = {
@@ -2795,11 +2799,7 @@ function RulebookRename({
         onChange={(event) => setName(event.currentTarget.value)}
         description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
       />
-      {rename.error ? (
-        <Alert color="red" title="Rulebook could not be renamed">
-          {rename.error.message}
-        </Alert>
-      ) : null}
+      {rename.error ? <FormError title="Rulebook could not be renamed">{rename.error.message}</FormError> : null}
       <Group gap="xs">
         <Button
           type="submit"
@@ -3156,9 +3156,7 @@ function RulebookEditorSession({
     return (
       <PageLayout>
         <PageLayout.Content>
-          <Alert color="red" role="alert" title="This Rulebook could not open">
-            {result.message}
-          </Alert>
+          <FormError title="This Rulebook could not open">{result.message}</FormError>
         </PageLayout.Content>
       </PageLayout>
     );
@@ -3423,25 +3421,33 @@ function RulebookEditorSession({
             </Surface>
           ) : null}
           {result.settingsConflict ? (
-            <Alert color="red" title="Book settings changed in another editor">
-              <Stack gap="sm">
-                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+            <FormError
+              title="Book settings changed in another editor"
+              action={
                 <Group>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                  <LabeledAction
+                    icon={<PenLine size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}
+                  >
                     Keep my settings
-                  </Button>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                  </LabeledAction>
+                  <LabeledAction
+                    icon={<CloudDownload size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}
+                  >
                     Use saved settings
-                  </Button>
+                  </LabeledAction>
                 </Group>
-              </Stack>
-            </Alert>
+              }
+            >
+              Choose which size and design to save. Your Contents changes stay in the draft.
+            </FormError>
           ) : null}
-          {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
+          {result.operationError ? (
+            <FormError title="That change was not made">{result.operationError}</FormError>
+          ) : null}
           {publishMutation.error ? (
-            <Alert color="red" role="alert" title="Edition could not be published">
-              {publishMutation.error.message}
-            </Alert>
+            <FormError title="Edition could not be published">{publishMutation.error.message}</FormError>
           ) : null}
           {view.notice === 'stale' ? (
             <Alert color="yellow" role="status">

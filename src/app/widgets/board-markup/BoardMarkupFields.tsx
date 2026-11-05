@@ -6,6 +6,7 @@ import type { BOARD_TERRITORY_TYPES, BoardTint, BoardTokenPlacement } from '@sha
 import { boardTerritoryNames, missingTintTerritories } from '@shared/boards/tintDrawing';
 import { TINT_STAMPS } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
+import { FormError } from '@ui/block/FormError';
 import { helpLines } from '@ui/content/helpLines';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -408,7 +409,7 @@ export function BoardTokenFields({
       description={description}
       input={
         <Stack gap="xs">
-          {error ? <Alert color="red">{error}</Alert> : null}
+          {error ? <FormError title="Tokens need attention">{error}</FormError> : null}
           {tokens.map((token) => (
             <TokenRow
               key={token.layerId}

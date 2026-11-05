@@ -1,5 +1,4 @@
 import {
-  Alert,
   Anchor,
   Button,
   Center,
@@ -16,6 +15,7 @@ import {
 } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
@@ -156,11 +156,7 @@ export function FactionPicker(props: FactionPickerProps) {
           ) : null}
         </Stack>
       ) : null}
-      {error && (
-        <Alert color="red" title={copy.errorTitle} role="alert">
-          {error}
-        </Alert>
-      )}
+      {error && <FormError title={copy.errorTitle}>{error}</FormError>}
       {picker.isPending ? (
         <Center py="md">
           <Loader size="sm" aria-label="Loading factions" />

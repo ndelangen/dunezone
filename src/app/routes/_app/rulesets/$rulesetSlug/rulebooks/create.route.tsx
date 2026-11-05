@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -10,6 +10,7 @@ import {
 import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -348,11 +349,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       <Text size="sm" c="dimmed">
         Creates a saved draft and matching Edition 1. The new Rulebook opens with no local changes.
       </Text>
-      {create.error ? (
-        <Alert color="red" title="Rulebook could not be created">
-          {create.error.message}
-        </Alert>
-      ) : null}
+      {create.error ? <FormError title="Rulebook could not be created">{create.error.message}</FormError> : null}
       <Group gap="sm">
         <Button type="submit" color="confirm" disabled={!input} loading={create.isPending}>
           Create Rulebook
