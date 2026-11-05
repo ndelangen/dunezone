@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "sourceDescription": "User-supplied reference images, identified as Dune Wiki (Fandom) files, all uploaded by Eshogun671 as 2500 by 2500 PNGs; the stored originals are the wiki's 1000 px WebP conversions. Read through the wiki API on 2026-11-05: no file page states a license (the wiki-wide footer says CC-BY-SA, which no page says applies to these images), and the uploader is not stated to be the maker. Per-asset statedCreator and statedSource record what the file page says. The sunburst buckle filename credits Matt Griffin and is not from the wiki set.",
+  "sourceDescription": "User-supplied reference images. The five flat icons are Dune Wiki (Fandom) files uploaded by Eshogun671 as 2500 by 2500 PNGs; the stored originals are the wiki's 1000 px WebP conversions. Read through the wiki API on 2026-11-05: no file page states a license (the wiki-wide footer says CC-BY-SA, which no page says applies to these images), and the uploader is not stated to be the maker. The sunburst buckle filename credits Matt Griffin; its original publication was not identified.",
   "request": {
     "date": "2026-10-26",
     "scope": "The user requested the same cropped, recolorable emblem-vector treatment for these six references: \"do these as well\"."
   },
-  "preparation": "The five flat icons use foreground alpha, caption removal, proportional cropping, asset-specific smoothing and a 4x bitmap trace. The shaded buckle was manually redrawn into clean contours in a 4x bitmap master before tracing. All six use Potrace and the Dune Zone normalization and authoring pipeline. The five flat icons were re-traced on 2026-11-05: Alpha (foreground) of the 1000 px reference, cropped to sourceCrop and padded by 4 px; 4x Lanczos resize of the anti-aliased alpha, then threshold at 50 percent, so edges are decided at 4x and no source-pixel staircase survives; Potrace (potracer port of Potrace 1.16), turdsize 16, alphamax 1, opttolerance 0.2; the bitmapMaster is that thresholded 4x mask. Dune Zone normalization and stamp. Re-traced 2026-11-05 to remove stair-stepping left by thresholding before the resize.",
+  "preparation": "The five flat icons were re-traced on 2026-11-05: alpha (foreground) of the 1000 px reference, cropped to sourceCrop and padded by 4 px; 4x Lanczos resize of the anti-aliased alpha, then threshold at 50 percent, so edges are decided at 4x and no source-pixel staircase survives; Potrace (potracer port of Potrace 1.16), turdsize 16, alphamax 1, opttolerance 0.2; the bitmapMaster is that thresholded 4x mask. Dune Zone normalization and stamp. The shaded buckle was manually redrawn into clean contours in a 4x bitmap master before tracing, and uses Potrace and the Dune Zone normalization and authoring pipeline.",
   "preview": "The six-vector preview, including the simplified buckle redraw, was shown in chat before catalogue integration.",
   "assets": {
     "/vector/emblem/lynch-dune.svg": {
@@ -57,7 +57,6 @@
         "width": 667,
         "height": 667
       },
-      "captionComponentMinimumTopY": 660,
       "wikiFile": "https://dune.fandom.com/wiki/File:Sci_Fi_Miniseries_Icon.png"
     },
     "/vector/emblem/sunburst-buckle-matt-griffin.svg": {
