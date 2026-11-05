@@ -304,7 +304,12 @@ export class ActorDirectory {
     if (!actor) {
       actor = this.create(userId, displayName, options.seatNewcomers ? this.availableSeat() : SPECTATOR_SEAT, options);
     } else {
-      /* A player's picture and profile link follow their profile; each admission carries the current ones. */
+      /* A player's name, picture and profile link follow their profile; each admission carries the current ones. */
+      const name = displayName.slice(0, 160);
+      if (name !== actor.display_name) {
+        this.storage.sql.exec('UPDATE actors SET display_name=? WHERE user_id=?', name, userId);
+        actor = { ...actor, display_name: name };
+      }
       if (options.avatarUrl !== undefined && options.avatarUrl !== (actor.avatar_url ?? null)) {
         this.storage.sql.exec('UPDATE actors SET avatar_url=? WHERE user_id=?', options.avatarUrl, userId);
       }
