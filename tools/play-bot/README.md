@@ -7,8 +7,9 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
 
 - Joins a game through the same messages a player's page sends, so it sees only its own seat's view and the room checks
   everything it does as it checks a human.
-- **Wakes only when someone writes to it**, at the table or in private chat. Nothing else (not its faction token, not the
-  bidding) makes it act.
+- **Wakes when someone writes to it**, at the table or in private chat, **and when the game calls on its faction**
+  (`cues.ts`): each setup step that needs it, its turn to bid, Revival, its turn in Shipment and Movement, and a battle
+  marked where it is one of the sides. Each such moment wakes it once.
 - **Plays the whole game from the draft.** Before factions are dealt there is no chat, so it drafts the faction you name with
   `--want`, confirms Ready, and in trading swaps for that faction if the deal gave it another (`lobby.ts`). From setup on it
   follows the table: it keeps its Traitor and returns the rest, draws starting cards when told, takes starting spice if its

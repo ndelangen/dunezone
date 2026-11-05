@@ -178,7 +178,8 @@ it('seats one person and two isolated bots, and plays the setup', async () => {
           await act({ kind: 'deck-draw', pieceId: (await pile()).id, recipient: faction.id });
         }
       }
-      /* Each bot is asked by its faction's name; the other must stay asleep. */
+      /* The game already woke each bot for this step; once they are done, each is asked by its faction's name and the other must stay asleep. */
+      await idle();
       for (const entry of bots) {
         const before = bots.map((other) => other.prompts.length);
         await tell(`${factionOf(entry).name}, your four Traitors are in your hand. Keep yours and confirm Ready.`);

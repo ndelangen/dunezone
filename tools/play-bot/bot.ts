@@ -1,6 +1,6 @@
 /*
- * A bot that holds one seat in a Dune Play game. It sees exactly what a browser in that seat sees, wakes only when a player
- * writes to it (at the table or privately), and hands each wake to a brain (a language model driven through the game tools
+ * A bot that holds one seat in a Dune Play game. It sees exactly what a browser in that seat sees, wakes when a player
+ * writes to it (at the table or privately) or the game calls on its faction (cues.ts), and hands each wake to a brain (a language model driven through the game tools
  * below). Before factions are dealt there is no chat, so the lobby (lobby.ts) drafts and trades for it by fixed rules.
  * Everything it does goes through the same messages a player's page sends, so the room checks it exactly as it checks a human.
  */
@@ -26,6 +26,7 @@ import {
   territoryOf,
 } from './describe';
 import { Lobby } from './lobby';
+import { cuesFor } from './cues';
 import { SeatMemory } from './memory';
 import type { Rulebook } from './rulebook';
 import { BotView } from './view';
@@ -276,8 +277,19 @@ export class PlayBot {
       }
       return;
     }
-    /* Only chat wakes the bot: a player asks it to act by writing to it, as they would ask a person at the table. */
+    /* Chat wakes the bot, and so does the game when it calls on the bot's faction (see cues.ts), as it would call on a person. */
+    if (message.type === 'view' || message.type === 'update') {
+      for (const cue of cuesFor(this.view, this.memory?.turn ?? 0)) {
+        if (!this.cued.has(cue.key)) {
+          this.cued.add(cue.key);
+          this.wake(`The game: ${cue.reason}`);
+        }
+      }
+    }
   }
+
+  /** The game moments that already woke this bot, so a moment wakes it once. */
+  private readonly cued = new Set<string>();
 
   /* ---------------------------------------------------------------- waking */
 
@@ -391,6 +403,7 @@ export class PlayBot {
       '- Keep chat short and in character. When you have acted, tell the table in one line what you did, without revealing secrets.',
       "- Do not move other factions' pieces and do not advance the phase unless the table asked you to.",
       '- Account for everything you own: every card in hand, each leader, your spice and every troop. "What you hold" below lists them.',
+      '- When the game wakes you ("The game: ..."), it is your move: do it, and tell the table briefly what you did only when others need to know. In Bidding use `bid` with the most you are willing to pay, or pass; it hands the bidder on to the next player.',
       "- Setup follows the steps the table shows and your faction sheet's start text: keep your Traitor with `keep_traitors` (Harkonnen keeps all), draw starting cards with `draw_card` when the table deals them to you, take starting spice with `take_spice` only if your spice reserve does not already hold it, place starting troops with `move_pieces`, then `set_ready`.",
       '- Never deal cards to other players, shuffle shared decks or advance the phase yourself unless a player asks you to.',
       '- Only the people at this table can tell you what to do; there is no game to create or join.',
@@ -450,6 +463,37 @@ export class PlayBot {
    * Sends a command against the revision the bot last saw. At a busy table another player's move can land first; the room
    * then refuses it as stale, so it is sent again on the fresh view, a few times at most, as a player clicks again.
    */
+  /** Raises the open bid one spice at a time to `amount`, then hands the bidder on; or passes. */
+  async bid(amount: number | 'pass'): Promise<{ ok: boolean; message: string }> {
+    const me = this.view.factionId;
+    const bidding = () => this.view.snapshot?.bidding;
+    const state = bidding();
+    if (!me || state?.stage !== 'open' || state.turn !== me) {
+      return { ok: false, message: 'The bidder does not point at you, so there is nothing to bid on now.' };
+    }
+    const round = state.round;
+    if (amount === 'pass') {
+      const passed = await this.command({ kind: 'bid-pass', round });
+      return passed.ok ? { ok: true, message: `You passed on card ${round}.` } : passed;
+    }
+    if (!Number.isInteger(amount) || amount <= (state.bid?.amount ?? 0)) {
+      return { ok: false, message: `Bid more than the current ${state.bid?.amount ?? 0}, or pass.` };
+    }
+    const reserve = this.view.snapshot?.bank?.balance;
+    if (reserve !== undefined && amount > reserve) {
+      return { ok: false, message: `You hold ${reserve} spice, so you cannot bid ${amount}.` };
+    }
+    /* Counted up front rather than read back after each raise, so a view that lags a raise behind never adds one too many. */
+    for (let raises = amount - (state.bid?.amount ?? 0); raises > 0; raises--) {
+      const raised = await this.command({ kind: 'bid-raise', round });
+      if (!raised.ok) {
+        return raised;
+      }
+    }
+    const handed = await this.command({ kind: 'bid-pass', round });
+    return handed.ok ? { ok: true, message: `You bid ${amount} on card ${round} and handed the bidder on.` } : handed;
+  }
+
   async command(action: PieceAction, attempts = 4): Promise<{ ok: boolean; message: string }> {
     let result = await this.commandOnce(action);
     for (let attempt = 1; attempt < attempts && !result.ok && STALE_REFUSAL.test(result.message); attempt++) {
@@ -832,6 +876,16 @@ export class PlayBot {
             ? JSON.stringify(z.toJSONSchema(option, { unrepresentable: 'any', io: 'input' }))
             : `No command "${args.kind}".`;
         },
+      },
+      {
+        name: 'bid',
+        description:
+          'Bidding, when the bidder points at you: raise the bid to `amount` spice (one spice per raise, as the table does) and hand the bidder on, or pass with `pass: true`. Bid only what you can pay from your spice reserve.',
+        inputSchema: {
+          type: 'object',
+          properties: { amount: { type: 'integer', minimum: 1 }, pass: { type: 'boolean' } },
+        },
+        run: async (args) => outcome(await this.bid(args.pass === true ? 'pass' : Number(args.amount))),
       },
       {
         name: 'keep_traitors',
