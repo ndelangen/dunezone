@@ -192,18 +192,10 @@ export const retryDueDeletions = internalMutation({
 const RETIRE_ATTEMPTS = 17;
 const SETTLE_PAGE = 64;
 
-/**
- * Closes the hosted fixture for good (#1535): no player has opened it since admission stopped (#1505), and a room holding a request from before requests named their seat (#1172) no longer loads (#1407), so deletions routed to it could never be acknowledged.
- * The room is asked to delete everything it stored, the deleted accounts' names included.
- * Only once it has answered does its routing go, and then its pending deletions settle.
+/*
+ * The hosted fixture was closed for good (#1535) by a one-off migration that marked it expired and started `retireFixtureRoom`.
+ * The room retirement below stays as the manual resume while production may still hold fixture deletions it left pending.
  */
-export async function retireHostedFixture(ctx: MutationCtx, game: Doc<'play_games'>) {
-  if (game.fixture_key !== PLAY_FIXTURE_KEY || game.state !== 'ready') {
-    return;
-  }
-  await ctx.db.patch(game._id, { state: 'expired' });
-  await ctx.scheduler.runAfter(0, internal.playDeletion.retireFixtureRoom, { gameId: game._id, attempt: 0 });
-}
 
 async function retiredFixture(ctx: QueryCtx, gameId: Id<'play_games'>) {
   const game = await ctx.db.get(gameId);

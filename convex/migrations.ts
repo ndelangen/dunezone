@@ -2,7 +2,6 @@ import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
 
-import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
@@ -10,11 +9,9 @@ import { ARRAKIS_MIGRATION_IDS } from './arrakisMigrations';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
 import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
-import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
-import { troopHasLegacySupportNames, troopWithSupportNames } from './lib/migrationHelpers';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -40,7 +37,6 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso } from './lib/utils';
-import { retireHostedFixture } from './playDeletion';
 import { PUBLICATION_MIGRATION_IDS } from './publicationMigrations';
 import schema from './schema';
 import type { MutationCtx } from './types';
@@ -64,8 +60,6 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
-  faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
-  faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
   statistics_profiles_v1: internal.migrations.statistics_profiles_v1,
   statistics_factions_v1: internal.migrations.statistics_factions_v1,
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
@@ -78,19 +72,9 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
   profile_activity_questions_v1: internal.migrations.profile_activity_questions_v1,
   profile_activity_answers_v1: internal.migrations.profile_activity_answers_v1,
-  faction_decal_retune_v1: internal.migrations.faction_decal_retune_v1,
-  assets_about_v1: internal.migrations.assets_about_v1,
-  assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
   rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
   rulebook_contents_hash_drafts_v1: internal.migrations.rulebook_contents_hash_drafts_v1,
   rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
-  faction_extras_references_v1: internal.migrations.faction_extras_references_v1,
-  faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
-  faction_troop_support_names_v1: internal.migrations.faction_troop_support_names_v1,
-  faction_troop_support_names_verify_v1: internal.migrations.faction_troop_support_names_verify_v1,
-  play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
-  account_connections_expire_v1: internal.migrations.account_connections_expire_v1,
-  auth_session_expiry_jobs_v1: internal.migrations.auth_session_expiry_jobs_v1,
   board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
   faction_cards_v1: internal.migrations.faction_cards_v1,
 };
@@ -135,72 +119,6 @@ export const profiles_from_users_v1 = migrations.define({
       return;
     }
     await ensureProfileForUser(ctx, user._id, profileSourcesFromUserDoc(user));
-  },
-});
-
-async function archivedFactionSlug(ctx: MutationCtx, slug: string, factionId: Id<'factions'>) {
-  const base = `${slug}-archived-${factionId}`;
-  let candidate = base;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || existing._id === factionId) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${base}-${suffix}`;
-  }
-}
-
-/**
- * Repairs historical slug reuse while preserving the active faction's public URL.
- * Future writes reserve slugs globally, including those on soft-deleted rows.
- */
-export const faction_slug_reservations_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    const matches = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .take(2);
-    if (matches.length <= 1) {
-      return;
-    }
-
-    const active = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .filter((q) => q.eq(q.field('is_deleted'), false))
-      .take(2);
-    if (active.length > 1) {
-      throw new Error(`Cannot repair slug ${faction.slug}: multiple active factions`);
-    }
-
-    const keeper = active[0] ?? matches[0];
-    if (keeper?._id === faction._id) {
-      return;
-    }
-
-    return { slug: await archivedFactionSlug(ctx, faction.slug, faction._id) };
-  },
-});
-
-/** Successful completion proves faction slugs are globally unique. */
-export const faction_slug_reservations_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    const matches = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .take(2);
-    if (matches.length > 1) {
-      throw new Error(`Duplicate faction slug remains: ${faction.slug}`);
-    }
   },
 });
 
@@ -309,63 +227,6 @@ export const profile_activity_answers_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await reconcileAnswerActivity(ctx, row);
-  },
-});
-
-/**
- * Retains the completed vector-train decal retune identity (wayfinder #307).
- * Its body multiplied each stored decal scale by a frozen factor, which is right once and wrong on every later pass.
- * Production finished it, and a loaded snapshot carries no migration state, so each load would have scaled production's retuned decals a second time.
- */
-export const faction_decal_retune_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/**
- * Puts the About key on every Asset that predates it (wayfinder #521).
- *
- * `assets.data` is `v.any()`, so no Convex validator gates this and `migrations:narrow-check` cannot see it: this migration is the only thing that makes the key true, and `assets_about_verify_v1` is the only thing that proves it.
- * Narrowing ahead of both is a silent break, because every strict read of a row without the key fails: the edit organs route to the schema-drift dead end, and `readJobForRender` throws on a stale publication job.
- *
- * Empty, never generated prose.
- * An asset with nothing to explain is the normal case.
- */
-export const assets_about_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = (row as { data?: unknown }).data;
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-      return;
-    }
-    const record = data as Record<string, unknown>;
-    if (typeof record.about === 'string') {
-      return;
-    }
-    return { data: { ...record, about: '' } };
-  },
-});
-
-/**
- * Proves the backfill left nothing behind, which is what makes narrowing the Zod schemas safe.
- * A row whose `data` is not a plain object is outside both halves of the pair: the backfill skips it rather than fabricating content, so the proof tolerates it for the same reason, or one hand-written row would deadlock the pair with the widen offering no remediation.
- * Such a row is the schema-drift dead end already, and every strict read treats it as one;
- * About is not what is wrong with it.
- */
-export const assets_about_verify_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = (row as { data?: unknown }).data;
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-      return;
-    }
-    const about = (data as Record<string, unknown>).about;
-    if (typeof about !== 'string') {
-      throw new Error(`Asset ${row._id} still has no About`);
-    }
   },
 });
 
@@ -639,94 +500,6 @@ export const assertReadyForNarrow = internalQuery({
         };
       }),
     };
-  },
-});
-
-/** Drops the retired TTS link lists from faction `extras` (#1226); catalogue references stay, and an emptied list is removed. */
-export const faction_extras_references_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as { extras?: unknown } | null;
-    if (!data || !Array.isArray(data.extras) || !data.extras.some(isLegacyFactionExtra)) {
-      return;
-    }
-    const { extras, ...rest } = data;
-    const references = (extras as unknown[]).filter((entry) => !isLegacyFactionExtra(entry));
-    return { data: references.length === 0 ? rest : { ...rest, extras: references } };
-  },
-});
-
-/** Proves every faction's `extras` is absent or a list of catalogue references, so the tolerant read can go later. */
-export const faction_extras_references_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const extras = (row.data as { extras?: unknown } | null)?.extras;
-    if (extras !== undefined && !factionExtrasSchema.safeParse(extras).success) {
-      throw new Error(`Faction ${row._id} still has Extras that are not catalogue references`);
-    }
-  },
-});
-
-/**
- * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
- * Troops paid for with spice in battle are supported, not funded.
- * A value already under the new name wins, so a replay changes nothing.
- * Listed in migration-guards.json one release after the widened read (#1482).
- * Narrowing, which drops the legacy names from the live faction schema, is a later release gated on this and its verify.
- */
-export const faction_troop_support_names_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as { troops?: unknown } | null;
-    if (!data || !Array.isArray(data.troops) || !data.troops.some(troopHasLegacySupportNames)) {
-      return;
-    }
-    return { data: { ...data, troops: data.troops.map(troopWithSupportNames) } };
-  },
-});
-
-/** Every stored faction, including deleted sources, must carry only the supported names before the schema narrows. */
-export const faction_troop_support_names_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const troops = (row.data as { troops?: unknown } | null)?.troops;
-    if (Array.isArray(troops) && troops.some(troopHasLegacySupportNames)) {
-      throw new Error(`Faction ${row._id} still has troop faces with funded names.`);
-    }
-  },
-});
-
-/**
- * Retires the hosted fixture (#1535): its room deletes what it stored, then the account deletions routed to it settle.
- * Listed in migration-guards.json once the game Worker that answers a retirement has shipped (#1544).
- */
-export const play_hosted_fixture_retire_v1 = migrations.define({
-  table: 'play_games',
-  migrateOne: async (ctx, game) => {
-    await retireHostedFixture(ctx, game);
-  },
-});
-
-/** Previously accepted connection credentials may have outlived their scheduled expiry. */
-export const account_connections_expire_v1 = migrations.define({
-  table: 'account_connections',
-  batchSize: 50,
-  migrateOne: (_ctx, row) =>
-    Promise.resolve(
-      row.state !== 'expired' && row.expires_at <= Date.now() ? { state: 'expired' as const } : undefined
-    ),
-});
-
-/** Existing sessions receive the same deadline cleanup as new sign-ins. */
-export const auth_session_expiry_jobs_v1 = migrations.define({
-  table: 'authSessions',
-  batchSize: 50,
-  migrateOne: async (ctx, session) => {
-    await scheduleSessionExpiry(ctx, session);
   },
 });
 

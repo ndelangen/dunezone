@@ -45,7 +45,7 @@ const tokenBacks = (authored: string) =>
     reference: { mode: 'reference', asset_id: authored },
   }) satisfies OnePerMode<z.infer<typeof TokenAsset>['back']>;
 
-/* A decal the vector-train retune scaled by 1.5625 in production, stored at its retuned scale. */
+/* A decal at a scale below 1, as production stores it. */
 const retunedDecal = {
   id: '/vector/decal/carryalls.svg',
   muted: false,
