@@ -250,7 +250,6 @@ export function SpiceTokenFields({
               {link.typeToken ? (
                 <LabeledAction
                   intent="negative"
-                  emphasis="quiet"
                   icon={<X size={16} />}
                   onClick={() => onLink({ ...link, typeToken: undefined })}
                 >

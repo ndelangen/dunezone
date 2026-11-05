@@ -95,12 +95,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
             </Combobox.Options>
           </ScrollArea.Autosize>
           {picker.status === 'CanLoadMore' ? (
-            <LabeledAction
-              emphasis="quiet"
-              size="compact-sm"
-              icon={<ChevronsDown size={14} />}
-              onClick={picker.loadMore}
-            >
+            <LabeledAction size="compact-sm" icon={<ChevronsDown size={14} />} onClick={picker.loadMore}>
               Load more profiles
             </LabeledAction>
           ) : null}

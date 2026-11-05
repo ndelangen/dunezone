@@ -4,6 +4,7 @@ import type { CustomCardTokens } from '@shared/assets/schema';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { RangeField } from '@ui/control/RangeField';
 import {
@@ -302,39 +303,35 @@ function LayerPlacement({
         );
       })}
       <Group gap="xs">
-        <LabeledAction
-          size="xs"
-          icon={<AlignHorizontalJustifyCenter size={14} />}
+        <IconAction
+          label="Centre horizontally"
+          emphasis="standard"
+          icon={<AlignHorizontalJustifyCenter size={16} aria-hidden />}
           onClick={() => onChange({ ...layer, offset: [isText ? -layer.width / 2 : 0, layer.offset[1]] })}
-        >
-          Centre horizontally
-        </LabeledAction>
-        <LabeledAction
-          size="xs"
-          icon={<AlignVerticalJustifyCenter size={14} />}
+        />
+        <IconAction
+          label="Centre vertically"
+          emphasis="standard"
+          icon={<AlignVerticalJustifyCenter size={16} aria-hidden />}
           onClick={() => onChange({ ...layer, offset: [layer.offset[0], isText ? -layer.height / 2 : 0] })}
-        >
-          Centre vertically
-        </LabeledAction>
+        />
         {isText ? (
-          <LabeledAction
-            size="xs"
-            icon={<ScanText size={14} />}
+          <IconAction
+            label="Fit box to text body"
+            emphasis="standard"
+            icon={<ScanText size={16} aria-hidden />}
             onClick={() => {
               const body = newCardText(format, undefined, windowOffsetY);
               onChange({ ...layer, offset: body.offset, width: body.width, height: body.height });
             }}
-          >
-            Fit box to text body
-          </LabeledAction>
+          />
         ) : format === 'decal-window' ? (
-          <LabeledAction
-            size="xs"
-            icon={<Crosshair size={14} />}
+          <IconAction
+            label={layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
+            emphasis="standard"
+            icon={<Crosshair size={16} aria-hidden />}
             onClick={() => onChange({ ...layer, offset: [0, -161.5 + windowOffsetY] })}
-          >
-            {layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
-          </LabeledAction>
+          />
         ) : null}
       </Group>
     </Stack>
@@ -368,38 +365,34 @@ export function CustomCardLayerPanel({
   return (
     <Stack gap="lg">
       <Group gap="xs">
-        <LabeledAction
-          size="xs"
-          icon={<SendToBack size={14} />}
+        <IconAction
+          label="Move backward"
+          emphasis="standard"
+          icon={<SendToBack size={16} aria-hidden />}
           disabledReason={index === 0 ? 'This layer is already at the back.' : undefined}
           onClick={() => move(-1)}
-        >
-          Move backward
-        </LabeledAction>
-        <LabeledAction
-          size="xs"
-          icon={<BringToFront size={14} />}
+        />
+        <IconAction
+          label="Move forward"
+          emphasis="standard"
+          icon={<BringToFront size={16} aria-hidden />}
           disabledReason={index === draft.layers.length - 1 ? 'This layer is already at the front.' : undefined}
           onClick={() => move(1)}
-        >
-          Move forward
-        </LabeledAction>
-        <LabeledAction
-          size="xs"
-          icon={<Copy size={14} />}
+        />
+        <IconAction
+          label="Duplicate layer"
+          emphasis="standard"
+          icon={<Copy size={16} aria-hidden />}
           disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => {
             const duplicate = { ...structuredClone(layer), layerId: crypto.randomUUID() };
             patch({ layers: [...draft.layers.slice(0, index + 1), duplicate, ...draft.layers.slice(index + 1)] });
             onChapterChange(`layer:${duplicate.layerId}`);
           }}
-        >
-          Duplicate layer
-        </LabeledAction>
+        />
         <ConfirmDeleteAction
           label="Remove layer"
           verb="remove"
-          size="sm"
           pending={false}
           onConfirm={() => {
             patch({ layers: draft.layers.filter((current) => current.layerId !== layer.layerId) });
@@ -490,7 +483,6 @@ export function CustomCardLayers({
       {draft.layers.map((layer, index) => (
         <LabeledAction
           key={layer.layerId}
-          emphasis="quiet"
           justify="start"
           icon={LAYER_ICON[layer.kind]}
           onClick={() => onChapterChange(`layer:${layer.layerId}`)}

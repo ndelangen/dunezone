@@ -628,7 +628,6 @@ export function BackgroundComposer({
                         onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
                       />
                       <LabeledAction
-                        emphasis="quiet"
                         size="compact-sm"
                         icon={<LayoutGrid size={14} />}
                         onClick={() => setLibraryOpen(true)}

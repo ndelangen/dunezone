@@ -294,11 +294,7 @@ export function RulebookSourcePicker({
       {state.kind === 'faction' || state.kind === 'faction-member' || state.kind === 'faction-troop' ? (
         state.factionId ? (
           <Stack gap="sm">
-            <LabeledAction
-              emphasis="quiet"
-              icon={<ArrowLeft size={16} />}
-              onClick={() => dispatch({ type: 'faction' })}
-            >
+            <LabeledAction icon={<ArrowLeft size={16} />} onClick={() => dispatch({ type: 'faction' })}>
               Choose another faction
             </LabeledAction>
             {state.kind === 'faction-troop' ? (

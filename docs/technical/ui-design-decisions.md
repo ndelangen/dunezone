@@ -394,14 +394,14 @@ The language, each word earned by usage the survey found rather than invented:
 | `muted` | recedes behind the content it names | `Eyebrow` |
 | `accent` | ties the label to the brand | `Eyebrow` |
 | `inverse` | legible on dark artwork | `Eyebrow` |
-| `silent` | no chrome at all, even hovered | `IconAction`, `LabeledAction` |
-| `quiet` | blends in until hovered | `IconAction`, `LabeledAction` |
+| `silent` | no chrome at all, even hovered | `IconAction` |
+| `quiet` | blends in until hovered | `IconAction` |
 | `standard` | a tinted tile; the everyday weight | `IconAction`, `LabeledAction` |
 | `strong` | fully filled; the action a row leads with | `IconAction`, `LabeledAction` |
 
 The words marked `any` are context-free and belong to any component that needs them. The rest are
 scoped to the component that earned them, and a component adding a word takes it from this table
-before inventing one. The `IconAction` four, shared by its worded sibling `LabeledAction`, are a loudness axis rather than a meaning: they rename
+before inventing one. The `IconAction` four (its worded sibling `LabeledAction` takes only the framed two, since an unframed worded button is a text-only button) are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,

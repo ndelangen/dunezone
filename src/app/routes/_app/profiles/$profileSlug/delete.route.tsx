@@ -189,7 +189,6 @@ function AccountDeletionPage() {
                     New owner: <strong>{replacement.username}</strong>
                   </Text>
                   <LabeledAction
-                    emphasis="quiet"
                     icon={<UserRoundX size={16} />}
                     onClick={() => {
                       setReplacement(null);

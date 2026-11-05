@@ -2,6 +2,9 @@ import { Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -384,9 +387,13 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
         <>
           <Group gap="sm">
             <StatusBadge tone="negative">Failed</StatusBadge>
-            <Button variant="subtle" size="compact-sm" onClick={() => retry(request.requestId)}>
-              Retry
-            </Button>
+            <IconAction
+              label="Retry"
+              size="sm"
+              emphasis="quiet"
+              icon={<RotateCcw size={14} aria-hidden />}
+              onClick={() => retry(request.requestId)}
+            />
           </Group>
           <Text size="xs" role="alert">
             {delivery.error}
@@ -418,9 +425,9 @@ function HistoryLoad({ load, retry }: Readonly<{ load: Page['load']; retry: () =
       return (
         <>
           <Text size="sm">{load.error}</Text>
-          <Button variant="default" onClick={retry}>
+          <LabeledAction icon={<RotateCcw size={16} aria-hidden />} onClick={retry}>
             Retry history
-          </Button>
+          </LabeledAction>
         </>
       );
   }

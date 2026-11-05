@@ -14,8 +14,8 @@ export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
   intent?: ActionIntent;
-  /** How loudly the action renders, in IconAction's words; omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
-  emphasis?: ActionEmphasis;
+  /** How loudly the action renders, in IconAction's words, framed only: without a tile a worded action is the text-only button the app does not use. Omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
+  emphasis?: Extract<ActionEmphasis, 'standard' | 'strong'>;
   /** Why the action cannot run right now, as a sentence; the button stays hoverable and focusable and this is its hover text and description, as on `IconAction`. */
   disabledReason?: string;
   /**

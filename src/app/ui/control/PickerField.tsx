@@ -1,5 +1,5 @@
-import { Button, Group, Loader, Stack } from '@mantine/core';
-import { ChevronsUpDown, X } from 'lucide-react';
+import { Combobox, Group, Input, InputBase, Loader, Stack } from '@mantine/core';
+import { X } from 'lucide-react';
 import { Suspense, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -11,14 +11,14 @@ export interface PickerFieldProps {
   title: string;
   /** A constraint or consequence behind the (?) mark: what follows the choice and what stays put. */
   description?: ReactNode;
-  /** The words on the button: the chosen thing's name, or "Choose faction" while nothing is chosen. */
+  /** The words in the field: the chosen thing's name, or "Choose faction" (drawn as a placeholder) while nothing is chosen. */
   chosen: string;
   /**
    * What a screen reader calls the button, when the visible words lean on their surroundings:
    * "Choose left faction" for one of two sides that both read "Choose faction".
    */
   chooseLabel?: string;
-  /** Empties the field. Omit it while nothing is chosen, and the clear action is not drawn. */
+  /** Empties the field. Omit it while nothing is chosen: the clear action is not drawn and `chosen` reads as a placeholder. */
   onClear?: () => void;
   /** What a screen reader calls the clear action; "Clear faction" from the title when omitted. */
   clearLabel?: string;
@@ -40,9 +40,9 @@ type OpenState =
  * Picks one thing from a picker that opens in place, and clears it again.
  *
  * Callers own the picker, the chosen thing's name and what clearing means;
- * this owns the arrangement: the button that names the choice and opens the picker, the clear action beside it, and the spinner while a lazily loaded picker arrives.
+ * this owns the arrangement: the field that names the choice and opens the picker, the clear action beside it, and the spinner while a lazily loaded picker arrives.
  * The picker comes in as a slot so the field itself never fetches.
- * The choose button is the kit's one worded button that names a value rather than an action, so it is Mantine's default button with the chevron a select wears, not a LabeledAction.
+ * The field names a value rather than an action, so it wears a select's input look (box, placeholder, chevron) and not a button's.
  * It exists because the rulebook editor wrote this control six times, each with its own text-only Clear button.
  */
 export function PickerField({
@@ -67,15 +67,19 @@ export function PickerField({
       input={
         <Stack gap="sm">
           <Group gap="sm" wrap="nowrap">
-            <Button
-              variant="default"
-              leftSection={<ChevronsUpDown size={16} aria-hidden />}
+            <InputBase
+              component="button"
+              type="button"
+              pointer
+              flex={1}
+              rightSection={<Combobox.Chevron />}
+              rightSectionPointerEvents="none"
               aria-label={chooseLabel}
               aria-expanded={opened}
               onClick={() => setOpened(!opened)}
             >
-              {chosen}
-            </Button>
+              {onClear ? chosen : <Input.Placeholder>{chosen}</Input.Placeholder>}
+            </InputBase>
             {onClear ? (
               <IconAction
                 label={clearLabel}
