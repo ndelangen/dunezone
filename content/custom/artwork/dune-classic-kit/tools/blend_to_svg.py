@@ -6,8 +6,10 @@ Follows collection instances, linked objects and text. Run inside Blender:
 
 `name` may join several collections with `+`. Hidden objects listed in `show` are exported;
 objects listed in `skip` are left out.
+Input and output paths must lie inside the working directory.
 """
 
+import os
 import sys
 
 import bpy
@@ -16,6 +18,15 @@ from mathutils import Matrix, Vector
 SHADER_NODES = ('BSDF_PRINCIPLED', 'EMISSION', 'BSDF_DIFFUSE')
 DRAWABLE = ('CURVE', 'FONT', 'GREASEPENCIL')
 BLACK = '#000000'
+
+
+def within_cwd(path):
+    """Resolve a command-line path, refusing anything outside the working directory."""
+    root = os.path.realpath(os.getcwd())
+    resolved = os.path.realpath(path)
+    if os.path.commonpath([root, resolved]) != root:
+        raise SystemExit(f'{path}: must be inside {root}')
+    return resolved
 
 
 def gamma_hex(rgb):
@@ -119,7 +130,7 @@ def curve_items(curve, matrix, obj, z):
     paths = curve_paths(curve, matrix)
     if not paths:
         return []
-    item = dict(z=z, col=colour(obj), name=obj.name, filled=is_filled(curve), w=curve.bevel_depth * 2)
+    item = {'z': z, 'col': colour(obj), 'name': obj.name, 'filled': is_filled(curve), 'w': curve.bevel_depth * 2}
     item['d'] = ' '.join(d for d, _ in paths)
     item['pts'] = [p for _, anchors in paths for p in anchors]
     return [item]
@@ -135,7 +146,7 @@ def stroke_style(stroke, materials):
 def fill_item(style, base):
     if style is not None and not style.show_fill:
         return []
-    return [dict(base, col=gamma_hex(style.fill_color) if style else BLACK, filled=True, w=0)]
+    return [{**base, 'col': gamma_hex(style.fill_color) if style else BLACK, 'filled': True, 'w': 0}]
 
 
 def line_item(style, base, stroke):
@@ -143,7 +154,7 @@ def line_item(style, base, stroke):
         return []
     width = 2 * sum(p.radius for p in stroke.points) / len(stroke.points)
     line = gamma_hex(style.color) if style else BLACK
-    return [dict(base, z=base['z'] + 1e-6, col=line, filled=False, w=width)]
+    return [{**base, 'z': base['z'] + 1e-6, 'col': line, 'filled': False, 'w': width}]
 
 
 def stroke_items(stroke, matrix, materials, owner):
@@ -153,7 +164,7 @@ def stroke_items(stroke, matrix, materials, owner):
         return []
     obj, z = owner
     style = stroke_style(stroke, materials)
-    base = dict(z=z, d=poly_path(points, stroke.cyclic), name=obj.name, pts=points)
+    base = {'z': z, 'd': poly_path(points, stroke.cyclic), 'name': obj.name, 'pts': points}
     return fill_item(style, base) + line_item(style, base, stroke)
 
 
@@ -216,7 +227,7 @@ def name_set(args, index):
 
 
 def main(args):
-    src, want, out = args[0], args[1], args[2]
+    src, want, out = within_cwd(args[0]), args[1], within_cwd(args[2])
     show, skip = name_set(args, 3), name_set(args, 4)
     bpy.ops.wm.open_mainfile(filepath=src)
     depsgraph = bpy.context.evaluated_depsgraph_get()

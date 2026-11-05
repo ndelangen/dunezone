@@ -4,9 +4,11 @@
 
 Dark paint (luminance < 0.5) becomes ink and light paint becomes paper. Renders anti-aliased
 at long_side_px, thresholds at 0.5, traces with potracer, and scales to a 100-unit long side.
+Input and output paths must lie inside the working directory.
 """
 
 import io
+import os
 import re
 import sys
 
@@ -16,6 +18,15 @@ import potrace
 from PIL import Image
 
 PAINT = re.compile(r'(fill|stroke)="#([0-9a-f]{6})"')
+
+
+def within_cwd(path):
+    """Resolve a command-line path, refusing anything outside the working directory."""
+    root = os.path.realpath(os.getcwd())
+    resolved = os.path.realpath(path)
+    if os.path.commonpath([root, resolved]) != root:
+        raise SystemExit(f'{path}: must be inside {root}')
+    return resolved
 
 
 def to_ink_or_paper(match):
@@ -47,7 +58,7 @@ def curve_path(curve, scale):
 
 
 def main(args):
-    src, out, authored = args[0], args[1], args[2]
+    src, out, authored = within_cwd(args[0]), within_cwd(args[1]), args[2]
     long_side = int(args[3]) if len(args) > 3 else 4000
     with open(src) as handle:
         svg = PAINT.sub(to_ink_or_paper, handle.read())
