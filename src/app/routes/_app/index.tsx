@@ -23,6 +23,7 @@ import {
 } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@db/arrakis';
 import { useSessionViewer } from '@db/profiles';
 import type { SessionViewer } from '@db/profiles';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -44,24 +45,36 @@ export const Route = createFileRoute('/_app/')({
    * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
    * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
    * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
+   * The saved Arrakis rides in the same HTML, so the sneak peek's table draws it without waiting for a query.
    */
-  loader: () => ({
-    name: 'Dune board game factions and rulebooks',
-    pathname: '/',
-    description:
-      "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
-    image: '/web/homepage-social-play-large.jpg',
-    entity: { type: 'site' } as const,
-    imageDetails: {
-      alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
-      type: 'image/jpeg',
-      width: 1200,
-      height: 630,
+  loader: async () => ({
+    arrakis: await loadArrakisBoard(),
+    page: {
+      name: 'Dune board game factions and rulebooks',
+      pathname: '/',
+      description:
+        "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
+      image: '/web/homepage-social-play-large.jpg',
+      entity: { type: 'site' } as const,
+      imageDetails: {
+        alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+        type: 'image/jpeg',
+        width: 1200,
+        height: 630,
+      },
     },
   }),
-  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData) : {}),
-  component: IndexPage,
+  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData.page) : {}),
+  component: SeededIndexPage,
 });
+
+function SeededIndexPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <IndexPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 function IndexPage() {
   const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
