@@ -84,7 +84,8 @@ function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
 
 /**
  * A seat's faction information: the header, the toolbar with every action on the seat under it, then the content.
- * The content leads with any vote against the seat's player and any request for the seat, then what the faction starts with.
+ * The content leads with any vote against the seat's player, then what the faction starts with;
+ * requests for a seat are in Seats & spectators.
  */
 export function FactionInfoPanel({ error, vote, header, trade, details, onBallot }: FactionInfoPanelProps) {
   const ballot = vote && 'choice' in vote.ballot ? { choice: vote.ballot.choice, cast: onBallot } : null;

@@ -44,7 +44,7 @@ import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
-import { ConnectedSeatsPanel, seatRequestRows, seatRequestsWaiting } from '../panels/seats/useSeatsPanel';
+import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
@@ -233,17 +233,13 @@ function stageFocus(table: TableProjection) {
 }
 
 /*
- * A spectator asking for a seat opens Seats & spectators once for every player, at each new request (Norbert, 2026-11-05).
- * Each waiting request is its own event, so one withdrawn or approved never makes an older one that is still waiting look new.
+ * A spectator asking for a seat opens Seats & spectators once for every player (Norbert, 2026-11-05).
+ * Each request waiting on the player is its own event, so one withdrawn or approved never makes an older one look new.
+ * Like a battle, a request already waiting when the table loads opens it too, as does one whose seat opens again.
  * Spectators, a past table and a finished game approve nothing, so it opens for none of them.
  */
 function seatRequestFocus(table: TableProjection) {
-  if (!seatRequestsWaiting(table)) {
-    return [];
-  }
-  return seatRequestRows(table)
-    .filter((row) => !row.own && !row.closed)
-    .map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
+  return waitingSeatRequests(table).map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
 }
 
 /* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -624,7 +620,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     spiceBlow: spiceBlowCommand(table),
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
-    seatRequests: table.playback ? 0 : seatRequestsWaiting(table),
+    seatRequests: seatRequestsWaiting(table),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };

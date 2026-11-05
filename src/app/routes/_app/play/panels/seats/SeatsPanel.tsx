@@ -20,7 +20,13 @@ export type SeatRequestRow = Readonly<{
 }>;
 
 /** One signed-in spectator, by their public name and avatar. */
-type SpectatorRow = Readonly<{ name: string; avatar: string | null; slug: string | null }>;
+type SpectatorRow = Readonly<{
+  name: string;
+  avatar: string | null;
+  slug: string | null;
+  /** The viewer themselves, watching. */
+  own?: boolean;
+}>;
 
 export type SeatsPanelProps = Readonly<{
   /** How the seats stand, such as "5 of 6 seats taken". */
@@ -42,14 +48,23 @@ const AVATAR = 24;
 /* A spectator by their avatar and name: a link to their profile when they have one, the avatar and name alone otherwise. */
 function Spectator({ spectator }: Readonly<{ spectator: SpectatorRow }>) {
   if (spectator.slug) {
-    return <ProfileLink slug={spectator.slug} name={spectator.name} image={spectator.avatar} underline="hover" />;
+    return (
+      <Group gap={4} wrap="nowrap">
+        <ProfileLink slug={spectator.slug} name={spectator.name} image={spectator.avatar} underline="hover" />
+        {spectator.own && (
+          <Text size="sm" c="dimmed">
+            (you)
+          </Text>
+        )}
+      </Group>
+    );
   }
   return (
     <Group gap="xs" wrap="nowrap">
       <Avatar src={spectator.avatar} size={AVATAR} radius="50%" alt="">
         {spectator.name.slice(0, 1)}
       </Avatar>
-      <Text size="sm">{spectator.name}</Text>
+      <Text size="sm">{spectator.own ? `${spectator.name} (you)` : spectator.name}</Text>
     </Group>
   );
 }
@@ -65,6 +80,7 @@ function Requests({ requests, approve }: Pick<SeatsPanelProps, 'requests' | 'app
     <Stack gap="xs" component="section" aria-label="Seat requests">
       <Eyebrow>Seat requests</Eyebrow>
       {requests.map((request) => (
+        /* Keyed by the request, so a press that began on one request never approves the next. */
         <Group key={request.id} gap="sm" justify="space-between" wrap="nowrap">
           <Stack gap={0} style={{ minWidth: 0 }}>
             <Text size="sm" truncate>
@@ -77,9 +93,7 @@ function Requests({ requests, approve }: Pick<SeatsPanelProps, 'requests' | 'app
             )}
           </Stack>
           {approve && !request.own && !request.closed && (
-            /* Keyed by the request, so a press that began on one request never approves the next. */
             <IconAction
-              key={request.id}
               label={`Approve ${request.name}`}
               tooltip={`Seat ${request.name} at ${request.asks}. One player's approval is enough.`}
               icon={<Armchair size={16} aria-hidden />}
@@ -101,7 +115,8 @@ function Spectators({ spectators, guests }: Pick<SeatsPanelProps, 'spectators' |
     <Stack gap="xs" component="section" aria-label="Spectators">
       <Eyebrow>{count ? `Spectators · ${count}` : 'Spectators'}</Eyebrow>
       {spectators.map((spectator, index) => (
-        <Spectator key={`${spectator.slug ?? spectator.name}:${index}`} spectator={spectator} />
+        /* The slug names one person; without one, the name and place stand in. */
+        <Spectator key={spectator.slug ?? `${spectator.name}:${index}`} spectator={spectator} />
       ))}
       {guests > 0 && (
         <Text size="sm" c="dimmed">

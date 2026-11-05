@@ -47,7 +47,7 @@ export const Observer = meta.story({
 export const OwnRequest = meta.story({
   args: ownRequestProps(),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/\(you\)/)).toBeVisible();
+    await expect(canvas.getAllByText(/\(you\)/)).toHaveLength(2);
     await expect(canvas.queryByRole('button', { name: /Approve/ })).toBeNull();
   },
 });

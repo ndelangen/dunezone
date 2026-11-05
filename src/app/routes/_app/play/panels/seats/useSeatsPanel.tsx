@@ -3,6 +3,7 @@ import { seatSubject } from '@shared/play/participation';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { publicControlsOf } from '../../multiplayer/publicControls';
 import { approvable, openSeats, seatLocked, seatWords } from '../../multiplayer/SeatRequests';
+import { isSpectator } from '../../multiplayer/tableFactions';
 import { SeatsPanel } from './SeatsPanel';
 import type { SeatRequestRow, SeatsPanelProps } from './SeatsPanel';
 
@@ -19,7 +20,7 @@ function seatsLine(table: TableProjection): string {
 }
 
 /** The open requests for a seat, each with why it cannot be approved right now, if it cannot. */
-export function seatRequestRows(table: TableProjection): SeatRequestRow[] {
+function seatRequestRows(table: TableProjection): SeatRequestRow[] {
   const drafting = table.snapshot.stage === 'drafting';
   const open = openSeats(table);
   return publicControlsOf(table).seatRequests.map((request) => {
@@ -35,9 +36,14 @@ export function seatRequestRows(table: TableProjection): SeatRequestRow[] {
   });
 }
 
-/** Whether a spectator's request waits on this viewer: a player at the live table, with a request a player could approve. */
+/** The requests waiting on this viewer: a player at the live table, and a request for a seat still open. */
+export function waitingSeatRequests(table: TableProjection): SeatRequestRow[] {
+  return approvable(table) ? seatRequestRows(table).filter((row) => !row.own && !row.closed) : [];
+}
+
+/** How many requests wait on this viewer. */
 export function seatRequestsWaiting(table: TableProjection): number {
-  return approvable(table) ? seatRequestRows(table).filter((row) => !row.own && !row.closed).length : 0;
+  return waitingSeatRequests(table).length;
 }
 
 /** The Seats & spectators window's props from the table. */
@@ -46,7 +52,11 @@ export function seatsPanelProps(table: TableProjection, onApprove: (requestId: s
   return {
     seats: seatsLine(table),
     requests: seatRequestRows(table),
-    spectators: controls.spectators,
+    /* A spectator sees themselves marked, as their own request is; names are all the table sends. */
+    spectators: controls.spectators.map((spectator) => ({
+      ...spectator,
+      own: isSpectator(table) && spectator.name === table.viewer.displayName,
+    })),
     guests: controls.guests,
     approve: approvable(table)
       ? {

@@ -34,8 +34,7 @@ function withWatchers(
 export const emptySnapshot = () => withWatchers(() => ({}));
 
 /** Two signed-in spectators and three watching signed out, with no request. */
-const watchedSnapshot = () =>
-  withWatchers(() => ({ spectators: [watcher(PINECONE), watcher(COOKIE)], guests: 3 }));
+const watchedSnapshot = () => withWatchers(() => ({ spectators: [watcher(PINECONE), watcher(COOKIE)], guests: 3 }));
 
 /** Only signed-out watchers: the panel counts them and names nobody. */
 export const guestsSnapshot = () => withWatchers(() => ({ guests: 2 }));

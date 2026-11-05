@@ -719,7 +719,7 @@ export class GameSession {
    * from the directory at send time and never stored; and for the requester alone, which pending
    * request is theirs. Nobody's id travels.
    */
-  private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
+  private forViewer(projected: GameSnapshot, viewer: Viewer, people = this.people()): GameSnapshot {
     const board = this.captures.ruleset()?.board;
     if (board) {
       projected = { ...projected, board };
@@ -732,11 +732,15 @@ export class GameSession {
       ...projected,
       controls: {
         ...projected.controls,
-        players: this.actors.holders(),
-        spectators: this.actors.watchers(this.watching),
+        ...people,
         seatRequests: ownRequests(projected.controls.seatRequests, own),
       },
     };
+  }
+
+  /* Who sits at the table and who watches it, the same for every viewer, so a delivery pass reads them once. */
+  private people() {
+    return { players: this.actors.holders(), spectators: this.actors.watchers(this.watching) };
   }
 
   roomFrame(viewer: Viewer): RoomFrame {
@@ -752,6 +756,7 @@ export class GameSession {
     const carries = this.projection.carries(room.publicCarries(), room.snapshot);
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
+    let people: ReturnType<GameSession['people']> | undefined;
     const review = reviewableStage(room.snapshot.stage)
       ? {
           review: this.reviews.current(),
@@ -765,7 +770,7 @@ export class GameSession {
       let snapshot = snapshots.get(audience);
       if (!snapshot) {
         snapshot = {
-          ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer),
+          ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer, (people ??= this.people())),
           ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
           ...review,
         };
