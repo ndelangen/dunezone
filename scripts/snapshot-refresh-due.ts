@@ -20,9 +20,9 @@ export async function snapshotRefreshDue(
   now: Date,
   request: typeof fetch = fetch
 ): Promise<boolean> {
-  const since = snapshotWeekStart(now).toISOString();
+  const created = encodeURIComponent('>=' + snapshotWeekStart(now).toISOString());
   const response = await request(
-    `https://api.github.com/repos/${repository}/actions/workflows/anonymised-snapshot.yml/runs?branch=main&status=success&per_page=100&created=${encodeURIComponent(`>=${since}`)}`,
+    `https://api.github.com/repos/${repository}/actions/workflows/anonymised-snapshot.yml/runs?branch=main&status=success&per_page=100&created=${created}`,
     {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
       signal: AbortSignal.timeout(10_000),
