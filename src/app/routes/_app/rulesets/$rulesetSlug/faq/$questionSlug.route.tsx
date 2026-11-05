@@ -196,6 +196,24 @@ function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>
   };
 }
 
+/** The question's frame while it and its answers load. */
+function FaqQuestionPending() {
+  const { rulesetSlug } = Route.useParams();
+  return (
+    <RoutePending
+      title="FAQ"
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+      loading="Loading question"
+    >
+      This question and its answers are still loading.
+    </RoutePending>
+  );
+}
+
 function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -240,19 +258,7 @@ function FaqDetailPage() {
   }, [item, answers]);
 
   if (!item) {
-    return (
-      <RoutePending
-        title="FAQ"
-        back={
-          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-            Back to ruleset
-          </PageMessage.Back>
-        }
-        loading="Loading question"
-      >
-        This question and its answers are still loading.
-      </RoutePending>
-    );
+    return <FaqQuestionPending />;
   }
 
   /* The page is the same for everyone; its controls follow the viewer, whose capabilities are the signed-out ones until the session settles. */
