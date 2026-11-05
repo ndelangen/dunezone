@@ -11,12 +11,23 @@ export function initializeSessionStorage(sql: {
     'CREATE TABLE IF NOT EXISTS receipts (receipt_key TEXT PRIMARY KEY, actor_id TEXT, payload TEXT NOT NULL, revision INTEGER NOT NULL)'
   );
   sql.exec(
-    'CREATE TABLE IF NOT EXISTS actors (user_id TEXT PRIMARY KEY, seat TEXT NOT NULL, display_name TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, avatar_url TEXT, profile_slug TEXT)'
+    'CREATE TABLE IF NOT EXISTS actors (user_id TEXT PRIMARY KEY, seat TEXT NOT NULL, display_name TEXT NOT NULL, deleted INTEGER NOT NULL DEFAULT 0, avatar_url TEXT, profile_slug TEXT, profile_at INTEGER)'
   );
-  /* Games created before players carried a profile link gain the column; their players read as unlinked until they next connect. */
-  const actorColumns = sql.exec<{ name: string }>('PRAGMA table_info(actors)').toArray();
-  if (!actorColumns.some((column) => column.name === 'profile_slug')) {
+  /*
+   * Games created before players carried a profile link gain the column; their players read as unlinked until they next connect.
+   * Those from before the profile followed the pass gain when it was last set; any pass refreshes a player without one.
+   */
+  const actorColumns = new Set(
+    sql
+      .exec<{ name: string }>('PRAGMA table_info(actors)')
+      .toArray()
+      .map((c) => c.name)
+  );
+  if (!actorColumns.has('profile_slug')) {
     sql.exec('ALTER TABLE actors ADD COLUMN profile_slug TEXT');
+  }
+  if (!actorColumns.has('profile_at')) {
+    sql.exec('ALTER TABLE actors ADD COLUMN profile_at INTEGER');
   }
   sql.exec(
     'CREATE TABLE IF NOT EXISTS seat_history (id INTEGER PRIMARY KEY, user_id TEXT, display_name TEXT NOT NULL, seat TEXT NOT NULL, event TEXT NOT NULL, created_at INTEGER NOT NULL, cause TEXT, approver_id TEXT, approver_name TEXT, event_id TEXT)'

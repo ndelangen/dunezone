@@ -10,6 +10,7 @@ import {
   accepted,
   admitPlayer,
   eventually,
+  fixturePass,
   seat,
   sendCommand,
   storedEventMessages,
@@ -216,9 +217,44 @@ describe('Explicit participation on a real game', () => {
     const view = required(await syncView(renamed));
     expect(view.viewer).toMatchObject({ viewerSeat: 'seat-2', displayName: 'Renamed B' });
     expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
+    /* The seat log is a record of what was shown when it happened; the room exposes no reading of it to the table. */
     expect(
       await runtime.exec<{ display_name: string }>("SELECT display_name FROM seat_history WHERE user_id='user-b'")
     ).toEqual([{ display_name: 'Synthetic B' }]);
+  });
+
+  it('keeps the newer name when a device reconnects with a pass issued before the rename', async () => {
+    const a = await admit('a');
+    const b = await admitPlayer(runtime, 'b', { issuedAt: Date.now() - 60_000 });
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    const renamed = await admitPlayer(runtime, 'b', { displayName: 'Renamed B' });
+    expect(required(await syncView(renamed)).viewer.displayName).toBe('Renamed B');
+    /* A second device still holds the pass from before the rename, valid for up to an hour. */
+    const stale = await admitPlayer(runtime, 'b', { issuedAt: Date.now() - 30_000 });
+    expect(required(await syncView(stale)).viewer).toMatchObject({ viewerSeat: 'seat-2', displayName: 'Renamed B' });
+    expect(required(required(await syncView(a)).snapshot.controls).players.map((player) => player.name)).toEqual([
+      'Synthetic A',
+      'Renamed B',
+    ]);
+  });
+
+  it('shows a rename to a page that stays connected, through its renewed pass', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    b.send({ type: 'pass', pass: await fixturePass('b', { displayName: 'Renamed B', avatarUrl: null }) });
+    await eventually(
+      async () =>
+        required(await syncView(a))
+          .snapshot.controls?.players.map((player) => player.name)
+          .join(',') === 'Synthetic A,Renamed B',
+      'the renamed player'
+    );
+    const view = required(await syncView(b));
+    expect(view.viewer.displayName).toBe('Renamed B');
+    expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
   });
 
   it('keeps an offline player seated, retires a drafting place on departure and discards the game when the last player leaves', async () => {

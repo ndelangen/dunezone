@@ -49,7 +49,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { SPECTATOR_COLOR } from './actors';
+import { SPECTATOR_COLOR, STORED_DISPLAY_NAME_LENGTH } from './actors';
+import type { PassProfile } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
@@ -1141,7 +1142,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       connectionId: connection.connectionId,
       userId: pass.actorId,
       viewerSeat: SPECTATOR_SEAT,
-      displayName: pass.displayName.slice(0, 160),
+      displayName: pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
       color: SPECTATOR_COLOR,
     };
     connection.avatarUrl = pass.avatarUrl;
@@ -1177,7 +1178,26 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     connection.pass = heldPass(checked.pass);
     connection.sessionId = checked.pass.sessionId;
+    connection.avatarUrl = checked.pass.avatarUrl;
+    connection.profileSlug = checked.pass.profileSlug;
+    connection.viewer!.displayName = checked.pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH);
+    /* A rename reaches a page that stays connected through its next pass, not only through a reconnection. */
+    const renamed = connection.announced === 'authorized' && this.session.renewProfile(this.passProfile(connection));
     this.authorizationChanged();
+    if (renamed) {
+      this.refreshViews();
+    }
+  }
+
+  /** The profile the connection's current pass carries, with when that pass was issued. */
+  private passProfile(connection: Connection): PassProfile {
+    return {
+      userId: connection.viewer!.userId,
+      displayName: connection.viewer!.displayName,
+      avatarUrl: connection.avatarUrl,
+      profileSlug: connection.profileSlug,
+      issuedAt: connection.pass!.issuedAt,
+    };
   }
 
   /* Asked once per admission; a failed read retries a few times and otherwise keeps the connection at the limit. */
@@ -1314,16 +1334,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** An authorized connection not yet announced as such takes its seat; one the room can no longer seat is denied. */
   private announceAuthorized(socket: WebSocket, connection: Connection) {
     try {
-      connection.viewer = this.session.viewer(
-        connection.connectionId,
-        connection.viewer!.userId,
-        connection.viewer!.displayName,
-        {
-          seatNewcomers: !this.metadata?.game,
-          avatarUrl: connection.avatarUrl,
-          profileSlug: connection.profileSlug,
-        }
-      );
+      connection.viewer = this.session.viewer(connection.connectionId, this.passProfile(connection), {
+        seatNewcomers: !this.metadata?.game,
+      });
     } catch {
       this.deny(socket, false);
       return 'activity';
