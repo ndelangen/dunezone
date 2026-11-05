@@ -108,21 +108,6 @@ test('deletion before registration and before an old callback is harmless', asyn
   expect(await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).toHaveLength(0);
 });
 
-test('backfill deletes expired sessions and registers live sessions once', async () => {
-  const t = setup();
-  const account = await seed(t, 2);
-  await t.run((ctx) => ctx.db.patch(account.sessions[0]!.sessionId, { expirationTime: Date.now() - 1 }));
-  await t.mutation(internal.migrations.auth_session_expiry_jobs_v1, {});
-  await t.mutation(internal.migrations.auth_session_expiry_jobs_v1, { reset: true });
-  expect(await t.run((ctx) => ctx.db.get(account.sessions[0]!.sessionId))).toBeNull();
-  expect(await t.run((ctx) => ctx.db.get(account.sessions[1]!.sessionId))).not.toBeNull();
-  expect(
-    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).filter(
-      (job) => job.state.kind === 'pending'
-    )
-  ).toHaveLength(1);
-});
-
 test('the library creates tokens before bootstrap registers its configured idle deadline', async () => {
   const t = setup();
   const account = await seed(t, 0);

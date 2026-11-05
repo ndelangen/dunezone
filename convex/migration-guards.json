@@ -11,16 +11,6 @@
       "requires": []
     },
     {
-      "id": "faction_slug_reservations_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_slug_reservations_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_slug_reservations_v1"]
-    },
-    {
       "id": "statistics_profiles_v1",
       "phase": "widen",
       "requires": []
@@ -102,47 +92,7 @@
       "requires": []
     },
     {
-      "id": "faction_decal_retune_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "assets_about_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "assets_about_verify_v1",
-      "phase": "widen",
-      "requires": ["assets_about_v1"]
-    },
-    {
       "id": "rulebook_edition_artifacts_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_extras_references_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_extras_references_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_extras_references_v1"]
-    },
-    {
-      "id": "account_connections_expire_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "auth_session_expiry_jobs_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "play_hosted_fixture_retire_v1",
       "phase": "widen",
       "requires": []
     },
@@ -250,16 +200,6 @@
       "id": "faction_cards_ready",
       "phase": "narrow",
       "requires": ["faction_cards_v1"]
-    },
-    {
-      "id": "faction_troop_support_names_v1",
-      "phase": "widen",
-      "requires": []
-    },
-    {
-      "id": "faction_troop_support_names_verify_v1",
-      "phase": "widen",
-      "requires": ["faction_troop_support_names_v1"]
     },
     {
       "id": "publication_job_listings_v1",

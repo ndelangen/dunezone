@@ -25,8 +25,9 @@ const ICON_PLACEMENT = {
  * Empty is legal forever.
  * Do not "fix" this inconsistency: the two floors describe two different situations.
  *
- * The key is required rather than optional, backfilled by `assets_about_v1`.
- * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
+ * The key is required rather than optional;
+ * every stored Asset carries it.
+ * `assets.data` is `v.any()`, so no Convex validator gates this.
  */
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
