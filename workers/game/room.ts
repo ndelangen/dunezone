@@ -335,8 +335,7 @@ export class Room {
   /** The table as a seat sees it, on the board the game captured, whose territories stacks keep inside. */
   private viewerTable(viewerSeat: Identity['viewerSeat']): TableState {
     const table = tableForViewer(this.snapshot, viewerSeat);
-    const board = this.board();
-    return board ? { ...table, board } : table;
+    return { ...table, board: this.board() };
   }
 
   private table(identity: Identity, ownCarryId?: string): TableState {

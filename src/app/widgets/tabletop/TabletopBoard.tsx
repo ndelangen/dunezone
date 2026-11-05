@@ -385,7 +385,7 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
 
 const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
-/* A table without a board, such as the homepage's before the saved Arrakis arrives, shows the bare disc. */
+/* A table without a board, such as one before its first view arrives, shows the bare disc. */
 function BoardPaint({ board }: { board: NonNullable<GameSnapshot['board']> }) {
   return (
     <Suspense fallback={null}>
