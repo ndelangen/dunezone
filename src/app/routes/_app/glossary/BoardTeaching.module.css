@@ -69,3 +69,8 @@
   stroke: #8b3628;
   stroke-width: 0.004;
 }
+
+/* The board's square keeps its place while the saved board loads, so the terms beside it do not jump. */
+.teaching[data-board-pending] {
+  aspect-ratio: 1;
+}

@@ -10,6 +10,7 @@
 
 import type * as accountDeletion from "../accountDeletion.js";
 import type * as accounts from "../accounts.js";
+import type * as arrakis from "../arrakis.js";
 import type * as arrakisMigrations from "../arrakisMigrations.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
@@ -185,6 +186,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
   accounts: typeof accounts;
+  arrakis: typeof arrakis;
   arrakisMigrations: typeof arrakisMigrations;
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;

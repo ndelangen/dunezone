@@ -1,6 +1,13 @@
+import { componentGeometrySchema } from '@shared/asset-publishing/componentGeometry';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { DEMONSTRATIONS, IDLE, parts, ringPoint, sectorPath, shuffled } from './boardDemonstrations';
+import arrakisOfficialGeometry from '@game/rulebook/fixtures/asset-explainer/arrakis-official-geometry.json';
+
+import { demonstrationsFor, IDLE, ringPoint, sectorPath, shuffled, teachingParts } from './boardDemonstrations';
+
+const geometry = componentGeometrySchema.parse(arrakisOfficialGeometry);
+const DEMONSTRATIONS = demonstrationsFor(geometry);
+const parts = teachingParts(geometry);
 
 const STRONGHOLDS = ['arrakeen', 'carthag', 'tueks', 'tabr', 'habbanya'];
 
