@@ -1,4 +1,5 @@
 import { Button, Group, Loader } from '@mantine/core';
+import { ChevronsDown } from 'lucide-react';
 
 export type LoadMoreButtonProps = {
   /** True while the longer list is on its way; the button says so and ignores a second press. */
@@ -18,7 +19,7 @@ export function LoadMoreButton({ loading, onLoadMore }: LoadMoreButtonProps) {
       <Button
         variant="default"
         aria-disabled={loading}
-        leftSection={loading ? <Loader size="xs" /> : undefined}
+        leftSection={loading ? <Loader size="xs" /> : <ChevronsDown size={16} aria-hidden />}
         onClick={() => {
           if (!loading) {
             onLoadMore();

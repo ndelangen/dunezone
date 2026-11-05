@@ -1,16 +1,4 @@
-import {
-  Badge,
-  Button,
-  Group,
-  InputBase,
-  Popover,
-  RangeSlider,
-  Select,
-  Stack,
-  Text,
-  Title,
-  VisuallyHidden,
-} from '@mantine/core';
+import { Badge, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
 import {
   complexityRangeSearchValue,
   FACTION_CATALOGUE_PAGE_SIZE,
@@ -20,35 +8,35 @@ import {
 import type { FactionCatalogueSearch, FactionComplexityRange } from '@shared/factions/catalogueSearch';
 import { Link, createFileRoute, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps, NotFoundRouteProps } from '@tanstack/react-router';
+import { PastTheEnd } from '@ui/block/EmptyResults';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
 import { CallToAction } from '@ui/control/CallToAction';
-import { CataloguePager, catalogueCountLabel } from '@ui/control/CataloguePager';
+import { catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowDownAZ, ChevronsDown, Filter, Plus } from 'lucide-react';
+import { ArrowDownAZ, ChevronsDown, Filter, FilterX, Plus, RotateCcw, UsersRound } from 'lucide-react';
 import { useId, useMemo, useRef, useState } from 'react';
 import type { Ref } from 'react';
 
 import { loadFactionCataloguePage, useFactionCataloguePage } from '@db/factions';
 import type {
   FactionCatalogueArgs,
-  FactionCatalogueBrowseData,
   FactionCatalogueMember,
   FactionCataloguePageData,
   FactionCatalogueRuleset,
-  FactionCatalogueSearchData,
 } from '@db/factions';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { RouteLoadError } from '@app/routes/routeStates';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
@@ -188,95 +176,35 @@ function CatalogueContent({
       </Surface>
     );
   }
-  if ('mode' in data) {
-    return (
-      <SearchedCatalogue
-        data={data}
-        loading={loading}
-        loaded={loaded}
-        onLoadMore={onLoadMore}
-        selectedRulesetSlug={selectedRulesetSlug}
-        onReset={onReset}
-        ref={ref}
-      />
-    );
-  }
-  return <BrowsedCatalogue data={data} selectedRulesetSlug={selectedRulesetSlug} onReset={onReset} />;
-}
-
-/** One page of the browsed catalogue, with its pager. */
-function BrowsedCatalogue({
-  data,
-  selectedRulesetSlug,
-  onReset,
-}: {
-  data: FactionCatalogueBrowseData;
-  selectedRulesetSlug: string | undefined;
-  onReset: () => void;
-}) {
-  if (data.total === 0) {
-    return <FilteredEmptyState complete={data.complete} onReset={onReset} />;
-  }
-  if (data.cards.length === 0) {
-    return <PastTheEnd pageCount={data.pageCount} />;
-  }
   return (
-    <Stack gap="lg">
-      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
-      <CataloguePager
-        page={data.page}
-        pageCount={data.pageCount}
-        pageSize={data.pageSize}
-        total={data.total}
-        complete={data.complete}
-        noun="factions"
-        label="Faction catalogue pages"
-        pageLinkProps={(page) => ({ component: Link, to: '/factions', search: pageSearch(page) })}
-      />
-    </Stack>
+    <CatalogueResults
+      results={
+        'mode' in data
+          ? { kind: 'search', entries: data.cards, hasMore: data.hasMore, capped: data.capped }
+          : { kind: 'browse', ...data, entries: data.cards }
+      }
+      noun="factions"
+      singular="faction"
+      pagerLabel="Faction catalogue pages"
+      pageLinkProps={factionPageLink}
+      renderTiles={(cards) => <FactionList factions={cards} selectedRulesetSlug={selectedRulesetSlug} />}
+      noMatchesSentence="No faction matches this search and these filters."
+      noMatchesAction={
+        <LabeledAction icon={<RotateCcw size={16} />} onClick={onReset}>
+          Reset filters and search
+        </LabeledAction>
+      }
+      loading={loading}
+      loaded={loaded}
+      onLoadMore={onLoadMore}
+      ref={ref}
+    />
   );
 }
 
-/**
- * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
- * When the longer list arrives, focus moves to its first new card, so a keyboard reader carries on from where the list grew.
- */
-function SearchedCatalogue({
-  data,
-  loading,
-  loaded,
-  onLoadMore,
-  selectedRulesetSlug,
-  onReset,
-  ref,
-}: {
-  data: FactionCatalogueSearchData;
-  loading: boolean;
-  /** Whether the longer list asked for has arrived. */
-  loaded: boolean;
-  onLoadMore: () => void;
-  selectedRulesetSlug: string | undefined;
-  onReset: () => void;
-  ref: Ref<HTMLDivElement>;
-}) {
-  if (data.cards.length === 0) {
-    return <FilteredEmptyState complete={!data.capped} onReset={onReset} />;
-  }
-  return (
-    <Stack gap="lg" aria-busy={loading} ref={ref}>
-      <FactionList factions={data.cards} selectedRulesetSlug={selectedRulesetSlug} />
-      {/* The cards say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? 'More factions loaded' : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
-  );
+/** The link to one page of the browsed catalogue. */
+function factionPageLink(page: number) {
+  return { component: Link, to: '/factions', search: pageSearch(page) };
 }
 
 /*
@@ -476,14 +404,14 @@ function CatalogueRefine({
                   : `${catalogueCountLabel(matched.count, matched.complete)} of ${totalCount} factions`}
               </Text>
               {activeCount > 0 ? (
-                <Button
+                <LabeledAction
                   size="compact-xs"
-                  variant="subtle"
-                  color="gray"
+                  emphasis="quiet"
+                  icon={<FilterX size={14} />}
                   onClick={() => onSearchChange({ ruleset: undefined, owner: undefined, complexity: undefined })}
                 >
                   Clear filters
-                </Button>
+                </LabeledAction>
               ) : null}
             </Group>
           </Stack>
@@ -541,9 +469,9 @@ function OwnerFilter({
         <Badge variant="filled" color="selected">
           By {member.name}
         </Badge>
-        <Button size="compact-xs" variant="subtle" color="gray" onClick={onClear}>
+        <LabeledAction size="compact-xs" emphasis="quiet" icon={<UsersRound size={14} />} onClick={onClear}>
           Show every member's factions
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -679,25 +607,6 @@ function CatalogueToolbar({
   );
 }
 
-function FilteredEmptyState({ complete, onReset }: { complete: boolean; onReset: () => void }) {
-  return (
-    <Surface padding="xl">
-      <Stack gap="sm" align="center">
-        <Title order={2}>No factions found</Title>
-        <Text c="dimmed">Try another search or reset the catalogue filters.</Text>
-        {complete ? null : (
-          <Text size="xs" c="dimmed" ta="center">
-            Only the first matches of this search were checked. Add a word to narrow it.
-          </Text>
-        )}
-        <Button variant="default" onClick={onReset}>
-          Reset filters &amp; search
-        </Button>
-      </Stack>
-    </Surface>
-  );
-}
-
 /** The address of one page of the current search, filters and order; the first page has no number. */
 function pageSearch(page: number) {
   return (previous: FactionCatalogueSearch): FactionCatalogueSearch => ({
@@ -706,31 +615,11 @@ function pageSearch(page: number) {
   });
 }
 
-/** A page past the end, from an old link or a catalogue that shrank: say where the results end and link there. */
-function PastTheEnd({ pageCount }: { pageCount: number }) {
-  return (
-    <Surface padding="xl">
-      <Stack gap="sm" align="center">
-        <Title order={2}>No factions on this page</Title>
-        <Text c="dimmed">
-          {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
-        </Text>
-        <Button
-          variant="default"
-          renderRoot={(props) => <Link {...props} to="/factions" search={pageSearch(pageCount)} />}
-        >
-          {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
-        </Button>
-      </Stack>
-    </Surface>
-  );
-}
-
 function FactionCataloguePastTheEnd({ data }: NotFoundRouteProps) {
   const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
   return (
     <PageMessage title="Faction catalogue">
-      <PastTheEnd pageCount={pageCount} />
+      <PastTheEnd pageCount={pageCount} noun="factions" pageLinkProps={factionPageLink} />
     </PageMessage>
   );
 }

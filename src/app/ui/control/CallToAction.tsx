@@ -1,6 +1,6 @@
 import { Button, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
-import { ArrowRight, Plus } from 'lucide-react';
+import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -11,9 +11,12 @@ export interface CallToActionProps {
   children: ReactNode;
   /**
    * `start` prefixes a plus, for an action that brings something into existence;
-   * `forward` suffixes an arrow, for one that continues a journey already begun.
+   * `forward` suffixes an arrow, for one that continues a journey already begun;
+   * `down` suffixes a downward arrow, for one that jumps to a part of this same page.
    */
-  direction?: 'start' | 'forward';
+  direction?: 'start' | 'forward' | 'down';
+  /** `artwork` is the near-black, cream-lettered fill for a call that sits on the sandy header art, where the bright yellow would sink into the sand. */
+  tone?: 'bright' | 'artwork';
   size?: ButtonProps['size'];
   /**
    * Pulses periodically to draw the eye.
@@ -26,7 +29,10 @@ export interface CallToActionProps {
    * The button renders disabled but stays hoverable and focusable, and this becomes its hover text and description, as on `IconAction`.
    */
   disabledReason?: string;
-  renderRoot: RenderRoot;
+  /** Where the journey goes, in practice the router's `Link`. */
+  renderRoot?: RenderRoot;
+  /** A plain anchor instead, for a jump within this page: `#play-preview`. */
+  href?: string;
 }
 
 /**
@@ -38,16 +44,23 @@ export interface CallToActionProps {
 export function CallToAction({
   children,
   direction = 'start',
+  tone = 'bright',
   size = 'md',
   attention = false,
   disabledReason,
   renderRoot,
+  href,
 }: CallToActionProps) {
   const reasonId = useId();
   const iconSize = size === 'sm' ? 15 : 17;
   const sections = {
     leftSection: direction === 'start' ? <Plus size={iconSize} aria-hidden /> : undefined,
-    rightSection: direction === 'forward' ? <ArrowRight size={iconSize} aria-hidden /> : undefined,
+    rightSection:
+      direction === 'forward' ? (
+        <ArrowRight size={iconSize} aria-hidden />
+      ) : direction === 'down' ? (
+        <ArrowDown size={iconSize} aria-hidden />
+      ) : undefined,
   };
 
   if (disabledReason != null) {
@@ -75,10 +88,11 @@ export function CallToAction({
   return (
     <Button
       color="cta"
+      variant={tone === 'artwork' ? 'artwork' : undefined}
       className={attention ? styles.attention : undefined}
       size={size}
       {...sections}
-      renderRoot={renderRoot}
+      {...(href == null ? { renderRoot } : { component: 'a' as const, href })}
     >
       {children}
     </Button>

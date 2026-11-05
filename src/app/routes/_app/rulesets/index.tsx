@@ -1,17 +1,15 @@
-import { Button, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Select, Text } from '@mantine/core';
 import { RULESET_CATALOGUE_PAGE_SIZE, parseRulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import type { RulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
+import { PastTheEnd } from '@ui/block/EmptyResults';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
-import { CataloguePager } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
-import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Plus } from 'lucide-react';
 import { useCallback, useRef } from 'react';
@@ -22,6 +20,7 @@ import type { RulesetCatalogueArgs, RulesetCatalogueEntry, RulesetCataloguePageD
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -50,12 +49,6 @@ const SEARCH_STEP = RULESET_CATALOGUE_PAGE_SIZE;
 
 /** The tiles' links, as the grid renders them, in their order. */
 const TILE_LINK = 'a[href^="/rulesets/"]';
-
-/** A browsed page of the catalogue: counts, numbered pages, a chosen order. */
-type BrowsedCatalogue = Exclude<RulesetCataloguePageData, { mode: 'search' }>;
-
-/** A searched catalogue: the best matches first, and more by asking for a larger limit. */
-type SearchedCatalogue = Extract<RulesetCataloguePageData, { mode: 'search' }>;
 
 /** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
 function catalogueQueryArgs(args: RulesetCatalogueArgs, limit: number): RulesetCatalogueArgs {
@@ -223,102 +216,34 @@ function CatalogueContent({ data, loading, loaded, onLoadMore, ref }: CatalogueC
       </Text>
     );
   }
-  if ('mode' in data) {
-    return <SearchedCatalogue data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
-  }
-  return <BrowsedCatalogue data={data} />;
-}
-
-/** No match among the rulesets checked; a capped search did not check them all, so another word may still find one. */
-function NothingMatches({ capped }: { capped: boolean }) {
   return (
-    <Surface padding="xl">
-      <Stack gap="xs" align="center">
-        <Title order={2}>Nothing matches</Title>
-        <Text c="dimmed" ta="center">
-          No ruleset matches this search.
-        </Text>
-        {capped ? (
-          <Text size="xs" c="dimmed" ta="center">
-            Only the first matches of this search were checked. Add a word to narrow it.
-          </Text>
-        ) : null}
-      </Stack>
-    </Surface>
+    <CatalogueResults
+      results={'mode' in data ? { kind: 'search', ...data } : { kind: 'browse', ...data }}
+      noun="rulesets"
+      singular="ruleset"
+      pagerLabel="Ruleset pages"
+      pageLinkProps={rulesetPageLink}
+      renderTiles={(entries) => <RulesetTiles entries={entries} />}
+      loading={loading}
+      loaded={loaded}
+      onLoadMore={onLoadMore}
+      ref={ref}
+    />
   );
 }
 
-function RulesetTiles({ entries }: { entries: RulesetCatalogueEntry[] }) {
+/** The link to one page of the browsed catalogue. */
+function rulesetPageLink(page: number) {
+  return { component: Link, to: '/rulesets', search: pageSearch(page) };
+}
+
+function RulesetTiles({ entries }: { entries: readonly RulesetCatalogueEntry[] }) {
   return (
     <TileGrid>
       {entries.map((entry) => (
         <RulesetTile key={entry.id} entry={entry} />
       ))}
     </TileGrid>
-  );
-}
-
-/** One page of the browsed catalogue, with its pager. */
-function BrowsedCatalogue({ data }: { data: BrowsedCatalogue }) {
-  if (data.entries.length === 0) {
-    return (
-      <Surface padding="xl">
-        <PastTheEnd pageCount={data.pageCount} />
-      </Surface>
-    );
-  }
-  return (
-    <Stack gap="lg">
-      <RulesetTiles entries={data.entries} />
-      <CataloguePager
-        page={data.page}
-        pageCount={data.pageCount}
-        pageSize={data.pageSize}
-        total={data.total}
-        complete={data.complete}
-        noun="rulesets"
-        label="Ruleset pages"
-        pageLinkProps={(page) => ({ component: Link, to: '/rulesets', search: pageSearch(page) })}
-      />
-    </Stack>
-  );
-}
-
-/**
- * The best matches of a search, and a "Load more" that asks for a longer grid while there is one: no count and no pages.
- * When the longer grid arrives, focus moves to its first new tile, so a keyboard reader carries on from where the grid grew.
- */
-function SearchedCatalogue({
-  data,
-  loading,
-  loaded,
-  onLoadMore,
-  ref,
-}: {
-  data: SearchedCatalogue;
-  loading: boolean;
-  /** Whether the longer grid asked for has arrived. */
-  loaded: boolean;
-  onLoadMore: () => void;
-  ref: Ref<HTMLDivElement>;
-}) {
-  if (data.entries.length === 0) {
-    return <NothingMatches capped={data.capped} />;
-  }
-  return (
-    <Stack gap="lg" aria-busy={loading} ref={ref}>
-      <RulesetTiles entries={data.entries} />
-      {/* The tiles say how many arrived; this says only that they did, so a reader hears the grid grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? 'More rulesets loaded' : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
   );
 }
 
@@ -342,29 +267,11 @@ function RulesetTile({ entry }: { entry: RulesetCatalogueEntry }) {
   );
 }
 
-/** A page past the end, from an old link or a catalogue that shrank: say where the rulesets end and link there. */
-function PastTheEnd({ pageCount }: { pageCount: number }) {
-  return (
-    <Stack gap="sm" align="center">
-      <Title order={2}>Nothing on this page</Title>
-      <Text c="dimmed">
-        {pageCount === 1 ? 'The rulesets fit on one page.' : `The rulesets end on page ${pageCount}.`}
-      </Text>
-      <Button
-        variant="default"
-        renderRoot={(props) => <Link {...props} to="/rulesets" search={pageSearch(pageCount)} />}
-      >
-        {pageCount === 1 ? 'Go to the rulesets' : `Go to page ${pageCount}`}
-      </Button>
-    </Stack>
-  );
-}
-
 function RulesetsPastTheEnd({ data }: NotFoundRouteProps) {
   const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
   return (
     <PageMessage title="Rulesets">
-      <PastTheEnd pageCount={pageCount} />
+      <PastTheEnd pageCount={pageCount} noun="rulesets" pageLinkProps={rulesetPageLink} />
     </PageMessage>
   );
 }

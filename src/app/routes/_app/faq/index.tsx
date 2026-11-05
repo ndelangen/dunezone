@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
@@ -7,12 +7,14 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
+import { BookOpen } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
@@ -272,9 +274,9 @@ function AskOnRuleset() {
       <Text ta="center">
         Got a question of your own? Ask it on its ruleset's page, where the people who play it will see it.
       </Text>
-      <Button variant="default" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+      <LabeledAction icon={<BookOpen size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets" />}>
         Browse the rulesets
-      </Button>
+      </LabeledAction>
     </Stack>
   );
 }
