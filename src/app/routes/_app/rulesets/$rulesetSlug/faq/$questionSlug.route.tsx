@@ -666,9 +666,7 @@ function FaqQuestionPost({
               <Anchor href="#discussion" size="sm" underline="never">
                 Read the answers
               </Anchor>
-              {item.tags?.length ? (
-                <ChipList items={item.tags.map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
-              ) : null}
+              <ChipList items={(item.tags ?? []).map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
             </Group>
           </Stack>
         </Card>

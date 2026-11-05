@@ -8,6 +8,8 @@ interface Chip {
   /**
    * A small round picture of the thing, hidden from assistive tech: the label names it.
    * Leave it out for a word that has no picture, and the word is drawn as a tag.
+   * A list is all pictures or all words;
+   * the row's spacing follows from which.
    */
   figure?: ReactNode;
   label: string;
@@ -25,6 +27,10 @@ export interface ChipListProps {
  * this component owns the row, how it wraps, the pictures' size, and the one look a word tag has, so the glossary's avoided words and a question's topics are drawn alike.
  */
 export function ChipList({ items }: ChipListProps) {
+  /* An empty list says nothing, so a caller can hand over whatever it has without guarding. */
+  if (items.length === 0) {
+    return null;
+  }
   const words = items.every((item) => item.figure === undefined);
   return (
     <ul className={words ? `${styles.list} ${styles.words}` : styles.list}>

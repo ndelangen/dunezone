@@ -2580,6 +2580,9 @@ function reviewPlacementOptions(result: ReadyResult, difference: Extract<Differe
   });
 }
 
+/* The saved side of a difference, the same glyph the settings conflict uses for its saved side. */
+const SAVED_ICON = <CloudDownload size={16} />;
+
 function RulebookDifferenceReview({
   result,
   dispatch,
@@ -2704,10 +2707,7 @@ function RulebookDifferenceReview({
                     <Section title="Latest saved version">
                       {latest}
                       {latestOutcome ? (
-                        <LabeledAction
-                          icon={<CloudDownload size={16} />}
-                          onClick={() => approve(difference, latestOutcome!)}
-                        >
+                        <LabeledAction icon={SAVED_ICON} onClick={() => approve(difference, latestOutcome!)}>
                           {difference.kind === 'anchor' ? 'Use available anchor' : 'Keep saved version'}
                         </LabeledAction>
                       ) : null}
@@ -2762,7 +2762,7 @@ function RulebookRename({
       gap="sm"
       onSubmit={(event) => {
         event.preventDefault();
-        if (validName.success && !rename.isPending) {
+        if (validName.success && validName.data !== rulebook.name && !rename.isPending) {
           rename.mutate(
             { rulebookId: rulebook._id, name: validName.data },
             {

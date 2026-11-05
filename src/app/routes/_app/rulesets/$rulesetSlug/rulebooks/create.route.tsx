@@ -1,5 +1,3 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { Plus, X } from 'lucide-react';
 import { Box, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
@@ -17,9 +15,11 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Plus, X } from 'lucide-react';
 import { useId, useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';

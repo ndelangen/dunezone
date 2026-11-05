@@ -1,5 +1,3 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { Replace, X } from 'lucide-react';
 import { Group, Slider, Stack, Text } from '@mantine/core';
 import { SPICE_BOARD_LOOKS } from '@shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '@shared/assets/schema';
@@ -7,7 +5,9 @@ import type { Board } from '@shared/boards/schema';
 import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
 import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { Replace, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';

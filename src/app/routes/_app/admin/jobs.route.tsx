@@ -93,7 +93,9 @@ function PublicationJobsDashboard() {
               </Group>
 
               {pickupMutation.isError ? (
-                <FormError title="Could not update publisher pickup">{pickupMutation.error?.message ?? ''}</FormError>
+                <FormError title="Could not update publisher pickup">
+                  {pickupMutation.error?.message || 'Try again in a moment.'}
+                </FormError>
               ) : null}
 
               <Group gap="xl" align="flex-start" wrap="wrap">

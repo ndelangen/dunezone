@@ -1,6 +1,3 @@
-import type { ActionIntent } from '@ui/control/actionIntent';
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { Check, X } from 'lucide-react';
 import {
   Anchor,
   Center,
@@ -18,6 +15,9 @@ import {
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import type { ActionIntent } from '@ui/control/actionIntent';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';

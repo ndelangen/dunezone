@@ -1,4 +1,3 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
 import {
   AspectRatio,
   Box,
@@ -21,6 +20,7 @@ import {
 import { originalArtwork } from '@shared/media/retiredArtwork';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { Check, LayoutGrid, Shuffle, X } from 'lucide-react';
 import { useId, useState } from 'react';

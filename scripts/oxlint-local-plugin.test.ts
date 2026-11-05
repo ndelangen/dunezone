@@ -415,7 +415,7 @@ describe('form-error', { timeout: TEST_BUDGET_MS }, () => {
       `import { Alert, Alert as Callout } from '@mantine/core';
 export const probe = [
   <Alert color="red" title="Could not save">Try again</Alert>,
-  <Callout color={'negative'}>Try again</Callout>,
+  <Callout color={'red.6'}>Try again</Callout>,
 ];
 `,
       'src/app/routes'

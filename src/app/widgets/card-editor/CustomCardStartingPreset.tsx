@@ -1,7 +1,7 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { Replace, X } from 'lucide-react';
 import { Alert, Group, Stack, Text } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { Replace, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { CustomCard } from '@game/assets/card/Custom';
@@ -59,7 +59,12 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
               <LabeledAction icon={<X size={16} />} onClick={() => setPending(null)}>
                 Keep current layers
               </LabeledAction>
-              <LabeledAction intent="negative" emphasis="strong" icon={<Replace size={16} />} onClick={() => apply(pending)}>
+              <LabeledAction
+                intent="negative"
+                emphasis="strong"
+                icon={<Replace size={16} />}
+                onClick={() => apply(pending)}
+              >
                 Replace layers
               </LabeledAction>
             </Group>

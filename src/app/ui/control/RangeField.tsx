@@ -19,6 +19,8 @@ export interface RangeFieldProps {
   min: number;
   max: number;
   step?: number;
+  /** Places the box and the slider's label show; the step's own places when omitted, so 0.05 shows two and 1 shows none. Set it when stored values can be finer than the step. */
+  decimals?: number;
   /**
    * Lets a typed value go past the slider's ends: the slider is for reach and the box for precision, so an offset can sit off the card.
    * Leave it off for a value with real limits, a scale or an opacity.
@@ -26,7 +28,7 @@ export interface RangeFieldProps {
   typedBeyondRange?: boolean;
 }
 
-/** Decimal places a step implies, so 0.05 shows two and 1 shows none. */
+/** Decimal places a step implies, so 0.05 shows two and 1 shows none. Reads the plain decimal spelling, which every step in the app has. */
 function decimalsOf(step: number) {
   const [, fraction = ''] = String(step).split('.');
   return fraction.length;
@@ -48,9 +50,9 @@ export function RangeField({
   min,
   max,
   step = 1,
+  decimals = decimalsOf(step),
   typedBeyondRange = false,
 }: RangeFieldProps) {
-  const decimals = decimalsOf(step);
   return (
     <ControlBlock
       title={title}

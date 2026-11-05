@@ -1,10 +1,11 @@
-import { Alert, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Alert, ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { LabeledAction } from '@ui/control/LabeledAction';
+import { RangeField } from '@ui/control/RangeField';
 import {
   AlignHorizontalJustifyCenter,
   AlignVerticalJustifyCenter,
@@ -181,34 +182,13 @@ function TokenLayerFields({
             () => setPicking(false)
           )
         : null}
-      <ControlBlock
+      <RangeField
         title="Token scale"
-        tool={
-          <NumberInput
-            aria-label="Token scale"
-            w={110}
-            min={0.05}
-            max={3}
-            step={0.05}
-            value={layer.scale}
-            onChange={(scale) => {
-              if (typeof scale === 'number') {
-                onChange({ ...layer, scale });
-              }
-            }}
-          />
-        }
-        input={
-          <Slider
-            aria-label="Token scale slider"
-            thumbLabel="Token scale"
-            min={0.05}
-            max={3}
-            step={0.05}
-            value={layer.scale}
-            onChange={(scale) => onChange({ ...layer, scale })}
-          />
-        }
+        min={0.05}
+        max={3}
+        step={0.05}
+        value={layer.scale}
+        onChange={(scale) => onChange({ ...layer, scale })}
       />
     </Stack>
   );
@@ -265,35 +245,15 @@ function LayerFields({
           { key: 'rotation', title: 'Rotation', min: -360, max: 360, step: 1 },
         ] as const
       ).map(({ key, title, min, max, step }) => (
-        <ControlBlock
+        <RangeField
           key={key}
           title={title}
-          tool={
-            <NumberInput
-              aria-label={`${title} for ${label.toLowerCase()}`}
-              w={110}
-              value={layer[key]}
-              min={min}
-              max={max}
-              step={step}
-              onChange={(value) => {
-                if (typeof value === 'number') {
-                  onChange({ ...layer, [key]: value });
-                }
-              }}
-            />
-          }
-          input={
-            <Slider
-              aria-label={`${title} slider for ${label.toLowerCase()}`}
-              thumbLabel={`${title} for ${label.toLowerCase()}`}
-              value={layer[key]}
-              min={min}
-              max={max}
-              step={step}
-              onChange={(value) => onChange({ ...layer, [key]: value })}
-            />
-          }
+          name={`${title} for ${label.toLowerCase()}`}
+          min={min}
+          max={max}
+          step={step}
+          value={layer[key]}
+          onChange={(value) => onChange({ ...layer, [key]: value })}
         />
       ))}
     </Stack>
@@ -329,33 +289,15 @@ function LayerPlacement({
           onChange({ ...layer, offset });
         };
         return (
-          <ControlBlock
+          <RangeField
             key={axis}
             title={`${axis} position`}
-            tool={
-              <NumberInput
-                aria-label={`${axis} position`}
-                w={110}
-                value={value}
-                step={1}
-                onChange={(next) => {
-                  if (typeof next === 'number') {
-                    change(next);
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label={`${axis} position slider`}
-                thumbLabel={`${axis} position`}
-                min={0}
-                max={max}
-                step={1}
-                value={value}
-                onChange={change}
-              />
-            }
+            min={0}
+            max={max}
+            decimals={2}
+            typedBeyondRange
+            value={value}
+            onChange={change}
           />
         );
       })}

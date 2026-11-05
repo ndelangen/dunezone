@@ -704,8 +704,8 @@ const storyOwnsItsStatesRule: Rule = {
 
 const FORM_ERROR_RULE_NAME = 'form-error';
 
-/* The colours that make a Mantine Alert read as a failure: the palette's red and the theme's own name for it. */
-const FAILURE_COLOURS = new Set(['red', 'negative']);
+/* The palette colour that makes a Mantine Alert read as a failure, with or without a shade, `red` or `red.6`. */
+const FAILURE_COLOUR = 'red';
 
 /**
  * Keeps every failure on the kit's FormError, which carries the title, the colour and the live region together.
@@ -756,7 +756,7 @@ const formErrorRule: Rule = {
             : value?.type === 'JSXExpressionContainer' && value.expression.type === 'Literal'
               ? value.expression.value
               : undefined;
-        if (typeof literal === 'string' && FAILURE_COLOURS.has(literal)) {
+        if (typeof literal === 'string' && literal.split('.')[0] === FAILURE_COLOUR) {
           context.report({ node: element, messageId: 'formError' });
         }
       },

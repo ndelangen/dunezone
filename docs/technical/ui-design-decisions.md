@@ -444,6 +444,18 @@ them all.
 status, and [`StatusInfo`](../../src/app/ui/control/StatusInfo.tsx) gathers a toolbar's statuses
 behind one glyph whose popover lists them all.*
 
+### A failure is a FormError
+
+When an attempt did not happen, the page says so with
+[`FormError`](../../src/app/ui/block/FormError.tsx): a title naming what failed, the reason under it,
+and a live region so a screen reader hears it the moment it appears. A failure the reader settles on
+the spot, such as a settings conflict, carries its choices in FormError's `action`, under the words. A
+hand-made red Alert is the failure drawn a second way, usually without a title or without the
+announcement.
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/form-error` rejects a Mantine `Alert`
+with a red colour outside `src/app/ui`.*
+
 ### Destructive actions are held, not asked twice
 
 A delete fires after its trigger is held for five seconds. Hovering says "hold to delete"; pressing

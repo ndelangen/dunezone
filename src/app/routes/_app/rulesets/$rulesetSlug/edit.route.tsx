@@ -784,9 +784,7 @@ function RulesetFactions({
               </SortableContext>
             </DndContext>
           ) : null}
-          {ordered?.hasMore ? (
-            <LoadMoreButton loading={false} onLoadMore={loadMore} />
-          ) : null}
+          {ordered?.hasMore ? <LoadMoreButton loading={false} onLoadMore={loadMore} /> : null}
           <Text size="xs" c="dimmed">
             Changes save immediately. The ruleset page shows the first three. Removing a faction only takes it out of
             this ruleset.

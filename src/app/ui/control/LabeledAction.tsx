@@ -75,10 +75,12 @@ export function LabeledAction({
             vars={vars}
             leftSection={leftSection}
             ref={ref}
-            type="button"
+            type={renderRoot ? undefined : type}
+            form={form}
             data-disabled
             aria-disabled
             aria-describedby={reasonId}
+            /* Keeps its type so a form's Enter lands here and stops, the way a disabled submit button stops it. */
             onClick={(event) => event.preventDefault()}
             className={className}
           >

@@ -109,6 +109,7 @@ function IconOffsetControls({
           min={-60}
           max={60}
           typedBeyondRange
+          decimals={2}
           value={offset[0]}
           onChange={(value) => patch({ iconOffset: [value, offset[1]] })}
         />
@@ -137,6 +138,7 @@ export function CardIconVerticalOffsetControl({
       min={-60}
       max={60}
       typedBeyondRange
+      decimals={2}
       value={offset[1]}
       onChange={(value) => patch({ iconOffset: [offset[0], value] })}
     />

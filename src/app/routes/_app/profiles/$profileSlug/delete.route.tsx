@@ -1,4 +1,3 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
 import { Alert, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -7,6 +6,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';

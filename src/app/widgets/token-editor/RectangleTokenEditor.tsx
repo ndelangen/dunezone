@@ -337,6 +337,7 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
             <RangeField
               title={`Text ${index + 1} horizontal offset`}
               typedBeyondRange
+              decimals={2}
               value={text.offset[0]}
               onChange={(value) => setText(index, { offset: [value, text.offset[1]] })}
               min={-FACE_WIDTH}
@@ -345,6 +346,7 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
             <RangeField
               title={`Text ${index + 1} vertical offset`}
               typedBeyondRange
+              decimals={2}
               value={text.offset[1]}
               onChange={(value) => setText(index, { offset: [text.offset[0], value] })}
               min={-FACE_HEIGHT}

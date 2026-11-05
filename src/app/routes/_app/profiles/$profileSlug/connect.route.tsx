@@ -1,13 +1,13 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { ArrowRight, Merge } from 'lucide-react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { ArrowRight, Merge } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
@@ -139,8 +139,8 @@ function ConnectionStatus({
             {provider} is now connected to {connection.targetName}. Your content and access have been combined.
           </Text>
           <LabeledAction intent="positive" emphasis="strong" icon={<ArrowRight size={16} />} onClick={onContinue}>
-          {`Continue with ${provider}`}
-        </LabeledAction>
+            {`Continue with ${provider}`}
+          </LabeledAction>
         </>
       );
   }

@@ -26,13 +26,15 @@ export interface PickerFieldProps {
   picker: (close: () => void) => ReactNode;
   /** What the spinner says while the picker loads, "Loading factions". */
   loadingLabel: string;
-  /**
-   * Whether the picker is open, for a caller that keeps two pickers from being open together.
-   * Omit it and the field keeps its own.
-   */
-  opened?: boolean;
-  onOpenChange?: (opened: boolean) => void;
 }
+
+/**
+ * Whether the picker is open, for a caller that keeps two pickers from being open together.
+ * Both or neither: omit them and the field keeps its own.
+ */
+type OpenState =
+  | { opened: boolean; onOpenChange: (opened: boolean) => void }
+  | { opened?: never; onOpenChange?: never };
 
 /**
  * Picks one thing from a picker that opens in place, and clears it again.
@@ -40,6 +42,7 @@ export interface PickerFieldProps {
  * Callers own the picker, the chosen thing's name and what clearing means;
  * this owns the arrangement: the button that names the choice and opens the picker, the clear action beside it, and the spinner while a lazily loaded picker arrives.
  * The picker comes in as a slot so the field itself never fetches.
+ * The choose button is the kit's one worded button that names a value rather than an action, so it is Mantine's default button with the chevron a select wears, not a LabeledAction.
  * It exists because the rulebook editor wrote this control six times, each with its own text-only Clear button.
  */
 export function PickerField({
@@ -53,13 +56,10 @@ export function PickerField({
   loadingLabel,
   opened: controlled,
   onOpenChange,
-}: PickerFieldProps) {
+}: PickerFieldProps & OpenState) {
   const [own, setOwn] = useState(false);
   const opened = controlled ?? own;
-  const setOpened = (next: boolean) => {
-    setOwn(next);
-    onOpenChange?.(next);
-  };
+  const setOpened = onOpenChange ?? setOwn;
   return (
     <ControlBlock
       title={title}

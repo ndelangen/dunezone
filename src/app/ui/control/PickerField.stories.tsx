@@ -33,5 +33,5 @@ export const Chosen = meta.story({
 
 /** The picker open under the button. */
 export const Opened = meta.story({
-  args: { chosen: 'House Atreides', onClear: () => undefined, opened: true },
+  args: { chosen: 'House Atreides', onClear: () => undefined, opened: true, onOpenChange: () => undefined },
 });

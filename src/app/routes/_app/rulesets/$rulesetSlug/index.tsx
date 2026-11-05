@@ -1,4 +1,3 @@
-import { LabeledAction } from '@ui/control/LabeledAction';
 import { Alert, Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
@@ -21,12 +20,29 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CheckCircle2, CircleHelp, EllipsisVertical, FileDown, FileText, History, Layers3, MessageCircleQuestion, MessageCircleQuestionMark, Pencil, RefreshCw, Search, UserRoundMinus, UsersRound } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  CircleHelp,
+  EllipsisVertical,
+  FileDown,
+  FileText,
+  History,
+  Layers3,
+  MessageCircleQuestion,
+  MessageCircleQuestionMark,
+  Pencil,
+  RefreshCw,
+  Search,
+  UserRoundMinus,
+  UsersRound,
+} from 'lucide-react';
 import { useState } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';

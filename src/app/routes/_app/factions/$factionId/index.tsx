@@ -590,7 +590,9 @@ function FactionDetailContent({
       <PageLayout.Content>
         <Stack gap="xl">
           {membershipWorkflow.request.isError ? (
-            <FormError title="Membership request failed">{membershipWorkflow.request.error?.message ?? ''}</FormError>
+            <FormError title="Membership request failed">
+              {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
+            </FormError>
           ) : null}
           <Flex
             direction={{ base: 'column-reverse', md: 'row' }}
