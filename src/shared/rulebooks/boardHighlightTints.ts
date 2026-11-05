@@ -1,3 +1,4 @@
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
 import type { BoardTint } from '../boards/markup';
 import { BOARD_MAX_TINTS } from '../boards/markup';
 import type { RulebookBoardSceneValue } from './illustratedScenes';
@@ -12,7 +13,7 @@ const GROUP_TYPES: Record<string, NonNullable<BoardTint['types']>[number]> = {
 };
 const GROUP_TERRITORIES: Record<string, string> = { polar: 'polar_sink' };
 /* The sector guides are a part of the maintained artwork, not a territory a tint can cover. */
-const NOT_TERRITORIES = new Set(['sectors']);
+const NOT_TERRITORIES = new Set([SECTORS_PART_KEY]);
 
 const DEFAULT_OPACITY = 0.35;
 

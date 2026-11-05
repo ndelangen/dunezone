@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer';
 
-import { publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
+import { publishedR2Key, resolvePublicationCapture } from '../../src/shared/asset-publishing/publicationTargets';
 import { rulebookAnnotatedIllustrationIdentitySchema } from '../../src/shared/rulebooks/annotatedIllustration';
 import type {
   RulebookAnnotatedIllustrationIdentity,
@@ -10,6 +10,7 @@ import {
   composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
   RULEBOOK_ANNOTATION_COMPOSITOR_REVISION,
+  RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES,
 } from '../../src/shared/rulebooks/assetExplainerAnnotations';
 import { resolveRulebookBoardDefinition } from '../../src/shared/rulebooks/boardDefinitions';
 import { resolveRulebookBoardIllustration } from '../../src/shared/rulebooks/boardIllustrations';
@@ -39,6 +40,14 @@ function unavailable(status: number, message: string, headers?: HeadersInit) {
     },
   });
 }
+
+/** A deck image stays under 2 MB; a saved board's image may be as large as its capture allows, up to what the illustration can embed. */
+const imageMaxBytes = (assetType: 'deck' | 'board') => {
+  const capture = resolvePublicationCapture(assetType);
+  return assetType === 'board' && capture.output === 'image'
+    ? Math.min(capture.maxBytes, RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES)
+    : 2_000_000;
+};
 
 async function imageInput(
   resolution: FoundIllustration,
@@ -97,17 +106,21 @@ async function imageInput(
     };
   }
   if (source.status === 'image') {
+    const maxBytes = imageMaxBytes(source.assetType);
     const object = await bucket.get(publishedR2Key(source.assetType, source.assetId));
+    /* An image too large to embed draws the illustration's unavailable placeholder rather than failing the request. */
+    if (object && 'body' in object && object.size > maxBytes) {
+      return { source: unavailableSource, publicationIdentity: `too-large:${source.revision}` };
+    }
     if (
       !object ||
       !('body' in object) ||
-      object.size > 2_000_000 ||
       object.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY] !== source.revision
     ) {
       throw new Error('Annotated image publication is unavailable');
     }
     const bytes = new Uint8Array(await object.arrayBuffer());
-    if (bytes.byteLength > 2_000_000) {
+    if (bytes.byteLength > maxBytes) {
       throw new Error('Annotated image publication is too large');
     }
     const { widthPx: width, heightPx: height } = jpegProfile(bytes);
@@ -124,6 +137,7 @@ async function imageInput(
         imageUrl: imageDataUrl,
         width,
         height,
+        ...(source.geometry ? { geometry: source.geometry, publicationRevision: source.revision } : {}),
       },
       imageDataUrl,
       publicationIdentity: `${source.revision}:${await illustrationEtag(imageDataUrl)}`,

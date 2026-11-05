@@ -100,6 +100,32 @@ describe('AssetExplainer draft reconciliation', () => {
       },
     });
   });
+  test('saves Sector lines on and off and keeps them through another author changing explanation text', () => {
+    const initial = input(),
+      manager = createRulebookEditorStateManager(initial);
+    const draft = structuredClone(ready(manager.result).draft);
+    explainer(draft).sectorLines = true;
+    expect(ready(manager.dispatch({ kind: 'replace-draft', draft })).canSave).toBe(true);
+    const latest = structuredClone(initial);
+    latest.revision = 'revision-2';
+    explainer(latest.contents).itemsById.first!.text = 'Remote explanation.';
+    const merged = ready(manager.dispatch({ kind: 'receive-latest', latest }));
+    expect(merged.incompatibilities).toEqual([]);
+    expect(explainer(merged.saveCandidate!)).toMatchObject({
+      sectorLines: true,
+      itemsById: { first: { text: 'Remote explanation.' } },
+    });
+
+    const saved = structuredClone(initial);
+    explainer(saved.contents).sectorLines = true;
+    const reopened = createRulebookEditorStateManager(saved);
+    const off = structuredClone(ready(reopened.result).draft);
+    explainer(off).sectorLines = undefined;
+    const result = ready(reopened.dispatch({ kind: 'replace-draft', draft: off }));
+    expect(result.canSave).toBe(true);
+    expect(explainer(result.saveCandidate!).sectorLines).toBeUndefined();
+  });
+
   test('preserves target provenance on source replacement and requests only the current source', () => {
     const manager = createRulebookEditorStateManager(input());
     const result = ready(

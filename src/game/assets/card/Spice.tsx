@@ -1,7 +1,9 @@
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { CustomCardTokens } from '@shared/assets/schema';
+import { retainedArrakisBoard } from '@shared/boards/geometry';
 import type { Board } from '@shared/boards/schema';
-import { useId } from 'react';
+import { legacyHighlightTint } from '@shared/boards/spiceHighlights';
+import { useMemo } from 'react';
 import type { FC } from 'react';
 import type { z } from 'zod';
 
@@ -19,10 +21,6 @@ import unique from './Spice.module.css';
 import { SpiceBoardMap } from './SpiceBoardMap';
 import type { SpiceMapEditing } from './SpiceBoardMap';
 import { spiceIconSrc, standardSpiceText } from './spiceText';
-
-const edgeColor = '#000';
-const foreGroundColor = '#F8F6E2';
-const highLightColor = '#9E5F00';
 
 /**
  * A card with a `board` link draws that board, resolved by the caller into `boardDefinition` and `boardTokens`, in place of the legacy Arrakis vector.
@@ -55,8 +53,12 @@ export const SpiceCard: FC<
 }) => {
   const frontStyle = useResolvedCardFront('card-spice', {}, suppliedFrontStyle);
   const resolveOverlay = useAssetResolver();
-  const prefix = useId();
-  const decalsFilter = `${prefix}decals-filter`;
+  /* A card without a board link draws the stock Arrakis board, its highlights carried as one tint; kept while they stay the same, so the map is drawn once. */
+  const highlightKey = highlights.join(',');
+  const classicTints = useMemo(() => {
+    const tint = legacyHighlightTint(highlightKey ? (highlightKey.split(',') as typeof highlights) : [], subName);
+    return tint ? [tint] : [];
+  }, [highlightKey, subName]);
   const iconSize = 85 * iconScale;
 
   return (
@@ -116,69 +118,29 @@ export const SpiceCard: FC<
           />
         )
       ) : (
-        <>
-          <svg className={unique.map} viewBox="0 0 100 100" xmlSpace="preserve" fillRule="evenodd" clipRule="evenodd">
-            <use xlinkHref="/vector/background/map.svg#root" />
-          </svg>
-
-          <svg
-            className={unique.map_overlay}
-            viewBox="0 0 100 100"
-            xmlSpace="preserve"
-            fillRule="evenodd"
-            clipRule="evenodd"
-          >
-            <defs>
-              <filter id={decalsFilter}>
-                <feColorMatrix
-                  result="CONTRASTED"
-                  in="SourceAlpha"
-                  type="matrix"
-                  values="1 0 0 0 0
-              0 1 0 0 0
-              0 0 1 0 0
-              0 0 0 34 0"
-                />
-                <feMorphology in="CONTRASTED" result="DILATED0" operator="dilate" radius="1.03" />
-                <feMorphology in="CONTRASTED" result="DILATED1" operator="dilate" radius="0.62" />
-                <feMorphology in="CONTRASTED" result="DILATED2" operator="dilate" radius="0.21" />
-                <feFlood floodColor={foreGroundColor} floodOpacity="1" result="PINK0" />
-                <feFlood floodColor={edgeColor} floodOpacity="1" result="PINK1" />
-                <feFlood floodColor={highLightColor} floodOpacity="1" result="PINK2" />
-                <feComposite in="PINK0" in2="DILATED0" operator="in" result="OUTLINE0" />
-                <feComposite in="PINK1" in2="DILATED1" operator="in" result="OUTLINE1" />
-                <feComposite in="PINK2" in2="DILATED2" operator="in" result="OUTLINE2" />
-                <feMerge>
-                  <feMergeNode in="OUTLINE0" />
-                  <feMergeNode in="OUTLINE1" />
-                  <feMergeNode in="OUTLINE2" />
-                </feMerge>
-              </filter>
-              <mask id={`${prefix}mask`}>
-                {highlights.map((territory) => (
-                  <use key={territory} xlinkHref={`/vector/background/map.svg#${territory}`} />
-                ))}
-              </mask>
-            </defs>
-
-            <g filter={`url(#${decalsFilter})`}>
-              <rect width="100%" height="100%" mask={`url(#${prefix}mask)`} fill={edgeColor} />
-            </g>
-
-            <use xlinkHref="/vector/background/map.svg#sectors" />
-            {overlays?.map((overlay) => (
-              <image
-                key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
-                href={resolveOverlay(overlay.image)}
-                x={overlay.offset[0]}
-                y={overlay.offset[1]}
-                width={overlay.scale}
-                height={overlay.scale}
-              />
-            ))}
-          </svg>
-        </>
+        <SpiceBoardMap board={retainedArrakisBoard()} tints={classicTints} />
       )}
+
+      {/* Images an author placed on the map, in the classic map's 100-unit frame, over the classic or the linked board alike. */}
+      {overlays?.length ? (
+        <svg
+          className={`${unique.map_overlay} ${board?.look?.style === 'textured-burn' ? unique.shiftedMap : ''}`}
+          viewBox="0 0 100 100"
+          fillRule="evenodd"
+          clipRule="evenodd"
+        >
+          {overlays.map((overlay) => (
+            <image
+              key={`${overlay.image}-${overlay.offset[0]},${overlay.offset[1]}-${overlay.scale}`}
+              href={resolveOverlay(overlay.image)}
+              x={overlay.offset[0]}
+              y={overlay.offset[1]}
+              width={overlay.scale}
+              height={overlay.scale}
+            />
+          ))}
+        </svg>
+      ) : null}
 
       {board?.typeToken && boardTokens?.[board.typeToken.asset_id] ? (
         <div className={unique.typeToken} data-spice-type-token>

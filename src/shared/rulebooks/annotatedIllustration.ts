@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { COMPONENT_ASSET_TYPES } from '../asset-publishing/componentGeometry';
+import { COMPONENT_ASSET_TYPES, componentGeometrySchema } from '../asset-publishing/componentGeometry';
 import { assetExplainerBlockSchema, rulebookLocalIdSchema } from './contents';
 import { rulebookDesignSchema } from './settings';
 import { rulebookSourceReferenceSchema } from './sources';
@@ -39,8 +39,10 @@ export function matchRulebookAnnotatedIllustrationPath(pathname: string): Rulebo
   return parsed.success ? parsed.data : null;
 }
 
+/** Version 2 Workers draw saved boards (`image` sources with `assetType: 'board'` and captured geometry); every deployed Worker asks with it. */
+export const RULEBOOK_ILLUSTRATION_REQUEST_VERSION = 2;
 export const resolveRulebookAnnotatedIllustrationRequestSchema = rulebookAnnotatedIllustrationIdentitySchema.extend({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(RULEBOOK_ILLUSTRATION_REQUEST_VERSION),
 });
 
 /** The endpoint carries only fields used by the illustration; prose remains in the saved HTML legend. */
@@ -49,6 +51,7 @@ export const rulebookIllustrationConfigurationSchema = assetExplainerBlockSchema
     source: true,
     numbering: true,
     colorMode: true,
+    sectorLines: true,
   })
   .extend({
     items: z.array(assetExplainerBlockSchema.shape.itemsById.valueType.omit({ text: true })).max(128),
@@ -69,9 +72,11 @@ const rulebookIllustrationSourceSchema = z.discriminatedUnion('status', [
     status: z.literal('image'),
     reference: rulebookSourceReferenceSchema,
     name: z.string().max(1000),
-    assetType: z.literal('deck'),
+    /* A deck's published image, or a saved board's with the territories its capture drew, so annotations can point at them. */
+    assetType: z.enum(['deck', 'board']),
     assetId: z.string().min(1).max(160),
     revision: z.uuid(),
+    geometry: componentGeometrySchema.optional(),
   }),
   z.strictObject({
     status: z.literal('published'),

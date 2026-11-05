@@ -1,6 +1,8 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
-import { derive } from './geometry';
-import type { Board, Face } from './geometry';
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
+import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
+import { derive, sectorRim, sectorSegments } from './geometry';
+import type { Board, Face, Point } from './geometry';
 import { propertyId } from './schema';
 
 /* A saved board draws in a square frame this wide, the same one its published image fills. */
@@ -51,8 +53,27 @@ function part(key: string, label: string, faces: readonly Face[]) {
 }
 
 /**
+ * The storm's sector lines as the maintained Arrakis geometry's `sectors` part has them, every stretch outside the polar territories, so an annotation that points at the sectors finds them on a saved board too.
+ * A board without a polar sink draws them from the centre.
+ */
+function sectorsPart(polarRings: readonly (readonly Point[])[]) {
+  const transform: [number, number, number, number, number, number] = [1 / FRAME, 0, 0, 1 / FRAME, 0, 0];
+  const paths = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => sectorSegments(sectorRim(index), polarRings))
+    .flat()
+    .map(([start, end]) => ({
+      d: `M${round(start[0])} ${round(start[1])}L${round(end[0])} ${round(end[1])}`,
+      transform,
+    }))
+    .slice(0, MAX_PATHS);
+  /* A polar territory that covers every sector line leaves no line to point at; the part is left out rather than carried empty, which the geometry schema refuses. */
+  return paths.length
+    ? { key: SECTORS_PART_KEY, label: 'Sectors', x: 0, y: 0, width: 1, height: 1, highlight: { paths } }
+    : null;
+}
+
+/**
  * A saved board's territories as a Rulebook illustration's component geometry, in the frame of the board's published image.
- * Each territory is a part under its Arrakis-style key, and each territory type a group part, as the maintained Arrakis geometry has them;
+ * Each territory is a part under its Arrakis-style key, each territory type a group part and the sector lines a `sectors` part, as the maintained Arrakis geometry has them;
  * a territory whose ID no key can spell is left out.
  */
 export function boardComponentGeometry(board: Board, widthPx: number, heightPx: number): ComponentGeometry {
@@ -63,9 +84,13 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
       return { face, key: boardPartKey(property), name: property.name, type: property.type };
     })
     .filter(({ key }) => /^[a-z][a-z0-9-]*$/.test(key) && key.length <= 80);
-  const parts = new Map<string, ReturnType<typeof part>>();
+  /* Every polar territory masks the sector lines, including one whose ID no part key can spell. */
+  const polarRings = faces.filter((face) => board.properties[face.key]?.type === 'polar').flatMap((face) => face.rings);
+  /* First, so a board with more parts than the limit drops a territory rather than the sectors; a territory the board itself names Sectors takes the key over. */
+  const sectors = sectorsPart(polarRings);
+  const parts = new Map<string, ReturnType<typeof part>>(sectors ? [[SECTORS_PART_KEY, sectors]] : []);
   for (const { key, name } of territories) {
-    if (!parts.has(key)) {
+    if (!parts.has(key) || (sectors && parts.get(key) === sectors)) {
       parts.set(
         key,
         part(

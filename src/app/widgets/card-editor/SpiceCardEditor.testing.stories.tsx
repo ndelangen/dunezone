@@ -82,13 +82,15 @@ export const SavedBoard = meta.story({
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('Arrakis')).toBeVisible();
-    await expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] > g')).toHaveLength(1);
+    await expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] [data-tint-fill]')).toHaveLength(1);
     await userEvent.click(canvas.getByRole('button', { name: 'Paint Spice blow' }));
     await expect(canvas.getByText('Painting: click territories on the card')).toBeVisible();
     const { x, y } = territoryOnScreen(canvasElement, 'the_minor_erg');
     const surface = canvasElement.querySelector('[data-brush]')!;
     await userEvent.pointer({ keys: '[MouseLeft]', target: surface, coords: { clientX: x, clientY: y } });
-    await waitFor(() => expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] > g')).toHaveLength(2));
+    await waitFor(() =>
+      expect(proofOf(canvasElement).querySelectorAll('[data-tint="blow"] [data-tint-fill]')).toHaveLength(2)
+    );
     await expect(args.patch).toHaveBeenCalled();
     await userEvent.keyboard('{Escape}');
     await expect(canvas.queryByText('Painting: click territories on the card')).toBeNull();

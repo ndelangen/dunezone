@@ -188,6 +188,7 @@ describe('scheduled production deployment shape', () => {
       '/tutorial/*',
       '/media',
       '/media/*',
+      '/public/*',
     ]);
   });
 });

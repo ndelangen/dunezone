@@ -326,6 +326,18 @@ export const RejectedEditionFallsBackToCurrent = meta.story({
   },
 });
 
+/**
+ * An Edition that was never published is a missing page, not an error frame.
+ * The loader recognises the server's ConvexError refusal by its data, which Storybook's worker transport now carries (#1892).
+ */
+export const MissingEditionIsNotFound = meta.story({
+  args: { path: `${readerPath}?edition=999` },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
 const staleLocator = encodeRulebookTextLocator({
   ...movementLocator,
   exact: 'Words removed from this Edition',
