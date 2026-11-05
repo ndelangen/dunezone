@@ -61,10 +61,9 @@ def is_exported(obj, show, skip):
     return not obj.hide_render or obj.name in show
 
 
-def instance_roots(collection):
-    """Top-level objects of an instanced collection."""
-    members = collection.all_objects
-    return [o for o in members if o.parent is None or o.parent.name not in members]
+def instance_members(collection):
+    """Every object of an instanced collection; matrix_world already carries each parent's transform."""
+    return list(collection.all_objects)
 
 
 def flatten(objs, parent_matrix, show, skip):
@@ -77,7 +76,7 @@ def flatten(objs, parent_matrix, show, skip):
         if instanced:
             collection = obj.instance_collection
             offset = Matrix.Translation(-Vector(collection.instance_offset))
-            yield from flatten(instance_roots(collection), matrix @ offset, show, skip)
+            yield from flatten(instance_members(collection), matrix @ offset, show, skip)
         elif obj.type in DRAWABLE:
             yield obj, matrix
 
@@ -90,6 +89,8 @@ def fmt(point):
 def bezier_path(spline, project):
     points = spline.bezier_points
     anchors = [project(p.co) for p in points]
+    # A cubic stays inside the hull of its anchors and handles, so the handles bound the drawing too.
+    hull = anchors + [project(h) for p in points for h in (p.handle_left, p.handle_right)]
     parts = [f'M{fmt(anchors[0])}']
     count = len(points) if spline.use_cyclic_u else len(points) - 1
     for i in range(count):
@@ -97,7 +98,7 @@ def bezier_path(spline, project):
         parts.append(f'C{fmt(project(start.handle_right))} {fmt(project(end.handle_left))} {fmt(project(end.co))}')
     if spline.use_cyclic_u:
         parts.append('Z')
-    return ''.join(parts), anchors
+    return ''.join(parts), hull
 
 
 def poly_path(points, cyclic):
@@ -212,12 +213,19 @@ def path_element(item, min_width):
     )
 
 
+def ink_reach(item, min_width):
+    """How far an item's paint reaches past its points: half the stroke width, or nothing for a fill."""
+    return 0 if item['filled'] else max(item['w'], min_width) / 2
+
+
 def render_svg(items):
     xs = [p.x for i in items for p in i['pts']]
-    ys = [-p.y for i in items for p in i['pts']]
-    x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+    min_width = (max(xs) - min(xs)) * 0.003
+    reach = [(p, ink_reach(i, min_width)) for i in items for p in i['pts']]
+    x0, x1 = min(p.x - r for p, r in reach), max(p.x + r for p, r in reach)
+    y0, y1 = min(-p.y - r for p, r in reach), max(-p.y + r for p, r in reach)
     pad = 0.01 * max(x1 - x0, y1 - y0)
-    body = ''.join(path_element(i, (x1 - x0) * 0.003) for i in items)
+    body = ''.join(path_element(i, min_width) for i in items)
     view = f'{x0 - pad:.4f} {y0 - pad:.4f} {x1 - x0 + 2 * pad:.4f} {y1 - y0 + 2 * pad:.4f}'
     return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view}">{body}</svg>'
 
