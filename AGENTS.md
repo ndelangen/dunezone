@@ -359,7 +359,8 @@ the hover, focus, disabled, pending or open states of the children it composes, 
 tooltips, holds or menus; it proves its wiring through the child's accessible name, value and
 description. Each visual story changes one thing from its component's baseline, so a story name that
 needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
-a tooltip in any story outside `src/app/ui`.
+a tooltip in any story outside `src/app/ui`. Beside it, `local/form-error` rejects a red Mantine `Alert`
+outside the kit: a failure is a `FormError`.
 
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.

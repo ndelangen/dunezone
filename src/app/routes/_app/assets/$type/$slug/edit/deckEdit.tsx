@@ -2,6 +2,7 @@ import { Alert, Menu, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -331,16 +332,10 @@ function DeckEditSession({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {setCount.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not change the composition">
-              {mutationErrorMessage(setCount.error)}
-            </Alert>
+            <FormError title="Could not change the composition">{mutationErrorMessage(setCount.error)}</FormError>
           ) : null}
           {state.memory.pickBlocked && pickless ? (
             <Alert color="yellow" variant="light" role="alert" title="No deck picked">

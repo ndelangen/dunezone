@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -10,13 +10,16 @@ import {
 import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Plus, X } from 'lucide-react';
 import { useId, useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
@@ -255,6 +258,10 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       : clone
         ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
+  const missing = {
+    starter: 'Give the Rulebook a name and a size first.',
+    clone: clone ? 'Give the Rulebook a name first.' : 'Choose a Rulebook to copy first.',
+  }[draft.source];
   return (
     <Stack
       component="form"
@@ -348,24 +355,27 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       <Text size="sm" c="dimmed">
         Creates a saved draft and matching Edition 1. The new Rulebook opens with no local changes.
       </Text>
-      {create.error ? (
-        <Alert color="red" title="Rulebook could not be created">
-          {create.error.message}
-        </Alert>
-      ) : null}
+      {create.error ? <FormError title="Rulebook could not be created">{create.error.message}</FormError> : null}
       <Group gap="sm">
-        <Button type="submit" color="confirm" disabled={!input} loading={create.isPending}>
+        <LabeledAction
+          type="submit"
+          intent="positive"
+          emphasis="strong"
+          icon={<Plus size={16} />}
+          busy={create.isPending}
+          disabledReason={input ? undefined : missing}
+        >
           Create Rulebook
-        </Button>
-        <Button
-          variant="default"
-          disabled={create.isPending}
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={create.isPending ? 'Wait for the Rulebook to be created.' : undefined}
           renderRoot={(props) => (
             <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
           )}
         >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );

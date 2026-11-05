@@ -1,5 +1,6 @@
-import { Anchor, Alert, Badge, Button, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -92,9 +93,9 @@ function PublicationJobsDashboard() {
               </Group>
 
               {pickupMutation.isError ? (
-                <Alert color="red" title="Could not update publisher pickup">
-                  {pickupMutation.error?.message}
-                </Alert>
+                <FormError title="Could not update publisher pickup">
+                  {pickupMutation.error?.message || 'Try again in a moment.'}
+                </FormError>
               ) : null}
 
               <Group gap="xl" align="flex-start" wrap="wrap">

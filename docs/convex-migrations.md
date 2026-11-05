@@ -179,7 +179,11 @@ bun run migrations:static-check
 
 - Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, since it reached its size limit,
   in [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts) for newer catalogue backfills and
-  [`convex/emblemMigrations.ts`](../convex/emblemMigrations.ts) for the November 2026 emblem rename.
+  [`convex/emblemMigrations.ts`](../convex/emblemMigrations.ts) for the November 2026 emblem rename, and
+  [`convex/arrakisMigrations.ts`](../convex/arrakisMigrations.ts) for the move off the built-in Arrakis map
+  and the removal of the Spice `highlights` list (#1971). That removal takes three releases: the field became
+  optional, then `arrakis_spice_highlights_strip_v1` and its two verifies clear it from cards and queued
+  captures, then a narrow entry requiring all three removes it from the schema.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.

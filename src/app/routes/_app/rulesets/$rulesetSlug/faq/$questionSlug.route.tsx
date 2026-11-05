@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -19,10 +19,12 @@ import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
@@ -435,16 +437,16 @@ function FaqAnswerPost({
               </div>
               {!hasAcceptedAnswer && answer.capabilities.acceptAnswer ? (
                 <Group justify="flex-end">
-                  <Button
-                    color="confirm"
-                    variant="filled"
+                  <LabeledAction
+                    intent="positive"
+                    emphasis="strong"
                     size="sm"
-                    leftSection={<BadgeCheck size={17} aria-hidden />}
-                    loading={faq.setAcceptedAnswer.isPending}
+                    icon={<BadgeCheck size={17} />}
+                    busy={faq.setAcceptedAnswer.isPending}
                     onClick={() => void faq.setAcceptedAnswer.run({ answerId: answer.id }).catch(() => undefined)}
                   >
                     Accept answer
-                  </Button>
+                  </LabeledAction>
                 </Group>
               ) : null}
             </>
@@ -664,11 +666,7 @@ function FaqQuestionPost({
               <Anchor href="#discussion" size="sm" underline="never">
                 Read the answers
               </Anchor>
-              {(item.tags ?? []).map((tag) => (
-                <Badge key={tag} size="xs" variant="outline" color="dune">
-                  {FAQ_TAG_LABELS[tag]}
-                </Badge>
-              ))}
+              <ChipList items={(item.tags ?? []).map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
             </Group>
           </Stack>
         </Card>
@@ -882,17 +880,17 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
           reference={reference}
           action={
             faq.canManageReferences ? (
-              <Button
-                variant="subtle"
-                size="compact-xs"
-                disabled={faq.removeReference.isPending}
-                aria-label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+              <IconAction
+                label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+                intent="negative"
+                emphasis="quiet"
+                size="sm"
+                icon={<X size={14} aria-hidden />}
+                loading={faq.removeReference.isPending}
                 onClick={() => {
                   void faq.removeReference.run(reference).catch(() => undefined);
                 }}
-              >
-                Remove
-              </Button>
+              />
             ) : undefined
           }
         />

@@ -2,7 +2,7 @@ import { Group, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { ArrowLeft, Check, Download, RotateCcw, Send, Trash2 } from 'lucide-react';
 
-import type { ActionEmphasis, ActionIntent } from './actionIntent';
+import type { ActionIntent } from './actionIntent';
 import { LabeledAction } from './LabeledAction';
 
 const meta = preview.meta({
@@ -26,7 +26,7 @@ const INTENTS: [ActionIntent, string, typeof RotateCcw][] = [
   ['export', 'Download PDF', Download],
 ];
 
-const EMPHASES: ActionEmphasis[] = ['silent', 'quiet', 'standard', 'strong'];
+const EMPHASES = ['standard', 'strong'] as const;
 
 /** Every intent at every emphasis, the same grid as IconAction's, so a worded action and its glyph twin can be compared. */
 export const EveryIntent = meta.story({

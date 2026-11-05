@@ -3,7 +3,6 @@ import {
   Alert,
   Badge,
   Box,
-  Button,
   Grid,
   Group,
   NumberInput,
@@ -16,6 +15,7 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { Rotate3d } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -119,16 +119,14 @@ function TroopCard({
           </Text>
         </Box>
 
-        <Button
-          type="button"
-          variant="light"
-          color={hasBack ? 'gray' : 'dune'}
+        <LabeledAction
+          intent={hasBack ? 'negative' : 'positive'}
           size="compact-sm"
-          leftSection={<Rotate3d size={15} aria-hidden />}
+          icon={<Rotate3d size={15} />}
           onClick={onToggleBack}
         >
           {hasBack ? 'Remove flip side' : 'Add flip side'}
-        </Button>
+        </LabeledAction>
       </Group>
 
       {hasBack ? (

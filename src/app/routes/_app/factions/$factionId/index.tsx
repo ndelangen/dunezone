@@ -1,10 +1,11 @@
-import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
@@ -589,9 +590,9 @@ function FactionDetailContent({
       <PageLayout.Content>
         <Stack gap="xl">
           {membershipWorkflow.request.isError ? (
-            <Alert color="red" title="Membership request failed" role="alert" mb="xl">
-              {membershipWorkflow.request.error?.message}
-            </Alert>
+            <FormError title="Membership request failed">
+              {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
+            </FormError>
           ) : null}
           <Flex
             direction={{ base: 'column-reverse', md: 'row' }}

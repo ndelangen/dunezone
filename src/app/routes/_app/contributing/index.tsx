@@ -1,10 +1,11 @@
-import { Anchor, Badge, Button, Code, CopyButton, Group, List, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Anchor, Button, Code, CopyButton, Group, List, SimpleGrid, Stack, Text } from '@mantine/core';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
+import { ChipList } from '@ui/list/ChipList';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import {
   ArrowLeftRight,
@@ -474,11 +475,7 @@ function TermSection({ term }: Readonly<{ term: TechnicalTerm }>) {
             <Text size="sm" c="dimmed">
               Names to avoid
             </Text>
-            {term.avoid.map((word) => (
-              <Badge key={word} variant="outline" color="gray" size="sm" tt="none">
-                {word}
-              </Badge>
-            ))}
+            <ChipList items={term.avoid.map((word) => ({ key: word, label: word }))} />
           </Group>
         ) : null}
       </Stack>

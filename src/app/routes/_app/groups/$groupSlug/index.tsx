@@ -1,6 +1,7 @@
 import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
@@ -249,16 +250,12 @@ function GroupDetailPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {requestError && (
-          <Alert color="red" variant="light" title="Membership request failed" role="alert" mb="lg">
-            {requestError}
-          </Alert>
-        )}
-        {deleteGroup.error && (
-          <Alert color="red" variant="light" title="Delete failed" role="alert" mb="lg">
-            {deleteGroup.error.message}
-          </Alert>
-        )}
+        {requestError || deleteGroup.error ? (
+          <Stack gap="lg" mb="lg">
+            {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
+            {deleteGroup.error ? <FormError title="Delete failed">{deleteGroup.error.message}</FormError> : null}
+          </Stack>
+        ) : null}
         <Box className={styles.twoColumnGrid}>
           <Stack gap="lg">
             <Card
@@ -296,11 +293,7 @@ function GroupDetailPage() {
           </Stack>
 
           <Stack gap="lg">
-            {membersModerationError && (
-              <Alert color="red" variant="light" title="Moderation failed" role="alert">
-                {membersModerationError}
-              </Alert>
-            )}
+            {membersModerationError && <FormError title="Moderation failed">{membersModerationError}</FormError>}
 
             <PendingRequestsPanel
               pendingMembers={pendingMembers}

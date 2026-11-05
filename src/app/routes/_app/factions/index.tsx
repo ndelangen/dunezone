@@ -405,7 +405,6 @@ function CatalogueRefine({
               {activeCount > 0 ? (
                 <LabeledAction
                   size="compact-xs"
-                  emphasis="quiet"
                   icon={<FilterX size={14} />}
                   onClick={() => onSearchChange({ ruleset: undefined, owner: undefined, complexity: undefined })}
                 >
@@ -468,7 +467,7 @@ function OwnerFilter({
         <Badge variant="filled" color="selected">
           By {member.name}
         </Badge>
-        <LabeledAction size="compact-xs" emphasis="quiet" icon={<UsersRound size={14} />} onClick={onClear}>
+        <LabeledAction size="compact-xs" icon={<UsersRound size={14} />} onClick={onClear}>
           Show every member's factions
         </LabeledAction>
       </Group>

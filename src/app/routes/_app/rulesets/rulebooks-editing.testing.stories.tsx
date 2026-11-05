@@ -403,8 +403,11 @@ export const RawJsonSettingsAndContents = meta.story({
       await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
       await userEvent.paste(JSON.stringify(value));
       await expect(page.getByRole('textbox', { name: 'Writable JSON' })).toHaveValue(JSON.stringify(value));
+      /* Load says why it waits through aria-disabled and stays focusable, so the wait reads that attribute. */
+      await waitFor(() =>
+        expect(page.getByRole('button', { name: 'Load Rulebook' })).not.toHaveAttribute('aria-disabled', 'true')
+      );
       const load = page.getByRole('button', { name: 'Load Rulebook' });
-      await waitFor(() => expect(load).toBeEnabled());
       await userEvent.click(load);
     };
     await open();
@@ -464,7 +467,7 @@ export const RawJsonReferencePreflight = meta.story({
     };
     await validate();
     await expect(page.findByText(/TEST.tokens.0.asset_id: Choose an available token-disc/)).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toHaveAttribute('aria-disabled', 'true');
     value.contents.pagesById.RULE.blocksById = {
       TEST: {
         id: 'TEST',
@@ -480,14 +483,16 @@ export const RawJsonReferencePreflight = meta.story({
     };
     await validate();
     await expect(page.findByText(/TEST.source.face: This troop has no back face/)).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Load Rulebook' })).toHaveAttribute('aria-disabled', 'true');
     const block = value.contents.pagesById.RULE.blocksById.TEST;
     if (block.kind !== 'referenced-illustration' || block.source?.kind !== 'faction-troop') {
       throw new Error('Expected selected troop.');
     }
     block.source.face = 'front';
     await validate();
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load Rulebook' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load Rulebook' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('button', { name: 'Load Rulebook' }));
     await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
     const unchanged = await loadRulebookEditor({ rulesetSlug: 'classicrules', rulebookSlug: 'book-0' });

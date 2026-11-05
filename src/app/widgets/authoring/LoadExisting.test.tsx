@@ -74,7 +74,7 @@ test.each(['edit', 'cancel', 'save', 'account', 'route'])('late validation canno
   expect(onLoaded).not.toHaveBeenCalled();
   const load = screen.queryByRole('button', { name: 'Load card' });
   if (load) {
-    expect((load as HTMLButtonElement).disabled).toBe(true);
+    expect(load.getAttribute('aria-disabled')).toBe('true');
   }
 });
 
@@ -104,14 +104,14 @@ test('rapid edits prepare only the latest text after a quiet period and wait for
     expect(validate).not.toHaveBeenCalled();
     await act(() => vi.advanceTimersByTimeAsync(1));
     expect(validate).toHaveBeenCalledExactlyOnceWith('{"latest":true}');
-    expect((screen.getByRole('button', { name: 'Load card' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Load card' }).getAttribute('aria-disabled')).toBe('true');
     expect((input as HTMLTextAreaElement).value).toBe('{"latest":true}');
     expect(onLoaded).not.toHaveBeenCalled();
     await act(async () => {
       pending.resolve(choice);
       await pending.promise;
     });
-    expect((screen.getByRole('button', { name: 'Load card' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'Load card' }).getAttribute('aria-disabled')).toBeNull();
     expect(onLoaded).not.toHaveBeenCalled();
   } finally {
     vi.useRealTimers();

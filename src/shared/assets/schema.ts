@@ -438,6 +438,10 @@ export const SpiceAssetInput = SpiceAsset.extend({
   overlays: z
     .array(z.strictObject({ image: z.union([TEXTURE, BACKGROUND, ALL]), offset: OFFSET, scale: SCALE }))
     .optional(),
+  /* No write may store the classic highlight list again; a board tint draws what it drew. An empty list is dropped before this parse. */
+  highlights: z
+    .never({ error: 'Spice highlights are no longer saved. Link a board and tint the territories instead.' })
+    .optional(),
 });
 
 export const DeckAssetInput = DeckAsset.extend({ about: FormattedAbout });

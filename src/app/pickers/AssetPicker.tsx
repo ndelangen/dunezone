@@ -1,16 +1,7 @@
-import {
-  Button,
-  Center,
-  Combobox,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  useCombobox,
-} from '@mantine/core';
+import { Center, Combobox, Group, Loader, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import { matchAsset, searchTerms } from '@ui/control/assetSearch';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
@@ -188,9 +179,9 @@ export function AssetPicker({
 
       {onCancel ? (
         <Group justify="flex-end">
-          <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
+          <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={onCancel}>
             {copy.cancelLabel ?? 'Cancel'}
-          </Button>
+          </LabeledAction>
         </Group>
       ) : null}
     </Stack>

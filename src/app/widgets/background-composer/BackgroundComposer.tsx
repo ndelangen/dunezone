@@ -1,7 +1,6 @@
 import {
   AspectRatio,
   Box,
-  Button,
   Collapse,
   ColorInput,
   Divider,
@@ -21,8 +20,9 @@ import {
 import { originalArtwork } from '@shared/media/retiredArtwork';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { Check, Shuffle, X } from 'lucide-react';
+import { Check, LayoutGrid, Shuffle, X } from 'lucide-react';
 import { useId, useState } from 'react';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
@@ -627,15 +627,13 @@ export function BackgroundComposer({
                         checked={value.invert}
                         onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
                       />
-                      <Button
-                        type="button"
-                        variant="subtle"
-                        color="dune"
+                      <LabeledAction
                         size="compact-sm"
+                        icon={<LayoutGrid size={14} />}
                         onClick={() => setLibraryOpen(true)}
                       >
                         Browse
-                      </Button>
+                      </LabeledAction>
                     </Group>
                   </Stack>
                 }
@@ -686,18 +684,16 @@ export function BackgroundComposer({
         ) : (
           <span />
         )}
-        <Button
-          type="button"
-          variant="default"
+        <LabeledAction
           size="compact-sm"
-          leftSection={<Shuffle size={14} aria-hidden />}
+          icon={<Shuffle size={14} />}
           onClick={() => {
             rememberColorLayers();
             onChange(randomizeBackground(value));
           }}
         >
           Random all
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
