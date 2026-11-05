@@ -123,7 +123,7 @@ function startManager() {
           '',
           'Everything is up.',
           `1. Sign in at ${origin}/auth/login as ${player.email}, password ${player.password}.`,
-          `2. Create a game at ${origin}/play/create on the "(local copy)" ruleset, and copy its URL.`,
+          `2. Create a game at ${origin}/play/create on the "(local copy)" ruleset with ${Number(values.bots) + 1} players (you and the bots), and copy its URL.`,
           `3. Open the bots' manager at ${page[1]}, paste the game URL, list the bots' factions (such as fremen,harkonnen)`,
           '   and press Start bots. Approve each seat request at the table.',
           '4. Talk to a bot at the table by its faction\'s name, or privately. Ctrl-C here stops everything.',

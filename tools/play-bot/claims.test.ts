@@ -38,3 +38,26 @@ it('gives each harness on the machine its own bot account', async () => {
   expect(claimOf('alex', dir)).toBeUndefined();
   expect(claimAccount(stack, 'http://127.0.0.1:6000', 1, dir).id).toBe('alex');
 });
+
+it('gives harnesses started at the same moment different accounts', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'play-bot-claims-race-'));
+  const script = path.join(dir, 'claim.ts');
+  writeFileSync(
+    script,
+    [
+      `import { claimAccount } from ${JSON.stringify(path.join(import.meta.dirname, 'claims.ts'))};`,
+      `const stack = ${JSON.stringify(stack)};`,
+      `try { console.log(claimAccount(stack, 'page', undefined, ${JSON.stringify(dir)}).id); } catch { console.log('none'); }`,
+      /* Stay alive while the others claim, so a held claim stays held. */
+      'await new Promise((resolve) => setTimeout(resolve, 1500));',
+    ].join('\n')
+  );
+  const runs = Array.from({ length: 3 }, () => {
+    const child = spawn(process.execPath, [script], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    child.stdout.on('data', (chunk: Buffer) => (out += chunk.toString()));
+    return new Promise<string>((resolve) => child.once('exit', () => resolve(out.trim())));
+  });
+  const ids = await Promise.all(runs);
+  expect(ids.toSorted()).toEqual(['alex', 'robin', 'sam']);
+}, 20_000);

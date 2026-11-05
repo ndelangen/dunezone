@@ -3,7 +3,7 @@
  * same account. A claim is a small file in the bot's folder naming the process and its page; a claim whose process has
  * ended is free again, so a harness that crashed does not lock its accounts away.
  */
-import { closeSync, mkdirSync, openSync, readFileSync, rmSync, writeSync } from 'node:fs';
+import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import type { Stack } from './seat';
@@ -37,20 +37,25 @@ function tryClaim(id: string, page: string, dir: string): boolean {
   const folder = path.join(dir, id);
   const file = path.join(folder, CLAIM_FILE);
   mkdirSync(folder, { recursive: true });
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      /* `wx` fails if the file exists, so two harnesses racing for one account cannot both win. */
-      const fd = openSync(file, 'wx');
-      writeSync(fd, JSON.stringify({ pid: process.pid, page, since: Date.now() } satisfies Claim));
-      closeSync(fd);
-      return true;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || claimOf(id, dir)) {
-        return false;
+  /* The claim is written in full first and then linked into place, so another harness never reads a half-written claim. */
+  const draft = path.join(folder, `${CLAIM_FILE}.${process.pid}.tmp`);
+  writeFileSync(draft, JSON.stringify({ pid: process.pid, page, since: Date.now() } satisfies Claim));
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        /* A link fails if the claim exists, so two harnesses racing for one account cannot both win. */
+        linkSync(draft, file);
+        return true;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST' || claimOf(id, dir)) {
+          return false;
+        }
+        /* A claim left by a process that has ended: clear it and try once more. */
+        rmSync(file, { force: true });
       }
-      /* A claim left by a process that has ended: clear it and try once more. */
-      rmSync(file, { force: true });
     }
+  } finally {
+    rmSync(draft, { force: true });
   }
   return false;
 }
