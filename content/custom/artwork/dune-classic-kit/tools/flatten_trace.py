@@ -11,13 +11,14 @@ import io
 import os
 import re
 import sys
+from xml.sax.saxutils import quoteattr
 
 import cairosvg
 import numpy as np
 import potrace
 from PIL import Image
 
-PAINT = re.compile(r'(fill|stroke)="#([0-9a-f]{6})"')
+PAINT = re.compile(r'(fill|stroke)(="|:)#([0-9a-fA-F]{6})\b')
 
 
 def within_cwd(path):
@@ -30,14 +31,17 @@ def within_cwd(path):
 
 
 def to_ink_or_paper(match):
-    hex_colour = match.group(2)
+    hex_colour = match.group(3)
     r, g, b = (int(hex_colour[i : i + 2], 16) / 255 for i in (0, 2, 4))
     luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
-    return f'{match.group(1)}="{"#000000" if luminance < 0.5 else "#ffffff"}"'
+    return f'{match.group(1)}{match.group(2)}{"#000000" if luminance < 0.5 else "#ffffff"}'
 
 
 def raster_size(svg, long_side):
-    _, _, w, h = (float(x) for x in re.search(r'viewBox="([^"]+)"', svg).group(1).split())
+    view_box = re.search(r'viewBox="([^"]+)"', svg)
+    if view_box is None:
+        raise SystemExit('The source SVG has no viewBox.')
+    _, _, w, h = (float(x) for x in view_box.group(1).split())
     return (long_side, round(long_side * h / w)) if w >= h else (round(long_side * w / h), long_side)
 
 
@@ -72,7 +76,7 @@ def main(args):
     view = f'0 0 {width * scale:.3f} {height * scale:.3f}'
     with open(out, 'w') as handle:
         handle.write(
-            f'<svg xmlns="http://www.w3.org/2000/svg" id="root" data-authored="{authored}" viewBox="{view}">\n'
+            f'<svg xmlns="http://www.w3.org/2000/svg" id="root" data-authored={quoteattr(authored)} viewBox="{view}">\n'
             f'  <path fill-rule="evenodd" d="{d}"/>\n</svg>\n'
         )
     print(out, len(curves), 'curves', width, height)

@@ -11,6 +11,7 @@ Input and output paths must lie inside the working directory.
 
 import os
 import sys
+from xml.sax.saxutils import quoteattr
 
 import bpy
 from mathutils import Matrix, Vector
@@ -197,18 +198,22 @@ def object_items(obj, matrix, depsgraph):
 
 
 def roots_for(want):
-    collections = [bpy.data.collections.get(name) for name in want.split('+')]
-    if collections[0]:
-        return [o for c in collections for o in c.all_objects]
-    return [bpy.data.objects[want]]
+    """Objects of the `+`-joined collections, or the single object called `want`."""
+    if want in bpy.data.objects and want not in bpy.data.collections:
+        return [bpy.data.objects[want]]
+    names = want.split('+')
+    missing = [name for name in names if name not in bpy.data.collections]
+    if missing:
+        raise SystemExit(f'No collection or object named: {", ".join(missing)}')
+    return [o for name in names for o in bpy.data.collections[name].all_objects]
 
 
 def path_element(item, min_width):
     if item['filled']:
-        return f'<path data-name="{item["name"]}" fill="{item["col"]}" fill-rule="evenodd" d="{item["d"]}"/>'
+        return f'<path data-name={quoteattr(item["name"])} fill="{item["col"]}" fill-rule="evenodd" d="{item["d"]}"/>'
     width = max(item['w'], min_width)
     return (
-        f'<path data-name="{item["name"]}" fill="none" stroke="{item["col"]}" stroke-width="{width:.4f}" '
+        f'<path data-name={quoteattr(item["name"])} fill="none" stroke="{item["col"]}" stroke-width="{width:.4f}" '
         f'stroke-linecap="round" stroke-linejoin="round" d="{item["d"]}"/>'
     )
 
@@ -234,6 +239,8 @@ def ink_bounds(items, min_width):
 
 
 def render_svg(items):
+    if not items:
+        raise SystemExit('Nothing to export: every object was hidden, skipped or empty.')
     min_width = min_stroke_width(items)
     x0, y0, x1, y1 = ink_bounds(items, min_width)
     pad = 0.01 * max(x1 - x0, y1 - y0)
