@@ -1,5 +1,7 @@
 import { fixtureBattleFaces } from '../../src/shared/play/battle';
+import type { BoardCapture } from '../../src/shared/play/capture';
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { SpawnSelection, StoredSpawnContents } from '../../src/shared/play/inventory';
 import type { TablePiece } from '../../src/shared/play/model';
 import { rosterFactionIds } from '../../src/shared/play/protocol';
@@ -91,11 +93,14 @@ export type FixturePlan = {
   /* Only the hosted fixture deals the catalogue's deck and can be retired. */
   readonly hosted: boolean;
   readonly roster: TableRoster;
+  /* The board a fixture plays on, as a real game plays on its ruleset's. */
+  readonly board?: BoardCapture;
   snapshot(roster: TableRoster, deck?: StoredSpawnContents): StoredSnapshot;
 };
 
 export const hostedFixturePlan: FixturePlan = {
   hosted: true,
   roster: { seatCount: DEFAULT_TABLE_SEAT_COUNT, seats: HOSTED_FIXTURE_SEATS },
+  board: arrakisBoardCapture,
   snapshot: (roster, deck) => fixtureSnapshot(roster, initialSnapshot(), deck),
 };

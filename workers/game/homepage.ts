@@ -87,8 +87,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
           });
         }
         this.room = this.tableRoom(snapshot);
+        /* A table that has never read the board waits for it once, so its first frame shows the board; later resets refresh it in the background. */
         if (!this.board) {
-          void this.loadBoard();
+          await this.loadBoard();
         }
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();

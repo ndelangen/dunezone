@@ -24,8 +24,10 @@ const selection = (factionId?: string, id: string | undefined = troopId, face = 
   troopId: id,
   face,
 });
+/* The saved board each fixture inserts; a scene names it by its id. */
+let boardId = '';
 const board = (factionId?: string, id = troopId, face = 'front') => ({
-  boardId: 'arrakis-official-board',
+  boardId,
   caption: '',
   players: [],
   highlights: [],
@@ -73,8 +75,10 @@ async function fixture() {
     const deckId = await ctx.db.insert('assets', { ...common, type: 'deck', slug: 'deck', data: {} });
     const tokenId = await ctx.db.insert('assets', { ...common, type: 'token-disc', slug: 'token', data: {} });
     const bundleId = await ctx.db.insert('assets', { ...common, type: 'bundle', slug: 'bundle', data: {} });
-    return { factionId, otherFactionId, deckId, tokenId, bundleId };
+    const savedBoardId = await ctx.db.insert('assets', { ...common, type: 'board', slug: 'arrakis', data: {} });
+    return { factionId, otherFactionId, deckId, tokenId, bundleId, savedBoardId };
   });
+  boardId = rows.savedBoardId;
   reads.query.mockImplementation((fn, args) => f.owner.query(fn, args));
   const locator = { rulesetSlug: 'rulebook-test-rules', rulebookSlug: created.rulebook.slug };
   const check = async (contents: RulebookContentsV1, size = 'a4') => {

@@ -28,6 +28,7 @@ import type { AssetSupply, RulesetSupply, RulesetCapture, FactionCapture } from 
 import type { factionDefinitionSchema } from '../../src/shared/play/capture';
 import { playPublishSummaryRequestSchema } from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
 import {
   KEEPALIVE_PING,
@@ -59,6 +60,7 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playProvisioning:failProvisioning'), args: playProvisionFailureSchema }),
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
+  z.object({ function: z.literal('arrakis:board'), args: z.object({}) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
   z.object({
@@ -326,6 +328,16 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       break;
     case 'playProvisioning:failProvisioning':
       record.release({ ok: true });
+      break;
+    case 'arrakis:board':
+      /* The saved Arrakis board the homepage table plays on. */
+      record.release({
+        assetId: arrakisBoardCapture.asset.id,
+        name: arrakisBoardCapture.asset.name,
+        type: 'board',
+        imageUrl: null,
+        board: arrakisBoardCapture.definition,
+      });
       break;
     case 'homepageAdmission:redeemTicket':
       record.release(

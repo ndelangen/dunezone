@@ -14,7 +14,7 @@ import type { SpiceBlow } from './spiceBlow';
 import { revealedSpiceBlows } from './spiceBlowPlacement';
 import { spiceBlowSpot } from './spiceBlowSpot';
 
-const brokenLand = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 })!;
+const brokenLand: SpiceBlow = { amount: 8, territories: ['broken_land'] };
 
 /* A revealed Broken Land card lying off the board, beside where the spice deck sits. */
 function spiceCardItem(id: string, faceUp: boolean, name: string, spiceBlow: SpiceBlow): TableItem {
@@ -54,7 +54,7 @@ function tableWithCard(faceUp = true): TableState {
 /* Phase index 1 is turn 1's Spice Blow; a full round of phases later is turn 2's. */
 const place = (state: TableState, phase = 1) => {
   const spot = spiceBlowSpot(
-    {},
+    { board: arrakisBoardCapture },
     state.pieces,
     state.pieces.find((piece) => piece.id === 'blow-card')!
   );
@@ -65,8 +65,8 @@ const place = (state: TableState, phase = 1) => {
 };
 
 describe('spice blow capture', () => {
-  test('reads a classic card highlight as the territory ID and keeps its amount', () => {
-    expect(brokenLand).toEqual({ amount: 8, territories: ['broken_land'] });
+  test('a card without a board names no territory', () => {
+    expect(spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 })).toBeUndefined();
   });
 
   test('a linked board names the territory its map shows, not the classic highlights it no longer draws', () => {
@@ -135,7 +135,7 @@ describe('spice blow capture', () => {
 describe('placing a revealed spice card', () => {
   test("puts the card's spice in a free spot inside its territory, and again onto that spice", () => {
     const state = tableWithCard();
-    const spot = spiceBlowSpot({}, state.pieces, state.pieces.at(-1)!)!;
+    const spot = spiceBlowSpot({ board: arrakisBoardCapture }, state.pieces, state.pieces.at(-1)!)!;
     expect(spot.name).toBe(boardTerritory(arrakisBoardCapture.definition, 'broken_land')!.name);
     expect(tableTerritoryAt(arrakisBoardCapture.definition, spot.position[0], spot.position[2])?.id).toBe(
       'broken_land'
@@ -185,7 +185,7 @@ describe('placing a revealed spice card', () => {
 
   test('a spot taken since the page chose it is refused, never moved past the territory', () => {
     const state = tableWithCard();
-    const spot = spiceBlowSpot({}, state.pieces, state.pieces.at(-1)!)!;
+    const spot = spiceBlowSpot({ board: arrakisBoardCapture }, state.pieces, state.pieces.at(-1)!)!;
     const blocker = state.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
     const taken: TableState = {
       ...state,
@@ -202,7 +202,7 @@ describe('placing a revealed spice card', () => {
     const state = place(tableWithCard());
     const carried = state.pieces.map((piece) => (isSpicePiece(piece) ? { ...piece, locked: true } : piece));
     const spot = spiceBlowSpot(
-      {},
+      { board: arrakisBoardCapture },
       carried,
       carried.find((piece) => piece.id === 'blow-card')!
     )!;
@@ -215,7 +215,7 @@ describe('placing a revealed spice card', () => {
 
   test('a face-down card or another territory is refused', () => {
     const hidden = tableWithCard(false);
-    expect(spiceBlowSpot({}, hidden.pieces, hidden.pieces.at(-1)!)).toBeNull();
+    expect(spiceBlowSpot({ board: arrakisBoardCapture }, hidden.pieces, hidden.pieces.at(-1)!)).toBeNull();
     expect(() =>
       applyPieceAction(
         hidden,

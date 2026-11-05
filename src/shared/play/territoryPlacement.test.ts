@@ -40,7 +40,7 @@ function troop(id: string, faction: string, position: Vector3Tuple, count = 1): 
 }
 
 function tableWith(...pieces: TablePiece[]): TableState {
-  return { ...freshTableState(), pieces, selectedPieceId: null };
+  return { ...freshTableState(), board: arrakisBoardCapture.definition, pieces, selectedPieceId: null };
 }
 
 const at = (state: TableState, id: string) => state.pieces.find((piece) => piece.id === id)!;
@@ -154,7 +154,7 @@ describe('stacks dropped into a territory', () => {
     const spot: Vector3Tuple = [1.316, 0, -2.945];
     expect(insideTerritory(arrakeen, { ...stack, position: restingPositionAt(spot, stack) })).toBe(true);
     expect(piecesOverlapAt(stack, restingPositionAt(spot, stack), card)).toBe(false);
-    const landing = territoryLanding({}, stack, spot, [card, stack])!.position;
+    const landing = territoryLanding({ board: arrakisBoardCapture.definition }, stack, spot, [card, stack])!.position;
     expect(Math.hypot(landing[0] - spot[0], landing[2] - spot[2])).toBeLessThan(0.01);
   });
 
@@ -170,13 +170,19 @@ describe('stacks dropped into a territory', () => {
       items: [{ id: 'l', faceUp: true }],
     };
     const at: Vector3Tuple = [...spot];
-    const landing = territoryLanding({}, { ...leader, position: restingPositionAt(at, leader) }, at, []);
+    const landing = territoryLanding(
+      { board: arrakisBoardCapture.definition },
+      { ...leader, position: restingPositionAt(at, leader) },
+      at,
+      []
+    );
     expect(landing).toBeTruthy();
     expect(insideTerritory(territoryNamed(name), { ...leader, position: landing!.position })).toBe(true);
   });
 
   test('placed as any other piece, a stack is never left across a border, though a card may be', () => {
-    const inside = (piece: TablePiece, point: Vector3Tuple) => keepsInsideTerritory({}, piece, [])(point);
+    const inside = (piece: TablePiece, point: Vector3Tuple) =>
+      keepsInsideTerritory({ board: arrakisBoardCapture.definition }, piece, [])(point);
     const stack = troop('atreides', 'atreides', SHELF);
     const straddling = justInsideBorder(arrakeen, centre);
     expect(inside(stack, centre)).toBe(true);

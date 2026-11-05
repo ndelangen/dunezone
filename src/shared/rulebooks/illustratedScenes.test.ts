@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vite-plus/test';
 
 import { rulebookContentsV1Schema, rulebookDraftEntitySchemas, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookBlockDraft, RulebookContentsDraftV1 } from './contents';
+import { ARRAKIS_OFFICIAL } from './fixtures/arrakisOfficial';
 import { rulebookBoardSceneSchema, rulebookBattleComparisonSchema } from './illustratedScenes';
 import { projectRulebookDraftRenderBlock, projectRulebookRenderDocument } from './projectRenderDocument';
 import { collectRulebookReferenceIds } from './references';
@@ -123,10 +124,18 @@ describe('Rulebook illustrated scenes', () => {
     expect(rulebookContentsV1Schema.parse(value)).toEqual(value);
     expect(rulebookEditionContentsV1Schema.parse(value)).toEqual(value);
     expect(rulebookDraftEntitySchemas.page.parse(value.pagesById.PAGE)).toEqual(value.pagesById.PAGE);
-    const rendered = projectRulebookRenderDocument(value, {}, { size: 'square', design: 'illustrated' });
+    const arrakis = {
+      assetId: 'arrakis',
+      name: ARRAKIS_OFFICIAL.name,
+      type: 'board',
+      imageUrl: ARRAKIS_OFFICIAL.imageUrl,
+      geometry: ARRAKIS_OFFICIAL.geometry,
+      publicationRevision: ARRAKIS_OFFICIAL.revision,
+    };
+    const rendered = projectRulebookRenderDocument(value, { arrakis }, { size: 'square', design: 'illustrated' });
     expect(rulebookRenderDocumentV1Schema.parse(rendered)).toEqual(rendered);
     expect(collectRulebookReferenceIds(value)).toEqual({
-      assetIds: ['spice', 'transfer-card', 'weapon'],
+      assetIds: ['arrakis', 'spice', 'transfer-card', 'weapon'],
       factionIds: ['left', 'right', 'transfer-faction'],
     });
     expect(rendered.pagesById.PAGE!.regions[0]!.blocks[0]).toMatchObject({
