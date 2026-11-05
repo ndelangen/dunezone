@@ -104,6 +104,74 @@ describe('isolated Play test controls', () => {
     );
   });
 
+  test("puts a mirrored ruleset's decks and factions on the seeded one, each face naming its mirrored image", async () => {
+    const { t } = await fixture();
+    const { rulesetId } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {
+      rulesetName: 'GF9 (local copy)',
+    });
+    const publications = await t.mutation(internal.playTesting.seedMirrorPreview, {
+      rulesetId,
+      boardName: 'Arrakis Official',
+      decks: [
+        {
+          slot: 'treachery',
+          type: 'deck',
+          name: 'GF9 Treachery',
+          data: { name: 'GF9 Treachery', about: '' },
+          image: '/published/cardback-presets/treachery/cardback.jpg',
+          members: [
+            { type: 'card-treachery', name: 'Lasgun', count: 1, image: '/published/cards/a/card.jpg' },
+            { type: 'card-treachery', name: 'Shield', count: 4 },
+          ],
+        },
+        {
+          slot: 'spice',
+          type: 'deck',
+          name: 'GF9 Spice',
+          data: { name: 'GF9 Spice', about: '' },
+          members: [{ type: 'card-spice', name: 'Habbanya Erg', count: 1 }],
+        },
+      ],
+      factions: ['Fremen', 'Emperor', 'Atreides'].map((name) => ({
+        data: { name },
+        token: `/published/faction-tokens/${name}/token.jpg`,
+      })),
+    });
+    expect(publications.map((publication) => publication.source)).toEqual([
+      '/published/cardback-presets/treachery/cardback.jpg',
+      '/published/cards/a/card.jpg',
+      '/published/faction-tokens/Fremen/token.jpg',
+      '/published/faction-tokens/Emperor/token.jpg',
+      '/published/faction-tokens/Atreides/token.jpg',
+    ]);
+    const seeded = await t.run(async (ctx) => {
+      const slots = await ctx.db
+        .query('ruleset_asset_slots')
+        .withIndex('by_ruleset', (q) => q.eq('ruleset_id', rulesetId))
+        .collect();
+      const decks = await Promise.all(
+        slots.map(async (slot) => {
+          const asset = await ctx.db.get(slot.asset_id);
+          const members = await ctx.db
+            .query('asset_relations')
+            .withIndex('by_from_kind', (q) => q.eq('from_asset_id', slot.asset_id))
+            .collect();
+          return `${slot.slot}: ${String(asset?.data?.name)} (${members.reduce((total, member) => total + member.count, 0)})`;
+        })
+      );
+      const links = await ctx.db
+        .query('ruleset_factions')
+        .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
+        .collect();
+      const factions = await Promise.all(links.map(async (link) => (await ctx.db.get(link.faction_id))?.data?.name));
+      return { decks: decks.sort(), factions };
+    });
+    expect(seeded).toEqual({
+      decks: ['board: Arrakis Official (0)', 'spice: GF9 Spice (1)', 'treachery: GF9 Treachery (5)'],
+      factions: ['Fremen', 'Emperor', 'Atreides'],
+    });
+  });
+
   test('fills each required deck with complete, published cards of its own type', async () => {
     const { t } = await fixture();
     const { rulesetId, publications } = await t.mutation(internal.playTesting.seedRealGameCatalogue, {});

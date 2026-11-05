@@ -2,7 +2,12 @@ import { v } from 'convex/values';
 
 import gf9BaseFactions from '../content/gf9/base-factions.json';
 import type { PublicationAssetType } from '../src/shared/asset-publishing/publicationTargets';
-import { publicationFaceId, publishedR2Key, publishedHref } from '../src/shared/asset-publishing/publicationTargets';
+import {
+  isPublicationAssetType,
+  publicationFaceId,
+  publishedR2Key,
+  publishedHref,
+} from '../src/shared/asset-publishing/publicationTargets';
 import { publishingCustomDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
@@ -190,7 +195,13 @@ async function catalogueOwner(ctx: MutationCtx) {
   );
 }
 
-const publicationValidator = v.object({ key: v.string(), href: v.string(), face: v.string() });
+/* `source` names the mirrored image (its published path on the live site) whose bytes the runner installs instead of a synthetic face. */
+const publicationValidator = v.object({
+  key: v.string(),
+  href: v.string(),
+  face: v.string(),
+  source: v.optional(v.string()),
+});
 
 /** One face the runner installs local bytes for, and its publication row. */
 async function publish(ctx: MutationCtx, assetType: PublicationAssetType, assetId: string, face: string) {
@@ -362,6 +373,139 @@ export const seedRealGameCatalogue = internalMutation({
       publications.push(await publish(ctx, 'faction-token', publicationFaceId(factionId, 'back'), 'back'));
     }
     return { rulesetId, publications };
+  },
+});
+
+/**
+ * Puts a mirrored ruleset's own decks and factions on a seeded ruleset, so the create page lists what the game will deal:
+ * the real deck names and counts, and the factions with their tokens. Games still read their catalogue through the mirror;
+ * these rows only stand behind the page's manifest. Each publication names the mirrored image the runner installs for it.
+ */
+export const seedMirrorPreview = internalMutation({
+  args: {
+    rulesetId: v.id('rulesets'),
+    boardName: v.string(),
+    boardImage: v.optional(v.string()),
+    decks: v.array(
+      v.object({
+        slot: v.union(
+          v.literal('treachery'),
+          v.literal('spice'),
+          v.literal('custom'),
+          v.literal('techToken'),
+          v.literal('customTokens')
+        ),
+        type: v.string(),
+        name: v.string(),
+        data: v.any(),
+        image: v.optional(v.string()),
+        members: v.array(
+          v.object({
+            type: v.string(),
+            name: v.string(),
+            count: v.number(),
+            image: v.optional(v.string()),
+          })
+        ),
+      })
+    ),
+    factions: v.array(
+      v.object({
+        data: v.any(),
+        token: v.optional(v.string()),
+        tokenBack: v.optional(v.string()),
+      })
+    ),
+  },
+  returns: v.array(publicationValidator),
+  handler: async (ctx, { rulesetId, boardName, boardImage, decks, factions }) => {
+    requireSyntheticBackend();
+    const owner = await catalogueOwner(ctx);
+    const stamp = new Date().toISOString();
+    const row = {
+      owner_id: owner,
+      created_at: stamp,
+      updated_at: stamp,
+      is_deleted: false,
+      group_id: null,
+    };
+    const suffix = playCredential().slice(0, 8);
+    const publications = [];
+    const mirrored = async (type: PublicationAssetType, id: string, face: string, source: string | undefined) =>
+      source ? [{ ...(await publish(ctx, type, id, face)), source }] : [];
+    /* The synthetic decks and factions this ruleset was seeded with give way to the mirrored ones. */
+    for (const slot of await ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId))
+      .collect()) {
+      if (slot.slot === 'board') {
+        const board = await ctx.db.get(slot.asset_id);
+        if (board) {
+          await ctx.db.patch(board._id, {
+            data: { ...board.data, name: boardName },
+          });
+          publications.push(...(await mirrored('board', board._id, 'front', boardImage)));
+        }
+        continue;
+      }
+      await ctx.db.delete(slot._id);
+    }
+    for (const link of await ctx.db
+      .query('ruleset_factions')
+      .withIndex('by_ruleset_position', (q) => q.eq('ruleset_id', rulesetId))
+      .collect()) {
+      await ctx.db.delete(link._id);
+    }
+    for (const [index, deck] of decks.entries()) {
+      const deckId = await ctx.db.insert('assets', {
+        ...row,
+        type: deck.type,
+        slug: `mirror-${deck.slot}-${index}-${suffix}`,
+        data: deck.data,
+      });
+      if (deck.type === 'deck') {
+        publications.push(...(await mirrored('deck', deckId, 'back', deck.image)));
+      }
+      for (const [position, member] of deck.members.entries()) {
+        const memberId = await ctx.db.insert('assets', {
+          ...row,
+          type: member.type,
+          slug: `mirror-${deck.slot}-${index}-${position}-${suffix}`,
+          data: { name: member.name },
+        });
+        if (isPublicationAssetType(member.type)) {
+          publications.push(...(await mirrored(member.type, memberId, 'front', member.image)));
+        }
+        await ctx.db.insert('asset_relations', {
+          from_asset_id: deckId,
+          to_asset_id: memberId,
+          kind: deck.type === 'deck' ? 'deck-card' : 'bundle-token',
+          count: member.count,
+        });
+      }
+      await ctx.db.insert('ruleset_asset_slots', {
+        ruleset_id: rulesetId,
+        asset_id: deckId,
+        slot: deck.slot,
+      });
+    }
+    for (const [position, faction] of factions.entries()) {
+      const factionId = await ctx.db.insert('factions', {
+        ...row,
+        slug: `mirror-faction-${position}-${suffix}`,
+        data: faction.data,
+      });
+      await ctx.db.insert('ruleset_factions', {
+        ruleset_id: rulesetId,
+        faction_id: factionId,
+        position,
+      });
+      publications.push(...(await mirrored('faction-token', factionId, 'front', faction.token)));
+      publications.push(
+        ...(await mirrored('faction-token', publicationFaceId(factionId, 'back'), 'back', faction.tokenBack))
+      );
+    }
+    return publications;
   },
 });
 

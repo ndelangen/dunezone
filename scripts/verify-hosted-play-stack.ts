@@ -323,7 +323,8 @@ function configureAuth(convex: (args: string[]) => void, origin: string) {
   convex(['env', 'set', 'JWKS', '--from-file', jwksPath]);
 }
 
-type Publication = { key: string; href: string; face: string };
+/* `source` is a mirrored image's published path: its bytes are installed instead of a synthetic face. */
+type Publication = { key: string; href: string; face: string; source?: string };
 
 /** Synthetic local faces: red fronts, blue backs, and a gold spice face labelled as a fixture. */
 async function render(file: string, face: string) {
@@ -360,8 +361,9 @@ async function installPublications(publications: Publication[], workerOutput: st
   /* One image per face, rendered once and uploaded for every publication of that face. */
   const rendered = new Set<string>();
   for (const publication of publications) {
-    const file = path.join(runtime, `${publication.face}.jpg`);
-    if (!rendered.has(publication.face)) {
+    const source = publication.source ? mirrorImage(publication.source) : undefined;
+    const file = source?.file ?? path.join(runtime, `${publication.face}.jpg`);
+    if (!source && !rendered.has(publication.face)) {
       rendered.add(publication.face);
       await render(file, publication.face);
     }
@@ -381,7 +383,7 @@ async function installPublications(publications: Publication[], workerOutput: st
         '--file',
         file,
         '--content-type',
-        'image/jpeg',
+        source?.contentType ?? 'image/jpeg',
       ],
       env: environment,
       label: 'Local publication fixture',
@@ -391,6 +393,77 @@ async function installPublications(publications: Publication[], workerOutput: st
       throw new Error(`Local publication returned ${response.status}.`);
     }
   }
+}
+
+/** The mirror's local copy of a published image, by the path (or address) its answers name it with. */
+function mirrorImage(published: string) {
+  const wanted = new URL(published, 'http://local').pathname;
+  const image = mirror?.file.media.find((entry) => new URL(entry.path, 'http://local').pathname === wanted);
+  return image && mirror
+    ? { file: path.join(mirror.directory, image.file), contentType: image.contentType }
+    : undefined;
+}
+
+/**
+ * The mirrored ruleset's own decks and factions on the seeded ruleset, for the create page's manifest: the page reads the local
+ * backend, while games read the mirror. Each deck shows the back the live site resolves for it, and each faction its token.
+ */
+async function seedMirrorPreview(
+  source: NonNullable<typeof mirror>,
+  adminClient: import('convex/browser').ConvexHttpClient,
+  rulesetId: string
+) {
+  const { makeFunctionReference } = await import('convex/server');
+  const { publishingCustomDeckCardback } = await import('../src/shared/assets/fixtures/publishingDeckCardback');
+  const image = (published: string | null | undefined) => (published && mirrorImage(published) ? published : undefined);
+  const decks = source.ruleset.slots.flatMap(({ slot, asset }) => {
+    const supply = source.assets.get(`${asset.type}/${asset.slug}`);
+    if (slot === 'board' || !supply) {
+      return [];
+    }
+    return [
+      {
+        slot,
+        type: asset.type,
+        name: asset.name,
+        /* Its own cardback, so the page shows the back installed for it rather than a preset or another deck the local backend lacks. */
+        data:
+          asset.type === 'deck'
+            ? { ...(supply.asset.data as object), cardback: publishingCustomDeckCardback }
+            : supply.asset.data,
+        image: image(supply.back ?? supply.front),
+        members: supply.members.map((member, index) => ({
+          type: member.asset.type,
+          name: member.asset.name,
+          count: member.count,
+          ...(index === 0 && image(member.front) ? { image: member.front! } : {}),
+        })),
+      },
+    ];
+  });
+  const factions = source.draftable.flatMap((draftable) => {
+    const definition = source.factions.get(draftable.id);
+    return definition?.data
+      ? [
+          {
+            data: definition.data,
+            ...(image(definition.token) ? { token: definition.token! } : {}),
+            ...(image(definition.tokenBack) ? { tokenBack: definition.tokenBack! } : {}),
+          },
+        ]
+      : [];
+  });
+  const boardId = source.ruleset.board?.asset.id;
+  const boardImage = boardId
+    ? source.file.media.find((entry) => entry.path.startsWith(`/published/boards/${boardId}/`))?.path
+    : undefined;
+  return (await adminClient.mutation(makeFunctionReference<'mutation'>('playTesting:seedMirrorPreview'), {
+    rulesetId,
+    boardName: source.ruleset.board?.asset.name ?? 'Board',
+    ...(boardImage ? { boardImage } : {}),
+    decks,
+    factions,
+  })) as Publication[];
 }
 
 /** The mirror's images under the keys the live site stores them at, so the local publisher serves the paths its answers name. */
@@ -497,6 +570,11 @@ async function serveForPlay({
   const admin = new ConvexHttpClient(backendUrl, { logger: false });
   setAdminAuth(admin, adminKey);
   await provisionAccounts(admin, [accounts.player, ...bots]);
+  if (mirror) {
+    /* The create page reads the local backend, so the seeded ruleset takes on the mirror's decks and factions for its manifest. */
+    const publications = await seedMirrorPreview(mirror, admin, rulesetId);
+    await installPublications(publications, readFileSync(path.join(evidence, 'worker.log'), 'utf8'), origin);
+  }
   const out = path.join(root, 'tools/play-bot/out');
   mkdirSync(out, { recursive: true });
   const stackFile = path.join(out, 'stack.json');
