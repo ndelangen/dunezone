@@ -202,6 +202,25 @@ describe('Explicit participation on a real game', () => {
     ]);
   });
 
+  it('follows a renamed profile on the next admission, and leaves the seat history as written', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    expect(required(required(await syncView(a)).snapshot.controls).players.map((player) => player.name)).toEqual([
+      'Synthetic A',
+      'Synthetic B',
+    ]);
+    b.socket.close(1000, 'Reconnecting.');
+    const renamed = await admitPlayer(runtime, 'b', { displayName: 'Renamed B' });
+    const view = required(await syncView(renamed));
+    expect(view.viewer).toMatchObject({ viewerSeat: 'seat-2', displayName: 'Renamed B' });
+    expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
+    expect(
+      await runtime.exec<{ display_name: string }>("SELECT display_name FROM seat_history WHERE user_id='user-b'")
+    ).toEqual([{ display_name: 'Synthetic B' }]);
+  });
+
   it('keeps an offline player seated, retires a drafting place on departure and discards the game when the last player leaves', async () => {
     const a = await admit('a');
     const b = await admit('b');
