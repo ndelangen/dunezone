@@ -1880,13 +1880,8 @@
     "dune-logo-trace": {
       "/vector/emblem/": [
         "apocrypha.svg",
-        "atreides-extended.svg",
-        "bene-gesserit-2021.svg",
-        "corrino-extended.svg",
         "dune-encyclopedia.svg",
         "expanded-dune.svg",
-        "harkonnen-dune-prophecy.svg",
-        "harkonnen-extended.svg",
         "house-atreus-fan-art.svg",
         "lynch-dune.svg",
         "original-dune.svg",
@@ -1895,6 +1890,9 @@
         "sunburst-buckle-matt-griffin.svg",
         "villeneuve.svg"
       ]
+    },
+    "prelude-cover-emblem-trace": {
+      "/vector/emblem/": ["atreides-extended.svg", "corrino-extended.svg", "harkonnen-extended.svg"]
     },
     "gf9-emblem": {
       "/vector/emblem/": [
@@ -1912,6 +1910,7 @@
         "richese.svg"
       ]
     },
+    "dune-screen-crest-trace": { "/vector/emblem/": ["bene-gesserit-2021.svg", "harkonnen-dune-prophecy.svg"] },
     "dune-awakening-emblem": {
       "/vector/emblem/": [
         "dune-awakening-house-alexin.svg",
@@ -2306,7 +2305,12 @@
     "/vector/decal/troll.svg": "Original: the Trollface, drawn in Microsoft Paint by Carlos Ramirez in 2008.",
     "/vector/decal/water-of-life-ceremony-multicolor.svg": "Reference: a Water of Life painting from a Centipede Press edition of Dune.",
     "/vector/decal/water-of-life-ceremony.svg": "Reference: a Water of Life painting from a Centipede Press edition of Dune.",
+    "/vector/emblem/atreides-extended.svg": "From the cover of Dune: House Atreides.",
+    "/vector/emblem/bene-gesserit-2021.svg": "From Dune: Part One (2021), Dune: Part Two (2024) and Dune: Prophecy (2024).",
+    "/vector/emblem/corrino-extended.svg": "From the cover of Dune: House Corrino.",
     "/vector/emblem/ginaz.svg": "Likely from a Tabletop Simulator community faction mod.",
+    "/vector/emblem/harkonnen-dune-prophecy.svg": "From Dune: Prophecy (HBO, 2024).",
+    "/vector/emblem/harkonnen-extended.svg": "From the cover of Dune: House Harkonnen.",
     "/vector/emblem/house-atreus-fan-art.svg": "Based on fan art.",
     "/vector/emblem/iduali.svg": "Original: the Abarth car logo, flipped.",
     "/vector/emblem/sunburst-buckle-matt-griffin.svg": "Original design by Matt Griffin.",
