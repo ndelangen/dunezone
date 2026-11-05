@@ -299,11 +299,14 @@ export class Participation {
     /* A spawn request leaves with its requester; the next holder of the seat could never approve it. */
     controls.requests = controls.requests.filter((request) => request.requesterSeat !== seat);
     let next = this.next(change, event);
-    if (this.actors.seated().length === 0 && snapshot.stage !== 'finished') {
+    if (this.actors.seated().length === 0) {
       for (const pending of controls.seatRequests) {
         this.resolve(pending.id, 'closed', now);
       }
       controls.seatRequests = [];
+      next = { ...next, controls: { ...next.controls!, seatRequests: [] } };
+    }
+    if (this.actors.seated().length === 0 && snapshot.stage !== 'finished') {
       const discarded = this.event(next, 'stage', seatMessages.discarded());
       next = { ...this.next({ ...change, snapshot: next }, discarded), stage: 'discarded' };
     }

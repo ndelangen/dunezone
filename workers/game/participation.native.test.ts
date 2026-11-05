@@ -258,6 +258,8 @@ describe('Explicit participation on a real game', () => {
   });
 
   it('stays finished, with its result and replay, when the last player leaves a finished game', async () => {
+    /* A request filed before the game finished still closes with the last seat. */
+    const request = ownRequest(await accepted(await admit('c'), { kind: 'seat-request' }));
     const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
     const snapshot = readHistoricalSnapshot(rows[0].data);
     snapshot.stage = 'finished';
@@ -274,6 +276,12 @@ describe('Explicit participation on a real game', () => {
     expect(left.snapshot.stage).toBe('finished');
     expect(left.snapshot.result).toMatchObject({ kind: 'none' });
     expect(required(left.snapshot.controls).seats).toEqual([]);
+    expect(required(left.snapshot.controls).seatRequests).toEqual([]);
+    expect(
+      await runtime.exec<{ state: string }>('SELECT state FROM seat_requests WHERE request_id=?', [
+        required(request).id,
+      ])
+    ).toEqual([{ state: 'closed' }]);
     expect(events(left)[0]).toBe('Seat 1 is vacated.');
     await eventually(() => peer.summaries.at(-1)?.summary.stage === 'finished', 'finished summary');
     /* An observer may still replay the finished game alone. */
