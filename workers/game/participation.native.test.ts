@@ -203,6 +203,44 @@ describe('Explicit participation on a real game', () => {
     ]);
   });
 
+  it('names every connected spectator once, by public profile, until they take a seat or leave', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const spectators = async () => required(required(await syncView(a)).snapshot.controls).spectators;
+    const synthetic = (suffix: string) => ({
+      name: `Synthetic ${suffix.toUpperCase()}`,
+      avatar: `https://dune.zone/user-images/${suffix}.jpg`,
+      slug: `synthetic-${suffix}`,
+    });
+    expect(await spectators()).toEqual([synthetic('b')]);
+    /* A second tab of the same spectator is still one spectator. */
+    const c = await admit('c');
+    const secondTab = await admit('c');
+    expect(await spectators()).toEqual([synthetic('b'), synthetic('c')]);
+    /* Each spectator sees their own row marked, by account, and nobody else's. */
+    expect(required(required(await syncView(b)).snapshot.controls).spectators).toEqual([
+      { ...synthetic('b'), own: true },
+      synthetic('c'),
+    ]);
+    secondTab.socket.close();
+    await eventually(() => secondTab.closed, 'second tab disconnected');
+    const pushed = a.messages.length;
+    c.socket.close();
+    await eventually(() => c.closed, 'disconnected');
+    /* The players learn of it from the room's own push, without asking. */
+    await eventually(
+      () =>
+        a.messages
+          .slice(pushed)
+          .some((message) => message.type === 'view' && message.snapshot.controls?.spectators.length === 1),
+      'spectator departure pushed'
+    );
+    expect(await spectators()).toEqual([synthetic('b')]);
+    /* A spectator seated is a player, no longer a spectator. */
+    await seat(b, a);
+    expect(await spectators()).toEqual([]);
+  });
+
   it('follows a renamed profile on the next admission, and leaves the seat history as written', async () => {
     const a = await admit('a');
     const b = await admit('b');

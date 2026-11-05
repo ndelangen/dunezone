@@ -43,13 +43,17 @@ import { isSpectator, offersActions } from './tableFactions';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
- * Seats popover in the header (or the (+) in the drafting roster), a player approves where the seat is shown (the
- * drafting roster, or the vacant seat's Info in play), and giving up a seat is held in the game menu.
+ * Seats popover in the header (or the (+) in the drafting roster), every player approves in Seats & spectators (or the
+ * drafting roster), and giving up a seat is held in the game menu.
  */
 
 type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
-function seatWords(table: TableProjection, seat: string | null, label: (seat: string) => string = seatLabel): string {
+export function seatWords(
+  table: TableProjection,
+  seat: string | null,
+  label: (seat: string) => string = seatLabel
+): string {
   if (seat === null) {
     return 'a seat';
   }
@@ -58,7 +62,7 @@ function seatWords(table: TableProjection, seat: string | null, label: (seat: st
 }
 
 /** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
-function openSeats(table: TableProjection): string[] {
+export function openSeats(table: TableProjection): string[] {
   const controls = publicControlsOf(table);
   return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
 }
@@ -255,57 +259,9 @@ function leavingLabel(table: TableProjection): string {
   }
 }
 
-/** A player approves a spectator's request for this vacant seat from the seat's Info, where the seat is shown. */
-export function VacantSeatRequests({
-  client,
-  table,
-  seat,
-}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
-  const controls = publicControlsOf(table);
-  if (!approvable(table) || !openSeats(table).includes(seat)) {
-    return null;
-  }
-  const requests = controls.seatRequests.filter((request) => request.seat === seat);
-  return requests.length ? (
-    <Stack gap="xs" component="section" aria-label="Seat requests">
-      {requests.map((request) => (
-        <Group key={request.id} gap="sm" justify="space-between" wrap="nowrap">
-          <Text size="sm">
-            <strong>{request.requesterName}</strong> asks for {seatWords(table, seat)}.
-          </Text>
-          {/* Keyed by the request, so a press that began on one request never approves the next. */}
-          <SeatButton
-            key={request.id}
-            client={client}
-            table={table}
-            action={{ kind: 'seat-approve', requestId: request.id }}
-            color="confirm"
-          >
-            Approve
-          </SeatButton>
-        </Group>
-      ))}
-    </Stack>
-  ) : null;
-}
-
 /** A player approves while the game runs live; a finished game takes no one until it continues. */
-function approvable(table: TableProjection): boolean {
+export function approvable(table: TableProjection): boolean {
   return !isSpectator(table) && !table.playback && table.snapshot.stage !== 'finished';
-}
-
-/** The vacant seats a spectator is asking for, so the player rail can mark them. */
-export function requestedSeats(table: TableProjection): ReadonlySet<string> {
-  if (!approvable(table)) {
-    return new Set();
-  }
-  const controls = publicControlsOf(table);
-  const open = openSeats(table);
-  return new Set(
-    controls.seatRequests.flatMap((request) =>
-      request.seat !== null && open.includes(request.seat) ? [request.seat] : []
-    )
-  );
 }
 
 /* This viewer's table brightness; it stays in this browser and never reaches the game. */

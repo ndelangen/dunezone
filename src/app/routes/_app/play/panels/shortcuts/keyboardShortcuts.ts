@@ -36,7 +36,7 @@ export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
       },
       { keys: key(SHORTCUTS.hand), action: 'Hand & spice' },
       { keys: key(SHORTCUTS.hidden), action: 'Private side-table' },
-      { keys: key(SHORTCUTS.battle), action: 'Battle plan' },
+      { keys: key(SHORTCUTS.battle), action: 'Battle plan, or Seats & spectators while a seat request waits' },
       { keys: key(SHORTCUTS.table), action: 'Table chat' },
       { keys: key(SHORTCUTS.ally), action: 'Ally chat' },
       { keys: `${key(PIN_KEYS.left)} ${key(PIN_KEYS.right)}`, action: 'Pin the open window to the left or right' },

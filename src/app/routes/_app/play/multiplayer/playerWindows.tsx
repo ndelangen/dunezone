@@ -7,7 +7,6 @@ import { useSyncExternalStore } from 'react';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import type { CompassPlayer } from '../compass/compassTable';
 import { factionTokenFace } from './FactionTokenFace';
-import { requestedSeats } from './SeatRequests';
 import { seatFaction } from './tableFactions';
 
 export type Player = PublicControls['players'][number];
@@ -40,7 +39,6 @@ export function standInToken(table: TableProjection, player: Player) {
 export function usePlayerWindows(client: TableSession, table: TableProjection) {
   const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const votes = table.snapshot.removalVotes ?? [];
-  const asked = requestedSeats(table);
   const viewerSeat = table.viewer.viewerSeat;
   const ownFaction = viewerSeat ? seatFaction(table, viewerSeat) : undefined;
   const allies = ownFaction ? alliesOf(table.snapshot.alliances, ownFaction) : [];
@@ -57,7 +55,7 @@ export function usePlayerWindows(client: TableSession, table: TableProjection) {
       unread: conversations.summaries.find((entry) => entry.peerId === peerId)?.unread ?? 0,
       own: player.seat === table.viewer.viewerSeat,
       canConverse: Boolean(peerId && conversations.context?.peers.some((peer) => peer.id === peerId)),
-      attention: Boolean(vote) || asked.has(player.seat),
+      attention: Boolean(vote),
       ally: Boolean(peerId && allies.includes(peerId)),
     };
   });
