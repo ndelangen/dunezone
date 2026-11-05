@@ -30,15 +30,9 @@ describe('stored prose write validation', () => {
     const { amount: _amount, ...withoutAmount } = publishingSpiceCard;
     expect(() => parseAssetDataForWrite('card-spice', withoutAmount)).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, amount: 0 })).toThrow();
-    /* The classic highlight list is no longer saved: an empty one from an older tab is dropped, and one that names territories is refused. */
-    expect(parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] }).data).toEqual(
-      publishingSpiceCard
-    );
-    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['arsunt'] })).toThrow(
-      'Spice highlights are no longer saved'
-    );
-    /* A stored card that still has one reads until the strip removes it. */
-    expect(SpiceAsset.safeParse({ ...publishingSpiceCard, highlights: [] }).success).toBe(true);
+    /* The classic highlight list is gone from the schema: a card that still sends one is refused, not silently trimmed. */
+    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] })).toThrow();
+    expect(SpiceAsset.safeParse({ ...publishingSpiceCard, highlights: [] }).success).toBe(false);
   });
 
   it('allows blocks in ruleset About and FAQ answers, but keeps FAQ questions inline', () => {

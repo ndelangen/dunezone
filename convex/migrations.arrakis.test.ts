@@ -5,10 +5,8 @@ import migrationsTest from '@convex-dev/migrations/test';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
-import { SPICE_BOARD_REVISION } from '../src/shared/assets/schema';
 import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { arrakisBoard } from '../src/shared/boards/geometry';
-import { propertyId } from '../src/shared/boards/schema';
 import { RULEBOOK_CATALOGUE_VERSION } from '../src/shared/rulebooks/contents';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -47,188 +45,20 @@ async function saveArrakis(f: Fixture) {
 
 const cardData = (f: Fixture, id: Id<'assets'>) => f.t.run(async (ctx) => (await ctx.db.get('assets', id))!.data);
 
-/** A card as the move leaves it: its old highlight list removed, every other field as stored. */
-const withoutList = ({ highlights: _highlights, ...rest }: Record<string, unknown>) => rest;
-
 describe('Arrakis board migration', () => {
   test(
-    'links classic Spice cards to the saved board, carrying their highlights, and removes linked cards’ old lists',
-    async () => {
-      const f = await rulebookFixture();
-      migrationsTest.register(f.t);
-      /* Spice cards publish once their renderer is on, as in production. */
-      await f.t.run((ctx) =>
-        ctx.db.insert('admin_settings', {
-          key: 'publication',
-          publication_pickup_enabled: true,
-          renderer_revisions: { 'card-spice': SPICE_BOARD_REVISION },
-          updated_at: 1,
-        })
-      );
-      const classic = { ...publishingSpiceCard, subName: 'Spice blow', highlights: ['arsunt', 'strongholds', 'polar'] };
-      const classicId = await insertCard(f, 'classic', classic);
-      const deletedId = await insertCard(f, 'deleted', { ...classic, highlights: [] }, true);
-
-      /* Without the saved board nothing moves. */
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, classicId)).toEqual(classic);
-
-      const boardId = await saveArrakis(f);
-      const linked = {
-        ...publishingSpiceCard,
-        highlights: ['arsunt'],
-        board: {
-          asset_id: boardId,
-          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: ['arsunt'] }],
-          tokens: [],
-        },
-      };
-      const linkedId = await insertCard(f, 'linked', linked);
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
-      expect(
-        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
-      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
-
-      expect(await cardData(f, classicId)).toEqual({
-        ...withoutList(classic),
-        board: {
-          asset_id: boardId,
-          tokens: [],
-          tints: [
-            {
-              id: 'highlights',
-              name: 'Spice blow',
-              color: '#9e5f00',
-              territories: ['arsunt', 'polar_sink'],
-              types: ['stronghold'],
-            },
-          ],
-        },
-      });
-      expect(await cardData(f, linkedId)).toEqual(withoutList(linked));
-      const deleted = await cardData(f, deletedId);
-      expect(deleted).toMatchObject({ board: { asset_id: boardId, tints: [] } });
-      expect(deleted).not.toHaveProperty('highlights');
-
-      const migrated = await Promise.all([classicId, linkedId, deletedId].map((id) => cardData(f, id)));
-      await f.t.run(async (ctx) => {
-        const relation = await ctx.db
-          .query('asset_relations')
-          .withIndex('by_from_kind', (q) => q.eq('from_asset_id', classicId).eq('kind', 'spice-card-board'))
-          .unique();
-        expect(relation?.to_asset_id).toBe(boardId);
-        const jobs = await ctx.db
-          .query('publication_jobs')
-          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-spice').eq('asset_id', classicId))
-          .take(5);
-        /* The job captures the moved card, not the row as it was. */
-        expect(jobs.at(-1)?.asset_data).toMatchObject({ card: { board: { asset_id: boardId } } });
-        expect(jobs.at(-1)?.asset_data).not.toHaveProperty('card.highlights');
-      });
-
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
-      expect(await Promise.all([classicId, linkedId, deletedId].map((id) => cardData(f, id)))).toEqual(migrated);
-    },
-    BUDGET_MS
-  );
-
-  test(
-    'counts a type highlight as drawn when a tint lists its territories instead',
-    async () => {
-      const f = await rulebookFixture();
-      migrationsTest.register(f.t);
-      const boardId = await saveArrakis(f);
-      /* An editor's paint spells the strongholds as their territories; that still draws the old group highlight. */
-      const strongholds = Object.values(arrakisBoard().properties)
-        .filter((property) => property.type === 'stronghold')
-        .map((property) => propertyId(property));
-      const painted = {
-        ...publishingSpiceCard,
-        highlights: ['strongholds'],
-        board: {
-          asset_id: boardId,
-          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: strongholds }],
-          tokens: [],
-        },
-      };
-      const paintedId = await insertCard(f, 'painted', painted);
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, paintedId)).toEqual(withoutList(painted));
-    },
-    BUDGET_MS
-  );
-
-  test(
-    'resolves a type highlight against the board a card already links',
+    'the finished Spice card move and its verify change nothing and check nothing',
     async () => {
       const f = await rulebookFixture();
       migrationsTest.register(f.t);
       await saveArrakis(f);
-      /* A custom board where one stronghold became rock: four strongholds, not Arrakis's five. */
-      const custom = arrakisBoard();
-      const [demoted, ...kept] = Object.entries(custom.properties).filter(
-        ([, property]) => property.type === 'stronghold'
-      );
-      custom.properties[demoted![0]] = { ...demoted![1], type: 'rock' };
-      const created = await f.owner.mutation(api.assets.create, {
-        type: 'board',
-        data: { name: 'Four strongholds', about: '', board: custom },
-      });
-      const card = {
-        ...publishingSpiceCard,
-        highlights: ['strongholds'],
-        board: {
-          asset_id: created.id,
-          tints: [
-            {
-              id: 'blow',
-              name: 'Blow',
-              color: '#9e5f00',
-              territories: kept.map(([, property]) => propertyId(property)),
-            },
-          ],
-          tokens: [],
-        },
-      };
-      const cardId = await insertCard(f, 'custom', card);
+      /* A card may be saved without a board now; the move no longer links it. */
+      const unlinkedId = await insertCard(f, 'unlinked', publishingSpiceCard);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, cardId)).toEqual(withoutList(card));
-    },
-    BUDGET_MS
-  );
-
-  test(
-    'leaves a card it cannot move as it is, and the verify names a live one',
-    async () => {
-      const f = await rulebookFixture();
-      migrationsTest.register(f.t);
-      const boardId = await saveArrakis(f);
-      /* Its tints do not draw its old highlight, so clearing it would lose it. */
-      const uncovered = {
-        ...publishingSpiceCard,
-        highlights: ['polar'],
-        board: {
-          asset_id: boardId,
-          tints: [{ id: 'blow', name: 'Blow', color: '#9e5f00', territories: ['arsunt'] }],
-          tokens: [],
-        },
-      };
-      const uncoveredId = await insertCard(f, 'uncovered', uncovered);
-      const brokenId = await insertCard(f, 'broken', { highlights: 'not a list' }, true);
-      const emptyId = await insertCard(f, 'empty', null);
-      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, uncoveredId)).toEqual(uncovered);
-      expect(await cardData(f, brokenId)).toEqual({ highlights: 'not a list' });
-      expect(await cardData(f, emptyId)).toBeNull();
-
-      await expect(f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, {})).resolves.toMatchObject({
-        Status: expect.stringContaining(`card-spice ${uncoveredId} is still on the built-in Arrakis map.`),
+      expect(await cardData(f, unlinkedId)).toEqual(publishingSpiceCard);
+      expect(await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, {})).toMatchObject({
+        Status: expect.not.stringContaining('failed'),
       });
-      /* The deleted, unparseable row never blocks the deploy. */
-      await f.t.run((ctx) => ctx.db.delete('assets', uncoveredId));
-      expect(
-        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
-      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
     },
     BUDGET_MS
   );

@@ -86,71 +86,6 @@ export const Spice = z.strictObject({
     z.enum(['spice-mine', 'spice'] as const),
     ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
   ]),
-  /**
-   * The classic map's territory list, which no card draws any more: every stored card holds an empty one.
-   * Optional so a card saved without it reads everywhere before the stored lists are removed;
-   * then the field goes.
-   */
-  highlights: z
-    .array(
-      z.enum([
-        //sand
-        'imperial-basin',
-        'bight-of-the-cliff',
-        'habbanya-ridge-flat',
-        'arsunt',
-        'cielago-depression',
-        'hagga-basin',
-        'cielago-east',
-        'rock-outcroppings',
-        'habbanya-erg',
-        'funeral-plain',
-        'wind-pass-north',
-        'cielago-west',
-        'meridian',
-        'cielago-south',
-        'cielago-north',
-        'harg-pass',
-        'wind-pass',
-        'the-minor-erg',
-        'south-mesa',
-        'the-great-flat',
-        'gara-kulon',
-        'hole-in-the-rock',
-        'basin',
-        'tsimpo',
-        'old-gap',
-        'broken-land',
-        'the-greater-flat',
-        'red-chasm',
-        'sihaya-ridge',
-
-        //rock
-        'false-wall-west',
-        'false-wall-south',
-        'shield-wall',
-        'false-wall-east',
-        'pasty-mesa',
-        'rim-wall-west',
-        'plastic-basin',
-
-        //stronghold
-        'arrakeen',
-        'carthag',
-        'tueks',
-        'tabr',
-        'habbanya',
-
-        //special
-        'polar',
-
-        //category
-        'rock',
-        'strongholds',
-        'sand',
-      ] as const)
-    )
-    .optional(),
   overlays: z
     .array(
       z.strictObject({
@@ -436,10 +371,6 @@ export const SpiceAssetInput = SpiceAsset.extend({
   /* The publisher renders every saved face in a browser, so an overlay may only name a bundled image, never an address the author chooses. */
   overlays: z
     .array(z.strictObject({ image: z.union([TEXTURE, BACKGROUND, ALL]), offset: OFFSET, scale: SCALE }))
-    .optional(),
-  /* No write may store the classic highlight list again; a board tint draws what it drew. An empty list is dropped before this parse. */
-  highlights: z
-    .never({ error: 'Spice highlights are no longer saved. Link a board and tint the territories instead.' })
     .optional(),
 });
 

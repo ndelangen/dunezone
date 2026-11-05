@@ -5,7 +5,6 @@
     "icon": "/vector/emblem/fremen.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Sihaya Ridge\n*Hiereg token* on Cielago East",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Sihaya Ridge, including Fremen and Bene Gesserit advisors. Place 6 spice in its only sector unless that sector is in storm. Place one random Hiereg token face down in Cielago East, west sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {
@@ -57,7 +56,6 @@
     "icon": "/vector/emblem/fremen.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Rock Outcroppings\n*Hiereg token* on Meridian",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Rock Outcroppings, including Fremen and Bene Gesserit advisors. Place 6 spice in its south sector unless that sector is in storm. Place one random Hiereg token face down in Meridian, west sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {
@@ -109,7 +107,6 @@
     "icon": "/vector/emblem/fremen.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Hagga Basin\n*Hiereg token* on Gara Kulon",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Hagga Basin, including Fremen and Bene Gesserit advisors. Place 6 spice in its west sector unless that sector is in storm. Place one random Hiereg token face down in Gara Kulon, only sector. Fremen may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {
@@ -161,7 +158,6 @@
     "icon": "/vector/emblem/guild.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Funeral Plain\n*Smuggler token* on Pasty Mesa",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Funeral Plain, including Fremen and Bene Gesserit advisors. Place 6 spice in its only sector unless that sector is in storm. Place one random Smuggler token face down in Pasty Mesa, north sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {
@@ -213,7 +209,6 @@
     "icon": "/vector/emblem/guild.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Wind Pass North\n*Smuggler token* on Plastic Basin",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Wind Pass North, including Fremen and Bene Gesserit advisors. Place 6 spice in its north sector unless that sector is in storm. Place one random Smuggler token face down in Plastic Basin, middle sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {
@@ -265,7 +260,6 @@
     "icon": "/vector/emblem/guild.svg",
     "iconScale": 1,
     "amount": 6,
-    "highlights": [],
     "text": "Add:\n*6 spice* on Old Gap\n*Smuggler token* on False Wall West",
     "about": "Discovery blow. Destroy all existing spice and forces throughout Old Gap, including Fremen and Bene Gesserit advisors. Place 6 spice in its middle sector unless that sector is in storm. Place one random Smuggler token face down in False Wall West, middle sector. Spacing Guild may inspect that token at any time without revealing it. Other factions with non-advisor forces there may inspect and optionally reveal it during Spice Collection. The blow and token have separate locations; destruction applies to the blow territory, not the token territory.",
     "board": {

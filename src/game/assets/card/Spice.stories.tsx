@@ -21,7 +21,6 @@ export const Arsunt = meta.story({
     name: 'Arsunt',
     subName: 'Spice mine',
     icon: 'spice-mine',
-    highlights: ['arsunt'],
     amount: 3,
   },
   play: async ({ canvasElement }) => {
@@ -39,7 +38,6 @@ export const DiscoveryWindPassNorth = meta.story({
     name: 'Wind Pass North',
     subName: 'Spice blow - Discovery',
     icon: 'spice',
-    highlights: ['wind-pass-north', 'plastic-basin'],
     amount: 6,
     text: `**Smuggler token** on Plastic Basin\n+\n**6 spice** on Wind Pass North`,
     overlays: [
@@ -116,7 +114,6 @@ export const PalaceOnSavedBoard = meta.story({
     name: '',
     subName: 'Spice blow',
     icon: 'spice',
-    highlights: [],
     amount: 6,
     board: { asset_id: 'palace-board', tints: [], tokens: [] },
     boardDefinition: (() => {

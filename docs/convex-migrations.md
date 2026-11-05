@@ -183,7 +183,8 @@ bun run migrations:static-check
   [`convex/arrakisMigrations.ts`](../convex/arrakisMigrations.ts) for the move off the built-in Arrakis map
   and the removal of the Spice `highlights` list (#1971). That removal takes three releases: the field became
   optional, then `arrakis_spice_highlights_strip_v1` and its two verifies clear it from cards and queued
-  captures, then a narrow entry requiring all three removes it from the schema.
+  captures, then `spice_highlights_narrow`, requiring all three, removed it from the schema. The Spice card
+  move and its verify read that list, so their bodies became no-ops and their ids stay.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
