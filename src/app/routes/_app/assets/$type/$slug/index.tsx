@@ -515,16 +515,32 @@ function isContainerType(type: string): boolean {
   return type in PER_TYPE_BODY;
 }
 
-function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: boolean }) {
+/** What the page leads with beside the render: a container's grid, or the words printed on a face. */
+function AssetDetailLead({
+  page,
+  duplicated,
+  faceText,
+}: {
+  page: AssetPage;
+  duplicated: boolean;
+  faceText: FaceTextEntry[];
+}) {
+  return (
+    <>
+      {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
+      <FaceTextSection type={page.asset.type} entries={faceText} />
+    </>
+  );
+}
+
+/** The facts about an asset rather than its face: which containers hold it, and its About. */
+function AssetDetailFacts({ page }: { page: AssetPage }) {
   const about =
     typeof (page.asset.data as { about?: unknown })?.about === 'string'
       ? (page.asset.data as { about: string }).about
       : '';
   return (
-    <Stack gap="lg">
-      {PER_TYPE_BODY[page.asset.type]?.(page, duplicated)}
-      <FaceTextSection type={page.asset.type} entries={assetFaceText(page.asset.type, page.asset.data)} />
-      {/* Membership reads with the other facts rather than beside the render: the rail is the preview's, the column is the reader's (Norbert, 2026-08-21). */}
+    <>
       {holdsDeckMembership(page.asset.type) ? (
         <ContainerSection
           id="in-decks"
@@ -544,7 +560,7 @@ function AssetDetailBody({ page, duplicated }: { page: AssetPage; duplicated: bo
         />
       ) : null}
       <AboutSection about={about} />
-    </Stack>
+    </>
   );
 }
 
@@ -597,6 +613,8 @@ function LoadedAssetDetail({
   const navigate = Route.useNavigate();
   const container = isContainerType(asset.type);
   const duplicated = copies !== 'once';
+  const faceText = assetFaceText(asset.type, asset.data);
+  const factsBelow = !container && faceText.length > 0;
   /* Only a container holding an actual multiple offers the toggle: with every count at one, the two views are the same picture. */
   const hasCopies = container && page.members.some(({ count }) => count > 1);
   const memberNoun = asset.type === 'deck' ? 'card' : 'token';
@@ -799,7 +817,11 @@ function LoadedAssetDetail({
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>
             <AsymmetricSplitLayout.Wide>
-              <AssetDetailBody page={page} duplicated={duplicated} />
+              <Stack gap="lg">
+                <AssetDetailLead page={page} duplicated={duplicated} faceText={faceText} />
+                {/* Without printed words the facts keep the column beside the render, so it is never left empty. */}
+                {factsBelow ? null : <AssetDetailFacts page={page} />}
+              </Stack>
             </AsymmetricSplitLayout.Wide>
 
             <AsymmetricSplitLayout.Narrow>
@@ -809,6 +831,8 @@ function LoadedAssetDetail({
               </Stack>
             </AsymmetricSplitLayout.Narrow>
           </AsymmetricSplitLayout>
+          {/* A face's printed words sit beside the render; the facts follow below at full width (Norbert, 2026-11-05). */}
+          {factsBelow ? <AssetDetailFacts page={page} /> : null}
           <RelatedFaq
             items={faq.relatedFaq}
             status={faq.faqStatus}
