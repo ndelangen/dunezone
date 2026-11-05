@@ -69,11 +69,13 @@ Each bot is a separate `bun run play:bot` process with its own account, its own 
 `tools/play-bot/out/bots/<name>/`, and its own CLI working directory outside the repository. Nothing at the table marks a
 seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot is told to treat every other player as a person.
 
-1. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
-2. Create a 3-player game as `player@example.invalid` and draft your faction.
-3. In two terminals: `bun run play:bot -- --game <URL> --account 1 --want fremen` and
-   `bun run play:bot -- --game <URL> --account 2 --want harkonnen`. Approve both seat requests.
-4. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
+1. `bun run play:bot:pull` copies GF9 and stops early if it cannot deal Fremen, Harkonnen and Emperor or lacks a deck.
+2. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
+3. Create a 3-player game on "GF9 (local copy)" as `player@example.invalid`, draft Emperor and confirm Ready.
+4. `bun run play:bot:table -- --game <URL>` starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
+   (`--factions` changes that). Approve both seat requests. The deal is random among the three drafted factions; during
+   trading each bot offers a swap to whoever holds its faction, so accept the swap offers you get.
+5. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
    messages only when its faction is named, and on every private message. Each bot wakes at most 12 times in ten minutes
    (`--max-wakes`), so two bots cannot talk to each other without end.
 

@@ -6,7 +6,8 @@
  *   bun run play:bot:pull                       # the GF9 ruleset
  *   bun run play:bot:pull -- --ruleset <slug>   # another ruleset
  *
- * Options: --convex-url (the site's Convex deployment), --media-origin (where its images are served), --out (a directory).
+ * Options: --convex-url (the site's Convex deployment), --media-origin (where its images are served), --out (a directory),
+ * --require (factions the copy must be able to deal; Fremen, Harkonnen and Emperor by default).
  * The copy lands in tools/play-bot/out/mirror/<slug>/; `bun run play:bot:stack -- --mirror <that directory>` plays on it.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -28,6 +29,7 @@ const { values } = parseArgs({
     'convex-url': { type: 'string', default: 'https://exuberant-finch-263.eu-west-1.convex.cloud' },
     'media-origin': { type: 'string', default: 'https://dune.zone' },
     out: { type: 'string' },
+    require: { type: 'string', default: 'fremen,harkonnen,emperor' },
   },
 });
 const slug = values.ruleset!;
@@ -75,6 +77,22 @@ for (const { asset } of ruleset.value.slots) {
 /* Only the ruleset's own factions are kept, so the local draft offers exactly what this ruleset plays with. */
 const draftable = await checked(playDraftableFactionsSchema, 'playCatalogue:draftableFactions', { rulesetId });
 const linked = draftable.value.factions.filter((faction) => faction.linked && faction.published);
+/* A copy that cannot deal the factions a game needs is refused here, not at the table. */
+const { namesFaction } = await import('./lobby');
+const absent = (values.require ?? '')
+  .split(',')
+  .map((name) => name.trim())
+  .filter((name) => name && !linked.some((faction) => namesFaction(faction.name, name)));
+if (absent.length) {
+  throw new Error(
+    `${page.ruleset!.name} has no published ${absent.join(', ')}. Its factions: ${linked.map((faction) => faction.name).join(', ')}.`
+  );
+}
+for (const slot of ['treachery', 'spice'] as const) {
+  if (!ruleset.value.slots.some((entry) => entry.slot === slot)) {
+    throw new Error(`${page.ruleset!.name} has no ${slot} deck in its slots, so a game on it could not start.`);
+  }
+}
 const kept = new Set(linked.map((faction) => faction.id));
 const draftableFactions = {
   ...(draftable.raw as { factions: { id: string }[] }),
@@ -90,6 +108,20 @@ for (const faction of linked) {
   for (const extra of (value.data as { extras?: { type: string; slug: string }[] } | null)?.extras ?? []) {
     await pullAsset(extra.type, extra.slug);
   }
+}
+
+/* Every leader of a required faction needs a published Traitor card, or setup deals a short Traitor deck. */
+const unpublished: string[] = [];
+for (const faction of linked.filter((entry) => (values.require ?? '').split(',').some((name) => name && namesFaction(entry.name, name.trim())))) {
+  const answer = factionDefinitionSchema.parse(factionDefinitions[faction.slug]);
+  const missingTraitors = (answer.traitors ?? []).filter((traitor) => !traitor.front).length;
+  const missingLeaders = answer.leaders.filter((leader) => !leader.front).length;
+  if (!answer.token || missingTraitors || missingLeaders) {
+    unpublished.push(`${faction.name}: ${[!answer.token && 'token', missingLeaders && `${missingLeaders} leaders`, missingTraitors && `${missingTraitors} Traitor cards`].filter(Boolean).join(', ')} unpublished`);
+  }
+}
+if (unpublished.length) {
+  console.warn(`Warning, some faces are not published on the site:\n  ${unpublished.join('\n  ')}`);
 }
 
 const answers = { rulesetSupply: ruleset.raw, assetSupply, draftableFactions, factionDefinitions };
