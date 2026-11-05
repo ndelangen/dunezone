@@ -896,7 +896,11 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const before = requireView(who).snapshot.revision;
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
-  /* The request opens Seats & spectators for every player, and its Approve names the requester. */
+  /* The request opens Seats & spectators for every player by itself, and its Approve names the requester. */
+  await until(
+    async () => (await windowOf(approver, 'Seats & spectators').count()) > 0,
+    'The seat request did not open Seats & spectators.'
+  );
   await openTab(approver, 'Seats & spectators');
   await act(approver, `Approve ${requireView(who).viewer.displayName}`);
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');

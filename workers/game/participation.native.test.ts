@@ -223,9 +223,18 @@ describe('Explicit participation on a real game', () => {
     ]);
     secondTab.socket.close();
     await eventually(() => secondTab.closed, 'second tab disconnected');
+    const pushed = a.messages.length;
     c.socket.close();
     await eventually(() => c.closed, 'disconnected');
-    await eventually(async () => (await spectators()).length === 1, 'spectator left');
+    /* The players learn of it from the room's own push, without asking. */
+    await eventually(
+      () =>
+        a.messages
+          .slice(pushed)
+          .some((message) => message.type === 'view' && message.snapshot.controls?.spectators.length === 1),
+      'spectator departure pushed'
+    );
+    expect(await spectators()).toEqual([synthetic('b')]);
     /* A spectator seated is a player, no longer a spectator. */
     await seat(b, a);
     expect(await spectators()).toEqual([]);

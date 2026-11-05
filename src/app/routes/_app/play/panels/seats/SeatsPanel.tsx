@@ -1,4 +1,5 @@
 import { Avatar, Group, Stack, Text } from '@mantine/core';
+import type { PublicControls } from '@shared/play/inventory';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -19,14 +20,8 @@ export type SeatRequestRow = Readonly<{
   closed?: string;
 }>;
 
-/** One signed-in spectator, by their public name and avatar. */
-type SpectatorRow = Readonly<{
-  name: string;
-  avatar: string | null;
-  slug: string | null;
-  /** The viewer themselves, watching. */
-  own?: boolean;
-}>;
+/** One signed-in spectator, as the table publishes them; `own` marks the viewer themselves. */
+type SpectatorRow = PublicControls['spectators'][number];
 
 export type SeatsPanelProps = Readonly<{
   /** How the seats stand, such as "5 of 6 seats taken". */

@@ -69,7 +69,7 @@ export const ALLIANCES_GUIDANCE: Guidance = {
 };
 
 export const SEATS_HELP = helpLines(
-  'A spectator asks for an open seat here, and any one player approves it.',
+  'A spectator asks for an open seat from Seats in the header, and any one player approves it here.',
   'Signed-in spectators are listed by name; anyone watching signed out is only counted.'
 );
 
