@@ -90,10 +90,10 @@ test('the leader played out of the hand is still the player’s to turn over and
   expect(table.snapshot.factionInventories.atreides?.map((piece) => piece.id)).toEqual([played.id]);
 });
 
-test('face-down catalogue discs of one asset keep a shared key, so the page previews the merge the room makes', () => {
+test('catalogue discs of one asset share a key face up and are told apart face down, as the page previews the merges the room makes', () => {
   const { table } = room();
   const troop = table.snapshot.table.pieces.find((piece) => piece.id === 'harkonnen-force-loose')!;
-  const disc = (id: string, x: number) => ({
+  const disc = (id: string, x: number, faceUp: boolean) => ({
     ...structuredClone(troop),
     id,
     owner: 'shared',
@@ -103,15 +103,21 @@ test('face-down catalogue discs of one asset keep a shared key, so the page prev
     items: [
       {
         id: `${id}-item`,
-        faceUp: false,
+        faceUp,
         artwork: { front: FRONT, back: 'https://example.test/back.png', name: 'Marker', type: 'token-disc' },
       },
     ],
   });
-  const [first, second] = [disc('disc-one', 3), disc('disc-two', 5)];
   const projection = new RoomProjection('secret');
-  const [left, right] = [projection.piece(first), projection.piece(second)];
-  expect(left.stackKey).toBe(right.stackKey);
-  expect(piecesCanStack(left, right)).toBe(piecesCanStack(first, second));
-  expect(piecesCanStack(left, right)).toBe(true);
+  const up = [disc('disc-one', 3, true), disc('disc-two', 5, true)] as const;
+  const [upLeft, upRight] = up.map((piece) => projection.piece(piece));
+  expect(upLeft!.stackKey).toBe(upRight!.stackKey);
+  expect(piecesCanStack(upLeft!, upRight!)).toBe(piecesCanStack(...up));
+  expect(piecesCanStack(upLeft!, upRight!)).toBe(true);
+  /* Face down, either disc may be a hidden leader: the room stacks it with nothing, and the page sees keys that match nothing. */
+  const down = [disc('disc-three', 7, false), disc('disc-four', 9, false)] as const;
+  const [downLeft, downRight] = down.map((piece) => projection.piece(piece));
+  expect(downLeft!.stackKey).not.toBe(downRight!.stackKey);
+  expect(piecesCanStack(downLeft!, downRight!)).toBe(piecesCanStack(...down));
+  expect(piecesCanStack(downLeft!, downRight!)).toBe(false);
 });

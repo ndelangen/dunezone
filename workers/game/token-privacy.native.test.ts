@@ -132,8 +132,8 @@ test('a spectator cannot read the face of a face-down disc without a peek', asyn
     const token = assertHiddenToken(view);
     const played = await exerciseHandAndLock(player);
     const replayed = await assertPrivatePeek(player, spectator, played);
-    /* A catalogue disc keeps the key its asset's tokens share, so face-down copies still stack as the room stacks them. */
-    expect(replayed.stackKey).toBe(token.stackKey);
+    /* Face down, the disc is told apart from its asset's other copies, as it stacks with none of them while hidden. */
+    expect(replayed.stackKey).not.toBe(token.stackKey);
     await assertColdRestore(runtime, played, replayed.stackKey);
   } finally {
     await runtime.close();
