@@ -377,9 +377,10 @@ export const seedRealGameCatalogue = internalMutation({
 });
 
 /**
- * Puts a mirrored ruleset's own decks and factions on a seeded ruleset, so the create page lists what the game will deal:
- * the real deck names and counts, and the factions with their tokens. Games still read their catalogue through the mirror;
- * these rows only stand behind the page's manifest. Each publication names the mirrored image the runner installs for it.
+ * Puts a mirrored ruleset's own decks and factions on a seeded ruleset, so the create page lists what the game will deal: the real deck names and counts, and the factions with their tokens.
+ * Games still read their catalogue through the mirror;
+ * these rows only stand behind the page's manifest.
+ * Each publication names the mirrored image the runner installs for it.
  */
 export const seedMirrorPreview = internalMutation({
   args: {

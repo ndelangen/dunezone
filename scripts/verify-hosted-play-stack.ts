@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
+import type { ConvexHttpClient } from 'convex/browser';
 import sharp from 'sharp';
 
 import { matchPublishedPath, publishedR2Key } from '../src/shared/asset-publishing/publicationTargets';
@@ -405,14 +406,10 @@ function mirrorImage(published: string) {
 }
 
 /**
- * The mirrored ruleset's own decks and factions on the seeded ruleset, for the create page's manifest: the page reads the local
- * backend, while games read the mirror. Each deck shows the back the live site resolves for it, and each faction its token.
+ * The mirrored ruleset's own decks and factions on the seeded ruleset, for the create page's manifest: the page reads the local backend, while games read the mirror.
+ * Each deck shows the back the live site resolves for it, and each faction its token.
  */
-async function seedMirrorPreview(
-  source: NonNullable<typeof mirror>,
-  adminClient: import('convex/browser').ConvexHttpClient,
-  rulesetId: string
-) {
+async function seedMirrorPreview(source: NonNullable<typeof mirror>, adminClient: ConvexHttpClient, rulesetId: string) {
   const { makeFunctionReference } = await import('convex/server');
   const { publishingCustomDeckCardback } = await import('../src/shared/assets/fixtures/publishingDeckCardback');
   const image = (published: string | null | undefined) => (published && mirrorImage(published) ? published : undefined);
