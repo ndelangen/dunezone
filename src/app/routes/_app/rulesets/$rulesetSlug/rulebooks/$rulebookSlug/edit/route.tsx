@@ -87,6 +87,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { SaveAction } from '@ui/control/SaveAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { StatusInfo } from '@ui/control/StatusInfo';
@@ -1203,52 +1204,35 @@ function FactionReferenceControl({
   title?: string;
   description?: string;
 }) {
-  const [opened, setOpened] = useState(false);
   const chosenName = factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : undefined;
   return (
-    <ControlBlock
+    <PickerField
       title={title}
       description={description}
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button
-              variant="default"
-              aria-label={
-                title === 'Faction'
-                  ? undefined
-                  : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
-              }
-              onClick={() => setOpened(!opened)}
-            >
-              {chosenName ?? 'Choose faction'}
-            </Button>
-            {factionId ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <FactionPicker
-              copy={{
-                title: 'Choose faction',
-                intro: 'Choose a live faction reference.',
-                errorTitle: 'Factions could not be loaded',
-                emptyMessage: 'No factions are available.',
-                confirmTitle: 'Selected faction',
-                confirmLabel: 'Use faction',
-                confirmIntent: 'positive',
-              }}
-              onPick={(picked) => {
-                onChange(picked.id);
-                setOpened(false);
-              }}
-              onCancel={() => setOpened(false)}
-            />
-          ) : null}
-        </Stack>
+      chosen={chosenName ?? 'Choose faction'}
+      chooseLabel={
+        title === 'Faction' ? undefined : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
       }
+      onClear={factionId ? () => onChange(undefined) : undefined}
+      loadingLabel="Loading factions"
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Choose a live faction reference.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            onChange(picked.id);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }

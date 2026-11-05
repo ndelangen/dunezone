@@ -1,23 +1,12 @@
-import {
-  Accordion,
-  Button,
-  ColorInput,
-  Group,
-  Loader,
-  NumberInput,
-  Select,
-  Stack,
-  Switch,
-  TextInput,
-  Textarea,
-} from '@mantine/core';
+import { Accordion, ColorInput, Group, NumberInput, Select, Stack, Switch, TextInput, Textarea } from '@mantine/core';
 import { resolveRulebookBoardDefinition, RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
 import { boardHighlightTints } from '@shared/rulebooks/boardHighlightTints';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { createContext, lazy, Suspense, useContext, useState } from 'react';
+import { PickerField } from '@ui/control/PickerField';
+import { createContext, lazy, useContext } from 'react';
 
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
@@ -99,44 +88,32 @@ function FactionControl({
   references: RulebookEditorReferences;
   onChange: (id: string | undefined) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <ControlBlock
+    <PickerField
       title="Faction"
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" aria-label={`Choose ${label} faction`} onClick={() => setOpened(!opened)}>
-              {factionId ? (references.factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
-            </Button>
-            {factionId ? (
-              <Button variant="subtle" aria-label={`Clear ${label} faction`} onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading factions" />}>
-              <FactionPicker
-                copy={{
-                  title: 'Choose faction',
-                  intro: 'Use this faction in the illustration.',
-                  errorTitle: 'Factions could not be loaded',
-                  emptyMessage: 'No factions are available.',
-                  confirmTitle: 'Selected faction',
-                  confirmLabel: 'Use faction',
-                  confirmIntent: 'positive',
-                }}
-                onPick={(picked) => {
-                  onChange(picked.id);
-                  setOpened(false);
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={factionId ? (references.factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
+      chooseLabel={`Choose ${label} faction`}
+      onClear={factionId ? () => onChange(undefined) : undefined}
+      clearLabel={`Clear ${label} faction`}
+      loadingLabel="Loading factions"
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Use this faction in the illustration.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            onChange(picked.id);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }

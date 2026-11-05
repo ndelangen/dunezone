@@ -14,6 +14,7 @@ import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { lazy, Suspense, useState } from 'react';
@@ -53,37 +54,23 @@ export function RulebookSourceControl({
   onChange: (source: RulebookSourceReference | undefined) => void;
   references: RulebookEditorReferences;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <ControlBlock
+    <PickerField
       title="Source"
       description="The image follows this source. Changing it keeps your caption and explanation."
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" onClick={() => setOpened(!opened)}>
-              {sourceLabel(source, references)}
-            </Button>
-            {source ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear source
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading sources" />}>
-              <RulebookSourcePicker
-                initialKind={source?.kind}
-                onPick={(next) => {
-                  onChange(next);
-                  setOpened(false);
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={sourceLabel(source, references)}
+      onClear={source ? () => onChange(undefined) : undefined}
+      loadingLabel="Loading sources"
+      picker={(close) => (
+        <RulebookSourcePicker
+          initialKind={source?.kind}
+          onPick={(next) => {
+            onChange(next);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
