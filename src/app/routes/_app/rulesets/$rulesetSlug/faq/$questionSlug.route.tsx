@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
@@ -23,6 +23,7 @@ import { AddAction } from '@ui/control/ListLengthActions';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
@@ -664,11 +665,9 @@ function FaqQuestionPost({
               <Anchor href="#discussion" size="sm" underline="never">
                 Read the answers
               </Anchor>
-              {(item.tags ?? []).map((tag) => (
-                <Badge key={tag} size="xs" variant="outline" color="dune">
-                  {FAQ_TAG_LABELS[tag]}
-                </Badge>
-              ))}
+              {item.tags?.length ? (
+                <ChipList items={item.tags.map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
+              ) : null}
             </Group>
           </Stack>
         </Card>

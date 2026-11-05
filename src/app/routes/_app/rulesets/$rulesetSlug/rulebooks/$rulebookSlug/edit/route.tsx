@@ -30,7 +30,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -80,6 +80,7 @@ import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -2698,7 +2699,7 @@ function RulebookDifferenceReview({
             <Section
               key={difference.id}
               title={name}
-              action={approved ? <Badge color="confirm">Reviewed</Badge> : undefined}
+              action={approved ? <StatusBadge tone="positive">Reviewed</StatusBadge> : undefined}
             >
               <AsymmetricSplitLayout>
                 <AsymmetricSplitLayout.Wide>

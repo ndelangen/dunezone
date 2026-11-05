@@ -1,6 +1,7 @@
-import { Badge, Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -375,14 +376,14 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
     case 'sent':
       return (
         <Group gap="sm">
-          <Badge variant="default">Pending</Badge>
+          <StatusBadge tone="pending">Pending</StatusBadge>
         </Group>
       );
     case 'failed':
       return (
         <>
           <Group gap="sm">
-            <Badge variant="default">Failed</Badge>
+            <StatusBadge tone="negative">Failed</StatusBadge>
             <Button variant="subtle" size="compact-sm" onClick={() => retry(request.requestId)}>
               Retry
             </Button>
