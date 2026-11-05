@@ -1,11 +1,11 @@
-import { Select, Stack, Text, Title } from '@mantine/core';
+import { Select, Stack, Text } from '@mantine/core';
 import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
-import { PastTheEnd } from '@ui/block/EmptyResults';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -264,35 +264,32 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
   if (definition.status === 'planned') {
     return (
       <Surface padding="xl">
-        <Stack gap="xs" align="center">
-          <Title order={2}>Planned</Title>
-          <Text c="dimmed" ta="center">
-            {definition.label} are on the roadmap. This type cannot hold assets yet.
-          </Text>
-        </Stack>
+        <EmptyResults title="Planned">{`${definition.label} are on the roadmap. This type cannot hold assets yet.`}</EmptyResults>
       </Surface>
     );
   }
   if (data.typeTotal === 0) {
     return (
       <Surface padding="xl">
-        <Stack gap="xs" align="center">
-          <Title order={2}>Nothing here yet</Title>
-          <Text c="dimmed" ta="center">
-            No {plural} have been created so far.
-          </Text>
-        </Stack>
+        <EmptyResults title="Nothing here yet">{`No ${plural} have been created so far.`}</EmptyResults>
       </Surface>
     );
   }
   return (
     <CatalogueResults
-      results={'mode' in data ? { kind: 'search', ...data } : { kind: 'browse', ...data }}
+      results={
+        'mode' in data
+          ? { kind: 'search', ...data, loading, loaded, onLoadMore }
+          : {
+              kind: 'browse',
+              ...data,
+              pagerLabel: `${definition.label} pages`,
+              pageLinkProps: (page) => assetTypePageLink(type, page),
+            }
+      }
       noun={plural}
-      singular={singularLabel(plural)}
-      pagerLabel={`${definition.label} pages`}
-      pageLinkProps={(page) => assetTypePageLink(type, page)}
-      renderTiles={(entries) => (
+      noMatches={`No ${singularLabel(plural)} matches this search.`}
+      renderEntries={(entries) => (
         <Surface padding="xl">
           <TileGrid>
             {entries.map((entry) => (
@@ -301,9 +298,6 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
           </TileGrid>
         </Surface>
       )}
-      loading={loading}
-      loaded={loaded}
-      onLoadMore={onLoadMore}
       ref={ref}
     />
   );

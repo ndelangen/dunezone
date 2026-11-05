@@ -99,7 +99,7 @@ export const NothingMatchesCapped = meta.story({
   play: async ({ canvasElement }) => {
     const { main } = await findFaqMain(canvasElement);
     await expect(main.findByRole('heading', { name: 'Nothing matches' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(main.getByText(/some were not\. A word or two more might help\./)).toBeVisible();
+    await expect(main.getByText(/Only the first matches of this search were checked/)).toBeVisible();
     await expect(main.queryByRole('button', { name: 'Load more' })).toBeNull();
   },
 });

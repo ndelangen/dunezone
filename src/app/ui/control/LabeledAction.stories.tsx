@@ -1,6 +1,5 @@
 import { Group, Stack } from '@mantine/core';
 import preview from '@sb/preview';
-import { Link } from '@tanstack/react-router';
 import { ArrowLeft, Check, Download, RotateCcw, Send, Trash2 } from 'lucide-react';
 
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
@@ -46,15 +45,6 @@ export const EveryIntent = meta.story({
   ),
 });
 
-/** A link to another page: the router's `Link` becomes the root, and the action reads as a link. */
-export const AsLink = meta.story({
-  args: {
-    children: 'Go to page 3',
-    icon: <ArrowLeft size={16} />,
-    renderRoot: (props) => <Link {...props} to="/factions" />,
-  },
-});
-
 /** Not available right now, saying why on hover and to a screen reader. */
 export const DisabledWithReason = meta.story({
   args: {
@@ -65,8 +55,8 @@ export const DisabledWithReason = meta.story({
   },
 });
 
-/** While its mutation is in flight. */
-export const Loading = meta.story({ args: { loading: true } });
+/** While the work it started is in flight: a spinner in the glyph's place, still focusable. */
+export const Busy = meta.story({ args: { busy: true } });
 
 /** The small size, for a toolbar or a filter row. */
 export const Small = meta.story({ args: { size: 'xs' } });

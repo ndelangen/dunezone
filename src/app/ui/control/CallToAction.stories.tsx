@@ -28,6 +28,7 @@ export const DownOnArtwork = meta.story({
     direction: 'down',
     tone: 'artwork',
     children: 'Take a sneak peek',
+    /* The meta's router link gives way to a plain hash anchor. */
     renderRoot: undefined,
     href: '#play-preview',
   },

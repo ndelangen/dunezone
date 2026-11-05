@@ -370,7 +370,7 @@ A forward-moving primary uses the shared bright yellow with dark text. The homep
 uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
 The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
-`CallToAction` and a strong `IconAction` own primary emphasis; callers supply their words and intent.
+`CallToAction` and a strong `IconAction` or `LabeledAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -394,14 +394,14 @@ The language, each word earned by usage the survey found rather than invented:
 | `muted` | recedes behind the content it names | `Eyebrow` |
 | `accent` | ties the label to the brand | `Eyebrow` |
 | `inverse` | legible on dark artwork | `Eyebrow` |
-| `silent` | no chrome at all, even hovered | `IconAction` |
-| `quiet` | blends in until hovered | `IconAction` |
-| `standard` | a tinted tile; the everyday weight | `IconAction` |
-| `strong` | fully filled; the action a row leads with | `IconAction` |
+| `silent` | no chrome at all, even hovered | `IconAction`, `LabeledAction` |
+| `quiet` | blends in until hovered | `IconAction`, `LabeledAction` |
+| `standard` | a tinted tile; the everyday weight | `IconAction`, `LabeledAction` |
+| `strong` | fully filled; the action a row leads with | `IconAction`, `LabeledAction` |
 
 The words marked `any` are context-free and belong to any component that needs them. The rest are
 scoped to the component that earned them, and a component adding a word takes it from this table
-before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
+before inventing one. The `IconAction` four, shared by its worded sibling `LabeledAction`, are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
@@ -426,8 +426,10 @@ control with no explicit semantics makes the reader guess. Keep exactly one clea
 toolbar. Use an icon-only button only for a common, recognizable action with an `aria-label`; if the
 icon would be ambiguous, label it.
 
-*Convention. The kit carries it: `IconAction` for icon-only actions and `CallToAction` for the
-forward-moving primary. Which variant each takes is the section above; this one is about how many
+*Convention. The kit carries it: `IconAction` for icon-only actions, `LabeledAction` for an action
+with room for its words (always beside a glyph, never text alone), and `CallToAction` for the
+forward-moving primary. Outside `src/app/ui` every button is one of these three rather than a raw
+Mantine `Button`; a lint ban follows once the remaining call sites have moved. Which variant each takes is the section above; this one is about how many
 and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### A bar states its statuses as glyphs and stays one line

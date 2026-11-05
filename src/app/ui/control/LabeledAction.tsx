@@ -1,4 +1,4 @@
-import { Button, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { useId } from 'react';
 import type { MouseEventHandler, ReactNode, Ref } from 'react';
@@ -7,22 +7,26 @@ import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 
-export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'disabled' | 'loading'> {
+export interface LabeledActionProps extends Pick<ButtonProps, 'size'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
   children: string;
   /** The glyph before the words. Required: a worded button without one is the text-only button the app does not use. Marked decorative here, since the words carry the meaning. */
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
   intent?: ActionIntent;
-  /** How loudly the action renders, in IconAction's words; omitted is `standard`, the tinted tile. */
+  /** How loudly the action renders, in IconAction's words; omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
   emphasis?: ActionEmphasis;
   /** Why the action cannot run right now, as a sentence; the button stays hoverable and focusable and this is its hover text and description, as on `IconAction`. */
   disabledReason?: string;
+  /**
+   * True while the work this action started is in flight: a spinner takes the glyph's place and a second press does nothing.
+   * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page;
+   * this stays focusable and says it is busy.
+   */
+  busy?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Makes the action a link, in practice the router's `Link`. */
   renderRoot?: RenderRoot;
-  /** Makes the action a plain anchor, for a destination outside the router. */
-  href?: string;
   type?: 'button' | 'submit';
   /** Submits a form this action sits outside of, by that form's id. */
   form?: string;
@@ -45,9 +49,9 @@ export function LabeledAction({
   intent = 'neutral',
   emphasis = 'standard',
   disabledReason,
+  busy = false,
   onClick,
   renderRoot,
-  href,
   type = 'button',
   form,
   className,
@@ -58,7 +62,7 @@ export function LabeledAction({
   const color = INTENT_COLOR[intent];
   const variant = EMPHASIS_VARIANT[emphasis];
   const vars = emphasis === 'standard' ? () => tileVars(intent, false, 'button') : undefined;
-  const leftSection = <span aria-hidden>{icon}</span>;
+  const leftSection = busy ? <Loader size="xs" /> : <span aria-hidden>{icon}</span>;
   if (disabledReason != null) {
     return (
       <>
@@ -84,22 +88,6 @@ export function LabeledAction({
       </>
     );
   }
-  if (href != null) {
-    return (
-      <Button
-        {...buttonProps}
-        component="a"
-        href={href}
-        color={color}
-        variant={variant}
-        vars={vars}
-        leftSection={leftSection}
-        className={className}
-      >
-        {children}
-      </Button>
-    );
-  }
   return (
     <Button
       {...buttonProps}
@@ -110,7 +98,14 @@ export function LabeledAction({
       ref={ref}
       type={renderRoot ? undefined : type}
       form={form}
-      onClick={onClick}
+      aria-disabled={busy || undefined}
+      onClick={(event) => {
+        if (busy) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
       renderRoot={renderRoot}
       className={className}
     >

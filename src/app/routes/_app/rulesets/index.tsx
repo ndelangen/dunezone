@@ -1,15 +1,16 @@
-import { Select, Text } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { RULESET_CATALOGUE_PAGE_SIZE, parseRulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import type { RulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
-import { PastTheEnd } from '@ui/block/EmptyResults';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
+import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { Plus } from 'lucide-react';
 import { useCallback, useRef } from 'react';
@@ -211,22 +212,21 @@ type CatalogueContentProps = {
 function CatalogueContent({ data, loading, loaded, onLoadMore, ref }: CatalogueContentProps) {
   if (data.rulesetTotal === 0) {
     return (
-      <Text size="sm" c="dimmed">
-        No rulesets yet.
-      </Text>
+      <Surface padding="xl">
+        <EmptyResults title="Nothing here yet">No rulesets have been created so far.</EmptyResults>
+      </Surface>
     );
   }
   return (
     <CatalogueResults
-      results={'mode' in data ? { kind: 'search', ...data } : { kind: 'browse', ...data }}
+      results={
+        'mode' in data
+          ? { kind: 'search', ...data, loading, loaded, onLoadMore }
+          : { kind: 'browse', ...data, pagerLabel: 'Ruleset pages', pageLinkProps: rulesetPageLink }
+      }
       noun="rulesets"
-      singular="ruleset"
-      pagerLabel="Ruleset pages"
-      pageLinkProps={rulesetPageLink}
-      renderTiles={(entries) => <RulesetTiles entries={entries} />}
-      loading={loading}
-      loaded={loaded}
-      onLoadMore={onLoadMore}
+      noMatches="No ruleset matches this search."
+      renderEntries={(entries) => <RulesetTiles entries={entries} />}
       ref={ref}
     />
   );

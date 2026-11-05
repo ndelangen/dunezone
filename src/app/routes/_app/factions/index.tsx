@@ -1,4 +1,4 @@
-import { Badge, Group, InputBase, Popover, RangeSlider, Select, Stack, Text, Title } from '@mantine/core';
+import { Badge, Group, InputBase, Popover, RangeSlider, Select, Stack, Text } from '@mantine/core';
 import {
   complexityRangeSearchValue,
   FACTION_CATALOGUE_PAGE_SIZE,
@@ -8,7 +8,7 @@ import {
 import type { FactionCatalogueSearch, FactionComplexityRange } from '@shared/factions/catalogueSearch';
 import { Link, createFileRoute, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps, NotFoundRouteProps } from '@tanstack/react-router';
-import { PastTheEnd } from '@ui/block/EmptyResults';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
@@ -169,10 +169,9 @@ function CatalogueContent({
   if (data.catalogueTotal === 0) {
     return (
       <Surface padding="xl">
-        <Title order={2}>There are no factions</Title>
-        <Text c="dimmed" mt="xs">
-          Create the first faction to begin the collection.
-        </Text>
+        <EmptyResults title="Nothing here yet">
+          No factions have been created so far. Create the first one to begin the collection.
+        </EmptyResults>
       </Surface>
     );
   }
@@ -180,23 +179,23 @@ function CatalogueContent({
     <CatalogueResults
       results={
         'mode' in data
-          ? { kind: 'search', entries: data.cards, hasMore: data.hasMore, capped: data.capped }
-          : { kind: 'browse', ...data, entries: data.cards }
+          ? { kind: 'search', ...data, entries: data.cards, loading, loaded, onLoadMore }
+          : {
+              kind: 'browse',
+              ...data,
+              entries: data.cards,
+              pagerLabel: 'Faction catalogue pages',
+              pageLinkProps: factionPageLink,
+            }
       }
       noun="factions"
-      singular="faction"
-      pagerLabel="Faction catalogue pages"
-      pageLinkProps={factionPageLink}
-      renderTiles={(cards) => <FactionList factions={cards} selectedRulesetSlug={selectedRulesetSlug} />}
-      noMatchesSentence="No faction matches this search and these filters."
+      renderEntries={(cards) => <FactionList factions={cards} selectedRulesetSlug={selectedRulesetSlug} />}
+      noMatches="No faction matches this search or these filters."
       noMatchesAction={
         <LabeledAction icon={<RotateCcw size={16} />} onClick={onReset}>
           Reset filters and search
         </LabeledAction>
       }
-      loading={loading}
-      loaded={loaded}
-      onLoadMore={onLoadMore}
       ref={ref}
     />
   );

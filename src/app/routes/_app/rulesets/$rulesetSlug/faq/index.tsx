@@ -4,13 +4,14 @@ import type { FaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
-import { PastTheEnd } from '@ui/block/EmptyResults';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
+import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowLeft, MessageCircleQuestionMark } from 'lucide-react';
 import { useCallback, useRef } from 'react';
@@ -283,28 +284,44 @@ type FaqResultsProps = {
   ref: Ref<HTMLDivElement>;
 };
 
-/** The page's body: a search's matches, or a browsed page with its pager. */
+/** The page's body: a search's matches, or a browsed page with its pager; an unrefined FAQ with nothing in it yet says so in its own words. */
 function FaqResults({ data, refined, loading, loaded, onLoadMore, ref }: FaqResultsProps) {
   const openQuestion = useOpenQuestion(data.ruleset.slug);
   const rulesetSlug = data.ruleset.slug;
+  const renderList = (items: typeof data.items) => (
+    <FaqList emptyLabel="No FAQ items yet." items={items} rulesetSlug={rulesetSlug} onOpenQuestion={openQuestion} />
+  );
+  if (!refined && !('mode' in data) && data.total === 0) {
+    return (
+      <Surface padding="xl">
+        <EmptyResults title="Nothing here yet">No questions have been asked yet.</EmptyResults>
+      </Surface>
+    );
+  }
   return (
     <CatalogueResults
       results={
         'mode' in data
-          ? { kind: 'search', entries: data.items, hasMore: data.hasMore, capped: data.capped }
-          : { kind: 'browse', ...data, entries: data.items }
+          ? {
+              kind: 'search',
+              entries: data.items,
+              hasMore: data.hasMore,
+              capped: data.capped,
+              loading,
+              loaded,
+              onLoadMore,
+            }
+          : {
+              kind: 'browse',
+              ...data,
+              entries: data.items,
+              pagerLabel: 'FAQ pages',
+              pageLinkProps: (page) => faqPageLink(rulesetSlug, page),
+            }
       }
       noun="questions"
-      singular="question"
-      pagerLabel="FAQ pages"
-      pageLinkProps={(page) => faqPageLink(rulesetSlug, page)}
-      renderTiles={(items) => (
-        <FaqList emptyLabel="No FAQ items yet." items={items} rulesetSlug={rulesetSlug} onOpenQuestion={openQuestion} />
-      )}
-      filtered={refined}
-      loading={loading}
-      loaded={loaded}
-      onLoadMore={onLoadMore}
+      noMatches="No question matches this search."
+      renderEntries={renderList}
       ref={ref}
     />
   );

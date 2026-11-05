@@ -1,9 +1,9 @@
-import { Group, Select, Stack, Text } from '@mantine/core';
+import { Group, Select, Stack } from '@mantine/core';
 import { PROFILE_CATALOGUE_PAGE_SIZE, parseProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import type { ProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
-import { PastTheEnd } from '@ui/block/EmptyResults';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -191,22 +191,21 @@ type DirectoryContentProps = {
 function DirectoryContent({ data, loading, loaded, onLoadMore, ref }: DirectoryContentProps) {
   if (data.directoryTotal === 0) {
     return (
-      <Text size="sm" c="dimmed">
-        No profiles yet.
-      </Text>
+      <Surface padding="xl">
+        <EmptyResults title="Nothing here yet">No one has made a profile so far.</EmptyResults>
+      </Surface>
     );
   }
   return (
     <CatalogueResults
-      results={'mode' in data ? { kind: 'search', ...data } : { kind: 'browse', ...data }}
+      results={
+        'mode' in data
+          ? { kind: 'search', ...data, loading, loaded, onLoadMore }
+          : { kind: 'browse', ...data, pagerLabel: 'Profile pages', pageLinkProps: profilePageLink }
+      }
       noun="profiles"
-      singular="profile"
-      pagerLabel="Profile pages"
-      pageLinkProps={profilePageLink}
-      renderTiles={(entries) => <ProfileRows entries={entries} />}
-      loading={loading}
-      loaded={loaded}
-      onLoadMore={onLoadMore}
+      noMatches="No profile matches this search."
+      renderEntries={(entries) => <ProfileRows entries={entries} />}
       ref={ref}
     />
   );

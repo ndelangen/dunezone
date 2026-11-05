@@ -1,7 +1,8 @@
 import { Stack, Text, Title } from '@mantine/core';
 import { ArrowLeft } from 'lucide-react';
-import type { ElementType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
+import type { PageLinkProps } from '../control/CataloguePager';
 import { LabeledAction } from '../control/LabeledAction';
 
 export interface EmptyResultsProps {
@@ -21,10 +22,12 @@ const CAPPED = 'Only the first matches of this search were checked. Add a word t
 /**
  * Says that a list of results came back empty, and offers the way on.
  *
- * Two readers end up here and they share one arrangement: a search that matched nothing, and a page number past the end of the list.
+ * Three readers end up here and they share one arrangement: a search that matched nothing, a page number past the end of the list, and a catalogue with nothing in it yet.
  * The words are the caller's;
  * `PastTheEnd` below is the second case already worded, since every catalogue says it the same way.
  * It paints no pane: inside a `PageMessage` the message brings its own, and a results list puts one `Surface` around it.
+ * Centred, because it stands in for a list's contents.
+ * `NotAvailable` is its page-level sibling: the page itself has nothing to show (gone, or not the reader's), so it reads as the page's heading and stays at the start.
  *
  * It exists because five catalogues each wrote both of these by hand, under four titles, and one of them wrapped its pane in a second.
  */
@@ -50,14 +53,13 @@ export interface PastTheEndProps {
   pageCount: number;
   /** What the pages hold, plural and lower case, as `CataloguePager` takes it: "factions". */
   noun: string;
-  /** The props that make a link to one page, as `CataloguePager` takes them: `{ component: Link, to, search }`. */
-  pageLinkProps: (page: number) => Record<string, unknown>;
+  /** The props that make a link to one page, as `CataloguePager` takes them. */
+  pageLinkProps: (page: number) => PageLinkProps;
 }
 
 /** A page past the end, from an old link or a list that shrank: where the list ends, and a link there. */
 export function PastTheEnd({ pageCount, noun, pageLinkProps }: PastTheEndProps) {
-  const { component, ...linkProps } = pageLinkProps(pageCount);
-  const Root = (component ?? 'a') as ElementType;
+  const { component: Root, ...linkProps } = pageLinkProps(pageCount);
   return (
     <EmptyResults
       title="Nothing on this page"

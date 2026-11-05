@@ -1,5 +1,7 @@
-import { Button, Group, Loader } from '@mantine/core';
+import { Group } from '@mantine/core';
 import { ChevronsDown } from 'lucide-react';
+
+import { LabeledAction } from './LabeledAction';
 
 export type LoadMoreButtonProps = {
   /** True while the longer list is on its way; the button says so and ignores a second press. */
@@ -10,24 +12,14 @@ export type LoadMoreButtonProps = {
 /**
  * The way to a longer list, under it at its middle.
  * Callers own the list and how much longer it gets;
- * this owns the one button and its busy state.
- * Not Mantine's `loading`, which disables the button and drops a keyboard reader's focus to the page: the button stays focusable and says it is busy, and the click guard keeps a second press from asking twice.
+ * this owns the one button, worded once, and its place.
  */
 export function LoadMoreButton({ loading, onLoadMore }: LoadMoreButtonProps) {
   return (
     <Group justify="center">
-      <Button
-        variant="default"
-        aria-disabled={loading}
-        leftSection={loading ? <Loader size="xs" /> : <ChevronsDown size={16} aria-hidden />}
-        onClick={() => {
-          if (!loading) {
-            onLoadMore();
-          }
-        }}
-      >
+      <LabeledAction icon={<ChevronsDown size={16} />} busy={loading} onClick={onLoadMore}>
         Load more
-      </Button>
+      </LabeledAction>
     </Group>
   );
 }

@@ -28,7 +28,7 @@ export const Capped = meta.story({ args: { capped: true } });
 /** With the way on, as the faction catalogue offers it while filters are set. */
 export const WithAction = meta.story({
   args: {
-    children: 'No faction matches this search and these filters.',
+    children: 'No faction matches this search or these filters.',
     action: (
       <LabeledAction icon={<RotateCcw size={16} />} onClick={() => {}}>
         Reset filters and search

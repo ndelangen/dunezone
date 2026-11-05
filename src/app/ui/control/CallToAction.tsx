@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 import type { RenderRoot } from '../renderRoot';
 import styles from './CallToAction.module.css';
 
-export interface CallToActionProps {
+interface CallToActionBaseProps {
   children: ReactNode;
   /**
    * `start` prefixes a plus, for an action that brings something into existence;
@@ -29,14 +29,19 @@ export interface CallToActionProps {
    * The button renders disabled but stays hoverable and focusable, and this becomes its hover text and description, as on `IconAction`.
    */
   disabledReason?: string;
-  /** Where the journey goes, in practice the router's `Link`. */
-  renderRoot?: RenderRoot;
-  /** A plain anchor instead, for a jump within this page: `#play-preview`. */
-  href?: string;
 }
 
+/** Exactly one destination: the router's `Link` through `renderRoot`, or a plain anchor's `href` for a jump within this page (`#play-preview`), which a hash link keeps working before hydration. */
+export type CallToActionProps = CallToActionBaseProps &
+  ({ renderRoot: RenderRoot; href?: never } | { href: string; renderRoot?: never });
+
+const TrailingArrow: Partial<Record<NonNullable<CallToActionBaseProps['direction']>, typeof ArrowRight>> = {
+  forward: ArrowRight,
+  down: ArrowDown,
+};
+
 /**
- * The button that starts a page's primary journey.
+ * The button that starts a page's primary journey, or a section's on a page made of sections, such as the homepage.
  *
  * Callers own the words and the destination.
  * This component owns the primary action colour, the icon convention for creating or continuing, icon sizing tied to button size, and the opt-in attention pulse that respects `prefers-reduced-motion`.
@@ -53,14 +58,11 @@ export function CallToAction({
 }: CallToActionProps) {
   const reasonId = useId();
   const iconSize = size === 'sm' ? 15 : 17;
+  const Arrow = TrailingArrow[direction];
+  const variant = tone === 'artwork' ? 'artwork' : undefined;
   const sections = {
     leftSection: direction === 'start' ? <Plus size={iconSize} aria-hidden /> : undefined,
-    rightSection:
-      direction === 'forward' ? (
-        <ArrowRight size={iconSize} aria-hidden />
-      ) : direction === 'down' ? (
-        <ArrowDown size={iconSize} aria-hidden />
-      ) : undefined,
+    rightSection: Arrow ? <Arrow size={iconSize} aria-hidden /> : undefined,
   };
 
   if (disabledReason != null) {
@@ -70,6 +72,7 @@ export function CallToAction({
         <Tooltip label={disabledReason}>
           <Button
             color="cta"
+            variant={variant}
             size={size}
             {...sections}
             type="button"
@@ -88,7 +91,7 @@ export function CallToAction({
   return (
     <Button
       color="cta"
-      variant={tone === 'artwork' ? 'artwork' : undefined}
+      variant={variant}
       className={attention ? styles.attention : undefined}
       size={size}
       {...sections}
