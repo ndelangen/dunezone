@@ -258,10 +258,10 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       : clone
         ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
-  const missing =
-    draft.source === 'clone' && !clone
-      ? 'Choose a Rulebook to copy first.'
-      : 'Give the Rulebook a name and a size first.';
+  const missing = {
+    starter: 'Give the Rulebook a name and a size first.',
+    clone: clone ? 'Give the Rulebook a name first.' : 'Choose a Rulebook to copy first.',
+  }[draft.source];
   return (
     <Stack
       component="form"

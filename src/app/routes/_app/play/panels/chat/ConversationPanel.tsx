@@ -1,10 +1,10 @@
-import { Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
-import { RotateCcw } from 'lucide-react';
+import { History, RotateCcw, Send } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -283,9 +283,9 @@ function HistoryStatus({
   return (
     <>
       {page.more && (
-        <Button variant="subtle" loading={loading} onClick={() => load(page.entries[0]!.sequence)}>
+        <LabeledAction icon={<History size={16} />} busy={loading} onClick={() => load(page.entries[0]!.sequence)}>
           Earlier messages
-        </Button>
+        </LabeledAction>
       )}
       <HistoryLoad load={page.load} retry={() => load()} />
       {!loading && !page.entries.length && (
@@ -405,9 +405,15 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
   return (
-    <Button type="submit" size="compact-sm" disabled={disabled}>
+    <LabeledAction
+      type="submit"
+      size="compact-sm"
+      emphasis="strong"
+      icon={<Send size={14} />}
+      disabledReason={disabled ? 'Write a message first.' : undefined}
+    >
       Send
-    </Button>
+    </LabeledAction>
   );
 }
 

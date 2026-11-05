@@ -393,6 +393,7 @@ export function CustomCardLayerPanel({
         <ConfirmDeleteAction
           label="Remove layer"
           verb="remove"
+          size="md"
           pending={false}
           onConfirm={() => {
             patch({ layers: draft.layers.filter((current) => current.layerId !== layer.layerId) });
