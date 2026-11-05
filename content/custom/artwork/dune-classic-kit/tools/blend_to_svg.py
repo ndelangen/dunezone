@@ -105,41 +105,56 @@ def spline_path(spline, project):
     return poly_path(anchors, spline.use_cyclic_u), anchors
 
 
-def curve_items(curve, matrix, obj, z):
+def curve_paths(curve, matrix):
     project = lambda v: matrix @ Vector((v[0], v[1], 0))
-    paths = [p for p in (spline_path(s, project) for s in curve.splines) if p]
+    paths = (spline_path(s, project) for s in curve.splines)
+    return [p for p in paths if p]
+
+
+def is_filled(curve):
+    return curve.fill_mode != 'NONE' and all(s.use_cyclic_u for s in curve.splines)
+
+
+def curve_items(curve, matrix, obj, z):
+    paths = curve_paths(curve, matrix)
     if not paths:
         return []
-    filled = curve.fill_mode != 'NONE' and all(s.use_cyclic_u for s in curve.splines)
-    return [
-        dict(
-            z=z,
-            d=' '.join(d for d, _ in paths),
-            col=colour(obj),
-            name=obj.name,
-            filled=filled,
-            w=curve.bevel_depth * 2,
-            pts=[p for _, anchors in paths for p in anchors],
-        )
-    ]
+    item = dict(z=z, col=colour(obj), name=obj.name, filled=is_filled(curve), w=curve.bevel_depth * 2)
+    item['d'] = ' '.join(d for d, _ in paths)
+    item['pts'] = [p for _, anchors in paths for p in anchors]
+    return [item]
 
 
-def stroke_items(stroke, matrix, materials, obj, z):
+def stroke_style(stroke, materials):
+    """Grease pencil style of a stroke's material, or None when it has none."""
+    if stroke.material_index >= len(materials) or materials[stroke.material_index] is None:
+        return None
+    return materials[stroke.material_index].grease_pencil
+
+
+def fill_item(style, base):
+    if style is not None and not style.show_fill:
+        return []
+    return [dict(base, col=gamma_hex(style.fill_color) if style else BLACK, filled=True, w=0)]
+
+
+def line_item(style, base, stroke):
+    if style is not None and not style.show_stroke:
+        return []
+    width = 2 * sum(p.radius for p in stroke.points) / len(stroke.points)
+    line = gamma_hex(style.color) if style else BLACK
+    return [dict(base, z=base['z'] + 1e-6, col=line, filled=False, w=width)]
+
+
+def stroke_items(stroke, matrix, materials, owner):
+    """Fill and line items of one stroke; owner is the (object, z) the stroke belongs to."""
     points = [matrix @ Vector(p.position) for p in stroke.points]
     if len(points) < 2:
         return []
-    material = materials[stroke.material_index] if stroke.material_index < len(materials) else None
-    style = material.grease_pencil if material else None
-    d = poly_path(points, stroke.cyclic)
-    items = []
-    if style is None or style.show_fill:
-        fill = gamma_hex(style.fill_color) if style else BLACK
-        items.append(dict(z=z, d=d, col=fill, name=obj.name, filled=True, w=0, pts=points))
-    if style is None or style.show_stroke:
-        width = 2 * sum(p.radius for p in stroke.points) / len(stroke.points)
-        line = gamma_hex(style.color) if style else BLACK
-        items.append(dict(z=z + 1e-6, d=d, col=line, name=obj.name, filled=False, w=width, pts=points))
-    return items
+    obj, z = owner
+    style = stroke_style(stroke, materials)
+    base = dict(z=z, d=poly_path(points, stroke.cyclic), name=obj.name, pts=points)
+    return fill_item(style, base) + line_item(style, base, stroke)
 
 
 def visible_drawings(layers):
@@ -155,7 +170,7 @@ def grease_pencil_items(obj, matrix, z):
         item
         for drawing in visible_drawings(obj.data.layers)
         for stroke in drawing.strokes
-        for item in stroke_items(stroke, matrix, materials, obj, z)
+        for item in stroke_items(stroke, matrix, materials, (obj, z))
     ]
 
 
