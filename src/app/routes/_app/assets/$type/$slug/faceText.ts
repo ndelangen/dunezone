@@ -90,7 +90,8 @@ function tokenFaces(data: Data, read: (face: unknown) => string): FaceTextEntry[
   const mode = isRecord(data.back) ? data.back.mode : undefined;
   const front = read(data.front);
   const back = mode === 'custom' && isRecord(data.back) ? read(data.back.face) : '';
-  if (mode === 'same' || (mode === 'custom' && !back)) {
+  const labelled = mode === 'reference' || back.length > 0;
+  if (!labelled) {
     return present([{ source: front, plain: true }]);
   }
   return present([
