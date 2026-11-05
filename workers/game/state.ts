@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 
 import {
+  isBattleLeader,
   publicBattleSchema,
   battleFaceSchema,
   storedBattlePlanSchema,
@@ -13,6 +14,7 @@ import { isFactionToken } from '../../src/shared/play/factionToken';
 import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
+import { topItemFaceUp } from '../../src/shared/play/model';
 import type { DraftMove, StoredPiece, TableEvent, TableItem, TablePiece } from '../../src/shared/play/model';
 import { publicPieceLabel, showsPeeker } from '../../src/shared/play/peeking';
 import { gameSnapshotSchema, rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
@@ -451,11 +453,11 @@ export class RoomProjection {
           ? 'leader:'
           : 'token:';
     /*
-     * A stack key names what a token is, so a faction leader's is told apart per piece: leaders never stack, and a face-down leader
-     * played out of a hand under new ids must not be named by its key.
-     * Troops and every other token keep the key their kind shares, face up or down, so the page previews the same merges the room makes.
+     * A stack key names what a token is, so a leader's is told apart per piece: leaders never stack, and a face-down leader played out of a hand under new ids must not be named by its key.
+     * A catalogue disc that may fight as a leader is told apart while it lies face down, when it stacks with nothing either, and shares its asset's key face up.
+     * Troops and every other token keep the key their kind shares, so the page previews the same merges the room makes.
      */
-    const named = prefix === 'leader:';
+    const named = prefix === 'leader:' || (isBattleLeader(piece) && !topItemFaceUp(piece));
     const projected: TablePiece = {
       ...piece,
       label: visible ? piece.label : publicPieceLabel(piece),

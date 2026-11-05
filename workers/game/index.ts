@@ -1176,17 +1176,22 @@ export class GameRoom extends DurableObject<GameEnv> {
       socket.close(SEAT_CHANGED_CLOSE_CODE, 'Seat changed.');
       return;
     }
-    connection.pass = heldPass(checked.pass);
-    connection.sessionId = checked.pass.sessionId;
-    connection.avatarUrl = checked.pass.avatarUrl;
-    connection.profileSlug = checked.pass.profileSlug;
-    connection.viewer!.displayName = checked.pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH);
-    /* A rename reaches a page that stays connected through its next pass, not only through a reconnection. */
-    const renamed = connection.announced === 'authorized' && this.session.renewProfile(this.passProfile(connection));
+    const renamed = this.holdRenewedPass(connection, checked.pass);
     this.authorizationChanged();
     if (renamed) {
       this.refreshViews();
     }
+  }
+
+  /** The connection holds the renewed pass and the profile it carries; whether that profile changed what the table shows of the player. */
+  private holdRenewedPass(connection: Connection, pass: SeatPassPayload): boolean {
+    connection.pass = heldPass(pass);
+    connection.sessionId = pass.sessionId;
+    connection.avatarUrl = pass.avatarUrl;
+    connection.profileSlug = pass.profileSlug;
+    connection.viewer!.displayName = pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH);
+    /* A rename reaches a page that stays connected through its next pass, not only through a reconnection. */
+    return connection.announced === 'authorized' && this.session.renewProfile(this.passProfile(connection));
   }
 
   /** The profile the connection's current pass carries, with when that pass was issued. */
