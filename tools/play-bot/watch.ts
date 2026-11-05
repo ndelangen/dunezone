@@ -1,16 +1,21 @@
 /*
- * A live page of what every bot is doing while a game runs: one column per bot with what woke it, each tool it called,
- * what it concluded, how long it thought and what that cost in tokens. It reads the event log each bot writes
- * (events.jsonl beside its transcript) and changes nothing.
+ * The bots' launcher and live view, on this machine only. Paste the game's URL, list the factions the bots should draft,
+ * and press Start: each faction gets its own `play:bot` process with its own stack account, exactly as
+ * `play:bot:table` starts them. Each bot then has a column with its status (connected, asking for a seat, seated,
+ * playing, thinking, stopped), what woke it, each tool it called, what it concluded, how long it thought and its tokens.
  *
- *   bun run play:bot:watch                  # every bot under tools/play-bot/out/bots, at http://127.0.0.1:4747
- *   bun run play:bot:watch -- --dir <dir>   # another folder, such as a demo's out/three-player-<stamp>
+ *   bun run play:bot:watch                  # http://127.0.0.1:4747, bots under tools/play-bot/out/bots
+ *   bun run play:bot:watch -- --dir <dir>   # only watch another folder, such as a demo's out/three-player-<stamp>
  *
- * A bot's private notes stay hidden unless you tick "Show private notes", so a recording does not give its plans away.
- * The page listens on this machine only.
+ * It reads the event log each bot writes (events.jsonl beside its transcript). Like the bots, it only joins the game it
+ * is given and never creates one. A bot's private notes stay hidden unless you tick "Show private notes", so a
+ * recording does not give its plans away.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
+import type { IncomingMessage } from 'node:http';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -18,10 +23,63 @@ const { values } = parseArgs({
   options: {
     dir: { type: 'string', default: path.join(import.meta.dirname, 'out/bots') },
     port: { type: 'string', default: '4747' },
+    stack: { type: 'string', default: path.join(import.meta.dirname, 'out/stack.json') },
   },
 });
 const root = path.resolve(values.dir!);
 const MAX_EVENTS = 400;
+/* Starting bots needs the stack's accounts; watching a demo's folder does not. */
+const canLaunch = root === path.join(import.meta.dirname, 'out/bots') && existsSync(values.stack!);
+
+type Launched = { child: ChildProcess; faction: string; output: string[]; exit?: string };
+/** The bots this page started, by their folder name (the account's address before the @). */
+const launched = new Map<string, Launched>();
+
+function accounts(): { name: string; email: string }[] {
+  const stack = JSON.parse(readFileSync(values.stack!, 'utf8')) as { accounts: { bots?: { name: string; email: string }[] } };
+  return stack.accounts.bots ?? [];
+}
+
+/** One `play:bot` process per faction, account 1 for the first, as `play:bot:table` does. */
+function launch(game: string, factions: string[], brain: string) {
+  const bots = accounts();
+  if (factions.length > bots.length) {
+    throw new Error(`The stack has ${bots.length} bot accounts; start it with --bots ${factions.length}.`);
+  }
+  factions.forEach((faction, index) => {
+    const id = bots[index]!.email.split('@')[0]!;
+    if (launched.get(id)?.exit === undefined && launched.has(id)) {
+      return;
+    }
+    const child = spawn(
+      process.execPath,
+      [path.join(import.meta.dirname, 'local.ts'), '--game', game, '--account', String(index + 1), '--want', faction, '--brain', brain],
+      { stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+    const entry: Launched = { child, faction, output: [] };
+    const keep = (chunk: Buffer) => {
+      entry.output.push(...chunk.toString().split('\n').filter(Boolean));
+      entry.output.splice(0, Math.max(0, entry.output.length - 30));
+    };
+    child.stdout?.on('data', keep);
+    child.stderr?.on('data', keep);
+    child.on('exit', (code, signal) => (entry.exit = signal ?? `exit ${code}`));
+    launched.set(id, entry);
+  });
+}
+
+/* A page on another site could post here too; a JSON body from this page's own origin is the only thing accepted. */
+async function body(request: IncomingMessage, port: number): Promise<Record<string, unknown>> {
+  const origin = request.headers.origin;
+  if (origin !== `http://127.0.0.1:${port}` || !request.headers['content-type']?.startsWith('application/json')) {
+    throw new Error('Only this page can start or stop bots.');
+  }
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(chunk as Buffer);
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>;
+}
 
 /** Each folder under the root (and the root itself) that holds an events.jsonl, as one bot. */
 function botFolders(): string[] {
@@ -70,11 +128,23 @@ function readNotes(folder: string): string {
 }
 
 function state(withNotes: boolean) {
-  return botFolders().map((folder) => ({
-    id: path.relative(root, folder) || path.basename(folder),
-    events: readEvents(folder),
-    ...(withNotes ? { notes: readNotes(folder) } : {}),
-  }));
+  const folders = new Map(botFolders().map((folder) => [path.relative(root, folder) || path.basename(folder), folder]));
+  for (const id of launched.keys()) {
+    folders.set(id, folders.get(id) ?? path.join(root, id));
+  }
+  const bots = [...folders].map(([id, folder]) => {
+    const all = existsSync(path.join(folder, 'events.jsonl')) ? readEvents(folder) : [];
+    /* A bot's file holds every game it played; the column starts at its newest connection. */
+    const start = all.findLastIndex((event) => event.kind === 'status' && event.state === 'connected');
+    const run = launched.get(id);
+    return {
+      id,
+      events: start >= 0 ? all.slice(start) : all,
+      ...(run ? { process: { faction: run.faction, exit: run.exit ?? null, output: run.output.slice(-6) } } : {}),
+      ...(withNotes && existsSync(folder) ? { notes: readNotes(folder) } : {}),
+    };
+  });
+  return { canLaunch, bots };
 }
 
 const page = /* html */ `<!doctype html>
@@ -107,6 +177,16 @@ const page = /* html */ `<!doctype html>
   .result { color: var(--muted); font-size: 12px; display: block; margin-top: 2px; }
   pre.notes { margin: 0; padding: 10px 12px; border-top: 1px solid var(--line); max-height: 30vh; overflow: auto; white-space: pre-wrap; font-size: 12px; }
   .empty { padding: 24px 16px; color: var(--muted); }
+  form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  input, select, button { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); max-width: 100%; }
+  button { cursor: pointer; }
+  .error { color: var(--bad); font-size: 13px; }
+  .pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); margin-right: 6px; }
+  .pill.playing, .pill.seated { color: var(--ok); border-color: var(--ok); }
+  .pill.asking, .pill.thinking { color: var(--accent); border-color: var(--accent); }
+  .pill.stopped { color: var(--bad); border-color: var(--bad); }
+  .output { font: 12px/1.4 ui-monospace, monospace; color: var(--muted); margin-top: 6px; white-space: pre-wrap; }
+  .head button { float: right; font-size: 12px; padding: 2px 8px; }
 </style>
 </head>
 <body>
@@ -116,6 +196,13 @@ const page = /* html */ `<!doctype html>
   <label><input type="checkbox" id="results" checked> Show tool results</label>
   <span id="updated"></span>
 </header>
+<form id="launch" hidden>
+  <input id="game" type="url" required placeholder="Game URL, such as http://127.0.0.1:8787/play/…" size="48">
+  <input id="factions" value="fremen,harkonnen" title="One bot per faction, in account order" size="18">
+  <select id="brain"><option value="claude">Claude Code</option><option value="codex">Codex</option></select>
+  <button>Start bots</button>
+  <span id="launch-error" class="error"></span>
+</form>
 <main id="bots"></main>
 <script>
 const bots = document.getElementById('bots');
@@ -153,14 +240,27 @@ function column(bot) {
   const events = bot.events;
   const last = events.at(-1) ?? {};
   const name = [...events].reverse().find((e) => e.bot)?.bot ?? bot.id;
-  const faction = [...events].reverse().find((e) => e.faction)?.faction;
+  const faction = [...events].reverse().find((e) => e.faction)?.faction ?? (bot.process ? 'wants ' + bot.process.faction : undefined);
   const thinking = last.kind === 'think' || (last.kind === 'tool' && events.findLast((e) => e.kind === 'think' || e.kind === 'thought' || e.kind === 'failed')?.kind === 'think');
   const thoughts = events.filter((e) => e.kind === 'thought');
   const sum = (key) => thoughts.reduce((total, e) => total + (e.usage?.[key] ?? 0), 0);
   const section = el('section');
   const head = el('div', 'head');
   head.append(el('div', 'name', name + (faction ? ' · ' + faction : '')));
-  head.append(el('div', 'status' + (thinking ? ' thinking' : ''), thinking ? 'Thinking…' : 'Waiting for a message'));
+  const proc = bot.process;
+  const latest = [...events].reverse().find((e) => e.kind === 'status' && e.state);
+  const STATES = { connected: 'Connected', asking: 'Asking for a seat: approve it at the table', seated: 'Seated, drafting and trading', playing: 'Playing: waiting for a message' };
+  const state = proc && proc.exit ? 'stopped' : thinking ? 'thinking' : latest ? latest.state : proc ? 'starting' : 'idle';
+  const words = state === 'stopped' ? 'Stopped (' + proc.exit + ')' : state === 'thinking' ? 'Thinking…' : STATES[state] || (state === 'starting' ? 'Starting…' : 'Waiting for a message');
+  const status = el('div', 'status');
+  status.append(el('span', 'pill ' + state, state), words);
+  head.append(status);
+  if (proc && !proc.exit) {
+    const stop = el('button', '', 'Stop');
+    stop.addEventListener('click', () => post('/stop', { id: bot.id }));
+    head.prepend(stop);
+  }
+  if (proc && (proc.exit || state === 'starting') && proc.output.length) head.append(el('div', 'output', proc.output.join('\\n')));
   const tokensIn = sum('inputTokens') + sum('cacheReadTokens') + sum('cacheWriteTokens');
   const cached = sum('cacheReadTokens');
   head.append(el('div', 'totals', [
@@ -178,11 +278,27 @@ function column(bot) {
   return section;
 }
 
+async function post(url, data) {
+  const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+  const answer = await response.json();
+  document.getElementById('launch-error').textContent = answer.error || '';
+  refresh();
+}
+document.getElementById('launch').addEventListener('submit', (event) => {
+  event.preventDefault();
+  post('/start', {
+    game: document.getElementById('game').value,
+    factions: document.getElementById('factions').value.split(',').map((f) => f.trim()).filter(Boolean),
+    brain: document.getElementById('brain').value,
+  });
+});
+
 async function refresh() {
   try {
     const response = await fetch('/state' + (notesBox.checked ? '?notes=1' : ''));
-    const state = await response.json();
-    bots.replaceChildren(...(state.length ? state.map(column) : [el('div', 'empty', 'No bot has written an event log yet. Start one with bun run play:bot.')]));
+    const { canLaunch, bots: state } = await response.json();
+    document.getElementById('launch').hidden = !canLaunch;
+    bots.replaceChildren(...(state.length ? state.map(column) : [el('div', 'empty', canLaunch ? 'Paste the game URL above and start the bots.' : 'No bot has written an event log yet. Start the stack, then bun run play:bot.')]));
     document.getElementById('updated').textContent = 'Updated ' + clock(Date.now());
   } catch {
     document.getElementById('updated').textContent = 'The watcher stopped.';
@@ -199,11 +315,43 @@ setInterval(refresh, 1500);
 const port = Number(values.port);
 createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+  const json = (status: number, value: unknown) => {
+    response.writeHead(status, { 'content-type': 'application/json' });
+    response.end(JSON.stringify(value));
+  };
   if (url.pathname === '/state') {
-    response.writeHead(200, { 'content-type': 'application/json' });
-    response.end(JSON.stringify(state(url.searchParams.get('notes') === '1')));
+    json(200, state(url.searchParams.get('notes') === '1'));
+    return;
+  }
+  if (request.method === 'POST' && (url.pathname === '/start' || url.pathname === '/stop')) {
+    void body(request, port)
+      .then((data) => {
+        if (url.pathname === '/stop') {
+          launched.get(String(data.id))?.child.kill('SIGINT');
+          json(200, { ok: true });
+          return;
+        }
+        if (!canLaunch) {
+          throw new Error('Start the stack first (bun run play:bot:stack), so the bots have accounts.');
+        }
+        const game = new URL(String(data.game));
+        const factions = (Array.isArray(data.factions) ? data.factions : []).map(String).filter(Boolean);
+        if (!factions.length) {
+          throw new Error('Name at least one faction.');
+        }
+        launch(game.href, factions, data.brain === 'codex' ? 'codex' : 'claude');
+        json(200, { ok: true });
+      })
+      .catch((error: unknown) => json(400, { error: error instanceof Error ? error.message : String(error) }));
     return;
   }
   response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   response.end(page);
-}).listen(port, '127.0.0.1', () => console.log(`Watching ${root} at http://127.0.0.1:${port}`));
+}).listen(port, '127.0.0.1', () => console.log(`Bots: http://127.0.0.1:${port} (${canLaunch ? 'start and watch' : 'watch only'}, ${root})`));
+
+process.on('SIGINT', () => {
+  for (const { child } of launched.values()) {
+    child.kill('SIGINT');
+  }
+  process.exit(0);
+});

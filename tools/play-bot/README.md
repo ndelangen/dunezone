@@ -21,14 +21,21 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
   `undo_last_move`, `keep_traitors`, `draw_card`, `take_spice`, `set_ready`, `say`, `command` (any game command as JSON),
   `command_help`, `rulebook` and `note`.
 - Keeps private notes between wakes (deals, plans, rulings), so "that's not legal" becomes a ruling it remembers.
+- **Remembers what its seat saw without relying on the model** (`memory.ts`): every change since the game began (the
+  table itself keeps only 8 events) and the cards it has seen outside its hand. Play gives a card a new id when it moves
+  into or out of a hand, so the harness follows cards as a person would: a peeked card that leaves its pile as one
+  faction's hand grows is now in that hand. Each wake shows that knowledge and the changes since the last one.
 
-## Watch what the bots do
+## Start and watch the bots
 
 ```bash
 bun run play:bot:watch          # http://127.0.0.1:4747
 ```
 
-A page on your machine with one column per bot: whether it is thinking, what woke it (or why a message did not), every
+A page on your machine. With the stack running, paste the game's URL, list the factions the bots should draft and press
+Start bots: each faction gets its own bot process and account, as `play:bot:table` starts them. Each bot shows its status
+(connected, asking for a seat, seated, playing, thinking, stopped, with the error if it stopped) and a Stop button. Below
+that, per bot: whether it is thinking, what woke it (or why a message did not), every
 tool call and whether the room refused it, what it concluded, how long it thought, and its tokens (with the share read from
 the cache) and cost so far. It reads each bot's `events.jsonl` beside its transcript and refreshes itself. Private notes stay
 hidden unless you tick "Show private notes", so a screen recording does not give a bot's plans away. `--dir` points it at a
@@ -101,8 +108,8 @@ seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot i
 1. `bun run play:bot:pull` copies GF9 and stops early if it cannot deal Fremen, Harkonnen and Emperor or lacks a deck.
 2. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
 3. Create a 3-player game on "GF9 (local copy)" as `player@example.invalid`, draft Emperor and confirm Ready.
-4. `bun run play:bot:watch` in another terminal, and open http://127.0.0.1:4747 beside the game.
-5. `bun run play:bot:table -- --game <URL>` starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
+4. `bun run play:bot:watch` in another terminal, open http://127.0.0.1:4747 beside the game, paste the game URL and
+   press Start bots (or run `bun run play:bot:table -- --game <URL>` from a terminal) starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
    (`--factions` changes that). Approve both seat requests. The deal is random among the three drafted factions; during
    trading each bot offers a swap to whoever holds its faction, so accept the swap offers you get.
 6. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table

@@ -63,7 +63,8 @@ export type BotEvent =
   | { kind: 'thought'; summary: string; seconds: number; usage?: Usage }
   | { kind: 'failed'; error: string }
   | { kind: 'lobby'; text: string }
-  | { kind: 'status'; text: string };
+  /** Where the bot is on its way to the table; the launcher shows the newest one. */
+  | { kind: 'status'; text: string; state?: 'connected' | 'asking' | 'seated' | 'playing' };
 
 export type BotOptions = {
   brain: Brain;

@@ -154,7 +154,12 @@ const bot = new PlayBot(transport, {
 });
 bot.log(`# ${access.name ?? gameId}: bot transcript (${brain.name}), ${new Date().toISOString()}\n`);
 bot.log(rulebook ? `Rulebook: ${rulebook.sections.length} sections from ${rulebookFile}.` : 'Rulebook: none copied.');
-bot.event({ kind: 'status', text: `Joined ${access.name ?? gameId} with ${brain.name}.` });
+/** A step on the way to the table: in the transcript, and as the status the launcher and watch page show. */
+const status = (state: 'connected' | 'asking' | 'seated' | 'playing', text: string) => {
+  bot.log(text);
+  bot.event({ kind: 'status', state, text });
+};
+status('connected', `Connected to ${access.name ?? gameId} with ${brain.name}.`);
 transport.send({ type: 'admit', pass: await pass(true) });
 
 /* Seat passes last an hour: sign in again and send a fresh one well before that. */
@@ -190,14 +195,14 @@ const seated = setInterval(() => {
   if (bot.view.factionId) {
     clearInterval(seated);
     const dealt = bot.view.factionName(bot.view.factionId);
-    bot.log(`Dealt ${dealt}. Talk to it at the table or privately when you want it to act.`);
+    status('playing', `Dealt ${dealt}. Talk to it at the table or privately when you want it to act.`);
     return;
   }
   const hasSeat = view.snapshot.roster?.seats.some((entry) => entry.id === view.viewer.viewerSeat);
   if (hasSeat) {
     if (!announced) {
       announced = true;
-      bot.log(`Seated at ${view.viewer.viewerSeat}; drafting${values.want ? ` ${values.want}` : ''} and waiting for the deal.`);
+      status('seated', `Seated at ${view.viewer.viewerSeat}; drafting${values.want ? ` ${values.want}` : ''} and waiting for the deal.`);
     }
     return;
   }
@@ -206,7 +211,11 @@ const seated = setInterval(() => {
     asking = true;
     const seat = openSeat(view);
     void bot.command({ kind: 'seat-request', ...(seat ? { seat } : {}) }).then((result) => {
-      bot.log(result.ok ? 'Asked for a seat; approve it at the table.' : `Seat request refused: ${result.message}`);
+      if (result.ok) {
+        status('asking', 'Asked for a seat; approve it at the table.');
+      } else {
+        bot.log(`Seat request refused: ${result.message}`);
+      }
       /* A refused request is tried again after a pause, in case a seat opens. */
       setTimeout(() => (asking = false), result.ok ? 0 : 15_000);
     });
