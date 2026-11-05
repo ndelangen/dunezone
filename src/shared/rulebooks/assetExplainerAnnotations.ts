@@ -137,6 +137,17 @@ function namedMarker(part: Part, kind: RulebookSourceReference['kind']): { marke
   return { marker, connector: center };
 }
 
+/* A storm sector line is one open straight stretch; a territory outline is a closed ring. */
+const SECTOR_LINE_PATH = /^M[^MLZz]+L[^MLZz]+$/;
+
+/* The board's storm sector lines; a saved board lets a territory it names Sectors take the part over, so only open straight stretches count and a closed territory outline is never drawn as one. */
+function sectorGuides(geometry: ComponentGeometry): Part['highlight'] {
+  const paths = geometry.parts
+    .find(({ key }) => key === SECTORS_PART_KEY)
+    ?.highlight?.paths.filter(({ d }) => SECTOR_LINE_PATH.test(d.trim()));
+  return paths?.length ? { paths } : undefined;
+}
+
 /** A source replacement preserves the saved target as unavailable until the author explicitly binds it again. */
 export function projectRulebookAssetExplainerAnnotations(
   block: Pick<Explainer, 'source' | 'numbering' | 'colorMode' | 'items' | 'sectorLines'>,
@@ -207,7 +218,7 @@ export function projectRulebookAssetExplainerAnnotations(
         ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
         : undefined,
     ...(block.sectorLines && source.status === 'ready' && source.reference.kind === 'board' && geometry
-      ? { sourceGuides: geometry.parts.find(({ key }) => key === SECTORS_PART_KEY)?.highlight }
+      ? { sourceGuides: sectorGuides(geometry) }
       : {}),
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,
     sourceName:

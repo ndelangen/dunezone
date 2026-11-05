@@ -241,6 +241,23 @@ describe('AssetExplainer sector lines', () => {
   it('draws no sector lines unless the block turns them on', () => {
     expect(guides(boardBlock())).toEqual([]);
   });
+
+  it('never draws a territory the board names Sectors as sector lines', () => {
+    const explainer = boardBlock(true);
+    if (explainer.source.status !== 'ready' || !explainer.source.geometry) {
+      throw new Error('Expected a ready board');
+    }
+    explainer.source.geometry.parts[1] = {
+      key: SECTORS_PART_KEY,
+      label: 'Sectors',
+      x: 0.2,
+      y: 0.2,
+      width: 0.1,
+      height: 0.1,
+      highlight: { paths: [{ d: 'M400 400L600 400L600 600Z' }] },
+    };
+    expect(guides(explainer)).toEqual([]);
+  });
 });
 
 describe('AssetExplainer SVG composition', () => {
