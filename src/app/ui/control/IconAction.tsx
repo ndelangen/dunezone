@@ -150,7 +150,13 @@ export function IconAction({
   /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
      anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
   return (
-    <Tooltip label={tooltip ?? label} opened={tooltipOpened}>
+    /* A longer explanation wraps at a readable width; the bare name stays on one line. */
+    <Tooltip
+      label={tooltip ?? label}
+      opened={tooltipOpened}
+      multiline={tooltip != null}
+      maw={tooltip == null ? undefined : 320}
+    >
       {href == null ? (
         <ActionIcon
           {...actionIconProps}

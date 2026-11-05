@@ -30,7 +30,9 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The film strip's pages are draggable thumbnails, not actions. */
+import { Button } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,

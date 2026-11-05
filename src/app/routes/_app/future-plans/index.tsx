@@ -1,7 +1,8 @@
-import { Anchor, Badge, Box, Button, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { Anchor, Badge, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
@@ -237,25 +238,25 @@ function FuturePlansPage() {
                     </Text>
                   </Stack>
                   <Stack justify="center" gap="sm">
-                    <Button
-                      component="a"
+                    <LabeledAction
+                      emphasis="strong"
+                      icon={<MessageCirclePlus size={17} />}
                       href={GITHUB_IDEAS}
                       target="_blank"
                       rel="noopener noreferrer"
-                      leftSection={<MessageCirclePlus size={17} aria-hidden />}
                     >
                       Suggest an idea
-                    </Button>
-                    <Button
-                      component="a"
+                    </LabeledAction>
+                    <LabeledAction
+                      emphasis="strong"
+                      intent="positive"
+                      icon={<Code2 size={17} />}
                       href={GITHUB_REPOSITORY}
                       target="_blank"
                       rel="noopener noreferrer"
-                      color="confirm"
-                      leftSection={<Code2 size={17} aria-hidden />}
                     >
                       Help build Dune Zone
-                    </Button>
+                    </LabeledAction>
                   </Stack>
                 </SimpleGrid>
               </Surface>

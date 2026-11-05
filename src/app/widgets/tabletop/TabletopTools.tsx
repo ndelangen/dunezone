@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- A keyboard-only control that shows on focus: while there is nothing to act on it must leave the tab order, which only a natively disabled button does. */
 import { Button } from '@mantine/core';
 import { isSpicePiece } from '@shared/play/spice';
 import { RadialMenu } from '@ui/control/RadialMenu';

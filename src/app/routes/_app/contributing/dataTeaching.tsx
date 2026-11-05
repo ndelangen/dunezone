@@ -1,6 +1,8 @@
-import { Anchor, Button, Code, Group, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Anchor, Code, Group, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Save } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import styles from './dataTeaching.module.css';
@@ -373,13 +375,21 @@ function SaveLoop() {
           maxLength={24}
           onChange={(event) => dispatch({ type: 'edit', name: event.currentTarget.value })}
         />
-        <Button
-          color="confirm"
-          disabled={!example.draft.trim() || example.draft.trim() === example.saved}
+        <LabeledAction
+          emphasis="strong"
+          intent="positive"
+          icon={<Save size={16} />}
+          disabledReason={
+            !example.draft.trim()
+              ? 'Type a name first.'
+              : example.draft.trim() === example.saved
+                ? 'Change the name first.'
+                : undefined
+          }
           onClick={() => dispatch({ type: 'save' })}
         >
           Save sample name
-        </Button>
+        </LabeledAction>
       </Group>
       <figcaption>
         <Text size="sm" c="dimmed" role="status">

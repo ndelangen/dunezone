@@ -1,11 +1,13 @@
-import { Alert, Anchor, Button, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
+import { Alert, Anchor, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { contentImportPackageSchema } from '@shared/contentImports/package';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Download, Eye, Import } from 'lucide-react';
 import { useReducer } from 'react';
 import type { Dispatch } from 'react';
 import { z } from 'zod';
@@ -223,13 +225,25 @@ function ImportExportPage() {
                     onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}
                   />
                   <Group>
-                    <Button
-                      disabled={disabled || !state.json || !target.rulesetSlug || !target.groupSlug}
-                      loading={state.busy === 'preview'}
+                    <LabeledAction
+                      emphasis="strong"
+                      icon={<Eye size={16} />}
+                      busy={state.busy === 'preview'}
+                      disabledReason={
+                        state.busy === 'preview'
+                          ? undefined
+                          : disabled
+                            ? 'Another import step is running.'
+                            : !state.json
+                              ? 'Paste the package JSON first.'
+                              : !target.rulesetSlug || !target.groupSlug
+                                ? 'Choose a ruleset and a group first.'
+                                : undefined
+                      }
                       onClick={() => void inspect(state, dispatch)}
                     >
                       Preview import
-                    </Button>
+                    </LabeledAction>
                     <Anchor
                       href="https://github.com/ndelangen/dunezone/blob/main/docs/content-imports.md"
                       target="_blank"
@@ -273,13 +287,24 @@ function ImportExportPage() {
                       Import writes one item at a time. New records become public and artwork preparation starts as they
                       are created.
                     </Text>
-                    <Button
-                      disabled={disabled || state.preview.entries.some((entry) => entry.status === 'conflict')}
-                      loading={state.busy === 'import'}
+                    <LabeledAction
+                      emphasis="strong"
+                      intent="positive"
+                      icon={<Import size={16} />}
+                      busy={state.busy === 'import'}
+                      disabledReason={
+                        state.busy === 'import'
+                          ? undefined
+                          : disabled
+                            ? 'Another import step is running.'
+                            : state.preview.entries.some((entry) => entry.status === 'conflict')
+                              ? 'Resolve the conflicts first.'
+                              : undefined
+                      }
                       onClick={() => void apply(state, dispatch)}
                     >
                       Import reviewed content
-                    </Button>
+                    </LabeledAction>
                   </Stack>
                 </Surface>
               </Section>
@@ -348,14 +373,25 @@ function ImportExportPage() {
                       />
                     )}
                   </Group>
-                  <Button
-                    variant="default"
-                    disabled={disabled || !state.exportSlug.trim() || !target.rulesetSlug || !target.groupSlug}
-                    loading={state.busy === 'export'}
+                  <LabeledAction
+                    intent="export"
+                    icon={<Download size={16} />}
+                    busy={state.busy === 'export'}
+                    disabledReason={
+                      state.busy === 'export'
+                        ? undefined
+                        : disabled
+                          ? 'Another import step is running.'
+                          : !state.exportSlug.trim()
+                            ? 'Enter the slug to export first.'
+                            : !target.rulesetSlug || !target.groupSlug
+                              ? 'Choose a ruleset and a group first.'
+                              : undefined
+                    }
                     onClick={() => void exportRecord(state, dispatch)}
                   >
                     Download JSON
-                  </Button>
+                  </LabeledAction>
                   {state.warnings.map((warning) => (
                     <Text key={warning}>{warning}</Text>
                   ))}

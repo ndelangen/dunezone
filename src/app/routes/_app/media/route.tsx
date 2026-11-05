@@ -1,16 +1,17 @@
-import { Anchor, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { X, Images, Info, ArrowRight } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, Images, Info, X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
@@ -279,14 +280,15 @@ function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onCl
       title={focused.label}
       action={
         <Group gap="xs">
-          <Tooltip label={mediaDetails(focused)} multiline w={320} events={{ hover: true, focus: true, touch: true }}>
-            <Button variant="subtle" size="xs" aria-label="Artwork details">
-              <Info size={16} aria-hidden />
-            </Button>
-          </Tooltip>
-          <Button variant="subtle" size="xs" onClick={onClose}>
+          <IconAction
+            label="Artwork details"
+            tooltip={mediaDetails(focused)}
+            emphasis="standard"
+            icon={<Info size={16} />}
+          />
+          <LabeledAction size="xs" icon={<X size={14} />} onClick={onClose}>
             Close preview
-          </Button>
+          </LabeledAction>
         </Group>
       }
     >
@@ -328,16 +330,15 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
       {tile.variants.length > 1 && (
         <Group gap="xs" justify="center" mt="xs" aria-label={`${tile.label} versions`}>
           {tile.variants.map((variant) => (
-            <Tooltip key={variant.value} label={`${variantLabel(variant)} version`}>
-              <Button
-                size="compact-xs"
-                variant={variant.value === entry.value ? 'light' : 'subtle'}
-                aria-pressed={variant.value === entry.value}
-                onClick={() => setSelected(variant.value)}
-              >
-                {variantLabel(variant)}
-              </Button>
-            </Tooltip>
+            <LabeledAction
+              key={variant.value}
+              size="compact-xs"
+              pressed={variant.value === entry.value}
+              icon={<ImageIcon size={12} />}
+              onClick={() => setSelected(variant.value)}
+            >
+              {variantLabel(variant)}
+            </LabeledAction>
           ))}
         </Group>
       )}

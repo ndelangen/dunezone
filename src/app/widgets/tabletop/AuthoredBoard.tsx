@@ -1,9 +1,11 @@
 /* @jsxImportSource ./three-jsx */
-import { Button, MantineProvider } from '@mantine/core';
+import { MantineProvider } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';
 import type { Board } from '@shared/boards/schema';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { appContentTheme } from '@ui/theme';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useMemo, useReducer } from 'react';
 import type { Texture } from 'three';
 
@@ -97,7 +99,9 @@ export default function AuthoredBoard({ board }: { board: Board }) {
             getRootElement={() => undefined}
             withCssVariables={false}
           >
-            <Button onClick={() => dispatch({ type: 'retry' })}>Board artwork failed to load. Retry</Button>
+            <LabeledAction emphasis="strong" icon={<RotateCcw size={16} />} onClick={() => dispatch({ type: 'retry' })}>
+              Board artwork failed to load. Retry
+            </LabeledAction>
           </MantineProvider>
         </Html>
       )}

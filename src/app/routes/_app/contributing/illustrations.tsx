@@ -1,11 +1,12 @@
-import { Anchor, Button, Code, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Anchor, Code, Group, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { slugify } from '@shared/slugify';
 import { CodeExample } from '@ui/content/CodeExample';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
-import { Check, RotateCcw, Save, X } from 'lucide-react';
+import { Check, RotateCcw, Save, Undo2, X } from 'lucide-react';
 import { useState } from 'react';
 
 import styles from './illustrations.module.css';
@@ -294,9 +295,9 @@ export function DeleteExample() {
         {deleted ? (
           <>
             <StatusBadge tone="positive">Sample deleted</StatusBadge>
-            <Button variant="light" color="selected" onClick={() => setDeleted(false)}>
+            <LabeledAction icon={<Undo2 size={16} />} onClick={() => setDeleted(false)}>
               Restore sample
-            </Button>
+            </LabeledAction>
           </>
         ) : (
           <ConfirmDeleteButton label="Delete sample" pending={false} onConfirm={() => setDeleted(true)} />
@@ -339,9 +340,9 @@ export function ToolbarExample() {
             emphasis="standard"
             onClick={() => setSaved(false)}
           />
-          <Button color="confirm" leftSection={<Save size={16} aria-hidden />} onClick={() => setSaved(true)}>
+          <LabeledAction emphasis="strong" intent="positive" icon={<Save size={16} />} onClick={() => setSaved(true)}>
             Save sample
-          </Button>
+          </LabeledAction>
         </Group>
       </Group>
       <Text size="sm" role="status" c="dimmed">
@@ -352,7 +353,7 @@ export function ToolbarExample() {
       <CodeExample
         label="One primary action, with a named secondary action · TSX"
         code={
-          '<IconAction\n  label="Reset sample"\n  intent="neutral"\n  emphasis="standard"\n  icon={<RotateCcw />}\n  onClick={reset}\n/>\n<Button color="confirm" onClick={save}>\n  Save sample\n</Button>'
+          '<IconAction\n  label="Reset sample"\n  intent="neutral"\n  emphasis="standard"\n  icon={<RotateCcw />}\n  onClick={reset}\n/>\n<LabeledAction\n  emphasis="strong"\n  intent="positive"\n  icon={<Save />}\n  onClick={save}\n>\n  Save sample\n</LabeledAction>'
         }
       />
     </figure>

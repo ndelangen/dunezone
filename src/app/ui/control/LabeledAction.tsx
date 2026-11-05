@@ -31,6 +31,10 @@ export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'
   onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Makes the action a link, in practice the router's `Link`. */
   renderRoot?: RenderRoot;
+  /** Makes the action a plain anchor, for a destination outside the router, as on `IconAction`. */
+  href?: string;
+  target?: string;
+  rel?: string;
   type?: 'button' | 'submit';
   /** Submits a form this action sits outside of, by that form's id. */
   form?: string;
@@ -56,7 +60,10 @@ export function LabeledAction({
   busy = false,
   pressed,
   onClick,
-  renderRoot,
+  renderRoot: routerRoot,
+  href,
+  target,
+  rel,
   type = 'button',
   form,
   className,
@@ -64,6 +71,14 @@ export function LabeledAction({
   ...buttonProps
 }: LabeledActionProps) {
   const reasonId = useId();
+  const renderRoot: RenderRoot | undefined =
+    href == null
+      ? routerRoot
+      : (props) => (
+          <a {...props} href={href} target={target} rel={rel}>
+            {props.children}
+          </a>
+        );
   const color = INTENT_COLOR[intent];
   const variant = pressed ? 'light' : EMPHASIS_VARIANT[emphasis];
   const vars = pressed || emphasis === 'standard' ? () => tileVars(intent, pressed === true, 'button') : undefined;

@@ -1,4 +1,4 @@
-import { Anchor, Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Anchor, Box, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -16,10 +16,11 @@ import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
-import { Dices } from 'lucide-react';
+import { Dices, Plus } from 'lucide-react';
 import type { Dispatch, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -244,9 +245,16 @@ export function CreateGamePass({
                 />
                 {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
                 <Stack gap="xs">
-                  <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
+                  <LabeledAction
+                    type="submit"
+                    size="lg"
+                    emphasis="strong"
+                    icon={<Plus size={18} />}
+                    busy={pending}
+                    disabledReason={canCreate || pending ? undefined : waiting}
+                  >
                     Create game
-                  </Button>
+                  </LabeledAction>
                   <Text size="sm" c="dimmed" ta="center" role="status">
                     {waiting}
                   </Text>
@@ -299,16 +307,14 @@ function NameField({
       <GameName pending={draft.custom && !draft.customName.trim()}>{createdGameName(draft)}</GameName>
       <Group gap="md">
         {draft.custom ? null : (
-          <Button
-            variant="default"
+          <LabeledAction
             size="xs"
-            radius="xl"
-            leftSection={<Dices size={15} aria-hidden />}
+            icon={<Dices size={15} />}
+            disabledReason={disabled ? 'The game is being created.' : undefined}
             onClick={() => dispatch({ kind: 'reroll' })}
-            disabled={disabled}
           >
             Roll another name
-          </Button>
+          </LabeledAction>
         )}
         <Switch
           label="Set a custom name"

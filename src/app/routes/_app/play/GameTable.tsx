@@ -1,4 +1,6 @@
-import { Button, Group, Text, Tooltip } from '@mantine/core';
+import { Group, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The spice bank's number keys, 1 to 10, are keys and not worded actions. */
+import { Button } from '@mantine/core';
 import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
