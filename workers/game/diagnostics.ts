@@ -21,7 +21,6 @@ type Operation =
   | 'assignment'
   | 'storage-sync'
   | 'load'
-  | 'board'
   | 'retire'
   | 'refresh';
 

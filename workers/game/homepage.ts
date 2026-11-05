@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
-import { ARRAKIS_BOARD_SLUG } from '../../src/shared/boards/arrakisOfficial';
+import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
 import {
   HOMEPAGE_CONNECTION_LIMIT,
   HOMEPAGE_EDITOR_LIMIT,
@@ -12,8 +12,6 @@ import {
 } from '../../src/shared/homepage/protocol';
 import type { HomepageAction } from '../../src/shared/homepage/protocol';
 import { homepageSnapshot } from '../../src/shared/homepage/setup';
-import { boardCaptureSchema } from '../../src/shared/play/capture';
-import type { BoardCapture } from '../../src/shared/play/capture';
 import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol';
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
@@ -37,7 +35,7 @@ type Connection = {
   controlTokens: number;
   controlUpdatedAt: number;
 };
-type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string; board?: BoardCapture };
+type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string };
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
@@ -48,8 +46,6 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private room!: Room;
   private readonly diagnostics: GameDiagnostics;
   private resetAt = 0;
-  /* The saved Arrakis Official board the table plays on, read from Convex; until it arrives the table has no board. */
-  private board?: BoardCapture;
   private epoch: string = crypto.randomUUID();
   private scheduledAlarm = 0;
   private delivery = new RoomDelivery();
@@ -71,26 +67,15 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         const saved = await ctx.storage.get<Saved>('table');
         const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
         this.resetAt = saved?.resetAt ?? 0;
-        const board = boardCaptureSchema.safeParse(saved?.board);
-        this.board = board.success ? board.data : undefined;
         const snapshot = parsed?.success
           ? parsed.data
           : storedSnapshotSchema.parse(homepageSnapshot(env.APPLICATION_ORIGIN));
         if (parsed?.success && saved?.epoch) {
           this.epoch = saved.epoch;
         } else if (saved && this.resetAt > Date.now()) {
-          await ctx.storage.put<Saved>('table', {
-            resetAt: this.resetAt,
-            snapshot,
-            epoch: this.epoch,
-            board: this.board,
-          });
+          await ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot, epoch: this.epoch });
         }
-        this.room = this.tableRoom(snapshot);
-        /* A table that has never read the board waits for it once, so its first frame shows the board; later resets refresh it in the background. */
-        if (!this.board) {
-          await this.loadBoard();
-        }
+        this.room = new Room(snapshot, () => []);
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
           connection.authenticating = false;
@@ -149,45 +134,11 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private tableRoom(snapshot: StoredSnapshot) {
-    return new Room(
-      snapshot,
-      () => [],
-      undefined,
-      undefined,
-      undefined,
-      () => this.board?.definition
-    );
-  }
-
-  /* Reads the saved Arrakis Official board and puts the table on it; a failed read leaves the table on the board it had. */
-  private async loadBoard() {
-    await this.diagnostics
-      .run('board', async () => {
-        const found = await gameHttpClient(this.env.CONVEX_URL).query(api.arrakis.board, {});
-        const board = found
-          ? boardCaptureSchema.parse({
-              asset: { id: found.assetId, slug: ARRAKIS_BOARD_SLUG, name: found.name },
-              definition: found.board,
-            })
-          : undefined;
-        if (!board || JSON.stringify(board) === JSON.stringify(this.board)) {
-          return;
-        }
-        this.board = board;
-        const saved = await this.ctx.storage.get<Saved>('table');
-        if (saved) {
-          await this.ctx.storage.put<Saved>('table', { ...saved, board });
-        }
-        this.broadcast();
-      })
-      .catch(() => undefined);
-  }
-
   private frame() {
     return {
       epoch: this.epoch,
-      snapshot: { ...gameSnapshotSchema.parse(this.room.snapshot), ...(this.board ? { board: this.board } : {}) },
+      /* The homepage table plays on the bundled Arrakis, which the room also defaults to. */
+      snapshot: { ...gameSnapshotSchema.parse(this.room.snapshot), board: arrakisBoardCapture },
       carries: this.room.publicCarries(),
       pointers: [...this.room.pointers.values()],
     };
@@ -252,14 +203,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         ? now + HOMEPAGE_RESET_MS
         : (Math.floor(now / HOMEPAGE_RESET_MS) + 1) * HOMEPAGE_RESET_MS;
       const epoch = crypto.randomUUID();
-      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch, board: this.board });
+      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch });
       this.resetAt = resetAt;
       this.epoch = epoch;
-      this.room = this.tableRoom(snapshot);
+      this.room = new Room(snapshot, () => []);
       this.delivery = new RoomDelivery();
       this.broadcast();
-      /* Each new table picks up edits to the saved board. */
-      void this.loadBoard();
     }
     let changed = false;
     for (const [socket, connection] of this.connections) {

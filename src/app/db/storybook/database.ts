@@ -190,7 +190,7 @@ function baselineDatabase(): StorybookDatabase {
   /* Published like production's, so the pages that show the saved Arrakis board without a game get its face and territories. */
   baseline.publication_assets.push({
     asset_type: 'board',
-    asset_id: ref('asset:board:arrakis-official') as unknown as string,
+    asset_id: refText('asset:board:arrakis-official', SEED_REF_TOKEN),
     cache_token: 'storybook-arrakis-official',
     published_at: 1,
     component_geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),

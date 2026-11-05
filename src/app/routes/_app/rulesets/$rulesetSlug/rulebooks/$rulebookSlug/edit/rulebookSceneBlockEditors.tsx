@@ -11,14 +11,13 @@ import {
   TextInput,
   Textarea,
 } from '@mantine/core';
-import { ARRAKIS_BOARD_SLUG } from '@shared/boards/arrakisOfficial';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { createContext, lazy, Suspense, useContext, useState } from 'react';
 
-import { useArrakisBoard } from '@app/db/arrakis';
+import { useArrakisFace } from '@app/db/arrakis';
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
@@ -57,8 +56,12 @@ function BoardChoice({
       input={
         <BoardPicker
           label="Board"
-          value={boardId}
-          selected={{ id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }}
+          value={boardId || null}
+          selected={
+            boardId
+              ? { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+              : undefined
+          }
           onPick={onChange}
         />
       }
@@ -66,9 +69,9 @@ function BoardChoice({
   );
 }
 
-/** A new scene's board: the saved Arrakis, named by its slug until it has loaded, which no board resolves, so the author picks one. */
+/** A new scene's board: the saved Arrakis, or none while it loads or the site has none published, so the author picks one. */
 export function useNewSceneBoardId() {
-  return useArrakisBoard()?.assetId ?? ARRAKIS_BOARD_SLUG;
+  return useArrakisFace()?.assetId ?? '';
 }
 
 /** An empty scene on a board. */

@@ -37,9 +37,18 @@ export function publishEverything(baseline: StorybookDatabase) {
       continue;
     }
     for (const id of [SEED_REF_TOKEN, `${SEED_REF_TOKEN}.back`]) {
+      const assetId = refText(row.$key, id);
+      /* The baseline already publishes some faces, such as the saved Arrakis board; a face has one publication. */
+      const published = baseline.publication_assets.some(
+        (publication) =>
+          publication.asset_type === row.type && JSON.stringify(publication.asset_id) === JSON.stringify(assetId)
+      );
+      if (published) {
+        continue;
+      }
       baseline.publication_assets.push({
         asset_type: row.type,
-        asset_id: refText(row.$key, id),
+        asset_id: assetId,
         cache_token: 'story',
         published_at: 0,
       });

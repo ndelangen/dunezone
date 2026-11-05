@@ -1,5 +1,6 @@
 /* @vitest-environment jsdom */
 
+import { boardCaptureSchema } from '@shared/play/capture';
 import { serverMessageSchema } from '@shared/play/protocol';
 import { describe, expect, test, vi } from 'vite-plus/test';
 
@@ -18,10 +19,17 @@ describe('The Play sandbox', () => {
   });
 
   test('every starting table shows each viewer a view the page accepts', () => {
+    /* Every frame carries the same board; checking it once keeps the run to the views themselves. */
+    const first = new SandboxTable({ start: sandboxSteps()[0]!, seat: 'seat-1' });
+    const { board } = first;
+    first.dispose();
+    expect(boardCaptureSchema.safeParse(board).error?.issues ?? []).toEqual([]);
     for (const start of sandboxSteps()) {
       const table = new SandboxTable({ start, seat: 'seat-1' });
       for (const seat of journeyViewers()) {
-        const parsed = serverMessageSchema.safeParse(table.frame(seat));
+        const frame = table.frame(seat);
+        expect(frame.snapshot.board).toBe(board);
+        const parsed = serverMessageSchema.safeParse({ ...frame, snapshot: { ...frame.snapshot, board: undefined } });
         expect(parsed.error?.issues ?? [], `${stepCode(start)} as ${seat}`).toEqual([]);
       }
       table.dispose();
