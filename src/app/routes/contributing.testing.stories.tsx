@@ -126,17 +126,17 @@ export const DataLifecycle = meta.story({
     );
     const name = example.getByRole('textbox', { name: 'Try a local name change' });
     const save = example.getByRole('button', { name: 'Save sample name' });
-    await expect(save).toBeDisabled();
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
     await userEvent.clear(name);
     await userEvent.type(name, 'Desert Alliance');
     await expect(example.getByRole('img', { name: 'Another reader shows House Atreides' })).toBeVisible();
     await userEvent.click(save);
     await expect(example.getByRole('img', { name: 'Your page shows Desert Alliance' })).toBeVisible();
     await expect(example.getByRole('img', { name: 'Another reader shows Desert Alliance' })).toBeVisible();
-    await expect(save).toBeDisabled();
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
     await userEvent.clear(name);
     await userEvent.type(name, '   ');
-    await expect(save).toBeDisabled();
+    await expect(save).toHaveAttribute('aria-disabled', 'true');
     await expect(example.getByRole('status')).toHaveTextContent('Both readers now show Desert Alliance.');
   },
 });

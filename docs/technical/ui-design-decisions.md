@@ -411,7 +411,8 @@ The canonical `cta` role owns the spice-amber action accent.
 Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
 Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through
-the theme. Selection borders use `--selection-border`, a neutral ink that contrasts with both
+the theme. A worded toggle is `LabeledAction pressed` and a glyph one `IconAction pressed`, which
+wear that selected tile without naming a colour. Selection borders use `--selection-border`, a neutral ink that contrasts with both
 schemes, rather than a fixed palette shade. Focus uses `--color-focus-ring` for a visible boundary
 in each scheme.
 
@@ -429,8 +430,12 @@ icon would be ambiguous, label it.
 *Convention. The kit carries it: `IconAction` for icon-only actions, `LabeledAction` for an action
 with room for its words (always beside a glyph, never text alone), and `CallToAction` for the
 forward-moving primary. Outside `src/app/ui` every button is one of these three rather than a raw
-Mantine `Button`; a lint ban follows once the remaining call sites have moved. Which variant each takes is the section above; this one is about how many
-and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
+Mantine `Button`, enforced by `no-restricted-imports` in `.oxlintrc.json` for `src/**` outside
+`src/app/ui`, stories and tests. A real exception (a shaped part of the game board, a split button,
+a list row until the kit has a selectable row) disables the rule on that file's one `Button`
+import with a `--` reason; the disable covers the whole file, so the reason must cover every
+`Button` in it. Which variant each takes is the section above; this one is about how many and how
+labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### A bar states its statuses as glyphs and stays one line
 

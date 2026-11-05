@@ -1,4 +1,6 @@
-import { Button, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Stack, Text, VisuallyHidden } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The tutorial landing pages stay as they are (Norbert, 2026-11-05). */
+import { Button } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';

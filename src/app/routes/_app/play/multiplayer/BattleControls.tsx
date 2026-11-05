@@ -1,4 +1,6 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The battle disc's claims, outcome choices, cancel and pieces are shaped parts of the board, not page actions. */
+import { Button } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
@@ -7,9 +9,11 @@ import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battl
 import { dialsFlat } from '@shared/play/battleDialing';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
+import { Check } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
@@ -393,7 +397,15 @@ function BattleCentre(props: ActiveProps) {
           </Text>
         )}
         <OutcomeButton {...props} outcome="none" />
-        <CancelBattleButton {...props} size="compact-xs" variant="subtle" className={styles.resolve} />
+        <LabeledAction
+          size="compact-xs"
+          icon={<Check size={14} />}
+          className={styles.resolve}
+          disabledReason={props.table.canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => props.client.command({ kind: 'battle-cancel', battleId: props.battle.id })}
+        >
+          Resolve battle
+        </LabeledAction>
       </Stack>
     );
   }

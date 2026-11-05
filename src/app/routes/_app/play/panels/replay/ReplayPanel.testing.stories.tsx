@@ -17,7 +17,7 @@ export const ReplaysFromTheStart = meta.story({
 export const StepsThroughPhases = meta.story({
   args: { replay: { kind: 'browsing', step: 0, lastStep: 2 } },
   play: async ({ args, canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Earlier phase' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Earlier phase' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(canvas.getByRole('button', { name: 'Later phase' }));
     await expect(args.onStep).toHaveBeenCalledWith(1);
     await userEvent.click(canvas.getByRole('button', { name: 'Return to live' }));

@@ -1,4 +1,4 @@
-import { Button, Loader, Stack, Text } from '@mantine/core';
+import { Loader, Stack, Text } from '@mantine/core';
 import { recallConversation } from '@shared/play/conversations';
 import {
   HIDDEN_ZONE_DEPTH,
@@ -9,6 +9,8 @@ import {
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RotateCcw } from 'lucide-react';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '@db/tabletop/TableSession';
@@ -73,9 +75,9 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
                 <Text size="sm" role="alert">
                   {failure}
                 </Text>
-                <Button size="xs" onClick={client.retryRecall}>
+                <LabeledAction size="xs" icon={<RotateCcw size={14} />} onClick={client.retryRecall}>
                   Retry checkpoint
-                </Button>
+                </LabeledAction>
               </Stack>
             ) : (
               loading && (

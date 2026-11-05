@@ -1,10 +1,12 @@
-import { Button, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { MOVEMENT_PHASE_ID, movementOrder } from '@shared/play/movement';
 import { phaseAt, STANDARD_PHASES } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { setupStep } from '@shared/play/setup';
 import { stormOrder } from '@shared/play/stormSector';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RotateCcw } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 
@@ -116,9 +118,9 @@ export function stageStatus({
             <Text size="xs" role="alert">
               Checkpoint unavailable: {failure}
             </Text>
-            <Button size="xs" variant="subtle" onClick={client.retryRecall}>
+            <LabeledAction size="xs" icon={<RotateCcw size={14} />} onClick={client.retryRecall}>
               Retry checkpoint
-            </Button>
+            </LabeledAction>
           </>
         ) : (
           (table.historyPending || unavailable) && (

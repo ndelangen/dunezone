@@ -1,4 +1,4 @@
-import { Anchor, Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Anchor, Box, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -16,6 +16,8 @@ import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
+import { CallToAction } from '@ui/control/CallToAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
@@ -196,6 +198,16 @@ export function CreateGamePass({
       nameReady,
       summary: `${createdGameName(draft)}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
     });
+  /* The line under the button reads the summary once the pass is filled in; the button's reason never does. */
+  const summaryShown = !disabledReason && !notice && chosen !== undefined && objection === null && nameReady;
+  const blockedReason =
+    canCreate || pending
+      ? undefined
+      : summaryShown
+        ? rulesetCheck === 'checking'
+          ? 'Checking the ruleset first.'
+          : 'Finish the game pass first.'
+        : waiting;
 
   return (
     <>
@@ -244,9 +256,9 @@ export function CreateGamePass({
                 />
                 {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
                 <Stack gap="xs">
-                  <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
+                  <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
                     Create game
-                  </Button>
+                  </CallToAction>
                   <Text size="sm" c="dimmed" ta="center" role="status">
                     {waiting}
                   </Text>
@@ -299,16 +311,14 @@ function NameField({
       <GameName pending={draft.custom && !draft.customName.trim()}>{createdGameName(draft)}</GameName>
       <Group gap="md">
         {draft.custom ? null : (
-          <Button
-            variant="default"
+          <LabeledAction
             size="xs"
-            radius="xl"
-            leftSection={<Dices size={15} aria-hidden />}
+            icon={<Dices size={15} />}
+            disabledReason={disabled ? 'The game is being created.' : undefined}
             onClick={() => dispatch({ kind: 'reroll' })}
-            disabled={disabled}
           >
             Roll another name
-          </Button>
+          </LabeledAction>
         )}
         <Switch
           label="Set a custom name"

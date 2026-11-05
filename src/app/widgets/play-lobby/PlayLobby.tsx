@@ -1,4 +1,4 @@
-import { Avatar, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Avatar, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -10,6 +10,7 @@ import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { CardGrid } from '@ui/list/CardGrid';
 import { Surface } from '@ui/surface';
@@ -240,16 +241,15 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
               </Tooltip>
             )}
           </Avatar.Group>
-          <Button
+          <LabeledAction
             renderRoot={gameLink(entry.slug ?? entry.gameId)}
             size="compact-sm"
-            color="slate"
-            variant={entry.viewerSeated ? 'filled' : 'light'}
-            rightSection={<ArrowRight size={15} aria-hidden />}
-            aria-label={`Open ${entry.name}`}
+            emphasis={entry.viewerSeated ? 'strong' : 'standard'}
+            icon={<ArrowRight size={15} />}
+            accessibleName={`Open ${entry.name}`}
           >
             Open
-          </Button>
+          </LabeledAction>
         </Group>
       </>
     ),
@@ -365,14 +365,9 @@ export function PlayLobbyHeader({
         Take a seat, choose your faction, and fight for Arrakis.
       </Text>
       <Group gap="sm" justify="center">
-        <Button
-          variant="default"
-          size="lg"
-          leftSection={<GraduationCap size={17} aria-hidden />}
-          renderRoot={tutorialLink}
-        >
+        <LabeledAction size="lg" icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
           Learn to play
-        </Button>
+        </LabeledAction>
         <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
           Create a game
         </CallToAction>

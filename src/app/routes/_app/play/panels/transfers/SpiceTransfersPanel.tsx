@@ -1,5 +1,7 @@
-import { Button, Group, List, Stack, Text } from '@mantine/core';
+import { Group, List, Stack, Text } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, ChevronsRight } from 'lucide-react';
 
 export type SpiceTransfersPanelProps = Readonly<{
   /** The transfers on show, newest first, each as its line reads. */
@@ -40,14 +42,14 @@ export function SpiceTransfersPanel({
         </List>
         <Group>
           {more && (
-            <Button variant="default" onClick={onEarlier}>
+            <LabeledAction icon={<ChevronLeft size={16} />} onClick={onEarlier}>
               Earlier spice transfers
-            </Button>
+            </LabeledAction>
           )}
           {!latest && (
-            <Button variant="default" onClick={onLatest}>
+            <LabeledAction icon={<ChevronsRight size={16} />} onClick={onLatest}>
               Latest spice transfers
-            </Button>
+            </LabeledAction>
           )}
         </Group>
       </Stack>
