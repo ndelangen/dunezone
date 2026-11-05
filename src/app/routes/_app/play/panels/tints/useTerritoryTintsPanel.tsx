@@ -1,4 +1,3 @@
-import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { propertyId } from '@shared/boards/schema';
 import { fitsTintCommand, MAX_TINTS, tintSetting } from '@shared/play/territoryTints';
 import type { TerritoryTint } from '@shared/play/territoryTints';
@@ -152,8 +151,12 @@ export function tintRows(
   brushTintId: string | undefined,
   attempt: (tintId: string) => number = () => 0
 ) {
-  const board = table.snapshot.board?.definition ?? retainedArrakisBoard();
-  const names = new Map(Object.values(board.properties).map((property) => [propertyId(property), property.name]));
+  const names = new Map(
+    Object.values(table.snapshot.board?.definition.properties ?? {}).map((property) => [
+      propertyId(property),
+      property.name,
+    ])
+  );
   return (table.snapshot.tints ?? []).map((tint) => {
     const painting = brushTintId === tint.id;
     return { tint, painting, summary: tintSummary(tint, painting, names), removalAttempt: attempt(tint.id) };
@@ -162,14 +165,15 @@ export function tintRows(
 
 /** The tints a new table offers to start from, for the board it plays on. */
 export function tintPresets(table: TableProjection) {
-  return territoryTintPresets(table.snapshot.board?.definition ?? retainedArrakisBoard());
+  const board = table.snapshot.board?.definition;
+  return board ? territoryTintPresets(board) : [];
 }
 
 /** The Territory tints window from the table: its tints with their paintbrush and removal state, and the commands each control sends. */
 function useTerritoryTintsPanel({ client, table }: Props): TerritoryTintsPanelProps {
   const tints = useMemo(() => table.snapshot.tints ?? [], [table.snapshot.tints]);
-  const board = table.snapshot.board?.definition ?? retainedArrakisBoard();
-  const presets = useMemo(() => territoryTintPresets(board), [board]);
+  const board = table.snapshot.board?.definition;
+  const presets = useMemo(() => (board ? territoryTintPresets(board) : []), [board]);
   const canEdit = table.canInteract && !!table.snapshot.bank;
   const pending = usePending(client);
   const removals = useTintRemovals(client);

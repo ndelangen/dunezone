@@ -3,7 +3,6 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
-import { retainedArrakisBoard } from '@shared/boards/geometry';
 import { tableTerritoryAt } from '@shared/boards/tableTerritories';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
@@ -147,7 +146,7 @@ function paintTerritory(
   /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
   const mapShown = stage !== 'setup' || !!mapVisible;
   const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
-  const territory = point && tableTerritoryAt(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
+  const territory = point && board && tableTerritoryAt(board.definition, point.x, point.z);
   if (brush && territory) {
     brush.paint(territory);
   }

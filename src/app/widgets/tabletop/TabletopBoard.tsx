@@ -36,11 +36,9 @@ import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { ArtworkPending } from './ArtworkPending';
-import arrakisMapSvg from './assets/arrakis-map.svg?raw';
 import stormMarkerUrl from './assets/storm-marker.webp?url';
 import { boardFurnitureFor } from './boardFurniture';
-import { boardMapGeometry } from './boardMapGeometry';
-import { POLAR_SINK_RENDER_ORDER, STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
+import { STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRenderOrder';
 import { BOARD_RIM_DEPTH, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS, createBoardRimShape } from './boardRimGeometry';
 import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
@@ -52,7 +50,6 @@ import { useTablePalette } from './tablePalette';
 import { activePhaseIndex, trackerDiscColor } from './tableTrackers';
 import type { TableProgress } from './tableTrackers';
 import { TurnTracker } from './TurnTracker';
-import { useBoardSkinMaterial } from './useBoardSkinMaterial';
 const SpiceBank = lazy(() => loadSpiceBank().then((module) => ({ default: module.SpiceBank })));
 const TerritoryTints = lazy(() => import('./TerritoryTints').then((module) => ({ default: module.TerritoryTints })));
 useTexture.preload(stormMarkerUrl);
@@ -78,7 +75,6 @@ type StormTransition = {
 };
 
 const STORM_MARKER_HOVER_Y = BOARD_SURFACE_Y + CONTACT_SHADOW_EPSILON;
-const BOARD_MAP_RENDER_ORDER = -3;
 const STORM_MARKER_RENDER_ORDER = 1;
 const PHYSICAL_OBJECT_RENDER_ORDER = 2;
 
@@ -389,42 +385,8 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
 
 const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
 
-function LegacyBoardPaint() {
-  const geometry = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS), []);
-  const polarSink = useMemo(() => boardMapGeometry(arrakisMapSvg, BOARD_RADIUS, 'polar'), []);
-  useEffect(
-    () => () => {
-      geometry.dispose();
-      polarSink.dispose();
-    },
-    [geometry, polarSink]
-  );
-  const paint = useBoardSkinMaterial({ geometry, vertexColors: true });
-  const polarPaint = useBoardSkinMaterial({ geometry: polarSink, vertexColors: true });
-  return (
-    <>
-      <mesh
-        receiveShadow
-        geometry={geometry}
-        material={paint}
-        renderOrder={BOARD_MAP_RENDER_ORDER}
-        raycast={ignoreRaycast}
-      />
-      <mesh
-        receiveShadow
-        geometry={polarSink}
-        material={polarPaint}
-        renderOrder={POLAR_SINK_RENDER_ORDER}
-        raycast={ignoreRaycast}
-      />
-    </>
-  );
-}
-
-function BoardPaint({ board }: { board: GameSnapshot['board'] }) {
-  if (!board) {
-    return <LegacyBoardPaint />;
-  }
+/* A table without a board, such as the homepage's before the saved Arrakis arrives, shows the bare disc. */
+function BoardPaint({ board }: { board: NonNullable<GameSnapshot['board']> }) {
   return (
     <Suspense fallback={null}>
       <AuthoredBoard key={board.asset.id} board={board.definition} />
@@ -466,10 +428,10 @@ function BoardMap({
         It draws first among the see-through things, so the storm's sector and every other overlay land on it.
       */}
       <group position={[0, BOARD_SURFACE_Y + BOARD_MAP_LIFT, 0]}>
-        <BoardPaint board={board} />
-        {tints?.length ? (
+        {board && <BoardPaint board={board} />}
+        {board && tints?.length ? (
           <Suspense fallback={<ArtworkPending />}>
-            <TerritoryTints board={board?.definition} tints={tints} />
+            <TerritoryTints board={board.definition} tints={tints} />
           </Suspense>
         ) : null}
       </group>

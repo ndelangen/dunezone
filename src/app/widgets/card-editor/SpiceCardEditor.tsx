@@ -1,4 +1,4 @@
-import { MultiSelect, NumberInput, Stack, TextInput } from '@mantine/core';
+import { NumberInput, Stack, TextInput } from '@mantine/core';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -18,7 +18,6 @@ import { boardMarkupEditing, useBrushEscape } from '@app/widgets/board-markup/Bo
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { spiceIconSrc, standardSpiceText } from '@game/assets/card/spiceText';
-import { Spice } from '@game/data/objects';
 import type { SpiceAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
@@ -34,7 +33,6 @@ import type { AssetPick, SpiceBoardRead, SpiceLookPreview, SpiceMapFocus } from 
 export type SpiceDraft = z.infer<typeof SpiceAsset>;
 
 type SpiceIcon = SpiceDraft['icon'];
-type SpiceHighlight = SpiceDraft['highlights'][number];
 
 export const INITIAL_SPICE_DRAFT: SpiceDraft = {
   name: '',
@@ -46,45 +44,6 @@ export const INITIAL_SPICE_DRAFT: SpiceDraft = {
 };
 
 const iconOptions = stockAssetOptions(vectorDecalAssetOptions);
-
-/* The three whole regions highlight a group of territories at once, so they are offered apart from the single territories. */
-const REGIONS: readonly SpiceHighlight[] = ['sand', 'rock', 'strongholds'];
-
-/* Names the slug alone cannot spell. Everything else reads as its slug in title case. */
-const HIGHLIGHT_LABELS: Partial<Record<SpiceHighlight, string>> = {
-  sand: 'All sand',
-  rock: 'All rock',
-  strongholds: 'All strongholds',
-  tueks: "Tuek's Sietch",
-  tabr: 'Sietch Tabr',
-  polar: 'Polar Sink',
-  habbanya: 'Habbanya Sietch',
-};
-
-function highlightLabel(highlight: SpiceHighlight): string {
-  return (
-    HIGHLIGHT_LABELS[highlight] ??
-    highlight
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  );
-}
-
-const HIGHLIGHTS = Spice.shape.highlights.element.options;
-
-const HIGHLIGHT_OPTIONS = [
-  {
-    group: 'Regions',
-    items: REGIONS.map((value) => ({ value, label: highlightLabel(value) })),
-  },
-  {
-    group: 'Territories',
-    items: HIGHLIGHTS.filter((value) => !REGIONS.includes(value))
-      .map((value) => ({ value, label: highlightLabel(value) }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
-  },
-];
 
 type Patch = (update: Partial<SpiceDraft>) => void;
 
@@ -174,25 +133,6 @@ function IdentityFields({ draft, patch, nameField }: { draft: SpiceDraft; patch:
   );
 }
 
-/* The territories the classic map highlights. */
-function ClassicHighlights({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
-  return (
-    <ControlBlock
-      title="Highlighted territories"
-      description="Outlined on the card's map. A region highlights every territory in it."
-      input={
-        <MultiSelect
-          aria-label="Highlighted territories"
-          searchable
-          data={HIGHLIGHT_OPTIONS}
-          value={draft.highlights}
-          onChange={(values) => patch({ highlights: values as SpiceHighlight[] })}
-        />
-      }
-    />
-  );
-}
-
 /* A card adds a whole number of spice, at least one. */
 function isAmount(value: number | string): value is number {
   return Number.isInteger(value) && Number(value) > 0;
@@ -263,8 +203,8 @@ export function spiceDraftWarnings(draft: SpiceDraft): SpiceDraftWarning[] {
   if (!draft.subName.trim()) {
     warnings.push({ source: 'Identity', missing: 'a type', chapter: 'identity' });
   }
-  if (!draft.board && draft.highlights.length === 0) {
-    warnings.push({ source: 'Map', missing: 'a highlighted territory', chapter: 'map' });
+  if (!draft.board) {
+    warnings.push({ source: 'Map', missing: 'a board', chapter: 'map' });
   }
   return warnings;
 }
@@ -352,7 +292,6 @@ export function SpiceCardEditor({
                     read={boardRead}
                     focus={proofFocus}
                     boardSelect={boardSelect}
-                    classic={<ClassicHighlights draft={draft} patch={patch} />}
                   />
                 ),
               },

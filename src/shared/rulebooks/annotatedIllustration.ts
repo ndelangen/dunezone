@@ -61,7 +61,6 @@ export const rulebookIllustrationConfigurationSchema = assetExplainerBlockSchema
 const rulebookIllustrationSourceSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('unavailable') }),
   z.strictObject({ status: z.literal('pending') }),
-  z.strictObject({ status: z.literal('board'), boardId: z.string().min(1).max(80) }),
   z.strictObject({
     status: z.literal('stock'),
     reference: rulebookSourceReferenceSchema,
