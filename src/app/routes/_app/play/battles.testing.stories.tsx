@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame, finishTransitions } from '@sb/storyWaits';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
@@ -226,7 +227,7 @@ export const MarkerNamesItsTerritory = meta.story({
         await expect(action).toMatchObject({ kind: 'battle-start' });
         /* The game names the battle for the territory under the marker. */
         const anchor = (action as { anchor: Vector3Tuple }).anchor;
-        await expect(territoryAtTable({}, anchor)?.name).toBe('Carthag');
+        await expect(territoryAtTable({ board: arrakisBoardCapture.definition }, anchor)?.name).toBe('Carthag');
       }
     );
   },

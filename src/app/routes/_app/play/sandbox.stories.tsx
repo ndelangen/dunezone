@@ -260,7 +260,12 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
   for (const [index, stack] of straddling.entries()) {
     const others = pieces.filter((candidate) => candidate.id !== stack.id);
     const side = index % 2 === 0 ? -0.2 : 0.2;
-    const landing = territoryLanding({}, stack, restingPositionAt([x + side, 0, z], stack), others);
+    const landing = territoryLanding(
+      { board: arrakisBoardCapture.definition },
+      stack,
+      restingPositionAt([x + side, 0, z], stack),
+      others
+    );
     if (landing) {
       pieces = withNudges([...others, { ...stack, position: landing.position }], landing.nudges);
     }

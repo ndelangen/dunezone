@@ -1,5 +1,6 @@
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { emptyBattlePlan } from '@shared/play/battle';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
 import { TABLE_PHASES } from '@shared/play/phases';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -150,12 +151,13 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
   /* The attackers join the defenders in Arrakeen as a drop there would land them: both inside the city, side by side. */
   const others = snapshot.table.pieces.filter((piece) => piece.id !== attackers.id);
   const beside: typeof defenders.position = [defenders.position[0] + 0.3, defenders.position[1], defenders.position[2]];
-  const landing = territoryLanding({}, attackers, beside, others)!;
+  const landing = territoryLanding({ board: arrakisBoardCapture.definition }, attackers, beside, others)!;
   attackers.position = landing.position;
   attackers.zoneId = 'arrakeen';
   snapshot.table.pieces = withNudges(snapshot.table.pieces, landing.nudges);
   return {
     ...snapshot,
+    board: arrakisBoardCapture,
     phase: 6,
     ...(observer ? {} : { bank: { factionId: 'house-harkonnen', balance: 10 }, battlePlan: plans[0] }),
     battle: {
