@@ -257,6 +257,32 @@ describe('Explicit participation on a real game', () => {
     expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
   });
 
+  it('stays finished, with its result and replay, when the last player leaves a finished game', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = readHistoricalSnapshot(rows[0].data);
+    snapshot.stage = 'finished';
+    snapshot.result = {
+      kind: 'none',
+      factionIds: [],
+      by: { seat: 'seat-1', name: 'Synthetic A', userId: 'user-a' },
+      declaredAt: Date.now(),
+    };
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const a = await admit('a');
+    const left = await accepted(a, { kind: 'seat-depart' });
+    expect(left.snapshot.stage).toBe('finished');
+    expect(left.snapshot.result).toMatchObject({ kind: 'none' });
+    expect(required(left.snapshot.controls).seats).toEqual([]);
+    expect(events(left)[0]).toBe('Seat 1 is vacated.');
+    await eventually(() => peer.summaries.at(-1)?.summary.stage === 'finished', 'finished summary');
+    /* An observer may still replay the finished game alone. */
+    const c = await admit('c');
+    c.send({ type: 'history', step: 0 });
+    expect((await c.message('history')).step).toBe(0);
+    expect(await rejected(c, { kind: 'seat-request' })).toBe('The game is finished. Continue playing to take a seat.');
+  });
+
   it('keeps an offline player seated, retires a drafting place on departure and discards the game when the last player leaves', async () => {
     const a = await admit('a');
     const b = await admit('b');
