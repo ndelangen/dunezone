@@ -21,12 +21,9 @@ import type { FactionCatalogueSearch, FactionComplexityRange } from '@shared/fac
 import { Link, createFileRoute, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps, NotFoundRouteProps } from '@tanstack/react-router';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { CallToAction } from '@ui/control/CallToAction';
 import { CataloguePager, catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
@@ -49,10 +46,11 @@ import type {
   FactionCatalogueRuleset,
   FactionCatalogueSearchData,
 } from '@db/factions';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import { factionCatalogueArgs, useFactionCatalogueSession } from './catalogue';
 import styles from './index.module.css';
@@ -292,20 +290,14 @@ function SearchedCatalogue({
  */
 function FactionCataloguePending() {
   return (
-    <PageMessage title="Faction catalogue">
-      <LoadPending title="Loading factions">The faction catalogue is still loading.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Faction catalogue" loading="Loading factions">
+      The faction catalogue is still loading.
+    </RoutePending>
   );
 }
 
 function FactionCatalogueError({ error }: ErrorComponentProps) {
-  return (
-    <PageMessage title="Faction catalogue">
-      <LoadError title="Faction catalogue could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
-  );
+  return <RouteLoadError title="Faction catalogue" what="Faction catalogue could not be loaded" error={error} />;
 }
 
 function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData['spotlights'] }) {

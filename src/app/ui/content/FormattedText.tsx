@@ -5,7 +5,7 @@ import type { FormattedTextInlineNode, FormattedTextParseResult, FormattedTextPr
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
-export type FormattedTextBlocks = FormattedTextParseResult['blocks'];
+type FormattedTextBlocks = FormattedTextParseResult['blocks'];
 
 type FormattedTextMark = Extract<FormattedTextInlineNode, { kind: 'mark' }>['mark'];
 
@@ -62,7 +62,7 @@ const toneColor = (tone: FormattedTextTone | undefined) => (tone === 'neutral' ?
  * Callers own parsing and decide what to do with invalid or empty source.
  * This component owns the app-side HTML semantics for every valid block and mark.
  */
-export function FormattedText({
+function FormattedText({
   blocks,
   className,
   size,

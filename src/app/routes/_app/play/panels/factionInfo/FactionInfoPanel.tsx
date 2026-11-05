@@ -1,11 +1,11 @@
-import { Group, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { PublicFaction } from '@shared/play/capture';
 import type { RemovalVote } from '@shared/play/removal';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { StatusBadge } from '@ui/content/StatusBadge';
 import type { ReactNode } from 'react';
 
+import { Ballots } from '../../Ballots';
 import { FactionDetails } from './FactionDetails';
 import { FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
@@ -46,21 +46,6 @@ const BALLOT_BADGES = {
   uncast: { tone: 'neutral', label: 'Uncast' },
 } as const;
 
-function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
-  return (
-    <Stack gap={4}>
-      {ballots.map((ballot, index) => (
-        <Group key={`${ballot.seat}-${index}`} justify="space-between" gap="sm">
-          <Text size="sm">{ballot.name}</Text>
-          <StatusBadge tone={BALLOT_BADGES[ballot.choice ?? 'uncast'].tone}>
-            {BALLOT_BADGES[ballot.choice ?? 'uncast'].label}
-          </StatusBadge>
-        </Group>
-      ))}
-    </Stack>
-  );
-}
-
 /* The open vote's state: how far it is from a decision, how long it has been open, each ballot, and why the viewer cannot vote when they cannot. The viewer's own ballot is cast from the toolbar. */
 function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
   const { ballot, elapsed } = vote;
@@ -71,7 +56,7 @@ function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
           {vote.needed.remove} more Remove or {vote.needed.keep} more Keep to decide.{' '}
           {elapsed < 1 ? 'Just opened.' : `Open ${Math.floor(elapsed / 60)}m ${elapsed % 60}s.`}
         </Text>
-        <Ballots ballots={vote.ballots} />
+        <Ballots ballots={vote.ballots} badges={BALLOT_BADGES} />
         {'reason' in ballot && (
           <Text size="sm" c="dimmed">
             {ballot.reason}

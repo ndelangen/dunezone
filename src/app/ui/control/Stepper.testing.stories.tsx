@@ -55,3 +55,35 @@ export const WheelAndWidth = meta.story({
     await expect(field).toHaveAttribute('aria-invalid', 'true');
   },
 });
+
+/** With `wheel: 'focus'` a wheel passing over the stepper scrolls on by; once the field has focus it steps. */
+export const WheelOnlyWhenFocused = meta.story({
+  args: { wheel: 'focus', initial: 2 },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    const field = page.getByRole('textbox', { name: 'Spice to withdraw' });
+    const passing = new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true });
+    field.dispatchEvent(passing);
+    await expect(passing.defaultPrevented).toBe(false);
+    await expect(field).toHaveValue('2');
+    field.focus();
+    field.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
+    await waitFor(() => expect(field).toHaveValue('3'));
+  },
+});
+
+/** Unsnapped, − and + move by the step while a typed value is kept as entered rather than rounded onto it. */
+export const UnsnappedKeepsTypedValue = meta.story({
+  args: { step: 0.5, snap: false, min: -20, max: 20, initial: 0 },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement);
+    const field = page.getByRole('textbox', { name: 'Spice to withdraw' });
+    await userEvent.click(page.getByRole('button', { name: 'More: Spice to withdraw' }));
+    await expect(field).toHaveValue('0.5');
+    await userEvent.clear(field);
+    await userEvent.type(field, '1.3');
+    await userEvent.tab();
+    await expect(field).toHaveValue('1.3');
+    await expect(field).not.toHaveAttribute('aria-invalid');
+  },
+});

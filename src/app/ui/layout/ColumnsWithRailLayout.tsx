@@ -1,15 +1,8 @@
 import clsx from 'clsx';
-import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { collectSlots } from './collectSlots';
 import styles from './ColumnsWithRailLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const COLUMNSWITHRAIL_SLOTS = [
-  'ColumnsWithRailLayout.Primary',
-  'ColumnsWithRailLayout.Secondary',
-  'ColumnsWithRailLayout.Rail',
-] as const;
 
 const Primary: (props: PropsWithChildren) => null = () => null;
 
@@ -20,8 +13,7 @@ const Rail: (props: PropsWithChildren) => null = () => null;
 /**
  * Two reading columns beside a narrow rail, top-aligned, responsive by container query.
  *
- * Distinct from `TriptychLayout`, which centres its slots vertically around a middle panel holding artwork.
- * Here every slot is text a reader works down, so they align to the top and the rail keeps a floor width rather than a share of the room.
+ * Every slot is text a reader works down, so they align to the top and the rail keeps a floor width rather than a share of the room.
  *
  * It gives up its columns in two stages instead of one: first the two reading columns merge into one while the rail keeps a column of its own, and only then does everything fall into a single column.
  * That middle stage exists because collapsing three columns straight into one buries the rail below everything else.
@@ -33,29 +25,10 @@ const Rail: (props: PropsWithChildren) => null = () => null;
  * Pass the slots as direct children, the way every kit Layout expects them: `Children.forEach` walks arrays but not fragments, so grouping them inside a `<>…</>` yields three empty columns and no error at all.
  */
 function ColumnsWithRailLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
-  let primary: ReactNode = null;
-  let secondary: ReactNode = null;
-  let rail: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('ColumnsWithRailLayout', COLUMNSWITHRAIL_SLOTS, child);
-      return;
-    }
-    if (child.type === Primary) {
-      primary = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Secondary) {
-      secondary = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Rail) {
-      rail = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('ColumnsWithRailLayout', COLUMNSWITHRAIL_SLOTS, child);
-  });
+  const slots = collectSlots('ColumnsWithRailLayout', { Primary, Secondary, Rail }, children);
+  const primary = slots.Primary?.children;
+  const secondary = slots.Secondary?.children;
+  const rail = slots.Rail?.children;
 
   return (
     <div className={clsx(styles.root, className)}>

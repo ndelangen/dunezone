@@ -5,8 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, it, vi } from 'vite-plus/test';
 
-import { FormattedText, FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
-import type { FormattedTextBlocks } from './FormattedText';
+import { FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -21,56 +20,25 @@ window.matchMedia = vi.fn().mockImplementation((query: string) => ({
 
 afterEach(cleanup);
 
-function renderFormattedText(blocks: FormattedTextBlocks) {
+function renderSource(source: string) {
   return render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
       <div data-testid="formatted-text-host">
-        <FormattedText blocks={blocks} />
+        <FormattedTextSource source={source} />
       </div>
     </MantineProvider>
   );
 }
 
 it('renders paragraph line breaks and fully nested marks as semantic HTML', () => {
-  const blocks: FormattedTextBlocks = [
-    {
-      kind: 'paragraph',
-      children: [
-        { kind: 'text', value: 'Opening' },
-        { kind: 'line-break' },
-        {
-          kind: 'mark',
-          mark: 'underline',
-          children: [
-            {
-              kind: 'mark',
-              mark: 'italic',
-              children: [{ kind: 'mark', mark: 'bold', children: [{ kind: 'text', value: 'emphasis' }] }],
-            },
-          ],
-        },
-      ],
-    },
-  ];
-
-  const view = renderFormattedText(blocks);
+  const view = renderSource('Opening\n_-*emphasis*-_');
 
   expect(view.container.querySelector('p > br')).not.toBeNull();
   expect(view.container.querySelector('p > span > em > strong')?.textContent).toBe('emphasis');
 });
 
 it('renders parsed list items as one semantic list', () => {
-  const blocks: FormattedTextBlocks = [
-    {
-      kind: 'list',
-      items: [
-        { children: [{ kind: 'text', value: 'Gather the spice' }] },
-        { children: [{ kind: 'text', value: 'Pay the Guild' }] },
-      ],
-    },
-  ];
-
-  renderFormattedText(blocks);
+  renderSource('- Gather the spice\n- Pay the Guild');
 
   expect(screen.getByRole('list')).toBeTruthy();
   expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
@@ -79,8 +47,8 @@ it('renders parsed list items as one semantic list', () => {
   ]);
 });
 
-it('renders no placeholder for empty parsed blocks', () => {
-  renderFormattedText([]);
+it('renders no placeholder for empty source', () => {
+  renderSource('');
 
   expect(screen.getByTestId('formatted-text-host').childElementCount).toBe(0);
 });

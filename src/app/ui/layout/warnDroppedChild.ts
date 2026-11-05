@@ -5,9 +5,9 @@ import { Fragment, isValidElement } from 'react';
  *
  * The walks match slot components by identity, so anything else is dropped without a trace, and the failure is silent in the worst way: a fragment or wrapper around a slot makes the layout render without it, and the page reads as one that chose that shape.
  * Measured on #921: a wrapped `PageLayout.Header` renders `data-page-layout-compact="true"`, the flag a page sets on purpose, so the shell confidently sizes the artwork to the mistake.
- * The precipitating incident was three blank Triptych columns that passed every gate (#443).
+ * The precipitating incident was three blank columns in a since-retired three-column layout that passed every gate (#443).
  *
- * Called from each walk's two silent paths: the not-an-element early return (which also swallows stray text) and the no-slot-matched fall-through.
+ * Called from the two silent paths of `collectSlots`, the one walk every Layout shares: the not-an-element early return (which also swallows stray text) and the no-slot-matched fall-through.
  * Nulls, booleans and whitespace stay silent, so conditional slots keep working.
  * Dev only;
  * production builds carry nothing.

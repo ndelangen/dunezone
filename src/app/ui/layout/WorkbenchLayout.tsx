@@ -1,11 +1,8 @@
 import clsx from 'clsx';
-import { Children, isValidElement } from 'react';
-import type { PropsWithChildren, ReactNode } from 'react';
+import type { PropsWithChildren } from 'react';
 
-import { warnDroppedChild } from './warnDroppedChild';
+import { collectSlots } from './collectSlots';
 import styles from './WorkbenchLayout.module.css';
-
-const WORKBENCH_SLOTS = ['WorkbenchLayout.Chapters', 'WorkbenchLayout.Rail'] as const;
 
 const Chapters: (props: PropsWithChildren) => null = () => null;
 
@@ -19,24 +16,9 @@ const Rail: (props: PropsWithChildren) => null = () => null;
  * The desk holds however many artifacts an editor stacks, and the count may change while mounted: a token draws two faces and loses one when its backside becomes a reference.
  */
 function Workbench({ children }: PropsWithChildren) {
-  let chapters: ReactNode = null;
-  let rail: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('WorkbenchLayout', WORKBENCH_SLOTS, child);
-      return;
-    }
-    if (child.type === Chapters) {
-      chapters = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Rail) {
-      rail = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('WorkbenchLayout', WORKBENCH_SLOTS, child);
-  });
+  const slots = collectSlots('WorkbenchLayout', { Chapters, Rail }, children);
+  const chapters = slots.Chapters?.children;
+  const rail = slots.Rail?.children;
 
   return (
     <div className={styles.region}>

@@ -3,10 +3,8 @@ import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
-import { errorMessage } from '@ui/content/errorMessage';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -17,10 +15,11 @@ import { useReducer } from 'react';
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
   loader: async ({ params }) => ({ ruleset: await loadRulesetBySlug(params.rulesetSlug) }),
@@ -39,11 +38,12 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
  */
 function FaqCreateError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Ask a question" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="This ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Ask a question"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="This ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -94,9 +94,9 @@ function FaqCreatePage() {
 
   if (!rulesetRow) {
     return (
-      <PageMessage title="Ask a question" back={backToRuleset}>
-        <LoadPending title="Loading ruleset">The ruleset this question belongs to is still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending title="Ask a question" back={backToRuleset} loading="Loading ruleset">
+        The ruleset this question belongs to is still loading.
+      </RoutePending>
     );
   }
   const rulesetId = rulesetRow._id;

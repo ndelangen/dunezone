@@ -308,7 +308,7 @@ Rules between categories:
   these is two components.
 - **Layouts own spacing and lay out through named slots.** A Layout arranges its slots; a leaf never
   carries page margin/padding. Every Layout is a custom component that
-  takes **named compound slots** (`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…`),
+  takes **named compound slots** (`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…`),
   never fewer than two, and is responsive **by container query, not media query**, so it lays out by
   the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
   shell's page frame, viewport-scoped in concert with `AppHeader` (see *Layouts own spacing* and

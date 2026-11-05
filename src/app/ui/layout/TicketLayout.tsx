@@ -1,10 +1,7 @@
-import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import { collectSlots } from './collectSlots';
 import styles from './TicketLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const TICKET_SLOTS = ['TicketLayout.Main', 'TicketLayout.Stub'] as const;
 
 const Main: (props: PropsWithChildren) => null = () => null;
 
@@ -17,24 +14,9 @@ const Stub: (props: PropsWithChildren) => null = () => null;
  * Each part fills the height of the row it shares.
  */
 function TicketLayoutBase({ children }: PropsWithChildren) {
-  let main: ReactNode = null;
-  let stub: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('TicketLayout', TICKET_SLOTS, child);
-      return;
-    }
-    if (child.type === Main) {
-      main = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Stub) {
-      stub = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('TicketLayout', TICKET_SLOTS, child);
-  });
+  const slots = collectSlots('TicketLayout', { Main, Stub }, children);
+  const main = slots.Main?.children;
+  const stub = slots.Stub?.children;
 
   return (
     <div className={styles.root}>

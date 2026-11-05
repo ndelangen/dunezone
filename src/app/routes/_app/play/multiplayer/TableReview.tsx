@@ -3,10 +3,10 @@ import { reviewRunning } from '@shared/play/review';
 import type { TableReview } from '@shared/play/review';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { StatusBadge } from '@ui/content/StatusBadge';
 import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { Ballots } from '../Ballots';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -18,21 +18,6 @@ const BALLOT_BADGES = {
   decline: { tone: 'negative', label: 'Declined' },
   uncast: { tone: 'neutral', label: 'Not voted' },
 } as const;
-
-function Ballots({ ballots }: Readonly<{ ballots: TableReview['ballots'] }>) {
-  return (
-    <Stack gap={4}>
-      {ballots.map((ballot, index) => (
-        <Group key={`${ballot.seat}-${index}`} justify="space-between" gap="sm">
-          <Text size="sm">{ballot.name}</Text>
-          <StatusBadge tone={BALLOT_BADGES[ballot.choice ?? 'uncast'].tone}>
-            {BALLOT_BADGES[ballot.choice ?? 'uncast'].label}
-          </StatusBadge>
-        </Group>
-      ))}
-    </Stack>
-  );
-}
 
 /** A seated player's answer to an open proposal: agree or decline until the vote settles, or withdraw their own. */
 function ProposalActions({
@@ -190,7 +175,7 @@ export function TableReviewPanel({ client, table, error }: Props & Readonly<{ er
                 : `${current.proposer.name} asks to recall ${current.context}. It starts once ${current.threshold} players agree.`}
             </Text>
             {/* A finished game's recall starts without a vote, so it has no ballots to show. */}
-            {!review.finished && <Ballots ballots={current.ballots} />}
+            {!review.finished && <Ballots ballots={current.ballots} badges={BALLOT_BADGES} />}
             {reviewRunning(current) ? (
               <ResumePlay client={client} review={review} current={current} />
             ) : (

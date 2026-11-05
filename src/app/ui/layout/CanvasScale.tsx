@@ -7,7 +7,7 @@ import type { CSSProperties, PropsWithChildren } from 'react';
  * The canvas is taken out of flow so the frame's height comes from its aspect ratio alone, never from the unscaled child it clips.
  * Pure placement;
  * the caller decorates the frame (shadow, anything bespoke) through `frameClassName`, and `rounded` is the corner treatment a rail proof wears (Norbert, 2026-08-21).
- * It was kept here so five rails could not drift apart, and four of them have since stopped asking for it: their faces fit themselves and carry their own corner, so only the treachery card editor still passes it (#706).
+ * It was kept here so five rails could not drift apart, and four of them have since stopped asking for it: their faces fit themselves and carry their own corner, so only the card editors still pass it, through their shared `CardProof` (#706).
  * `frameStyle` decorates the same frame for the values a class cannot hold, the ones a caller derives from the canvas it passed;
  * it may not re-place the frame, since the placement above is the whole point of the component.
  * The browser floor this technique sets is recorded on «Work the kit compliance wave» (#641).

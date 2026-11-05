@@ -1,13 +1,10 @@
 import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
@@ -30,12 +27,13 @@ import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 
@@ -82,11 +80,7 @@ function GroupDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage size="compact" title="Group" back={backToProfiles}>
-      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError size="compact" title="Group" back={backToProfiles} what="Group could not be loaded" error={error} />
   );
 }
 
@@ -109,9 +103,9 @@ function GroupDetailPage() {
   useLivePageTitle(page?.group.name, 'Group');
   if (!page) {
     return (
-      <PageMessage size="compact" title="Group" back={backToProfiles}>
-        <LoadPending title="Loading group">The group details are still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title="Group" back={backToProfiles} loading="Loading group">
+        The group details are still loading.
+      </RoutePending>
     );
   }
 

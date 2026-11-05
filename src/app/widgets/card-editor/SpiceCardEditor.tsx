@@ -4,7 +4,6 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Coins, Map as MapIcon, Palette, ScrollText } from 'lucide-react';
@@ -22,8 +21,8 @@ import { Spice } from '@game/data/objects';
 import type { SpiceAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { CardIconScaleControl, CardIconVerticalOffsetControl } from './CardIconAdjustments';
+import { CardProof } from './CardProof';
 import { SpiceLookFields, SpiceMapFields, SpiceTokenFields } from './SpiceBoardFields';
 import type { AssetPick, SpiceBoardRead, SpiceLookPreview, SpiceMapFocus } from './SpiceBoardFields';
 
@@ -105,12 +104,7 @@ function FillCard({
 }) {
   const link = draft.board;
   return (
-    <CanvasScale
-      rounded
-      canvasWidth={CARD_SIZE.width}
-      canvasHeight={CARD_SIZE.height}
-      frameClassName={styles.proofFrame}
-    >
+    <CardProof>
       <SpiceCard
         {...draft}
         boardDefinition={read?.board}
@@ -129,7 +123,7 @@ function FillCard({
             : undefined
         }
       />
-    </CanvasScale>
+    </CardProof>
   );
 }
 
