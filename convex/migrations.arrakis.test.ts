@@ -47,9 +47,12 @@ async function saveArrakis(f: Fixture) {
 
 const cardData = (f: Fixture, id: Id<'assets'>) => f.t.run(async (ctx) => (await ctx.db.get('assets', id))!.data);
 
+/** A card as the move leaves it: its old highlight list removed, every other field as stored. */
+const withoutList = ({ highlights: _highlights, ...rest }: Record<string, unknown>) => rest;
+
 describe('Arrakis board migration', () => {
   test(
-    'links classic Spice cards to the saved board, carrying their highlights, and empties linked cards’ old lists',
+    'links classic Spice cards to the saved board, carrying their highlights, and removes linked cards’ old lists',
     async () => {
       const f = await rulebookFixture();
       migrationsTest.register(f.t);
@@ -87,8 +90,7 @@ describe('Arrakis board migration', () => {
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
 
       expect(await cardData(f, classicId)).toEqual({
-        ...classic,
-        highlights: [],
+        ...withoutList(classic),
         board: {
           asset_id: boardId,
           tokens: [],
@@ -103,8 +105,10 @@ describe('Arrakis board migration', () => {
           ],
         },
       });
-      expect(await cardData(f, linkedId)).toEqual({ ...linked, highlights: [] });
-      expect(await cardData(f, deletedId)).toMatchObject({ highlights: [], board: { asset_id: boardId, tints: [] } });
+      expect(await cardData(f, linkedId)).toEqual(withoutList(linked));
+      const deleted = await cardData(f, deletedId);
+      expect(deleted).toMatchObject({ board: { asset_id: boardId, tints: [] } });
+      expect(deleted).not.toHaveProperty('highlights');
 
       const migrated = await Promise.all([classicId, linkedId, deletedId].map((id) => cardData(f, id)));
       await f.t.run(async (ctx) => {
@@ -118,7 +122,8 @@ describe('Arrakis board migration', () => {
           .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'card-spice').eq('asset_id', classicId))
           .take(5);
         /* The job captures the moved card, not the row as it was. */
-        expect(jobs.at(-1)?.asset_data).toMatchObject({ card: { highlights: [], board: { asset_id: boardId } } });
+        expect(jobs.at(-1)?.asset_data).toMatchObject({ card: { board: { asset_id: boardId } } });
+        expect(jobs.at(-1)?.asset_data).not.toHaveProperty('card.highlights');
       });
 
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, { reset: true });
@@ -148,7 +153,7 @@ describe('Arrakis board migration', () => {
       };
       const paintedId = await insertCard(f, 'painted', painted);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, paintedId)).toEqual({ ...painted, highlights: [] });
+      expect(await cardData(f, paintedId)).toEqual(withoutList(painted));
     },
     BUDGET_MS
   );
@@ -187,7 +192,7 @@ describe('Arrakis board migration', () => {
       };
       const cardId = await insertCard(f, 'custom', card);
       await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_v1, {});
-      expect(await cardData(f, cardId)).toEqual({ ...card, highlights: [] });
+      expect(await cardData(f, cardId)).toEqual(withoutList(card));
     },
     BUDGET_MS
   );
@@ -223,6 +228,65 @@ describe('Arrakis board migration', () => {
       await f.t.run((ctx) => ctx.db.delete('assets', uncoveredId));
       expect(
         await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
+    },
+    BUDGET_MS
+  );
+
+  test(
+    'removes the emptied highlight list from stored cards and queued captures, and the verifies name what is left',
+    async () => {
+      const f = await rulebookFixture();
+      migrationsTest.register(f.t);
+      const boardId = await saveArrakis(f);
+      const onBoard = {
+        ...withoutList(publishingSpiceCard),
+        board: { asset_id: boardId, tints: [], tokens: [] },
+      };
+      const emptiedId = await insertCard(f, 'emptied', { ...onBoard, highlights: [] });
+      const cleanId = await insertCard(f, 'clean', onBoard);
+      const deletedId = await insertCard(f, 'deleted', { ...onBoard, highlights: ['arsunt'] }, true);
+      /* A live list that still names a territory is kept for the verify to name, so its tint never silently goes missing. */
+      const namingId = await insertCard(f, 'naming', { ...onBoard, highlights: ['arsunt'] });
+      const jobId = await f.t.run((ctx) =>
+        ctx.db.insert('publication_jobs', {
+          asset_type: 'card-spice',
+          asset_id: emptiedId,
+          asset_data: { assetId: emptiedId, slug: 'emptied', card: { ...onBoard, highlights: [] } },
+          status: 'error',
+          attempt_counter: 2,
+          created_at: 1,
+          updated_at: 1,
+        })
+      );
+      const jobData = async () => f.t.run(async (ctx) => (await ctx.db.get('publication_jobs', jobId))!.asset_data);
+
+      await expect(
+        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_verify_v1, {})
+      ).resolves.toMatchObject({ Status: expect.stringContaining(`publication job ${jobId}`) });
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_strip_v1, {});
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, {});
+
+      expect(await cardData(f, emptiedId)).toEqual(onBoard);
+      expect(await cardData(f, cleanId)).toEqual(onBoard);
+      expect(await cardData(f, deletedId)).toEqual(onBoard);
+      expect(await cardData(f, namingId)).toEqual({ ...onBoard, highlights: ['arsunt'] });
+      expect(await jobData()).toEqual({ assetId: emptiedId, slug: 'emptied', card: onBoard });
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlight_jobs_verify_v1, { reset: true })
+      ).toMatchObject({ Status: expect.not.stringContaining('failed') });
+      await expect(
+        f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_v1, {})
+      ).resolves.toMatchObject({
+        Status: expect.stringContaining(`card-spice ${namingId} still carries a highlights list.`),
+      });
+
+      /* A second pass changes nothing, and once the live list is gone the verify passes. */
+      await f.t.run((ctx) => ctx.db.delete('assets', namingId));
+      await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_strip_v1, { reset: true });
+      expect(await cardData(f, emptiedId)).toEqual(onBoard);
+      expect(
+        await f.t.mutation(internal.arrakisMigrations.arrakis_spice_highlights_verify_v1, { reset: true })
       ).toMatchObject({ Status: expect.not.stringContaining('failed') });
     },
     BUDGET_MS

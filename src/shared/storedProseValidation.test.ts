@@ -30,11 +30,15 @@ describe('stored prose write validation', () => {
     const { amount: _amount, ...withoutAmount } = publishingSpiceCard;
     expect(() => parseAssetDataForWrite('card-spice', withoutAmount)).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, amount: 0 })).toThrow();
-    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['nowhere'] })).toThrow();
-    /* The classic list is on its way out: a card saved without one reads and writes like any other. */
-    const { highlights: _highlights, ...withoutHighlights } = publishingSpiceCard;
-    expect(parseAssetDataForWrite('card-spice', withoutHighlights).data).toEqual(withoutHighlights);
-    expect(SpiceAsset.safeParse(withoutHighlights).success).toBe(true);
+    /* The classic highlight list is no longer saved: an empty one from an older tab is dropped, and one that names territories is refused. */
+    expect(parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] }).data).toEqual(
+      publishingSpiceCard
+    );
+    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['arsunt'] })).toThrow(
+      'Spice highlights are no longer saved'
+    );
+    /* A stored card that still has one reads until the strip removes it. */
+    expect(SpiceAsset.safeParse({ ...publishingSpiceCard, highlights: [] }).success).toBe(true);
   });
 
   it('allows blocks in ruleset About and FAQ answers, but keeps FAQ questions inline', () => {

@@ -49,6 +49,15 @@ export function parseBoardData(data: unknown) {
   return parsed;
 }
 
+/** A Spice card's data without an empty classic highlight list, which a tab or package from before its removal may still send. */
+function withoutEmptyHighlights(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return data;
+  }
+  const { highlights, ...rest } = data as Record<string, unknown>;
+  return Array.isArray(highlights) && highlights.length === 0 ? rest : data;
+}
+
 /**
  * Validates writable Asset data against the renderer-owned shape shared by the browser and server.
  */
@@ -69,7 +78,7 @@ export function parseAssetDataForWrite(type: string, input: unknown): { data: un
       return { data: parsed, name: parsed.name };
     }
     case 'card-spice': {
-      const parsed = SpiceAssetInput.parse(data);
+      const parsed = SpiceAssetInput.parse(withoutEmptyHighlights(data));
       return { data: parsed, name: parsed.name };
     }
     case 'card-leaderability': {
