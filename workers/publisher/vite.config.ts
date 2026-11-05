@@ -31,6 +31,13 @@ export default defineConfig({
               maxSize: 500_000,
               entriesAware: true,
             },
+            /* The generated crop table grows with every stock vector; keep it out of the capture entry's budget. */
+            {
+              name: 'vector_crops',
+              test: /\/src\/shared\/media\/vectorCrops\.generated\.ts$/u,
+              maxSize: 500_000,
+              entriesAware: true,
+            },
           ],
         },
         entryFileNames: 'publisher-capture/[name]-[hash].js',

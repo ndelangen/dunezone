@@ -494,7 +494,8 @@
     "tags": ["knife", "blade", "poison", "weapon", "vector"],
     "subjects": ["weapons"],
     "credit": "gf9-decal",
-    "sourceHash": "c1c6e7ce19952d1128e0792040866bb343fbb15d8ad8c67003809ea7a1063015"
+    "sourceHash": "b6f65407c531ad59911f592074b887e2159c133968b37311b66686a2e5a89b79",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/decal/ribbon-sabre.svg": {
     "description": "A curved ribbon blade with an ornate handle.",
@@ -577,8 +578,8 @@
     "description": "A diagram linking a shielded person and lasgun to an explosion.",
     "tags": ["explosion", "person", "vector"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-decal",
-    "sourceHash": "c6cefd090bd4f35106b05d6872e20cfc8397ece530d29c53fca5f289551aa5c9"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "42780d6b1f5f2a96a39bf908bca749f532e8c1deaf328e558aa4c6da938382b9"
   },
   "/vector/decal/maula-pistol.svg": {
     "description": "A short-barreled Maula pistol.",
@@ -626,8 +627,8 @@
     "description": "Artillery trajectories cross a battlefield toward an explosion.",
     "tags": ["explosion", "cross", "multicolor"],
     "subjects": ["weapons", "symbols"],
-    "credit": "gf9-decal",
-    "sourceHash": "fb2750fbef3c9df2896cf5d7425d75ce4c406eb3a971566a331ef12c9e34d2a2"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "cb4dbf1b5a4adf21c299e37852fd8e63d1271315ad1c325f1586693a2e7e9719"
   },
   "/vector/decal/artillery-strike-plus.svg": {
     "description": "Artillery trajectories cross a battlefield toward an explosion.",
@@ -668,8 +669,8 @@
     "description": "A territory map marks cities, the Shield Wall and an atomic explosion.",
     "tags": ["shield", "explosion", "map", "atomic", "vector"],
     "subjects": ["weapons", "places", "science"],
-    "credit": "gf9-decal",
-    "sourceHash": "fc607052e6d93773c94ab4286acfa49dc06f9b5c1a3f09c7ded08ebd90b1fd35"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "0655a405512063c63a43c9aebbd866db09194cee02822deca3674f70b5f99377"
   },
   "/vector/decal/family-atomics-multicolor.svg": {
     "description": "A territory map marks cities, the Shield Wall and an atomic explosion.",
@@ -703,15 +704,15 @@
     "description": "A canister emits energy above cracked ground.",
     "tags": ["multicolor"],
     "subjects": ["symbols"],
-    "credit": "gf9-decal",
-    "sourceHash": "afd6cff6a6660e28932cd9b6a04ae930352f5051b5e89f4b1f02b66884e129c2"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "200de01f616e3a6c029f3842a3c3e7e44d39abad0f23d3ae6e6d2b6868b2b3f7"
   },
   "/vector/decal/amal.svg": {
     "description": "A tall stoppered flask with a broad rounded base.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "gf9-decal",
-    "sourceHash": "844cdb071cba4ebff3eac79088c31ec8a2f524211a046c258eb982b6c3021952"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "7b27eedab13f230c762a9d778207255bcbbed664f162a5a3d42540d3c2f99ff5"
   },
   "/vector/decal/basilia.svg": {
     "description": "Two rounded chambers joined by a narrow neck.",
@@ -738,8 +739,8 @@
     "description": "A needle drops liquid into a drinking cup.",
     "tags": ["liquid", "vector"],
     "subjects": ["water"],
-    "credit": "gf9-decal",
-    "sourceHash": "e0e5fef711d2dd9b417265ec63107f22b34220b4556951444a5762d08f2b4fde"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "695200a7580fdef1e148af669012b51faa2cb3774da79188e947e7de99595293"
   },
   "/vector/decal/chemistry.svg": {
     "description": "Bottles and droppers mix chemicals beside a laboratory vessel.",
@@ -865,8 +866,8 @@
     "description": "Four devices surround concentric sound waves.",
     "tags": ["waves", "vector"],
     "subjects": ["water"],
-    "credit": "gf9-decal",
-    "sourceHash": "d3b76d5fe6748f03b05a7eafc076e3ecc46c373f8a7d89d3f3a627e5f5790c4f"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "14622760fe183e67a68a76c5a0e86a5b3e3e6404d04bdd86ae6480a1d523b738"
   },
   "/vector/decal/dew-sail.svg": {
     "description": "A fabric sail collects dew into a vessel between poles.",
@@ -1026,8 +1027,8 @@
     "description": "A slim cylindrical poison detector.",
     "tags": ["poison", "vector"],
     "subjects": ["science"],
-    "credit": "gf9-decal",
-    "sourceHash": "e501be72131f22f3205c9257adeb16a8cbb493441664700d16297696059a97db"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "746df06b63a7a2f9b4c26a6269994a3f86c7792c5b7c6dfb7d617d819e5dbc6d"
   },
   "/vector/decal/tasters-fork.svg": {
     "description": "A two-pronged tasting fork with a decorated handle.",
@@ -1159,8 +1160,8 @@
     "description": "Large winged aircraft fly above a desert landscape.",
     "tags": ["aircraft", "desert", "landscape", "vector"],
     "subjects": ["transport", "places"],
-    "credit": "gf9-decal",
-    "sourceHash": "9e985237275a2a9d804c85934ffa38f449bb00a4e8fc4af9571e1817df66c29b"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "7c9484ffcd82a2d9b74ee5078ec95db0d4aacd480b124cc61e58f5476ca94f58"
   },
   "/vector/decal/carryalls-multicolor.svg": {
     "description": "Large winged aircraft fly above a desert landscape.",
@@ -1229,8 +1230,8 @@
     "description": "A long spacecraft travels beside a planet.",
     "tags": ["planet", "vector"],
     "subjects": ["space"],
-    "credit": "gf9-decal",
-    "sourceHash": "6772c86f22116c202cce5491dcb7347de11c89f0850225232769105fdfa20dfb"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "c6b3653a987e54296b6d7db523e98570abfe3bf940fde2492b633f829ee7e64b"
   },
   "/vector/decal/net-recovery.svg": {
     "description": "An aircraft lifts cargo in a suspended net.",
@@ -1656,8 +1657,8 @@
     "description": "Small sandtrout shapes beside part of a worm.",
     "tags": ["worm", "multicolor"],
     "subjects": ["creatures"],
-    "credit": "gf9-decal",
-    "sourceHash": "5ab770837173045ddf3bcb8be65107939ac024a5c72183f9a9bc33950eb27352"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "482b860dd35ce7b777e713bb933653c775b57c8e09cdf42bb7f2efc98fb4fcac"
   },
   "/vector/decal/shai-hulud.svg": {
     "description": "A segmented sandworm curls around its open mouth.",
@@ -1824,15 +1825,15 @@
     "description": "An armed figure holds a pistol and carries a rifle.",
     "tags": ["pistol", "rifle", "figure", "vector"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-decal",
-    "sourceHash": "f805d9c8844f6eab6f55fc689a57e5ab392a59cf545f8f398319b74a3c39fd96"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "6a6142051f2749295fa3a955ff127f22702e6c3f16dee3f6d8b10e0f718c60e2"
   },
   "/vector/decal/cheap-heroine.svg": {
     "description": "A long-haired armed figure holds a large gun.",
     "tags": ["gun", "figure", "vector"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-decal",
-    "sourceHash": "1fc323f294e8cc271d13f48732c67deff97466e053adc05b2f07d39fa312c9e1"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "a536397808f322e573d7af416bdaf42200245043c1f3c382076e8e8cb272503a"
   },
   "/vector/decal/door-warden.svg": {
     "description": "A robed guard raises a hand and carries a staff.",
@@ -1922,8 +1923,8 @@
     "description": "Three uniformed recruits, including one holding a gun.",
     "tags": ["gun", "multicolor"],
     "subjects": ["weapons"],
-    "credit": "ai-legacy",
-    "sourceHash": "a50640cf651db5c5c731d005a04095912a8f417e2bb344b822c0b9208e6b9c36"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "d2324fd57feb2f5b43180c323fcf6d6be47c3cba9a4de64ad51305f8a5da885c"
   },
   "/vector/decal/reinforcements.svg": {
     "description": "A group of armed reinforcements advances together.",
@@ -2553,8 +2554,8 @@
     "description": "A large sandstorm sweeps across a desert horizon.",
     "tags": ["desert", "multicolor"],
     "subjects": ["places"],
-    "credit": "gf9-decal",
-    "sourceHash": "40bfbb043fb865f98bb5e6ead1665e5eaeb448b83eec03d9c4127762ee0dee78"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "1d955d4dd7f9b764fc4c243947697dc045ffc5596e6e4538d92fd157e235d1be"
   },
   "/vector/decal/chicken.svg": {
     "description": "Two open hands reach toward each other.",
@@ -3310,8 +3311,8 @@
     "description": "Two operators work at a console below a large weather map.",
     "tags": ["map", "vector"],
     "subjects": ["places"],
-    "credit": "gf9-decal",
-    "sourceHash": "428c1865792c8a7dd6c427990306afb286175df20c1fc1b3b4d90f3a07e574eb"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "a395ce0f3cb354025bba39d7e29a693401dd4b7ce3218f7be04a576dda88cf5e"
   },
   "/vector/decal/weather-control-alt.svg": {
     "description": "Two operators work at a console below a large weather map.",
@@ -3345,8 +3346,8 @@
     "description": "A human body silhouette reveals internal organs.",
     "tags": ["human", "vector"],
     "subjects": ["people"],
-    "credit": "gf9-decal",
-    "sourceHash": "709cd03ac5bac179e5112fe227184e009ad1f832442685438d7ab3a807823be4"
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "f30f66ac2b6c0ab8cd0ac7c28c93bc16fe4e6ff024a80c5cec79436f8497a513"
   },
   "/vector/decal/residual-poison-multicolor.svg": {
     "description": "A human body silhouette reveals internal organs.",
@@ -5218,8 +5219,8 @@
     "description": "Ornamental branching tree topped by a flame.",
     "tags": ["tree", "vector"],
     "subjects": ["plants"],
-    "credit": "gf9-emblem",
-    "sourceHash": "ff7bbb1748d39dacc88bed604b9b0bb5dfa3472f40b06b17ed3c23ff2cf8882d"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "8e84b4041ad87575146382f321c2755c7fdcf8206d20a69f9f0bcb0a8aacbbf1"
   },
   "/vector/emblem/emperor.svg": {
     "description": "Roaring lion head in profile.",
@@ -5239,15 +5240,15 @@
     "description": "Three linked circular rings.",
     "tags": ["rings", "vector"],
     "subjects": ["symbols"],
-    "credit": "gf9-emblem",
-    "sourceHash": "8ec260b72df4af6246f1de826056f36bc82aada01018caa72dc0c68615d0b921"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "9e6dbecf1254179bb881beb6133704d048bef714e7e5bb61aa8f646286b3bd3e"
   },
   "/vector/emblem/harkonnen.svg": {
     "description": "Rampant griffin with wings, claws and a curled tail.",
     "tags": ["griffin", "wings", "vector"],
     "subjects": ["creatures", "transport"],
-    "credit": "gf9-emblem",
-    "sourceHash": "708be0c2edb13c33831dc8b06b7d6878bb57c109763a897d202d75e57be65b70"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "0dfd4f80d7e000b0c6f3adbb6b47366b76c5f9ebe1eb29016a8c8e9b068c07e0"
   },
   "/vector/emblem/ixian.svg": {
     "description": "Two intertwined curved bands with circular ends.",
@@ -5260,15 +5261,15 @@
     "description": "Horse head in profile.",
     "tags": ["head", "horse", "vector"],
     "subjects": ["creatures", "people"],
-    "credit": "gf9-emblem",
-    "sourceHash": "fff03a722095bfe09eddf4941fe85b23ec62255ea2dc06015c5d9786d46a3226"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "30bed809175d22ca47ab7f427c38566b71d8032404c79d7a973bfd945fc0b99f"
   },
   "/vector/emblem/richese.svg": {
     "description": "Oil lamp with a curling handle and flame.",
     "tags": ["lamp", "vector"],
     "subjects": ["culture"],
-    "credit": "gf9-emblem",
-    "sourceHash": "7275bccc170cdb6c1b7c726a550f237df64dc8d6aaa8ab4d6e16aa17a4722da9"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "df7b8a457620be46ab38400b033a5d02f7ab031cb366172ff063937d790f38c0"
   },
   "/vector/emblem/ginaz.svg": {
     "description": "Crossed swords inside angular diamond ornaments.",
@@ -5808,8 +5809,8 @@
     "description": "City skyline with towers.",
     "tags": ["city", "towers", "vector"],
     "subjects": ["places"],
-    "credit": "gf9-icon",
-    "sourceHash": "73fdabb2c6df8d13b6907f57afdff166c012be065e1108605dee10f2cbeff44b"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "b6067748affea2bf940fe6b0a47824b784d1b95a4ed6f8a2eba27036968dddbf"
   },
   "/vector/icon/collection_disc.svg": {
     "description": "Spice crate and wheel inside a circle.",
@@ -5823,7 +5824,8 @@
     "tags": ["crate", "vector"],
     "subjects": ["trade"],
     "credit": "gf9-icon",
-    "sourceHash": "6d0c5f49a26ffb923fdfdf4151f38341aa32085801dc209b2244444eb33774fe"
+    "sourceHash": "091007427b0d7662c3973fd6f5ec72e62434e3399f6cba0965328b0fdc918aff",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/icon/combat.svg": {
     "description": "Firing pistol with a starburst.",
@@ -5976,15 +5978,15 @@
     "description": "Keyhole inside a shield.",
     "tags": ["shield", "vector"],
     "subjects": ["weapons"],
-    "credit": "gf9-icon",
-    "sourceHash": "d32bf89d54c729b4f6abf64c6161421087238052fe76919ff80160631f301640"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "ea61f4a04651a7a92ef995c585b741a2f66136b052a99772ca66c7c295aafb5e"
   },
   "/vector/icon/kwisatz.svg": {
     "description": "Mirrored looping symbol.",
     "tags": ["symbol", "vector"],
     "subjects": ["symbols"],
-    "credit": "gf9-icon",
-    "sourceHash": "f3ec5e3e5d6f79617cf0b300b4ba8e3b9e9a39ec692ca5117869880d558a9c44"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "60d2f69d7184a01e6e21c1988419e8fca4e489308ab9e73073617538e9481bda"
   },
   "/vector/icon/landscape.svg": {
     "description": "Mountain landscape.",
@@ -6060,8 +6062,8 @@
     "description": "Shield containing a crosshair.",
     "tags": ["shield", "crosshair", "vector"],
     "subjects": ["weapons"],
-    "credit": "gf9-icon",
-    "sourceHash": "81d251d429e191d51093ec3dbe2b9c36d6905ae89f534c93c69830bdfcd067f8"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "e8b1032dabc9e5a8d5b9c6fc43db3d569e5e382ea4137d78b28b7083621ce4eb"
   },
   "/vector/icon/shipment_disc.svg": {
     "description": "Two running soldiers inside a circle.",
@@ -6081,8 +6083,8 @@
     "description": "Shield containing a droplet.",
     "tags": ["shield", "droplet", "vector"],
     "subjects": ["weapons", "water"],
-    "credit": "gf9-icon",
-    "sourceHash": "a0774847822826b1474759da7d752429869b7b314ed15cb146dac4af8f901e6d"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "f77cc38500a8f062782858c1871b1894c02829f8e54a694910f0bf569450a541"
   },
   "/vector/icon/snowman.svg": {
     "description": "Two stacked circles.",
@@ -6116,8 +6118,8 @@
     "description": "Spice bursting from the ground.",
     "tags": ["vector"],
     "subjects": ["symbols"],
-    "credit": "gf9-icon",
-    "sourceHash": "150e9b59f3847b887c3bdee611f4ef0cef78c2936314a82b4036232adc3fe673"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "d08eedb67619b55799f9fe28cec4d2afe7b4bafbcfc85886e4a4cc947ca772c3"
   },
   "/vector/icon/spice-mine.svg": {
     "description": "Mechanical lobed circle.",
@@ -6193,8 +6195,8 @@
     "description": "Six thick intersecting arms forming an asterisk.",
     "tags": ["asterisk", "vector"],
     "subjects": ["symbols"],
-    "credit": "gf9-icon",
-    "sourceHash": "f3fcdd3ddb11450bb8ec8efbf46a1fea6b5c8acb229ff0f272fd76b4a3507ae3"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "567aa7bae65387aa4dddd3336af51814dcd3bab88d4da690dd5a779a0c4f7fdb"
   },
   "/vector/icon/wreath.svg": {
     "description": "Open circular laurel wreath.",
@@ -6221,8 +6223,8 @@
     "description": "Soldier aiming a rifle upward.",
     "tags": ["silhouette", "rifle", "soldier", "vector"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-troop",
-    "sourceHash": "ef6b6e2827aab8821bb8b3c3ec9b6dfc6e5ea82ff500c90960efb90f5a64e032"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "7c2da1da61ad6aa760496e17dc983bc47281e76d766f206efa326a56114c5ca5"
   },
   "/vector/troop/banner-marshal.svg": {
     "description": "Armored flag bearer carrying a tall banner.",
@@ -6235,15 +6237,16 @@
     "description": "Caped fighter extending an open hand.",
     "tags": ["silhouette", "fighter", "hand", "vector"],
     "subjects": ["people"],
-    "credit": "gf9-troop",
-    "sourceHash": "66d89a5b44a95908abf4f0833699ca2c51aa42d0a4f9bd268d6ba1349a5827fa"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "c0a51a00750e3d736cfb937f5d9764d25a9a4725724a11d67e0ce44672a42ecb"
   },
   "/vector/troop/bene-tleilaxu.svg": {
     "description": "Armored standing fighter holding a short weapon.",
     "tags": ["silhouette", "armored", "weapon", "fighter", "vector"],
     "subjects": ["people", "weapons"],
     "credit": "gf9-troop",
-    "sourceHash": "14acea6bcf1a4e79f31231dc185f0ecfbcb886c0f6c9743898ec4a21bc9c9482"
+    "sourceHash": "c2338cd4b635d1584318129cb1fbaccedf4bb9faa76e7e551dd16c0242971957",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/troop/blade-dancer.svg": {
     "description": "Dancer balancing on one leg with two curved blades.",
@@ -6319,8 +6322,8 @@
     "description": "Running soldier with a blade and backpack.",
     "tags": ["silhouette", "blade", "soldier", "vector", "weapon"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-troop",
-    "sourceHash": "a0b0b4f383c92865957c3163038aa6dd10da3288c9a2d9a785592cab5eef1cc5"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "fc0f8c0e46f6ea1214217bab39fcbb97f8302882b50c032d9cae35c89a601e27"
   },
   "/vector/troop/fat.svg": {
     "description": "Broad figure holding a gun.",
@@ -6333,8 +6336,8 @@
     "description": "Wide-legged fighter holding a gun and knife.",
     "tags": ["silhouette", "gun", "knife", "fighter", "vector", "blade", "weapon"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-troop",
-    "sourceHash": "21296defade5f9b9c8cbfa38a809253419468e7216c05e2e074144ccd857b3ca"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "353f52cb88dd3d7bfa0079e69cdb0f9a77724d7adb6b73f73e727e2936509d43"
   },
   "/vector/troop/furnace-bearer.svg": {
     "description": "Figure with hoses, a backpack and a large weapon.",
@@ -6361,8 +6364,8 @@
     "description": "Robed figure with a mechanical staff and open hand.",
     "tags": ["silhouette", "figure", "hand", "mechanical", "vector"],
     "subjects": ["people", "machines"],
-    "credit": "gf9-troop",
-    "sourceHash": "81b9c48f5b1fdc3cccf9bf96675ba0e90fde151b02bd963a0869ec86d1d7c4f4"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "6530d9d605bfd412fd7d5eb614beb77ac92342c0170e6333824bcd4c99eefb6e"
   },
   "/vector/troop/hagal.svg": {
     "description": "Slender figure carrying a gun.",
@@ -6375,8 +6378,8 @@
     "description": "Armored figure carrying a heavy gun with hoses.",
     "tags": ["silhouette", "armored", "gun", "figure", "vector"],
     "subjects": ["people", "weapons"],
-    "credit": "gf9-troop",
-    "sourceHash": "ff26bf9e8fbce3f9c8acc7f5cafe3d1d150e57b48feb45192280d39594bf0db6"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "eead6419ddc5fa10af3e93f8e8133cbe05f39230204ca300f29c984fc0cf1ce9"
   },
   "/vector/troop/hook-climber.svg": {
     "description": "Climber holding two curved hooks.",
@@ -6403,8 +6406,8 @@
     "description": "Angular robot with a pointed head and gun.",
     "tags": ["silhouette", "gun", "head", "robot", "angular", "vector"],
     "subjects": ["people", "weapons", "machines", "symbols"],
-    "credit": "gf9-troop",
-    "sourceHash": "ac039ac9f204d1c60cddc0d518e769f343772d759b8fa3fda7ce502e641fe6e3"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "3acc4c0342fe6d5120b2360e4985396a0b8169816ea8dc7c1f82b6def39e5eef"
   },
   "/vector/troop/ixian-engineer.svg": {
     "description": "Engineer with a backpack and a large wrench.",
@@ -6445,8 +6448,8 @@
     "description": "Helmeted standing figure with two blades.",
     "tags": ["silhouette", "figure", "vector", "blade", "weapon"],
     "subjects": ["weapons", "people"],
-    "credit": "gf9-troop",
-    "sourceHash": "48910ea9df4c9fe079533d864e146db5ffc8ebe14b4aad78b914698817c231f7"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "ad42cee91b7fd3623f49badf53d0492916b03a93b72de137ba7e52824cdda1c4"
   },
   "/vector/troop/needle-sniper.svg": {
     "description": "Kneeling hooded sniper aiming a long rifle.",
@@ -6487,8 +6490,8 @@
     "description": "Robot carrying a curved blade.",
     "tags": ["silhouette", "blade", "robot", "vector", "weapon"],
     "subjects": ["weapons", "people", "machines"],
-    "credit": "gf9-troop",
-    "sourceHash": "8f42c6f9161035f73eb63dcaf41dd7e5372f76cf52386389ce471084dc820417"
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "b83cc8ff54ce745218821405b1558d00e1444892c210508f35b0335b0809e8c1"
   },
   "/vector/troop/salvage-warden.svg": {
     "description": "Salvager carrying a long forked tool and case.",
@@ -6572,28 +6575,32 @@
     "tags": ["star", "vector"],
     "subjects": ["symbols", "space"],
     "credit": "gf9-troop",
-    "sourceHash": "a4240275e07c7db5fc169e3c91d79ef6c2020361b8dae98a2b9c76b1fcf33f49"
+    "sourceHash": "8e8e005263081ff81b4215ad9a23ae1dfae2a92931c63dff45e3ffddaaaf0b9f",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/troop_modifier/star-left-red.svg": {
     "description": "Five-point star positioned to the left, red variant.",
     "tags": ["star", "vector"],
     "subjects": ["symbols", "space"],
     "credit": "gf9-troop",
-    "sourceHash": "a4240275e07c7db5fc169e3c91d79ef6c2020361b8dae98a2b9c76b1fcf33f49"
+    "sourceHash": "8e8e005263081ff81b4215ad9a23ae1dfae2a92931c63dff45e3ffddaaaf0b9f",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/troop_modifier/star-right.svg": {
     "description": "Five-point star positioned to the right.",
     "tags": ["star", "vector"],
     "subjects": ["symbols", "space"],
     "credit": "gf9-troop",
-    "sourceHash": "d2d40151576bae215d907ba0db056abd869ee6083fa83f23efa50eb9f31d9f20"
+    "sourceHash": "051307a963918b257b9c4d5ca30936448ed452512291a28e5bba1e4d6ca96c1b",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/troop_modifier/star-right-red.svg": {
     "description": "Five-point star positioned to the right, red variant.",
     "tags": ["star", "vector"],
     "subjects": ["symbols", "space"],
     "credit": "gf9-troop",
-    "sourceHash": "d2d40151576bae215d907ba0db056abd869ee6083fa83f23efa50eb9f31d9f20"
+    "sourceHash": "051307a963918b257b9c4d5ca30936448ed452512291a28e5bba1e4d6ca96c1b",
+    "creditDetail": "Edited and optimized by John Flower."
   },
   "/vector/background/map.svg": {
     "description": "Circular desert map divided into territories with city markers.",
@@ -14131,5 +14138,369 @@
     "subjects": ["people"],
     "credit": "ai-troop",
     "sourceHash": "6002ed9b423b7665a5666cc0a23702469f4f5b3330341612a243ed3c65d38eeb"
+  },
+  "/vector/decal/atomic-explosion.svg": {
+    "description": "A mushroom cloud rises from a low cloud of smoke.",
+    "tags": ["atomic", "explosion", "mushroom cloud", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "f8f87fb0b0bf75d5774311f10b79f5e4715e027e553efbff46a5ab39fa54abb4"
+  },
+  "/vector/decal/bene-gesserit-artwork-multicolor.svg": {
+    "description": "A night scene in navy and gold with a moon, a railing and a robed woman in a pale gown among tall arches.",
+    "tags": ["Bene Gesserit", "Reverend Mother", "scene", "multicolor"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "32d6a27c5e6336bd7400cfaf5e8ac8ea9c0b9686a10d189415cbc04f65fcf426"
+  },
+  "/vector/decal/bene-gesserit-artwork.svg": {
+    "description": "A night scene with a moon, a railing and a robed woman in a pale gown among tall arches.",
+    "tags": ["Bene Gesserit", "Reverend Mother", "scene", "vector"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "64c2a18b06078db670232f2ac614d1b439f5966b8972d4dc643615a669572d4e"
+  },
+  "/vector/decal/building-1.svg": {
+    "description": "A building with two tall towers rising from a wide slanted base.",
+    "tags": ["building", "towers", "vector"],
+    "subjects": ["places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "74746d09240c4326b74dc55db55d579eee047aa173d41a4346e0e67b0473344f"
+  },
+  "/vector/decal/building-2.svg": {
+    "description": "A tall slanted building block with a long low wing to one side.",
+    "tags": ["building", "vector"],
+    "subjects": ["places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "2203c4344a8ce1e0320ccfa72ca20f95ad9d67ede02b09cc65081c7a20c6c519"
+  },
+  "/vector/decal/carryalls-plus-multicolor.svg": {
+    "description": "Two winged carryalls fly over ochre dunes beside a pale sun.",
+    "tags": ["carryall", "aircraft", "multicolor"],
+    "subjects": ["transport"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "f1335e78ed616c33fa3ddad8aa7505bd095421502f7523f6172e8748e0e02d1d"
+  },
+  "/vector/decal/chair.svg": {
+    "description": "A solid block with a wavy left side and flat ends, like a seat seen side on.",
+    "tags": ["chair", "seat", "vector"],
+    "subjects": ["culture"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "008edff7df29c024771b52a276d1f5fa2664cf60a8c8f1d7a3a3ed0e055b458d"
+  },
+  "/vector/decal/duke-leto-atreides-multicolor.svg": {
+    "description": "A bearded man in a dark green uniform jacket with gold epaulettes sits with his arms on a table.",
+    "tags": ["Duke Leto", "Atreides", "portrait", "multicolor"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "6723d1291a640ebeb56faf54ce7edb53047787d50ed3697422efef136641d81a"
+  },
+  "/vector/decal/duke-leto-atreides.svg": {
+    "description": "A bearded man in a high-collared uniform jacket sits with his arms on a table.",
+    "tags": ["Duke Leto", "Atreides", "portrait", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "b4ebdce5a8e45b7f9652b103ca9f25ebbfca6b886875794c2d1a1a3a05257638"
+  },
+  "/vector/decal/dune-2019-logo.svg": {
+    "description": "The word DUNE in wide rounded capitals, the D holding a crescent.",
+    "tags": ["Dune", "logo", "wordmark", "vector"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "62ca0a5452a50e228218de07fd00501ec802cb621a1b0355f53fbf24fd2ab638"
+  },
+  "/vector/decal/fremen-artwork-multicolor.svg": {
+    "description": "A wide desert scene in sand, rust and dusk blue with a figure on a crest and a long caravan of people below dark rock.",
+    "tags": ["Fremen", "desert", "scene", "multicolor"],
+    "subjects": ["places", "people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "9967da5875b674fd4c86567fc38c9912157a440d4eb15a757e2c0ad537a141ac"
+  },
+  "/vector/decal/fremen-artwork.svg": {
+    "description": "A wide desert scene with a figure on a crest and a long caravan of people below dark rock.",
+    "tags": ["Fremen", "desert", "scene", "vector"],
+    "subjects": ["places", "people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "82b7703d0cdff300c9515a3f512a4738af67dc3d0a5cd1445d65bac6f949a0f5"
+  },
+  "/vector/decal/fremen-badge-2021.svg": {
+    "description": "A round badge split into quarters around a central disc.",
+    "tags": ["Fremen", "badge", "vector"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "cab4db29e159872367547704a48b5325a0c3ff4b10c1e4a66a3a26e7c73f6111"
+  },
+  "/vector/decal/harass-withdraw-kit-multicolor.svg": {
+    "description": "Dark robed fighters run from dark rocks across ochre dunes while a white explosion bursts behind them.",
+    "tags": ["Fremen", "explosion", "desert", "multicolor"],
+    "subjects": ["people", "weapons"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "15912f64391cad8abd02238ded306c58d6ec02123148fe2be9f721bcc3c33fd6"
+  },
+  "/vector/decal/harass-withdraw-kit.svg": {
+    "description": "Robed fighters run from dark rocks while a white explosion bursts across the dunes.",
+    "tags": ["Fremen", "explosion", "desert", "vector"],
+    "subjects": ["people", "weapons"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "ef9358d8b87e29466979aec21aeb681e0ac5732d227e4c41d03142f2a1fc74cd"
+  },
+  "/vector/decal/harass-withdraw.svg": {
+    "description": "Robed fighters run from dark rocks while an explosion bursts across the dunes.",
+    "tags": ["Fremen", "explosion", "desert", "vector"],
+    "subjects": ["people", "weapons"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "050fb9fedaea750e2b496cb0b5c8c74950c744e0b113df9427c4c79dde513d91"
+  },
+  "/vector/decal/harkonnen-artwork-multicolor.svg": {
+    "description": "A heavy man in ornate armour sits at a table in a dark hall with a copper round window and banners.",
+    "tags": ["Harkonnen", "Baron", "scene", "multicolor"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "1c328d22c7c6af79417881fbcfa074ac3f429b5c20caa6682a623448b68dbc30"
+  },
+  "/vector/decal/harkonnen-artwork.svg": {
+    "description": "A heavy man in ornate armour sits at a table in a hall with a round window and banners.",
+    "tags": ["Harkonnen", "Baron", "scene", "vector"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "5834aa257b57a99f44a26432e29c4d217fd28c07d8c6e0bef65138b3767f8c29"
+  },
+  "/vector/decal/harvester-alt-plus-multicolor.svg": {
+    "description": "A wheeled spice harvester in dark grey works across ochre desert ground under pale dust.",
+    "tags": ["desert", "harvester", "multicolor"],
+    "subjects": ["machines", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "7c231d7aebcce9aef4b02e674666085779c195185272996702b5cc8036247fe3"
+  },
+  "/vector/decal/hidden-mobile-stronghold.svg": {
+    "description": "A square fortified block with notched corners and short spikes on each side.",
+    "tags": ["stronghold", "fortress", "vector"],
+    "subjects": ["places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "f635edd72df29b5fdea625cf9bc54cab8f128aff2317fff471378c5762251419"
+  },
+  "/vector/decal/house-atreides-badge.svg": {
+    "description": "A hawk with raised wings, head turned to one side.",
+    "tags": ["hawk", "Atreides", "badge", "vector"],
+    "subjects": ["symbols", "creatures"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "db9e4f47b0f630b87a5303bc1f1601775d1bdbd49837b600448797778714bb57"
+  },
+  "/vector/decal/house-corrino-artwork-multicolor.svg": {
+    "description": "A throne hall in red and gold with tall windows over a city, guards standing to the left and a figure in a red cloak on a throne.",
+    "tags": ["Corrino", "Emperor", "throne", "scene", "multicolor"],
+    "subjects": ["places", "people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "b3d0c156b739b17731e28b2a2ad64c7362d533765dac48f20d2ae04bd6b27226"
+  },
+  "/vector/decal/house-corrino-artwork.svg": {
+    "description": "A throne hall with tall windows over a city, guards standing to the left and a figure in a long cloak on a throne.",
+    "tags": ["Corrino", "Emperor", "throne", "scene", "vector"],
+    "subjects": ["places", "people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "7401ee0f2e6e2dd490e25ad0ad197ee73ac1b4cee3873d976f83ca1a374a6efe"
+  },
+  "/vector/decal/house-corrino-badge-2019.svg": {
+    "description": "A lion's head with a curved mane inside a thick rounded outline.",
+    "tags": ["lion", "Corrino", "badge", "vector"],
+    "subjects": ["symbols", "creatures"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "40fd854855241a9c55cd332ade7d363a38117d13e18960b5b7c0448c316f42c4"
+  },
+  "/vector/decal/la-la-la.svg": {
+    "description": "A person stands with both hands raised high above the head.",
+    "tags": ["person", "hands raised", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "95972e6abbc0d752839ce4834c4f13ea775247fd809780fa5819ee38c47acbfe"
+  },
+  "/vector/decal/lasgun-treachery-graphic.svg": {
+    "description": "A lasgun above a small diagram: a person plus a lasgun equals an explosion.",
+    "tags": ["lasgun", "shield", "explosion", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "c294f09c0a37c50ee4c90fd636ee5c7dbf8d9ec8e47d91f74c42c6d20e33d10d"
+  },
+  "/vector/decal/mirror-weapon-multicolor.svg": {
+    "description": "Two hands holding opposing knives, each over a pale cream disc.",
+    "tags": ["knives", "hands", "multicolor", "knife", "blade", "weapon"],
+    "subjects": ["weapons", "people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "408510e52573c1be8f0ffe4043a40bcb06a1baace960f583187a678cd6e2ee0a"
+  },
+  "/vector/decal/ornithopter-kit-multicolor.svg": {
+    "description": "A pale ornithopter with long outstretched wings flies low over a brown horizon.",
+    "tags": ["ornithopter", "aircraft", "multicolor"],
+    "subjects": ["transport"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "ab27140d849f9114912a04ef5779c8e5f2439036929312a6afbd304c9a6e8213"
+  },
+  "/vector/decal/ornithopter-kit.svg": {
+    "description": "An ornithopter with long outstretched wings flies low over a flat horizon.",
+    "tags": ["ornithopter", "aircraft", "vector"],
+    "subjects": ["transport"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "2c0a90052eb58e71734392b8b7cabf90806dab9133d8f84d7e20b408b60a2c05"
+  },
+  "/vector/decal/palm-tree-multicolor.svg": {
+    "description": "Dark green palm fronds hang beside a slanted ochre sand ledge.",
+    "tags": ["palm", "tree", "multicolor"],
+    "subjects": ["plants"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "0f9783a3305241da5499410b106852c72ad6cf449d30bd16e62ad9e4858d9bf7"
+  },
+  "/vector/decal/palm-tree.svg": {
+    "description": "Dark palm fronds hang beside a slanted sand ledge.",
+    "tags": ["palm", "tree", "vector"],
+    "subjects": ["plants"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "9f01be70eb0c490fd542da9cb459b3e9f00526a4b1e9c7f7070ccbfa52e2520f"
+  },
+  "/vector/decal/paul-atreides-multicolor.svg": {
+    "description": "A young man in an olive uniform with a yellow sash stands with his arms folded and a sword at his hip.",
+    "tags": ["Paul Atreides", "portrait", "multicolor"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "abe7b9f30f49c8d8689473427af25c2a0352cb71cde8777e71ff14d5b472e4b0"
+  },
+  "/vector/decal/paul-atreides.svg": {
+    "description": "A young man in a uniform stands with his arms folded and a sword at his hip.",
+    "tags": ["Paul Atreides", "portrait", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "da0f0b2ad70b2e44c5883916fecb0b133354803d45ae53c8fb151e645fae19a2"
+  },
+  "/vector/decal/shield-kit.svg": {
+    "description": "A standing human figure seen from the front, arms slightly away from the body.",
+    "tags": ["person", "shield", "body", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "c097d3e63186565613fbfa05de083901faeccaad2f1903f55a1399c9c4942048"
+  },
+  "/vector/decal/spacing-guild-artwork-multicolor.svg": {
+    "description": "A golden Guild Navigator's curled form beside a window onto a ship and robed figures, in orange and brown.",
+    "tags": ["Spacing Guild", "Navigator", "scene", "multicolor"],
+    "subjects": ["people", "space"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "07cf665e785de9fd984f18577e2a5f830958ca49dfb21bad0e7ecd8ea838a1cd"
+  },
+  "/vector/decal/spacing-guild-artwork.svg": {
+    "description": "A Guild Navigator's curled form beside a window onto a ship and robed figures.",
+    "tags": ["Spacing Guild", "Navigator", "scene", "vector"],
+    "subjects": ["people", "space"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "f5b0183c966492491c2678200e388aec1d97248a95d2373dac5d3f9f5e53bb6f"
+  },
+  "/vector/decal/storm-alt-multicolor.svg": {
+    "description": "A towering sandstorm in olive and tan rolls over a pale desert, with a distant tower and two tiny figures in the foreground.",
+    "tags": ["sandstorm", "desert", "multicolor"],
+    "subjects": ["places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "d9b485e8311d16694ad6775154a5c679f66bef80304a3d765f009d91321b86c6"
+  },
+  "/vector/decal/storm-alt.svg": {
+    "description": "A towering sandstorm rolls over a flat desert, with a distant tower and two tiny figures in the foreground.",
+    "tags": ["sandstorm", "desert", "vector"],
+    "subjects": ["places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "e109d893e95416529f7ed691a2d5eccce40f2e8da968c50ea5a45e9aff3b7f68"
+  },
+  "/vector/decal/typewriter-multicolor.svg": {
+    "description": "A boxy olive typewriter-like machine with yellow trim, rails and a round dial.",
+    "tags": ["typewriter", "machine", "multicolor"],
+    "subjects": ["machines"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "eaa07e4a956173b2179e4475a36ea8fee46a2670519a5fa8f59aacee7d6f0739"
+  },
+  "/vector/decal/typewriter.svg": {
+    "description": "A boxy typewriter-like machine with a handle, rails and a round dial.",
+    "tags": ["typewriter", "machine", "vector"],
+    "subjects": ["machines"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "823baf5e73f8c2ee711c69908c151dfcd7f5624f167a3c1f757d71540094dd6a"
+  },
+  "/vector/icon/battle-phase.svg": {
+    "description": "A pistol firing into a jagged burst.",
+    "tags": ["pistol", "battle", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "918dc0d5d4020d1b4b3f23283724db8a44ebf6f11df48b617044d3b25e41e976"
+  },
+  "/vector/icon/bidding-phase.svg": {
+    "description": "A gavel hammer at an angle.",
+    "tags": ["gavel", "hammer", "bidding", "vector"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "e0b676c1054b062eb4b352dc6fe3d619e2b9b4d129851dc684bb25d15e2b1983"
+  },
+  "/vector/icon/fremen-devotee.svg": {
+    "description": "A kneeling figure with both arms raised overhead.",
+    "tags": ["person", "kneeling", "devotion", "vector"],
+    "subjects": ["people", "culture"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "187903772dd9078da02f6f145ae40c24d7c4c15d873fae10f30eb28fe5178ff9"
+  },
+  "/vector/icon/hammer.svg": {
+    "description": "A solid gavel hammer at an angle.",
+    "tags": ["gavel", "hammer", "vector"],
+    "subjects": ["machines"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "e0b676c1054b062eb4b352dc6fe3d619e2b9b4d129851dc684bb25d15e2b1983"
+  },
+  "/vector/icon/hand-receiving.svg": {
+    "description": "A flat open hand seen side on, palm up.",
+    "tags": ["hand", "receive", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "93285b339112a182fa1af6cddb8847e84f21e5b687646715a67dc7b6f3a216bd"
+  },
+  "/vector/icon/karama-alt.svg": {
+    "description": "An eight-point star over a disc, with small symbols around a hexagon of waves.",
+    "tags": ["Karama", "compass", "vector"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "44b5d6fb7c0fa1d9e0c2a791af39a392780f5ade63d7a3b60a473152f5503510"
+  },
+  "/vector/icon/lasgun-blast.svg": {
+    "description": "An eight-pointed jagged burst outline.",
+    "tags": ["blast", "explosion", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "e6793a1969558166412c198dbcc6568398cf41a4d3bde1c4f80dd17155b5cc03"
+  },
+  "/vector/icon/lasgun.svg": {
+    "description": "A chunky laser rifle seen at an angle.",
+    "tags": ["lasgun", "rifle", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "43479ef52dd81e794afb0be05312599a09ffce8ddebe4252642ac187b122635d"
+  },
+  "/vector/icon/shai-hulud-alt.svg": {
+    "description": "A curling ribbed sandworm with an open mouth.",
+    "tags": ["sandworm", "Shai-Hulud", "vector"],
+    "subjects": ["creatures"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "324f1e29bae94eb569938b4b80e40e5844e140bb0369c65942d05eed0b4a4340"
+  },
+  "/vector/icon/shipping-and-movement-phase.svg": {
+    "description": "Two soldiers in helmets running forward with rifles.",
+    "tags": ["soldiers", "movement", "vector"],
+    "subjects": ["people"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "7571005ac86c52de0a9e847029a0716fb15ab1ed468e2bf73eecba017554b626"
+  },
+  "/vector/icon/spice-harvest-phase-v2.svg": {
+    "description": "A spice aperture of curved blades inside an octagon.",
+    "tags": ["spice", "harvest", "vector"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "deca217034454c92247a789a7030c66a7d467eb6ddc5565f9d3c442ee86927f6"
+  },
+  "/vector/icon/treachery-alt.svg": {
+    "description": "A dagger across a globe of meridian lines.",
+    "tags": ["dagger", "treachery", "vector"],
+    "subjects": ["weapons"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "01f1259cabc69fdbd87ae14f827b4a3b28b135e26784ebd243fa6cff80ba9524"
   }
 }
