@@ -22,8 +22,9 @@ export type ArrakisBoard = Readonly<{
 }>;
 
 /**
- * The saved Arrakis board, live, for pages that show Arrakis without a game board of their own: the homepage, the glossary and the tutorial.
- * `undefined` while it loads; `null` when the site has none, or it has not been published with its territories yet.
+ * The saved Arrakis board, live, for pages that show Arrakis without a game board of their own: the glossary and the tutorial.
+ * `undefined` while it loads;
+ * `null` when the site has none, or it has not been published with its territories yet.
  */
 export function useArrakisBoard(): ArrakisBoard | null | undefined {
   const found = useLiveQuery(api.arrakis.board, {});

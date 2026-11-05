@@ -4,7 +4,6 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 import { api } from '../../../convex/_generated/api';
 import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
-import { RULEBOOK_BOARD_DEFINITIONS } from '../../shared/rulebooks/boardDefinitions';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../../shared/rulebooks/contents';
 import { prepareRawRulebook } from './authoring';
@@ -26,7 +25,7 @@ const selection = (factionId?: string, id: string | undefined = troopId, face = 
   face,
 });
 const board = (factionId?: string, id = troopId, face = 'front') => ({
-  boardId: RULEBOOK_BOARD_DEFINITIONS[0].id,
+  boardId: 'arrakis-official-board',
   caption: '',
   players: [],
   highlights: [],

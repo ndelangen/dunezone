@@ -160,7 +160,7 @@ export function battleStory(stage: 'preparing' | 'countdown' | 'revealed', obser
     ...(observer ? {} : { bank: { factionId: 'house-harkonnen', balance: 10 }, battlePlan: plans[0] }),
     battle: {
       id: 'story-battle',
-      /* The middle of Arrakeen on the rulebook board. */
+      /* The middle of Arrakeen on the Arrakis board. */
       anchor: [1.32, 0.18, -2.94],
       territory: 'Arrakeen',
       territoryId: 'arrakeen',

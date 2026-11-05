@@ -1,7 +1,6 @@
 import { componentGeometrySchema } from '@shared/asset-publishing/componentGeometry';
+import arrakisOfficialGeometry from '@shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { describe, expect, it } from 'vite-plus/test';
-
-import arrakisOfficialGeometry from '@game/rulebook/fixtures/asset-explainer/arrakis-official-geometry.json';
 
 import { demonstrationsFor, IDLE, ringPoint, sectorPath, shuffled, teachingParts } from './boardDemonstrations';
 

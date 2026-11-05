@@ -74,7 +74,7 @@ export class LocalTable {
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
   /** The board the table plays on: the saved Arrakis, once the page has read it. */
-  private board: BoardCapture | undefined;
+  board: BoardCapture | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */

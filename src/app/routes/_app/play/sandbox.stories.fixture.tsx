@@ -1,4 +1,5 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
 import { spiceBlowOf } from '@shared/play/spiceBlow';
@@ -105,6 +106,8 @@ export class SandboxTable extends LocalTable {
     });
     this.start = index;
     this.prepare = prepare;
+    /* A real game plays on its ruleset's board. */
+    this.setBoard(arrakisBoardCapture);
     /* Setup dealt the reserves in the order the factions' captures list their troops, which the dealt table still shows. */
     const dealt = journeySteps()[sandboxSteps()[0]!]!;
     this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(dealt.stored));

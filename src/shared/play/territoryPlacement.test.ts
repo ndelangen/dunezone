@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { retainedArrakisBoard } from '../boards/geometry';
+import { arrakisBoardCapture } from './fixtures/board';
 import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { restingPositionAt } from './tableGeometry';
@@ -20,7 +20,7 @@ const troopBase = freshTableState().pieces.find((piece) => piece.id === 'harkonn
 const cardBase = freshTableState().pieces.find((piece) => piece.kind === 'card')!;
 
 function territoryNamed(name: string): TableTerritory {
-  return tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === name)!;
+  return tableTerritories(arrakisBoardCapture.definition).find((territory) => territory.name === name)!;
 }
 
 function deepestPoint(territory: TableTerritory): Vector3Tuple {

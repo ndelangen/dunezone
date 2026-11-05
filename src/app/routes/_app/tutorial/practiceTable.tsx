@@ -1,5 +1,4 @@
 import { AssetCapture } from '@shared/play/assetCapture';
-import type { BoardCapture } from '@shared/play/capture';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -74,10 +73,8 @@ export function useTutorialTable(
   const board = useArrakisBoard()?.capture;
   const [table] = useState(() => {
     const origin = window.location.origin;
-    const shown: { board?: BoardCapture } = {};
     const open = () => {
       const local = new LocalTable(start());
-      local.setBoard(shown.board);
       local.open();
       opening?.(playersAt(() => local));
       return local;
@@ -100,9 +97,10 @@ export function useTutorialTable(
       },
       players: playersAt(() => holder.current),
       reset: () => {
-        const { deliver } = holder.current;
+        const { deliver, board } = holder.current;
         holder.current.dispose();
         holder.current = open();
+        holder.current.setBoard(board);
         holder.current.deliver = deliver;
         /* A read the old table left behind is answered now, so a stalled one does not hold the page's next request. */
         runtime.settleCaptures();
@@ -114,13 +112,10 @@ export function useTutorialTable(
         deliver(holder.current.frame());
       },
     };
-    return { runtime, control, holder, shown };
+    return { runtime, control, holder };
   });
   useEffect(() => table.runtime.greet(username), [table, username]);
-  useEffect(() => {
-    table.shown.board = board;
-    table.holder.current.setBoard(board);
-  }, [table, board]);
+  useEffect(() => table.holder.current.setBoard(board), [table, board]);
   /* The table keeps time only while the chapter is open, so leaving it stops the table's timers. */
   useEffect(() => {
     const { holder, runtime } = table;

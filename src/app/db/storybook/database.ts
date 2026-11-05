@@ -4,7 +4,6 @@ import type { WithoutSystemFields } from 'convex/server';
 
 import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
 import schema from '../../../../convex/schema';
-import arrakisOfficialGeometry from '../../../game/rulebook/fixtures/asset-explainer/arrakis-official-geometry.json';
 import { componentGeometrySchema } from '../../../shared/asset-publishing/componentGeometry';
 import { publishingCustomCard } from '../../../shared/assets/fixtures/publishingCustomCard';
 import { publishingCustomDeckCardback } from '../../../shared/assets/fixtures/publishingDeckCardback';
@@ -18,6 +17,7 @@ import { assetPublishingFaction } from '../../../shared/factions/fixtures/assetP
 import { FactionInputSchema, FactionRowSlugSchema } from '../../../shared/factions/schema';
 import type { FactionInput } from '../../../shared/factions/schema';
 import { arrakisBoardCapture } from '../../../shared/play/fixtures/board';
+import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';

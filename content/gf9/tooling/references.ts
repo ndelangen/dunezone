@@ -1,4 +1,3 @@
-import { resolveRulebookBoardDefinition } from '../../../src/shared/rulebooks/boardDefinitions';
 import type { Binding, DataPath, Environment, RecordSpec } from './contracts';
 import { at, put } from './files';
 
@@ -69,7 +68,7 @@ function typedReferences(spec: RecordSpec, value: unknown): TypedReference[] {
           if (key === 'asset_id') {
             add(next, 'asset', 'id', tokenTypes);
           }
-          if (key === 'boardId' && !resolveRulebookBoardDefinition(child)) {
+          if (key === 'boardId') {
             add(next, 'asset', 'id', ['board']);
           }
         } else if (child && typeof child === 'object') {

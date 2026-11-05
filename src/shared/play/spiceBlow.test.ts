@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vite-plus/test';
 
-import { retainedArrakisBoard } from '../boards/geometry';
 import { placeStickers, TABLE_STICKER_LARGEST } from '../boards/stickerPlacement';
 import { boardPointToTable, boardTerritory, tableTerritoryAt } from '../boards/tableTerritories';
 import { applyPieceAction } from './commands';
+import { arrakisBoardCapture } from './fixtures/board';
 import { freshTableState } from './model';
 import type { TableItem, TablePiece, TableState } from './model';
 import { STANDARD_PHASES } from './phases';
@@ -136,11 +136,13 @@ describe('placing a revealed spice card', () => {
   test("puts the card's spice in a free spot inside its territory, and again onto that spice", () => {
     const state = tableWithCard();
     const spot = spiceBlowSpot({}, state.pieces, state.pieces.at(-1)!)!;
-    expect(spot.name).toBe(boardTerritory(retainedArrakisBoard(), 'broken_land')!.name);
-    expect(tableTerritoryAt(retainedArrakisBoard(), spot.position[0], spot.position[2])?.id).toBe('broken_land');
+    expect(spot.name).toBe(boardTerritory(arrakisBoardCapture.definition, 'broken_land')!.name);
+    expect(tableTerritoryAt(arrakisBoardCapture.definition, spot.position[0], spot.position[2])?.id).toBe(
+      'broken_land'
+    );
     expect(revealedSpiceBlows(state.pieces)).toEqual([{ pieceId: 'blow-card', blow: brokenLand }]);
     /* The spice lands on the spice sticker the table lights Broken Land with. */
-    const { rings } = boardTerritory(retainedArrakisBoard(), 'broken_land')!;
+    const { rings } = boardTerritory(arrakisBoardCapture.definition, 'broken_land')!;
     const [sticker] = placeStickers(
       rings.map((ring) => ring.map(boardPointToTable)),
       1,
@@ -206,7 +208,9 @@ describe('placing a revealed spice card', () => {
     )!;
     const pile = carried.find(isSpicePiece)!;
     expect(spot.position).not.toEqual(pile.position);
-    expect(tableTerritoryAt(retainedArrakisBoard(), spot.position[0], spot.position[2])?.id).toBe('broken_land');
+    expect(tableTerritoryAt(arrakisBoardCapture.definition, spot.position[0], spot.position[2])?.id).toBe(
+      'broken_land'
+    );
   });
 
   test('a face-down card or another territory is refused', () => {

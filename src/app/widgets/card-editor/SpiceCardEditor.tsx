@@ -260,7 +260,7 @@ export function SpiceCardEditor({
       />
     ),
   };
-  /* A card back on the classic map has no Look or Tokens chapter, so one left open on them falls back to the Map. */
+  /* A card without a board has no Look or Tokens chapter, so one left open on them falls back to the Map. */
   const shown = !link && (chapter === 'look' || chapter === 'tokens') ? 'map' : chapter;
   return (
     <WorkbenchLayout.Workbench>

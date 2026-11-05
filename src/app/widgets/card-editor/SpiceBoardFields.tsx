@@ -37,8 +37,6 @@ export type SpiceBoardRead =
 /** The editor's state for the card's map that the live proof needs too: which tint paints and which token is open. */
 export type SpiceMapFocus = BoardMarkupFocus;
 
-/** The classic map's place among the boards; choosing it unlinks the card's board. */
-
 const LOOK_LABELS: Record<Look['style'], string> = {
   burnt: 'Burnt in',
   sepia: 'Sepia',

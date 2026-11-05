@@ -258,7 +258,7 @@ export class Room {
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
     private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
-    /** The board the game captured with its ruleset; a game without one plays on the rulebook Arrakis. */
+    /** The board the game captured with its ruleset; a table without one has no territories. */
     private readonly board: () => Board | undefined = () => undefined
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
