@@ -19,8 +19,37 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
   beyond that subscription. Each wake is one non-interactive run of about 10 to 20 seconds.
 - Acts through game tools served over a small MCP bridge: `look`, `territories`, `faction_sheet`, `move_pieces`,
   `undo_last_move`, `keep_traitors`, `draw_card`, `take_spice`, `set_ready`, `say`, `command` (any game command as JSON),
-  `command_help` and `note`.
+  `command_help`, `rulebook` and `note`.
 - Keeps private notes between wakes (deals, plans, rulings), so "that's not legal" becomes a ruling it remembers.
+
+## Watch what the bots do
+
+```bash
+bun run play:bot:watch          # http://127.0.0.1:4747
+```
+
+A page on your machine with one column per bot: whether it is thinking, what woke it (or why a message did not), every
+tool call and whether the room refused it, what it concluded, how long it thought, and its tokens (with the share read from
+the cache) and cost so far. It reads each bot's `events.jsonl` beside its transcript and refreshes itself. Private notes stay
+hidden unless you tick "Show private notes", so a screen recording does not give a bot's plans away. `--dir` points it at a
+demo's output instead, such as `tools/play-bot/out/three-player-<stamp>`.
+
+## What a wake costs, and the rules
+
+Each wake is one prompt, built so the model learns the most from the fewest tokens:
+
+- **A stable opening** (how to play, the tools, the bot's faction sheet with its leaders and advantages as short lines)
+  comes first and stays the same between wakes, so the CLI's prompt cache serves it at a tenth of the price after the first.
+- **The board, compact**: your own holdings in full with their ids, the board by territory, everyone else's off-board
+  pieces as counts, and only the table log since the bot last looked. About 10,000 characters (some 2,500 tokens) in setup.
+- **The rulebook is never in the prompt.** `bun run play:bot:pull` also copies the ruleset's published Rulebooks into
+  `rulebook.md` beside the catalogue. The `rulebook` tool lists its sections, searches them (a few words return the best
+  matching sections, cut to about 2,400 characters) or reads one by title or page anchor (`#traitors`), so a bot that is
+  unsure reads one section, not 18,000 tokens of rules. The bot can cite the anchor when it justifies a move. The headless
+  demos use the GF9 core rules from `content/gf9/core-rules.json`.
+
+The transcript ends every wake with its time, tokens and cost, as Claude Code (`--output-format json`) and Codex
+(`--json`) report them.
 
 ## Rules for whoever runs it
 
@@ -72,10 +101,11 @@ seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot i
 1. `bun run play:bot:pull` copies GF9 and stops early if it cannot deal Fremen, Harkonnen and Emperor or lacks a deck.
 2. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
 3. Create a 3-player game on "GF9 (local copy)" as `player@example.invalid`, draft Emperor and confirm Ready.
-4. `bun run play:bot:table -- --game <URL>` starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
+4. `bun run play:bot:watch` in another terminal, and open http://127.0.0.1:4747 beside the game.
+5. `bun run play:bot:table -- --game <URL>` starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
    (`--factions` changes that). Approve both seat requests. The deal is random among the three drafted factions; during
    trading each bot offers a swap to whoever holds its faction, so accept the swap offers you get.
-5. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
+6. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table
    messages only when its faction is named, and on every private message. Each bot wakes at most 12 times in ten minutes
    (`--max-wakes`), so two bots cannot talk to each other without end.
 

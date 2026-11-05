@@ -34,7 +34,7 @@ import type { Brain } from './bot';
 import { claudeBrain, codexBrain, scriptedBrain } from './brains';
 import { describeView } from './describe';
 import { namesFaction } from './lobby';
-import { mirroredGame, nativeTransport } from './demo.fixture';
+import { demoRulebook, mirroredGame, nativeTransport } from './demo.fixture';
 
 const out = path.join(import.meta.dirname, 'out');
 const BOT_FACTION = process.env.PLAY_BOT_FACTION ?? 'Fremen';
@@ -106,6 +106,9 @@ it('plays the opening of a 1v1 from the draft against a human', async () => {
     brain: chooseBrain(),
     notesFile,
     transcriptFile,
+    eventsFile: path.join(out, `demo-${stamp}-events.jsonl`),
+    name: 'Alex',
+    rulebook: demoRulebook(),
     want: BOT_FACTION,
     style: process.env.PLAY_BOT_STYLE ?? 'Patient desert raiders who strike when the storm favours them; polite but proud.',
   });

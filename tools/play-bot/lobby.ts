@@ -43,8 +43,8 @@ export class Lobby {
     this.busy = true;
     void this.bot
       .command(action)
-      .then((result) => this.bot.log(`> Lobby: ${action.kind} ${result.ok ? 'done' : `refused: ${result.message}`}`))
-      .catch((error: unknown) => this.bot.log(`> Lobby: ${action.kind} failed: ${String(error)}`))
+      .then((result) => this.report(`${action.kind} ${result.ok ? 'done' : `refused: ${result.message}`}`))
+      .catch((error: unknown) => this.report(`${action.kind} failed: ${String(error)}`))
       .finally(() => {
         this.busy = false;
         this.tick();
@@ -89,5 +89,10 @@ export class Lobby {
       return sent ? undefined : { kind: 'swap-offer', round, seat, target: holder.id };
     }
     return undefined;
+  }
+
+  private report(text: string) {
+    this.bot.log(`> Lobby: ${text}`);
+    this.bot.event({ kind: 'lobby', text });
   }
 }

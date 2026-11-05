@@ -10,7 +10,7 @@
  * other's private notes. Transcripts land in tools/play-bot/out/three-player-<stamp>/.
  */
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -23,7 +23,7 @@ import { admitPlayer, eventually, required, seat, sendCommand, syncView } from '
 import { PlayBot } from './bot';
 import type { Brain } from './bot';
 import { claudeBrain, codexBrain, scriptedBrain } from './brains';
-import { mirroredGame, nativeTransport } from './demo.fixture';
+import { demoRulebook, mirroredGame, nativeTransport } from './demo.fixture';
 import { namesFaction } from './lobby';
 
 const HUMAN_FACTION = process.env.PLAY_HUMAN_FACTION ?? 'Emperor';
@@ -46,6 +46,11 @@ function brainFor(name: string, prompts: string[]): Brain {
     const woken = wokenBy(prompt);
     await call('note', { text: `secret plan of ${name}: ${name.toUpperCase()}-SECRET` });
     if (/traitor/iu.test(woken)) {
+      /* A real brain looks a rule up only when unsure; the script does it once so the tool is exercised. */
+      const rule = await call('rulebook', { query: 'traitor keep' });
+      if (!/traitor/iu.test(rule)) {
+        throw new Error(`The rulebook found nothing on Traitors: ${rule}`);
+      }
       const names = [...holdings.matchAll(/Traitor cards: ([^\n]+)/gu)][0]?.[1] ?? '';
       const all = [...names.matchAll(/([^,[]+?) \[/gu)].map((match) => match[1]!.trim());
       const keep = /You play (House )?Harkonnen/u.test(holdings) ? all : all.slice(0, 1);
@@ -72,6 +77,7 @@ it('seats one person and two isolated bots, and plays the setup', async () => {
   const out = path.join(import.meta.dirname, 'out', `three-player-${stamp}`);
   mkdirSync(out, { recursive: true });
   const { peer, runtime } = await mirroredGame(3);
+  const rulebook = demoRulebook();
 
   const human = await admitPlayer(runtime, 'a', { displayName: 'Player' });
   type SeatedBot = (typeof BOTS)[number] & {
@@ -89,6 +95,9 @@ it('seats one person and two isolated bots, and plays the setup', async () => {
       brain: brainFor(entry.name, prompts),
       notesFile: path.join(directory, 'notes.md'),
       transcriptFile: path.join(directory, 'transcript.md'),
+      eventsFile: path.join(directory, 'events.jsonl'),
+      name: entry.name,
+      rulebook,
       want: entry.want,
     });
     await seat(connection, human);
@@ -196,6 +205,12 @@ it('seats one person and two isolated bots, and plays the setup', async () => {
       expect(prompt).not.toMatch(/\bbot\b/iu);
     }
     expect(entry.prompts.length).toBeGreaterThan(0);
+    /* Every prompt as the bot was given it, to see what a wake costs and where its characters go. */
+    writeFileSync(path.join(out, entry.name.toLowerCase(), 'prompts.md'), entry.prompts.join('\n\n---\n\n'));
+    /* The board goes into every prompt; the rulebook never does, so a prompt stays small. */
+    const largest = Math.max(...entry.prompts.map((prompt) => prompt.length));
+    console.log(`${entry.name}: ${entry.prompts.length} wakes, largest prompt ${largest} characters.`);
+    expect(largest).toBeLessThan(20_000);
     const hand = (await syncView(entry.connection)).snapshot.hand ?? [];
     expect(hand.some((piece) => piece.stackKey === 'cards:traitor')).toBe(true);
   }

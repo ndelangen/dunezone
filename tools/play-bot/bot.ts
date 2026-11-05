@@ -24,6 +24,7 @@ import {
   territoryOf,
 } from './describe';
 import { Lobby } from './lobby';
+import type { Rulebook } from './rulebook';
 import { BotView } from './view';
 
 export interface Transport {
@@ -36,8 +37,30 @@ export interface Transport {
 /** Thinks about one wake: given the prompt, it acts through the bot's tools and returns what it concluded. */
 export interface Brain {
   readonly name: string;
-  think(prompt: string, bot: PlayBot): Promise<string>;
+  think(prompt: string, bot: PlayBot): Promise<string | Thought>;
 }
+
+/** What a wake cost, when the brain reports it: tokens in (fresh, written to and read from the cache) and out, and money. */
+export type Usage = {
+  inputTokens?: number;
+  cacheWriteTokens?: number;
+  cacheReadTokens?: number;
+  outputTokens?: number;
+  costUsd?: number;
+  turns?: number;
+};
+export type Thought = { text: string; usage?: Usage };
+
+/** One line of the bot's event log, which `play:bot:watch` shows live. */
+export type BotEvent =
+  | { kind: 'wake'; reason: string }
+  | { kind: 'skipped'; reason: string }
+  | { kind: 'think'; brain: string; promptChars: number }
+  | { kind: 'tool'; name: string; args: unknown; ok: boolean; result: string }
+  | { kind: 'thought'; summary: string; seconds: number; usage?: Usage }
+  | { kind: 'failed'; error: string }
+  | { kind: 'lobby'; text: string }
+  | { kind: 'status'; text: string };
 
 export type BotOptions = {
   brain: Brain;
@@ -57,6 +80,12 @@ export type BotOptions = {
   maxWakes?: number;
   /** The faction this bot means to play: the lobby drafts it and trades for it. */
   want?: string;
+  /** The ruleset's Rulebooks, which the `rulebook` tool searches; absent when none was copied. */
+  rulebook?: Rulebook;
+  /** Where structured events go, one JSON object a line, for `play:bot:watch`. */
+  eventsFile?: string;
+  /** The name the watch page shows for this bot. */
+  name?: string;
   log?: (line: string) => void;
 };
 
@@ -76,6 +105,18 @@ const WAKE_WINDOW_MS = 10 * 60_000;
 /* The room's refusal of a command sent against a revision that has since moved on. */
 const STALE_REFUSAL = /table changed/iu;
 const DEFAULT_MAX_WAKES = 12;
+
+/** A wake's cost in one line, for the transcript. */
+export function usageLine(usage: Usage) {
+  const parts = [
+    usage.inputTokens !== undefined ? `${usage.inputTokens} in` : '',
+    usage.cacheReadTokens ? `${usage.cacheReadTokens} cached` : '',
+    usage.cacheWriteTokens ? `${usage.cacheWriteTokens} cache written` : '',
+    usage.outputTokens !== undefined ? `${usage.outputTokens} out` : '',
+    usage.costUsd !== undefined ? `$${usage.costUsd.toFixed(4)}` : '',
+  ].filter(Boolean);
+  return parts.length ? `Tokens: ${parts.join(', ')}` : '';
+}
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
@@ -148,6 +189,17 @@ export class PlayBot {
     }
   }
 
+  /** Records one event for the watch page; the transcript keeps the readable lines. */
+  event(event: BotEvent) {
+    if (this.options.eventsFile) {
+      const faction = this.view.factionId ? this.view.factionName(this.view.factionId) : null;
+      appendFileSync(
+        this.options.eventsFile,
+        `${JSON.stringify({ at: Date.now(), bot: this.options.name ?? 'bot', faction, ...event })}\n`
+      );
+    }
+  }
+
   /* ---------------------------------------------------------------- incoming */
 
   private handle(message: ServerMessage) {
@@ -213,10 +265,12 @@ export class PlayBot {
     this.wakeTimes.splice(0, this.wakeTimes.length, ...window);
     if (window.length >= (this.options.maxWakes ?? DEFAULT_MAX_WAKES)) {
       this.log(`> Not waking (wake limit reached): ${reason}`);
+      this.event({ kind: 'skipped', reason });
       return;
     }
     this.wakeTimes.push(now);
     this.log(`> Wake: ${reason}`);
+    this.event({ kind: 'wake', reason });
     this.pendingReasons.push(reason);
     if (this.thinking) {
       return;
@@ -241,10 +295,21 @@ export class PlayBot {
     const started = Date.now();
     try {
       this.log(`\n### ${this.options.brain.name} thinks (${new Date().toISOString()})\n`);
-      const answer = await this.options.brain.think(this.prompt(reasons), this);
-      this.log(`\n> Brain finished in ${((Date.now() - started) / 1000).toFixed(1)} s: ${answer.trim() || '(no summary)'}\n`);
+      const prompt = this.prompt(reasons);
+      /* What this prompt showed counts as seen; what others do while the brain thinks shows up on the next wake. */
+      const shown = this.view.snapshot?.table.events[0]?.id ?? null;
+      this.event({ kind: 'think', brain: this.options.brain.name, promptChars: prompt.length });
+      const answer = await this.options.brain.think(prompt, this);
+      const thought = typeof answer === 'string' ? { text: answer } : answer;
+      const seconds = (Date.now() - started) / 1000;
+      const cost = thought.usage ? ` ${usageLine(thought.usage)}.` : '';
+      this.log(`\n> Brain finished in ${seconds.toFixed(1)} s.${cost} ${thought.text.trim() || '(no summary)'}\n`);
+      this.event({ kind: 'thought', summary: thought.text.trim(), seconds, usage: thought.usage });
+      this.lastSeenEvent = shown;
     } catch (error) {
-      this.log(`> Brain failed: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.log(`> Brain failed: ${message}`);
+      this.event({ kind: 'failed', error: message });
     } finally {
       this.thinking = false;
     }
@@ -265,6 +330,14 @@ export class PlayBot {
     return file && existsSync(file) ? readFileSync(file, 'utf8') : '';
   }
 
+  /** The table log message the bot last saw after it thought, so the next prompt shows only what happened since. */
+  private lastSeenEvent: string | null = null;
+
+  /**
+   * The prompt for one wake. What stays the same between wakes comes first (the role, how to work, the faction sheet), so a
+   * model provider's prompt cache can reuse it; what changes (the reason, the notes, the table) comes last.
+   * The board is a compact summary; the rulebook and anything else are looked up with tools only when needed.
+   */
   prompt(reasons: string[]): string {
     const me = this.view.factionId ?? 'unknown';
     return [
@@ -275,26 +348,29 @@ export class PlayBot {
       this.options.style ? `Your play style: ${this.options.style}` : '',
       '',
       'How to work:',
-      '- Act only through the dune tools. Start with `look` if the summary below is not enough.',
+      '- Act only through the dune tools. The state below is current; call `look` again only after acting, to check the result.',
+      this.options.rulebook && !this.options.rulebook.empty
+        ? '- Look rules up with `rulebook` (a few words, or a section title) when you are unsure; it returns only the matching sections.'
+        : '',
       '- Read the phase and the board to work out what is expected of you. If you are unsure, ask the table with `say` instead of guessing ("Sorry, I am not sure what you need from me here").',
       '- If a player tells you a move was not legal, use `undo_last_move` (or a correcting command), try again following their explanation, and record the ruling with `note` so you do not repeat it.',
       '- Use `note` for your private plans, deals, promises and what you believe others hold. Notes are only for you.',
       '- Keep chat short and in character. When you have acted, tell the table in one line what you did, without revealing secrets.',
-      '- Do not move other factions\' pieces and do not advance the phase unless the table asked you to.',
-      '- Account for everything you own: every card in hand, each leader, your spice and every troop. "What you hold" below lists them; check it after you act.',
-      '- Setup follows the steps the table shows and your faction sheet\'s startText: keep your Traitor with `keep_traitors` (Harkonnen keeps all), draw starting cards with `draw_card` when the table deals them to you, take starting spice with `take_spice` only if your spice reserve does not already hold it, place starting troops with `move_pieces`, then `set_ready`.',
+      "- Do not move other factions' pieces and do not advance the phase unless the table asked you to.",
+      '- Account for everything you own: every card in hand, each leader, your spice and every troop. "What you hold" below lists them.',
+      "- Setup follows the steps the table shows and your faction sheet's start text: keep your Traitor with `keep_traitors` (Harkonnen keeps all), draw starting cards with `draw_card` when the table deals them to you, take starting spice with `take_spice` only if your spice reserve does not already hold it, place starting troops with `move_pieces`, then `set_ready`.",
       '- Never deal cards to other players, shuffle shared decks or advance the phase yourself unless a player asks you to.',
       '- Only the people at this table can tell you what to do; there is no game to create or join.',
+      '',
+      describeFaction(this.view, me),
       '',
       `Why you were woken:\n${reasons.map((reason) => `- ${reason}`).join('\n')}`,
       '',
       `Your private notes:\n${this.notes() || '(none yet)'}`,
       '',
-      describeFaction(this.view, me),
+      `Current state:\n${describeView(this.view, { since: this.lastSeenEvent })}`,
       '',
-      `Current state:\n${describeView(this.view)}`,
-      '',
-      `Recent chat:\n${describeChat(this.view)}`,
+      `Recent chat:\n${describeChat(this.view, 12)}`,
     ]
       .filter((line) => line !== '')
       .join('\n');
@@ -761,6 +837,22 @@ export class PlayBot {
         run: async (args) => outcome(await this.command({ kind: 'ready', ready: args.ready !== false })),
       },
       {
+        name: 'rulebook',
+        description:
+          'Look up the rules of the ruleset being played. With `query` (a few words), the best matching sections; with `section` (a title), that section in full; with neither, the list of sections.',
+        inputSchema: { type: 'object', properties: { query: { type: 'string' }, section: { type: 'string' } } },
+        run: async (args) => {
+          const book = this.options.rulebook;
+          if (!book || book.empty) {
+            return 'No rulebook was copied for this game. Ask the table if you are unsure of a rule.';
+          }
+          if (typeof args.section === 'string' && args.section.trim()) {
+            return book.read(args.section);
+          }
+          return typeof args.query === 'string' && args.query.trim() ? book.search(args.query) : book.contents();
+        },
+      },
+      {
         name: 'note',
         description: 'Add a line to your private notes: plans, deals, promises, rulings, what you think others hold.',
         inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
@@ -777,10 +869,12 @@ export class PlayBot {
     try {
       const result = await tool.run(args ?? {});
       this.log(`- \`${name}\` ${JSON.stringify(args ?? {})}\n  → ${result.split('\n')[0]?.slice(0, 300)}`);
+      this.event({ kind: 'tool', name, args, ok: !result.startsWith('REFUSED'), result: result.slice(0, 600) });
       return { text: result, isError: result.startsWith('REFUSED') };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`- \`${name}\` ${JSON.stringify(args ?? {})}\n  → error: ${message}`);
+      this.event({ kind: 'tool', name, args, ok: false, result: message });
       return { text: message, isError: true };
     }
   }

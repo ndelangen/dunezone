@@ -16,10 +16,10 @@
  *   --seat <seat-id>       a particular open seat
  *   --want <faction>       the faction it drafts, and trades for if the deal gives it another
  *   --stack <file>         the stack file the launcher wrote (default tools/play-bot/out/stack.json)
- * Each bot is isolated: its transcript, private notes and its CLI's working directory live under
- * tools/play-bot/out/bots/<account>/, and nothing tells it which other seats are bots. It treats every player as a person.
+ * Each bot is isolated: its transcript, private notes and event log live under tools/play-bot/out/bots/<account>/,
+ * its CLI's working directory under the system's temporary folder, and nothing tells it which other seats are bots. It treats every player as a person.
  */
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -28,6 +28,8 @@ import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 
 import { KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol';
+import { RULEBOOK_FILE } from './mirror';
+import { Rulebook } from './rulebook';
 import type { ClientMessage, ServerMessage } from '../../src/shared/play/protocol';
 import { PlayBot } from './bot';
 import type { Transport } from './bot';
@@ -54,6 +56,8 @@ if (!values.game) {
 const stack = JSON.parse(readFileSync(values.stack!, 'utf8')) as {
   origin: string;
   backendUrl: string;
+  /** The mirror the stack serves, when it serves one; its rulebook.md is what the bot's `rulebook` tool reads. */
+  mirror?: string;
   accounts: { bot: { email: string; password: string }; bots?: { name: string; email: string; password: string }[] };
 };
 const accountIndex = Number(values.account) - 1;
@@ -132,8 +136,15 @@ mkdirSync(workdir, { recursive: true });
 mkdirSync(out, { recursive: true });
 const brain =
   values.brain === 'codex' ? codexBrain({ model: values.model, workdir }) : claudeBrain({ model: values.model, workdir });
+const rulebookFile = stack.mirror ? path.join(stack.mirror, RULEBOOK_FILE) : undefined;
+const rulebook =
+  rulebookFile && existsSync(rulebookFile) ? new Rulebook(readFileSync(rulebookFile, 'utf8')) : undefined;
 const bot = new PlayBot(transport, {
   brain,
+  name: account.name,
+  /* One JSON line per wake, tool call and thought; `bun run play:bot:watch` shows every bot's file live. */
+  eventsFile: path.join(out, 'events.jsonl'),
+  rulebook,
   notesFile: path.join(out, `notes-${gameId}.md`),
   transcriptFile: path.join(out, `game-${stamp}.md`),
   style: values.style,
@@ -142,6 +153,8 @@ const bot = new PlayBot(transport, {
   want: values.want,
 });
 bot.log(`# ${access.name ?? gameId}: bot transcript (${brain.name}), ${new Date().toISOString()}\n`);
+bot.log(rulebook ? `Rulebook: ${rulebook.sections.length} sections from ${rulebookFile}.` : 'Rulebook: none copied.');
+bot.event({ kind: 'status', text: `Joined ${access.name ?? gameId} with ${brain.name}.` });
 transport.send({ type: 'admit', pass: await pass(true) });
 
 /* Seat passes last an hour: sign in again and send a fresh one well before that. */

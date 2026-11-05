@@ -20,7 +20,9 @@ import type { FunctionReference } from 'convex/server';
 
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
-import { MIRROR_FILE, publishedKey, publishedPaths } from './mirror';
+import { MIRROR_FILE, publishedKey, publishedPaths, RULEBOOK_FILE } from './mirror';
+import { rulebookMarkdown } from './rulebook';
+import type { RulebookContents } from './rulebook';
 import type { MirrorFile } from './mirror';
 
 const { values } = parseArgs({
@@ -123,6 +125,25 @@ for (const faction of linked.filter((entry) => (values.require ?? '').split(',')
 if (unpublished.length) {
   console.warn(`Warning, some faces are not published on the site:\n  ${unpublished.join('\n  ')}`);
 }
+
+/* The ruleset's published Rulebooks, as Markdown the bot searches section by section (rulebook.ts). */
+const books = (await client.query(anyApi.rulebooks.listByRulesetSlug, { ruleset_slug: slug })) as {
+  slug: string;
+  name: string;
+}[];
+const rulebook: string[] = [];
+for (const book of books) {
+  const reader = (await client.query(anyApi.rulebooks.readerPage, {
+    ruleset_slug: slug,
+    rulebook_slug: book.slug,
+  })) as { edition?: { contents?: RulebookContents } } | null;
+  if (reader?.edition?.contents) {
+    rulebook.push(rulebookMarkdown(book.name, reader.edition.contents));
+  }
+}
+mkdirSync(directory, { recursive: true });
+writeFileSync(path.join(directory, RULEBOOK_FILE), `${rulebook.join('\n\n')}\n`);
+console.log(`Copied ${rulebook.length} rulebook${rulebook.length === 1 ? '' : 's'}: ${books.map((book) => book.name).join(', ') || 'none'}.`);
 
 const answers = { rulesetSupply: ruleset.raw, assetSupply, draftableFactions, factionDefinitions };
 const media: MirrorFile['media'] = [];

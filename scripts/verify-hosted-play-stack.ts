@@ -500,7 +500,9 @@ async function serveForPlay({
   const out = path.join(root, 'tools/play-bot/out');
   mkdirSync(out, { recursive: true });
   const stackFile = path.join(out, 'stack.json');
-  writeFileSync(stackFile, JSON.stringify({ origin, backendUrl, rulesetId, accounts }, null, 2), { mode: 0o600 });
+  /* The mirror's directory lets each bot find the ruleset's rulebook.md beside its catalogue. */
+  const stackInfo = { origin, backendUrl, rulesetId, accounts, ...(mirror ? { mirror: mirror.directory } : {}) };
+  writeFileSync(stackFile, JSON.stringify(stackInfo, null, 2), { mode: 0o600 });
   console.log(
     [
       '',

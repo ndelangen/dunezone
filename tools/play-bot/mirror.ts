@@ -39,6 +39,8 @@ export type Mirror = {
 };
 
 export const MIRROR_FILE = 'catalogue.json';
+/** The ruleset's Rulebooks as Markdown, beside the catalogue. */
+export const RULEBOOK_FILE = 'rulebook.md';
 
 /** Every `/published/...` path a value names, without its cache buster: the images a game on this catalogue draws. */
 export function publishedPaths(value: unknown): string[] {

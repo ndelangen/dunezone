@@ -96,7 +96,16 @@ function pieceLine(view: BotView, piece: TablePiece) {
   return `- [${piece.id}] ${owner}: ${piece.items.length} × ${piece.label}${faceText}${hidden}`;
 }
 
-export function describeView(view: BotView): string {
+export type DescribeOptions = {
+  /** The newest table event the bot has already seen; only events after it are listed. */
+  since?: string | null;
+};
+
+/**
+ * The bot's view of the table in words. It is kept compact for each wake: your own holdings in full, the board by
+ * territory, everyone else's off-board pieces as counts, and only the table log the bot has not seen yet.
+ */
+export function describeView(view: BotView, options: DescribeOptions = {}): string {
   const snapshot = view.snapshot;
   const me = view.factionId;
   if (!snapshot) {
@@ -161,10 +170,25 @@ export function describeView(view: BotView): string {
       lines.push(`  ${pieceLine(view, piece)}`);
     }
   }
-  lines.push('', 'Off the board (reserves, tokens, decks, discards):');
+  /* Your own off-board pieces are listed under "What you hold"; the rest is summed per owner, decks keep their ids. */
+  const shared = offBoard.filter((piece) => piece.owner === 'shared' || piece.inventory);
+  const theirs = new Map<string, Map<string, number>>();
   for (const piece of offBoard) {
-    const note = isFactionToken(piece) ? ' — faction token' : piece.inventory ? ' — shared inventory' : '';
-    lines.push(`${pieceLine(view, piece)}${note}`);
+    if (shared.includes(piece) || piece.owner === me || isFactionToken(piece)) {
+      continue;
+    }
+    const counts = theirs.get(piece.owner) ?? new Map<string, number>();
+    counts.set(piece.label, (counts.get(piece.label) ?? 0) + piece.items.length);
+    theirs.set(piece.owner, counts);
+  }
+  lines.push('', 'Off the board:');
+  for (const piece of shared) {
+    lines.push(pieceLine(view, piece));
+  }
+  for (const [owner, counts] of theirs) {
+    lines.push(
+      `- ${view.factionName(owner)}: ${[...counts].map(([label, count]) => `${count} × ${label}`).join(', ')}`
+    );
   }
 
   if (snapshot.bidding && snapshot.bidding.stage !== 'idle') {
@@ -183,12 +207,16 @@ export function describeView(view: BotView): string {
     lines.push('', `Shipment and Movement progress: ${JSON.stringify(snapshot.movement)}`);
   }
 
-  const events = snapshot.table.events.slice(0, 12);
+  const all = snapshot.table.events;
+  const seen = options.since ? all.findIndex((event) => event.id === options.since) : -1;
+  const events = (seen >= 0 ? all.slice(0, seen) : all).slice(0, 12);
   if (events.length) {
-    lines.push('', 'Recent table log (newest first):');
+    lines.push('', `${options.since ? 'Table log since you last looked' : 'Recent table log'} (newest first):`);
     for (const event of events) {
       lines.push(`- ${event.message}`);
     }
+  } else if (options.since) {
+    lines.push('', 'Nothing new in the table log since you last looked.');
   }
   return lines.join('\n');
 }
@@ -354,8 +382,29 @@ export function describeFaction(view: BotView, factionId: string): string {
   return [
     `${view.factionName(factionId)} faction sheet:`,
     leaders.length ? `Leaders: ${leaders.map((leader) => `${leader.name} (${leader.strength})`).join(', ')}` : '',
-    rules ? JSON.stringify(rules, null, 1) : '',
+    ...Object.entries(rules ?? {}).map(([key, value]) => `- ${key}: ${ruleText(value)}`),
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+/** A rule's value as plain lines: text as it is, titled entries as "Title: text", anything else as compact JSON. */
+function ruleText(value: unknown): string {
+  const plain = (text: string) => text.replaceAll(/\s+/gu, ' ').trim();
+  if (typeof value === 'string') {
+    return plain(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => `\n  - ${ruleText(entry)}`).join('');
+  }
+  if (value && typeof value === 'object') {
+    const { title, text, ...rest } = value as { title?: unknown; text?: unknown };
+    if (typeof text === 'string') {
+      const extra = Object.entries(rest)
+        .map(([key, entry]) => ` (${key}: ${typeof entry === 'string' ? plain(entry) : JSON.stringify(entry)})`)
+        .join('');
+      return `${typeof title === 'string' && title.trim() ? `${plain(title)}: ` : ''}${plain(text)}${extra}`;
+    }
+  }
+  return JSON.stringify(value);
 }

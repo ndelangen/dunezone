@@ -8,7 +8,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import type { Brain, PlayBot } from './bot';
+import type { Brain, PlayBot, Thought } from './bot';
 import { serveTools } from './tool-server';
 
 const bridge = path.join(import.meta.dirname, 'mcp-stdio.ts');
@@ -75,13 +75,15 @@ export function claudeBrain({ model, bun = 'bun', workdir }: BrainOptions = {}):
           '--allowedTools',
           'mcp__dune',
           '--output-format',
-          'text',
+          'json',
           '--setting-sources',
           'project,local',
           '--no-session-persistence',
           ...(model ? ['--model', model] : []),
         ];
-        return await run('claude', args, prompt, { ...process.env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' }, workdir);
+        return claudeThought(
+          await run('claude', args, prompt, { ...process.env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: '1' }, workdir)
+        );
       } finally {
         await tools.close();
       }
@@ -104,6 +106,7 @@ export function codexBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): 
           'read-only',
           '-c',
           'approval_policy="never"',
+          '--json',
           '-c',
           `mcp_servers.dune.command=${toml(bun)}`,
           '-c',
@@ -113,12 +116,61 @@ export function codexBrain({ model, bun = 'bun', workdir }: BrainOptions = {}): 
           ...(model ? ['--model', model] : []),
           '-',
         ];
-        return await run('codex', args, prompt, process.env, workdir);
+        return codexThought(await run('codex', args, prompt, process.env, workdir));
       } finally {
         await tools.close();
       }
     },
   };
+}
+
+const count = (value: unknown) => (typeof value === 'number' ? value : undefined);
+
+/** Claude Code's `--output-format json` result: the final answer, its tokens, its cost and how many turns it took. */
+export function claudeThought(output: string): Thought {
+  let result: Record<string, unknown>;
+  try {
+    result = JSON.parse(output.trim().split('\n').at(-1) ?? '') as Record<string, unknown>;
+  } catch {
+    return { text: output };
+  }
+  const usage = (result.usage ?? {}) as Record<string, unknown>;
+  return {
+    text: typeof result.result === 'string' ? result.result : '',
+    usage: {
+      inputTokens: count(usage.input_tokens),
+      cacheWriteTokens: count(usage.cache_creation_input_tokens),
+      cacheReadTokens: count(usage.cache_read_input_tokens),
+      outputTokens: count(usage.output_tokens),
+      costUsd: count(result.total_cost_usd),
+      turns: count(result.num_turns),
+    },
+  };
+}
+
+/** Codex's `exec --json` event stream: the last agent message and the tokens of every turn, summed. */
+export function codexThought(output: string): Thought {
+  let text = '';
+  const usage = { inputTokens: 0, cacheReadTokens: 0, outputTokens: 0, turns: 0 };
+  for (const line of output.split('\n')) {
+    let event: { type?: string; item?: { type?: string; text?: string }; usage?: Record<string, unknown> };
+    try {
+      event = JSON.parse(line) as typeof event;
+    } catch {
+      continue;
+    }
+    if (event.type === 'item.completed' && event.item?.type === 'agent_message' && event.item.text) {
+      text = event.item.text;
+    } else if (event.type === 'turn.completed' && event.usage) {
+      /* Codex counts cached tokens inside its input tokens; they are split out here, as Claude Code reports them. */
+      const cached = count(event.usage.cached_input_tokens) ?? 0;
+      usage.inputTokens += (count(event.usage.input_tokens) ?? 0) - cached;
+      usage.cacheReadTokens += cached;
+      usage.outputTokens += count(event.usage.output_tokens) ?? 0;
+      usage.turns++;
+    }
+  }
+  return usage.turns ? { text, usage } : { text: text || output };
 }
 
 /** A brain that plays a fixed script against the tools: for checking the plumbing without a model. */
