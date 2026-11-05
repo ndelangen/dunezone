@@ -1,4 +1,6 @@
-import { Button, Group, Text } from '@mantine/core';
+import { Group, Text } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, ChevronRight, History, Radio } from 'lucide-react';
 
 /** Where the table stands in its saved phases: browsing one of them, or live. */
 export type ReplayState =
@@ -33,32 +35,50 @@ export function ReplayPanel({ replay, pending, onStep, onLive }: ReplayPanelProp
             Playback checkpoint {replay.step} of {replay.lastStep}. Table actions are paused.
           </Text>
           <Group gap="sm" role="group" aria-label="Phase playback">
-            <Button variant="default" disabled={pending || replay.step === 0} onClick={() => onStep(replay.step - 1)}>
+            <LabeledAction
+              icon={<ChevronLeft size={16} />}
+              disabledReason={
+                pending ? 'Playback is loading.' : replay.step === 0 ? 'This is the first phase.' : undefined
+              }
+              onClick={() => onStep(replay.step - 1)}
+            >
               Earlier phase
-            </Button>
-            <Button
-              variant="default"
-              disabled={pending || replay.step === replay.lastStep}
+            </LabeledAction>
+            <LabeledAction
+              icon={<ChevronRight size={16} />}
+              disabledReason={
+                pending
+                  ? 'Playback is loading.'
+                  : replay.step === replay.lastStep
+                    ? 'This is the last phase.'
+                    : undefined
+              }
               onClick={() => onStep(replay.step + 1)}
             >
               Later phase
-            </Button>
-            <Button variant="default" onClick={onLive}>
+            </LabeledAction>
+            <LabeledAction icon={<Radio size={16} />} onClick={onLive}>
               Return to live
-            </Button>
+            </LabeledAction>
           </Group>
         </>
       ) : (
         <>
           <Text size="sm">Step through the game phase by phase, from its start.</Text>
           <Group gap="sm" role="group" aria-label="Phase playback">
-            <Button variant="default" disabled={pending || !replay.canStart} onClick={() => onStep(0)}>
+            <LabeledAction
+              icon={<History size={16} />}
+              disabledReason={
+                pending ? 'Playback is loading.' : replay.canStart ? undefined : 'The game has no phases to replay yet.'
+              }
+              onClick={() => onStep(0)}
+            >
               Replay from start
-            </Button>
+            </LabeledAction>
             {pending && (
-              <Button variant="default" onClick={onLive}>
+              <LabeledAction icon={<Radio size={16} />} onClick={onLive}>
                 Return to live
-              </Button>
+              </LabeledAction>
             )}
           </Group>
         </>

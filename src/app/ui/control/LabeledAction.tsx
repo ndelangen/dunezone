@@ -1,11 +1,13 @@
 import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
+import clsx from 'clsx';
 import { useId } from 'react';
 import type { MouseEventHandler, ReactNode, Ref } from 'react';
 
 import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
+import styles from './LabeledAction.module.css';
 
 export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
@@ -24,6 +26,8 @@ export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'
    * this stays focusable and says it is busy.
    */
   busy?: boolean;
+  /** Makes the action a toggle that is on, as on `IconAction`: it announces as pressed and wears the selected tile, whatever its emphasis. Pass `false` for a toggle that is off, so it still announces as a toggle. */
+  pressed?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Makes the action a link, in practice the router's `Link`. */
   renderRoot?: RenderRoot;
@@ -50,6 +54,7 @@ export function LabeledAction({
   emphasis = 'standard',
   disabledReason,
   busy = false,
+  pressed,
   onClick,
   renderRoot,
   type = 'button',
@@ -60,8 +65,9 @@ export function LabeledAction({
 }: LabeledActionProps) {
   const reasonId = useId();
   const color = INTENT_COLOR[intent];
-  const variant = EMPHASIS_VARIANT[emphasis];
-  const vars = emphasis === 'standard' ? () => tileVars(intent, false, 'button') : undefined;
+  const variant = pressed ? 'light' : EMPHASIS_VARIANT[emphasis];
+  const vars = pressed || emphasis === 'standard' ? () => tileVars(intent, pressed === true, 'button') : undefined;
+  const classes = clsx(className, pressed && styles.pressed);
   const leftSection = busy ? <Loader size="xs" /> : <span aria-hidden>{icon}</span>;
   if (disabledReason != null) {
     return (
@@ -82,7 +88,8 @@ export function LabeledAction({
             aria-describedby={reasonId}
             /* Keeps its type so a form's Enter lands here and stops, the way a disabled submit button stops it. */
             onClick={(event) => event.preventDefault()}
-            className={className}
+            aria-pressed={pressed}
+            className={classes}
           >
             {children}
           </Button>
@@ -110,7 +117,8 @@ export function LabeledAction({
         onClick?.(event);
       }}
       renderRoot={renderRoot}
-      className={className}
+      aria-pressed={pressed}
+      className={classes}
     >
       {children}
     </Button>

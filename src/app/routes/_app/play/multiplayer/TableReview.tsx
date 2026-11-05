@@ -1,8 +1,10 @@
-import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { reviewRunning } from '@shared/play/review';
 import type { TableReview } from '@shared/play/review';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, History, Radio, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
@@ -34,31 +36,31 @@ function ProposalActions({
   return (
     <Group gap="xs" wrap="nowrap">
       {current.proposer.seat === review.seat ? (
-        <Button
+        <LabeledAction
           size="xs"
-          variant="default"
+          icon={<X size={14} />}
           onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}
         >
           Withdraw
-        </Button>
+        </LabeledAction>
       ) : (
         <>
-          <Button
+          <LabeledAction
             size="xs"
-            aria-pressed={own.choice === 'review'}
-            variant={own.choice === 'review' ? 'filled' : 'light'}
+            pressed={own.choice === 'review'}
+            icon={<Check size={14} />}
             onClick={() => choose('review')}
           >
             Agree
-          </Button>
-          <Button
+          </LabeledAction>
+          <LabeledAction
             size="xs"
-            aria-pressed={own.choice === 'decline'}
-            variant={own.choice === 'decline' ? 'filled' : 'light'}
+            pressed={own.choice === 'decline'}
+            icon={<X size={14} />}
             onClick={() => choose('decline')}
           >
             Decline
-          </Button>
+          </LabeledAction>
         </>
       )}
     </Group>
@@ -73,9 +75,13 @@ function ResumePlay({
 }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
     <Stack gap={2} data-recall-return>
-      <Button color="cta" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
+      <LabeledAction
+        emphasis="strong"
+        icon={<Radio size={16} />}
+        onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}
+      >
         {review.finished ? 'End the recall' : 'Return to the game'}
-      </Button>
+      </LabeledAction>
     </Stack>
   ) : null;
 }
@@ -148,9 +154,14 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
       )}
       <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
-        <Button disabled={table.reconnecting} onClick={() => client.command({ kind: 'review-propose', step })}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<History size={16} />}
+          disabledReason={table.reconnecting ? 'Reconnecting to the table.' : undefined}
+          onClick={() => client.command({ kind: 'review-propose', step })}
+        >
           {review.finished ? 'Recall together' : 'Ask the table to recall'}
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );

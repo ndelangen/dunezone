@@ -8,7 +8,9 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
+import { ChevronLeft, ChevronRight, FlipHorizontal2 } from 'lucide-react';
 import {
   useCallback,
   useContext,
@@ -199,15 +201,20 @@ function SelectedPieceControl() {
       eyebrow="Selected piece"
       title={control.piece?.label ?? 'Select a card or token'}
       action={
-        <Button
-          variant="default"
-          aria-describedby={helpId}
-          aria-busy={control.isFlipping}
-          disabled={control.disabled || !table.canHandleTable}
+        <LabeledAction
+          icon={<FlipHorizontal2 size={16} />}
+          busy={control.isFlipping}
+          disabledReason={
+            table.canHandleTable
+              ? control.disabled && !control.isFlipping
+                ? control.help
+                : undefined
+              : 'The table is unavailable.'
+          }
           onClick={() => table.flipSelected(control.piece?.id)}
         >
           {control.label}
-        </Button>
+        </LabeledAction>
       }
     >
       <Text id={helpId} size="sm" c="dimmed">
@@ -230,15 +237,24 @@ function StormControls({ hiddenHeading = false }: { hiddenHeading?: boolean }) {
       description="Advance the highlighted sector counter-clockwise around Arrakis."
     >
       <Group gap="sm">
-        <Button variant="default" disabled={!canHandleTable} onClick={() => moveStormBy(-1)}>
+        <LabeledAction
+          icon={<ChevronLeft size={16} />}
+          disabledReason={canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => moveStormBy(-1)}
+        >
           Back one
-        </Button>
+        </LabeledAction>
         <Text component="output" aria-live="polite">
           <strong>Sector {stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
         </Text>
-        <Button disabled={!canHandleTable} onClick={() => moveStormBy(1)}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<ChevronRight size={16} />}
+          disabledReason={canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => moveStormBy(1)}
+        >
           Advance one
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );

@@ -50,3 +50,11 @@ export const DisabledSaysWhy = meta.story({
     await expect(args.onClick).not.toHaveBeenCalled();
   },
 });
+
+/** A toggle announces whether it is on, both when it is and when it is not. */
+export const PressedAnnounces = meta.story({
+  args: { children: 'Agree', pressed: true },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Agree' })).toHaveAttribute('aria-pressed', 'true');
+  },
+});

@@ -1,6 +1,6 @@
 import { Group, Stack } from '@mantine/core';
 import preview from '@sb/preview';
-import { ArrowLeft, Check, Download, RotateCcw, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Download, RotateCcw, Send, Trash2, X } from 'lucide-react';
 
 import type { ActionIntent } from './actionIntent';
 import { LabeledAction } from './LabeledAction';
@@ -60,3 +60,17 @@ export const Busy = meta.story({ args: { busy: true } });
 
 /** The small size, for a toolbar or a filter row. */
 export const Small = meta.story({ args: { size: 'xs' } });
+
+/** A pair of toggles, one on: the pressed one wears the selected tile and announces as pressed. */
+export const Pressed = meta.story({
+  render: () => (
+    <Group gap="sm">
+      <LabeledAction pressed icon={<Check size={16} />}>
+        Agree
+      </LabeledAction>
+      <LabeledAction pressed={false} icon={<X size={16} />}>
+        Decline
+      </LabeledAction>
+    </Group>
+  ),
+});

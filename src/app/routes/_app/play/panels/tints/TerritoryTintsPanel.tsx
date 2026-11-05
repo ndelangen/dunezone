@@ -1,8 +1,9 @@
-import { ActionIcon, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
 import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { Eye, EyeOff } from 'lucide-react';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Eye, EyeOff, Plus } from 'lucide-react';
 
 import { NewTints, TintRow } from '../../../../../widgets/tabletop/TintControls';
 import { TINTS_HELP } from '../../multiplayer/panelGuidance';
@@ -51,15 +52,15 @@ function Presets({
       </Text>
       <Group gap="xs">
         {presets.map((preset) => (
-          <Button
+          <LabeledAction
             key={preset.name}
             size="compact-sm"
-            variant="default"
-            disabled={!enabled}
+            icon={<Plus size={14} />}
+            disabledReason={enabled ? undefined : 'The table is unavailable.'}
             onClick={() => onCreate(preset)}
           >
             {preset.name}
-          </Button>
+          </LabeledAction>
         ))}
       </Group>
     </Stack>
