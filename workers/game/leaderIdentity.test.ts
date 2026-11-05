@@ -54,6 +54,8 @@ test('a leader played face down out of a hand cannot be told apart by the ids or
   const seen = projection.snapshot(table.snapshot).table.pieces.find((piece) => piece.id === LEADER)!;
   expect(seen.items[0]!.artwork?.front).toBe(FRONT);
 
+  send({ kind: 'flip', pieceId: LEADER });
+  send({ kind: 'flip', pieceId: LEADER });
   send({ kind: 'hand-take', pieceId: LEADER });
   send({ kind: 'hand-play', pieceId: LEADER, position: [1, 0, 1] });
 
@@ -66,6 +68,8 @@ test('a leader played face down out of a hand cannot be told apart by the ids or
   expect(played.id).not.toBe(seen.id);
   expect(played.items[0]!.id).not.toBe(seen.items[0]!.id);
   expect(played.stackKey).not.toBe(seen.stackKey);
+  /* Nor by how often it was turned over while everyone watched. */
+  expect(played.flipRevision).toBeUndefined();
   const sent = JSON.stringify(view);
   for (const known of [seen.id, seen.items[0]!.id, seen.stackKey!]) {
     expect(sent).not.toContain(known);
