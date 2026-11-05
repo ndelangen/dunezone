@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
 import {
   composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
@@ -193,6 +194,87 @@ describe('AssetExplainer highlight drawing', () => {
     /* 0.6% of the 1000 px image is 6 px, which is 0.6 units once the image scale (1000) and the matrix (0.01) apply. */
     expect(Number(paths[1]!.attributes['stroke-width'])).toBeCloseTo(0.6);
     expect(paths[1]!.attributes['stroke-dasharray']).toBe('1.6 1');
+  });
+});
+
+describe('AssetExplainer sector lines', () => {
+  function boardBlock(sectorLines = false): Explainer {
+    const original = block();
+    const board = { kind: 'board', boardId: 'ns72fst9vtajbcc6066ejz92ph8fweez' } as const;
+    original.source = {
+      status: 'ready',
+      reference: board,
+      name: 'Arrakis',
+      imageUrl: '/board.jpg',
+      geometry: {
+        width: 1948,
+        height: 1948,
+        parts: [
+          { key: 'name', x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+          {
+            key: 'sectors',
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+            highlight: { paths: [{ d: 'M243 243L485 243' }, { d: 'M243 243L243 1' }] },
+          },
+        ],
+      },
+    };
+    original.items = [{ ...original.items[0]!, target: { kind: 'named', key: 'name', source: board } }];
+    return sectorLines ? { ...original, sectorLines } : original;
+  }
+  const guides = (explainer: Explainer) =>
+    rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(explainer)).filter(
+      ({ attributes }) => attributes['data-rulebook-guide'] === SECTORS_PART_KEY
+    );
+
+  it('draws faint dashed sector lines under every annotation when the block turns them on', () => {
+    const lines = guides(boardBlock(true));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.attributes).toMatchObject({ fill: 'none', stroke: '#000000', 'stroke-opacity': 0.3 });
+    expect(lines[0]!.attributes['stroke-dasharray']).toMatch(/^[\d.]+ [\d.]+$/);
+    const shapes = rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(boardBlock(true)));
+    expect(shapes.findIndex(({ attributes }) => 'data-rulebook-guide' in attributes)).toBe(0);
+  });
+
+  it('draws no sector lines unless the block turns them on', () => {
+    expect(guides(boardBlock())).toEqual([]);
+  });
+
+  it('draws no sector lines over the built-in board, whose artwork prints its own', () => {
+    const board = resolveRulebookBoardDefinition('arrakis')!;
+    const reference = { kind: 'board', boardId: board.id } as const;
+    const explainer = boardBlock(true);
+    explainer.source = {
+      status: 'ready',
+      reference,
+      name: board.name,
+      imageUrl: board.imageUrl,
+      geometry: board.geometry,
+      publicationRevision: board.revision,
+    };
+    explainer.items = [{ ...explainer.items[0]!, target: { kind: 'named', key: 'arrakeen', source: reference } }];
+    expect(board.geometry.parts.some(({ key }) => key === SECTORS_PART_KEY)).toBe(true);
+    expect(guides(explainer)).toEqual([]);
+  });
+
+  it('never draws a territory the board names Sectors as sector lines', () => {
+    const explainer = boardBlock(true);
+    if (explainer.source.status !== 'ready' || !explainer.source.geometry) {
+      throw new Error('Expected a ready board');
+    }
+    explainer.source.geometry.parts[1] = {
+      key: SECTORS_PART_KEY,
+      label: 'Sectors',
+      x: 0.2,
+      y: 0.2,
+      width: 0.1,
+      height: 0.1,
+      highlight: { paths: [{ d: 'M400 400L600 400L600 600Z' }] },
+    };
+    expect(guides(explainer)).toEqual([]);
   });
 });
 

@@ -1,4 +1,5 @@
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
 import { TABLE_SECTOR_COUNT } from '../play/tableSettings';
 import { derive, sectorRim, sectorSegments } from './geometry';
 import type { Board, Face, Point } from './geometry';
@@ -66,7 +67,7 @@ function sectorsPart(polarRings: readonly (readonly Point[])[]) {
     .slice(0, MAX_PATHS);
   /* A polar territory that covers every sector line leaves no line to point at; the part is left out rather than carried empty, which the geometry schema refuses. */
   return paths.length
-    ? { key: 'sectors', label: 'Sectors', x: 0, y: 0, width: 1, height: 1, highlight: { paths } }
+    ? { key: SECTORS_PART_KEY, label: 'Sectors', x: 0, y: 0, width: 1, height: 1, highlight: { paths } }
     : null;
 }
 
@@ -87,7 +88,7 @@ export function boardComponentGeometry(board: Board, widthPx: number, heightPx: 
   const polarRings = faces.filter((face) => board.properties[face.key]?.type === 'polar').flatMap((face) => face.rings);
   /* First, so a board with more parts than the limit drops a territory rather than the sectors; a territory the board itself names Sectors takes the key over. */
   const sectors = sectorsPart(polarRings);
-  const parts = new Map<string, ReturnType<typeof part>>(sectors ? [['sectors', sectors]] : []);
+  const parts = new Map<string, ReturnType<typeof part>>(sectors ? [[SECTORS_PART_KEY, sectors]] : []);
   for (const { key, name } of territories) {
     if (!parts.has(key) || (sectors && parts.get(key) === sectors)) {
       parts.set(

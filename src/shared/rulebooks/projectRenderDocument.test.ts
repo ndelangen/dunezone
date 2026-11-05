@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';
-import type { RulebookContentsDraftV1, RulebookContentsV1 } from './contents';
+import type { RulebookBlockDraft, RulebookContentsDraftV1, RulebookContentsV1 } from './contents';
 import { createRulebookStarterContents } from './fixtures';
-import { projectRulebookDraftRenderDocument, projectRulebookRenderDocument } from './projectRenderDocument';
+import {
+  projectRulebookDraftRenderBlock,
+  projectRulebookDraftRenderDocument,
+  projectRulebookRenderDocument,
+} from './projectRenderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS } from './settings';
 
 const assets = {
@@ -83,5 +87,21 @@ describe('Rulebook render-document projection', () => {
     expect(() =>
       projectRulebookRenderDocument(contents as unknown as RulebookContentsV1, assets, DEFAULT_RULEBOOK_SETTINGS)
     ).toThrow('Formatted text must be valid');
+  });
+});
+
+describe('AssetExplainer Sector lines projection', () => {
+  it('carries Sector lines into the rendered block only when the author turned them on', () => {
+    const block: Extract<RulebookBlockDraft, { kind: 'asset-explainer' }> = {
+      id: 'MAPX',
+      kind: 'asset-explainer',
+      caption: '',
+      numbering: 'automatic',
+      colorMode: 'automatic',
+      itemOrder: [],
+      itemsById: {},
+    };
+    expect(projectRulebookDraftRenderBlock({ ...block, sectorLines: true }, {})).toMatchObject({ sectorLines: true });
+    expect(projectRulebookDraftRenderBlock(block, {})).not.toHaveProperty('sectorLines');
   });
 });

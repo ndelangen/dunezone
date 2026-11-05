@@ -160,6 +160,23 @@ describe('immutable annotated illustration delivery', () => {
     });
   });
 
+  test('sends Sector lines only when the published block turns them on', async () => {
+    const f = await fixture();
+    const block = f.contents.pagesById.PAGE!.blocksById.BLC2!;
+    if (block.kind !== 'asset-explainer') {
+      throw new Error('Expected explainer');
+    }
+    block.sectorLines = true;
+    await publish(f);
+    const found = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity);
+    expect(found).toMatchObject({ status: 'found', configuration: { sectorLines: true } });
+    const off = await fixture();
+    await publish(off);
+    const plain = await off.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, off.identity);
+    expect(plain.status).toBe('found');
+    expect(plain.status === 'found' ? plain.configuration : undefined).not.toHaveProperty('sectorLines');
+  });
+
   test('Rulebook and Ruleset deletion gate retained annotations, and missing identities do not fall back', async () => {
     const f = await fixture();
     await publish(f);
@@ -251,30 +268,13 @@ describe('immutable annotated illustration delivery', () => {
     block.source = { kind: 'board', boardId: board.id };
     block.itemsById.first!.target = { kind: 'named', key: 'arrakeen', source: block.source };
     await publish(f);
-    const resolved = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, {
-      ...f.identity,
-      schemaVersion: 2,
-    });
+    const resolved = await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity);
     expect(resolved).toMatchObject({
       source: { status: 'image', assetType: 'board', assetId: board.id, revision },
     });
     expect(resolved.status === 'found' && resolved.source.status === 'image' && resolved.source.geometry).toEqual(
       geometry
     );
-    /* A Worker released before saved boards still asks during a release, and gets the built-in Arrakis it draws. */
-    const builtIn = { kind: 'board', boardId: 'arrakis' };
-    expect(await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity)).toMatchObject({
-      status: 'found',
-      source: { status: 'board', boardId: 'arrakis' },
-      configuration: { source: builtIn, items: [{ target: { kind: 'named', key: 'arrakeen', source: builtIn } }] },
-    });
-    /* Any other saved board reads as pending for it. */
-    await f.t.run(async (ctx) => {
-      await ctx.db.patch('assets', board.id, { slug: 'another-board' });
-    });
-    expect(await f.t.query(internal.rulebookAnnotatedIllustration.resolveDelivery, f.identity)).toMatchObject({
-      source: { status: 'pending' },
-    });
   }, 30_000);
 
   test('the backend boundary requires executor credentials and rejects arbitrary payloads and oversized bodies', async () => {
@@ -285,15 +285,15 @@ describe('immutable annotated illustration delivery', () => {
       headers: { 'Content-Type': 'application/json', ...(secret ? { Authorization: `Bearer ${secret}` } : {}) },
       body: JSON.stringify(body),
     });
-    const body = { schemaVersion: 1, ...f.identity };
+    const body = { schemaVersion: 2, ...f.identity };
     for (const secret of [undefined, 'activation-secret', 'wrong']) {
       expect((await f.t.fetch(endpoint, request(body, secret))).status).toBe(404);
     }
     const response = await f.t.fetch(endpoint, request(body, 'executor-secret'));
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ status: 'found' });
-    expect((await f.t.fetch(endpoint, request({ ...body, schemaVersion: 2 }, 'executor-secret'))).status).toBe(200);
     for (const invalid of [
+      { ...body, schemaVersion: 1 },
       { ...body, schemaVersion: 3 },
       { ...body, pageId: '../x' },
       { ...body, editionNumber: 0 },

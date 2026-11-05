@@ -446,6 +446,7 @@ export function projectRulebookDraftRenderBlock(
       caption: block.caption,
       numbering: block.numbering,
       colorMode: block.colorMode,
+      ...(block.sectorLines ? { sectorLines: true } : {}),
       items: block.itemOrder.flatMap((id) => block.itemsById[id] ?? []),
     };
   }

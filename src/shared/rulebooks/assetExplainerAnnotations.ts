@@ -1,10 +1,14 @@
-import { COMPONENT_PART_LABELS, componentGeometrySchema } from '../asset-publishing/componentGeometry';
+import {
+  COMPONENT_PART_LABELS,
+  componentGeometrySchema,
+  SECTORS_PART_KEY,
+} from '../asset-publishing/componentGeometry';
 import type { ComponentGeometry } from '../asset-publishing/componentGeometry';
 import { rulebookAssetExplainerColorSchema } from './contents';
 import type { RulebookRenderBlockV1 } from './renderDocument';
 import type { RulebookDesign } from './settings';
 import type { RulebookSourceReference } from './sources';
-import { rulebookSourceClipPath } from './sources';
+import { rulebookSourceClipPath, rulebookSourceTakesSectorLines } from './sources';
 
 type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
 type Point = Readonly<{ x: number; y: number }>;
@@ -44,6 +48,8 @@ export type RulebookAnnotationProjection = Readonly<{
   sourceName: string;
   sourceClipPath?: string;
   sourceShadow?: string;
+  /** Faint sector lines under every annotation, drawn when the block turns on Sector lines for a board. */
+  sourceGuides?: Part['highlight'];
   width: number;
   height: number;
   design: RulebookDesign;
@@ -131,9 +137,20 @@ function namedMarker(part: Part, kind: RulebookSourceReference['kind']): { marke
   return { marker, connector: center };
 }
 
+/* A storm sector line is one open straight stretch; a territory outline is a closed ring. */
+const SECTOR_LINE_PATH = /^M[^MLZz]+L[^MLZz]+$/;
+
+/* The board's storm sector lines; a saved board lets a territory it names Sectors take the part over, so only open straight stretches count and a closed territory outline is never drawn as one. */
+function sectorGuides(geometry: ComponentGeometry): Part['highlight'] {
+  const paths = geometry.parts
+    .find(({ key }) => key === SECTORS_PART_KEY)
+    ?.highlight?.paths.filter(({ d }) => SECTOR_LINE_PATH.test(d.trim()));
+  return paths?.length ? { paths } : undefined;
+}
+
 /** A source replacement preserves the saved target as unavailable until the author explicitly binds it again. */
 export function projectRulebookAssetExplainerAnnotations(
-  block: Pick<Explainer, 'source' | 'numbering' | 'colorMode' | 'items'>,
+  block: Pick<Explainer, 'source' | 'numbering' | 'colorMode' | 'items' | 'sectorLines'>,
   design: RulebookDesign = 'illustrated'
 ): RulebookAnnotationProjection {
   if (block.items.length > 128) {
@@ -200,6 +217,9 @@ export function projectRulebookAssetExplainerAnnotations(
         source.reference.kind === 'faction-troop')
         ? `drop-shadow(0 ${Math.min(width, height) * 0.008}px ${Math.min(width, height) * 0.008}px rgb(0 0 0 / 45%))`
         : undefined,
+    ...(block.sectorLines && source.status === 'ready' && rulebookSourceTakesSectorLines(source.reference) && geometry
+      ? { sourceGuides: sectorGuides(geometry) }
+      : {}),
     sourceKind: source.status === 'unselected' ? undefined : source.reference.kind,
     sourceName:
       source.status === 'ready'
@@ -254,14 +274,41 @@ export function rulebookAnnotationCanvas(projection: RulebookAnnotationProjectio
   };
 }
 
+type HighlightPath = NonNullable<Part['highlight']>['paths'][number];
+
+const highlightTransform = (width: number, height: number, matrix: HighlightPath['transform']) =>
+  `scale(${width} ${height})${matrix ? ` matrix(${matrix.join(' ')})` : ''}`;
+
+/** One image pixel in a highlight path's own units, so a stroke keeps its width however the geometry is scaled. */
+function pathPixel(width: number, height: number, matrix: HighlightPath['transform']) {
+  const [a, b, c, d] = matrix ?? [1, 0, 0, 1];
+  return 1 / (Math.sqrt(width * height) * Math.sqrt(Math.abs(a * d - b * c)) || 1);
+}
+
 export function rulebookAnnotationShapes(projection: RulebookAnnotationProjection): RulebookAnnotationShape[] {
   const { width, height } = projection;
   const unit = Math.min(width, height);
   const radius = unit * 0.036;
   const shapes: RulebookAnnotationShape[] = [];
+  for (const path of projection.sourceGuides?.paths ?? []) {
+    const pixel = pathPixel(width, height, path.transform);
+    shapes.push({
+      tag: 'path',
+      attributes: {
+        'data-rulebook-guide': SECTORS_PART_KEY,
+        d: path.d,
+        transform: highlightTransform(width, height, path.transform),
+        fill: 'none',
+        stroke: '#000000',
+        'stroke-opacity': 0.3,
+        'stroke-width': unit * 0.002 * pixel,
+        'stroke-dasharray': `${unit * 0.012 * pixel} ${unit * 0.008 * pixel}`,
+      },
+    });
+  }
   for (const entry of projection.entries) {
     for (const path of entry.highlight?.paths ?? []) {
-      const transform = `scale(${width} ${height})${path.transform ? ` matrix(${path.transform.join(' ')})` : ''}`;
+      const transform = highlightTransform(width, height, path.transform);
       if (/[zZ]/.test(path.d)) {
         shapes.push({
           tag: 'path',
@@ -277,8 +324,7 @@ export function rulebookAnnotationShapes(projection: RulebookAnnotationProjectio
         continue;
       }
       /* A path that never closes is a line, such as a storm sector line: filling it draws nothing, so it is drawn as a dashed stroke whose width and dashes are measured in the image's pixels. */
-      const [a, b, c, d] = path.transform ?? [1, 0, 0, 1];
-      const pixel = 1 / (Math.sqrt(width * height) * Math.sqrt(Math.abs(a * d - b * c)) || 1);
+      const pixel = pathPixel(width, height, path.transform);
       shapes.push({
         tag: 'path',
         attributes: {

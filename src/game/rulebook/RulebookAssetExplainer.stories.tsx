@@ -8,6 +8,7 @@ import {
   explainerPage,
   incompleteExplainerFixture,
   leaderExplainerFixture,
+  savedBoardExplainerFixture,
 } from './RulebookAssetExplainer.stories.fixture';
 import { RulebookPageRenderer } from './RulebookRenderer';
 
@@ -15,15 +16,21 @@ function ExplainerStory({
   specimen = 'board',
   size = 'a4',
   design = 'illustrated',
-}: Readonly<Partial<RulebookSettings> & { specimen?: 'board' | 'custom-colors' | 'leader' | 'unavailable' }>) {
+}: Readonly<
+  Partial<RulebookSettings> & {
+    specimen?: 'board' | 'saved-board' | 'saved-board-sector-lines' | 'custom-colors' | 'leader' | 'unavailable';
+  }
+>) {
   const block =
     specimen === 'board'
       ? boardExplainerFixture()
-      : specimen === 'custom-colors'
-        ? customColorExplainerFixture()
-        : specimen === 'leader'
-          ? leaderExplainerFixture()
-          : incompleteExplainerFixture();
+      : specimen === 'saved-board' || specimen === 'saved-board-sector-lines'
+        ? savedBoardExplainerFixture(specimen === 'saved-board-sector-lines')
+        : specimen === 'custom-colors'
+          ? customColorExplainerFixture()
+          : specimen === 'leader'
+            ? leaderExplainerFixture()
+            : incompleteExplainerFixture();
   return (
     <div style={{ width: size === 'tall' ? 'min(24rem, 92vw)' : 'min(44rem, 92vw)' }}>
       <RulebookPageRenderer page={explainerPage(block)} settings={{ size, design }} />
@@ -53,6 +60,22 @@ export const Strongholds = meta.story({
     await expectContained(context);
     await expect(context.canvasElement.querySelectorAll('[data-rulebook-marker]')).toHaveLength(6);
     await expect(context.canvasElement.querySelectorAll('[data-rulebook-highlight]')).not.toHaveLength(0);
+  },
+});
+/** A saved board's image prints no storm sector lines, so the map shows none until the author turns Sector lines on. */
+export const SavedBoard = meta.story({
+  args: { specimen: 'saved-board', size: 'square' },
+  play: async (context) => {
+    await expectContained(context);
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
+  },
+});
+/** Sector lines draw the board's 18 storm sector lines faintly under every marker. */
+export const SavedBoardWithSectorLines = meta.story({
+  args: { specimen: 'saved-board-sector-lines', size: 'square' },
+  play: async (context) => {
+    await expectContained(context);
+    await expect(context.canvasElement.querySelectorAll('[data-rulebook-guide="sectors"]')).toHaveLength(18);
   },
 });
 /** Manual colours replace the automatic palette on the third and fourth markers and on their legend badges alike. */

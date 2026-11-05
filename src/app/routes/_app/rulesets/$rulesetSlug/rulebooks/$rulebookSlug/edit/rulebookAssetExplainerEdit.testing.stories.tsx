@@ -1,7 +1,11 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { boardExplainerFixture, leaderExplainerFixture } from '@game/rulebook/RulebookAssetExplainer.stories.fixture';
+import {
+  boardExplainerFixture,
+  leaderExplainerFixture,
+  savedBoardExplainerFixture,
+} from '@game/rulebook/RulebookAssetExplainer.stories.fixture';
 
 import { ExplainerStory } from './rulebookAssetExplainerEdit.stories.fixture';
 
@@ -86,5 +90,38 @@ export const Empty = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Add explanation' }));
     await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('');
     await expect(canvas.getAllByRole('button', { name: /Reorder explanation/ })).toHaveLength(1);
+  },
+});
+
+/** Sector lines are off by default; turning them on draws the board's storm sector lines faintly in the preview. */
+export const SectorLines = meta.story({
+  render: () => <ExplainerStory initial={savedBoardExplainerFixture()} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('switch', { name: 'Sector lines' });
+    await expect(toggle).not.toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
+    await userEvent.click(toggle);
+    await expect(toggle).toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide="sectors"]')).toHaveLength(18);
+    await userEvent.click(toggle);
+    await expect(toggle).not.toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
+  },
+});
+
+/** Only a board has storm sectors, so other sources show no Sector lines switch. */
+export const NoSectorLinesForComponents = meta.story({
+  render: () => <ExplainerStory initial={leaderExplainerFixture()} />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('switch', { name: 'Sector lines' })).toBeNull();
+  },
+});
+
+/** The built-in Arrakis artwork prints its own sector lines, so it offers no switch that would draw them twice. */
+export const NoSectorLinesForBuiltInBoard = meta.story({
+  render: () => <ExplainerStory initial={boardExplainerFixture()} />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('switch', { name: 'Sector lines' })).toBeNull();
   },
 });

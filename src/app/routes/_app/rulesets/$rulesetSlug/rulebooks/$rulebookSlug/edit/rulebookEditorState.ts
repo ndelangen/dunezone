@@ -304,6 +304,12 @@ const setIntentSchema = z.union([
   }),
   z.strictObject({
     kind: z.literal('set'),
+    target: blockRefSchema,
+    field: z.literal('sector-lines'),
+    value: z.literal(true).optional(),
+  }),
+  z.strictObject({
+    kind: z.literal('set'),
     target: itemRefSchema,
     field: z.literal('label'),
     value: assetExplainerItemSchema.shape.label,
@@ -1461,6 +1467,10 @@ function setBlockField(block: RulebookBlockDraft, field: RulebookFieldName, valu
       block.colorMode = value;
       return;
     }
+    if (field === 'sector-lines') {
+      block.sectorLines = value === true ? true : undefined;
+      return;
+    }
   }
   if (field === 'source' && block.kind === 'card-entry') {
     block.source = rulebookSourceReferenceSchema.optional().parse(value);
@@ -1964,6 +1974,7 @@ function fieldRecords(contents: RulebookContentsDraftV1): FieldRecord[] {
     if (block.kind === 'asset-explainer') {
       add('numbering', block.numbering);
       add('color-mode', block.colorMode);
+      add('sector-lines', block.sectorLines);
     }
     if (block.kind === 'referenced-illustration' || block.kind === 'asset-explainer') {
       add('source', block.source);
