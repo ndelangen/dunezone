@@ -31,6 +31,7 @@ function room() {
     owner: 'atreides',
     label: 'Paul',
     stackKey: 'leader:atreides:paul',
+    shuffleRevision: 3,
     position: [-2, 0.14, 0],
     items: [
       {
@@ -71,6 +72,7 @@ test('a leader played face down out of a hand cannot be told apart by the ids or
   expect(played.stackKey).not.toBe(seen.stackKey);
   /* Nor by how often it was turned over while everyone watched. */
   expect(played.flipRevision).toBeUndefined();
+  expect(played.shuffleRevision).toBeUndefined();
   const sent = JSON.stringify(view);
   for (const known of [seen.id, seen.items[0]!.id, seen.stackKey!]) {
     expect(sent).not.toContain(known);
