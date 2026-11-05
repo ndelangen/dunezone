@@ -59,6 +59,7 @@ describe('Arrakis board migration', () => {
       expect(await f.t.mutation(internal.arrakisMigrations.arrakis_spice_cards_verify_v1, {})).toMatchObject({
         Status: expect.not.stringContaining('failed'),
       });
+      expect(await cardData(f, unlinkedId)).toEqual(publishingSpiceCard);
     },
     BUDGET_MS
   );
