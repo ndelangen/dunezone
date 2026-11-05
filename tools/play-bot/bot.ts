@@ -21,9 +21,12 @@ import {
   dropPoint,
   findTerritory,
   namedTerritories,
+  phaseOf,
+  placeOf,
   territoryOf,
 } from './describe';
 import { Lobby } from './lobby';
+import { SeatMemory } from './memory';
 import type { Rulebook } from './rulebook';
 import { BotView } from './view';
 
@@ -202,6 +205,25 @@ export class PlayBot {
 
   /* ---------------------------------------------------------------- incoming */
 
+  /** What this seat has seen, kept by the harness: every change and the cards it knows of. Absent until it has a faction. */
+  memory: SeatMemory | undefined;
+  /** How much of the memory's log the last prompt showed. */
+  private logShown = 0;
+
+  private remember() {
+    const snapshot = this.view.snapshot;
+    const me = this.view.factionId;
+    if (!snapshot || !me) {
+      return;
+    }
+    this.memory ??= new SeatMemory({
+      me,
+      name: (id) => this.view.factionName(id),
+      place: (piece) => placeOf(this.view, piece),
+    });
+    this.memory.observe(snapshot, phaseOf(this.view).label);
+  }
+
   private handle(message: ServerMessage) {
     this.view.apply(message);
     if (this.view.stale) {
@@ -218,6 +240,7 @@ export class PlayBot {
       this.log(`> Admission: ${message.status}`);
     }
     if (message.type === 'view' || message.type === 'update') {
+      this.remember();
       this.lobby.tick();
     }
     this.notice(message);
@@ -298,6 +321,7 @@ export class PlayBot {
       const prompt = this.prompt(reasons);
       /* What this prompt showed counts as seen; what others do while the brain thinks shows up on the next wake. */
       const shown = this.view.snapshot?.table.events[0]?.id ?? null;
+      const logShown = this.memory?.log.length ?? 0;
       this.event({ kind: 'think', brain: this.options.brain.name, promptChars: prompt.length });
       const answer = await this.options.brain.think(prompt, this);
       const thought = typeof answer === 'string' ? { text: answer } : answer;
@@ -306,6 +330,7 @@ export class PlayBot {
       this.log(`\n> Brain finished in ${seconds.toFixed(1)} s.${cost} ${thought.text.trim() || '(no summary)'}\n`);
       this.event({ kind: 'thought', summary: thought.text.trim(), seconds, usage: thought.usage });
       this.lastSeenEvent = shown;
+      this.logShown = logShown;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.log(`> Brain failed: ${message}`);
@@ -368,7 +393,15 @@ export class PlayBot {
       '',
       `Your private notes:\n${this.notes() || '(none yet)'}`,
       '',
-      `Current state:\n${describeView(this.view, { since: this.lastSeenEvent })}`,
+      ...(this.memory
+        ? [
+            `What you know of cards outside your hand:\n${this.memory.knowledge().join('\n') || '(nothing yet)'}`,
+            '',
+            `Changes since you last looked:\n${this.memory.since(this.logShown).join('\n') || '(none)'}`,
+            '',
+          ]
+        : []),
+      `Current state:\n${describeView(this.view, this.memory ? { log: false } : { since: this.lastSeenEvent })}`,
       '',
       `Recent chat:\n${describeChat(this.view, 12)}`,
     ]
@@ -850,6 +883,25 @@ export class PlayBot {
             return book.read(args.section);
           }
           return typeof args.query === 'string' && args.query.trim() ? book.search(args.query) : book.contents();
+        },
+      },
+      {
+        name: 'memory',
+        description:
+          'What you have seen this game, kept for you: the cards you know of outside your hand and the full log of changes, newest last. `page` 2, 3, ... goes further back.',
+        inputSchema: { type: 'object', properties: { page: { type: 'number' } } },
+        run: async (args) => {
+          const memory = this.memory;
+          if (!memory) {
+            return 'Nothing is remembered before you have a faction.';
+          }
+          const page = Math.max(1, Math.floor(Number(args.page) || 1));
+          const lines = memory.log.slice(Math.max(0, memory.log.length - page * 40), memory.log.length - (page - 1) * 40);
+          return [
+            `Cards you know of outside your hand:\n${memory.knowledge().join('\n') || '(none)'}`,
+            `Log, page ${page} of ${Math.max(1, Math.ceil(memory.log.length / 40))} (turn and phase, then what changed):`,
+            ...lines.map((line) => `T${line.turn} ${line.phase}: ${line.text}`),
+          ].join('\n');
         },
       },
       {

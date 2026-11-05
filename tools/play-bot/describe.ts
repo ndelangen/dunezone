@@ -99,6 +99,8 @@ function pieceLine(view: BotView, piece: TablePiece) {
 export type DescribeOptions = {
   /** The newest table event the bot has already seen; only events after it are listed. */
   since?: string | null;
+  /** False leaves the table log out, for a prompt that shows the harness's own log of changes instead. */
+  log?: boolean;
 };
 
 /**
@@ -207,7 +209,7 @@ export function describeView(view: BotView, options: DescribeOptions = {}): stri
     lines.push('', `Shipment and Movement progress: ${JSON.stringify(snapshot.movement)}`);
   }
 
-  const all = snapshot.table.events;
+  const all = options.log === false ? [] : snapshot.table.events;
   const seen = options.since ? all.findIndex((event) => event.id === options.since) : -1;
   const events = (seen >= 0 ? all.slice(0, seen) : all).slice(0, 12);
   if (events.length) {
@@ -215,7 +217,7 @@ export function describeView(view: BotView, options: DescribeOptions = {}): stri
     for (const event of events) {
       lines.push(`- ${event.message}`);
     }
-  } else if (options.since) {
+  } else if (options.since && options.log !== false) {
     lines.push('', 'Nothing new in the table log since you last looked.');
   }
   return lines.join('\n');
@@ -290,7 +292,7 @@ function itemType(piece: TablePiece) {
 }
 
 /** Where a piece lies, in words: a territory, the Tanks, or off the board. */
-function placeOf(view: BotView, piece: TablePiece) {
+export function placeOf(view: BotView, piece: TablePiece) {
   if (piece.inventory) {
     return 'the shared inventory';
   }
