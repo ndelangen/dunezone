@@ -28,28 +28,24 @@ Dune Play table, for a few 1v1 development games and a tech demo. It is not a pr
 
 ## Start and watch the bots
 
+One harness is one bot: a process that holds that bot's seat, serves its tools as an MCP endpoint (`/mcp`, which the
+bot's agent CLI reaches with its seat token in the connection header) and shows that bot on a page of its own.
+One page manages them all:
+
 ```bash
-bun run play:bot:harness                                               # http://127.0.0.1:4747, start bots from its page
-bun run play:bot:harness -- --game <URL> --factions fremen,harkonnen   # start them at once
+bun run play:bot:watch                                                # http://127.0.0.1:4747
+bun run play:bot:harness -- --game <URL> --faction fremen             # or one harness by hand
 ```
 
-Run it as many times as you like on one machine, one harness per bot or several bots per harness. The first takes port
-4747 and each later one a free port (it prints which). Each seat claims a bot account no other harness holds, so two
-harnesses never sign in as the same bot; an account whose harness has ended is free again. Every harness's page shows all
-the bots on the machine and links to the harness that plays each one; only that harness can stop it.
-
-A page on your machine, and the **seat harness**: one process that holds every bot's seat and serves all their tools as a
-single MCP server at http://127.0.0.1:4747/mcp. With the stack running, paste the game's URL, list the factions the bots
-should draft and press Start bots. Each faction's account joins the game as a person's page does (the table sees the seat
-request and approves it) and gets a seat token. The agent CLI that thinks for that seat connects to `/mcp` with the token in
-its connection header, so the model acts only for its own seat and never sees the token. Each seat keeps its own memory,
-notes and log. The same shape could later run in the game Worker, so players bring their own model. Each bot shows its status
-(connected, asking for a seat, seated, playing, thinking, stopped, with the error if it stopped) and a Stop button. Below
-that, per bot: whether it is thinking, what woke it (or why a message did not), every
-tool call and whether the room refused it, what it concluded, how long it thought, and its tokens (with the share read from
-the cache) and cost so far. It reads each bot's `events.jsonl` beside its transcript and refreshes itself. Private notes stay
-hidden unless you tick "Show private notes", so a screen recording does not give a bot's plans away. `--dir` points it at a
-demo's output instead, such as `tools/play-bot/out/three-player-<stamp>`.
+On the manager page, paste the game's URL, list the factions and press Start bots: it starts one harness process per
+faction. Each claims a bot account no other harness holds (an account whose harness ended is free again), so harnesses
+never sign in as the same bot, and takes a free port for its own page. The manager shows every bot on the machine,
+however it was started, with its status (joining, asking for a seat, seated, playing, thinking, not running), a link to
+its harness and a Stop button, which ends that harness and gives its account back. The harnesses keep running if the
+manager page stops. Per bot it lists what woke it (or why a message did not), every tool call and whether the room refused
+it, what it concluded, how long it thought, and its tokens (with the share read from the cache) and cost so far. Private
+notes stay hidden unless you tick "Show private notes", so a screen recording does not give a bot's plans away.
+`--dir` points the page at a demo's output instead, such as `tools/play-bot/out/three-player-<stamp>`.
 
 ## What a wake costs, and the rules
 
@@ -119,7 +115,7 @@ seat as a bot: the accounts have ordinary names (Alex, Sam, ...), and each bot i
 2. `bun run play:bot:stack -- --mirror tools/play-bot/out/mirror/gf9 --bots 2`
 3. Create a 3-player game on "GF9 (local copy)" as `player@example.invalid`, draft Emperor and confirm Ready.
 4. `bun run play:bot:watch` in another terminal, open http://127.0.0.1:4747 beside the game, paste the game URL and
-   press Start bots (or run `bun run play:bot:table -- --game <URL>` from a terminal) starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
+   press Start bots with `fremen,harkonnen`: two harnesses, one per bot starts two separate bots: account 1 drafts Fremen, account 2 Harkonnen
    (`--factions` changes that). Approve both seat requests. The deal is random among the three drafted factions; during
    trading each bot offers a swap to whoever holds its faction, so accept the swap offers you get.
 6. Name the faction you are talking to at the table ("Fremen, ..."). At a table of three or more a bot wakes on table

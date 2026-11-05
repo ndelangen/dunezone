@@ -1,11 +1,12 @@
 /*
- * The seat harness: one process that holds any number of seats and serves all their tools as one MCP server.
+ * The seat harness: what one bot's process holds (`play:bot:harness` runs one per bot, and the manager page starts them),
+ * serving its seat's tools as an MCP server.
  * Joining a game takes a seat as a person's page does (the table sees the request and approves it) and hands back a
  * seat token. The agent CLI that thinks for a seat connects to this server's `/mcp` with that token in its connection
- * header, so the model acts only through its own seat and never sees the token. Each seat keeps its own memory, notes
- * and log, built only from what its seat sees; nothing tells one seat about another.
+ * header, so the model acts only through its own seat and never sees the token. The seat keeps its own memory, notes
+ * and log, built only from what its seat sees; nothing tells it about other seats.
  *
- * Today it runs on this machine (the launcher page, `play:bot:watch`, hosts it). The same shape could later run in the
+ * Today it runs on this machine. The same shape could later run in the
  * game Worker, at a per-seat address behind the seat pass, so players bring their own model.
  */
 import { randomBytes } from 'node:crypto';
