@@ -1,5 +1,7 @@
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ArrowRight, Merge } from 'lucide-react';
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
@@ -136,7 +138,9 @@ function ConnectionStatus({
           <Text>
             {provider} is now connected to {connection.targetName}. Your content and access have been combined.
           </Text>
-          <Button onClick={onContinue}>Continue with {provider}</Button>
+          <LabeledAction intent="positive" emphasis="strong" icon={<ArrowRight size={16} />} onClick={onContinue}>
+          {`Continue with ${provider}`}
+        </LabeledAction>
         </>
       );
   }
@@ -175,9 +179,9 @@ function ConnectionReview({
       </Text>
       <Text size="sm">This merge cannot be undone. You will sign in once more when it finishes.</Text>
       <Group>
-        <Button loading={busy} onClick={onAccept}>
+        <LabeledAction intent="positive" emphasis="strong" icon={<Merge size={16} />} busy={busy} onClick={onAccept}>
           Connect and merge profiles
-        </Button>
+        </LabeledAction>
         <Link to="/profiles">Cancel</Link>
       </Group>
     </>

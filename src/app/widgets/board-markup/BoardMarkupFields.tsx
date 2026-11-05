@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Slider, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Alert, Group, Slider, Stack, Text, UnstyledButton } from '@mantine/core';
 import { tokenShapeAspect, tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { Board } from '@shared/boards/geometry';
 import { BOARD_FRAME_SIZE, BOARD_MAX_TINTS, BOARD_MAX_TOKENS, moveToken, paintTint } from '@shared/boards/markup';
@@ -10,7 +10,8 @@ import { FormError } from '@ui/block/FormError';
 import { helpLines } from '@ui/content/helpLines';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -422,14 +423,17 @@ export function BoardTokenFields({
             />
           ))}
           <Group>
-            <Button
-              variant="default"
+            <LabeledAction
+              intent="positive"
               size="compact-sm"
-              disabled={tokens.length >= BOARD_MAX_TOKENS}
+              icon={<Plus size={14} />}
+              disabledReason={
+                tokens.length >= BOARD_MAX_TOKENS ? `A board holds at most ${BOARD_MAX_TOKENS} tokens.` : undefined
+              }
               onClick={() => setPicking(true)}
             >
               Add a token
-            </Button>
+            </LabeledAction>
           </Group>
           {picking
             ? tokenPicker(

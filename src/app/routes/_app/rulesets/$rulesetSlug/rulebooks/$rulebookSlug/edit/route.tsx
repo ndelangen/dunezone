@@ -117,6 +117,7 @@ import {
   SlidersHorizontal,
   Settings,
   TextCursorInput,
+  X,
 } from 'lucide-react';
 import {
   memo,
@@ -2602,9 +2603,9 @@ function RulebookDifferenceReview({
       title="Review differences"
       description="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
       action={
-        <Button variant="default" onClick={onClose}>
+        <LabeledAction icon={<ArrowLeft size={16} />} onClick={onClose}>
           Back to editing
-        </Button>
+        </LabeledAction>
       }
     >
       <Stack gap="lg">
@@ -2691,9 +2692,9 @@ function RulebookDifferenceReview({
                     <Section title="Your draft">
                       {local}
                       {localOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, localOutcome!)}>
+                        <LabeledAction icon={<PenLine size={16} />} onClick={() => approve(difference, localOutcome!)}>
                           Keep your version
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2703,9 +2704,12 @@ function RulebookDifferenceReview({
                     <Section title="Latest saved version">
                       {latest}
                       {latestOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, latestOutcome!)}>
+                        <LabeledAction
+                          icon={<CloudDownload size={16} />}
+                          onClick={() => approve(difference, latestOutcome!)}
+                        >
                           {difference.kind === 'anchor' ? 'Use available anchor' : 'Keep saved version'}
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2786,17 +2790,29 @@ function RulebookRename({
       />
       {rename.error ? <FormError title="Rulebook could not be renamed">{rename.error.message}</FormError> : null}
       <Group gap="xs">
-        <Button
+        <LabeledAction
           type="submit"
-          color="confirm"
-          loading={rename.isPending}
-          disabled={!validName.success || name.trim() === rulebook.name}
+          intent="positive"
+          emphasis="strong"
+          icon={<PencilLine size={16} />}
+          busy={rename.isPending}
+          disabledReason={
+            !validName.success
+              ? 'Enter a name for the Rulebook.'
+              : name.trim() === rulebook.name
+                ? 'Type a new name first.'
+                : undefined
+          }
         >
           Rename Rulebook
-        </Button>
-        <Button variant="default" disabled={rename.isPending} onClick={onClose}>
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={rename.isPending ? 'Wait for the rename to finish.' : undefined}
+          onClick={onClose}
+        >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );

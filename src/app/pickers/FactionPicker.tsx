@@ -1,6 +1,8 @@
+import type { ActionIntent } from '@ui/control/actionIntent';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, X } from 'lucide-react';
 import {
   Anchor,
-  Button,
   Center,
   Combobox,
   Divider,
@@ -41,7 +43,8 @@ interface PickedFaction {
 }
 
 /* The picker owns the resolution, so a caller states the meaning and never a hue. */
-const CONFIRM_INTENT_COLOR = { positive: 'confirm', caution: 'orange' } as const;
+/* A pick that replaces work in progress takes the destructive tone; one that only adds takes the creating one. */
+const CONFIRM_INTENT = { positive: 'positive', caution: 'negative' } as const satisfies Record<string, ActionIntent>;
 
 /**
  * Everything the picker says, supplied by the caller.
@@ -247,17 +250,18 @@ export function FactionPicker(props: FactionPickerProps) {
               </Text>
             ) : null}
             <Group justify="flex-end" gap="xs">
-              <Button type="button" variant="default" size="compact-sm" onClick={props.onCancel}>
+              <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={props.onCancel}>
                 Cancel
-              </Button>
-              <Button
-                type="button"
-                color={CONFIRM_INTENT_COLOR[props.copy.confirmIntent]}
+              </LabeledAction>
+              <LabeledAction
+                intent={CONFIRM_INTENT[props.copy.confirmIntent]}
+                emphasis="strong"
                 size="compact-sm"
+                icon={<Check size={14} />}
                 onClick={() => commit(selectedRow)}
               >
                 {props.copy.confirmLabel}
-              </Button>
+              </LabeledAction>
             </Group>
           </Stack>
         </>

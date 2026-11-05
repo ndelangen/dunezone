@@ -7,7 +7,7 @@ import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 
-export interface LabeledActionProps extends Pick<ButtonProps, 'size'> {
+export interface LabeledActionProps extends Pick<ButtonProps, 'size' | 'justify'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
   children: string;
   /** The glyph before the words. Required: a worded button without one is the text-only button the app does not use. Marked decorative here, since the words carry the meaning. */
@@ -69,6 +69,7 @@ export function LabeledAction({
         <Tooltip label={disabledReason}>
           <Button
             size={buttonProps.size}
+            justify={buttonProps.justify}
             color={color}
             variant={variant}
             vars={vars}

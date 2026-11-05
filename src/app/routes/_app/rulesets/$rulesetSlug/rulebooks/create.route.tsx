@@ -1,4 +1,6 @@
-import { Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Plus, X } from 'lucide-react';
+import { Box, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -351,18 +353,25 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       </Text>
       {create.error ? <FormError title="Rulebook could not be created">{create.error.message}</FormError> : null}
       <Group gap="sm">
-        <Button type="submit" color="confirm" disabled={!input} loading={create.isPending}>
+        <LabeledAction
+          type="submit"
+          intent="positive"
+          emphasis="strong"
+          icon={<Plus size={16} />}
+          busy={create.isPending}
+          disabledReason={input ? undefined : 'Give the Rulebook a name and a size first.'}
+        >
           Create Rulebook
-        </Button>
-        <Button
-          variant="default"
-          disabled={create.isPending}
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={create.isPending ? 'Wait for the Rulebook to be created.' : undefined}
           renderRoot={(props) => (
             <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
           )}
         >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );

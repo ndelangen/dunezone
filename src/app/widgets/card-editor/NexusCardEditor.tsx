@@ -1,13 +1,14 @@
-import { Button, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { GENERIC, EMBLEM } from '@shared/assetIds';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { ScrollText, Shield } from 'lucide-react';
+import { Replace, ScrollText, Shield } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -81,9 +82,9 @@ function FactionFields({
           background={draft.factionSymbol.background}
         />
       ) : null}
-      <Button type="button" variant="default" onClick={() => setChoosing((current) => !current)}>
+      <LabeledAction icon={<Replace size={16} />} onClick={() => setChoosing((current) => !current)}>
         {draft.factionLink ? 'Change faction' : 'Choose faction'}
-      </Button>
+      </LabeledAction>
       {choosing ? (
         <FactionPicker
           copy={{

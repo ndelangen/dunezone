@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Button, Group, Popover, Radio, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Group, Popover, Radio, Stack, Text, TextInput, Title } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import {
@@ -32,12 +32,27 @@ import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, CircleAlert, CircleCheck, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  CircleAlert,
+  CircleCheck,
+  Layers3,
+  Link2,
+  Link2Off,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Replace,
+  X,
+} from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { usePlayReadiness } from '@db/play';
@@ -543,9 +558,14 @@ function PlayReadinessReport({
       id="play-readiness"
       title="Ready for Play"
       action={
-        <Button variant="light" size="compact-sm" onClick={onRecheck} loading={check.status === 'checking'}>
+        <LabeledAction
+          size="compact-sm"
+          icon={<RefreshCw size={14} />}
+          busy={check.status === 'checking'}
+          onClick={onRecheck}
+        >
           Check again
-        </Button>
+        </LabeledAction>
       }
     >
       <Surface padding="lg">
@@ -765,9 +785,7 @@ function RulesetFactions({
             </DndContext>
           ) : null}
           {ordered?.hasMore ? (
-            <Button variant="default" onClick={loadMore}>
-              Load more
-            </Button>
+            <LoadMoreButton loading={false} onLoadMore={loadMore} />
           ) : null}
           <Text size="xs" c="dimmed">
             Changes save immediately. The ruleset page shows the first three. Removing a faction only takes it out of
@@ -993,13 +1011,14 @@ function RulesetAssetSlots({
                 withinPortal
               >
                 <Popover.Target>
-                  <Button
-                    variant="light"
+                  <LabeledAction
                     size="compact-sm"
+                    intent={rule.single && held.length > 0 ? 'neutral' : 'positive'}
+                    icon={rule.single && held.length > 0 ? <Replace size={14} /> : <Plus size={14} />}
                     onClick={() => setOpenSlot(openSlot === slot ? null : slot)}
                   >
                     {rule.single && held.length > 0 ? 'Change' : 'Add'}
-                  </Button>
+                  </LabeledAction>
                 </Popover.Target>
                 <Popover.Dropdown>
                   <AssetPicker

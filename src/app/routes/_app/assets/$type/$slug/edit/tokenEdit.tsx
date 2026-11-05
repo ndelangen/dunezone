@@ -1,4 +1,4 @@
-import { Alert, Button, Group, Popover } from '@mantine/core';
+import { Alert, Group, Popover } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
@@ -8,8 +8,10 @@ import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
+import { Replace } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
@@ -288,7 +290,7 @@ function TokenEditSession({
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={(disabled) => (
+            backPicker={() => (
               <Group gap="xs" wrap="nowrap">
                 <TruncatedText size="sm" flex={1}>
                   {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
@@ -296,16 +298,13 @@ function TokenEditSession({
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
-                    <Button
-                      variant="default"
-                      color="gray"
+                    <LabeledAction
                       size="compact-sm"
-                      style={{ flexShrink: 0 }}
-                      disabled={disabled}
+                      icon={<Replace size={14} />}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
                       {state.memory.pickedBack ? 'Change' : 'Choose'}
-                    </Button>
+                    </LabeledAction>
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker

@@ -5,7 +5,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, Group, Loader, NumberInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Box, Button, NumberInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
 import type { RulebookContentsDraftV1, RulebookIllustrationSize } from '@shared/rulebooks/contents';
 import { createRulebookLocalId, rulebookIllustrationSizeSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
@@ -17,7 +17,7 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, useState } from 'react';
 
 const FactionPicker = lazy(() =>
   import('@app/pickers/FactionPicker').then((module) => ({ default: module.FactionPicker }))
@@ -307,49 +307,35 @@ export function FactionIntroductionEdit({
   onChange,
   references = emptyReferences,
 }: RulebookBlockEditorProps<'faction-introduction'>) {
-  const [opened, setOpened] = useState(false);
   const faction = value.factionId ? references.factionsById[value.factionId] : undefined;
   return (
     <Stack gap="md">
-      <ControlBlock
+      <PickerField
         title="Faction"
         description={
           'Name, emblem, ruler and Leaders follow the selected faction.\nYour introduction stays in this Block.'
         }
-        input={
-          <Stack gap="sm">
-            <Group gap="sm">
-              <Button variant="default" onClick={() => setOpened(!opened)}>
-                {value.factionId ? (faction?.name ?? 'Unavailable faction') : 'Choose faction'}
-              </Button>
-              {value.factionId ? (
-                <Button variant="subtle" onClick={() => onChange({ ...value, factionId: undefined })}>
-                  Clear faction
-                </Button>
-              ) : null}
-            </Group>
-            {opened ? (
-              <Suspense fallback={<Loader size="sm" aria-label="Loading factions" />}>
-                <FactionPicker
-                  copy={{
-                    title: 'Choose faction',
-                    intro: 'Introduce this faction in your Rulebook.',
-                    errorTitle: 'Faction could not be loaded',
-                    emptyMessage: 'No factions are available.',
-                    confirmTitle: 'Selected faction',
-                    confirmLabel: 'Use faction',
-                    confirmIntent: 'positive',
-                  }}
-                  onPick={(picked) => {
-                    onChange({ ...value, factionId: picked.id });
-                    setOpened(false);
-                  }}
-                  onCancel={() => setOpened(false)}
-                />
-              </Suspense>
-            ) : null}
-          </Stack>
-        }
+        chosen={value.factionId ? (faction?.name ?? 'Unavailable faction') : 'Choose faction'}
+        onClear={value.factionId ? () => onChange({ ...value, factionId: undefined }) : undefined}
+        loadingLabel="Loading factions"
+        picker={(close) => (
+          <FactionPicker
+            copy={{
+              title: 'Choose faction',
+              intro: 'Introduce this faction in your Rulebook.',
+              errorTitle: 'Faction could not be loaded',
+              emptyMessage: 'No factions are available.',
+              confirmTitle: 'Selected faction',
+              confirmLabel: 'Use faction',
+              confirmIntent: 'positive',
+            }}
+            onPick={(picked) => {
+              onChange({ ...value, factionId: picked.id });
+              close();
+            }}
+            onCancel={close}
+          />
+        )}
       />
       <ControlBlock
         title="Flip layout"

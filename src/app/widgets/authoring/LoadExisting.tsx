@@ -1,10 +1,11 @@
-import { Button, Center, Checkbox, Group, Loader, Popover, Stack, Text, Textarea } from '@mantine/core';
+import { Center, Checkbox, Group, Loader, Popover, Stack, Text, Textarea } from '@mantine/core';
 import { rawAuthoringError } from '@shared/authoring/raw';
 import { FormError } from '@ui/block/FormError';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Surface } from '@ui/surface/Surface';
 import { useDismissToolbarOverflow } from '@ui/surface/Toolbar';
-import { Import } from 'lucide-react';
+import { Braces, Import, X } from 'lucide-react';
 import { useEffect, useId, useReducer, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -231,20 +232,20 @@ function LoadConfirm<Draft>({
       <Text size="sm">{copy.intro}</Text>
       {source?.(report)}
       {onRaw ? (
-        <Button variant="default" onClick={onRaw}>
+        <LabeledAction icon={<Braces size={16} />} onClick={onRaw}>
           Paste JSON
-        </Button>
+        </LabeledAction>
       ) : null}
       {choice ? <ChoiceState choice={choice} noun={noun} note={copy.note} /> : null}
       <Group justify="flex-end">
-        <Button type="button" variant="default" size="compact-sm" onClick={onClose}>
+        <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={onClose}>
           Cancel
-        </Button>
-        <Button
-          type="button"
-          color="orange"
+        </LabeledAction>
+        <LabeledAction
+          intent="negative"
           size="compact-sm"
-          disabled={!loadable}
+          icon={<Import size={14} />}
+          disabledReason={loadable ? undefined : `Pick a ${noun} to load first.`}
           onClick={() => {
             if (loadable) {
               onLoaded(structuredClone(loadable.draft));
@@ -252,8 +253,8 @@ function LoadConfirm<Draft>({
             }
           }}
         >
-          Load {noun}
-        </Button>
+          {`Load ${noun}`}
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -396,11 +397,14 @@ function RawLoadInput<Draft>({
         />
       ) : null}
       <Group justify="flex-end">
-        <Button variant="default" onClick={onClose}>
+        <LabeledAction icon={<X size={16} />} onClick={onClose}>
           Cancel
-        </Button>
-        <Button
-          disabled={!state.choice || state.busy}
+        </LabeledAction>
+        <LabeledAction
+          intent="negative"
+          icon={<Import size={16} />}
+          busy={state.busy}
+          disabledReason={state.choice || state.busy ? undefined : `Paste a complete ${noun} first.`}
           onClick={() => {
             if (!state.choice) {
               return;
@@ -415,8 +419,8 @@ function RawLoadInput<Draft>({
             onClose();
           }}
         >
-          Load {noun}
-        </Button>
+          {`Load ${noun}`}
+        </LabeledAction>
       </Group>
     </Stack>
   );

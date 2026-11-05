@@ -1,5 +1,7 @@
-import { Button, Group, Popover, Stack, Text } from '@mantine/core';
+import { Group, Popover, Stack, Text } from '@mantine/core';
 import { TruncatedText } from '@ui/content/TruncatedText';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Replace } from 'lucide-react';
 import { useState } from 'react';
 
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -36,15 +38,9 @@ export function DeckBackPicker({
       {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
       <Popover opened={open} onChange={setOpen} width={340} position="bottom-start" withinPortal>
         <Popover.Target>
-          <Button
-            variant="default"
-            color="gray"
-            size="compact-sm"
-            style={{ flexShrink: 0 }}
-            onClick={() => setOpen((was) => !was)}
-          >
+          <LabeledAction size="compact-sm" icon={<Replace size={14} />} onClick={() => setOpen((was) => !was)}>
             {picked ? 'Change' : 'Choose'}
-          </Button>
+          </LabeledAction>
         </Popover.Target>
         <Popover.Dropdown>
           <AssetPicker

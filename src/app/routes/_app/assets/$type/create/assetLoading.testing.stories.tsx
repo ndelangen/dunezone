@@ -83,8 +83,10 @@ export const CardEditLoad = meta.story({
     await waitForFrame(() => page.getByRole('option', { name: /5 Sectors/ }));
     await expect(page.queryByRole('option', { name: /3 Sectors/ })).toBeNull();
     await userEvent.click(page.getByRole('option', { name: /5 Sectors/ }));
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: /^Load card$/ })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     const load = page.getByRole('button', { name: /^Load card$/ });
-    await waitFor(() => expect(load).toBeEnabled());
     await userEvent.click(load);
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('3 Sectors');
     await expect(page.getByText('Move the storm 5 sectors counter-clockwise.')).toBeVisible();
@@ -118,7 +120,9 @@ export const RawDeckKeepsMembers = meta.story({
     await userEvent.paste(
       JSON.stringify({ ...(before.asset.data as Record<string, unknown>), about: 'Reviewed deck description.' })
     );
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load deck' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Save deck' })).toHaveAccessibleDescription(/^Saved/));
@@ -160,7 +164,9 @@ export const RawDeckLinkedBack = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(value));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load deck' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load deck' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('button', { name: 'Load deck' }));
     await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await expect(page.getAllByText('Cardback, from Authored deck back')[0]).toBeVisible();
@@ -198,7 +204,9 @@ export const RawStyledTokenSave = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(replacement));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load token' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('button', { name: 'Load token' }));
     await expect((await loadAssetPage('token-disc', 'karama'))!.asset.data).toEqual(before.asset.data);
     await userEvent.click(page.getByRole('button', { name: 'Save token' }));
@@ -274,12 +282,14 @@ function rawLinkedToken(type: 'token-disc' | 'token-enhance', slug: string) {
       );
       await expect(page.getByRole('alert')).not.toHaveTextContent('[CONVEX');
       await expect(input).toHaveValue(invalid);
-      await expect(page.getByRole('button', { name: 'Load token' })).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Load token' })).toHaveAttribute('aria-disabled', 'true');
       await expect(page.getAllByText('Back, from Original token back')[0]).toBeVisible();
       await expect((await loadAssetPage(type, slug))!.asset.data).toEqual(before.asset.data);
       await userEvent.clear(input);
       await userEvent.paste(JSON.stringify(value));
-      await waitFor(() => expect(page.getByRole('button', { name: 'Load token' })).toBeEnabled());
+      await waitFor(() =>
+        expect(page.getByRole('button', { name: 'Load token' })).not.toHaveAttribute('aria-disabled', 'true')
+      );
       await userEvent.click(page.getByRole('button', { name: 'Load token' }));
       const proof = page.getAllByText('Back, from Authored token back')[0];
       await expect(proof).toBeVisible();

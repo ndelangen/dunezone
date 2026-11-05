@@ -1,6 +1,8 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Group, Stack } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { LayoutTemplate } from 'lucide-react';
 import { useRef } from 'react';
 import type { z } from 'zod';
 
@@ -157,18 +159,17 @@ function AssetLoadChoices<Data>({
       {presets?.length ? (
         <Group gap="xs">
           {presets.map((preset) => (
-            <Button
+            <LabeledAction
               key={preset.label}
-              type="button"
-              variant="default"
               size="compact-sm"
+              icon={<LayoutTemplate size={14} />}
               onClick={() => {
                 latest.current += 1;
                 report({ kind: 'chosen', name: preset.name, draft: { data: preset.data, source: null } });
               }}
             >
               {preset.label}
-            </Button>
+            </LabeledAction>
           ))}
         </Group>
       ) : null}

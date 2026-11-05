@@ -1,9 +1,23 @@
-import { Alert, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Alert, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import {
+  AlignHorizontalJustifyCenter,
+  AlignVerticalJustifyCenter,
+  BringToFront,
+  Coins,
+  Copy,
+  Crosshair,
+  Replace,
+  ScanText,
+  SendToBack,
+  Sticker,
+  Type,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -19,6 +33,15 @@ export type CardTokenPicker = (onPick: (id: string) => void, onCancel: () => voi
 type TokenContext = { tokens: z.infer<typeof CustomCardTokens>; tokenPicker: CardTokenPicker };
 
 type Patch = (update: Partial<CustomCardDraft>) => void;
+
+const LAYERS_FULL = `A card holds at most ${CUSTOM_CARD_MAX_LAYERS} layers.`;
+
+const LAYER_NAME: Record<CardLayer['kind'], string> = { decal: 'Decal', token: 'Token', text: 'Text' };
+const LAYER_ICON: Record<CardLayer['kind'], ReactNode> = {
+  decal: <Sticker size={16} />,
+  token: <Coins size={16} />,
+  text: <Type size={16} />,
+};
 
 function TextLayerFields({
   layer,
@@ -146,9 +169,9 @@ function TokenLayerFields({
       <Text size="sm" c="dimmed">
         The front stays linked to the original token. Editing that token updates this card.
       </Text>
-      <Button variant="default" onClick={() => setPicking(true)}>
+      <LabeledAction icon={<Replace size={16} />} onClick={() => setPicking(true)}>
         Replace token
-      </Button>
+      </LabeledAction>
       {picking
         ? tokenPicker(
             (asset_id) => {
@@ -337,39 +360,39 @@ function LayerPlacement({
         );
       })}
       <Group gap="xs">
-        <Button
-          variant="default"
+        <LabeledAction
           size="xs"
+          icon={<AlignHorizontalJustifyCenter size={14} />}
           onClick={() => onChange({ ...layer, offset: [isText ? -layer.width / 2 : 0, layer.offset[1]] })}
         >
           Centre horizontally
-        </Button>
-        <Button
-          variant="default"
+        </LabeledAction>
+        <LabeledAction
           size="xs"
+          icon={<AlignVerticalJustifyCenter size={14} />}
           onClick={() => onChange({ ...layer, offset: [layer.offset[0], isText ? -layer.height / 2 : 0] })}
         >
           Centre vertically
-        </Button>
+        </LabeledAction>
         {isText ? (
-          <Button
-            variant="default"
+          <LabeledAction
             size="xs"
+            icon={<ScanText size={14} />}
             onClick={() => {
               const body = newCardText(format, undefined, windowOffsetY);
               onChange({ ...layer, offset: body.offset, width: body.width, height: body.height });
             }}
           >
             Fit box to text body
-          </Button>
+          </LabeledAction>
         ) : format === 'decal-window' ? (
-          <Button
-            variant="default"
+          <LabeledAction
             size="xs"
+            icon={<Crosshair size={14} />}
             onClick={() => onChange({ ...layer, offset: [0, -161.5 + windowOffsetY] })}
           >
             {layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
-          </Button>
+          </LabeledAction>
         ) : null}
       </Group>
     </Stack>
@@ -390,6 +413,7 @@ export function CustomCardLayerPanel({
   onChapterChange: (chapter: CustomCardChapter) => void;
 }) {
   const layer = draft.layers[index];
+  const full = draft.layers.length >= CUSTOM_CARD_MAX_LAYERS;
   const move = (step: number) => {
     const layers = [...draft.layers];
     const target = index + step;
@@ -402,16 +426,26 @@ export function CustomCardLayerPanel({
   return (
     <Stack gap="lg">
       <Group gap="xs">
-        <Button size="xs" variant="default" disabled={index === 0} onClick={() => move(-1)}>
-          Move backward
-        </Button>
-        <Button size="xs" variant="default" disabled={index === draft.layers.length - 1} onClick={() => move(1)}>
-          Move forward
-        </Button>
-        <Button
+        <LabeledAction
           size="xs"
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+          icon={<SendToBack size={14} />}
+          disabledReason={index === 0 ? 'This layer is already at the back.' : undefined}
+          onClick={() => move(-1)}
+        >
+          Move backward
+        </LabeledAction>
+        <LabeledAction
+          size="xs"
+          icon={<BringToFront size={14} />}
+          disabledReason={index === draft.layers.length - 1 ? 'This layer is already at the front.' : undefined}
+          onClick={() => move(1)}
+        >
+          Move forward
+        </LabeledAction>
+        <LabeledAction
+          size="xs"
+          icon={<Copy size={14} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => {
             const duplicate = { ...structuredClone(layer), layerId: crypto.randomUUID() };
             patch({ layers: [...draft.layers.slice(0, index + 1), duplicate, ...draft.layers.slice(index + 1)] });
@@ -419,7 +453,7 @@ export function CustomCardLayerPanel({
           }}
         >
           Duplicate layer
-        </Button>
+        </LabeledAction>
         <ConfirmDeleteAction
           label="Remove layer"
           verb="remove"
@@ -458,6 +492,7 @@ export function CustomCardLayers({
   onChapterChange: (chapter: CustomCardChapter) => void;
 }) {
   const [picking, setPicking] = useState(false);
+  const full = draft.layers.length >= CUSTOM_CARD_MAX_LAYERS;
   const add = (layer: CardLayer) => {
     patch({ layers: [...draft.layers, layer] });
     onChapterChange(`layer:${layer.layerId}`);
@@ -465,27 +500,30 @@ export function CustomCardLayers({
   return (
     <Stack gap="md">
       <Group>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        <LabeledAction
+          intent="positive"
+          icon={<Sticker size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => add(newCardDecal())}
         >
           Add decal
-        </Button>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          icon={<Type size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => add(newCardText(draft.format, undefined, draft.windowOffsetY))}
         >
           Add text
-        </Button>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          icon={<Coins size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => setPicking(true)}
         >
           Add token
-        </Button>
+        </LabeledAction>
       </Group>
       {picking
         ? tokenPicker(
@@ -508,14 +546,15 @@ export function CustomCardLayers({
         </Alert>
       ) : null}
       {draft.layers.map((layer, index) => (
-        <Button
+        <LabeledAction
           key={layer.layerId}
-          variant="subtle"
+          emphasis="quiet"
           justify="start"
+          icon={LAYER_ICON[layer.kind]}
           onClick={() => onChapterChange(`layer:${layer.layerId}`)}
         >
-          {index + 1}. {layer.kind === 'decal' ? 'Decal' : layer.kind === 'token' ? 'Token' : 'Text'}
-        </Button>
+          {`${index + 1}. ${LAYER_NAME[layer.kind]}`}
+        </LabeledAction>
       ))}
     </Stack>
   );

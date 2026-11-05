@@ -1,4 +1,5 @@
-import { Alert, Avatar, Badge, Box, Button, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Alert, Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -25,23 +26,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  CircleHelp,
-  EllipsisVertical,
-  FileDown,
-  FileText,
-  History,
-  Layers3,
-  MessageCircleQuestionMark,
-  Pencil,
-  RefreshCw,
-  Search,
-  UserRoundMinus,
-  UsersRound,
-} from 'lucide-react';
+import { ArrowLeft, CheckCircle2, CircleHelp, EllipsisVertical, FileDown, FileText, History, Layers3, MessageCircleQuestion, MessageCircleQuestionMark, Pencil, RefreshCw, Search, UserRoundMinus, UsersRound } from 'lucide-react';
 import { useState } from 'react';
 
 import type { FaqItemWithDetails } from '@db/faq';
@@ -355,13 +340,12 @@ function RulesetFaqPreview({
       />
       {questionCount > items.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<MessageCircleQuestion size={16} />}
             renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
           >
-            All {questionCount} questions
-          </Button>
+            {`All ${questionCount} questions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Section>
@@ -711,12 +695,12 @@ function RulesetDetailPage() {
                     <FactionCard key={faction._id} faction={faction} />
                   ))}
                   {factionCount > page.factionPreview.length ? (
-                    <Button
-                      variant="default"
+                    <LabeledAction
+                      icon={<TopicIcon topic="factions" size={16} />}
                       renderRoot={(props) => <Link {...props} to="/factions" search={{ ruleset: r.slug }} />}
                     >
-                      All {factionCount} factions
-                    </Button>
+                      {`All ${factionCount} factions`}
+                    </LabeledAction>
                   ) : null}
                 </Stack>
               ) : (

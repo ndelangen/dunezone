@@ -1,4 +1,6 @@
-import { Button, Group, Slider, Stack, Text } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Replace, X } from 'lucide-react';
+import { Group, Slider, Stack, Text } from '@mantine/core';
 import { SPICE_BOARD_LOOKS } from '@shared/assets/schema';
 import type { CustomCardTokens, SpiceBoardLink } from '@shared/assets/schema';
 import type { Board } from '@shared/boards/schema';
@@ -242,13 +244,18 @@ export function SpiceTokenFields({
           <Stack gap="xs">
             {link.typeToken ? <Text>{typeToken?.name ?? 'Unavailable token'}</Text> : null}
             <Group>
-              <Button variant="default" onClick={() => setPickingType(true)}>
+              <LabeledAction icon={<Replace size={16} />} onClick={() => setPickingType(true)}>
                 {link.typeToken ? 'Change type token' : 'Choose type token'}
-              </Button>
+              </LabeledAction>
               {link.typeToken ? (
-                <Button variant="subtle" onClick={() => onLink({ ...link, typeToken: undefined })}>
+                <LabeledAction
+                  intent="negative"
+                  emphasis="quiet"
+                  icon={<X size={16} />}
+                  onClick={() => onLink({ ...link, typeToken: undefined })}
+                >
                   Remove type token
-                </Button>
+                </LabeledAction>
               ) : null}
             </Group>
             {pickingType
