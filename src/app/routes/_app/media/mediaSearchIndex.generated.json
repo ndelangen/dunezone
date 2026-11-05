@@ -2537,10 +2537,10 @@
     "tags": ["scarab", "beetle", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/ram-skull.svg": {
-    "description": "A bull skull with curved horns.",
-    "tags": ["skull", "vector"],
-    "subjects": ["people"]
+  "/vector/generic/harkonnen-ram.svg": {
+    "description": "A ram's head with curled horns, seen from the front.",
+    "tags": ["ram", "vector"],
+    "subjects": ["creatures"]
   },
   "/vector/generic/laurel-star.svg": {
     "description": "A four-pointed star inside a laurel wreath.",
@@ -2688,7 +2688,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/cronus.svg": {
+  "/vector/generic/oval-star.svg": {
     "description": "A four-pointed star inside an oval.",
     "tags": ["star", "vector"],
     "subjects": ["space"]

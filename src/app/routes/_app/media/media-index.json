@@ -3583,10 +3583,10 @@
     "credit": "found-online",
     "sourceHash": "7dfb390d2e15f30bfb80e1af6b50d284db45d636758498e7be8cd47bcb5818de"
   },
-  "/vector/generic/ram-skull.svg": {
-    "description": "A bull skull with curved horns.",
-    "tags": ["skull", "vector"],
-    "subjects": ["people"],
+  "/vector/generic/harkonnen-ram.svg": {
+    "description": "A ram's head with curled horns, seen from the front.",
+    "tags": ["ram", "vector"],
+    "subjects": ["creatures"],
     "credit": "found-online",
     "sourceHash": "bdbd408e13f9598de4aef681d1ee446179b4f45eb2f0e81b80f538c0f64e4530"
   },
@@ -3811,12 +3811,12 @@
     "credit": "found-online",
     "sourceHash": "fbf7058135e629a783080cd635ce0eb3ec6b3fa462ef4942ea574df6801e4f34"
   },
-  "/vector/generic/cronus.svg": {
+  "/vector/generic/oval-star.svg": {
     "description": "A four-pointed star inside an oval.",
     "tags": ["star", "vector"],
     "subjects": ["space"],
     "credit": "online-original",
-    "creditDetail": "Original: the mark of the Goa'uld System Lord Cronus from Stargate SG-1, by Richard Hudolin.",
+    "creditDetail": "Original: a symbol from Stargate SG-1, by Richard Hudolin.",
     "sourceHash": "e5c921e7f165ebdf67223482f095c99ec3706e154ec1452fab11ac7e7e8c6087"
   },
   "/vector/generic/ring-of-stars.svg": {
