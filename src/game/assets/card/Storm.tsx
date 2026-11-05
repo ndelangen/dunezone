@@ -3,6 +3,7 @@ import type { CustomCardTokens, StormCard as StormCardSchema } from '@shared/ass
 import { STORM_CARD_HEAD, STORM_CARD_ICON } from '@shared/assets/standardStormDeck';
 import type { z } from 'zod';
 
+import { stormMovementText } from './cardEffectText';
 import { CustomCard } from './Custom';
 import styles from './Storm.module.css';
 
@@ -15,7 +16,8 @@ export function StormCard({
   frontStyle?: CardFrontStyle;
   tokens?: z.infer<typeof CustomCardTokens>;
 }) {
-  const distance = `${sectors} ${sectors === 1 ? 'sector' : 'sectors'}`;
+  /* The printed line breaks inside "counter-clockwise", so the shared sentence is split at the hyphen. */
+  const [lead, tail] = stormMovementText(sectors).split('counter-');
   return (
     <div className={styles.card}>
       <CustomCard
@@ -30,9 +32,9 @@ export function StormCard({
         iconOpacity={1}
       />
       <div className={styles.movement}>
-        Move the storm {distance} counter-
+        {lead}counter-
         <br />
-        clockwise.
+        {tail}
       </div>
       <div className={styles.distance}>
         <img src="/vector/icon/storrm_standalone.svg" alt="" />

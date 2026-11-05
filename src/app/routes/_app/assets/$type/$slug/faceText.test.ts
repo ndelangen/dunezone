@@ -30,6 +30,7 @@ test('custom and storm cards print their text layers in paint order', () => {
     { kind: 'decal' },
     { kind: 'text', content: '' },
     { kind: 'text', content: 'Second' },
+    { kind: 'text', content: 'Faded out', opacity: 0 },
   ];
   expect(assetFaceText('card-custom', { layers })).toEqual([{ source: 'First' }, { source: 'Second' }]);
   expect(assetFaceText('card-storm', { sectors: 1, layers })).toEqual([
@@ -40,13 +41,14 @@ test('custom and storm cards print their text layers in paint order', () => {
 });
 
 test('multi-region cards keep the titles their faces print', () => {
-  expect(assetFaceText('card-leaderability', { generalText: 'General', battleText: '' })).toEqual([
-    { label: 'General ability', source: 'General' },
+  expect(assetFaceText('card-leaderability', { generalText: 'General', battleText: 'Battle' })).toEqual([
+    { source: 'General' },
+    { label: 'This leader in battle', source: 'Battle' },
   ]);
-  expect(assetFaceText('card-nexus', { betrayal: 'B', cunning: 'C', secretAlly: 'S' })).toEqual([
-    { label: 'Betrayal', source: 'B' },
-    { label: 'Cunning', source: 'C' },
-    { label: 'Secret Ally', source: 'S' },
+  expect(assetFaceText('card-nexus', { faction: 'Ixians', betrayal: 'B', cunning: 'C', secretAlly: 'S' })).toEqual([
+    { label: 'Betrayal (Cancel an Ixian advantage)', source: 'B' },
+    { label: 'Cunning (Ixians Only)', source: 'C' },
+    { label: 'Secret Ally (If the Ixians are not in the game)', source: 'S' },
   ]);
   expect(
     assetFaceText('card-homeworld', {
@@ -62,21 +64,21 @@ test('multi-region cards keep the titles their faces print', () => {
   ]);
 });
 
-test('tokens print their labels, naming the faces only when the back prints its own', () => {
-  const face = (top: string) => ({ top, bottomFirst: 'inner', bottomSecond: '' });
+test('tokens print their labels as typed, naming the faces unless the back repeats the front', () => {
+  const face = (top: string) => ({ top, bottomFirst: '-1-', bottomSecond: '' });
   expect(assetFaceText('token-disc', { front: face('Top'), back: { mode: 'same' } })).toEqual([
-    { source: 'Top\ninner' },
+    { source: 'Top\n-1-', plain: true },
   ]);
   expect(assetFaceText('token-disc', { front: face('Top'), back: { mode: 'custom', face: face('Under') } })).toEqual([
-    { label: 'Front', source: 'Top\ninner' },
-    { label: 'Back', source: 'Under\ninner' },
+    { label: 'Front', source: 'Top\n-1-', plain: true },
+    { label: 'Back', source: 'Under\n-1-', plain: true },
   ]);
   expect(assetFaceText('token-pointer', { front: face('Top'), back: { mode: 'same' } })).toEqual([]);
   expect(
     assetFaceText('token-enhance', {
-      front: { texts: [{ content: '+2' }] },
+      front: { texts: [{ content: '+2' }, { content: 'hidden', opacity: 0 }] },
       back: { mode: 'reference', asset_id: 'x' },
     })
-  ).toEqual([{ source: '+2' }]);
-  expect(assetFaceText('token-leader', { name: 'Duke', strength: 6 })).toEqual([{ source: 'Strength 6' }]);
+  ).toEqual([{ label: 'Front', source: '+2', plain: true }]);
+  expect(assetFaceText('token-leader', { name: 'Duke', strength: 6 })).toEqual([{ source: 'Strength 6', plain: true }]);
 });

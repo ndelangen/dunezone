@@ -50,6 +50,7 @@ import {
   Pencil,
   Replace,
 } from 'lucide-react';
+import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
 import { loadAssetDetailPage, useAssetDetailPage, useConvertTreacheryToCustom } from '@app/db/assets';
@@ -97,7 +98,16 @@ export const Route = createFileRoute('/_app/assets/$type/$slug/')({
       name: loaderData?.asset.name ?? 'Asset',
       kind: noun,
       pathname: `/assets/${encodeURIComponent(params.type)}/${encodeURIComponent(loaderData?.asset.slug ?? params.slug)}`,
-      description: publicDescription(loaderData?.asset.data.about),
+      /* Most cards leave About empty, and then the printed rules are the best summary of the page. */
+      description:
+        publicDescription(loaderData?.asset.data.about) ||
+        (loaderData && isAssetType(params.type)
+          ? publicDescription(
+              assetFaceText(params.type, loaderData.asset.data)
+                .map((entry) => entry.source)
+                .join('\n\n')
+            )
+          : ''),
       image: loaderData?.asset.previewHref,
       social: {
         shape:
@@ -344,16 +354,22 @@ function FaceTextSection({ type, entries }: { type: string; entries: FaceTextEnt
     >
       <Surface padding="lg">
         <Stack gap="md">
-          {entries.map((entry, position) =>
-            entry.label ? (
+          {entries.map((entry, position) => {
+            /* A token label is printed as typed, its line breaks kept; everything else is the formatted text the editor wrote. */
+            const body = entry.plain ? (
+              <Text className={styles.plainFaceText}>{entry.source}</Text>
+            ) : (
+              <FormattedTextSource source={entry.source} />
+            );
+            return entry.label ? (
               <Stack key={position} gap={4}>
                 <Eyebrow>{entry.label}</Eyebrow>
-                <FormattedTextSource source={entry.source} />
+                {body}
               </Stack>
             ) : (
-              <FormattedTextSource key={position} source={entry.source} />
-            )
-          )}
+              <Fragment key={position}>{body}</Fragment>
+            );
+          })}
         </Stack>
       </Surface>
     </Section>
