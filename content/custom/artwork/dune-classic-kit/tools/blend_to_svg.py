@@ -22,9 +22,9 @@ BLACK = '#000000'
 
 def within_cwd(path):
     """Resolve a command-line path, refusing anything outside the working directory."""
-    root = os.path.realpath(os.getcwd())
-    resolved = os.path.realpath(path)
-    if os.path.commonpath([root, resolved]) != root:
+    root = os.path.join(os.path.realpath(os.getcwd()), '')
+    resolved = os.path.realpath(os.path.join(root, path))
+    if not resolved.startswith(root):
         raise SystemExit(f'{path}: must be inside {root}')
     return resolved
 
