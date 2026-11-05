@@ -320,9 +320,7 @@ First checks: `account-deletion` records in the game Worker's logs. For the Conv
 (`convex/playDeletion.ts:110-116`), so the table is the only Convex-side view.
 
 Recovery: delivery retries on its own once the room and Convex answer. A room that cannot load
-cannot acknowledge (see "A room stuck"). For the retired hosted fixture, `retireFixtureRoom` gives
-up after 17 attempts with a logged error, and its comment says running it again from attempt 0
-resumes (`convex/playDeletion.ts:168-199`). The repository does not document the command to do so.
+cannot acknowledge (see "A room stuck").
 
 ### Watching a live session
 

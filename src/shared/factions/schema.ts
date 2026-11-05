@@ -60,7 +60,7 @@ function readFactionLeaderKey(input: unknown): unknown {
 
 /**
  * `readFactionLeaderKey` plus the emblem rename's old names read as the new ones, for the decoders that may meet data stored before either rename.
- * The emblem rename's fallback stays for the same three kinds of input (see src/shared/legacyEmblem.ts).
+ * The emblem rename's fallback stays for the same frozen copies (see src/shared/legacyEmblem.ts).
  */
 export function readLegacyFactionKeys(input: unknown): unknown {
   return renameLegacyEmblems(readFactionLeaderKey(input));
@@ -138,7 +138,8 @@ export function withSupportNames(value: unknown): unknown {
 /**
  * Stored-data reader for the support-names rename: the old names read as the new ones, and every write emits only the new ones.
  * Stored factions carry the new names;
- * frozen rulebook sheets, publication jobs and game captures from before the rename may not, so stored reads keep this.
+ * frozen rulebook sheets, publication jobs and game captures from before the rename may not, so their decoders keep this.
+ * It still sits in the shared troop shape, so the Convex row reader tolerates the old names too; moving it to the historical decoders' root is a planned follow-up.
  * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
  */
 const StoredTroopBattleValues = z.preprocess(withSupportNames, TroopBattleValues);
