@@ -35,9 +35,16 @@ export const biddingStateSchema = z.object({
   /* The factions that passed since the round opened or since its last raise. */
   passed: z.array(id),
   deadline: count.nullable(),
-  /* The high bid and the passes as they stood when the bidder came to the faction it points at, which its own raises lower back to. */
+  /*
+   * The high bid and the passes as they stood when the bidder came to the faction it points at, which its own raises lower back to,
+   * and the deadline its turn had then, or that its first raise started, which lowering all the way back returns to.
+   */
   turnStart: z
-    .object({ bid: z.object({ factionId: id, amount: count.min(1) }).nullable(), passed: z.array(id) })
+    .object({
+      bid: z.object({ factionId: id, amount: count.min(1) }).nullable(),
+      passed: z.array(id),
+      deadline: count.nullable().optional(),
+    })
     .optional(),
 });
 export type BiddingState = z.infer<typeof biddingStateSchema>;
@@ -153,7 +160,8 @@ function settle(
   { eligible, now }: Omit<BiddingContext, 'factionId'>
 ) {
   if (!roundEnds(state, next, passed, eligible)) {
-    return { ...state, turn: next, passed, deadline: turnDeadline(state, now), turnStart: { bid: state.bid, passed } };
+    const deadline = turnDeadline(state, now);
+    return { ...state, turn: next, passed, deadline, turnStart: { bid: state.bid, passed, deadline } };
   }
   return state.bid
     ? { ...state, stage: 'won' as const, turn: state.bid.factionId, passed, deadline: null }
@@ -216,7 +224,8 @@ export function canLowerBid(state: BiddingState, factionId: string | null): bool
 
 /*
  * One spice off a bid the faction raised this turn, never below the bid it found: taking back its last raise brings back
- * the bid it outbid, and the passes that raise had cleared. The clock runs on, so lowering never buys time.
+ * the bid it outbid, the passes that raise had cleared, and the clock as the turn had it. Lowering never buys time,
+ * so a raise taken back cannot renew the countdown.
  */
 function lowerBid(state: BiddingState, factionId: string): BiddingState {
   if (!canLowerBid(state, factionId)) {
@@ -225,7 +234,7 @@ function lowerBid(state: BiddingState, factionId: string): BiddingState {
   const amount = state.bid!.amount - 1;
   const start = state.turnStart!;
   if (amount <= (start.bid?.amount ?? 0)) {
-    return { ...state, bid: start.bid, passed: start.passed };
+    return { ...state, bid: start.bid, passed: start.passed, deadline: start.deadline ?? state.deadline };
   }
   return { ...state, bid: { factionId, amount } };
 }
@@ -235,13 +244,16 @@ function raiseBid(state: BiddingState, factionId: string, context: BiddingContex
   if (!context.eligible.includes(factionId)) {
     return refuse('Turn your faction token face up to bid.');
   }
+  const deadline = turnDeadline(state, context.now);
+  /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
+  const turnStart = state.turnStart ?? { bid: state.bid, passed: state.passed };
   return {
     ...state,
-    /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
-    turnStart: state.turnStart ?? { bid: state.bid, passed: state.passed },
+    /* A turn whose clock had not started yet takes the one its first raise starts, so lowering back cannot start it afresh. */
+    turnStart: { ...turnStart, deadline: turnStart.deadline ?? deadline },
     bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
     passed: [],
-    deadline: turnDeadline(state, context.now),
+    deadline,
   };
 }
 

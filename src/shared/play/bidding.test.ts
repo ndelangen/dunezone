@@ -186,6 +186,26 @@ describe('optional timed bidding', () => {
       expect(applyBidding(raised, { kind: 'bid-lower', round: 1 }, at('a'))).toMatchObject({ bid: null, turn: 'a' });
     });
 
+    test('never buys time: lowering back to the bid the faction found puts its clock back where the turn left it', () => {
+      let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 2000));
+      state = applyBidding(state, { kind: 'bid-pass', round: 1 }, at('a', order, 3000));
+      expect(state).toMatchObject({ turn: 'b', deadline: 28_000 });
+      state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('b', order, 27_000));
+      expect(state.deadline).toBe(52_000);
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('b', order, 27_500));
+      expect(state).toMatchObject({ turn: 'b', bid: { factionId: 'a', amount: 1 }, deadline: 28_000 });
+      expect(expireBid(state, at(null, order, 28_000))).toMatchObject({ turn: 'c', passed: ['b'] });
+    });
+
+    test('never buys time for the faction the round opened on, whose first raise started the clock', () => {
+      let state = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a', order, 2000));
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('a', order, 20_000));
+      state = applyBidding(state, { kind: 'bid-raise', round: 1 }, at('a', order, 26_000));
+      state = applyBidding(state, { kind: 'bid-lower', round: 1 }, at('a', order, 26_500));
+      expect(state).toMatchObject({ turn: 'a', bid: null, deadline: 27_000 });
+      expect(expireBid(state, at(null, order, 27_000))).toMatchObject({ turn: 'b', passed: ['a'] });
+    });
+
     test('is refused in a round opened before the bidder kept where the turn started', () => {
       const { turnStart: _kept, ...older } = applyBidding(opened(), { kind: 'bid-raise', round: 1 }, at('a'));
       expect(canLowerBid(older, 'a')).toBe(false);
