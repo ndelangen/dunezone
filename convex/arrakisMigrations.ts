@@ -29,8 +29,6 @@ const migrations = new Migrations(components.migrations, {
   schema,
 });
 
-/** The saved Arrakis board's slug: the stock board every built-in Arrakis reference moves to. */
-
 /** The id Rulebook Contents gave the built-in Arrakis board. */
 export const BUILT_IN_ARRAKIS_BOARD_ID = 'arrakis';
 
