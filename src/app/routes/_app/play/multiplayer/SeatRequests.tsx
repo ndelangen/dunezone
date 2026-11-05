@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
 import { idleBidding } from '@shared/play/bidding';
 import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
@@ -9,7 +9,8 @@ import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { IconAction } from '@ui/control/IconAction';
-import { Armchair, Settings } from 'lucide-react';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Armchair, ChevronLeft, ChevronRight, Radio, Settings, X } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -72,27 +73,25 @@ function SeatButton({
   client,
   table,
   action,
-  disabled = false,
-  variant,
-  color,
+  emphasis,
+  icon,
   children,
 }: BarProps &
   Readonly<{
     action: SeatAction;
-    disabled?: boolean;
-    variant?: 'default' | 'subtle';
-    color?: string;
+    emphasis?: 'standard' | 'strong';
+    icon: ReactNode;
     children: string;
   }>) {
   return (
-    <Button
-      variant={variant}
-      color={color}
-      disabled={disabled || seatLocked(table)}
+    <LabeledAction
+      emphasis={emphasis}
+      icon={icon}
+      disabledReason={seatLockedReason(table)}
       onClick={() => client.command(action)}
     >
       {children}
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -158,7 +157,14 @@ function seatOffer(
           />
         )}
         {/* Keyed by the seat it asks for, so a press that began before that seat was taken never requests another. */}
-        <SeatButton key={request.seat ?? 'any'} client={client} table={table} action={request}>
+        <SeatButton
+          key={request.seat ?? 'any'}
+          client={client}
+          table={table}
+          action={request}
+          emphasis="strong"
+          icon={<Armchair size={16} />}
+        >
           {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
         </SeatButton>
       </Group>
@@ -179,7 +185,7 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
       eyebrow: 'Seat requested',
       ...ownRequestCopy(table, own),
       action: (
-        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
+        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} icon={<X size={16} />}>
           Withdraw
         </SeatButton>
       ),
@@ -472,7 +478,18 @@ export function GameMenu({
 
 /** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
 export function seatLocked(table: TableProjection): boolean {
-  return Boolean(table.seatCommandPending || table.reconnecting || table.playback || table.historyPending);
+  return seatLockedReason(table) !== undefined;
+}
+
+/** Why a seat action waits, in the words its disabled button gives; nothing while it can run. */
+export function seatLockedReason(table: TableProjection): string | undefined {
+  if (table.seatCommandPending) {
+    return 'Your last seat action is still on its way.';
+  }
+  if (table.reconnecting) {
+    return 'Reconnecting to the table.';
+  }
+  return table.playback || table.historyPending ? 'Return to the live table first.' : undefined;
 }
 
 /**
@@ -495,21 +512,31 @@ export function StagePlayback({
           <Text size="sm" c="dimmed" role="status">
             Playback checkpoint {playback.step} of {playback.lastStep}
           </Text>
-          <Button
-            variant="default"
-            disabled={historyPending || playback.step === 0}
+          <LabeledAction
+            icon={<ChevronLeft size={16} />}
+            disabledReason={
+              historyPending ? 'Playback is loading.' : playback.step === 0 ? 'This is the first phase.' : undefined
+            }
             onClick={() => client.requestHistory(playback.step - 1)}
           >
             Earlier phase
-          </Button>
-          <Button
-            variant="default"
-            disabled={historyPending || playback.step === playback.lastStep}
+          </LabeledAction>
+          <LabeledAction
+            icon={<ChevronRight size={16} />}
+            disabledReason={
+              historyPending
+                ? 'Playback is loading.'
+                : playback.step === playback.lastStep
+                  ? 'This is the last phase.'
+                  : undefined
+            }
             onClick={() => client.requestHistory(playback.step + 1)}
           >
             Later phase
-          </Button>
-          <Button onClick={client.resumeLive}>Return to live</Button>
+          </LabeledAction>
+          <LabeledAction emphasis="strong" icon={<Radio size={16} />} onClick={client.resumeLive}>
+            Return to live
+          </LabeledAction>
         </Group>
       </Popover.Target>
       <Popover.Dropdown maw={320}>{error && <FormError title="From the table">{error}</FormError>}</Popover.Dropdown>

@@ -1,4 +1,6 @@
-import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
+import { Box, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Each option is a row of the picker's list, a portrait and a name, not an action. */
+import { Button } from '@mantine/core';
 import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';

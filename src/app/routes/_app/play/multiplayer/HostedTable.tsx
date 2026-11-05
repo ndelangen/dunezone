@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
@@ -13,6 +13,8 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Dices } from 'lucide-react';
 import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -578,13 +580,13 @@ function phaseTabControls({
         table.snapshot.setup &&
         progress.turn === 1 &&
         progress.activePhaseId === 'storm' && (
-          <Button
-            variant="default"
-            disabled={!table.canInteract}
+          <LabeledAction
+            icon={<Dices size={16} />}
+            disabledReason={table.canInteract ? undefined : 'The table is unavailable.'}
             onClick={() => client.command({ kind: 'storm-random' })}
           >
             Place storm randomly
-          </Button>
+          </LabeledAction>
         )}
       {stage === 'play' || stage === 'finished' ? (
         <>

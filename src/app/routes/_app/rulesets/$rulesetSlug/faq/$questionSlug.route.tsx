@@ -1,4 +1,6 @@
-import { Anchor, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- A full-width disclosure toggle for the context panel, not an action. */
+import { Button } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';

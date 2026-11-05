@@ -1,7 +1,9 @@
-import { Anchor, Badge, Button, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Badge, Group, Stack, Text } from '@mantine/core';
 import type { LogClass, LogEntry, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
-import { Undo2 } from 'lucide-react';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, ChevronsRight, Undo2 } from 'lucide-react';
 
 import styles from './LogPanel.module.css';
 
@@ -78,14 +80,14 @@ export function LogPanel({ tab, page, onEarlier, onLatest, onRestore }: LogPanel
         {page && (page.more || !page.latest) && (
           <Group>
             {page.more && (
-              <Button variant="default" onClick={onEarlier}>
+              <LabeledAction icon={<ChevronLeft size={16} />} onClick={onEarlier}>
                 Earlier entries
-              </Button>
+              </LabeledAction>
             )}
             {!page.latest && (
-              <Button variant="default" onClick={onLatest}>
+              <LabeledAction icon={<ChevronsRight size={16} />} onClick={onLatest}>
                 Latest entries
-              </Button>
+              </LabeledAction>
             )}
           </Group>
         )}
@@ -97,20 +99,14 @@ export function LogPanel({ tab, page, onEarlier, onLatest, onRestore }: LogPanel
 /* A deletion the game still keeps can be undone from its entry: the piece comes back where it lay, or nearby, face down (#2132). */
 function RestoreButton({ deletionId, onRestore }: Readonly<{ deletionId: string; onRestore: (id: string) => void }>) {
   return (
-    <Tooltip
-      label="Puts the piece back where it was, or at the nearest free spot. It always comes back face down."
-      multiline
-      w={240}
-    >
-      <Button
-        variant="default"
-        size="compact-xs"
-        className={styles.restore}
-        leftSection={<Undo2 size={12} aria-hidden />}
-        onClick={() => onRestore(deletionId)}
-      >
-        Restore
-      </Button>
-    </Tooltip>
+    <IconAction
+      label="Restore"
+      tooltip="Puts the piece back where it was, or at the nearest free spot. It always comes back face down."
+      size="sm"
+      emphasis="standard"
+      className={styles.restore}
+      icon={<Undo2 size={14} />}
+      onClick={() => onRestore(deletionId)}
+    />
   );
 }

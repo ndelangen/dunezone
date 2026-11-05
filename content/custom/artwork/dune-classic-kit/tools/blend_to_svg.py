@@ -1,0 +1,274 @@
+"""Export one collection (or asset object) of a .blend to SVG.
+
+Follows collection instances, linked objects and text. Run inside Blender:
+
+    blender -b --python blend_to_svg.py -- file.blend name out.svg [show,names] [skip,names]
+
+`name` may join several collections with `+`. Hidden objects listed in `show` are exported;
+objects listed in `skip` are left out.
+Input and output paths must lie inside the working directory.
+"""
+
+import os
+import sys
+from xml.sax.saxutils import quoteattr
+
+import bpy
+from mathutils import Matrix, Vector
+
+SHADER_NODES = ('BSDF_PRINCIPLED', 'EMISSION', 'BSDF_DIFFUSE')
+DRAWABLE = ('CURVE', 'FONT', 'GREASEPENCIL')
+BLACK = '#000000'
+
+
+def within_cwd(path):
+    """Resolve a command-line path, refusing anything outside the working directory."""
+    root = os.path.join(os.path.realpath(os.getcwd()), '')
+    resolved = os.path.realpath(os.path.join(root, path))
+    if not resolved.startswith(root):
+        raise SystemExit(f'{path}: must be inside {root}')
+    return resolved
+
+
+def gamma_hex(rgb):
+    """Linear Blender colour to an sRGB hex string."""
+    return '#%02x%02x%02x' % tuple(int(round(max(0, min(1, v)) ** (1 / 2.2) * 255)) for v in rgb[:3])
+
+
+def node_colour(material):
+    """Base colour of the first unlinked shader node, or None."""
+    if not material.node_tree:
+        return None
+    for node in material.node_tree.nodes:
+        if node.type not in SHADER_NODES:
+            continue
+        socket = node.inputs.get('Base Color') or node.inputs.get('Color')
+        if socket is not None and not socket.is_linked:
+            return gamma_hex(socket.default_value)
+    return None
+
+
+def colour(obj):
+    """Fill colour of an object's first material."""
+    material = next((slot.material for slot in obj.material_slots if slot.material), None)
+    if material is None:
+        return BLACK
+    return node_colour(material) or gamma_hex(material.diffuse_color)
+
+
+def is_exported(obj, show, skip):
+    if obj.name in skip:
+        return False
+    return not obj.hide_render or obj.name in show
+
+
+def instance_members(collection):
+    """Every object of an instanced collection; matrix_world already carries each parent's transform."""
+    return list(collection.all_objects)
+
+
+def flatten(objs, parent_matrix, show, skip):
+    """Yield every drawable object with its world matrix, expanding collection instances."""
+    for obj in objs:
+        if not is_exported(obj, show, skip):
+            continue
+        matrix = parent_matrix @ obj.matrix_world
+        instanced = obj.type == 'EMPTY' and obj.instance_type == 'COLLECTION' and obj.instance_collection
+        if instanced:
+            collection = obj.instance_collection
+            offset = Matrix.Translation(-Vector(collection.instance_offset))
+            yield from flatten(instance_members(collection), matrix @ offset, show, skip)
+        elif obj.type in DRAWABLE:
+            yield obj, matrix
+
+
+def fmt(point):
+    """SVG coordinates (y flipped) of a projected point."""
+    return f'{point.x:.4f} {-point.y:.4f}'
+
+
+def bezier_path(spline, project):
+    points = spline.bezier_points
+    anchors = [project(p.co) for p in points]
+    # A cubic stays inside the hull of its anchors and handles, so the handles bound the drawing too.
+    hull = anchors + [project(h) for p in points for h in (p.handle_left, p.handle_right)]
+    parts = [f'M{fmt(anchors[0])}']
+    count = len(points) if spline.use_cyclic_u else len(points) - 1
+    for i in range(count):
+        start, end = points[i], points[(i + 1) % len(points)]
+        parts.append(f'C{fmt(project(start.handle_right))} {fmt(project(end.handle_left))} {fmt(project(end.co))}')
+    if spline.use_cyclic_u:
+        parts.append('Z')
+    return ''.join(parts), hull
+
+
+def poly_path(points, cyclic):
+    return 'M' + 'L'.join(fmt(p) for p in points) + ('Z' if cyclic else '')
+
+
+def spline_path(spline, project):
+    """Path data and anchor points of one spline, or None when it has too few points."""
+    if spline.type == 'BEZIER':
+        if len(spline.bezier_points) < 2:
+            return None
+        return bezier_path(spline, project)
+    if len(spline.points) < 2:
+        return None
+    anchors = [project(p.co) for p in spline.points]
+    return poly_path(anchors, spline.use_cyclic_u), anchors
+
+
+def curve_paths(curve, matrix):
+    project = lambda v: matrix @ Vector((v[0], v[1], 0))
+    paths = (spline_path(s, project) for s in curve.splines)
+    return [p for p in paths if p]
+
+
+def is_filled(curve):
+    return curve.fill_mode != 'NONE' and all(s.use_cyclic_u for s in curve.splines)
+
+
+def curve_items(curve, matrix, obj, z):
+    paths = curve_paths(curve, matrix)
+    if not paths:
+        return []
+    item = {'z': z, 'col': colour(obj), 'name': obj.name, 'filled': is_filled(curve), 'w': curve.bevel_depth * 2}
+    item['d'] = ' '.join(d for d, _ in paths)
+    item['pts'] = [p for _, anchors in paths for p in anchors]
+    return [item]
+
+
+def stroke_style(stroke, materials):
+    """Grease pencil style of a stroke's material, or None when it has none."""
+    if stroke.material_index >= len(materials) or materials[stroke.material_index] is None:
+        return None
+    return materials[stroke.material_index].grease_pencil
+
+
+def fill_item(style, base):
+    if style is not None and not style.show_fill:
+        return []
+    return [{**base, 'col': gamma_hex(style.fill_color) if style else BLACK, 'filled': True, 'w': 0}]
+
+
+def line_item(style, base, stroke):
+    if style is not None and not style.show_stroke:
+        return []
+    width = 2 * sum(p.radius for p in stroke.points) / len(stroke.points)
+    line = gamma_hex(style.color) if style else BLACK
+    return [{**base, 'z': base['z'] + 1e-6, 'col': line, 'filled': False, 'w': width}]
+
+
+def stroke_items(stroke, matrix, materials, owner):
+    """Fill and line items of one stroke; owner is the (object, z) the stroke belongs to."""
+    points = [matrix @ Vector(p.position) for p in stroke.points]
+    if len(points) < 2:
+        return []
+    obj, z = owner
+    style = stroke_style(stroke, materials)
+    base = {'z': z, 'd': poly_path(points, stroke.cyclic), 'name': obj.name, 'pts': points}
+    return fill_item(style, base) + line_item(style, base, stroke)
+
+
+def visible_drawings(layers):
+    for layer in layers:
+        frame = None if layer.hide else layer.current_frame()
+        if frame and frame.drawing:
+            yield frame.drawing
+
+
+def grease_pencil_items(obj, matrix, z):
+    materials = [slot.material for slot in obj.material_slots]
+    return [
+        item
+        for drawing in visible_drawings(obj.data.layers)
+        for stroke in drawing.strokes
+        for item in stroke_items(stroke, matrix, materials, (obj, z))
+    ]
+
+
+def object_items(obj, matrix, depsgraph):
+    z = matrix.translation.z
+    if obj.type == 'CURVE':
+        return curve_items(obj.data, matrix, obj, z)
+    if obj.type == 'FONT':
+        curve = obj.evaluated_get(depsgraph).to_curve(depsgraph)
+        return curve_items(curve, matrix, obj, z) if curve else []
+    return grease_pencil_items(obj, matrix, z)
+
+
+def roots_for(want):
+    """Objects of the `+`-joined collections, or the single object called `want`."""
+    if want in bpy.data.objects and want not in bpy.data.collections:
+        return [bpy.data.objects[want]]
+    names = want.split('+')
+    missing = [name for name in names if name not in bpy.data.collections]
+    if missing:
+        raise SystemExit(f'No collection or object named: {", ".join(missing)}')
+    return [o for name in names for o in bpy.data.collections[name].all_objects]
+
+
+def path_element(item, min_width):
+    if item['filled']:
+        return f'<path data-name={quoteattr(item["name"])} fill="{item["col"]}" fill-rule="evenodd" d="{item["d"]}"/>'
+    width = max(item['w'], min_width)
+    return (
+        f'<path data-name={quoteattr(item["name"])} fill="none" stroke="{item["col"]}" stroke-width="{width:.4f}" '
+        f'stroke-linecap="round" stroke-linejoin="round" d="{item["d"]}"/>'
+    )
+
+
+def ink_reach(item, min_width):
+    """How far an item's paint reaches past its points: half the stroke width, or nothing for a fill."""
+    return 0 if item['filled'] else max(item['w'], min_width) / 2
+
+
+def min_stroke_width(items):
+    xs = [p.x for i in items for p in i['pts']]
+    return (max(xs) - min(xs)) * 0.003
+
+
+def ink_bounds(items, min_width):
+    """SVG-space box holding every point, widened by its item's stroke reach."""
+    reach = [(p, ink_reach(i, min_width)) for i in items for p in i['pts']]
+    x0 = min(p.x - r for p, r in reach)
+    x1 = max(p.x + r for p, r in reach)
+    y0 = min(-p.y - r for p, r in reach)
+    y1 = max(-p.y + r for p, r in reach)
+    return x0, y0, x1, y1
+
+
+def render_svg(items):
+    if not items:
+        raise SystemExit('Nothing to export: every object was hidden, skipped or empty.')
+    min_width = min_stroke_width(items)
+    x0, y0, x1, y1 = ink_bounds(items, min_width)
+    pad = 0.01 * max(x1 - x0, y1 - y0)
+    body = ''.join(path_element(i, min_width) for i in items)
+    view = f'{x0 - pad:.4f} {y0 - pad:.4f} {x1 - x0 + 2 * pad:.4f} {y1 - y0 + 2 * pad:.4f}'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view}">{body}</svg>'
+
+
+def name_set(args, index):
+    return set(args[index].split(',')) if len(args) > index else set()
+
+
+def main(args):
+    src, want, out = within_cwd(args[0]), args[1], within_cwd(args[2])
+    show, skip = name_set(args, 3), name_set(args, 4)
+    bpy.ops.wm.open_mainfile(filepath=src)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    items = [
+        item
+        for obj, matrix in flatten(roots_for(want), Matrix.Identity(4), show, skip)
+        for item in object_items(obj, matrix, depsgraph)
+    ]
+    items.sort(key=lambda i: i['z'])
+    with open(out, 'w') as handle:
+        handle.write(render_svg(items))
+    print('OK', out, len(items))
+
+
+if __name__ == '__main__':
+    argv = sys.argv[sys.argv.index('--') + 1 :] if '--' in sys.argv else sys.argv[1:]
+    main(argv)

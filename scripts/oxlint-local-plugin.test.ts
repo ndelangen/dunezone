@@ -218,6 +218,29 @@ export function useProbe() {
   });
 });
 
+/* Above the kit a worded action is LabeledAction; the ban is repeated in the widget override, which replaces the src-wide one. */
+describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => {
+  const source = "import { Button } from '@mantine/core';\nexport const probe = Button;\n";
+
+  /* One lint run per test, so each spawn budget sits inside its own test budget. */
+  test.each([PLAY_FIXTURE_ROOT, 'src/app/widgets/probe', 'src/app/pickers', 'src/shared/probe'])(
+    'bites in %s',
+    async (root) => {
+      expect(await lintDiagnostics('probe.tsx', source, root)).toContain(
+        "'Button' import from '@mantine/core' is restricted"
+      );
+    }
+  );
+
+  test('leaves the kit alone', async () => {
+    expect(await lintDiagnostics('probe.tsx', source, 'src/app/ui/control')).not.toContain('Button');
+  });
+
+  test('leaves stories alone', async () => {
+    expect(await lintDiagnostics('probe.stories.tsx', source, 'src/app/widgets/probe')).not.toContain('Button');
+  });
+});
+
 describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
   /* The rule once stripped any trailing star as if it were part of a `**\/` closer, so a glob at the end of a comment was reported on every run and its fix ate the glob a star at a time. */
   test('leaves a comment that ends in a glob alone', async () => {

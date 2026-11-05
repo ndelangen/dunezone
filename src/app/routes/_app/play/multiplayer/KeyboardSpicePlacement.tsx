@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The button is the spice token preview itself, not a worded action. */
 import { Button } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useThree } from '@react-three/fiber/webgpu';

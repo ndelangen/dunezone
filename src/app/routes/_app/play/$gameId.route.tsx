@@ -1,10 +1,11 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
-import { Button, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Orbit } from 'lucide-react';
+import { ArrowLeft, Orbit } from 'lucide-react';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -134,9 +135,9 @@ function GameAccessPage() {
     });
   }, [authorized, address, navigate, runtime]);
   const exit = (
-    <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
+    <LabeledAction icon={<ArrowLeft size={16} />} renderRoot={(props) => <Link {...props} to="/play" />}>
       Lobby
-    </Button>
+    </LabeledAction>
   );
   switch (data?.status) {
     case undefined:

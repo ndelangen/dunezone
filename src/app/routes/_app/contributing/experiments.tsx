@@ -251,8 +251,8 @@ function MembraneLab() {
         <CodeExample
           label="Move the effect to the caller · example TSX diff"
           lines={diff(
-            '<Button onClick={() => saveName(name)}>Save name</Button>',
-            '<Button onClick={onSave}>Save name</Button>'
+            '<LabeledAction icon={<Save />} onClick={() => saveName(name)}>Save name</LabeledAction>',
+            '<LabeledAction icon={<Save />} onClick={onSave}>Save name</LabeledAction>'
           )}
         />
       </Section>

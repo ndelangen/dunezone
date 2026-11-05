@@ -1,9 +1,10 @@
-import { Button } from '@mantine/core';
 import { TUTORIAL_PAGES } from '@shared/recordlessPublicPages';
 import { ClientOnly, createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ArrowLeft } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
@@ -96,9 +97,9 @@ function ChapterPage() {
     );
   }
   const exit = (
-    <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
+    <LabeledAction icon={<ArrowLeft size={16} />} renderRoot={(props) => <Link {...props} to="/play" />}>
       Lobby
-    </Button>
+    </LabeledAction>
   );
   /* The same dark frame the chapter's table opens in, so the page does not jump when it arrives. */
   const loading = (

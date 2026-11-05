@@ -1,4 +1,6 @@
-import { Button, Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
+import { Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The battle plan's Ready toggle stacks its state over Undo, a shape no kit action has. */
+import { Button } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
 import type { TablePiece } from '@shared/play/model';
 import { Stepper } from '@ui/control/Stepper';

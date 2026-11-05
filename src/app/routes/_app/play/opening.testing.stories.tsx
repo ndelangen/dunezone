@@ -168,7 +168,7 @@ export const Connecting = meta.story({
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
     const frame = status.closest('[data-connection]');
     await expect(frame).toHaveAttribute('data-connection', 'connecting');
-    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Lobby' })).toBeVisible();
     const view = canvasElement.ownerDocument.defaultView!;
     await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
     await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
@@ -217,7 +217,7 @@ export const Unreachable = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const status = await page.findByText('The table could not be reached. Reconnecting...', {}, { timeout: 30_000 });
     await waitFor(() => expect(finishTransitions(status)).toBeVisible());
-    await expect(page.getByRole('link', { name: 'Back to lobby' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Lobby' })).toBeVisible();
     await expect(page.queryByText('Connecting to the hosted table...')).toBeNull();
   },
 });

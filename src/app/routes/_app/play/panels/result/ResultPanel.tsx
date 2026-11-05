@@ -1,6 +1,8 @@
-import { Button, Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { GameResultKind } from '@shared/play/result';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Eye, Trophy, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { factionOption } from '../../multiplayer/factionOption';
@@ -77,9 +79,13 @@ function ResultSection({
 
 function RevealButton({ disabled, onReveal }: Pick<ResultPanelProps, 'disabled' | 'onReveal'>) {
   return (
-    <Button variant="default" disabled={disabled} onClick={onReveal}>
+    <LabeledAction
+      icon={<Eye size={16} />}
+      disabledReason={disabled ? 'The table is unavailable.' : undefined}
+      onClick={onReveal}
+    >
       Reveal prediction
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -134,12 +140,21 @@ function DeclareBar({
           )}
           <Group gap="xs" justify="flex-end">
             {prediction === 'button' && <RevealButton disabled={disabled} onReveal={onReveal} />}
-            <Button variant="default" disabled={disabled} onClick={onStop}>
+            <LabeledAction
+              icon={<X size={16} />}
+              disabledReason={disabled ? 'The table is unavailable.' : undefined}
+              onClick={onStop}
+            >
               Stop
-            </Button>
-            <Button disabled={disabled || !valid} onClick={() => valid && onDeclare()}>
+            </LabeledAction>
+            <LabeledAction
+              emphasis="strong"
+              icon={<Trophy size={16} />}
+              disabledReason={disabled ? 'The table is unavailable.' : valid ? undefined : 'Choose the winner first.'}
+              onClick={() => valid && onDeclare()}
+            >
               Declare
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       }

@@ -5,7 +5,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
+import { Button } from '@mantine/core';
 import { COMPONENT_PART_LABELS } from '@shared/asset-publishing/componentGeometry';
 import {
   projectRulebookAssetExplainerAnnotations,
