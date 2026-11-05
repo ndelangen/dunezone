@@ -1,3 +1,4 @@
+import { TextInput } from '@mantine/core';
 import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
@@ -12,7 +13,7 @@ const meta = preview.meta({
   component: DeckEditor,
   args: {
     presets: INITIAL_CARDBACK_PRESETS.map((entry) => ({ ...entry, revision: 1, href: null, captureStatus: null })),
-    nameField: <input aria-label="Name" readOnly value="Lasgun" />,
+    nameField: <TextInput aria-label="Name" readOnly value="Lasgun" />,
     chapter: 'back' as const,
     onChapterChange: fn(),
     onSettle: fn(),
