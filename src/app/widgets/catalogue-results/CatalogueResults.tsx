@@ -66,59 +66,82 @@ export interface CatalogueResultsProps<Entry> {
  * The route keeps everything that is its own: the query, the search schema, the address of a page, and the tiles.
  * This owns the arrangement around them, worded once, so the five catalogues stop drifting apart in their empty states and their search endings.
  */
-export function CatalogueResults<Entry>({
-  results,
-  noun,
+export function CatalogueResults<Entry>(props: CatalogueResultsProps<Entry>) {
+  return props.results.kind === 'browse' ? (
+    <BrowsedList {...props} results={props.results} />
+  ) : (
+    <SearchedList {...props} results={props.results} />
+  );
+}
+
+/** "Nothing matches" in its pane, with the caller's sentence and way on. */
+function NoMatches({
   singular,
-  pagerLabel,
-  pageLinkProps,
-  renderTiles,
-  filtered = true,
   noMatchesSentence,
   noMatchesAction,
-  loading,
-  loaded,
-  onLoadMore,
-  ref,
-}: CatalogueResultsProps<Entry>) {
-  const noMatches = (capped: boolean) => (
+  capped,
+}: Pick<CatalogueResultsProps<unknown>, 'singular' | 'noMatchesSentence' | 'noMatchesAction'> & { capped: boolean }) {
+  return (
     <Surface padding="xl">
       <EmptyResults title="Nothing matches" capped={capped} action={noMatchesAction}>
         {noMatchesSentence ?? `No ${singular} matches this search.`}
       </EmptyResults>
     </Surface>
   );
-  if (results.kind === 'browse') {
-    if (results.total === 0 && filtered) {
-      return noMatches(!results.complete);
-    }
-    if (results.total > 0 && results.entries.length === 0) {
-      return (
-        <Surface padding="xl">
-          <PastTheEnd pageCount={results.pageCount} noun={noun} pageLinkProps={pageLinkProps} />
-        </Surface>
-      );
-    }
+}
+
+/** One browsed page and its pager, or why the page is empty. */
+function BrowsedList<Entry>({
+  results,
+  noun,
+  pagerLabel,
+  pageLinkProps,
+  renderTiles,
+  filtered = true,
+  ...rest
+}: CatalogueResultsProps<Entry> & { results: BrowsedResults<Entry> }) {
+  if (results.total === 0 && filtered) {
+    return <NoMatches {...rest} capped={!results.complete} />;
+  }
+  if (results.total > 0 && results.entries.length === 0) {
     return (
-      <Stack gap="lg">
-        {renderTiles(results.entries)}
-        {results.total > 0 ? (
-          <CataloguePager
-            page={results.page}
-            pageCount={results.pageCount}
-            pageSize={results.pageSize}
-            total={results.total}
-            complete={results.complete}
-            noun={noun}
-            label={pagerLabel}
-            pageLinkProps={pageLinkProps}
-          />
-        ) : null}
-      </Stack>
+      <Surface padding="xl">
+        <PastTheEnd pageCount={results.pageCount} noun={noun} pageLinkProps={pageLinkProps} />
+      </Surface>
     );
   }
+  return (
+    <Stack gap="lg">
+      {renderTiles(results.entries)}
+      {results.total > 0 ? (
+        <CataloguePager
+          page={results.page}
+          pageCount={results.pageCount}
+          pageSize={results.pageSize}
+          total={results.total}
+          complete={results.complete}
+          noun={noun}
+          label={pagerLabel}
+          pageLinkProps={pageLinkProps}
+        />
+      ) : null}
+    </Stack>
+  );
+}
+
+/** A search's best matches, grown by "Load more", or "Nothing matches". */
+function SearchedList<Entry>({
+  results,
+  noun,
+  renderTiles,
+  loading,
+  loaded,
+  onLoadMore,
+  ref,
+  ...rest
+}: CatalogueResultsProps<Entry> & { results: SearchedResults<Entry> }) {
   if (results.entries.length === 0) {
-    return noMatches(results.capped);
+    return <NoMatches {...rest} capped={results.capped} />;
   }
   return (
     <Stack gap="lg" aria-busy={loading} ref={ref}>
