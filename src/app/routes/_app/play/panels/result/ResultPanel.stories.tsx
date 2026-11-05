@@ -20,7 +20,7 @@ const meta = preview.meta({ ...resultPanelMeta, title: 'Play/Panels/Result' });
 /** The viewer is determining the winner and has chosen nothing yet, so Declare waits for a choice. */
 export const Declaring = meta.story({
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Declare' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Declare' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 

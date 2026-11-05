@@ -246,8 +246,9 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
             size="compact-sm"
             emphasis={entry.viewerSeated ? 'strong' : 'standard'}
             icon={<ArrowRight size={15} />}
+            accessibleName={`Open ${entry.name}`}
           >
-            {`Open ${entry.name}`}
+            Open
           </LabeledAction>
         </Group>
       </>

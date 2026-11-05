@@ -95,8 +95,8 @@ export const JobsPagination = meta.story({
     await expect(page.findByText('queued-asset-0', {}, { timeout: 30_000 })).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Next' }));
     await expect(page.findByText('queued-asset-25')).resolves.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Previous' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Next' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('button', { name: 'Previous' })).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('button', { name: 'Previous' }));
     await expect(page.findByText('queued-asset-0')).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Next' }));
@@ -105,7 +105,7 @@ export const JobsPagination = meta.story({
     await userEvent.click(page.getByRole('option', { name: 'Error' }));
     await expect(page.findByText('No publication jobs match these filters.')).resolves.toBeVisible();
     await expect(page.getByText('Page 1')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Previous' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -138,7 +138,7 @@ export const FailedMergeRecovery = meta.story({
     await expect(page.getAllByRole('button', { name: 'Retry merge' })).toHaveLength(20);
     await userEvent.click(page.getByRole('button', { name: 'Next failed merges' }));
     await waitFor(() => expect(page.getAllByRole('button', { name: 'Retry merge' })).toHaveLength(1));
-    await expect(page.getByRole('button', { name: 'Next failed merges' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Next failed merges' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('button', { name: 'Previous failed merges' }));
     await waitFor(() => expect(page.getAllByRole('button', { name: 'Retry merge' })).toHaveLength(20));
   },
