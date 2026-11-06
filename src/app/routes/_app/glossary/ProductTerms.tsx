@@ -11,6 +11,7 @@ import { useArrakisBoard } from '@app/db/arrakis';
 import styles from './ProductTerms.module.css';
 import { PRODUCT_TERMS, productTermMatches } from './productVocabulary';
 import { TintBoard } from './TintBoard';
+import { tintLessonTerritories } from './tintLesson';
 
 function GameStages() {
   return (
@@ -74,20 +75,13 @@ function tintReducer(state: TintDraft, event: TintEvent): TintDraft {
 function TintDemo() {
   const [draft, dispatch] = useReducer(tintReducer, INITIAL_TINT);
   const strongholds = draft.territory === 'strongholds';
-  /* The lesson's territories as the saved board names them; one it no longer has is left out, and the count says so. */
   const board = useArrakisBoard()?.definition;
-  const onBoard = useMemo(
-    () => board && new Set(Object.values(board.properties).map((property) => property.id)),
-    [board]
-  );
+  const territories = useMemo(() => tintLessonTerritories(board, draft.territory), [board, draft.territory]);
   const tint: BoardTint = {
     id: 'lesson',
     name: strongholds ? 'Strongholds' : 'Spice blow',
     color: '#2f7fe0',
-    territories: (strongholds
-      ? ['arrakeen', 'carthag', 'tabr', 'habbanya', 'tueks']
-      : ['the_great_flat', 'funeral_plain', 'habbanya_erg']
-    ).filter((territory) => !onBoard || onBoard.has(territory)),
+    territories,
     ...(draft.outline ? { outline: true } : {}),
     ...(draft.stickers ? { stamps: [strongholds ? 'city' : 'spice'] } : {}),
   };
