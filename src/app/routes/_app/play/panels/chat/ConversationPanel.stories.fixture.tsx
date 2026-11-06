@@ -13,6 +13,7 @@ import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
 import { ConversationPanel } from './ConversationPanel';
 import type { ConversationPanelProps } from './ConversationPanel';
+import { tableMentions } from './useConversationPanel';
 
 /* Saved messages say how long ago they were saved, by the table's clock. */
 const serverClock: Decorator = (Story) => (
@@ -51,12 +52,35 @@ export function tableChatArgs(): ConversationPanelProps {
   const table = tableOf(snapshot);
   const factions = snapshot.roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction] : []));
   const names = Object.fromEntries(factions.map((faction) => [faction.id, faction.name]));
+  const senders = Object.fromEntries(factions.map((faction) => [faction.id, factionToken(table, faction.id, names)]));
   return {
     ...playerChatArgs(),
     peerId: TABLE_CONVERSATION,
     page: savedPage(tableMessages()),
-    senders: Object.fromEntries(factions.map((faction) => [faction.id, factionToken(table, faction.id, names)])),
+    senders,
+    mentions: tableMentions(
+      table,
+      senders,
+      factions.map((faction) => faction.id)
+    ),
+    onMentionInfo: fn(),
+    onMentionChat: fn(),
   };
+}
+
+/** The table's chat with a reply that names a seat's faction after an @, as the composer completes it. */
+export function tableChatNamingArgs(): ConversationPanelProps {
+  const args = tableChatArgs();
+  const entries = args.page!.entries;
+  const named = args.mentions!.find((mention) => !mention.own && mention.detail)!;
+  const reply = {
+    ...entries.at(-1)!,
+    sequence: entries.length + 1,
+    requestId: 'table-naming',
+    text: `@${named.label} which way does the storm go?`,
+    savedAt: entries.at(-1)!.savedAt + 60_000,
+  };
+  return { ...args, page: savedPage([...entries, reply]) };
 }
 
 /** A message of the viewer's own on its way, in the given delivery state. */
