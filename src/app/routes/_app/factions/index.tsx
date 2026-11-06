@@ -19,6 +19,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { catalogueCountLabel } from '@ui/control/CataloguePager';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -500,23 +501,10 @@ function CatalogueToolbar({
     ],
     [rulesets]
   );
-  const rulesetSelect = (label?: string) =>
-    label ? (
-      <ControlBlock
-        title={label}
-        input={
-          <Select
-            value={search.ruleset ?? 'all'}
-            data={rulesetOptions}
-            allowDeselect={false}
-            onChange={(value) => onSearchChange({ ruleset: value === 'all' ? undefined : (value ?? undefined) })}
-            aria-label="Filter factions by ruleset"
-            leftSection={<Filter size={15} aria-hidden />}
-          />
-        }
-      />
-    ) : (
+  const rulesetSelect = (label?: string) => {
+    const field = (fieldProps?: ControlBlockField) => (
       <Select
+        {...fieldProps}
         value={search.ruleset ?? 'all'}
         data={rulesetOptions}
         allowDeselect={false}
@@ -525,36 +513,13 @@ function CatalogueToolbar({
         leftSection={<Filter size={15} aria-hidden />}
       />
     );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
   /* A search is always best match, so its sort has one option and takes no change; choosing an order is for browsing. */
-  const sortSelect = (label?: string, joined = false) =>
-    label ? (
-      <ControlBlock
-        title={label}
-        input={
-          <Select
-            variant={joined ? 'unstyled' : 'default'}
-            value={search.q ? 'relevance' : (search.sort ?? 'name')}
-            data={
-              search.q
-                ? [{ value: 'relevance', label: 'Best match' }]
-                : [
-                    { value: 'name', label: 'Alphabetical (A–Z)' },
-                    { value: 'created', label: 'Chronological (created)' },
-                    { value: 'updated', label: 'Chronological (updated)' },
-                    { value: 'complexity-asc', label: 'Complexity (low → high)' },
-                    { value: 'complexity-desc', label: 'Complexity (high → low)' },
-                  ]
-            }
-            disabled={Boolean(search.q)}
-            allowDeselect={false}
-            onChange={(value) => onSearchChange({ sort: value === 'name' ? undefined : value })}
-            aria-label="Sort factions"
-            leftSection={<ArrowDownAZ size={15} aria-hidden />}
-          />
-        }
-      />
-    ) : (
+  const sortSelect = (label?: string, joined = false) => {
+    const field = (fieldProps?: ControlBlockField) => (
       <Select
+        {...fieldProps}
         variant={joined ? 'unstyled' : 'default'}
         value={search.q ? 'relevance' : (search.sort ?? 'name')}
         data={
@@ -575,6 +540,8 @@ function CatalogueToolbar({
         leftSection={<ArrowDownAZ size={15} aria-hidden />}
       />
     );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
   const complexitySlider = (
     <Stack gap={4}>
       <Text size="sm" fw={500}>

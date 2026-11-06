@@ -9,10 +9,10 @@ import { afterEach, expect, it, vi } from 'vite-plus/test';
 import type { DeckChapter, DeckDraft, DeckMemory } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
 
-/* A field is named by its ControlBlock title through aria-labelledby, so it is found inside the first group with that title. */
+/* A field is named by its ControlBlock title through aria-labelledby; the first one with that title is the field. */
 function fieldTitled(container: HTMLElement, title: string) {
-  const [group] = within(container).queryAllByRole('group', { name: title });
-  return group?.querySelector<HTMLInputElement>('input') ?? null;
+  const [field] = within(container).queryAllByLabelText(title, { selector: 'input' });
+  return (field as HTMLInputElement | undefined) ?? null;
 }
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({

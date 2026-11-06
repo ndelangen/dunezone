@@ -171,10 +171,10 @@ export function FactionPicker(props: FactionPickerProps) {
             }
           }}
         >
-          <Combobox.EventsTarget>
-            <ControlBlock
-              title="Search factions"
-              input={(fieldProps) => (
+          <ControlBlock
+            title="Search factions"
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
                 <TextInput
                   {...fieldProps}
                   placeholder="Type name, owner, group, or token…"
@@ -191,9 +191,9 @@ export function FactionPicker(props: FactionPickerProps) {
                     combobox.selectFirstOption();
                   }}
                 />
-              )}
-            />
-          </Combobox.EventsTarget>
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {filteredRows.length === 0 ? (

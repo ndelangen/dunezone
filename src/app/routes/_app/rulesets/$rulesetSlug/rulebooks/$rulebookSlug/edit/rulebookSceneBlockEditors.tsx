@@ -438,20 +438,15 @@ function BoardAnnotationRow({
       />
       <NamedPosition boardId={boardId} label={`Annotation ${index + 1}`} onChange={onChange} />
       <PositionFields label={`Annotation ${index + 1}`} x={annotation.x} y={annotation.y} onChange={onChange} />
-      <ControlBlock
-        title="Point at another location"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={annotation.targetX !== undefined && annotation.targetY !== undefined}
-            onChange={(event) =>
-              onChange({
-                targetX: event.currentTarget.checked ? annotation.x : undefined,
-                targetY: event.currentTarget.checked ? annotation.y : undefined,
-              })
-            }
-          />
-        )}
+      <Switch
+        label="Point at another location"
+        checked={annotation.targetX !== undefined && annotation.targetY !== undefined}
+        onChange={(event) =>
+          onChange({
+            targetX: event.currentTarget.checked ? annotation.x : undefined,
+            targetY: event.currentTarget.checked ? annotation.y : undefined,
+          })
+        }
       />
       {annotation.targetX !== undefined && annotation.targetY !== undefined ? (
         <PositionFields
@@ -722,20 +717,15 @@ function BoardAnnotationFields({ value, onChange }: BoardSceneFieldsProps) {
 function BoardViewportFields({ value, onChange }: BoardSceneFieldsProps) {
   return (
     <>
-      <ControlBlock
-        title="Focus on part of the board"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={Boolean(value.viewport)}
-            onChange={(event) =>
-              onChange({
-                ...value,
-                viewport: event.currentTarget.checked ? { x: 0, y: 0, width: 1, height: 1 } : undefined,
-              })
-            }
-          />
-        )}
+      <Switch
+        label="Focus on part of the board"
+        checked={Boolean(value.viewport)}
+        onChange={(event) =>
+          onChange({
+            ...value,
+            viewport: event.currentTarget.checked ? { x: 0, y: 0, width: 1, height: 1 } : undefined,
+          })
+        }
       />
       {value.viewport ? (
         <Stack gap="sm">
@@ -782,15 +772,10 @@ function BoardViewportFields({ value, onChange }: BoardSceneFieldsProps) {
 function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
   return (
     <>
-      <ControlBlock
-        title="Show storm"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={Boolean(value.storm)}
-            onChange={(event) => onChange({ ...value, storm: event.currentTarget.checked ? { angle: 0 } : undefined })}
-          />
-        )}
+      <Switch
+        label="Show storm"
+        checked={Boolean(value.storm)}
+        onChange={(event) => onChange({ ...value, storm: event.currentTarget.checked ? { angle: 0 } : undefined })}
       />
       {value.storm ? (
         <ControlBlock
@@ -1059,17 +1044,12 @@ export function PieceMovementEdit({
         references={references}
         onChange={(fields) => onChange({ ...value, ...fields })}
       />
-      <ControlBlock
-        title="Include board scene"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={Boolean(value.board)}
-            onChange={(event) =>
-              onChange({ ...value, board: event.currentTarget.checked ? emptyBoardScene(boardId) : undefined })
-            }
-          />
-        )}
+      <Switch
+        label="Include board scene"
+        checked={Boolean(value.board)}
+        onChange={(event) =>
+          onChange({ ...value, board: event.currentTarget.checked ? emptyBoardScene(boardId) : undefined })
+        }
       />
       {value.board ? (
         <BoardSceneFields
@@ -1337,15 +1317,10 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
                   />
                 )}
               />
-              <ControlBlock
-                title="Number the waypoints"
-                input={(fieldProps) => (
-                  <Switch
-                    {...fieldProps}
-                    checked={route.showWaypoints !== false}
-                    onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
-                  />
-                )}
+              <Switch
+                label="Number the waypoints"
+                checked={route.showWaypoints !== false}
+                onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
               />
               <ListChapter
                 title={`Route ${routeIndex + 1} waypoints`}
@@ -1395,27 +1370,22 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
                         />
                       )}
                     />
-                    <ControlBlock
-                      title={`Position waypoint ${pointIndex + 1} manually`}
-                      input={(fieldProps) => (
-                        <Switch
-                          {...fieldProps}
-                          checked={Boolean(point.position)}
-                          disabled={!point.territory}
-                          onChange={(event) => {
-                            const part = parts.find((entry) => entry.key === point.territory);
-                            const position = event.currentTarget.checked
-                              ? { x: part ? part.x + part.width / 2 : 0.5, y: part ? part.y + part.height / 2 : 0.5 }
-                              : undefined;
-                            update(routeIndex, {
-                              ...route,
-                              waypoints: route.waypoints.map((entry, i) =>
-                                i === pointIndex ? { ...entry, position } : entry
-                              ),
-                            });
-                          }}
-                        />
-                      )}
+                    <Switch
+                      label={`Position waypoint ${pointIndex + 1} manually`}
+                      checked={Boolean(point.position)}
+                      disabled={!point.territory}
+                      onChange={(event) => {
+                        const part = parts.find((entry) => entry.key === point.territory);
+                        const position = event.currentTarget.checked
+                          ? { x: part ? part.x + part.width / 2 : 0.5, y: part ? part.y + part.height / 2 : 0.5 }
+                          : undefined;
+                        update(routeIndex, {
+                          ...route,
+                          waypoints: route.waypoints.map((entry, i) =>
+                            i === pointIndex ? { ...entry, position } : entry
+                          ),
+                        });
+                      }}
                     />
                     {point.position ? (
                       <PositionFields

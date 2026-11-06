@@ -30,7 +30,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 /* oxlint-disable-next-line no-restricted-imports -- The film strip's pages are draggable thumbnails, not actions. */
 import { Button } from '@mantine/core';
 import {
@@ -3065,6 +3065,7 @@ function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSetti
         title="Book size"
         input={
           <Radio.Group
+            label={<VisuallyHidden>Book size</VisuallyHidden>}
             value={settings.size}
             onChange={(size) => {
               const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
@@ -3094,6 +3095,7 @@ function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSetti
         title="Book design"
         input={
           <Radio.Group
+            label={<VisuallyHidden>Book design</VisuallyHidden>}
             value={settings.design}
             onChange={(design) => {
               const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });

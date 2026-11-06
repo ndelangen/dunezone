@@ -195,14 +195,20 @@ describe('profile settings page', () => {
     await chooseTab(view, 'Creation defaults');
     expect(view.getByRole('combobox', { name: 'Default Group' })).not.toBeNull();
     expect(
-      view.getByRole('group', { name: 'Default Group' }).querySelector('[role="img"][aria-label="Help"]')
+      view
+        .getByRole('combobox', { name: 'Default Group' })
+        .closest('[role="group"]')!
+        .querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
 
     await chooseTab(view, 'Appearance');
     expect(view.getByRole('radiogroup', { name: 'Ambient motion' })).not.toBeNull();
     expect(view.queryByRole('radiogroup', { name: 'Color scheme' })).toBeNull();
     expect(
-      view.getByRole('group', { name: 'Ambient motion' }).querySelector('[role="img"][aria-label="Help"]')
+      view
+        .getByRole('radiogroup', { name: 'Ambient motion' })
+        .closest('[role="group"]')!
+        .querySelector('[role="img"][aria-label="Help"]')
     ).not.toBeNull();
     await chooseTab(view, 'Sign-in methods');
     expect(view.getByRole('button', { name: 'Disconnect Google' })).toHaveProperty('disabled', true);
@@ -333,8 +339,8 @@ describe('profile settings page', () => {
     const view = await renderPage();
     await chooseTab(view, 'Creation defaults');
 
-    /* Disabled, so it is no longer exposed as a combobox; find it inside its titled group. */
-    const field = view.getByRole('group', { name: 'Default Group' }).querySelector('input');
+    /* Disabled, so it is no longer exposed as a combobox; find it by its title. */
+    const field = view.getByLabelText('Default Group', { selector: 'input' });
     expect(field).toHaveProperty('disabled', true);
   });
 

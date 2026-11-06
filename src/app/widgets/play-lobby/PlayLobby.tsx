@@ -10,6 +10,7 @@ import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -292,28 +293,10 @@ function LobbyToolbar({
   createLink: RootLink;
   createDisabledReason: string | undefined;
 }>) {
-  const viewSelect = (label?: string, joined = false) =>
-    label ? (
-      <ControlBlock
-        title={label}
-        input={
-          <Select
-            variant={joined ? 'unstyled' : 'default'}
-            value={view}
-            data={[
-              { value: 'ongoing', label: `Ongoing (${counts.ongoing})` },
-              { value: 'yours', label: `Yours (${counts.yours})` },
-              { value: 'finished', label: `Finished (${counts.finished})` },
-            ]}
-            allowDeselect={false}
-            onChange={(value) => onViewChange((value as LobbyView | null) ?? 'ongoing')}
-            aria-label="Show games"
-            leftSection={<ListFilter size={15} aria-hidden />}
-          />
-        }
-      />
-    ) : (
+  const viewSelect = (label?: string, joined = false) => {
+    const field = (fieldProps?: ControlBlockField) => (
       <Select
+        {...fieldProps}
         variant={joined ? 'unstyled' : 'default'}
         value={view}
         data={[
@@ -327,6 +310,8 @@ function LobbyToolbar({
         leftSection={<ListFilter size={15} aria-hidden />}
       />
     );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
   return (
     <Toolbar>
       <Toolbar.Center>

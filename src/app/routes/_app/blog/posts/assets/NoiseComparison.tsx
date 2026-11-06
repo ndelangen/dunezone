@@ -227,15 +227,10 @@ function PhotoTexture({ texture, dispatch }: Readonly<{ texture: TextureState; d
             />
           )}
         />
-        <ControlBlock
-          title="Invert"
-          input={(fieldProps) => (
-            <Switch
-              {...fieldProps}
-              checked={texture.invert ?? true}
-              onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
-            />
-          )}
+        <Switch
+          label="Invert"
+          checked={texture.invert ?? true}
+          onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
         />
       </SimpleGrid>
     </Stack>

@@ -641,16 +641,11 @@ export function BackgroundComposer({
                         {selectedPattern?.label ?? 'Existing pattern'}
                       </Text>
                       {/* Invert lives with the pattern it flips, not in the sliders column. */}
-                      <ControlBlock
-                        title="Invert"
-                        input={(fieldProps) => (
-                          <Switch
-                            {...fieldProps}
-                            size="sm"
-                            checked={value.invert}
-                            onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
-                          />
-                        )}
+                      <Switch
+                        label="Invert"
+                        size="sm"
+                        checked={value.invert}
+                        onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
                       />
                       <LabeledAction
                         size="compact-sm"

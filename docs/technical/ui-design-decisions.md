@@ -461,6 +461,21 @@ announcement.
 *Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/form-error` rejects a Mantine `Alert`
 with a red colour outside `src/app/ui`.*
 
+### A field is captioned by its ControlBlock
+
+Every form field takes its caption from [`ControlBlock`](../../src/app/ui/control/ControlBlock.tsx):
+a bold title, its help behind a (?), and at most one caution line under the input. Mantine's own
+`label` and `description` drew a second, smaller caption with a help paragraph under it, so the same
+editor captioned fields two ways (Norbert, 2026-11-06). An input handed over as a function takes the
+title as its `<label>`, so a click on the title focuses the field and tests find it by role or label.
+A switch, checkbox or radio still labels its own option inline, and a radio or checkbox group keeps
+a visually hidden `label`, since Mantine names the group only through it. Live state that belongs to
+the field, such as a ruleset check, stays on screen under the input rather than behind the (?).
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/control-block-label` rejects `label` or
+`description` on a Mantine field, or a visible `label` on `Radio.Group` and `Checkbox.Group`. It sees
+direct `@mantine/core` imports only, so kit wrappers that pass Mantine's props through are on trust.*
+
 ### Destructive actions are held, not asked twice
 
 A delete fires after its trigger is held for five seconds. Hovering says "hold to delete"; pressing

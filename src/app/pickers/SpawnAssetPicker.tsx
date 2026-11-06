@@ -94,10 +94,10 @@ export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }
           }
         }}
       >
-        <Combobox.EventsTarget>
-          <ControlBlock
-            title="Search the catalogue"
-            input={(fieldProps) => (
+        <ControlBlock
+          title="Search the catalogue"
+          input={(fieldProps) => (
+            <Combobox.EventsTarget>
               <TextInput
                 {...fieldProps}
                 placeholder={`${withArticle(spawnTypeWords(types).one)}, or who made it`}
@@ -112,9 +112,9 @@ export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }
                 data-form-type="other"
                 onChange={(event) => setSearch(event.currentTarget.value)}
               />
-            )}
-          />
-        </Combobox.EventsTarget>
+            </Combobox.EventsTarget>
+          )}
+        />
         <SpawnAssetOptions
           entries={data.entries}
           types={types}

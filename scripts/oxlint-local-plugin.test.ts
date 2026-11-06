@@ -535,21 +535,26 @@ export const probe = [
   <Field label="Name" />,
   <Field description="Shown on the sheet" />,
   <Radio.Group label="Start from" />,
+  <Radio.Group label={<VisuallyHidden>Lookalike</VisuallyHidden>} />,
 ];
+function VisuallyHidden({ children }: { children: string }) {
+  return <b>{children}</b>;
+}
 `,
       'src/app/routes'
     );
-    expect(reports(output)).toBe(3);
+    expect(reports(output)).toBe(4);
   });
 
   test('leaves a hidden group name, Slider, option labels and the kit alone', async () => {
     const quiet = await lintDiagnostics(
       'probe.tsx',
-      `import { Checkbox, Radio, Slider, VisuallyHidden } from '@mantine/core';
+      `import { Checkbox, Radio, Slider, Switch, VisuallyHidden as Hidden } from '@mantine/core';
 export const probe = [
-  <Radio.Group label={<VisuallyHidden>Side</VisuallyHidden>} />,
+  <Radio.Group label={<Hidden>Side</Hidden>} />,
   <Slider label={(value) => value} />,
   <Checkbox label="Show grid" />,
+  <Switch label="Invert" />,
 ];
 `,
       'src/app/routes'

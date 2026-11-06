@@ -1,4 +1,4 @@
-import { Group, Radio, Stack, Switch, Text } from '@mantine/core';
+import { Group, Radio, Stack, Switch, Text, VisuallyHidden } from '@mantine/core';
 import type { BoardTint } from '@shared/boards/markup';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
@@ -92,6 +92,7 @@ function TintDemo() {
         title="Territories to tint"
         input={
           <Radio.Group
+            label={<VisuallyHidden>Territories to tint</VisuallyHidden>}
             value={draft.territory}
             onChange={(value) => dispatch({ type: 'territory', value: value as TintDraft['territory'] })}
           >
@@ -103,25 +104,15 @@ function TintDemo() {
         }
       />
       <Group>
-        <ControlBlock
-          title="Outline only"
-          input={(fieldProps) => (
-            <Switch
-              {...fieldProps}
-              checked={draft.outline}
-              onChange={(event) => dispatch({ type: 'outline', value: event.currentTarget.checked })}
-            />
-          )}
+        <Switch
+          label="Outline only"
+          checked={draft.outline}
+          onChange={(event) => dispatch({ type: 'outline', value: event.currentTarget.checked })}
         />
-        <ControlBlock
-          title="Add stickers"
-          input={(fieldProps) => (
-            <Switch
-              {...fieldProps}
-              checked={draft.stickers}
-              onChange={(event) => dispatch({ type: 'stickers', value: event.currentTarget.checked })}
-            />
-          )}
+        <Switch
+          label="Add stickers"
+          checked={draft.stickers}
+          onChange={(event) => dispatch({ type: 'stickers', value: event.currentTarget.checked })}
         />
       </Group>
       <div className={styles.board}>

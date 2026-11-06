@@ -65,13 +65,14 @@ export const RulesetArrowLeavesLabelClear = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const form = await page.findByRole('form', { name: 'New game' }, { timeout: 60_000 });
     /* The arrow lands beside the ruleset field and leaves its label clear, however high the pass's name sets the form. */
-    const label = form.querySelector('.mantine-Select-root label')!;
+    const block = within(form).getByRole('combobox', { name: 'Ruleset' }).closest('[role="group"]')!;
+    const label = block.querySelector('label')!;
     const arrow = () =>
       canvasElement.ownerDocument.querySelector<SVGPathElement>('path[data-target]:not([data-target=""])');
     await waitFor(() => expect(arrow()).not.toBeNull(), { timeout: 20_000 });
     /* It aims at the whole field, label and all, so the gap its tip keeps holds from the label as well as the input. */
     const aimsAtField = () => {
-      const field = label.closest('.mantine-Select-root')!.getBoundingClientRect();
+      const field = block.getBoundingClientRect();
       const [x, y] = arrow()!.getAttribute('data-target')!.split(' ').map(Number);
       return Math.abs(x! - (field.left + field.width / 2)) <= 1 && Math.abs(y! - (field.top + field.height / 2)) <= 1;
     };

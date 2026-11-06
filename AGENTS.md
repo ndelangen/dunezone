@@ -361,7 +361,8 @@ description. Each visual story changes one thing from its component's baseline, 
 needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
 a tooltip in any story outside `src/app/ui`. Beside it, `local/form-error` rejects a red Mantine `Alert`
 outside the kit: a failure is a `FormError`. `local/eyebrow` rejects `tt="uppercase"` on a Mantine
-`Text` outside the kit: a small capitals caption is an `Eyebrow`. Raw `Badge`, `Title` and `Loader`
+`Text` outside the kit: a small capitals caption is an `Eyebrow`. `local/control-block-label` rejects a
+Mantine field's own `label` or `description`: a field is captioned by `ControlBlock`. Raw `Badge`, `Title` and `Loader`
 are restricted imports outside the kit, in favour of `StatusBadge`, `Section`/`Card`/`PageTitle` and
 `Pending`; a deliberate exception takes a reasoned `oxlint-disable-next-line` comment.
 

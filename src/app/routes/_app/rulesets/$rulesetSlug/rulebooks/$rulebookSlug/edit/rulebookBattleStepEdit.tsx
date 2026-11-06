@@ -194,15 +194,11 @@ function BattleLeaderFields({ label, value, references, onChange }: BattleSideFi
         onChange={(leader) => update({ leader, leaderKilled: leader ? value.leaderKilled : undefined })}
       />
       {value.leader ? (
-        <ControlBlock
-          title="Leader killed"
-          input={
-            <Switch
-              aria-label={`${label} leader killed`}
-              checked={value.leaderKilled ?? false}
-              onChange={(event) => update({ leaderKilled: event.currentTarget.checked })}
-            />
-          }
+        <Switch
+          label="Leader killed"
+          aria-label={`${label} leader killed`}
+          checked={value.leaderKilled ?? false}
+          onChange={(event) => update({ leaderKilled: event.currentTarget.checked })}
         />
       ) : null}
     </>
@@ -449,15 +445,11 @@ function BattleSideEdit({ label, value, references, onChange }: BattleSideFields
           />
         }
       />
-      <ControlBlock
-        title="Reveal this battle plan"
-        input={
-          <Switch
-            aria-label={`Reveal ${label.toLowerCase()} battle plan`}
-            checked={value.revealed}
-            onChange={(event) => update({ revealed: event.currentTarget.checked })}
-          />
-        }
+      <Switch
+        label="Reveal this battle plan"
+        aria-label={`Reveal ${label.toLowerCase()} battle plan`}
+        checked={value.revealed}
+        onChange={(event) => update({ revealed: event.currentTarget.checked })}
       />
       <BattleStrengthFields label={label} value={value} references={references} onChange={onChange} />
       <BattleLeaderFields label={label} value={value} references={references} onChange={onChange} />
@@ -492,15 +484,10 @@ export function BattlePlansEdit({
 }: RulebookBlockEditorProps<'battle-plans'>) {
   return (
     <Stack gap="md">
-      <ControlBlock
-        title="Show faction names and roles"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={value.showSideLabels ?? true}
-            onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
-          />
-        )}
+      <Switch
+        label="Show faction names and roles"
+        checked={value.showSideLabels ?? true}
+        onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
       />
       <Accordion multiple defaultValue={['left']}>
         {(['left', 'right'] as const).map((side) => (
@@ -575,15 +562,11 @@ export function BattleStepEdit({
           />
         }
       />
-      <ControlBlock
-        title="Show faction names and roles"
-        input={
-          <Switch
-            aria-label={`${labelPrefix}Show faction names and roles`}
-            checked={value.showSideLabels ?? true}
-            onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
-          />
-        }
+      <Switch
+        label="Show faction names and roles"
+        aria-label={`${labelPrefix}Show faction names and roles`}
+        checked={value.showSideLabels ?? true}
+        onChange={(event) => onChange({ ...value, showSideLabels: event.currentTarget.checked })}
       />
       <Accordion multiple defaultValue={['left']}>
         {(['left', 'right'] as const).map((side) => (

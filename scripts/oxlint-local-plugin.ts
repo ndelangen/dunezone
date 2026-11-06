@@ -827,12 +827,11 @@ const eyebrowRule: Rule = {
 
 const CONTROL_LABEL_RULE_NAME = 'control-block-label';
 
-/* The Mantine fields whose `label` and `description` are a field caption; Slider's `label` is its value bubble, and a Checkbox or Radio labels its own option. */
+/* The Mantine fields whose `label` and `description` are a field caption; Slider's `label` is its value bubble, and a Switch, Checkbox or Radio labels its own option. */
 const LABELLED_FIELDS = new Set([
   'TextInput',
   'Select',
   'NumberInput',
-  'Switch',
   'Textarea',
   'ColorInput',
   'MultiSelect',
@@ -850,6 +849,7 @@ const LABELLED_GROUPS = new Set(['Radio', 'Checkbox']);
  * Mantine's own `label` and `description` drew a second, smaller caption with a help paragraph under it (Norbert, 2026-11-06).
  * The rule reads `label` or `description` on a Mantine field, or on `Radio.Group` and `Checkbox.Group`.
  * A group's `label` given as a `<VisuallyHidden>` element is allowed: Mantine names the radiogroup only through `label`, so that is its accessible name and draws no caption.
+ * It sees direct `@mantine/core` imports only: `Input.Wrapper` and kit wrappers that pass Mantine's props through (FormattedTextInput, BattleValueInput) are not checked.
  */
 const controlBlockLabelRule: Rule = {
   meta: {
@@ -862,6 +862,7 @@ const controlBlockLabelRule: Rule = {
   create(context) {
     const fields = new Set<string>();
     const groups = new Set<string>();
+    const hiders = new Set<string>();
     return {
       ImportDeclaration(node) {
         if (String(node.source.value) !== '@mantine/core') {
@@ -876,6 +877,9 @@ const controlBlockLabelRule: Rule = {
           }
           if (LABELLED_GROUPS.has(specifier.imported.name)) {
             groups.add(specifier.local.name);
+          }
+          if (specifier.imported.name === 'VisuallyHidden') {
+            hiders.add(specifier.local.name);
           }
         }
       },
@@ -901,7 +905,7 @@ const controlBlockLabelRule: Rule = {
           value?.type === 'JSXExpressionContainer' &&
           value.expression.type === 'JSXElement' &&
           value.expression.openingElement.name.type === 'JSXIdentifier' &&
-          value.expression.openingElement.name.name === 'VisuallyHidden';
+          hiders.has(value.expression.openingElement.name.name);
         if ((isField || isGroup) && !namesOnly) {
           context.report({ node, messageId: 'controlBlockLabel' });
         }

@@ -56,6 +56,7 @@ function PhysicalSizeControl({ value, onChange }: PhysicalSizeField) {
       input={(fieldProps) => (
         <Slider
           {...fieldProps}
+          thumbLabel="Physical size"
           min={PHYSICAL_SIZE_MIN * 100}
           max={PHYSICAL_SIZE_MAX * 100}
           step={5}

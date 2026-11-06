@@ -213,15 +213,10 @@ function FaceFields({
           />
         )}
       />
-      <ControlBlock
-        title="Symbol shadow"
-        input={(fieldProps) => (
-          <Switch
-            {...fieldProps}
-            checked={face.symbolShadow ?? true}
-            onChange={(event) => patch({ symbolShadow: event.currentTarget.checked })}
-          />
-        )}
+      <Switch
+        label="Symbol shadow"
+        checked={face.symbolShadow ?? true}
+        onChange={(event) => patch({ symbolShadow: event.currentTarget.checked })}
       />
       <ControlBlock
         title="Symbol scale"
@@ -229,6 +224,7 @@ function FaceFields({
         input={(fieldProps) => (
           <Slider
             {...fieldProps}
+            thumbLabel="Symbol scale"
             min={0.5}
             max={2}
             step={0.05}

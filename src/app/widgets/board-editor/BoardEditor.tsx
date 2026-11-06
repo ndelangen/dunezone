@@ -624,15 +624,10 @@ export function BoardEditor({
                           }
                         />
                       ))}
-                      <ControlBlock
-                        title={`Decal ${i + 1} outline`}
-                        input={(fieldProps) => (
-                          <Switch
-                            {...fieldProps}
-                            checked={decal.outline}
-                            onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
-                          />
-                        )}
+                      <Switch
+                        label={`Decal ${i + 1} outline`}
+                        checked={decal.outline}
+                        onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
                       />
                       <Divider />
                     </Stack>

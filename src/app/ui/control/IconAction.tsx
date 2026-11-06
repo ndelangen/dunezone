@@ -75,6 +75,8 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
   role?: string;
   tabIndex?: number;
   'aria-describedby'?: string;
+  /** Names the action from words on the page, over `label`, which stays the hover text; `AssetSelect` names its filter after the field's title this way. */
+  'aria-labelledby'?: string;
   'aria-roledescription'?: string;
   'aria-pressed'?: boolean;
   'aria-disabled'?: boolean;

@@ -43,10 +43,10 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
           store={combobox}
           onOptionSubmit={(userId) => setSelectedUserId(userId as ReplacementProfile['userId'])}
         >
-          <Combobox.EventsTarget>
-            <ControlBlock
-              title="Search profiles"
-              input={(fieldProps) => (
+          <ControlBlock
+            title="Search profiles"
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
                 <TextInput
                   {...fieldProps}
                   type="search"
@@ -58,9 +58,9 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
                     combobox.selectFirstOption();
                   }}
                 />
-              )}
-            />
-          </Combobox.EventsTarget>
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {rows.length === 0 ? (

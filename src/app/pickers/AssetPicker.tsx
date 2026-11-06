@@ -138,10 +138,10 @@ export function AssetPicker({
             });
           }}
         >
-          <Combobox.EventsTarget>
-            <ControlBlock
-              title={copy.searchLabel}
-              input={(fieldProps) => (
+          <ControlBlock
+            title={copy.searchLabel}
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
                 <TextInput
                   {...fieldProps}
                   ref={focusSearchInput}
@@ -159,9 +159,9 @@ export function AssetPicker({
                     combobox.selectFirstOption();
                   }}
                 />
-              )}
-            />
-          </Combobox.EventsTarget>
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {filteredRows.length === 0 ? (

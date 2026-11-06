@@ -86,17 +86,12 @@ function PublicationJobsDashboard() {
                     work already in progress.
                   </Text>
                 </div>
-                <ControlBlock
-                  title={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
-                  input={(fieldProps) => (
-                    <Switch
-                      {...fieldProps}
-                      size="lg"
-                      checked={result.settings?.publicationPickupEnabled ?? false}
-                      disabled={result.settings === null || pickupMutation.isPending}
-                      onChange={(event) => pickupMutation.mutate({ enabled: event.currentTarget.checked })}
-                    />
-                  )}
+                <Switch
+                  label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
+                  size="lg"
+                  checked={result.settings?.publicationPickupEnabled ?? false}
+                  disabled={result.settings === null || pickupMutation.isPending}
+                  onChange={(event) => pickupMutation.mutate({ enabled: event.currentTarget.checked })}
                 />
               </Group>
 

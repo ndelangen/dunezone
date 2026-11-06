@@ -1,4 +1,4 @@
-import { Box, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Radio, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -298,6 +298,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
         title="Start from"
         input={
           <Radio.Group
+            label={<VisuallyHidden>Start from</VisuallyHidden>}
             value={draft.source}
             onChange={(value) => {
               if (value === 'starter' || value === 'clone') {
