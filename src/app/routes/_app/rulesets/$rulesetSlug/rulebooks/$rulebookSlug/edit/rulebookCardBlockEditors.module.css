@@ -10,11 +10,6 @@
 
 .select {
   padding-inline-end: calc(var(--space-lg) + var(--space-md));
-  min-width: 0;
-  height: auto;
-  min-height: 2.25rem;
-  white-space: normal;
-  text-align: start;
 }
 
 .handle {

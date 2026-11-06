@@ -232,6 +232,13 @@ describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => 
     }
   );
 
+  test('bans a raw Alert outside the kit too', async () => {
+    const alert = "import { Alert } from '@mantine/core';\nexport const probe = Alert;\n";
+    expect(await lintDiagnostics('probe.tsx', alert, 'src/app/widgets/probe')).toContain(
+      "'Alert' import from '@mantine/core' is restricted"
+    );
+  });
+
   test('leaves the kit alone', async () => {
     expect(await lintDiagnostics('probe.tsx', source, 'src/app/ui/control')).not.toContain('Button');
   });
