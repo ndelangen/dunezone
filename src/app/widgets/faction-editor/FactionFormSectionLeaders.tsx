@@ -1,8 +1,8 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Badge, Box, Grid, Stack, Text, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
-import { Notice } from '@ui/block/Notice';
+import { ListChapter } from '@ui/block/ListChapter';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -214,16 +214,29 @@ export function FactionFormSectionLeaders({
   });
 
   return (
-    <Stack component="section" gap="md" aria-label="Supporting leaders">
-      <form.Field name="leaders" mode="array">
-        {(field) => {
-          const sortablePrefix = 'leaders-';
-          const count = field.state.value.length;
-          const canAdd = canAddSupportingLeader(count);
-          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end" gap={4} wrap="nowrap">
+    <form.Field name="leaders" mode="array">
+      {(field) => {
+        const sortablePrefix = 'leaders-';
+        const count = field.state.value.length;
+        const canAdd = canAddSupportingLeader(count);
+        const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
+        return (
+          <ListChapter
+            title="Supporting leaders"
+            help={'The leaders this faction fields besides its faction leader.\nMost factions use five.'}
+            note={
+              count === 0
+                ? {
+                    tone: 'caution',
+                    title: 'No supporting leaders',
+                    text: 'Zero is valid, but unusual. Most factions use five supporting leaders.',
+                  }
+                : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT
+                  ? { text: 'Most factions use five supporting leaders; this roster is still valid.' }
+                  : null
+            }
+            actions={
+              <>
                 <Badge variant="light" color="gray">
                   {count} / {SUPPORTING_LEADER_LIMIT}
                 </Badge>
@@ -252,43 +265,35 @@ export function FactionFormSectionLeaders({
                     selectIndex(newIndex);
                   }}
                 />
-              </Group>
-
-              {count === 0 ? (
-                <Notice tone="caution" title="No supporting leaders">
-                  Zero is valid, but unusual. Most factions use five supporting leaders.
-                </Notice>
-              ) : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT ? (
-                <Notice>Most factions use five supporting leaders; this roster is still valid.</Notice>
-              ) : null}
-
-              {field.state.value.length > 0 ? (
-                <>
-                  <FactionCollectionShelf
-                    label="Ordered supporting leaders"
-                    sortablePrefix={sortablePrefix}
-                    selectedIndex={safeSelectedIndex}
-                    onSelectedIndexChange={selectIndex}
-                    items={field.state.value.map((leader, index) => ({
-                      id: `${sortablePrefix}${index}`,
-                      label: leader.name.trim() || 'Unnamed leader',
-                      description: leader.strength === undefined ? 'No strength' : `Strength ${leader.strength}`,
-                    }))}
-                    onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
-                  />
-                  <SupportingLeaderCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    showPreview={showPreview}
-                    strengthRefusal={strengthRefusal}
-                    onStrengthRefusalChange={onStrengthRefusalChange}
-                  />
-                </>
-              ) : null}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+              </>
+            }
+          >
+            {field.state.value.length > 0 ? (
+              <>
+                <FactionCollectionShelf
+                  label="Ordered supporting leaders"
+                  sortablePrefix={sortablePrefix}
+                  selectedIndex={safeSelectedIndex}
+                  onSelectedIndexChange={selectIndex}
+                  items={field.state.value.map((leader, index) => ({
+                    id: `${sortablePrefix}${index}`,
+                    label: leader.name.trim() || 'Unnamed leader',
+                    description: leader.strength === undefined ? 'No strength' : `Strength ${leader.strength}`,
+                  }))}
+                  onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
+                />
+                <SupportingLeaderCard
+                  form={form}
+                  index={safeSelectedIndex}
+                  showPreview={showPreview}
+                  strengthRefusal={strengthRefusal}
+                  onStrengthRefusalChange={onStrengthRefusalChange}
+                />
+              </>
+            ) : null}
+          </ListChapter>
+        );
+      }}
+    </form.Field>
   );
 }

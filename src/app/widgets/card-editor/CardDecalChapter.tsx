@@ -1,6 +1,6 @@
-import { Divider, Group, Stack, Text } from '@mantine/core';
+import { Divider, Stack, Text } from '@mantine/core';
 import type { Decal } from '@shared/assets/schema';
-import { Notice } from '@ui/block/Notice';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import type { z } from 'zod';
@@ -22,11 +22,14 @@ function CardDecalFields({
   maximum?: number;
 }>) {
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Decals
-        </Text>
+    <ListChapter
+      title="Decals"
+      note={
+        decals.length === 0
+          ? { title: 'No decals', text: 'Decals are optional. The card remains valid without them.' }
+          : null
+      }
+      actions={
         <ListLengthActions
           addLabel="Add decal"
           removeLabel="Remove last decal"
@@ -46,10 +49,8 @@ function CardDecalFields({
           }
           onRemove={() => onChange(decals.slice(0, -1))}
         />
-      </Group>
-      {decals.length === 0 ? (
-        <Notice title="No decals">Decals are optional. The card remains valid without them.</Notice>
-      ) : null}
+      }
+    >
       {decals.map((decal, index) => (
         <Stack key={index /* Positional slots are only appended or removed at the tail. NOSONAR */} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -64,7 +65,7 @@ function CardDecalFields({
           />
         </Stack>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 

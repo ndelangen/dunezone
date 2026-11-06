@@ -1,4 +1,5 @@
-import { Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Divider, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { ListChapter } from '@ui/block/ListChapter';
 import { Notice } from '@ui/block/Notice';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -110,14 +111,17 @@ export function FactionFormSectionPlanets({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
 
   return (
-    <Stack component="section" gap="md" aria-label="Faction planets">
-      <form.Field name="planet">
-        {(field) => {
-          const planets = field.state.value ?? [];
-          const count = planets.length;
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end">
+    <form.Field name="planet">
+      {(field) => {
+        const planets = field.state.value ?? [];
+        const count = planets.length;
+        return (
+          <ListChapter
+            title="Planets"
+            help={"Planets are optional.\nAdd one when a planet is part of this faction's identity."}
+            note={count === 0 ? { title: 'No planets', text: 'This faction has no planets.' } : null}
+            actions={
+              <>
                 <ListLengthActions
                   removeLabel="Remove last planet"
                   addLabel="Add planet"
@@ -151,25 +155,19 @@ export function FactionFormSectionPlanets({
                     selectIndex(count);
                   }}
                 />
-              </Group>
-
-              {count === 0 ? (
-                <Notice title="No planets">
-                  Planets are optional. Add one when a planet is part of this faction&apos;s identity.
-                </Notice>
-              ) : null}
-
-              {planets.map((_, index) => (
-                <Stack key={index} gap="md">
-                  {index > 0 ? <Divider /> : null}
-                  {/* Focusing any of a planet's fields makes it the preview rail's focused planet. */}
-                  <PlanetFields form={form} index={index} onFocus={() => selectIndex(index)} />
-                </Stack>
-              ))}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+              </>
+            }
+          >
+            {planets.map((_, index) => (
+              <Stack key={index} gap="md">
+                {index > 0 ? <Divider /> : null}
+                {/* Focusing any of a planet's fields makes it the preview rail's focused planet. */}
+                <PlanetFields form={form} index={index} onFocus={() => selectIndex(index)} />
+              </Stack>
+            ))}
+          </ListChapter>
+        );
+      }}
+    </form.Field>
   );
 }

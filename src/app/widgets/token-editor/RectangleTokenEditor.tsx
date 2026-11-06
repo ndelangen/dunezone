@@ -1,7 +1,7 @@
 import { Divider, Group, Select, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
-import { Notice } from '@ui/block/Notice';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -173,11 +173,10 @@ function SurfaceFields({
 
 function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePatch }) {
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Decals
-        </Text>
+    <ListChapter
+      title="Decals"
+      note={face.decals.length === 0 ? { title: 'No decals', text: 'Add one and put it anywhere on the face.' } : null}
+      actions={
         <ListLengthActions
           addLabel="Add decal"
           removeLabel="Remove last decal"
@@ -185,8 +184,8 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
           onAdd={() => patch({ decals: [...face.decals, newDecal()] })}
           onRemove={() => patch({ decals: face.decals.slice(0, -1) })}
         />
-      </Group>
-      {face.decals.length === 0 ? <Notice title="No decals">Add one and put it anywhere on the face.</Notice> : null}
+      }
+    >
       {face.decals.map((decal, index) => (
         <Stack key={index} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -242,7 +241,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
           />
         </Stack>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 
@@ -252,11 +251,17 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
       texts: face.texts.map((current, position) => (position === index ? { ...current, ...update } : current)),
     });
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Text elements
-        </Text>
+    <ListChapter
+      title="Text elements"
+      note={
+        face.texts.length === 0
+          ? {
+              title: 'No text',
+              text: 'The rectangle places its text rather than slotting it. Add one and put it anywhere.',
+            }
+          : null
+      }
+      actions={
         <ListLengthActions
           addLabel="Add text"
           removeLabel="Remove last text"
@@ -264,12 +269,8 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
           onAdd={() => patch({ texts: [...face.texts, newText()] })}
           onRemove={() => patch({ texts: face.texts.slice(0, -1) })}
         />
-      </Group>
-      {face.texts.length === 0 ? (
-        <Notice title="No text">
-          The rectangle places its text rather than slotting it. Add one and put it anywhere.
-        </Notice>
-      ) : null}
+      }
+    >
       {face.texts.map((text, index) => (
         <Stack key={index} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -353,7 +354,7 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
           </Group>
         </Stack>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 

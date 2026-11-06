@@ -13,7 +13,7 @@ import {
   Tooltip,
   VisuallyHidden,
 } from '@mantine/core';
-import { Notice } from '@ui/block/Notice';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -291,15 +291,24 @@ export function FactionFormSectionTroops({
   const setTroopSideTabByIndex = onSideByIndexChange ?? setInternalSideByIndex;
 
   return (
-    <Stack component="section" gap="md" aria-label="Troop inventory">
-      <form.Field name="troops" mode="array">
-        {(field) => {
-          const sortablePrefix = 'troops-';
-          const count = field.state.value.length;
-          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end">
+    <form.Field name="troops" mode="array">
+      {(field) => {
+        const sortablePrefix = 'troops-';
+        const count = field.state.value.length;
+        const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
+        return (
+          <ListChapter
+            title="Troops"
+            help={
+              'The physical troop pieces this faction brings, one entry per kind.\nA troop with a back is a two-sided token.'
+            }
+            note={
+              count === 0
+                ? { title: 'No troop types', text: 'This faction currently has no physical troop inventory.' }
+                : null
+            }
+            actions={
+              <>
                 <ListLengthActions
                   removeLabel="Remove last troop type"
                   addLabel="Add troop type"
@@ -320,66 +329,62 @@ export function FactionFormSectionTroops({
                     selectIndex(newIndex);
                   }}
                 />
-              </Group>
-
-              {count === 0 ? (
-                <Notice title="No troop types">This faction currently has no physical troop inventory.</Notice>
-              ) : null}
-
-              {count > 0 ? (
-                <>
-                  <FactionCollectionShelf
-                    label="Ordered troop types"
-                    sortablePrefix={sortablePrefix}
-                    selectedIndex={safeSelectedIndex}
-                    onSelectedIndexChange={selectIndex}
-                    items={field.state.value.map((troop, index) => ({
-                      id: `${sortablePrefix}${index}`,
-                      label: troop.name.trim() || 'Unnamed troop',
-                      description: `${troop.count} pieces${troop.back ? ' · two-sided' : ''}`,
-                    }))}
-                    onMove={(from, to) => {
-                      field.handleChange(arrayMove(field.state.value, from, to));
-                      setTroopSideTabByIndex((previous) => {
-                        const tabs = field.state.value.map((_, index) => previous[index] ?? 'front');
-                        return Object.fromEntries(arrayMove(tabs, from, to).map((tab, index) => [index, tab]));
-                      });
-                    }}
-                  />
-                  <TroopCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    activeSide={troopSideTabByIndex[safeSelectedIndex] ?? 'front'}
-                    onActiveSideChange={(side) =>
-                      setTroopSideTabByIndex((previous) => ({
-                        ...previous,
-                        [safeSelectedIndex]: side,
-                      }))
+              </>
+            }
+          >
+            {count > 0 ? (
+              <>
+                <FactionCollectionShelf
+                  label="Ordered troop types"
+                  sortablePrefix={sortablePrefix}
+                  selectedIndex={safeSelectedIndex}
+                  onSelectedIndexChange={selectIndex}
+                  items={field.state.value.map((troop, index) => ({
+                    id: `${sortablePrefix}${index}`,
+                    label: troop.name.trim() || 'Unnamed troop',
+                    description: `${troop.count} pieces${troop.back ? ' · two-sided' : ''}`,
+                  }))}
+                  onMove={(from, to) => {
+                    field.handleChange(arrayMove(field.state.value, from, to));
+                    setTroopSideTabByIndex((previous) => {
+                      const tabs = field.state.value.map((_, index) => previous[index] ?? 'front');
+                      return Object.fromEntries(arrayMove(tabs, from, to).map((tab, index) => [index, tab]));
+                    });
+                  }}
+                />
+                <TroopCard
+                  form={form}
+                  index={safeSelectedIndex}
+                  activeSide={troopSideTabByIndex[safeSelectedIndex] ?? 'front'}
+                  onActiveSideChange={(side) =>
+                    setTroopSideTabByIndex((previous) => ({
+                      ...previous,
+                      [safeSelectedIndex]: side,
+                    }))
+                  }
+                  onToggleBack={() => {
+                    const next = [...field.state.value];
+                    const current = next[safeSelectedIndex];
+                    if (!current) {
+                      return;
                     }
-                    onToggleBack={() => {
-                      const next = [...field.state.value];
-                      const current = next[safeSelectedIndex];
-                      if (!current) {
-                        return;
-                      }
-                      next[safeSelectedIndex] = {
-                        ...current,
-                        back: current.back ? undefined : createTroopBackFromFront(current),
-                      };
-                      field.handleChange(next);
-                      setTroopSideTabByIndex((previous) => ({
-                        ...previous,
-                        [safeSelectedIndex]: 'front',
-                      }));
-                    }}
-                    showPreview={showPreview}
-                  />
-                </>
-              ) : null}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+                    next[safeSelectedIndex] = {
+                      ...current,
+                      back: current.back ? undefined : createTroopBackFromFront(current),
+                    };
+                    field.handleChange(next);
+                    setTroopSideTabByIndex((previous) => ({
+                      ...previous,
+                      [safeSelectedIndex]: 'front',
+                    }));
+                  }}
+                  showPreview={showPreview}
+                />
+              </>
+            ) : null}
+          </ListChapter>
+        );
+      }}
+    </form.Field>
   );
 }

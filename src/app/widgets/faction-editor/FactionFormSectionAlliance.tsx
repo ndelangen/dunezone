@@ -1,5 +1,5 @@
-import { Divider, Grid, Group, Stack, Text } from '@mantine/core';
-import { Notice } from '@ui/block/Notice';
+import { Divider, Grid, Stack, Text } from '@mantine/core';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -114,11 +114,17 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const count = field.state.value.length;
                 return (
-                  <Stack gap="md">
-                    <Group justify="space-between" align="center">
-                      <Text fw={700} size="sm">
-                        Decals
-                      </Text>
+                  <ListChapter
+                    title="Decals"
+                    note={
+                      count === 0
+                        ? {
+                            title: 'No alliance decals',
+                            text: 'Decals are optional. The alliance card remains valid without them.',
+                          }
+                        : null
+                    }
+                    actions={
                       <ListLengthActions
                         removeLabel="Remove last alliance decal"
                         addLabel="Add alliance decal"
@@ -130,14 +136,8 @@ export function FactionFormSectionAlliance({
                         }}
                         onAdd={() => field.pushValue(defaultDecal())}
                       />
-                    </Group>
-
-                    {count === 0 ? (
-                      <Notice title="No alliance decals">
-                        Decals are optional. The alliance card remains valid without them.
-                      </Notice>
-                    ) : null}
-
+                    }
+                  >
                     {field.state.value.map((_, index) => (
                       <Stack key={index} gap="sm">
                         {index > 0 ? <Divider /> : null}
@@ -147,7 +147,7 @@ export function FactionFormSectionAlliance({
                         <DecalCard form={form} index={index} />
                       </Stack>
                     ))}
-                  </Stack>
+                  </ListChapter>
                 );
               }}
             </form.Field>
