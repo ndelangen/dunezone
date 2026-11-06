@@ -1,0 +1,56 @@
+/* One row per key, one column per situation: a glossary of the keyboard. */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.table th,
+.table td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--glass-surface-1, var(--color-ground));
+  color: var(--color-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.keyHead {
+  width: 4rem;
+}
+
+.key {
+  white-space: nowrap;
+}
+
+.cell {
+  display: block;
+  padding-left: 0.45rem;
+  border-left: 2px solid var(--group);
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.cell + .cell {
+  margin-top: 0.2rem;
+}
+
+/* A key that means one thing anywhere and another over a piece is the one to watch: its row is tinted. */
+.table tr[data-two] {
+  background: color-mix(in srgb, var(--color-caution) 6%, transparent);
+}
+
+.table tr[data-hit] {
+  background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  transition: background-color 400ms ease-out;
+}

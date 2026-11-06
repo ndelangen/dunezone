@@ -1,0 +1,139 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.chip {
+  padding: 0.15rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--group) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--group) 12%, transparent);
+  color: var(--group);
+  cursor: default;
+  font: 600 0.75rem/1.4 var(--font-sans);
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.3rem;
+}
+
+/* Each key is a tile with its cap on top and what it does underneath. */
+.key {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 2.6rem;
+  padding: 0.3rem 0.15rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  color: color-mix(in srgb, var(--color-text) 35%, transparent);
+  font: inherit;
+  transition:
+    opacity 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+
+.key[data-bound] {
+  border-color: color-mix(in srgb, var(--group) 55%, transparent);
+  background: color-mix(in srgb, var(--group) 10%, transparent);
+  color: var(--color-text);
+  cursor: help;
+}
+
+/* A key that means one thing over the table and another over a piece shows both colours. */
+.key[data-both] {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-brand) 14%, transparent) 50%,
+    color-mix(in srgb, var(--color-positive) 18%, transparent) 50%
+  );
+}
+
+.key:not([data-bound]):not(:has(kbd)) {
+  visibility: hidden;
+}
+
+.key[data-focus] {
+  outline: 2px solid var(--group);
+  outline-offset: 1px;
+}
+
+.keyboard[data-dim] .key:not([data-lit]) {
+  opacity: 0.3;
+}
+
+.detail {
+  min-height: 4.2rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.meanings {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meaning {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: 0 var(--space-sm);
+  align-items: baseline;
+  font-size: var(--mantine-font-size-sm);
+  animation: slide-in 160ms ease-out;
+}
+
+.action {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.when {
+  color: var(--group);
+  font-size: 0.75rem;
+}
+
+.more {
+  grid-column: 2 / -1;
+  color: var(--color-muted);
+  font-size: 0.8rem;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    translate: -0.4rem 0;
+  }
+}
+
+html[data-motion="reduce"] .meaning {
+  animation: none;
+}
