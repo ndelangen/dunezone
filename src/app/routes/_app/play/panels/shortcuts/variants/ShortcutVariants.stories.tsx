@@ -9,6 +9,7 @@ import { MnemonicShortcuts } from './MnemonicShortcuts';
 import { NowStripShortcuts } from './NowStripShortcuts';
 import { RightNowHooksShortcuts } from './RightNowHooksShortcuts';
 import { RightNowShortcuts } from './RightNowShortcuts';
+import { ShortcutSheet } from './ShortcutSheet';
 import { SituationKeyboardShortcuts } from './SituationKeyboardShortcuts';
 import { SplitShortcuts } from './SplitShortcuts';
 
@@ -81,4 +82,16 @@ export const QuickStrip = meta.story({
 export const QuickStripUnfolded = meta.story({
   name: '6 Quick strip, unfolded',
   render: () => <NowStripShortcuts now={['piece']} open />,
+});
+
+/** Norbert's layout: right now in one scrolling row, the whole keyboard with tooltips, then the colour-coded list. */
+export const Sheet = meta.story({
+  name: '7 Now, keyboard, list',
+  render: () => <ShortcutSheet now={['piece']} />,
+});
+
+/** 7, while bidding. */
+export const SheetBidding = meta.story({
+  name: '7 Now, keyboard, list, bidding',
+  render: () => <ShortcutSheet now={['bidding']} />,
 });

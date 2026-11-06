@@ -1,0 +1,107 @@
+/* The row of what matters now: one line of tiles that scrolls sideways, never wraps. */
+.row {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0 0 var(--space-xs);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.tile {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 7.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--group) 50%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--group) 10%, transparent);
+  scroll-snap-align: start;
+  animation: pop 220ms ease-out backwards;
+}
+
+.big {
+  font-size: 1.3rem;
+}
+
+.word {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.action {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+/* Between the keys for this moment and the window keys that hold at every moment. */
+.divider {
+  flex: none;
+  width: 1px;
+  margin: 0.3rem 0.15rem;
+  background: color-mix(in srgb, var(--color-text) 18%, transparent);
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.chip {
+  padding: 0.1rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--group) 60%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--group) 12%, transparent);
+  color: var(--group);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Each group of the list carries its colour down its left edge. */
+.group {
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--group);
+}
+
+.groupTitle {
+  margin: 0 0 var(--space-xs);
+  color: var(--group);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+html[data-motion="reduce"] .tile {
+  animation: none;
+}

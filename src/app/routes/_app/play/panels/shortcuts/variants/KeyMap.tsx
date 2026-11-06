@@ -1,8 +1,9 @@
+import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 
 import styles from './KeyMap.module.css';
 import { PressFlash } from './Keys';
-import { entriesForCap, isNow, meaningNow } from './shortcutCatalogue';
+import { SITUATION_LABEL, entriesForCap, isNow, meaningNow } from './shortcutCatalogue';
 import type { Now, ShortcutEntry } from './shortcutCatalogue';
 import type { Pressed } from './usePressedKey';
 
@@ -43,14 +44,42 @@ export type KeyMapProps = Readonly<{
   emphasis?: boolean;
   /** A smaller keyboard, for beside a list. */
   mini?: boolean;
+  /** Pointing at a key tells everything it does, with its memory hook, in a tooltip. */
+  tooltips?: boolean;
 }>;
+
+/* A key's tooltip: each thing it does, when, and how to remember it. */
+function KeyTip({ keyName, now }: Readonly<{ keyName: string; now: readonly Now[] }>) {
+  return (
+    <span className={styles.tip}>
+      {entriesForCap(keyName)
+        .toSorted((a, b) => Number(isNow(b, now)) - Number(isNow(a, now)))
+        .map((entry) => (
+          <span key={entry.id} className={styles.tipLine} data-group={entry.group}>
+            <b className={styles.tipAction}>{entry.action}</b>
+            <span className={styles.tipWhen}>{isNow(entry, now) ? 'Now' : SITUATION_LABEL[entry.when]}</span>
+            {(entry.hook ?? entry.detail) && <span className={styles.tipHook}>{entry.hook ?? entry.detail}</span>}
+          </span>
+        ))}
+    </span>
+  );
+}
 
 /**
  * The keyboard drawn as the table uses it: every key in its group's colour, saying what it does right now.
  * Shared by the variants that draw the keyboard;
  * a variant decides what sits around it.
  */
-export function KeyMap({ now, pressed, focus, onFocus, captions = true, emphasis = true, mini = false }: KeyMapProps) {
+export function KeyMap({
+  now,
+  pressed,
+  focus,
+  onFocus,
+  captions = true,
+  emphasis = true,
+  mini = false,
+  tooltips = false,
+}: KeyMapProps) {
   return (
     <div className={styles.keyboard} data-mini={mini || undefined} onMouseLeave={() => onFocus(null)}>
       {ROWS.map((row, rowIndex) => (
@@ -61,7 +90,7 @@ export function KeyMap({ now, pressed, focus, onFocus, captions = true, emphasis
             const meaning = key ? meaningNow(key, now) : null;
             const shown = meaning ?? all[0];
             const state = !shown ? undefined : !meaning ? 'later' : emphasis && isNow(meaning, now) ? 'now' : 'any';
-            return (
+            const button = (
               <button
                 key={`${key}:${cellIndex}`}
                 type="button"
@@ -89,6 +118,20 @@ export function KeyMap({ now, pressed, focus, onFocus, captions = true, emphasis
                   </span>
                 )}
               </button>
+            );
+            return tooltips && all.length > 0 ? (
+              <Tooltip
+                key={`${key}:${cellIndex}`}
+                label={<KeyTip keyName={key} now={now} />}
+                multiline
+                maw={260}
+                withArrow
+                openDelay={120}
+              >
+                {button}
+              </Tooltip>
+            ) : (
+              button
             );
           })}
         </div>

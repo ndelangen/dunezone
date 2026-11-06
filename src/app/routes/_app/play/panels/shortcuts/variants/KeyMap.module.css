@@ -109,3 +109,34 @@ html[data-motion="reduce"] .key[data-state="now"],
 html[data-motion="reduce"] .caption {
   animation: none;
 }
+
+/* The tooltip: one line per meaning, its group's colour on the left edge. */
+.tip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.tipLine {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 0 0.6rem;
+  padding-left: 0.45rem;
+  border-left: 2px solid var(--group);
+}
+
+.tipAction {
+  font-weight: 600;
+}
+
+.tipWhen {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.tipHook {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  font-style: italic;
+  opacity: 0.8;
+}
