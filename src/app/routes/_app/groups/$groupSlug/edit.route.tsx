@@ -1,141 +1,46 @@
-import { Stack, TextInput } from '@mantine/core';
-import { groupInputSchema } from '@shared/groups/validation';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
-import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Save } from 'lucide-react';
-import { useRef, useState } from 'react';
 
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
 import { pageHead } from '@app/routes/pageTitle';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
-import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
-/* The form's id, so Save can sit in the toolbar with every other page's Save and still submit it. */
-const GROUP_EDIT_FORM_ID = 'group-edit-form';
+import { GroupForm } from '../GroupForm';
 
-/**
- * The whole edit page for one group, mounted with `key={group.slug}` so a rename remounts it and resets the field.
- * It returns the full `PageLayout` itself rather than handing a header slot upward: the layout matches slots by identity, so the band must be this component's own direct child (#444), and per #897 that band stays closed until there are warnings.
- */
+/** The edit page for one group, mounted with `key={group.slug}` so a rename remounts it and resets the field. */
 function GroupEditor({ initial }: { initial: GroupEntry }) {
   const navigate = useNavigate();
   const updateGroup = useUpdateGroup();
-  /* No effect syncing `name` back from `initial`: the remount on rename is the reset. An effect on
-     top of that only adds a way for a background update to overwrite what someone is typing. */
-  const [name, setName] = useState(initial.name);
-
-  const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
-  /* Live once something is typed, per the ruleset editor's about field: an untouched or emptied field is
-     explained by the requirement line and the disabled button, not an error. */
-  const nameError =
-    name.trim().length > 0 && !nameCheck.success
-      ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
-      : undefined;
-  const mutationError = updateGroup.isError && updateGroup.error instanceof Error ? updateGroup.error.message : null;
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const validationHeader = useEditPageHeader({
-    warnings: nameError ? [{ source: 'Group name', complaint: nameError }] : [],
-    onFocusWarning: () => nameInputRef.current?.focus(),
-  });
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!nameCheck.success) {
-      return;
-    }
-    const previousSlug = initial.slug;
-    updateGroup.mutate(
-      { id: initial.id, input: nameCheck.data },
-      {
-        onSuccess: (entry) => {
-          if (previousSlug !== entry.slug) {
-            void navigate({
-              to: '/groups/$groupSlug/edit',
-              params: { groupSlug: entry.slug },
-              replace: true,
-            });
-          }
-        },
-      }
-    );
-  };
-
   return (
-    <PageLayout>
-      {validationHeader.slot}
-      <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to group"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: initial.slug }} />
-              )}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
-          </Toolbar.Left>
-          <Toolbar.Right label="Editing actions">
-            <Toolbar.Cluster kind="commit">
-              <IconAction
-                label="Save group"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                type="submit"
-                form={GROUP_EDIT_FORM_ID}
-                loading={updateGroup.isPending}
-                disabled={!nameCheck.success || updateGroup.isPending}
-                icon={<Save size={17} aria-hidden />}
-              />
-            </Toolbar.Cluster>
-          </Toolbar.Right>
-        </Toolbar>
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Surface padding="lg">
-          <Stack
-            component="form"
-            id={GROUP_EDIT_FORM_ID}
-            gap="sm"
-            onSubmit={handleSubmit}
-            onBlurCapture={validationHeader.settle}
-          >
-            <ControlBlock
-              title="Group name"
-              description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
-              input={(fieldProps) => (
-                <TextInput
-                  {...fieldProps}
-                  ref={nameInputRef}
-                  name="name"
-                  required
-                  minLength={1}
-                  error={nameError}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              )}
-            />
-            <ActionError subject="Group" verb="save" error={mutationError} />
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <GroupForm
+      initialName={initial.name}
+      back={{
+        label: 'Back to group',
+        renderRoot: (rootProps) => <Link {...rootProps} to="/groups/$groupSlug" params={{ groupSlug: initial.slug }} />,
+      }}
+      description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
+      verb="save"
+      pending={updateGroup.isPending}
+      error={updateGroup.error}
+      onSubmit={(input) =>
+        updateGroup.mutate(
+          { id: initial.id, input },
+          {
+            onSuccess: (entry) => {
+              if (initial.slug !== entry.slug) {
+                void navigate({ to: '/groups/$groupSlug/edit', params: { groupSlug: entry.slug }, replace: true });
+              }
+            },
+          }
+        )
+      }
+    />
   );
 }
 

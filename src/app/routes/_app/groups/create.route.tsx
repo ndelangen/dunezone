@@ -1,48 +1,23 @@
-import { Stack, TextInput } from '@mantine/core';
-import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ControlBlock } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Save } from 'lucide-react';
-import { useRef, useState } from 'react';
 
 import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
-import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
+
+import { GroupForm } from './GroupForm';
 
 export const Route = createFileRoute('/_app/groups/create')({
   head: () => pageHead('Start group'),
   component: GroupCreatePage,
 });
 
-const GROUP_CREATE_FORM_ID = 'group-create';
-
 function GroupCreatePage() {
   const navigate = useNavigate();
   const viewer = useSessionViewer();
   const createGroup = useCreateGroup();
-  const [name, setName] = useState('');
-
-  const nameCheck = groupInputSchema.safeParse({ name: name.trim() });
-  /* Live once something is typed, per the edit twin: the create wrapper parses before it mutates and
-     its refusal never reaches the mutation's error state, so an invalid name must be caught here or
-     it is caught nowhere. */
-  const nameError =
-    name.trim().length > 0 && !nameCheck.success
-      ? nameCheck.error.issues.map((issue) => issue.message).join(' ') || 'Invalid group name'
-      : undefined;
-  const nameInputRef = useRef<HTMLInputElement>(null);
-  const validationHeader = useEditPageHeader({
-    warnings: nameError ? [{ source: 'Group name', complaint: nameError }] : [],
-    onFocusWarning: () => nameInputRef.current?.focus(),
-  });
 
   switch (viewer.kind) {
     case 'pending':
@@ -65,87 +40,24 @@ function GroupCreatePage() {
       break;
   }
 
-  const profileRow = viewer.profile;
-  const canSubmit = !createGroup.isPending && nameCheck.success;
-
+  const profileSlug = viewer.profile.slug;
   return (
-    <PageLayout>
-      {validationHeader.slot}
-      <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            {/* Back to the profile Start group was pressed on, the same place the old Close went. */}
-            <IconAction
-              label="Back to profile"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug: profileRow.slug }} />
-              )}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
-          </Toolbar.Left>
-          <Toolbar.Right label="Editing actions">
-            <Toolbar.Cluster kind="commit">
-              <IconAction
-                label="Save group"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                type="submit"
-                form={GROUP_CREATE_FORM_ID}
-                loading={createGroup.isPending}
-                disabled={!canSubmit}
-                icon={<Save size={17} aria-hidden />}
-              />
-            </Toolbar.Cluster>
-          </Toolbar.Right>
-        </Toolbar>
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <Surface padding="lg">
-          <Stack
-            component="form"
-            gap="sm"
-            id={GROUP_CREATE_FORM_ID}
-            onBlurCapture={validationHeader.settle}
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!nameCheck.success) {
-                return;
-              }
-              createGroup.mutate(
-                { input: nameCheck.data },
-                {
-                  onSuccess: () => {
-                    void navigate({
-                      to: '/profiles/$profileSlug',
-                      params: { profileSlug: profileRow.slug },
-                    });
-                  },
-                }
-              );
-            }}
-          >
-            <ControlBlock
-              title="Group name"
-              input={(fieldProps) => (
-                <TextInput
-                  {...fieldProps}
-                  ref={nameInputRef}
-                  error={nameError ?? createGroup.error?.message}
-                  name="name"
-                  required
-                  minLength={1}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              )}
-            />
-          </Stack>
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <GroupForm
+      initialName=""
+      /* Back to the profile Start group was pressed on, the same place the old Close went. */
+      back={{
+        label: 'Back to profile',
+        renderRoot: (rootProps) => <Link {...rootProps} to="/profiles/$profileSlug" params={{ profileSlug }} />,
+      }}
+      verb="create"
+      pending={createGroup.isPending}
+      error={createGroup.error}
+      onSubmit={(input) =>
+        createGroup.mutate(
+          { input },
+          { onSuccess: () => void navigate({ to: '/profiles/$profileSlug', params: { profileSlug } }) }
+        )
+      }
+    />
   );
 }
