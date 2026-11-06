@@ -1,3 +1,4 @@
+import { offersPieceAction } from '@shared/play/commands';
 import { canTakeAdditionalFromDraft } from '@shared/play/tableState';
 
 import type { TabletopContextValue } from './TabletopContext';
@@ -67,6 +68,33 @@ function carryKeys(state: Reads['state'], keys: Set<PieceKey>) {
   }
 }
 
+/* The keys a piece at rest answers to, by the room's own checks: a locked piece does none, only cards and forces flip, only two or more split. */
+function pieceKeys(controls: Reads, pieceId: string, keys: Set<PieceKey>) {
+  /* A carried piece turns and flips in hand, as the session does with the carry; splitting and the deck keys wait until it is put down. */
+  if (controls.state.draftMove) {
+    keys.add('flip');
+    keys.add('turn');
+    return;
+  }
+  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+  const offered = (
+    [
+      ['flip', 'flip'],
+      ['rotate', 'turn'],
+      ['split', 'split'],
+    ] as const
+  ).filter(([action]) => offersPieceAction(piece, action));
+  for (const [, key] of offered) {
+    keys.add(key);
+  }
+  if (canDraw(controls, pieceId)) {
+    keys.add('draw');
+  }
+  if (canShuffle(controls, pieceId)) {
+    keys.add('shuffle');
+  }
+}
+
 /**
  * The piece keys that act right now, by the same checks the handlers below run, so the keyboard shortcuts window shows a key as live exactly when pressing it does something.
  */
@@ -81,18 +109,7 @@ export function pieceKeysNow(controls: Reads): ReadonlySet<PieceKey> {
   if (!pieceId) {
     return keys;
   }
-  keys.add('flip');
-  keys.add('turn');
-  if (controls.state.draftMove) {
-    return keys;
-  }
-  keys.add('split');
-  if (canDraw(controls, pieceId)) {
-    keys.add('draw');
-  }
-  if (canShuffle(controls, pieceId)) {
-    keys.add('shuffle');
-  }
+  pieceKeys(controls, pieceId, keys);
   return keys;
 }
 

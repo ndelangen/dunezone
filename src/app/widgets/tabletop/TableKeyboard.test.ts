@@ -86,6 +86,25 @@ describe('the piece keys that act now, as the shortcuts window reads them', () =
     expect([...pieceKeysNow(controls)].toSorted()).toEqual(['draw', 'flip', 'shuffle', 'split', 'turn']);
   });
 
+  test('a locked piece answers no piece key, and a single card does not split', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    controls.hoveredPieceId = deck.id;
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) => (piece.id === deck.id ? { ...piece, locked: true } : piece)),
+    };
+    expect([...pieceKeysNow(controls)]).toEqual([]);
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) =>
+        piece.id === deck.id ? { ...deck, items: deck.items.slice(0, 1) } : piece
+      ),
+    };
+    expect([...pieceKeysNow(controls)]).not.toContain('split');
+    expect([...pieceKeysNow(controls)]).toContain('flip');
+  });
+
   test('a viewer who may not handle the table has no live piece keys', () => {
     const { controls } = table();
     controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
