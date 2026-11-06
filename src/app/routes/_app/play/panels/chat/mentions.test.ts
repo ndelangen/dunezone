@@ -9,7 +9,7 @@ function mention(id: string, label: string, detail: string | null = null): Menti
 
 const MENTIONS = [
   mention('seat-1', 'House Atreides', 'Paula'),
-  mention('seat-2', 'Harkonnen', 'Ridwan'),
+  mention('seat-2', 'Harkonnen', 'Sam'),
   mention('seat-3', 'Fremen', 'Ana'),
   mention('seat-4', 'fremen'),
 ];
@@ -35,7 +35,7 @@ describe('mentionQuery', () => {
 
 describe('matchMentions', () => {
   test("a player's name finds their faction", () => {
-    expect(matchMentions(MENTIONS, 'rid').map((entry) => entry.label)).toEqual(['Harkonnen']);
+    expect(matchMentions(MENTIONS, 'sa').map((entry) => entry.label)).toEqual(['Harkonnen']);
   });
 
   test('names starting with the query come first, then names with a word starting with it', () => {
