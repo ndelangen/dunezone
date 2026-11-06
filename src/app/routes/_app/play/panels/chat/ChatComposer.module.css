@@ -1,0 +1,6 @@
+/* About six suggestions show at once; the rest scroll, so the list never covers the whole history. */
+.mentions {
+  max-height: 13.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}

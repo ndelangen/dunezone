@@ -70,6 +70,7 @@ import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } fro
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { tableCardFaceKey } from './cardFaceTexture';
+import { TABLE_FOCUS_ATTRIBUTE } from './focusTable';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekMarkerList } from './peekMarkers';
@@ -1267,6 +1268,10 @@ export function TabletopScene({
     <div
       ref={areaRef}
       {...painting}
+      className={clsx(painting.className, styles.focusTarget)}
+      tabIndex={-1}
+      /* The focus target a chat's Escape hands the keys back to (focusTable). */
+      {...{ [TABLE_FOCUS_ATTRIBUTE]: '' }}
       data-highlight-territory={highlightTerritory ?? undefined}
       onContextMenu={(event) => {
         event.preventDefault();
