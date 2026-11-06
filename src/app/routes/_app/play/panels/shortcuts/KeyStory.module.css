@@ -1,11 +1,3 @@
-.list {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 /* A key's story on one line: caps, what it does with its word, the hook beneath, and when it answers. */
 .story {
   display: grid;
@@ -33,6 +25,11 @@
 
 .word {
   font-weight: 400;
+}
+
+.detail {
+  color: var(--color-muted);
+  font-size: 0.78rem;
 }
 
 .hook {

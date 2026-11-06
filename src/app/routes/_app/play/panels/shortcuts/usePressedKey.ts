@@ -1,8 +1,8 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 
-import { capOfEvent, capOfKey } from './shortcutCatalogue';
+import { capOfEvent } from './keyboardShortcuts';
 
-/** The last key pressed that the sheet lists, with a count that changes on every press so a repeat replays its animation. */
+/** The last listed key pressed, with a count that changes on every press so a repeat replays its animation. */
 export type Pressed = Readonly<{ key: string; count: number }> | null;
 
 function typing(target: EventTarget | null) {
@@ -12,32 +12,27 @@ function typing(target: EventTarget | null) {
 }
 
 /**
- * Hears the keys the sheet lists while it is open, so a variant can light the cap the player just pressed.
+ * Hears the listed keys while the shortcuts window is open, so it can light the cap the player just pressed.
+ * It only listens: the key still does what it does at the table.
  * Keys typed into a field stay the field's.
- * `onPress` may claim a key, which stops the table from also acting on it.
  */
-export function usePressedKey(
-  onPress?: (key: string, event: KeyboardEvent) => boolean | void,
-  { everyKey = false }: Readonly<{ everyKey?: boolean }> = {}
-): Pressed {
+export function usePressedKey(onPress?: (key: string) => void): Pressed {
   const [pressed, setPressed] = useState<Pressed>(null);
-  const run = useEffectEvent((key: string, event: KeyboardEvent) => onPress?.(key, event));
+  const run = useEffectEvent((key: string) => onPress?.(key));
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (event.repeat || event.metaKey || typing(event.target)) {
         return;
       }
-      const key = everyKey ? capOfKey(event) : capOfEvent(event);
+      const key = capOfEvent(event);
       if (!key) {
         return;
       }
-      if (run(key, event) === true) {
-        event.preventDefault();
-      }
+      run(key);
       setPressed((last) => ({ key, count: (last?.count ?? 0) + 1 }));
     };
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, [everyKey]);
+  }, []);
   return pressed;
 }

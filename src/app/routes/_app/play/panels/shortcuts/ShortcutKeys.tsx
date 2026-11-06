@@ -3,8 +3,8 @@ import clsx from 'clsx';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
-import type { ShortcutEntry } from './shortcutCatalogue';
-import styles from './variants.module.css';
+import type { ShortcutEntry } from './keyboardShortcuts';
+import styles from './ShortcutKeys.module.css';
 
 /** An entry's keys as caps: "Hold Alt", "1–9", "Q E", or a pointer gesture in words. */
 export function Keys({ entry }: Readonly<{ entry: ShortcutEntry }>) {

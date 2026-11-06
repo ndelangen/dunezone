@@ -3,11 +3,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-}
-
-.keyboard[data-mini] {
-  gap: 0.2rem;
-  font-size: 0.75rem;
+  container-type: inline-size;
 }
 
 .row {
@@ -37,12 +33,6 @@
     box-shadow 220ms ease;
 }
 
-.keyboard[data-mini] .key {
-  height: 1.9rem;
-  padding: 0;
-  border-radius: 0.3rem;
-}
-
 .key[data-blank] {
   visibility: hidden;
 }
@@ -62,8 +52,8 @@
   animation: light 700ms ease-out;
 }
 
-/* With emphasis, a key that does nothing now steps back. */
-.key[data-emphasis][data-state="later"] {
+/* A key that does nothing now steps back. */
+.key[data-state="later"] {
   opacity: 0.35;
 }
 
@@ -102,6 +92,28 @@
   from {
     opacity: 0;
     translate: 0 0.25rem;
+  }
+}
+
+/* Pinned into a narrow slot, the keys keep their caps and colours and leave their words to the tooltips. */
+@container (max-width: 34rem) {
+  .row {
+    gap: 0.2rem;
+  }
+
+  .key {
+    height: 2.2rem;
+    padding: 0;
+    font-size: 0.8rem;
+  }
+
+  .key kbd {
+    min-width: 0;
+    padding-inline: 0.25em;
+  }
+
+  .caption {
+    display: none;
   }
 }
 

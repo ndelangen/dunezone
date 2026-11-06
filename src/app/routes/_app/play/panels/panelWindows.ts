@@ -79,7 +79,8 @@ export const PANEL_WINDOWS = {
     key: 'shortcuts',
     label: 'Keyboard shortcuts',
     topic: 'keyboard',
-    description: 'Every key the table answers to. Press ? to show or hide this cheat sheet.',
+    description:
+      'Every key the table answers to: the keys for right now first, then the whole keyboard, then every key by group. Point at a key for how to remember it. Press ? to show or hide this sheet.',
     keywords: 'keys hotkeys help cheat sheet',
   },
 } as const satisfies Record<string, PanelWindow>;
