@@ -30,7 +30,17 @@
     opacity 220ms ease,
     background-color 220ms ease,
     border-color 220ms ease,
-    box-shadow 220ms ease;
+    box-shadow 220ms ease,
+    scale 160ms ease-out;
+}
+
+/* The whole key lifts and grows under the pointer, above its neighbours. */
+.key[data-state]:hover,
+.key[data-state]:focus-visible {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0.3rem 0.8rem var(--color-shadow);
+  scale: 1.25;
 }
 
 .key[data-blank] {
@@ -57,18 +67,12 @@
   outline-offset: 1px;
 }
 
-/* The key's own letter, large and plain, growing under the pointer. */
+/* The key's own letter, large and plain. */
 .letter {
   display: inline-block;
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1;
-  transition: scale 160ms ease-out;
-}
-
-.key[data-state]:hover .letter,
-.key[data-state]:focus-visible .letter {
-  scale: 1.35;
 }
 
 .caption {
@@ -130,7 +134,7 @@ html[data-motion="reduce"] .caption {
   animation: none;
 }
 
-html[data-motion="reduce"] .letter {
+html[data-motion="reduce"] .key {
   transition: none;
 }
 
