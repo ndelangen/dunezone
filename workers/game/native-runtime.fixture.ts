@@ -28,6 +28,7 @@ import type { AssetSupply, RulesetSupply, RulesetCapture, FactionCapture } from 
 import type { factionDefinitionSchema } from '../../src/shared/play/capture';
 import { playPublishSummaryRequestSchema } from '../../src/shared/play/directory';
 import type { DraftFaction } from '../../src/shared/play/drafting';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
 import {
   KEEPALIVE_PING,
@@ -40,6 +41,7 @@ import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import arrakisOfficialGeometry from '../../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import type { StoredSnapshot, storedSnapshotSchema } from './state';
 
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
@@ -59,6 +61,7 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playProvisioning:failProvisioning'), args: playProvisionFailureSchema }),
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
+  z.object({ function: z.literal('arrakis:board'), args: z.object({}) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
   z.object({
@@ -101,6 +104,8 @@ export interface NativePeer {
   seatLimitMode: 'answer' | 'hold' | 'error';
   /* Whether Convex finds a live session behind a bug report's seat pass. */
   bugReportMode: 'allow' | 'deny';
+  /* The saved Arrakis read: `answer` returns the board, `missing` finds none, `error` fails the request. */
+  arrakisBoardMode: 'answer' | 'missing' | 'error';
   summaries: z.infer<typeof playPublishSummaryRequestSchema>[];
   requests: PeerRequest[];
   provisionExpiresAt: number;
@@ -327,6 +332,25 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
     case 'playProvisioning:failProvisioning':
       record.release({ ok: true });
       break;
+    case 'arrakis:board':
+      /* The saved Arrakis board the homepage table plays on. */
+      if (peer.arrakisBoardMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Convex unavailable');
+        break;
+      }
+      if (peer.arrakisBoardMode === 'missing') {
+        record.release(null);
+        break;
+      }
+      record.release({
+        assetId: arrakisBoardCapture.asset.id,
+        name: arrakisBoardCapture.asset.name,
+        imageUrl: '/published/boards/arrakis-board/board.jpg',
+        geometry: arrakisOfficialGeometry,
+        board: arrakisBoardCapture.definition,
+      });
+      break;
     case 'homepageAdmission:redeemTicket':
       record.release(
         'homepageAdmissionInvalid' in peer
@@ -367,6 +391,7 @@ export async function createPeer(): Promise<NativePeer> {
     seatLimitReached: new Set(),
     seatLimitMode: 'answer',
     bugReportMode: 'allow',
+    arrakisBoardMode: 'answer',
     summaries: [],
     requests: [],
     provisionExpiresAt: Date.now() + 60_000,

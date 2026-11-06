@@ -83,6 +83,7 @@ const spiceStack = (count?: number) =>
 
 beforeEach(async () => {
   table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+  table.setBoard(arrakisBoardCapture);
   const players: TablePlayers = {
     act: (seat, action) => act(action, seat),
     viewOf: (seat) => table.frame(seat).snapshot,

@@ -25,7 +25,7 @@ const fixture = JSON.parse(readFileSync(fixtureFile, 'utf8')) as {
   html: string;
 };
 
-/* Pages with no record behind them render without a metadata query. */
+/* Pages with no record behind them render without a metadata query, except the ones that embed the saved Arrakis. */
 const RECORDLESS_PAGES = [
   '/',
   ...RECORDLESS_PUBLIC_PAGES,
@@ -34,8 +34,18 @@ const RECORDLESS_PAGES = [
   ...MEDIA_PUBLIC_PAGES,
 ];
 
+/* These carry the saved Arrakis board in their HTML, so their one query reads it. */
+const ARRAKIS_PAGES = new Set(['/', '/glossary', ...TUTORIAL_PAGES.filter((page) => page.startsWith('/tutorial/'))]);
+
 function assertPublicMetadataQueries(count: number, pathname: string, historicalFallback: boolean) {
-  assert.equal(count, RECORDLESS_PAGES.includes(pathname) ? 0 : historicalFallback ? 2 : 1, pathname);
+  const expected = ARRAKIS_PAGES.has(pathname)
+    ? 1
+    : RECORDLESS_PAGES.includes(pathname)
+      ? 0
+      : historicalFallback
+        ? 2
+        : 1;
+  assert.equal(count, expected, pathname);
 }
 
 for (const origin of [fixture.backendUrl, fixture.siteUrl]) {

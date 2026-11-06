@@ -1,4 +1,3 @@
-import { arrakisBoardCapture } from '@shared/boards/arrakisPreset';
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
 import type { BoardCapture } from '@shared/play/capture';
 import { describeCardDraw } from '@shared/play/cardDraw';
@@ -74,8 +73,10 @@ export class LocalTable {
   private readonly pingTimes: number[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
-  /** The board the table plays on: a practice table has no ruleset, so it plays on the bundled Arrakis. */
-  readonly board: BoardCapture = arrakisBoardCapture;
+  /** The board the table plays on: the saved Arrakis, once the page has read it. */
+  board: BoardCapture | undefined;
+  /* The guide's last view of the table, and the room and board it showed. */
+  private guideSeen: { room: unknown; board: BoardCapture | undefined; snapshot: GameSnapshot } | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */
@@ -112,8 +113,17 @@ export class LocalTable {
       (userId) => this.factionFor(userId),
       undefined,
       0,
-      () => this.board.definition
+      () => this.board?.definition
     );
+  }
+
+  /** Puts the table on a board, and shows the page the table on it. */
+  setBoard(board: BoardCapture | undefined) {
+    if (board === this.board) {
+      return;
+    }
+    this.board = board;
+    this.deliver(this.frame());
   }
 
   private factionFor(userId: string) {
@@ -140,6 +150,15 @@ export class LocalTable {
     return { ...holder, viewerSeat: seat };
   }
 
+  /** The page's seat's view for the guide, which asks every frame: projected again only once the room or its board has moved on. */
+  guideSnapshot() {
+    const { snapshot: room } = this.room;
+    if (this.guideSeen?.room !== room || this.guideSeen.board !== this.board) {
+      this.guideSeen = { room, board: this.board, snapshot: this.frame().snapshot };
+    }
+    return this.guideSeen.snapshot;
+  }
+
   /** The view a seat receives of the room as it stands, projected as the Worker projects it. */
   frame(seat = this.seat, completedCommandId?: string): View {
     const room = this.room;
@@ -151,7 +170,7 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
-        board: this.board,
+        ...(this.board ? { board: this.board } : {}),
         ...(reviewableStage(room.snapshot.stage)
           ? {
               review: this.session.reviews.current(),

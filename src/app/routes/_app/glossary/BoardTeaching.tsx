@@ -2,7 +2,7 @@ import type { ComponentGeometry } from '@shared/asset-publishing/componentGeomet
 import { useId, useMemo } from 'react';
 import type { SVGProps } from 'react';
 
-import { useArrakisFace } from '@app/db/arrakis';
+import { useArrakisBoard } from '@app/db/arrakis';
 import { RulebookBoardSceneVisual } from '@game/rulebook/RulebookBoardScene';
 
 import { IDLE, SECTOR_DEGREES, demonstrationsFor, ringPoint, sectorPath, teachingParts } from './boardDemonstrations';
@@ -71,7 +71,7 @@ function Spotlight({ frame, parts }: Readonly<{ frame: Frame; parts: ComponentGe
 
 /** The saved board of Arrakis, demonstrating whichever board term the reader is pointing at; an empty frame of its size while it loads. */
 export function BoardTeaching() {
-  const arrakis = useArrakisFace();
+  const arrakis = useArrakisBoard();
   if (!arrakis) {
     return <div className={styles.teaching} data-board-pending="" />;
   }

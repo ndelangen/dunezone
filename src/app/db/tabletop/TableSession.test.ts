@@ -1092,6 +1092,28 @@ describe('hosted table interaction', () => {
     expect(table(client).snapshot.board).toBe(board);
   });
 
+  test('a changed board replaces the drawn one, so the table draws the territories its commands use', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const renamed = structuredClone(arrakisBoardCapture);
+    renamed.asset = { ...renamed.asset, name: 'Arrakis Revised' };
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: renamed } }));
+    expect(table(client).snapshot.board?.asset.name).toBe('Arrakis Revised');
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 3 } }));
+    expect(table(client).snapshot.board).toBeUndefined();
+  });
+
+  test('a board whose territories change under the same name is drawn anew', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const redrawn = structuredClone(arrakisBoardCapture);
+    const [key] = Object.keys(redrawn.definition.properties);
+    redrawn.definition.properties[key!]!.name = 'Redrawn territory';
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: redrawn } }));
+    expect(table(client).snapshot.board?.asset).toEqual(arrakisBoardCapture.asset);
+    expect(table(client).snapshot.board?.definition.properties[key!]?.name).toBe('Redrawn territory');
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);
