@@ -10,6 +10,8 @@ import {
   FactionWriteSchema,
   HistoricalFactionPublicationSchema,
   toStoredHeroKey,
+  TroopBattleValues,
+  withSupportNames,
 } from './schema';
 
 describe('faction schema', () => {
@@ -34,14 +36,15 @@ describe('faction schema', () => {
     expect(FactionInputSchema.parse(live)).toEqual(live);
   });
 
-  it('refuses the old `hero` key on stored and client reads, and reads it on saves and frozen publications', () => {
+  it('refuses the old `hero` key on stored and client reads and on saves, and reads it on frozen publications', () => {
     const live = structuredClone(assetPublishingFaction);
     const stored = toStoredHeroKey(live);
 
     expect(CanonicalFactionStoredObject.safeParse(stored).success).toBe(false);
     expect(CanonicalFactionClientSchema.safeParse(stored).success).toBe(false);
     expect(FactionInputSchema.safeParse(stored).success).toBe(false);
-    expect(FactionWriteSchema.parse(stored)).toEqual(FactionWriteSchema.parse(live));
+    expect(FactionWriteSchema.safeParse(stored).success).toBe(false);
+    expect(FactionWriteSchema.safeParse(live).success).toBe(true);
     expect(HistoricalFactionPublicationSchema.parse(toStoredHeroKey(legacyAssetPublishingFaction))).toEqual(
       legacyAssetPublishingFaction
     );
@@ -123,5 +126,19 @@ describe('faction schema', () => {
     };
 
     expect(Background.safeParse(background).success).toBe(false);
+  });
+
+  it('reads the funded troop values as the supported ones, a supported value wins, and the write contract refuses the funded names', () => {
+    expect(withSupportNames({ strength: 1, fundedStrength: 2, fundingCost: 0 })).toEqual({
+      strength: 1,
+      supportedStrength: 2,
+      supportCost: 0,
+    });
+    expect(withSupportNames({ strength: 1, fundedStrength: 2, supportedStrength: 3 })).toEqual({
+      strength: 1,
+      supportedStrength: 3,
+    });
+    expect(TroopBattleValues.safeParse({ strength: 1, supportedStrength: 2 }).success).toBe(true);
+    expect(TroopBattleValues.safeParse({ strength: 1, supportedStrength: 2, fundedStrength: 2 }).success).toBe(false);
   });
 });

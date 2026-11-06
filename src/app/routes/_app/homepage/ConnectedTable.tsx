@@ -1,3 +1,4 @@
+import { arrakisBoardCapture } from '@shared/boards/arrakisPreset';
 import { HOMEPAGE_SOCKET_PATH } from '@shared/homepage/protocol';
 import { lastTurnOf } from '@shared/play/lastTurn';
 import { tableProgressFor } from '@shared/play/phases';
@@ -147,7 +148,8 @@ export default function ConnectedTable({
             <PreviewCameraCrop viewport={viewport} />
             <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
             <TabletopBoard
-              board={snapshot?.board}
+              /* The room plays on the bundled Arrakis, so it is drawn before the first view arrives. */
+              board={snapshot?.board ?? arrakisBoardCapture}
               stage={stage}
               mapVisible={mapVisible}
               seatCount={seatCount}

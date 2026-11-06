@@ -25,8 +25,9 @@ const ICON_PLACEMENT = {
  * Empty is legal forever.
  * Do not "fix" this inconsistency: the two floors describe two different situations.
  *
- * The key is required rather than optional, backfilled by `assets_about_v1`.
- * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
+ * The key is required rather than optional;
+ * every stored Asset carries it.
+ * `assets.data` is `v.any()`, so no Convex validator gates this.
  */
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
@@ -86,64 +87,6 @@ export const Spice = z.strictObject({
     z.enum(['spice-mine', 'spice'] as const),
     ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
   ]),
-  highlights: z.array(
-    z.enum([
-      //sand
-      'imperial-basin',
-      'bight-of-the-cliff',
-      'habbanya-ridge-flat',
-      'arsunt',
-      'cielago-depression',
-      'hagga-basin',
-      'cielago-east',
-      'rock-outcroppings',
-      'habbanya-erg',
-      'funeral-plain',
-      'wind-pass-north',
-      'cielago-west',
-      'meridian',
-      'cielago-south',
-      'cielago-north',
-      'harg-pass',
-      'wind-pass',
-      'the-minor-erg',
-      'south-mesa',
-      'the-great-flat',
-      'gara-kulon',
-      'hole-in-the-rock',
-      'basin',
-      'tsimpo',
-      'old-gap',
-      'broken-land',
-      'the-greater-flat',
-      'red-chasm',
-      'sihaya-ridge',
-
-      //rock
-      'false-wall-west',
-      'false-wall-south',
-      'shield-wall',
-      'false-wall-east',
-      'pasty-mesa',
-      'rim-wall-west',
-      'plastic-basin',
-
-      //stronghold
-      'arrakeen',
-      'carthag',
-      'tueks',
-      'tabr',
-      'habbanya',
-
-      //special
-      'polar',
-
-      //category
-      'rock',
-      'strongholds',
-      'sand',
-    ] as const)
-  ),
   overlays: z
     .array(
       z.strictObject({

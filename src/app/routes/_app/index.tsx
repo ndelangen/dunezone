@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
@@ -6,10 +6,12 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PublishedImage } from '@ui/content/PublishedImage';
+import { CallToAction } from '@ui/control/CallToAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Hand } from 'lucide-react';
+import { Compass, GraduationCap, Hand, PenLine, Plus, UsersRound } from 'lucide-react';
 import {
   lazy,
   Suspense,
@@ -98,12 +100,15 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button color="cta" variant="artwork" component="a" href="#play-preview">
+            <CallToAction size="sm" tone="artwork" direction="down" href="#play-preview">
               Take a sneak peek
-            </Button>
-            <Button variant="default" renderRoot={(props) => <Link {...props} to="/tutorial" />}>
+            </CallToAction>
+            <LabeledAction
+              icon={<GraduationCap size={16} />}
+              renderRoot={(props) => <Link {...props} to="/tutorial" />}
+            >
               Tutorials
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       </PageLayout.Header>
@@ -211,13 +216,15 @@ function AssetInvitation() {
         Design a deck, write a treachery card or give a new rule a token of its own. Preview your pieces as you build.
       </Text>
       <Group>
-        <Button renderRoot={(props) => <Link {...props} to="/assets" />}>Browse Assets</Button>
-        <Button
-          variant="subtle"
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/assets" />}>
+          Browse Assets
+        </CallToAction>
+        <LabeledAction
+          icon={<Plus size={16} />}
           renderRoot={(props) => <Link {...props} to="/assets/$type/create" params={{ type: 'card-treachery' }} />}
         >
           Create a card
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -271,10 +278,12 @@ function OnlineRulebooks() {
       </Text>
       <Text>Find a Ruleset you love, or build one with your own rulings, factions and illustrated Rulebook.</Text>
       <Group justify="center">
-        <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Read the Rulesets</Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+          Read the Rulesets
+        </CallToAction>
+        <LabeledAction icon={<PenLine size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
           Write your own
-        </Button>
+        </LabeledAction>
       </Group>
       <Text size="sm">
         Try{' '}
@@ -416,10 +425,12 @@ function PortraitCopy() {
         is ready for your homebrew.
       </Text>
       <Group justify="center">
-        <Button renderRoot={(props) => <Link {...props} to="/media" />}>Meet the whole cast</Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/media" />}>
+          Meet the whole cast
+        </CallToAction>
+        <LabeledAction icon={<Plus size={16} />} renderRoot={(props) => <Link {...props} to="/factions/create" />}>
           Create a faction
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -432,9 +443,11 @@ function VectorCopy() {
         Blade dancers, gene-forged brutes and water keepers. Pick the troops that belong in your world.
       </Text>
       <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
-      <Button className={styles.centerAction} w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
-        Explore the vector library
-      </Button>
+      <Group className={styles.centerAction}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/media" />}>
+          Explore the vector library
+        </CallToAction>
+      </Group>
     </Section>
   );
 }
@@ -488,13 +501,15 @@ function AllianceInvitation() {
       </Text>
       <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
       <Group>
-        <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
-        <Button
-          variant="subtle"
+        <CallToAction size="sm" renderRoot={(props) => <Link {...props} to="/groups/create" />}>
+          Form an alliance
+        </CallToAction>
+        <LabeledAction
+          icon={<UsersRound size={16} />}
           renderRoot={(props) => <Link {...props} to="/groups/$groupSlug" params={{ groupSlug: 'dreamers' }} />}
         >
           Meet the dreamers
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -577,14 +592,16 @@ function CommunityCopy() {
         A community faction in progress, maintained by BigDave.
       </Text>
       <Group>
-        <Button
+        <CallToAction
+          size="sm"
+          direction="forward"
           renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'space-orks' }} />}
         >
           Meet the Space Orks
-        </Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+        </CallToAction>
+        <LabeledAction icon={<Compass size={16} />} renderRoot={(props) => <Link {...props} to="/factions" />}>
           Explore more factions
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );

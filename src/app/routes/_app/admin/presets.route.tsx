@@ -1,4 +1,4 @@
-import { Anchor, Badge, Button, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Anchor, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
@@ -10,12 +10,14 @@ import type { FamilyPreset, DiscoveryPreset } from '@shared/backgrounds/families
 import { resolveBackgroundValues, customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { PairedProofLayout } from '@ui/layout/PairedProofLayout';
 import { Surface } from '@ui/surface/Surface';
+import { DatabaseZap, PenLine, Plus, Save, Undo2, X } from 'lucide-react';
 import { useReducer } from 'react';
 import type { ReactNode } from 'react';
 
@@ -34,6 +36,7 @@ import { INITIAL_CUSTOM_CARD_DRAFT } from '@app/widgets/card-editor/customCardPr
 import { INITIAL_TREACHERY_DRAFT } from '@app/widgets/card-editor/TreacheryCardEditor';
 import { CardbackFields } from '@app/widgets/cardback-editor/CardbackFields';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { CardBack } from '@game/assets/card/Back';
 import { CustomCard } from '@game/assets/card/Custom';
 import { HomeworldCard } from '@game/assets/card/Homeworld';
@@ -127,9 +130,13 @@ function PresetsPage() {
   const library = usePresetLibrary();
   if (!library) {
     return (
-      <PageMessage title="Presets" back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}>
-        <LoadPending title="Loading presets">Loading the saved designs.</LoadPending>
-      </PageMessage>
+      <RoutePending
+        title="Presets"
+        back={<PageMessage.Back to="/admin">All admin tools</PageMessage.Back>}
+        loading="Loading presets"
+      >
+        Loading the saved designs.
+      </RoutePending>
     );
   }
   if (!library.ready) {
@@ -150,9 +157,14 @@ function InitializePresets() {
           This copies the standard decks, Prediction card and Cistern and Ornithopter Discovery tokens. Later edits to
           those originals will not change the presets.
         </Text>
-        <Button loading={initialize.isPending} onClick={() => initialize.mutate({})}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<DatabaseZap size={16} />}
+          busy={initialize.isPending}
+          onClick={() => initialize.mutate({})}
+        >
           Import DB designs and recapture
-        </Button>
+        </LabeledAction>
         <SaveErrorAlert error={initialize.error} />
       </Stack>
     </PageMessage>
@@ -245,16 +257,16 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
         </Group>
         {editing && value ? (
           <Group gap="sm">
-            <Button
-              variant="subtle"
+            <LabeledAction
               size="compact-xs"
+              icon={active ? <X size={12} /> : <PenLine size={12} />}
               onClick={() => dispatch({ kind: 'active', region: active ? null : region })}
             >
               {backgroundEditorLabel(active, Boolean(definition))}
-            </Button>
-            <Button
-              variant="subtle"
+            </LabeledAction>
+            <LabeledAction
               size="compact-xs"
+              icon={<Plus size={12} />}
               onClick={() => {
                 const created = {
                   key: `custom/${crypto.randomUUID()}`,
@@ -268,7 +280,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
               }}
             >
               New shared background
-            </Button>
+            </LabeledAction>
           </Group>
         ) : null}
         {active && value ? (
@@ -323,11 +335,11 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
         id={`preset-${preset.key}`}
         action={
           <Group gap="sm">
-            {changed ? <Badge variant="outline">Draft</Badge> : null}
-            <Button
-              variant="subtle"
+            {changed ? <StatusBadge tone="pending">Draft</StatusBadge> : null}
+            <LabeledAction
               size="compact-sm"
-              disabled={saving}
+              icon={editing ? <X size={14} /> : <PenLine size={14} />}
+              disabledReason={saving ? 'The preset is saving.' : undefined}
               onClick={() => {
                 dispatch({ kind: 'open', key: editing ? null : preset.key });
                 saveFamily.reset();
@@ -335,7 +347,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
               }}
             >
               {editing ? 'Close' : `Edit ${preset.label}`}
-            </Button>
+            </LabeledAction>
           </Group>
         }
       >
@@ -418,9 +430,12 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
                   ) : null}
                   {editing ? (
                     <Group gap="sm">
-                      <Button
-                        disabled={!changed || saving}
-                        loading={saving}
+                      <LabeledAction
+                        intent="positive"
+                        emphasis="strong"
+                        icon={<Save size={16} />}
+                        busy={saving}
+                        disabledReason={changed ? undefined : 'Change the preset first.'}
                         onClick={() => {
                           const options = { onSuccess: () => reset(preset) };
                           if ('style' in preset) {
@@ -431,10 +446,10 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
                         }}
                       >
                         Save and recapture
-                      </Button>
-                      <Button
-                        variant="subtle"
-                        disabled={saving || !changed}
+                      </LabeledAction>
+                      <LabeledAction
+                        icon={<Undo2 size={16} />}
+                        disabledReason={saving ? 'The preset is saving.' : changed ? undefined : 'Nothing to reset.'}
                         onClick={() => {
                           reset(preset);
                           saveFamily.reset();
@@ -442,7 +457,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
                         }}
                       >
                         Reset
-                      </Button>
+                      </LabeledAction>
                     </Group>
                   ) : null}
                 </Stack>

@@ -2,7 +2,7 @@ import { DOMParser } from 'linkedom';
 import svgpath from 'svgpath';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { blankBoard, CENTER, RADIUS, referenceSectors, snapPoint } from './geometry';
+import { blankBoard, CENTER, RADIUS, referenceSectors, sectorRim, sectorSegments, snapPoint } from './geometry';
 import type { Board, Point } from './geometry';
 
 const guide = new DOMParser().parseFromString(`<svg>${referenceSectors}</svg>`, 'image/svg+xml');
@@ -55,5 +55,29 @@ describe('Sector guide snapping', () => {
       1e-7
     );
     expect(snapped.feedback).toBe('Snapped to sector guide · Circle boundary');
+  });
+});
+
+describe('Sector line stretches', () => {
+  const square = (cx: number, cy: number, half: number): Point[] => [
+    [cx - half, cy - half],
+    [cx + half, cy - half],
+    [cx + half, cy + half],
+    [cx - half, cy + half],
+  ];
+  const rim = sectorRim(0);
+
+  it('runs from the centre to the rim when it crosses no region', () => {
+    expect(sectorSegments(rim, [])).toEqual([[CENTER, rim]]);
+  });
+
+  it('leaves out every region it crosses, the centre one and one further out', () => {
+    const centre = square(CENTER[0], CENTER[1], 20);
+    const outer = square(CENTER[0] + 120, CENTER[1], 10);
+    const segments = sectorSegments(rim, [centre, outer]);
+    expect(segments.map(([a, b]) => [a[0] - CENTER[0], b[0] - CENTER[0]].map((x) => Math.round(x)))).toEqual([
+      [20, 110],
+      [130, Math.round(rim[0] - CENTER[0])],
+    ]);
   });
 });

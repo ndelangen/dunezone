@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece } from '@shared/play/model';
 import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
@@ -226,9 +226,11 @@ export const TechTokens = meta.story({
   },
 });
 
-/* Arrakeen on the rulebook board the sandbox plays on, and the spot in it with the most room. */
+/* Arrakeen on the Arrakis board the sandbox plays on, and the spot in it with the most room. */
 function arrakeen() {
-  const territory = tableTerritories(retainedArrakisBoard()).find((candidate) => candidate.name === 'Arrakeen')!;
+  const territory = tableTerritories(arrakisBoardCapture.definition).find(
+    (candidate) => candidate.name === 'Arrakeen'
+  )!;
   const [x, z] = innermostPoint(territory);
   return { territory, x, z };
 }
@@ -258,7 +260,12 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
   for (const [index, stack] of straddling.entries()) {
     const others = pieces.filter((candidate) => candidate.id !== stack.id);
     const side = index % 2 === 0 ? -0.2 : 0.2;
-    const landing = territoryLanding({}, stack, restingPositionAt([x + side, 0, z], stack), others);
+    const landing = territoryLanding(
+      { board: arrakisBoardCapture.definition },
+      stack,
+      restingPositionAt([x + side, 0, z], stack),
+      others
+    );
     if (landing) {
       pieces = withNudges([...others, { ...stack, position: landing.position }], landing.nudges);
     }

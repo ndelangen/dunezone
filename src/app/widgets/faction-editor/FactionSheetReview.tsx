@@ -1,6 +1,7 @@
-import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/core';
+import { ActionIcon, Alert, Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ChevronDown, Link2, X } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -152,9 +153,9 @@ function ReviewHeading({
           </Text>
         </Stack>
         <Group gap="xs" wrap="nowrap">
-          <Button type="button" variant="default" leftSection={<X size={16} />} onClick={onClose}>
+          <LabeledAction icon={<X size={16} />} onClick={onClose}>
             Return to editing
-          </Button>
+          </LabeledAction>
           <ActionIcon
             ref={closeButtonRef}
             type="button"

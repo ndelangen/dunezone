@@ -1,9 +1,9 @@
-import { Children, createContext, isValidElement, useContext, useLayoutEffect, useRef } from 'react';
+import { Children, createContext, useContext, useLayoutEffect, useRef } from 'react';
 import type { PropsWithChildren, ReactNode, RefObject } from 'react';
 
+import { collectSlots } from './collectSlots';
 import { IMMERSIVE_ENTER_EVENT, IMMERSIVE_LEAVE_EVENT } from './immersiveEvents';
 import styles from './PageLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
 
 /**
  * What kind of header a page declares.
@@ -77,50 +77,24 @@ function useAnnounceImmersive(layoutRef: RefObject<HTMLDivElement | null>, immer
   }, [layoutRef, immersive]);
 }
 
-const PAGE_LAYOUT_SLOTS = ['PageLayout.Header', 'PageLayout.Toolbar', 'PageLayout.Content'] as const;
-
 function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
-  let hasHeader = false;
-  let header: ReactNode = null;
-  let headerSize: PageHeaderSize = 'default';
-  let toolbar: ReactNode = null;
-  let content: ReactNode = null;
-  let contentWidth: PageContentWidth = 'default';
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
-      return;
-    }
-    if (child.type === Header) {
-      hasHeader = true;
-      const props = child.props as PropsWithChildren<{ size?: PageHeaderSize }>;
-      header = props.children;
-      headerSize = props.size ?? 'default';
-      return;
-    }
-    if (child.type === Toolbar) {
-      toolbar = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Content) {
-      const props = child.props as PropsWithChildren<{ width?: PageContentWidth }>;
-      content = props.children;
-      contentWidth = props.width ?? 'default';
-      return;
-    }
-    warnDroppedChild('PageLayout', PAGE_LAYOUT_SLOTS, child);
-  });
+  const slots = collectSlots('PageLayout', { Header, Toolbar, Content }, children);
+  const hasHeader = slots.Header !== undefined;
+  const header = slots.Header?.children;
+  const headerSize: PageHeaderSize = slots.Header?.size ?? 'default';
+  const toolbar = slots.Toolbar?.children;
+  const content = slots.Content?.children;
+  const contentWidth: PageContentWidth = slots.Content?.width ?? 'default';
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;
   const layoutRef = useRef<HTMLDivElement>(null);
-  useAnnounceImmersive(layoutRef, hasHeader && (headerSize as PageHeaderSize) === 'immersive');
+  useAnnounceImmersive(layoutRef, hasHeader && headerSize === 'immersive');
 
   return (
     <div
       ref={layoutRef}
       className={styles.layout}
-      data-page-layout-compact={!hasHeader || (headerSize as PageHeaderSize) === 'collapsed' ? 'true' : undefined}
+      data-page-layout-compact={!hasHeader || headerSize === 'collapsed' ? 'true' : undefined}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
       data-page-layout-height={height === 'document' ? undefined : height}
     >

@@ -1,19 +1,17 @@
-import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -34,10 +32,11 @@ import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactio
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -85,9 +84,9 @@ const backToFactions = <PageMessage.Back to="/factions">Back to factions</PageMe
 
 function FactionDetailPending() {
   return (
-    <PageMessage size="compact" title="Faction" back={backToFactions}>
-      <LoadPending title="Loading faction">The faction details are still loading.</LoadPending>
-    </PageMessage>
+    <RoutePending size="compact" title="Faction" back={backToFactions} loading="Loading faction">
+      The faction details are still loading.
+    </RoutePending>
   );
 }
 
@@ -305,11 +304,13 @@ function FactionDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage size="compact" title="Faction" back={backToFactions}>
-      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      size="compact"
+      title="Faction"
+      back={backToFactions}
+      what="Faction could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -589,9 +590,9 @@ function FactionDetailContent({
       <PageLayout.Content>
         <Stack gap="xl">
           {membershipWorkflow.request.isError ? (
-            <Alert color="red" title="Membership request failed" role="alert" mb="xl">
-              {membershipWorkflow.request.error?.message}
-            </Alert>
+            <FormError title="Membership request failed">
+              {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
+            </FormError>
           ) : null}
           <Flex
             direction={{ base: 'column-reverse', md: 'row' }}

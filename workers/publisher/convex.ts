@@ -4,7 +4,10 @@ import type { ComponentDeliveryResolution } from '../../src/shared/asset-publish
 import { parseTakeWorkResponse } from '../../src/shared/asset-publishing/publication';
 import type { TakeWorkResult } from '../../src/shared/asset-publishing/publication';
 import { publisherErrorMessage, publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
-import { resolveRulebookAnnotatedIllustrationResponseSchema } from '../../src/shared/rulebooks/annotatedIllustration';
+import {
+  RULEBOOK_ILLUSTRATION_REQUEST_VERSION,
+  resolveRulebookAnnotatedIllustrationResponseSchema,
+} from '../../src/shared/rulebooks/annotatedIllustration';
 import type {
   RulebookAnnotatedIllustrationIdentity,
   RulebookAnnotatedIllustrationResolution,
@@ -92,7 +95,10 @@ export class ConvexPublisherClient {
     identity: RulebookAnnotatedIllustrationIdentity
   ): Promise<RulebookAnnotatedIllustrationResolution> {
     return resolveRulebookAnnotatedIllustrationResponseSchema.parse(
-      await this.postExecutor('rulebook-illustration/resolve-delivery', { schemaVersion: 1, ...identity })
+      await this.postExecutor('rulebook-illustration/resolve-delivery', {
+        schemaVersion: RULEBOOK_ILLUSTRATION_REQUEST_VERSION,
+        ...identity,
+      })
     );
   }
 

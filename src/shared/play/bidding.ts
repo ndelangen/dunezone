@@ -37,7 +37,12 @@ export const biddingStateSchema = z.object({
   deadline: count.nullable(),
   /* The high bid and the passes as they stood when the bidder came to the faction it points at, which its own raises lower back to. */
   turnStart: z
-    .object({ bid: z.object({ factionId: id, amount: count.min(1) }).nullable(), passed: z.array(id) })
+    .object({
+      bid: z.object({ factionId: id, amount: count.min(1) }).nullable(),
+      passed: z.array(id),
+      /* The highest bid this turn reached, which a raise must pass to renew the clock. */
+      high: count.optional(),
+    })
     .optional(),
 });
 export type BiddingState = z.infer<typeof biddingStateSchema>;
@@ -235,13 +240,22 @@ function raiseBid(state: BiddingState, factionId: string, context: BiddingContex
   if (!context.eligible.includes(factionId)) {
     return refuse('Turn your faction token face up to bid.');
   }
+  /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
+  const turnStart = state.turnStart ?? { bid: state.bid, passed: state.passed };
+  const amount = (state.bid?.amount ?? 0) + 1;
+  const high = turnStart.high ?? turnStart.bid?.amount ?? 0;
+  /*
+   * Only a bid higher than any this turn reached renews the clock, and lowering leaves the clock alone,
+   * so taking a raise back and making it again never buys more time than making it once.
+   */
+  const deadline =
+    amount > high ? turnDeadline(state, context.now) : (state.deadline ?? turnDeadline(state, context.now));
   return {
     ...state,
-    /* A round opened before the bidder kept its turn's start takes the bid as it stands now, so this raise can be lowered back to it. */
-    turnStart: state.turnStart ?? { bid: state.bid, passed: state.passed },
-    bid: { factionId, amount: (state.bid?.amount ?? 0) + 1 },
+    turnStart: { ...turnStart, high: Math.max(high, amount) },
+    bid: { factionId, amount },
     passed: [],
-    deadline: turnDeadline(state, context.now),
+    deadline,
   };
 }
 

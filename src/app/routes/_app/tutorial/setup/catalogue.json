@@ -12240,7 +12240,6 @@
                   }
                 ]
               },
-              "highlights": ["broken-land"],
               "icon": "spice",
               "name": "Broken Land",
               "subName": "Spice blow",
@@ -12288,7 +12287,6 @@
                   }
                 ]
               },
-              "highlights": ["cielago-north"],
               "icon": "spice",
               "name": "Cielago North",
               "subName": "Spice blow",
@@ -12336,7 +12334,6 @@
                   }
                 ]
               },
-              "highlights": ["cielago-south"],
               "icon": "spice",
               "name": "Cielago South",
               "subName": "Spice blow",
@@ -12384,7 +12381,6 @@
                   }
                 ]
               },
-              "highlights": ["funeral-plain"],
               "icon": "spice",
               "name": "Funeral Plain",
               "subName": "Spice blow",
@@ -12432,7 +12428,6 @@
                   }
                 ]
               },
-              "highlights": ["habbanya-erg"],
               "icon": "spice",
               "name": "Habbanya Erg",
               "subName": "Spice blow",
@@ -12480,7 +12475,6 @@
                   }
                 ]
               },
-              "highlights": ["habbanya-ridge-flat"],
               "icon": "spice",
               "name": "Habbanya Ridge Flat",
               "subName": "Spice blow",
@@ -12528,7 +12522,6 @@
                   }
                 ]
               },
-              "highlights": ["hagga-basin"],
               "icon": "spice",
               "name": "Hagga Basin",
               "subName": "Spice blow",
@@ -12576,7 +12569,6 @@
                   }
                 ]
               },
-              "highlights": ["old-gap"],
               "icon": "spice",
               "name": "Old Gap",
               "subName": "Spice blow",
@@ -12624,7 +12616,6 @@
                   }
                 ]
               },
-              "highlights": ["red-chasm"],
               "icon": "spice",
               "name": "Red Chasm",
               "subName": "Spice blow",
@@ -12672,7 +12663,6 @@
                   }
                 ]
               },
-              "highlights": ["rock-outcroppings"],
               "icon": "spice",
               "name": "Rock Outcroppings",
               "subName": "Spice blow",
@@ -12720,7 +12710,6 @@
                   }
                 ]
               },
-              "highlights": ["sihaya-ridge"],
               "icon": "spice",
               "name": "Sihaya Ridge",
               "subName": "Spice blow",
@@ -12768,7 +12757,6 @@
                   }
                 ]
               },
-              "highlights": ["south-mesa"],
               "icon": "spice",
               "name": "South Mesa",
               "subName": "Spice blow",
@@ -12816,7 +12804,6 @@
                   }
                 ]
               },
-              "highlights": ["the-great-flat"],
               "icon": "spice",
               "name": "The Great Flat",
               "subName": "Spice blow",
@@ -12864,7 +12851,6 @@
                   }
                 ]
               },
-              "highlights": ["the-minor-erg"],
               "icon": "spice",
               "name": "The Minor Erg",
               "subName": "Spice blow",
@@ -12912,7 +12898,6 @@
                   }
                 ]
               },
-              "highlights": ["wind-pass-north"],
               "icon": "spice",
               "name": "Wind Pass North",
               "subName": "Spice blow",
@@ -13038,7 +13023,6 @@
                   }
                 ]
               },
-              "highlights": [],
               "icon": "/vector/icon/spice-mine.svg",
               "iconScale": 1,
               "name": "Arsunt",
@@ -13087,7 +13071,6 @@
                   }
                 ]
               },
-              "highlights": [],
               "icon": "/vector/icon/spice-mine.svg",
               "iconScale": 1,
               "name": "Bight of the Cliff",
@@ -13136,7 +13119,6 @@
                   }
                 ]
               },
-              "highlights": [],
               "icon": "/vector/icon/spice-mine.svg",
               "iconScale": 1,
               "name": "Ceilago East",
@@ -13185,7 +13167,6 @@
                   }
                 ]
               },
-              "highlights": [],
               "icon": "/vector/icon/spice-mine.svg",
               "iconScale": 1,
               "name": "Ceilago West",
@@ -13234,7 +13215,6 @@
                   }
                 ]
               },
-              "highlights": [],
               "icon": "/vector/icon/spice-mine.svg",
               "iconScale": 1,
               "name": "Gaia Kulon",

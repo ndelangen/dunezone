@@ -10,6 +10,7 @@ import {
   accepted,
   admitPlayer,
   eventually,
+  fixturePass,
   seat,
   sendCommand,
   storedEventMessages,
@@ -200,6 +201,132 @@ describe('Explicit participation on a real game', () => {
       { user_id: 'user-b', event: 'vacated', cause: 'departure' },
       { user_id: 'user-c', event: 'joined', cause: 'admission' },
     ]);
+  });
+
+  it('names every connected spectator once, by public profile, until they take a seat or leave', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const spectators = async () => required(required(await syncView(a)).snapshot.controls).spectators;
+    const synthetic = (suffix: string) => ({
+      name: `Synthetic ${suffix.toUpperCase()}`,
+      avatar: `https://dune.zone/user-images/${suffix}.jpg`,
+      slug: `synthetic-${suffix}`,
+    });
+    expect(await spectators()).toEqual([synthetic('b')]);
+    /* A second tab of the same spectator is still one spectator. */
+    const c = await admit('c');
+    const secondTab = await admit('c');
+    expect(await spectators()).toEqual([synthetic('b'), synthetic('c')]);
+    /* Each spectator sees their own row marked, by account, and nobody else's. */
+    expect(required(required(await syncView(b)).snapshot.controls).spectators).toEqual([
+      { ...synthetic('b'), own: true },
+      synthetic('c'),
+    ]);
+    secondTab.socket.close();
+    await eventually(() => secondTab.closed, 'second tab disconnected');
+    const pushed = a.messages.length;
+    c.socket.close();
+    await eventually(() => c.closed, 'disconnected');
+    /* The players learn of it from the room's own push, without asking. */
+    await eventually(
+      () =>
+        a.messages
+          .slice(pushed)
+          .some((message) => message.type === 'view' && message.snapshot.controls?.spectators.length === 1),
+      'spectator departure pushed'
+    );
+    expect(await spectators()).toEqual([synthetic('b')]);
+    /* A spectator seated is a player, no longer a spectator. */
+    await seat(b, a);
+    expect(await spectators()).toEqual([]);
+  });
+
+  it('follows a renamed profile on the next admission, and leaves the seat history as written', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    expect(required(required(await syncView(a)).snapshot.controls).players.map((player) => player.name)).toEqual([
+      'Synthetic A',
+      'Synthetic B',
+    ]);
+    b.socket.close(1000, 'Reconnecting.');
+    const renamed = await admitPlayer(runtime, 'b', { displayName: 'Renamed B' });
+    const view = required(await syncView(renamed));
+    expect(view.viewer).toMatchObject({ viewerSeat: 'seat-2', displayName: 'Renamed B' });
+    expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
+    /* The seat log is a record of what was shown when it happened; the room exposes no reading of it to the table. */
+    expect(
+      await runtime.exec<{ display_name: string }>("SELECT display_name FROM seat_history WHERE user_id='user-b'")
+    ).toEqual([{ display_name: 'Synthetic B' }]);
+  });
+
+  it('keeps the newer name when a device reconnects with a pass issued before the rename', async () => {
+    const a = await admit('a');
+    const b = await admitPlayer(runtime, 'b', { issuedAt: Date.now() - 60_000 });
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    const renamed = await admitPlayer(runtime, 'b', { displayName: 'Renamed B' });
+    expect(required(await syncView(renamed)).viewer.displayName).toBe('Renamed B');
+    /* A second device still holds the pass from before the rename, valid for up to an hour. */
+    const stale = await admitPlayer(runtime, 'b', { issuedAt: Date.now() - 30_000 });
+    expect(required(await syncView(stale)).viewer).toMatchObject({ viewerSeat: 'seat-2', displayName: 'Renamed B' });
+    expect(required(required(await syncView(a)).snapshot.controls).players.map((player) => player.name)).toEqual([
+      'Synthetic A',
+      'Renamed B',
+    ]);
+  });
+
+  it('shows a rename to a page that stays connected, through its renewed pass', async () => {
+    const a = await admit('a');
+    const b = await admit('b');
+    const request = ownRequest(await accepted(b, { kind: 'seat-request' }));
+    await accepted(a, { kind: 'seat-approve', requestId: required(request).id });
+    b.send({ type: 'pass', pass: await fixturePass('b', { displayName: 'Renamed B', avatarUrl: null }) });
+    await eventually(
+      async () =>
+        required(await syncView(a))
+          .snapshot.controls?.players.map((player) => player.name)
+          .join(',') === 'Synthetic A,Renamed B',
+      'the renamed player'
+    );
+    const view = required(await syncView(b));
+    expect(view.viewer.displayName).toBe('Renamed B');
+    expect(required(view.snapshot.controls).players.map((player) => player.name)).toEqual(['Synthetic A', 'Renamed B']);
+  });
+
+  it('stays finished, with its result and replay, when the last player leaves a finished game', async () => {
+    /* A request filed before the game finished still closes with the last seat. */
+    const request = ownRequest(await accepted(await admit('c'), { kind: 'seat-request' }));
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = readHistoricalSnapshot(rows[0].data);
+    snapshot.stage = 'finished';
+    snapshot.result = {
+      kind: 'none',
+      factionIds: [],
+      by: { seat: 'seat-1', name: 'Synthetic A', userId: 'user-a' },
+      declaredAt: Date.now(),
+    };
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await runtime.restart();
+    const a = await admit('a');
+    const left = await accepted(a, { kind: 'seat-depart' });
+    expect(left.snapshot.stage).toBe('finished');
+    expect(left.snapshot.result).toMatchObject({ kind: 'none' });
+    expect(required(left.snapshot.controls).seats).toEqual([]);
+    expect(required(left.snapshot.controls).seatRequests).toEqual([]);
+    expect(
+      await runtime.exec<{ state: string }>('SELECT state FROM seat_requests WHERE request_id=?', [
+        required(request).id,
+      ])
+    ).toEqual([{ state: 'closed' }]);
+    expect(events(left)[0]).toBe('Seat 1 is vacated.');
+    await eventually(() => peer.summaries.at(-1)?.summary.stage === 'finished', 'finished summary');
+    /* An observer may still replay the finished game alone. */
+    const c = await admit('c');
+    c.send({ type: 'history', step: 0 });
+    expect((await c.message('history')).step).toBe(0);
+    expect(await rejected(c, { kind: 'seat-request' })).toBe('The game is finished. Continue playing to take a seat.');
   });
 
   it('keeps an offline player seated, retires a drafting place on departure and discards the game when the last player leaves', async () => {

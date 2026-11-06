@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 
+import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
 import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
@@ -258,8 +259,8 @@ export class Room {
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
     private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
-    /** The board the game captured with its ruleset; a game without one plays on the rulebook Arrakis. */
-    private readonly board: () => Board | undefined = () => undefined
+    /** The board the game captured with its ruleset; a table without one plays on the bundled Arrakis preset. */
+    private readonly board: () => Board = () => arrakisBoardCapture.definition
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
     this.settledRevision = this.snapshot.revision;
@@ -334,8 +335,7 @@ export class Room {
   /** The table as a seat sees it, on the board the game captured, whose territories stacks keep inside. */
   private viewerTable(viewerSeat: Identity['viewerSeat']): TableState {
     const table = tableForViewer(this.snapshot, viewerSeat);
-    const board = this.board();
-    return board ? { ...table, board } : table;
+    return { ...table, board: this.board() };
   }
 
   private table(identity: Identity, ownCarryId?: string): TableState {

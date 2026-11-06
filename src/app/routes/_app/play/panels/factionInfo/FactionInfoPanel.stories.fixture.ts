@@ -33,7 +33,6 @@ export function factionInfoArgs(
     details: captured && factionId ? capturedFactions()[factionId] : undefined,
     slug: factions.find((entry) => entry.slug === factionId)?.slug,
     now: STORYBOOK_NOW,
-    requests: null,
     trade: seatTrade(table, seat, STORYBOOK_NOW, actions.onTrade),
     ...actions,
   })!;

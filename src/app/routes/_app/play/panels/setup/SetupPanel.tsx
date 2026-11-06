@@ -1,11 +1,12 @@
-import { Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Group, Select, Stack, Text } from '@mantine/core';
 import type { setupStep } from '@shared/play/setup';
 import { playUiColors } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Stepper } from '@ui/control/Stepper';
-import { Layers } from 'lucide-react';
+import { Eye, Layers, Lock } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { factionOption } from '../../multiplayer/factionOption';
@@ -133,12 +134,16 @@ function PredictionInput({
         onChange={(turn) => change({ turn })}
         disabled={disabled}
       />
-      <Button
-        disabled={disabled || !valid}
+      <LabeledAction
+        emphasis="strong"
+        icon={<Lock size={16} />}
+        disabledReason={
+          disabled ? 'The table is unavailable.' : valid ? undefined : 'Choose a faction and a turn first.'
+        }
         onClick={() => valid && onLock({ factionId: choice.factionId!, turn: Number(choice.turn) })}
       >
         Lock prediction
-      </Button>
+      </LabeledAction>
     </Stack>
   );
 }
@@ -169,9 +174,13 @@ function Prediction({
             <Text size="sm">{lockedPredictionText(state.revealed, state.byCard)}</Text>
             {state.choice && <PredictionCards {...state.choice} />}
             {state.canReveal && (
-              <Button variant="default" disabled={disabled} onClick={() => onRevealPrediction(row.stepId)}>
+              <LabeledAction
+                icon={<Eye size={16} />}
+                disabledReason={disabled ? 'The table is unavailable.' : undefined}
+                onClick={() => onRevealPrediction(row.stepId)}
+              >
                 Reveal prediction
-              </Button>
+              </LabeledAction>
             )}
           </>
         ) : state.kind === 'choosing' ? (
@@ -215,9 +224,13 @@ export function SetupPanel(props: SetupPanelProps) {
           <Stack gap="sm">
             {step.kind === 'traitors' && !observing && (
               <>
-                <Button variant="default" disabled={disabled} onClick={onGatherTraitors}>
+                <LabeledAction
+                  icon={<Layers size={16} />}
+                  disabledReason={disabled ? 'The table is unavailable.' : undefined}
+                  onClick={onGatherTraitors}
+                >
                   Gather tabletop traitors
-                </Button>
+                </LabeledAction>
                 {traitors?.factions.map((faction) => (
                   <Group key={faction.value} justify="space-between" wrap="nowrap">
                     {factionOption(traitors.factions, faction.value)}

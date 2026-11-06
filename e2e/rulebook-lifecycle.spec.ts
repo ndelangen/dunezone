@@ -287,8 +287,9 @@ async function authorAssetExplainer(page: Page) {
   await page.getByRole('button', { name: 'Choose source', exact: true }).click();
   await page.getByRole('combobox', { name: 'Source type', exact: true }).click();
   await page.getByRole('option', { name: 'Board', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Board', exact: true }).click();
-  await page.getByRole('option', { name: 'Arrakis board', exact: true }).click();
+  await page.getByRole('searchbox', { name: 'Find Board', exact: true }).fill('Arrakis');
+  await page.getByRole('option', { name: /Arrakis Official/ }).click();
+  await expect(page.getByRole('searchbox', { name: 'Find Board', exact: true })).toHaveCount(0);
   await page
     .getByRole('textbox', { name: 'Caption', exact: true })
     .fill('The surrounding territories stay visible for context.');

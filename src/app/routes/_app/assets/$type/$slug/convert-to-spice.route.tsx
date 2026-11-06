@@ -2,6 +2,7 @@ import { Alert, Stack, Text } from '@mantine/core';
 import { CustomCardAsset, SpiceAsset } from '@shared/assets/schema';
 import { slugify } from '@shared/slugify';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -172,9 +173,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
             </Stack>
           </Alert>
           {conversion.error ? (
-            <Alert color="red" title="Could not convert" role="alert">
-              {mutationErrorMessage(conversion.error)}
-            </Alert>
+            <FormError title="Could not convert">{mutationErrorMessage(conversion.error)}</FormError>
           ) : null}
           <SpiceBoardRead
             draft={state.draft}

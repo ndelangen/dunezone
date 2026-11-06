@@ -5,7 +5,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
+import { Button } from '@mantine/core';
 import { COMPONENT_PART_LABELS } from '@shared/asset-publishing/componentGeometry';
 import {
   projectRulebookAssetExplainerAnnotations,
@@ -13,6 +15,7 @@ import {
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import { createRulebookLocalId, rulebookAssetExplainerColorSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
+import { rulebookSourceTakesSectorLines } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -56,7 +59,13 @@ export function AssetExplainerEdit({
       <RulebookSourceControl
         source={value.source}
         references={references}
-        onChange={(source) => onChange({ ...value, source })}
+        onChange={(source) =>
+          onChange({
+            ...value,
+            source,
+            sectorLines: rulebookSourceTakesSectorLines(source) ? value.sectorLines : undefined,
+          })
+        }
       />
       <ControlBlock
         title="Caption"
@@ -112,6 +121,20 @@ export function AssetExplainerEdit({
           />
         }
       />
+      {rulebookSourceTakesSectorLines(value.source) ? (
+        <ControlBlock
+          title="Sector lines"
+          description="Draws the storm sector lines faintly over the map. Off by default."
+          input={
+            <Switch
+              aria-label="Sector lines"
+              checked={value.sectorLines ?? false}
+              /* The editor merges a change into the saved block, so turning the lines off sets the key to undefined rather than leaving it out. */
+              onChange={(event) => onChange({ ...value, sectorLines: event.currentTarget.checked || undefined })}
+            />
+          }
+        />
+      ) : null}
       <ControlBlock
         title="Explanations"
         description="Drag an entry to reorder it. Its target, custom label, manual color and explanation move together."

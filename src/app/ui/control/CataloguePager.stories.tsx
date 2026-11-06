@@ -19,7 +19,7 @@ const meta = preview.meta({
     complete: true,
     noun: 'treachery cards',
     label: 'Treachery card pages',
-    pageLinkProps: (page: number) => ({ component: 'a', href: `?page=${page}` }),
+    pageLinkProps: (page: number) => ({ component: 'a' as const, href: `?page=${page}` }),
   },
 });
 

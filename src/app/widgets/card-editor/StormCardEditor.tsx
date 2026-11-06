@@ -3,9 +3,9 @@ import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StormCardAsset } from '@shared/assets/schema';
 import { StormCardAssetInput } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
+import { FormError } from '@ui/block/FormError';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Layers3 } from 'lucide-react';
@@ -14,13 +14,12 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { StormCard } from '@game/assets/card/Storm';
-import { card } from '@game/data/sizes';
 
+import { CardProof } from './CardProof';
 import type { CustomCardEditor } from './CustomCardEditor';
 import { INITIAL_CUSTOM_CARD_MEMORY } from './CustomCardEditor';
 import type { CustomCardChapter } from './CustomCardEditor';
 import { CustomCardLayerPanel, CustomCardLayers } from './CustomCardLayers';
-import styles from './StormCardEditor.module.css';
 
 export type StormCardDraft = z.infer<typeof StormCardAsset>;
 export const INITIAL_STORM_CARD_DRAFT: StormCardDraft = {
@@ -147,16 +146,16 @@ export function StormCardEditor({
             ]}
           />
           {tokensError || !validation.success ? (
-            <Alert title="Card needs attention" color="red">
+            <FormError title="Card needs attention">
               {tokensError ?? (!validation.success ? validation.error.issues[0]?.message : '')}
-            </Alert>
+            </FormError>
           ) : null}
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CanvasScale rounded canvasWidth={card.width} canvasHeight={card.height} frameClassName={styles.proofFrame}>
+        <CardProof>
           <StormCard {...draft} frontStyle={frontStyle} tokens={tokens} />
-        </CanvasScale>
+        </CardProof>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

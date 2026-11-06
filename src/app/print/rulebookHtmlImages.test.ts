@@ -533,15 +533,25 @@ test('illustrated scenes freeze nested board, movement and comparison images', (
   value.pageOrder.push('SCEN');
   const projected = projectRulebookRenderDocument(
     value,
-    { card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' } },
+    {
+      card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' },
+      arrakis: {
+        assetId: 'arrakis',
+        type: 'board',
+        name: 'Arrakis Official',
+        imageUrl: '/published/boards/arrakis/board.jpg?v=frozen',
+        geometry: { width: 1948, height: 1948, parts: [] },
+        publicationRevision: 'frozen',
+      },
+    },
     { size: 'square', design: 'illustrated' }
   );
   const before = structuredClone(projected);
   const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(projected, 'https://dune.zone'));
   expect(exported.pagesById.SCEN!.regions[0]!.blocks).toMatchObject([
-    { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+    { board: { imageUrl: 'https://dune.zone/published/boards/arrakis/board.jpg?v=frozen' } },
     {
-      board: { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+      board: { board: { imageUrl: 'https://dune.zone/published/boards/arrakis/board.jpg?v=frozen' } },
       left: { pieces: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }] },
       notes: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }],
     },

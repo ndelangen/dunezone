@@ -92,6 +92,11 @@ export default defineConfig({
       ...convexPackageMocks,
       ...Object.entries(convexWorkerAliases).map(([find, replacement]) => ({ find, replacement })),
       ...threeRendererStackAliases,
+      /* Story tests draw the table without multisampling and at half resolution (see src/app/widgets/tabletop/tableRendering.ts). */
+      {
+        find: /^\.\/tableRendering$/,
+        replacement: fileURLToPath(new URL('./.storybook/tableRendering.vitest.ts', import.meta.url)),
+      },
       /* Stories run with reduced motion unless they pin `motion: 'on'` (see .storybook/preview.tsx). */
       {
         find: /^\.\/browserMotion$/,

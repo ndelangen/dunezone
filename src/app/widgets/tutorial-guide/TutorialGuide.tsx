@@ -1,8 +1,9 @@
-import { Button, Group, Text, UnstyledButton, VisuallyHidden } from '@mantine/core';
+import { Group, Text, UnstyledButton, VisuallyHidden } from '@mantine/core';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { KeyedText } from '@ui/content/Kbd';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
-import { Hourglass, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Hourglass, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useId, useReducer, useRef } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import type { Camera, Vector3Tuple } from 'three';
@@ -439,12 +440,12 @@ export function TutorialGuide({
               )}
             </ol>
             <Group gap="xs" wrap="nowrap" className={styles.railFoot}>
-              <Button variant="default" size="sm" leftSection={<RotateCcw size={14} aria-hidden />} onClick={reset}>
+              <LabeledAction size="sm" icon={<RotateCcw size={14} />} onClick={reset}>
                 Reset
-              </Button>
-              <Button variant="default" size="sm" renderRoot={chaptersLink}>
+              </LabeledAction>
+              <LabeledAction size="sm" icon={<ArrowLeft size={14} />} renderRoot={chaptersLink}>
                 Back to chapters
-              </Button>
+              </LabeledAction>
             </Group>
           </header>
         </div>

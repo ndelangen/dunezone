@@ -99,9 +99,7 @@ test('a locked deck can be looked through, but offers no move and no pull', () =
   fireEvent.keyDown(top!, { key: 'ArrowRight' });
   fireEvent.pointerDown(top!, { button: 0, pointerId: 1, clientX: 10 });
   expect(controls.arrange).not.toHaveBeenCalled();
-  for (const pull of screen.getAllByRole<HTMLButtonElement>('button', { name: 'Pull out' })) {
-    expect(pull.disabled).toBe(true);
-  }
+  expect(screen.queryAllByRole('button', { name: 'Pull out' })).toHaveLength(0);
 });
 
 test('a deck over the limit can only be looked through', () => {
@@ -111,7 +109,5 @@ test('a deck over the limit can only be looked through', () => {
   expect(screen.getByText(/can only be looked through/)).toBeTruthy();
   fireEvent.keyDown(handles()[0]!, { key: 'ArrowRight' });
   expect(controls.arrange).not.toHaveBeenCalled();
-  expect(screen.getAllByRole<HTMLButtonElement>('button', { name: 'Pull out' }).every((pull) => pull.disabled)).toBe(
-    true
-  );
+  expect(screen.queryAllByRole('button', { name: 'Pull out' })).toHaveLength(0);
 });

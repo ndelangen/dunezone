@@ -1,7 +1,7 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
-import { spiceBlowOf } from '@shared/play/spiceBlow';
+import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
@@ -250,7 +250,7 @@ export const messyReservesSandbox = {
  * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).
  */
 export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
-  const spiceBlow = spiceBlowOf('card-spice', { highlights: ['broken-land'], amount: 8 });
+  const spiceBlow = { amount: 8, territories: ['broken_land'] } satisfies SpiceBlow;
   const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
     item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
   return {
@@ -268,7 +268,7 @@ export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
  */
 export function withCoveredSpiceBlow(stored: StoredSnapshot): StoredSnapshot {
   const captured = withSpiceBlows(stored);
-  const arsunt = spiceBlowOf('card-spice', { highlights: ['arsunt'], amount: 6 });
+  const arsunt = { amount: 6, territories: ['arsunt'] } satisfies SpiceBlow;
   return {
     ...captured,
     table: {

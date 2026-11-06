@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import { expect, within } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
@@ -78,9 +78,9 @@ export const WinnerCallsDiffer = meta.story({
   },
 });
 
-/* The middle of Carthag on the rulebook board. */
+/* The middle of Carthag on the Arrakis board. */
 function carthagMiddle(): [number, number, number] {
-  const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+  const carthag = ARRAKIS_OFFICIAL.geometry.parts.find((part) => part.key === 'carthag')!;
   return [
     (carthag.x + carthag.width / 2 - 0.5) * BOARD_RADIUS * 2,
     0.18,

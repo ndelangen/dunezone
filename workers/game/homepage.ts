@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
+import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
 import {
   HOMEPAGE_CONNECTION_LIMIT,
   HOMEPAGE_EDITOR_LIMIT,
@@ -136,7 +137,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private frame() {
     return {
       epoch: this.epoch,
-      snapshot: gameSnapshotSchema.parse(this.room.snapshot),
+      /* The homepage table plays on the bundled Arrakis, which the room also defaults to. */
+      snapshot: { ...gameSnapshotSchema.parse(this.room.snapshot), board: arrakisBoardCapture },
       carries: this.room.publicCarries(),
       pointers: [...this.room.pointers.values()],
     };

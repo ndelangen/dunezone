@@ -19,7 +19,7 @@ const workflowSource = readFileSync(path.resolve(process.cwd(), '.github/workflo
 const workflow = parse(workflowSource) as {
   on: { schedule: { cron: string }[] } & Record<string, unknown>;
   env: Record<string, string>;
-  jobs: { snapshot: { if: string; environment: string; steps: Step[] } };
+  jobs: { snapshot: { needs: string; if: string; environment: string; steps: Step[] } };
 };
 
 const job = workflow.jobs.snapshot;
@@ -36,13 +36,17 @@ const actionsEnvironment = {
 };
 
 describe('anonymised snapshot job', () => {
-  test('runs from main in the production environment, by hand or at most once a week', () => {
+  test('runs from main in the production environment, by hand or on a daily tick the due job limits to one success a week', () => {
     expect(Object.keys(workflow.on)).toEqual(['schedule', 'workflow_dispatch']);
     const crons = workflow.on.schedule.map(({ cron }) => cron.split(' '));
     expect(crons).toHaveLength(1);
     expect(crons[0]!.slice(0, 2)).toEqual([expect.stringMatching(/^\d+$/), expect.stringMatching(/^\d+$/)]);
-    expect(crons[0]!.slice(2)).toEqual(['*', '*', '1']);
-    expect(job).toMatchObject({ if: "github.ref == 'refs/heads/main'", environment: 'production' });
+    expect(crons[0]!.slice(2)).toEqual(['*', '*', '*']);
+    expect(job).toMatchObject({
+      needs: 'due',
+      if: "github.ref == 'refs/heads/main' && needs.due.outputs.due == 'true'",
+      environment: 'production',
+    });
     expect(JSON.stringify(workflow).match(/secrets\./g)).toHaveLength(2);
     expect(steps[stepNamed('Export production, anonymise it and scan the snapshot')]?.env).toEqual({
       CONVEX_PROD_DEPLOY_KEY: '${{ secrets.CONVEX_DEPLOY_KEY }}',

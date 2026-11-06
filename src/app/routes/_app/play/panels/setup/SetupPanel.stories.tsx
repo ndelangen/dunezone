@@ -38,7 +38,7 @@ export const Predicting = meta.story({
   args: setupArgs(predicting(), 'seat-6'),
   parameters: inSetupWindow(predicting()),
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Lock prediction' })).toBeDisabled();
+    await expect(canvas.getByRole('button', { name: 'Lock prediction' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 

@@ -167,7 +167,17 @@
   },
   "dune-logo-trace": {
     "method": "traced",
-    "source": "a logo on the Dune Wiki (Fandom)"
+    "source": "an icon on the Dune Wiki (Fandom), whose maker is not named"
+  },
+  "prelude-cover-emblem-trace": {
+    "method": "traced",
+    "artist": "Jim Tierney",
+    "artistRole": "design",
+    "source": "the Dune Wiki (Fandom) redrawings of the 2019 Ace Books Prelude to Dune covers"
+  },
+  "dune-screen-crest-trace": {
+    "method": "traced",
+    "source": "the Dune Wiki (Fandom) redrawings of crests from the Dune films and series"
   },
   "gf9-icon": {
     "method": "traced",
@@ -217,6 +227,12 @@
     "source": "the card art of Dune (Gale Force Nine)",
     "by": "Central419"
   },
+  "gf9-decal-flower-redraw": {
+    "method": "recreated",
+    "by": "John Flower",
+    "source": "the card art of Dune (Gale Force Nine)",
+    "artist": "Ilya Baranovsky"
+  },
   "gf9-troop": {
     "method": "traced",
     "source": "Dune (Gale Force Nine)",
@@ -246,5 +262,12 @@
     "method": "traced",
     "source": "Dune (Gale Force Nine)",
     "by": "Central419"
+  },
+  "gf9-design-flower-redraw": {
+    "method": "recreated",
+    "by": "John Flower",
+    "source": "the components of Dune (Gale Force Nine, 2019)",
+    "artist": "Casey Davies and Victor Pesch",
+    "artistRole": "design"
   }
 }

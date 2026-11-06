@@ -1,9 +1,12 @@
-import { Anchor, Alert, Button, Group, Select, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Group, Select, Stack, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { ChevronLeft, ChevronRight, Eye, Merge, RotateCcw, X } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
@@ -15,10 +18,6 @@ export const Route = createFileRoute('/_app/admin/accounts')({
   head: () => pageHead('Accounts'),
   component: AccountManagement,
 });
-
-function AccountsLoading() {
-  return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
-}
 
 type AccountPage = NonNullable<ReturnType<typeof useAccountManagementPage>>;
 type ManagedProfile = AccountPage['profiles']['page'][number];
@@ -56,7 +55,7 @@ function AccountManagement() {
   const merge = useMergeAccounts();
   const resume = useResumeAccountMerge();
   if (!page) {
-    return <AccountsLoading />;
+    return <AdminPageLoading title="Accounts">The account list is loading.</AdminPageLoading>;
   }
   const profiles = [
     ...new Map([...page.profiles.page, ...page.selected].map((profile) => [profile.userId, profile])).values(),
@@ -124,22 +123,34 @@ function AccountManagement() {
                   }
                 />
                 <Group justify="space-between">
-                  <Button
-                    variant="default"
-                    disabled={page.isRefreshing || state.failedCursors.length === 1}
+                  <LabeledAction
+                    icon={<ChevronLeft size={16} />}
+                    disabledReason={
+                      page.isRefreshing
+                        ? 'The page is loading.'
+                        : state.failedCursors.length === 1
+                          ? 'These are the first failed merges.'
+                          : undefined
+                    }
                     onClick={() => dispatch({ failedCursors: state.failedCursors.slice(0, -1) })}
                   >
                     Previous failed merges
-                  </Button>
-                  <Button
-                    variant="default"
-                    disabled={page.isRefreshing || page.failedOperations.isDone}
+                  </LabeledAction>
+                  <LabeledAction
+                    icon={<ChevronRight size={16} />}
+                    disabledReason={
+                      page.isRefreshing
+                        ? 'The page is loading.'
+                        : page.failedOperations.isDone
+                          ? 'These are the last failed merges.'
+                          : undefined
+                    }
                     onClick={() =>
                       dispatch({ failedCursors: [...state.failedCursors, page.failedOperations.continueCursor] })
                     }
                   >
                     Next failed merges
-                  </Button>
+                  </LabeledAction>
                 </Group>
               </Stack>
             </Surface>
@@ -198,11 +209,7 @@ function MergeProfiles({
             onChange={(source) => onUpdate({ source, review: false, error: null })}
             disabled={state.busy}
           />
-          {state.error && (
-            <Alert color="red" role="alert">
-              {state.error}
-            </Alert>
-          )}
+          {state.error && <FormError title="Profiles could not be merged">{state.error}</FormError>}
           {state.review && source && target ? (
             <>
               <Text>
@@ -212,21 +219,37 @@ function MergeProfiles({
               </Text>
               <Text size="sm">This merge cannot be undone. The other profile will be signed out.</Text>
               <Group>
-                <Button color="red" loading={state.busy} onClick={onSubmit}>
-                  Merge into {target.name}
-                </Button>
-                <Button variant="default" disabled={state.busy} onClick={() => onUpdate({ review: false })}>
+                <LabeledAction
+                  intent="negative"
+                  emphasis="strong"
+                  icon={<Merge size={16} />}
+                  busy={state.busy}
+                  onClick={onSubmit}
+                >
+                  {`Merge into ${target.name}`}
+                </LabeledAction>
+                <LabeledAction
+                  icon={<X size={16} />}
+                  disabledReason={state.busy ? 'The merge is running.' : undefined}
+                  onClick={() => onUpdate({ review: false })}
+                >
                   Cancel
-                </Button>
+                </LabeledAction>
               </Group>
             </>
           ) : (
-            <Button
-              disabled={!source || !target || source.userId === target.userId}
+            <LabeledAction
+              emphasis="strong"
+              icon={<Eye size={16} />}
+              disabledReason={
+                !source || !target || source.userId === target.userId
+                  ? 'Choose two different profiles first.'
+                  : undefined
+              }
               onClick={() => onUpdate({ review: true })}
             >
               Review merge
-            </Button>
+            </LabeledAction>
           )}
         </Stack>
       </Surface>
@@ -282,12 +305,22 @@ function ProfilesTable({
             </Table>
           </Table.ScrollContainer>
           <Group>
-            <Button variant="default" disabled={isRefreshing || !canGoBack} onClick={onPrevious}>
+            <LabeledAction
+              icon={<ChevronLeft size={16} />}
+              disabledReason={isRefreshing ? 'The page is loading.' : canGoBack ? undefined : 'This is the first page.'}
+              onClick={onPrevious}
+            >
               Previous
-            </Button>
-            <Button variant="default" disabled={isRefreshing || profiles.isDone} onClick={onNext}>
+            </LabeledAction>
+            <LabeledAction
+              icon={<ChevronRight size={16} />}
+              disabledReason={
+                isRefreshing ? 'The page is loading.' : profiles.isDone ? 'This is the last page.' : undefined
+              }
+              onClick={onNext}
+            >
               Next
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       </Surface>
@@ -324,9 +357,9 @@ function MergeOperations({
               </Text>
             </Stack>
             {operation.state === 'failed' && (
-              <Button variant="default" onClick={() => onRetry(operation._id)}>
+              <LabeledAction icon={<RotateCcw size={16} />} onClick={() => onRetry(operation._id)}>
                 Retry merge
-              </Button>
+              </LabeledAction>
             )}
           </Group>
         ))

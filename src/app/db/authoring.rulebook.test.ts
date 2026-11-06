@@ -4,7 +4,6 @@ import { describe, expect, test, vi } from 'vite-plus/test';
 import { api } from '../../../convex/_generated/api';
 import { rulebookFixture } from '../../../convex/rulebooks.test.fixture';
 import { assetPublishingFaction } from '../../shared/factions/fixtures/assetPublishingFaction';
-import { RULEBOOK_BOARD_DEFINITIONS } from '../../shared/rulebooks/boardDefinitions';
 import { RULEBOOK_CATALOGUE_VERSION, rulebookContentsV1Schema } from '../../shared/rulebooks/contents';
 import type { RulebookContentsV1 } from '../../shared/rulebooks/contents';
 import { prepareRawRulebook } from './authoring';
@@ -25,8 +24,10 @@ const selection = (factionId?: string, id: string | undefined = troopId, face = 
   troopId: id,
   face,
 });
+/* The saved board each fixture inserts; a scene names it by its id. */
+let boardId = '';
 const board = (factionId?: string, id = troopId, face = 'front') => ({
-  boardId: RULEBOOK_BOARD_DEFINITIONS[0].id,
+  boardId,
   caption: '',
   players: [],
   highlights: [],
@@ -74,8 +75,10 @@ async function fixture() {
     const deckId = await ctx.db.insert('assets', { ...common, type: 'deck', slug: 'deck', data: {} });
     const tokenId = await ctx.db.insert('assets', { ...common, type: 'token-disc', slug: 'token', data: {} });
     const bundleId = await ctx.db.insert('assets', { ...common, type: 'bundle', slug: 'bundle', data: {} });
-    return { factionId, otherFactionId, deckId, tokenId, bundleId };
+    const savedBoardId = await ctx.db.insert('assets', { ...common, type: 'board', slug: 'arrakis', data: {} });
+    return { factionId, otherFactionId, deckId, tokenId, bundleId, savedBoardId };
   });
+  boardId = rows.savedBoardId;
   reads.query.mockImplementation((fn, args) => f.owner.query(fn, args));
   const locator = { rulesetSlug: 'rulebook-test-rules', rulebookSlug: created.rulebook.slug };
   const check = async (contents: RulebookContentsV1, size = 'a4') => {

@@ -30,7 +30,9 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Alert, Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The film strip's pages are draggable thumbnails, not actions. */
+import { Button } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -75,17 +77,19 @@ import {
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
+import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { Section } from '@ui/block/Section';
-import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { SaveAction } from '@ui/control/SaveAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { StatusInfo } from '@ui/control/StatusInfo';
@@ -98,6 +102,8 @@ import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar, useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  CloudDownload,
+  PenLine,
   BookMarked,
   Check,
   CircleAlert,
@@ -113,6 +119,7 @@ import {
   SlidersHorizontal,
   Settings,
   TextCursorInput,
+  X,
 } from 'lucide-react';
 import {
   memo,
@@ -138,9 +145,9 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -185,6 +192,7 @@ import type {
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDropStatus,
 } from './rulebookPageDetailsEdit';
+import { emptyBoardScene, useNewSceneBoardId } from './rulebookSceneBlockEditors';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 
@@ -867,10 +875,10 @@ function emptyBattleExample() {
   };
 }
 
-function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
+function createBlock(kind: RulebookBlockKind, id: string, boardId: string): RulebookBlockDraft {
   switch (kind) {
     case 'board-scene':
-      return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+      return { id, kind, ...emptyBoardScene(boardId) };
     case 'piece-transfer':
       return { id, kind, left: { label: '', pieces: [] }, right: { label: '', pieces: [] } };
     case 'piece-movement':
@@ -1200,52 +1208,33 @@ function FactionReferenceControl({
   title?: string;
   description?: string;
 }) {
-  const [opened, setOpened] = useState(false);
   const chosenName = factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : undefined;
   return (
-    <ControlBlock
+    <PickerField
       title={title}
       description={description}
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button
-              variant="default"
-              aria-label={
-                title === 'Faction'
-                  ? undefined
-                  : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
-              }
-              onClick={() => setOpened(!opened)}
-            >
-              {chosenName ?? 'Choose faction'}
-            </Button>
-            {factionId ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <FactionPicker
-              copy={{
-                title: 'Choose faction',
-                intro: 'Choose a live faction reference.',
-                errorTitle: 'Factions could not be loaded',
-                emptyMessage: 'No factions are available.',
-                confirmTitle: 'Selected faction',
-                confirmLabel: 'Use faction',
-                confirmIntent: 'positive',
-              }}
-              onPick={(picked) => {
-                onChange(picked.id);
-                setOpened(false);
-              }}
-              onCancel={() => setOpened(false)}
-            />
-          ) : null}
-        </Stack>
-      }
+      chosen={chosenName ?? 'Choose faction'}
+      chooseLabel={title === 'Faction' ? undefined : `Choose ${title.toLowerCase()}`}
+      onClear={factionId ? () => onChange(undefined) : undefined}
+      loadingLabel="Loading factions"
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Choose a live faction reference.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            onChange(picked.id);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
@@ -1458,7 +1447,7 @@ function controlRegionPanel(
       />
     );
   }
-  return <Alert color="red">This Control region has no matching editor.</Alert>;
+  return <FormError title="No editor for this region">This Control region has no matching editor.</FormError>;
 }
 
 type FilmstripProps = {
@@ -1818,6 +1807,7 @@ function RulebookWorkspace({
     flush: flushRailDragPosition,
     cancel: cancelRailDragPosition,
   } = useCoalescedDragPosition(processRailDragPosition);
+  const newSceneBoardId = useNewSceneBoardId();
 
   if (!active || !activePage || !projectedActivePage) {
     return (
@@ -1895,7 +1885,7 @@ function RulebookWorkspace({
       entity: {
         kind: 'block',
         pageId: page.id,
-        block: createBlock(kind, blockId),
+        block: createBlock(kind, blockId, newSceneBoardId),
       },
       placement: {
         container: { kind: 'block-region', pageId: page.id, regionKey },
@@ -2592,6 +2582,9 @@ function reviewPlacementOptions(result: ReadyResult, difference: Extract<Differe
   });
 }
 
+/* The saved side of a difference, the same glyph the settings conflict uses for its saved side. */
+const SAVED_ICON = <CloudDownload size={16} />;
+
 function RulebookDifferenceReview({
   result,
   dispatch,
@@ -2615,9 +2608,9 @@ function RulebookDifferenceReview({
       title="Review differences"
       description="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
       action={
-        <Button variant="default" onClick={onClose}>
+        <LabeledAction icon={<ArrowLeft size={16} />} onClick={onClose}>
           Back to editing
-        </Button>
+        </LabeledAction>
       }
     >
       <Stack gap="lg">
@@ -2696,7 +2689,7 @@ function RulebookDifferenceReview({
             <Section
               key={difference.id}
               title={name}
-              action={approved ? <Badge color="confirm">Reviewed</Badge> : undefined}
+              action={approved ? <StatusBadge tone="positive">Reviewed</StatusBadge> : undefined}
             >
               <AsymmetricSplitLayout>
                 <AsymmetricSplitLayout.Wide>
@@ -2704,9 +2697,9 @@ function RulebookDifferenceReview({
                     <Section title="Your draft">
                       {local}
                       {localOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, localOutcome!)}>
+                        <LabeledAction icon={<PenLine size={16} />} onClick={() => approve(difference, localOutcome!)}>
                           Keep your version
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2716,9 +2709,9 @@ function RulebookDifferenceReview({
                     <Section title="Latest saved version">
                       {latest}
                       {latestOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, latestOutcome!)}>
+                        <LabeledAction icon={SAVED_ICON} onClick={() => approve(difference, latestOutcome!)}>
                           {difference.kind === 'anchor' ? 'Use available anchor' : 'Keep saved version'}
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2764,6 +2757,12 @@ function RulebookRename({
   const [name, setName] = useState(rulebook.name);
   const rename = useRenameRulebook();
   const validName = rulebookNameSchema.safeParse(name);
+  /* Why Rename cannot run yet, if it cannot: the button shows it and Enter in the field honours it. */
+  const blocked = !validName.success
+    ? 'Enter a name for the Rulebook.'
+    : validName.data === rulebook.name
+      ? 'Type a new name first.'
+      : undefined;
   return (
     <Stack
       component="form"
@@ -2771,7 +2770,10 @@ function RulebookRename({
       gap="sm"
       onSubmit={(event) => {
         event.preventDefault();
-        if (validName.success && !rename.isPending) {
+        if (rename.isPending) {
+          return;
+        }
+        if (blocked === undefined && validName.success) {
           rename.mutate(
             { rulebookId: rulebook._id, name: validName.data },
             {
@@ -2797,23 +2799,25 @@ function RulebookRename({
         onChange={(event) => setName(event.currentTarget.value)}
         description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
       />
-      {rename.error ? (
-        <Alert color="red" title="Rulebook could not be renamed">
-          {rename.error.message}
-        </Alert>
-      ) : null}
+      {rename.error ? <FormError title="Rulebook could not be renamed">{rename.error.message}</FormError> : null}
       <Group gap="xs">
-        <Button
+        <LabeledAction
           type="submit"
-          color="confirm"
-          loading={rename.isPending}
-          disabled={!validName.success || name.trim() === rulebook.name}
+          intent="positive"
+          emphasis="strong"
+          icon={<PencilLine size={16} />}
+          busy={rename.isPending}
+          disabledReason={blocked}
         >
           Rename Rulebook
-        </Button>
-        <Button variant="default" disabled={rename.isPending} onClick={onClose}>
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={rename.isPending ? 'Wait for the rename to finish.' : undefined}
+          onClick={onClose}
+        >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -3158,9 +3162,7 @@ function RulebookEditorSession({
     return (
       <PageLayout>
         <PageLayout.Content>
-          <Alert color="red" role="alert" title="This Rulebook could not open">
-            {result.message}
-          </Alert>
+          <FormError title="This Rulebook could not open">{result.message}</FormError>
         </PageLayout.Content>
       </PageLayout>
     );
@@ -3425,25 +3427,33 @@ function RulebookEditorSession({
             </Surface>
           ) : null}
           {result.settingsConflict ? (
-            <Alert color="red" title="Book settings changed in another editor">
-              <Stack gap="sm">
-                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+            <FormError
+              title="Book settings changed in another editor"
+              action={
                 <Group>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                  <LabeledAction
+                    icon={<PenLine size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}
+                  >
                     Keep my settings
-                  </Button>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                  </LabeledAction>
+                  <LabeledAction
+                    icon={<CloudDownload size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}
+                  >
                     Use saved settings
-                  </Button>
+                  </LabeledAction>
                 </Group>
-              </Stack>
-            </Alert>
+              }
+            >
+              Choose which size and design to save. Your Contents changes stay in the draft.
+            </FormError>
           ) : null}
-          {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
+          {result.operationError ? (
+            <FormError title="That change was not made">{result.operationError}</FormError>
+          ) : null}
           {publishMutation.error ? (
-            <Alert color="red" role="alert" title="Edition could not be published">
-              {publishMutation.error.message}
-            </Alert>
+            <FormError title="Edition could not be published">{publishMutation.error.message}</FormError>
           ) : null}
           {view.notice === 'stale' ? (
             <Alert color="yellow" role="status">
@@ -3541,10 +3551,11 @@ function RulebookEditorPage() {
 
 function RulebookEditorError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="This Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Edit Rulebook"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="This Rulebook could not be loaded"
+      error={error}
+    />
   );
 }

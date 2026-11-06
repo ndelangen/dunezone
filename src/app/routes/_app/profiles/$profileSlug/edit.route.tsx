@@ -32,6 +32,7 @@ import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
 
@@ -563,12 +564,13 @@ function ProfileSettingsPage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage
+        <RoutePending
           title="Profile settings"
           back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+          loading="Loading your profile"
         >
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </PageMessage>
+          Checking whether you are signed in.
+        </RoutePending>
       );
     case 'signed-out':
       return (

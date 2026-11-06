@@ -24,7 +24,8 @@ import {
  * It never selects a historical Renderer implementation.
  */
 export const CHECKED_IN_RENDERER_REVISIONS = {
-  board: 1,
+  /* Revision 2 stores the `sectors` part with each board's geometry, so Rulebook annotations can point at the sectors (#1971). */
+  board: 2,
   /* Revision 2 records measured part metadata for existing Leader publications. */
   'faction-leader': 2,
   /* The first activation publishes tokens for existing factions; revision 2 adds the blocked `.back` face (#1228). */
@@ -44,7 +45,8 @@ export const CHECKED_IN_RENDERER_REVISIONS = {
   [TREACHERY_CARD_ASSET_TYPE]: TREACHERY_TEXT_ONLY_REVISION,
   // 1: spice cards join the pipeline with their editor (#1229).
   /* Revision 4 adds Discovery map treatment and the fixed type-token slot. */
-  [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE],
+  /* One more draws the classic highlight and dashed sectors on every card's board map (#1971). */
+  [SPICE_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[SPICE_CARD_ASSET_TYPE] + 1,
   /* Revision 4 retains styled token faces in Custom Cards. */
   [CUSTOM_CARD_ASSET_TYPE]: CARD_FRONT_PUBLICATION_REVISIONS[CUSTOM_CARD_ASSET_TYPE],
   /* Revision 4 captures the shared Leader Skill front preset. */

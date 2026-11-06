@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
 import { propertyId } from '../../src/shared/boards/schema';
 import type { playGameProvisionSchema } from '../../src/shared/play/admission';
 import type { BugReportBrowser } from '../../src/shared/play/bugReports';
@@ -49,6 +50,7 @@ import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
+import type { PassProfile } from './actors';
 import { expireBattle } from './battle';
 import { biddingDeadline, expireBidding } from './bidding';
 import { CaptureStore } from './captures';
@@ -183,6 +185,8 @@ export class GameSession {
   private readonly captures: CaptureStore;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
+  /* The users connected as spectators, as the room last reconciled its connections; they are named in every view. */
+  private watching: string[] = [];
   private readonly history: SessionHistory;
   private readonly publicActions: PublicActions;
   private roomProjection?: RoomProjection;
@@ -288,7 +292,7 @@ export class GameSession {
       (userId) => this.actors.factionFor(userId),
       this.metadata?.fixtureDeck,
       this.metadata?.testPhaseCooldownMs,
-      () => this.captures.ruleset()?.board?.definition
+      () => this.board().definition
     );
     /* A capture never changes once retained, so each faction's dealt order is read from storage once. */
     const dealt = new Map<string, readonly string[] | undefined>();
@@ -300,6 +304,11 @@ export class GameSession {
       return dealt.get(factionId);
     };
     return room;
+  }
+
+  /* The board the table plays on: the one the game captured with its ruleset; a fixture, or a game retained before ruleset boards, plays on the bundled Arrakis. */
+  private board() {
+    return this.captures.ruleset()?.board ?? arrakisBoardCapture;
   }
 
   private isHostedFixture(metadata: Metadata) {
@@ -678,7 +687,8 @@ export class GameSession {
       this.writeState(next);
       this.stageDirectory(next, Date.now());
       const result = next.battleResults[0];
-      if (result && result.revision === next.revision) {
+      /* A command that changed nothing keeps the revision a just-settled battle's result was already stored under. */
+      if (result && result.revision === next.revision && next.revision !== this.room!.snapshot.revision) {
         this.storage.sql.exec('INSERT INTO battle_results VALUES(?,?)', result.revision, JSON.stringify(result));
       }
       if (transfer) {
@@ -716,11 +726,8 @@ export class GameSession {
    * from the directory at send time and never stored; and for the requester alone, which pending
    * request is theirs. Nobody's id travels.
    */
-  private forViewer(projected: GameSnapshot, viewer: Viewer): GameSnapshot {
-    const board = this.captures.ruleset()?.board;
-    if (board) {
-      projected = { ...projected, board };
-    }
+  private forViewer(projected: GameSnapshot, viewer: Viewer, people = this.people(), live = true): GameSnapshot {
+    projected = { ...projected, board: this.board() };
     if (!projected.controls) {
       return projected;
     }
@@ -729,10 +736,19 @@ export class GameSession {
       ...projected,
       controls: {
         ...projected.controls,
-        players: this.actors.holders(),
+        players: people.players,
+        /* Only the watcher's own row is marked, by account; nobody's id travels. */
+        spectators: people.spectators.map(({ userId, ...spectator }) =>
+          live && userId === viewer.userId ? { ...spectator, own: true } : spectator
+        ),
         seatRequests: ownRequests(projected.controls.seatRequests, own),
       },
     };
+  }
+
+  /* Who sits at the table and who watches it, the same for every viewer, so a delivery pass reads them once. */
+  private people() {
+    return { players: this.actors.holders(), spectators: this.actors.watchers(this.watching) };
   }
 
   roomFrame(viewer: Viewer): RoomFrame {
@@ -748,6 +764,7 @@ export class GameSession {
     const carries = this.projection.carries(room.publicCarries(), room.snapshot);
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
+    let people: ReturnType<GameSession['people']> | undefined;
     const review = reviewableStage(room.snapshot.stage)
       ? {
           review: this.reviews.current(),
@@ -757,11 +774,13 @@ export class GameSession {
     return (viewer) => {
       const factionId = this.actors.factionFor(viewer.userId);
       const own = viewer.viewerSeat === SPECTATOR_SEAT ? this.participation.pendingRequestId(viewer.userId) : undefined;
-      const audience = JSON.stringify([factionId ?? null, own ?? null]);
+      /* A spectator's view marks their own row, so each spectator watching is an audience of their own. */
+      const watching = viewer.viewerSeat === SPECTATOR_SEAT ? viewer.userId : null;
+      const audience = JSON.stringify([factionId ?? null, own ?? null, watching]);
       let snapshot = snapshots.get(audience);
       if (!snapshot) {
         snapshot = {
-          ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer),
+          ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer, (people ??= this.people())),
           ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
           ...review,
         };
@@ -941,7 +960,7 @@ export class GameSession {
   }
   /* A spice blow's territory takes its name from the captured board, never from the page, so the log says where the spice went. */
   private namedOnBoard<Action extends PieceAction>(action: Action): Action {
-    const board = action.kind === 'spice-blow' ? this.captures.ruleset()?.board?.definition : undefined;
+    const board = action.kind === 'spice-blow' ? this.board().definition : undefined;
     if (action.kind !== 'spice-blow' || !board) {
       return action;
     }
@@ -1196,7 +1215,7 @@ export class GameSession {
   }
   /** The identity the provisioning replay commands as (#1594): the creator at their seat, or a placeholder the room admits as a spectator. */
   provisionViewer(userId: string, displayName: string): Viewer {
-    return this.actors.viewer(`provision:${userId}`, userId, displayName, { seatNewcomers: false });
+    return this.actors.viewer(`provision:${userId}`, { userId, displayName, issuedAt: 0 }, { seatNewcomers: false });
   }
   /** The room's current snapshot, for a caller that judges its next command by the stage and revision. */
   currentSnapshot(): StoredSnapshot {
@@ -1233,14 +1252,23 @@ export class GameSession {
     this.restampSeats(this.room!);
     return viewer;
   }
+  /** A renewed pass's profile reaches the player's row and the seats shown; whether anything shown changed. */
+  renewProfile(profile: PassProfile): boolean {
+    const changed = this.actors.renewProfile(profile);
+    if (changed) {
+      this.restampSeats(this.room!);
+    }
+    return changed;
+  }
   /** The snapshot's seats and roster are read again from the seat rows. */
   private restampSeats(room: Room) {
     const controls = room.snapshot.controls ?? emptyPublicControls();
     room.snapshot = this.withRoster({ ...room.snapshot, controls: { ...controls, seats: this.actors.seats() } });
   }
-  /** A connection whose seat changed loses its activity, and the roster is read again. */
+  /** A connection whose seat changed loses its activity, and the roster is read again; the connected spectators are noted for every view. */
   refreshViewers(viewers: readonly Viewer[]) {
     const current = this.actors.currentViewers(viewers);
+    this.watching = current.flatMap((viewer) => (viewer?.viewerSeat === SPECTATOR_SEAT ? [viewer.userId] : []));
     viewers.forEach((viewer, index) => {
       if (current[index]?.viewerSeat !== viewer.viewerSeat) {
         this.clearActivity(viewer.connectionId);
@@ -1296,7 +1324,8 @@ export class GameSession {
       step,
       lastStep: this.history.steps,
       recordedAt: this.history.recordedAt(step),
-      snapshot: this.forViewer(recalled, viewer),
+      /* A replay shows the same table to everyone who looks back, so no spectator row is marked as the viewer's. */
+      snapshot: this.forViewer(recalled, viewer, this.people(), false),
     };
   }
   conversationFaction(viewer: Viewer) {

@@ -1,10 +1,10 @@
 import { Group } from '@mantine/core';
 import preview from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
-import { CircleAlert, CircleCheck, CircleDashed, FileText, History, RefreshCw, UsersRound } from 'lucide-react';
+import { CircleAlert, CircleCheck, CircleDashed, History, RefreshCw } from 'lucide-react';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { StatusMark, StatusMarkList } from './StatusMark';
+import { StatusMark } from './StatusMark';
 
 const meta = preview.meta({
   component: StatusMark,
@@ -59,35 +59,4 @@ export const Tones = meta.story({
       />
     </Group>
   ),
-});
-
-/**
- * One mark standing in for several, for a bar too narrow to show each: its tooltip lists every status with its glyph.
- * The list is also the mark's description, so a screen reader hears every status and not only the one the glyph shows.
- */
-export const StandsInForSeveral = meta.story({
-  args: {
-    tone: 'caution',
-    icon: <CircleDashed size={16} aria-hidden />,
-    label: 'Status: Unsaved changes',
-    tooltip: (
-      <StatusMarkList>
-        <StatusMark tone="caution" icon={<CircleDashed size={16} aria-hidden />} label="Unsaved changes" />
-        <StatusMark icon={<FileText size={16} aria-hidden />} label="Public assets are current." />
-        <StatusMark icon={<UsersRound size={16} aria-hidden />} label="Group access: Arrakeen Rules Council" />
-      </StatusMarkList>
-    ),
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const mark = page.getByRole('img', { name: 'Status: Unsaved changes' });
-    await expect(mark).toHaveAccessibleDescription(
-      'Unsaved changes Public assets are current. Group access: Arrakeen Rules Council'
-    );
-    await tabAfterClosingCopies(canvasElement.ownerDocument);
-    const tooltip = await waitForFrame(() => page.getByRole('tooltip'));
-    await expect(tooltip).toHaveTextContent('Unsaved changes');
-    await expect(tooltip).toHaveTextContent('Public assets are current.');
-    await expect(tooltip).toHaveTextContent('Group access: Arrakeen Rules Council');
-  },
 });

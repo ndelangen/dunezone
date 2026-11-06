@@ -1,4 +1,6 @@
-import { Button, Group, Menu, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Menu, Text, Tooltip, VisuallyHidden } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Ready and Next phase are a split button with a live count, a shape no kit action has. */
+import { Button } from '@mantine/core';
 import { phaseGate } from '@shared/play/setup';
 import { Check, ChevronDown } from 'lucide-react';
 import { useId } from 'react';

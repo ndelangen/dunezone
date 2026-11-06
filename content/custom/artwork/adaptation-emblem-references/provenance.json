@@ -1,64 +1,63 @@
 {
   "version": 1,
-  "sourceDescription": "Six user-supplied reference images. The sunburst buckle filename credits Matt Griffin. Original publications were not identified.",
+  "sourceDescription": "User-supplied reference images. The five flat icons are Dune Wiki (Fandom) files uploaded by Eshogun671 as 2500 by 2500 PNGs; the stored originals are the wiki's 1000 px WebP conversions. Read through the wiki API on 2026-11-05: no file page states a license (the wiki-wide footer says CC-BY-SA, which no page says applies to these images), and the uploader is not stated to be the maker. The sunburst buckle filename credits Matt Griffin; its original publication was not identified.",
   "request": {
     "date": "2026-10-26",
     "scope": "The user requested the same cropped, recolorable emblem-vector treatment for these six references: \"do these as well\"."
   },
-  "preparation": "The five flat icons use foreground alpha, caption removal, proportional cropping, asset-specific smoothing and a 4x bitmap trace. The shaded buckle was manually redrawn into clean contours in a 4x bitmap master before tracing. All six use Potrace and the Dune Zone normalization and authoring pipeline.",
+  "preparation": "The five flat icons were re-traced on 2026-11-05: alpha (foreground) of the 1000 px reference, cropped to sourceCrop and padded by 4 px; 4x Lanczos resize of the anti-aliased alpha, then threshold at 50 percent, so edges are decided at 4x and no source-pixel staircase survives; Potrace (potracer port of Potrace 1.16), turdsize 16, alphamax 1, opttolerance 0.2; the bitmapMaster is that thresholded 4x mask. Dune Zone normalization and stamp. The shaded buckle was manually redrawn into clean contours in a 4x bitmap master before tracing, and uses Potrace and the Dune Zone normalization and authoring pipeline.",
   "preview": "The six-vector preview, including the simplified buckle redraw, was shown in chat before catalogue integration.",
   "assets": {
     "/vector/emblem/lynch-dune.svg": {
       "source": "originals/Lynch%27s_Dune_Icon.webp",
       "bitmapMaster": "bitmaps/lynch-dune-4x.png",
-      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "preparation": "Foreground alpha isolated, lettering removed by crop, enlarged 4x with Lanczos before thresholding, then traced.",
       "sourceCrop": {
         "left": 147,
         "top": 0,
         "width": 706,
         "height": 583
       },
-      "blurSigmaSourcePixels": 0.55,
-      "letteringCutoffY": 605
+      "letteringCutoffY": 605,
+      "wikiFile": "https://dune.fandom.com/wiki/File:Lynch's_Dune_Icon.png"
     },
     "/vector/emblem/original-dune.svg": {
       "source": "originals/Original_Dune_Icon.webp",
       "bitmapMaster": "bitmaps/original-dune-4x.png",
-      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "preparation": "Foreground alpha isolated, lettering removed by crop, enlarged 4x with Lanczos before thresholding, then traced.",
       "sourceCrop": {
         "left": 149,
         "top": 0,
         "width": 709,
         "height": 558
       },
-      "blurSigmaSourcePixels": 0.55,
-      "letteringCutoffY": 575
+      "letteringCutoffY": 575,
+      "wikiFile": "https://dune.fandom.com/wiki/File:Original_Dune_Icon.png"
     },
     "/vector/emblem/real-world.svg": {
       "source": "originals/Real_World_Icon.webp",
       "bitmapMaster": "bitmaps/real-world-4x.png",
-      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "preparation": "Foreground alpha isolated, lettering removed by crop, enlarged 4x with Lanczos before thresholding, then traced.",
       "sourceCrop": {
         "left": 166,
         "top": 0,
         "width": 667,
         "height": 667
       },
-      "blurSigmaSourcePixels": 1.2,
-      "letteringCutoffY": 685
+      "letteringCutoffY": 685,
+      "wikiFile": "https://dune.fandom.com/wiki/File:Real_World_Icon.png"
     },
     "/vector/emblem/sci-fi-miniseries.svg": {
       "source": "originals/Sci_Fi_Miniseries_Icon.webp",
       "bitmapMaster": "bitmaps/sci-fi-miniseries-4x.png",
-      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "preparation": "Foreground alpha isolated, lettering removed by crop, enlarged 4x with Lanczos before thresholding, then traced.",
       "sourceCrop": {
         "left": 166,
         "top": 0,
         "width": 667,
         "height": 667
       },
-      "blurSigmaSourcePixels": 0.65,
-      "captionComponentMinimumTopY": 660
+      "wikiFile": "https://dune.fandom.com/wiki/File:Sci_Fi_Miniseries_Icon.png"
     },
     "/vector/emblem/sunburst-buckle-matt-griffin.svg": {
       "source": "originals/Sunburst_buckle_-_Matt_Griffin.webp",
@@ -71,15 +70,15 @@
     "/vector/emblem/villeneuve.svg": {
       "source": "originals/Villeneuve_Icon.webp",
       "bitmapMaster": "bitmaps/villeneuve-4x.png",
-      "preparation": "Foreground alpha isolated, lettering removed by crop or disconnected caption components, smoothed and enlarged 4x before tracing.",
+      "preparation": "Foreground alpha isolated, lettering removed by crop, enlarged 4x with Lanczos before thresholding, then traced.",
       "sourceCrop": {
         "left": 146,
         "top": 0,
         "width": 708,
         "height": 708
       },
-      "blurSigmaSourcePixels": 0.8,
-      "letteringCutoffY": 730
+      "letteringCutoffY": 730,
+      "wikiFile": "https://dune.fandom.com/wiki/File:Villeneuve_Icon.png"
     }
   }
 }

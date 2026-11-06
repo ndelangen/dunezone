@@ -1,13 +1,11 @@
 import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
@@ -30,12 +28,13 @@ import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 
@@ -82,11 +81,7 @@ function GroupDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage size="compact" title="Group" back={backToProfiles}>
-      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError size="compact" title="Group" back={backToProfiles} what="Group could not be loaded" error={error} />
   );
 }
 
@@ -109,9 +104,9 @@ function GroupDetailPage() {
   useLivePageTitle(page?.group.name, 'Group');
   if (!page) {
     return (
-      <PageMessage size="compact" title="Group" back={backToProfiles}>
-        <LoadPending title="Loading group">The group details are still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title="Group" back={backToProfiles} loading="Loading group">
+        The group details are still loading.
+      </RoutePending>
     );
   }
 
@@ -255,16 +250,12 @@ function GroupDetailPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {requestError && (
-          <Alert color="red" variant="light" title="Membership request failed" role="alert" mb="lg">
-            {requestError}
-          </Alert>
-        )}
-        {deleteGroup.error && (
-          <Alert color="red" variant="light" title="Delete failed" role="alert" mb="lg">
-            {deleteGroup.error.message}
-          </Alert>
-        )}
+        {requestError || deleteGroup.error ? (
+          <Stack gap="lg" mb="lg">
+            {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
+            {deleteGroup.error ? <FormError title="Delete failed">{deleteGroup.error.message}</FormError> : null}
+          </Stack>
+        ) : null}
         <Box className={styles.twoColumnGrid}>
           <Stack gap="lg">
             <Card
@@ -302,11 +293,7 @@ function GroupDetailPage() {
           </Stack>
 
           <Stack gap="lg">
-            {membersModerationError && (
-              <Alert color="red" variant="light" title="Moderation failed" role="alert">
-                {membersModerationError}
-              </Alert>
-            )}
+            {membersModerationError && <FormError title="Moderation failed">{membersModerationError}</FormError>}
 
             <PendingRequestsPanel
               pendingMembers={pendingMembers}

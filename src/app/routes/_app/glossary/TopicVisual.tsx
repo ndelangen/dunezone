@@ -378,7 +378,7 @@ function SpiceVisual() {
     <div className={styles.row}>
       <Piece caption="Spice card" anchor="spice-card">
         <GameCard>
-          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
+          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" amount={3} />
         </GameCard>
       </Piece>
       <div className={clsx(styles.column, styles.extra)}>
@@ -428,7 +428,7 @@ function CardsVisual() {
       <div className={styles.row}>
         <Piece captionHidden caption="Spice card" anchor="spice-card">
           <GameCard>
-            <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
+            <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" amount={3} />
           </GameCard>
         </Piece>
         <Piece captionHidden caption="Shai-Hulud" anchor="shai-hulud">

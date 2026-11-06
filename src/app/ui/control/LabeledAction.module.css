@@ -1,0 +1,4 @@
+/* A toggle that is on: the selected tile, ringed in its own ink, as IconAction's is. */
+.pressed {
+  box-shadow: inset 0 0 0 1px var(--selection-border);
+}

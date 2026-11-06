@@ -1,7 +1,12 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { boardExplainerFixture, leaderExplainerFixture } from '@game/rulebook/RulebookAssetExplainer.stories.fixture';
+import {
+  boardExplainerFixture,
+  leaderExplainerFixture,
+  savedBoardExplainerFixture,
+} from '@game/rulebook/RulebookAssetExplainer.stories.fixture';
 
 import { ExplainerStory } from './rulebookAssetExplainerEdit.stories.fixture';
 
@@ -32,7 +37,16 @@ export const Board = meta.story({
     await expect(canvas.getByRole('textbox', { name: 'Marker color' })).toHaveValue('#9c2920');
     const handle = canvas.getByRole('button', { name: 'Reorder explanation 1' });
     handle.focus();
-    await userEvent.keyboard('[Space][ArrowDown][Space]');
+    /* The keyboard drag lands each step on an animation frame, and the saved board's taller sidebar no longer gives it one in time, so each step waits for its frame. */
+    await userEvent.keyboard('[Space]');
+    await waitForFrame(() => expect(handle).toHaveAttribute('aria-pressed', 'true'));
+    await userEvent.keyboard('[ArrowDown]');
+    await waitForFrame(() =>
+      expect(canvasElement.ownerDocument.querySelector('[id^="DndLiveRegion"]')).toHaveTextContent(
+        /over droppable area CART/
+      )
+    );
+    await userEvent.keyboard('[Space]');
     await waitFor(() =>
       expect(canvas.getByRole('button', { name: '★. Arrakeen' })).toHaveAttribute('aria-pressed', 'true')
     );
@@ -86,5 +100,30 @@ export const Empty = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Add explanation' }));
     await expect(canvas.getByRole('textbox', { name: 'Explanation' })).toHaveValue('');
     await expect(canvas.getAllByRole('button', { name: /Reorder explanation/ })).toHaveLength(1);
+  },
+});
+
+/** Sector lines are off by default; turning them on draws the board's storm sector lines faintly in the preview. */
+export const SectorLines = meta.story({
+  render: () => <ExplainerStory initial={savedBoardExplainerFixture()} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const toggle = canvas.getByRole('switch', { name: 'Sector lines' });
+    await expect(toggle).not.toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
+    await userEvent.click(toggle);
+    await expect(toggle).toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide="sectors"]')).toHaveLength(18);
+    await userEvent.click(toggle);
+    await expect(toggle).not.toBeChecked();
+    await expect(canvasElement.querySelectorAll('[data-rulebook-guide]')).toHaveLength(0);
+  },
+});
+
+/** Only a board has storm sectors, so other sources show no Sector lines switch. */
+export const NoSectorLinesForComponents = meta.story({
+  render: () => <ExplainerStory initial={leaderExplainerFixture()} />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('switch', { name: 'Sector lines' })).toBeNull();
   },
 });

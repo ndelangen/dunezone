@@ -42,10 +42,10 @@ export const Declaring = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const bar = (await page.findByText('Declare the result', {}, { timeout: 30_000 })).closest('section')!;
     const declare = within(bar).getByRole('button', { name: 'Declare' });
-    await expect(declare).toBeDisabled();
+    await expect(declare).toHaveAttribute('aria-disabled', 'true');
     await expect(page.queryByRole('button', { name: 'Determine winner' })).toBeNull();
     await userEvent.click(within(bar).getByText('No winner'));
-    await waitFor(() => expect(declare).toBeEnabled());
+    await waitFor(() => expect(declare).not.toHaveAttribute('aria-disabled', 'true'));
     await userEvent.click(declare);
     await expect(lastCommand()?.action).toEqual({ kind: 'result-declare', result: 'none', factionIds: [] });
     await userEvent.click(within(bar).getByRole('button', { name: 'Stop' }));
@@ -146,7 +146,7 @@ export const DeclaringOnAPhone = meta.story({
       /* The window the table opened by itself settles into its slot over a few frames, which a slow runner draws seconds apart. */
     }, WAIT);
     /* An alliance is declared only once its factions are picked, and the declaration names them. */
-    await expect(declare).toBeDisabled();
+    await expect(declare).toHaveAttribute('aria-disabled', 'true');
     const snapshot = mentatSnapshot('seat-2');
     const allies = [factionOf(snapshot, 0), factionOf(snapshot, 2)];
     /* The field's own input takes no pointer, so it is opened from the keyboard. */
@@ -155,7 +155,7 @@ export const DeclaringOnAPhone = meta.story({
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: ally.name })));
     }
-    await waitFor(() => expect(declare).toBeEnabled());
+    await waitFor(() => expect(declare).not.toHaveAttribute('aria-disabled', 'true'));
     await userEvent.click(declare);
     await expect(lastCommand()?.action).toEqual({
       kind: 'result-declare',
@@ -295,6 +295,9 @@ export const ReplayRefusal = meta.story({
     });
     const replay = within(windowNamed(page, 'Replay')!);
     await expect(replay.findByText('That checkpoint could not be loaded.')).resolves.toBeVisible();
-    await expect(replay.getByRole('button', { name: 'Replay from start' })).toBeEnabled();
+    await expect(replay.getByRole('button', { name: 'Replay from start' })).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   },
 });

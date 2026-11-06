@@ -10,6 +10,8 @@
 
 import type * as accountDeletion from "../accountDeletion.js";
 import type * as accounts from "../accounts.js";
+import type * as arrakis from "../arrakis.js";
+import type * as arrakisMigrations from "../arrakisMigrations.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
@@ -84,7 +86,6 @@ import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
 import type * as lib_memoised from "../lib/memoised.js";
-import type * as lib_migrationHelpers from "../lib/migrationHelpers.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddressAvailability from "../lib/playGameAddressAvailability.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
@@ -184,6 +185,8 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
   accounts: typeof accounts;
+  arrakis: typeof arrakis;
+  arrakisMigrations: typeof arrakisMigrations;
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;
   auth: typeof auth;
@@ -258,7 +261,6 @@ const fullApi: ApiFromModules<{
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
   "lib/memoised": typeof lib_memoised;
-  "lib/migrationHelpers": typeof lib_migrationHelpers;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddressAvailability": typeof lib_playGameAddressAvailability;
   "lib/playGameAddresses": typeof lib_playGameAddresses;

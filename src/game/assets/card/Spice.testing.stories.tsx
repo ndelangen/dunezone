@@ -72,6 +72,6 @@ export const RenamedTerritory = meta.story({
     boardTokens: spiceBoardTokens,
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g').length).toBeGreaterThan(0);
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] [data-tint-fill]').length).toBeGreaterThan(0);
   },
 });

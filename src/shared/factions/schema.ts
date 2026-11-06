@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ALL, BACKGROUND, GENERIC, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { backgroundSourceSchema } from '../backgrounds/source';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
-import { legacyEmblemKeyed, renameLegacyEmblems } from '../legacyEmblem';
+import { renameLegacyEmblems } from '../legacyEmblem';
 import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
@@ -48,9 +48,7 @@ function isRecord(input: unknown): input is Record<string, unknown> {
  * Reads the Faction leader from `factionLeader`, falling back to `hero`.
  * The glossary term is "Faction leader", kept apart from the supporting `leaders`.
  * Stored factions carry `factionLeader` alone, so the live decoders read that key only.
- * Three kinds of input keep the fallback.
- * Frozen sheet jobs and game captures keep the `hero` literal, and so does the catalogue answer a game Worker captures from.
- * A faction typed or imported from outside the app, such as raw JSON or a content package exported before the key was renamed, may still carry it.
+ * Frozen sheet jobs and game captures keep the `hero` literal, and so does the catalogue answer a game Worker captures from, so their decoders keep the fallback.
  */
 function readFactionLeaderKey(input: unknown): unknown {
   if (!isRecord(input) || !('hero' in input)) {
@@ -62,7 +60,7 @@ function readFactionLeaderKey(input: unknown): unknown {
 
 /**
  * `readFactionLeaderKey` plus the emblem rename's old names read as the new ones, for the decoders that may meet data stored before either rename.
- * The emblem rename's fallback stays for the same three kinds of input (see src/shared/legacyEmblem.ts).
+ * The emblem rename's fallback stays for the same frozen copies (see src/shared/legacyEmblem.ts).
  */
 export function readLegacyFactionKeys(input: unknown): unknown {
   return renameLegacyEmblems(readFactionLeaderKey(input));
@@ -138,10 +136,11 @@ export function withSupportNames(value: unknown): unknown {
 }
 
 /**
- * Stored-data reader for the rename's compatibility window: the legacy names read as the new ones, and every write emits only the new ones.
- * `faction_troop_support_names_v1` rewrites stored factions.
- * Narrowing the live schemas to `TroopBattleValues` is a later release, once that migration and its verify have run everywhere;
- * `HistoricalFactionPublicationSchema` keeps this read even then, because games retain captures taken before the rename.
+ * Stored-data reader for the support-names rename: the old names read as the new ones, and every write emits only the new ones.
+ * Stored factions carry the new names;
+ * frozen rulebook sheets, publication jobs and game captures from before the rename may not, so their decoders keep this.
+ * It still sits in the shared troop shape, so the Convex row reader tolerates the old names too;
+ * moving it to the historical decoders' root is a planned follow-up.
  * Like `extras`, a preprocess derives as `v.any()` on the Convex wire, which leaves the shape to the Zod parse.
  */
 const StoredTroopBattleValues = z.preprocess(withSupportNames, TroopBattleValues);
@@ -273,7 +272,7 @@ const factionBaseShape = {
   /**
    * Catalogue decks, bundles and tokens this faction supplies at setup (#1226);
    * a missing field reads as `[]`.
-   * Reads drop the retired TTS link lists until `faction_extras_references_v1` is verified everywhere.
+   * Reads drop the retired TTS link lists, which retained Play games and frozen publications can still carry.
    */
   extras: storedFactionExtrasSchema.optional(),
 
@@ -355,12 +354,9 @@ export const SUPPORTING_LEADER_LIMIT = 10;
 /**
  * What a save accepts: URL name semantics plus the supporting-leader cap.
  * Reads and renders keep `FactionInputSchema`, so draft names without URL characters and stored factions over the cap still render.
- * A save also reads the old `hero` key, since raw JSON and imported packages come from outside the app (see `readFactionLeaderKey`).
- * The emblem rename's old `logo` names are refused here;
- * the import and raw JSON readers rename them first (`ImportedFactionSchema`).
+ * A save, an import and raw JSON all take the current key names only: `factionLeader`, never `hero`, and `emblem`, never `logo`.
  */
-export const FactionWriteSchema = z
-  .preprocess(readFactionLeaderKey, FactionInputObject.extend({ name: FactionNameSchema }))
+export const FactionWriteSchema = FactionInputObject.extend({ name: FactionNameSchema })
   .superRefine(refineUniqueComponentIds)
   .refine((faction) => faction.leaders.length <= SUPPORTING_LEADER_LIMIT, {
     message: `A faction can have at most ${SUPPORTING_LEADER_LIMIT} supporting leaders.`,
@@ -414,12 +410,6 @@ export const HeroKeyedHistoricalFactionObject = HistoricalFactionPublicationObje
 export const HeroKeyedCanonicalFactionObject = CanonicalFactionStoredObject.omit({ factionLeader: true }).extend({
   hero: CanonicalFactionLeader,
 });
-
-/**
- * A faction from outside the app (an imported content package or raw JSON), which may predate the emblem rename: its old `logo` names read as the new ones before `FactionWriteSchema` parses it.
- * See src/shared/legacyEmblem.ts.
- */
-export const ImportedFactionSchema = legacyEmblemKeyed(FactionWriteSchema);
 
 /** Complete canonical data also requires unique member identities across the roster. */
 export const IdentifiedFactionStoredSchema = CanonicalFactionStoredObject.superRefine(refineUniqueComponentIds);

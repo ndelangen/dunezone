@@ -211,7 +211,7 @@ fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all
 
 An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
 declares around the band and the page, named `page-frame`, as wide as the page between the shell's
-gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+gutters, or a Layout's container when one sits between, as `ColumnsWithRailLayout`'s does.
 A page composition needs no container of its own. A component that lays out its own children by
 width names the container it asks, so a container inserted above it cannot move it. When that layout
 is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
@@ -249,7 +249,7 @@ conditions written in TypeScript and container queries are checked in review. Ca
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested
 `<Stack><Group><Grid>`. Spacing belongs to a Layout: a custom component built on Mantine primitives
 that arranges two or more **named compound slots**, as in
-`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>`, so composition
+`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout>`, so composition
 reads top-down and large content never rides inside a prop. A leaf never carries page margin (only
 for unavoidable third-party constraints), one slot is a passthrough rather than a Layout, and Layouts
 respond by **container query, not media query**, so they lay out by the room they are given.
@@ -370,7 +370,7 @@ A forward-moving primary uses the shared bright yellow with dark text. The homep
 uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
 The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
-`CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
+`CallToAction` and a strong `IconAction` or `LabeledAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -396,12 +396,12 @@ The language, each word earned by usage the survey found rather than invented:
 | `inverse` | legible on dark artwork | `Eyebrow` |
 | `silent` | no chrome at all, even hovered | `IconAction` |
 | `quiet` | blends in until hovered | `IconAction` |
-| `standard` | a tinted tile; the everyday weight | `IconAction` |
-| `strong` | fully filled; the action a row leads with | `IconAction` |
+| `standard` | a tinted tile; the everyday weight | `IconAction`, `LabeledAction` |
+| `strong` | fully filled; the action a row leads with | `IconAction`, `LabeledAction` |
 
 The words marked `any` are context-free and belong to any component that needs them. The rest are
 scoped to the component that earned them, and a component adding a word takes it from this table
-before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
+before inventing one. The `IconAction` four (its worded sibling `LabeledAction` takes only the framed two, since an unframed worded button is a text-only button) are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
@@ -411,7 +411,8 @@ The canonical `cta` role owns the spice-amber action accent.
 Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
 Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through
-the theme. Selection borders use `--selection-border`, a neutral ink that contrasts with both
+the theme. A worded toggle is `LabeledAction pressed` and a glyph one `IconAction pressed`, which
+wear that selected tile without naming a colour. Selection borders use `--selection-border`, a neutral ink that contrasts with both
 schemes, rather than a fixed palette shade. Focus uses `--color-focus-ring` for a visible boundary
 in each scheme.
 
@@ -426,9 +427,15 @@ control with no explicit semantics makes the reader guess. Keep exactly one clea
 toolbar. Use an icon-only button only for a common, recognizable action with an `aria-label`; if the
 icon would be ambiguous, label it.
 
-*Convention. The kit carries it: `IconAction` for icon-only actions and `CallToAction` for the
-forward-moving primary. Which variant each takes is the section above; this one is about how many
-and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
+*Convention. The kit carries it: `IconAction` for icon-only actions, `LabeledAction` for an action
+with room for its words (always beside a glyph, never text alone), and `CallToAction` for the
+forward-moving primary. Outside `src/app/ui` every button is one of these three rather than a raw
+Mantine `Button`, enforced by `no-restricted-imports` in `.oxlintrc.json` for `src/**` outside
+`src/app/ui`, stories and tests. A real exception (a shaped part of the game board, a split button,
+a list row until the kit has a selectable row) disables the rule on that file's one `Button`
+import with a `--` reason; the disable covers the whole file, so the reason must cover every
+`Button` in it. Which variant each takes is the section above; this one is about how many and how
+labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### A bar states its statuses as glyphs and stays one line
 
@@ -439,10 +446,20 @@ keyboard and touch. Where even the glyphs do not fit, they fold into one glyph w
 them all.
 
 *Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
-status, and `StatusMarkList` lists several inside the tooltip of the mark that stands in for them.
-`AuthoringToolbar` folds its marks, and turns Save into an icon, below 32rem of its own width, the
-room its widest caller needs. It also lists its statuses in a live region, because a screen reader
-does not announce a glyph whose name changes.*
+status, and [`StatusInfo`](../../src/app/ui/control/StatusInfo.tsx) gathers a toolbar's statuses
+behind one glyph whose popover lists them all.*
+
+### A failure is a FormError
+
+When an attempt did not happen, the page says so with
+[`FormError`](../../src/app/ui/block/FormError.tsx): a title naming what failed, the reason under it,
+and a live region so a screen reader hears it the moment it appears. A failure the reader settles on
+the spot, such as a settings conflict, carries its choices in FormError's `action`, under the words. A
+hand-made red Alert is the failure drawn a second way, usually without a title or without the
+announcement.
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/form-error` rejects a Mantine `Alert`
+with a red colour outside `src/app/ui`.*
 
 ### Destructive actions are held, not asked twice
 

@@ -176,6 +176,7 @@ are Worker-first:
 | `/__user-images` and `/__user-images/*` | The ingest endpoint the Convex rehost action posts a source URL to |
 | `/__play` and `/__play/*` | Canonical-host-only forwarding to the private game Worker |
 | `/factions`, `/factions/*`, `/assets`, `/assets/*` | Public document reads reach the TanStack server; create and edit paths retain the SPA |
+| `/public/*` | Hashed bundle files: a stored file gets the year-long immutable header, and a miss is an uncacheable 404, never the SPA document (#2548) |
 | Everything else | Static asset lookup, then SPA fallback |
 
 Faction sheets use `/published/factions/<Convex faction id>/sheet.pdf`. Rulebook
@@ -615,10 +616,12 @@ Auth, command, projection and browser tests remain separate delivery evidence.
 
 ## Anonymised snapshot
 
-`.github/workflows/anonymised-snapshot.yml` runs once a week (Mondays) and on manual dispatch, from `main`
+`.github/workflows/anonymised-snapshot.yml` runs once a week and on manual dispatch, from `main`
 only, in the `production` environment (#1559). Its one step runs `scripts/anonymised-snapshot.ts`,
 which exports production the way `dev-rebuild.yml` does, anonymises the export through
-`scripts/snapshot-anonymise.ts`, and scans the written snapshot.
+`scripts/snapshot-anonymise.ts`, and scans the written snapshot. Its schedule ticks daily, and
+`scripts/snapshot-refresh-due.ts` skips every tick after the first run that succeeds since Monday 00:00 UTC,
+so a run stopped by a failed release recovers the next day. A manual dispatch always runs.
 The script reads the raw export into memory and deletes it before anonymising, whether the read
 succeeded or not, and the job's last step deletes its directory whatever happened before.
 
@@ -715,9 +718,9 @@ rules, the generator, `scripts/media-variants.ts` and the versions sharp reports
 rest of `bun.lock` stay out of that key. A miss restores the closest earlier store. The generator
 then downloads any missing variant from `https://dune.zone/m/` (`MEDIA_FILL_ORIGIN`), keeping it only
 when it matches its integrity headers, and encodes only what is still missing, fetching that
-original from R2 and checking it against the lock. Most jobs leave `media/image` out of their
-checkout (#1923); `test`, `generate_and_build` and `publisher_release` check out the whole tree,
-which now holds only provenance notes there. CI verifies the generated tree structurally
+original from R2 and checking it against the lock. Jobs check out the whole tree, whose
+`media/image` now holds only provenance notes; the sparse checkout that left it out (#1923) made
+checkout a blob-less partial clone with an unretried lazy fetch (#2605). CI verifies the generated tree structurally
 (`bun run verify:images`) without re-encoding to compare bytes. A PR that adds an original to the
 lock must have uploaded it first with `bun run media:sync`; the blocking `media:gate` step fails
 otherwise. The

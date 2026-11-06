@@ -1,19 +1,18 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Anchor, Box, Button, Group, Pagination, Stack, Text } from '@mantine/core';
+import { Anchor, Box, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
-import { errorMessage } from '@ui/content/errorMessage';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FactionList } from '@ui/list/FactionList';
 import { FaqList } from '@ui/list/FaqList';
@@ -22,7 +21,6 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -38,8 +36,8 @@ import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -103,11 +101,13 @@ function ProfileDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage size="compact" title="Profile" back={backToProfiles}>
-      <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      size="compact"
+      title="Profile"
+      back={backToProfiles}
+      what="Profile could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -132,15 +132,14 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
       <FactionList factions={page.factions} />
       {page.listedFactionCount > page.factions.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<TopicIcon topic="factions" size={16} />}
             renderRoot={(props) => (
               <Link {...props} to="/factions" search={{ owner: page.profile.slug, sort: 'created' }} />
             )}
           >
-            All {factionCount} factions
-          </Button>
+            {`All ${factionCount} factions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Stack>

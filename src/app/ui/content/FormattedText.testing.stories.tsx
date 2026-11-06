@@ -1,10 +1,10 @@
 import { testingPreview } from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { FormattedText, FormattedTextSource } from './FormattedText';
+import { FormattedTextSource } from './FormattedText';
 
 const meta = testingPreview.meta({
-  component: FormattedText,
+  component: FormattedTextSource,
   globals: {
     backgrounds: { value: 'dark', grid: false },
   },
@@ -12,7 +12,7 @@ const meta = testingPreview.meta({
 });
 
 export const StoredSource = meta.story({
-  args: { blocks: [] },
+  args: { source: '' },
   render: () => <FormattedTextSource source={'A *formatted* paragraph.\n\n- First point\n- Second point'} />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

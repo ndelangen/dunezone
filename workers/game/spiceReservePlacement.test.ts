@@ -1,6 +1,6 @@
 import { expect, test } from 'vite-plus/test';
 
-import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { spiceReserveActionSchema } from '../../src/shared/play/spiceReserve';
 import { restingPositionAt } from '../../src/shared/play/tableGeometry';
 import { innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
@@ -81,13 +81,16 @@ test('the wire rejects invalid spice amounts and positions while retaining legac
 test('spice withdrawn into a territory packs around a stack another player is carrying, and their carry still lands', () => {
   const snapshot = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
   const troops = snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
-  const arrakeen = tableTerritories(retainedArrakisBoard()).find((territory) => territory.name === 'Arrakeen')!;
+  const arrakeen = tableTerritories(arrakisBoardCapture.definition).find((territory) => territory.name === 'Arrakeen')!;
   const [x, z] = innermostPoint(arrakeen);
   const placed = { ...troops, position: restingPositionAt([x, 0, z], troops) };
   const table = new Room(
     { ...snapshot, table: { ...snapshot.table, pieces: [placed] }, factionBanks: { atreides: 37 } },
     () => ['atreides', 'harkonnen'],
-    (userId) => (userId === player.userId ? 'atreides' : undefined)
+    (userId) => (userId === player.userId ? 'atreides' : undefined),
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
   );
   const carrier = { ...player, connectionId: 'carrier', userId: 'carrier', viewerSeat: 'harkonnen' };
   table.begin(carrier, {

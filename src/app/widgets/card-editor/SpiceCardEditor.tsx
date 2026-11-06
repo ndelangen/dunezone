@@ -1,10 +1,9 @@
-import { MultiSelect, NumberInput, Stack, TextInput } from '@mantine/core';
+import { NumberInput, Stack, TextInput } from '@mantine/core';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Coins, Map as MapIcon, Palette, ScrollText } from 'lucide-react';
@@ -18,12 +17,11 @@ import { boardMarkupEditing, useBrushEscape } from '@app/widgets/board-markup/Bo
 import { assetOptionToPreviewSrc, vectorDecalAssetOptions } from '@app/widgets/faction-editor/factionFormAssetUtils';
 import { SpiceCard } from '@game/assets/card/Spice';
 import { spiceIconSrc, standardSpiceText } from '@game/assets/card/spiceText';
-import { Spice } from '@game/data/objects';
 import type { SpiceAsset } from '@game/data/objects';
 import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { CardIconScaleControl, CardIconVerticalOffsetControl } from './CardIconAdjustments';
+import { CardProof } from './CardProof';
 import { SpiceLookFields, SpiceMapFields, SpiceTokenFields } from './SpiceBoardFields';
 import type { AssetPick, SpiceBoardRead, SpiceLookPreview, SpiceMapFocus } from './SpiceBoardFields';
 
@@ -34,57 +32,16 @@ import type { AssetPick, SpiceBoardRead, SpiceLookPreview, SpiceMapFocus } from 
 export type SpiceDraft = z.infer<typeof SpiceAsset>;
 
 type SpiceIcon = SpiceDraft['icon'];
-type SpiceHighlight = SpiceDraft['highlights'][number];
 
 export const INITIAL_SPICE_DRAFT: SpiceDraft = {
   name: '',
   about: '',
   subName: 'Spice blow',
   icon: 'spice',
-  highlights: [],
   amount: 6,
 };
 
 const iconOptions = stockAssetOptions(vectorDecalAssetOptions);
-
-/* The three whole regions highlight a group of territories at once, so they are offered apart from the single territories. */
-const REGIONS: readonly SpiceHighlight[] = ['sand', 'rock', 'strongholds'];
-
-/* Names the slug alone cannot spell. Everything else reads as its slug in title case. */
-const HIGHLIGHT_LABELS: Partial<Record<SpiceHighlight, string>> = {
-  sand: 'All sand',
-  rock: 'All rock',
-  strongholds: 'All strongholds',
-  tueks: "Tuek's Sietch",
-  tabr: 'Sietch Tabr',
-  polar: 'Polar Sink',
-  habbanya: 'Habbanya Sietch',
-};
-
-function highlightLabel(highlight: SpiceHighlight): string {
-  return (
-    HIGHLIGHT_LABELS[highlight] ??
-    highlight
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  );
-}
-
-const HIGHLIGHTS = Spice.shape.highlights.element.options;
-
-const HIGHLIGHT_OPTIONS = [
-  {
-    group: 'Regions',
-    items: REGIONS.map((value) => ({ value, label: highlightLabel(value) })),
-  },
-  {
-    group: 'Territories',
-    items: HIGHLIGHTS.filter((value) => !REGIONS.includes(value))
-      .map((value) => ({ value, label: highlightLabel(value) }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
-  },
-];
 
 type Patch = (update: Partial<SpiceDraft>) => void;
 
@@ -105,12 +62,7 @@ function FillCard({
 }) {
   const link = draft.board;
   return (
-    <CanvasScale
-      rounded
-      canvasWidth={CARD_SIZE.width}
-      canvasHeight={CARD_SIZE.height}
-      frameClassName={styles.proofFrame}
-    >
+    <CardProof>
       <SpiceCard
         {...draft}
         boardDefinition={read?.board}
@@ -129,7 +81,7 @@ function FillCard({
             : undefined
         }
       />
-    </CanvasScale>
+    </CardProof>
   );
 }
 
@@ -171,25 +123,6 @@ function IdentityFields({ draft, patch, nameField }: { draft: SpiceDraft; patch:
       <CardIconScaleControl value={draft} onChange={patch} />
       <CardIconVerticalOffsetControl value={draft} onChange={patch} />
     </Stack>
-  );
-}
-
-/* The territories the classic map highlights. */
-function ClassicHighlights({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
-  return (
-    <ControlBlock
-      title="Highlighted territories"
-      description="Outlined on the card's map. A region highlights every territory in it."
-      input={
-        <MultiSelect
-          aria-label="Highlighted territories"
-          searchable
-          data={HIGHLIGHT_OPTIONS}
-          value={draft.highlights}
-          onChange={(values) => patch({ highlights: values as SpiceHighlight[] })}
-        />
-      }
-    />
   );
 }
 
@@ -263,8 +196,8 @@ export function spiceDraftWarnings(draft: SpiceDraft): SpiceDraftWarning[] {
   if (!draft.subName.trim()) {
     warnings.push({ source: 'Identity', missing: 'a type', chapter: 'identity' });
   }
-  if (!draft.board && draft.highlights.length === 0) {
-    warnings.push({ source: 'Map', missing: 'a highlighted territory', chapter: 'map' });
+  if (!draft.board) {
+    warnings.push({ source: 'Map', missing: 'a board', chapter: 'map' });
   }
   return warnings;
 }
@@ -320,7 +253,7 @@ export function SpiceCardEditor({
       />
     ),
   };
-  /* A card back on the classic map has no Look or Tokens chapter, so one left open on them falls back to the Map. */
+  /* A card without a board has no Look or Tokens chapter, so one left open on them falls back to the Map. */
   const shown = !link && (chapter === 'look' || chapter === 'tokens') ? 'map' : chapter;
   return (
     <WorkbenchLayout.Workbench>
@@ -352,7 +285,6 @@ export function SpiceCardEditor({
                     read={boardRead}
                     focus={proofFocus}
                     boardSelect={boardSelect}
-                    classic={<ClassicHighlights draft={draft} patch={patch} />}
                   />
                 ),
               },

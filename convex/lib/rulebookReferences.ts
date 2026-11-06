@@ -29,7 +29,7 @@ type ReadCtx = Pick<QueryCtx, 'db'> | Pick<MutationCtx, 'db'>;
  * A publication from before that keeps none;
  * its territories are read from the board's own data only while no capture of a newer save is queued, running or failed, since only then does the image show that data.
  */
-async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
+export async function savedBoardGeometry(ctx: ReadCtx, assetId: string, data: unknown, stored: unknown) {
   if (stored) {
     return stored;
   }
@@ -64,6 +64,43 @@ async function capturedBoardData(ctx: ReadCtx, assetId: string, data: unknown) {
   return parsed.success ? { board: parsed.data.board } : {};
 }
 
+/** One live asset as a Rulebook source: its name, published image and geometry, and a saved board's own data when asked for. */
+export async function resolveRulebookAsset(
+  ctx: ReadCtx,
+  assetId: string,
+  withBoardData: boolean
+): Promise<RulebookResolvedAssetsById[string] | null> {
+  const id = ctx.db.normalizeId('assets', assetId);
+  const asset = id ? await ctx.db.get('assets', id) : null;
+  if (!asset || asset.is_deleted) {
+    return null;
+  }
+  const publication = isPublicationAssetType(asset.type)
+    ? await ctx.db
+        .query('publication_assets')
+        .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
+        .unique()
+    : null;
+  const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
+  const geometry = componentGeometrySchema.safeParse(
+    asset.type === 'board' && publication
+      ? await savedBoardGeometry(ctx, assetId, asset.data, publication.component_geometry)
+      : publication?.component_geometry
+  );
+  return {
+    assetId,
+    name: assetDisplayName(asset),
+    type: asset.type,
+    ...(capture?.output === 'image' ? { width: capture.widthPx, height: capture.heightPx } : {}),
+    ...(geometry.success ? { geometry: geometry.data, publicationRevision: publication!.cache_token } : {}),
+    imageUrl:
+      publication && isPublicationAssetType(asset.type)
+        ? publishedHref(asset.type, assetId, publication.cache_token)
+        : null,
+    ...(asset.type === 'board' && withBoardData ? await capturedBoardData(ctx, assetId, asset.data) : {}),
+  };
+}
+
 /** Resolves only the live sources this Contents references, for both the reader and publication. */
 export async function resolveRulebookReferences(
   ctx: ReadCtx,
@@ -90,40 +127,8 @@ export async function resolveRulebookReferences(
   const [assets, factions] = await Promise.all([
     Promise.all(
       assetIds.map(async (assetId): Promise<readonly [string, RulebookResolvedAssetsById[string]] | null> => {
-        const id = ctx.db.normalizeId('assets', assetId);
-        const asset = id ? await ctx.db.get('assets', id) : null;
-        if (!asset || asset.is_deleted) {
-          return null;
-        }
-        const publication = isPublicationAssetType(asset.type)
-          ? await ctx.db
-              .query('publication_assets')
-              .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', asset.type).eq('asset_id', assetId))
-              .unique()
-          : null;
-        const capture = isPublicationAssetType(asset.type) ? resolvePublicationCapture(asset.type) : null;
-        const geometry = componentGeometrySchema.safeParse(
-          asset.type === 'board' && publication
-            ? await savedBoardGeometry(ctx, assetId, asset.data, publication.component_geometry)
-            : publication?.component_geometry
-        );
-        return [
-          assetId,
-          {
-            assetId,
-            name: assetDisplayName(asset),
-            type: asset.type,
-            ...(capture?.output === 'image' ? { width: capture.widthPx, height: capture.heightPx } : {}),
-            ...(geometry.success ? { geometry: geometry.data, publicationRevision: publication!.cache_token } : {}),
-            imageUrl:
-              publication && isPublicationAssetType(asset.type)
-                ? publishedHref(asset.type, assetId, publication.cache_token)
-                : null,
-            ...(asset.type === 'board' && (requested.boardData || tinted.has(assetId))
-              ? await capturedBoardData(ctx, assetId, asset.data)
-              : {}),
-          },
-        ];
+        const asset = await resolveRulebookAsset(ctx, assetId, !!requested.boardData || tinted.has(assetId));
+        return asset ? [assetId, asset] : null;
       })
     ),
     Promise.all(

@@ -1,11 +1,8 @@
 import clsx from 'clsx';
-import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './AtlasLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const ATLAS_SLOTS = ['AtlasLayout.Sidebar', 'AtlasLayout.Content'] as const;
+import { collectSlots } from './collectSlots';
 
 const Sidebar: (props: PropsWithChildren) => null = () => null;
 
@@ -13,24 +10,9 @@ const Content: (props: PropsWithChildren) => null = () => null;
 
 /** A fixed sidebar beside flowing content, responsive by container query. */
 function AtlasLayoutBase({ className, children }: PropsWithChildren<{ className?: string }>) {
-  let sidebar: ReactNode = null;
-  let content: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('AtlasLayout', ATLAS_SLOTS, child);
-      return;
-    }
-    if (child.type === Sidebar) {
-      sidebar = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Content) {
-      content = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('AtlasLayout', ATLAS_SLOTS, child);
-  });
+  const slots = collectSlots('AtlasLayout', { Sidebar, Content }, children);
+  const sidebar = slots.Sidebar?.children;
+  const content = slots.Content?.children;
 
   return (
     <div className={clsx(styles.root, className)}>

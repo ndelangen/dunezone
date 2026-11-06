@@ -19,7 +19,7 @@ export const Member = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const create = await page.findByRole('button', { name: 'Create game' }, { timeout: 30_000 });
-    await expect(create).toBeDisabled();
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('combobox', { name: 'Ruleset' }));
     /* The dropdown says why a ruleset cannot start a game before it is chosen. */
     await expect(await page.findByRole('option', { name: /^Dreamrules/ })).toHaveTextContent(
@@ -31,7 +31,7 @@ export const Member = meta.story({
     );
     await expect(page.findByRole('status')).resolves.toHaveTextContent('Dreamrules cannot start a game yet.');
     await expect(page.getByRole('slider', { name: 'Minimum players' })).toHaveAttribute('aria-valuenow', '6');
-    await expect(create).toBeDisabled();
+    await expect(create).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -71,7 +71,7 @@ export const Creatable = meta.story({
     await userEvent.keyboard('{ArrowRight}{ArrowRight}');
     await expect(page.getByRole('img', { name: '8 seats round the board' })).toBeVisible();
     await expect(page.getByRole('slider', { name: 'Last turn' })).toHaveAttribute('aria-valuenow', '10');
-    await expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true');
     /* The chosen ruleset's manifest is printed on the pass, its page a new tab away. */
     const manifest = within(
       await page.findByRole('region', { name: 'What Dreamrules puts on the table' }, { timeout: 10_000 })
@@ -171,7 +171,7 @@ export const MissingBoard = meta.story({
     await userEvent.click(option);
     await expect(page.getByRole('combobox', { name: 'Ruleset' })).toHaveValue('');
     await expect(option).toHaveTextContent('No usable board is linked.');
-    await expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Create game' })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 

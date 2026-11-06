@@ -4,6 +4,7 @@ import type { NexusCard as NexusCardSchema } from '@shared/assets/schema';
 import type { z } from 'zod';
 
 import { CardEffects } from './CardEffects';
+import { nexusEffects } from './cardEffectText';
 import { CustomCard } from './Custom';
 
 /** Draws the three constrained effects in the printed Nexus template. */
@@ -16,16 +17,7 @@ export function NexusCard({
   cunning,
   secretAlly,
 }: Readonly<z.infer<typeof NexusCardSchema> & { frontStyle?: CardFrontStyle }>) {
-  const adjective = faction === 'Ixians' ? 'Ixian' : faction || 'faction';
-  const article = /^[aeiou]/i.test(adjective) ? 'an' : 'a';
-  const secretCondition = faction
-    ? `If ${faction === 'CHOAM' ? '' : 'the '}${faction} ${faction === 'Emperor' ? 'is' : 'are'} not in the game`
-    : 'If this faction is not in the game';
-  const effects = [
-    { title: 'Betrayal', condition: `Cancel ${article} ${adjective} advantage`, text: betrayal },
-    { title: 'Cunning', condition: `${faction || 'Faction'} Only`, text: cunning },
-    { title: 'Secret Ally', condition: secretCondition, text: secretAlly },
-  ] as const;
+  const effects = nexusEffects({ faction, betrayal, cunning, secretAlly });
   return (
     <div style={{ position: 'relative', width: 900, height: 1263, overflow: 'hidden' }}>
       <CustomCard

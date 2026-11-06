@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
@@ -13,6 +13,8 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Dices } from 'lucide-react';
 import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -44,6 +46,7 @@ import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
+import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
 import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
@@ -189,7 +192,7 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
     playback: Boolean(table.playback),
     phase,
     phaseTab: phaseWindow(table, progress.activePhaseId),
-    events: [resultFocus(table), battleFocus(table), stageFocus(table)],
+    events: [resultFocus(table), battleFocus(table), stageFocus(table), ...seatRequestFocus(table)],
   });
   if (next !== state) {
     setState(next);
@@ -229,6 +232,16 @@ function stageFocus(table: TableProjection) {
     return { key: 'stage', token: 'stage:drafting' };
   }
   return stage === 'setup' ? { key: 'setup', token: 'stage:setup' } : null;
+}
+
+/*
+ * A spectator asking for a seat opens Seats & spectators once for every player (Norbert, 2026-11-05).
+ * Each request waiting on the player is its own event, so one withdrawn or approved never makes an older one look new.
+ * Like a battle, a request already waiting when the table loads opens it too, as does one whose seat opens again.
+ * Spectators, a past table and a finished game approve nothing, so it opens for none of them.
+ */
+function seatRequestFocus(table: TableProjection) {
+  return waitingSeatRequests(table).map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
 }
 
 /* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -283,6 +296,17 @@ function withTableError(error: string | null, controls: ReactNode) {
       {controls}
     </>
   );
+}
+
+/* Seats & spectators, for every viewer of a game that has a stage, until it is discarded. */
+function seatsPanel({ client, table, error }: ConnectionControlsProps) {
+  const stage = table.snapshot.stage;
+  if (!stage || stage === 'discarded') {
+    return [];
+  }
+  return [
+    { ...PANEL_WINDOWS.seats, content: withTableError(error, <ConnectedSeatsPanel client={client} table={table} />) },
+  ];
 }
 
 /* The Alliances panel, only while the game is in play. */
@@ -376,6 +400,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
         : []),
       ...resultPanels({ client, table, error, declare }),
       ...alliancesPanel({ client, table, error }),
+      ...seatsPanel({ client, table, error }),
     ],
   };
 }
@@ -555,13 +580,13 @@ function phaseTabControls({
         table.snapshot.setup &&
         progress.turn === 1 &&
         progress.activePhaseId === 'storm' && (
-          <Button
-            variant="default"
-            disabled={!table.canInteract}
+          <LabeledAction
+            icon={<Dices size={16} />}
+            disabledReason={table.canInteract ? undefined : 'The table is unavailable.'}
             onClick={() => client.command({ kind: 'storm-random' })}
           >
             Place storm randomly
-          </Button>
+          </LabeledAction>
         )}
       {stage === 'play' || stage === 'finished' ? (
         <>
@@ -597,6 +622,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     spiceBlow: spiceBlowCommand(table),
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
+    seatRequests: seatRequestsWaiting(table),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };

@@ -3,7 +3,6 @@ import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { ScrollText } from 'lucide-react';
@@ -13,12 +12,11 @@ import type { z } from 'zod';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { LeaderSkillCard } from '@game/assets/card/LeaderSkill';
 import type { LeaderSkillAsset } from '@game/data/objects';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
 import { cardDecalChapter } from './CardDecalChapter';
 import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
-import styles from './LeaderSkillCardEditor.module.css';
+import { CardProof } from './CardProof';
 
 /** The page passes the stored card draft and owns every edit. */
 export type LeaderSkillDraft = z.infer<typeof LeaderSkillAsset>;
@@ -46,14 +44,9 @@ function FillCard({
   onOverflow,
 }: Readonly<{ frontStyle?: CardFrontStyle; draft: LeaderSkillDraft; onOverflow: (overflow: boolean) => void }>) {
   return (
-    <CanvasScale
-      rounded
-      canvasWidth={CARD_SIZE.width}
-      canvasHeight={CARD_SIZE.height}
-      frameClassName={styles.proofFrame}
-    >
+    <CardProof>
       <LeaderSkillCard {...draft} frontStyle={frontStyle} onOverflow={onOverflow} />
-    </CanvasScale>
+    </CardProof>
   );
 }
 

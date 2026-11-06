@@ -218,6 +218,29 @@ export function useProbe() {
   });
 });
 
+/* Above the kit a worded action is LabeledAction; the ban is repeated in the widget override, which replaces the src-wide one. */
+describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => {
+  const source = "import { Button } from '@mantine/core';\nexport const probe = Button;\n";
+
+  /* One lint run per test, so each spawn budget sits inside its own test budget. */
+  test.each([PLAY_FIXTURE_ROOT, 'src/app/widgets/probe', 'src/app/pickers', 'src/shared/probe'])(
+    'bites in %s',
+    async (root) => {
+      expect(await lintDiagnostics('probe.tsx', source, root)).toContain(
+        "'Button' import from '@mantine/core' is restricted"
+      );
+    }
+  );
+
+  test('leaves the kit alone', async () => {
+    expect(await lintDiagnostics('probe.tsx', source, 'src/app/ui/control')).not.toContain('Button');
+  });
+
+  test('leaves stories alone', async () => {
+    expect(await lintDiagnostics('probe.stories.tsx', source, 'src/app/widgets/probe')).not.toContain('Button');
+  });
+});
+
 describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
   /* The rule once stripped any trailing star as if it were part of a `**\/` closer, so a glob at the end of a comment was reported on every run and its fix ate the glob a star at a time. */
   test('leaves a comment that ends in a glob alone', async () => {
@@ -403,5 +426,43 @@ export const Help = {
 `
     );
     expect(reports(output)).toBe(0);
+  });
+});
+
+describe('form-error', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(form-error)').length - 1;
+
+  test('reports a red Mantine Alert outside the kit, however its colour is spelled', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert, Alert as Callout } from '@mantine/core';
+export const probe = [
+  <Alert color="red" title="Could not save">Try again</Alert>,
+  <Callout color={'red.6'}>Try again</Callout>,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(2);
+  });
+
+  test('leaves other colours, other Alerts and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+import { Alert as Banner } from './banner';
+export const probe = [<Alert color="yellow">Heads up</Alert>, <Banner color="red" />, <Alert color={tone} />];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+export const probe = <Alert color="red">Failed</Alert>;
+`,
+      'src/app/ui/block'
+    );
+    expect(reports(kit)).toBe(0);
   });
 });

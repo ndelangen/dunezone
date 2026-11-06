@@ -2537,10 +2537,10 @@
     "tags": ["scarab", "beetle", "vector"],
     "subjects": ["creatures"]
   },
-  "/vector/generic/ram-skull.svg": {
-    "description": "A bull skull with curved horns.",
-    "tags": ["skull", "vector"],
-    "subjects": ["people"]
+  "/vector/generic/harkonnen-ram.svg": {
+    "description": "A ram's head with curled horns, seen from the front.",
+    "tags": ["ram", "vector"],
+    "subjects": ["creatures"]
   },
   "/vector/generic/laurel-star.svg": {
     "description": "A four-pointed star inside a laurel wreath.",
@@ -2688,7 +2688,7 @@
     "tags": ["vector"],
     "subjects": ["symbols"]
   },
-  "/vector/generic/cronus.svg": {
+  "/vector/generic/oval-star.svg": {
     "description": "A four-pointed star inside an oval.",
     "tags": ["star", "vector"],
     "subjects": ["space"]
@@ -9929,5 +9929,265 @@
     "description": "Crouching shield bearer and standing rifleman.",
     "tags": ["silhouette"],
     "subjects": ["people"]
+  },
+  "/vector/decal/atomic-explosion.svg": {
+    "description": "A mushroom cloud rises from a low cloud of smoke.",
+    "tags": ["atomic", "explosion", "mushroom cloud", "vector"],
+    "subjects": ["weapons"]
+  },
+  "/vector/decal/bene-gesserit-artwork-multicolor.svg": {
+    "description": "A night scene in navy and gold with a moon, a railing and a robed woman in a pale gown among tall arches.",
+    "tags": ["Bene Gesserit", "Reverend Mother", "scene", "multicolor"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/decal/bene-gesserit-artwork.svg": {
+    "description": "A night scene with a moon, a railing and a robed woman in a pale gown among tall arches.",
+    "tags": ["Bene Gesserit", "Reverend Mother", "scene", "vector"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/decal/building-1.svg": {
+    "description": "A building with two tall towers rising from a wide slanted base.",
+    "tags": ["building", "towers", "vector"],
+    "subjects": ["places"]
+  },
+  "/vector/decal/building-2.svg": {
+    "description": "A tall slanted building block with a long low wing to one side.",
+    "tags": ["building", "vector"],
+    "subjects": ["places"]
+  },
+  "/vector/decal/carryalls-plus-multicolor.svg": {
+    "description": "Two winged carryalls fly over ochre dunes beside a pale sun.",
+    "tags": ["carryall", "aircraft", "multicolor"],
+    "subjects": ["transport"]
+  },
+  "/vector/decal/chair.svg": {
+    "description": "A solid block with a wavy left side and flat ends, like a seat seen side on.",
+    "tags": ["chair", "seat", "vector"],
+    "subjects": ["culture"]
+  },
+  "/vector/decal/duke-leto-atreides-multicolor.svg": {
+    "description": "A bearded man in a dark green uniform jacket with gold epaulettes sits with his arms on a table.",
+    "tags": ["Duke Leto", "Atreides", "portrait", "multicolor"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/duke-leto-atreides.svg": {
+    "description": "A bearded man in a high-collared uniform jacket sits with his arms on a table.",
+    "tags": ["Duke Leto", "Atreides", "portrait", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/dune-2019-logo.svg": {
+    "description": "The word DUNE in wide rounded capitals, the D holding a crescent.",
+    "tags": ["Dune", "logo", "wordmark", "vector"],
+    "subjects": ["symbols"]
+  },
+  "/vector/decal/fremen-artwork-multicolor.svg": {
+    "description": "A wide desert scene in sand, rust and dusk blue with a figure on a crest and a long caravan of people below dark rock.",
+    "tags": ["Fremen", "desert", "scene", "multicolor"],
+    "subjects": ["places", "people"]
+  },
+  "/vector/decal/fremen-artwork.svg": {
+    "description": "A wide desert scene with a figure on a crest and a long caravan of people below dark rock.",
+    "tags": ["Fremen", "desert", "scene", "vector"],
+    "subjects": ["places", "people"]
+  },
+  "/vector/decal/fremen-badge-2021.svg": {
+    "description": "A round badge split into quarters around a central disc.",
+    "tags": ["Fremen", "badge", "vector"],
+    "subjects": ["symbols"]
+  },
+  "/vector/decal/harass-withdraw-kit-multicolor.svg": {
+    "description": "Dark robed fighters run from dark rocks across ochre dunes while a white explosion bursts behind them.",
+    "tags": ["Fremen", "explosion", "desert", "multicolor"],
+    "subjects": ["people", "weapons"]
+  },
+  "/vector/decal/harass-withdraw-kit.svg": {
+    "description": "Robed fighters run from dark rocks while a white explosion bursts across the dunes.",
+    "tags": ["Fremen", "explosion", "desert", "vector"],
+    "subjects": ["people", "weapons"]
+  },
+  "/vector/decal/harass-withdraw.svg": {
+    "description": "Robed fighters run from dark rocks while an explosion bursts across the dunes.",
+    "tags": ["Fremen", "explosion", "desert", "vector"],
+    "subjects": ["people", "weapons"]
+  },
+  "/vector/decal/harkonnen-artwork-multicolor.svg": {
+    "description": "A heavy man in ornate armour sits at a table in a dark hall with a copper round window and banners.",
+    "tags": ["Harkonnen", "Baron", "scene", "multicolor"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/decal/harkonnen-artwork.svg": {
+    "description": "A heavy man in ornate armour sits at a table in a hall with a round window and banners.",
+    "tags": ["Harkonnen", "Baron", "scene", "vector"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/decal/harvester-alt-plus-multicolor.svg": {
+    "description": "A wheeled spice harvester in dark grey works across ochre desert ground under pale dust.",
+    "tags": ["desert", "harvester", "multicolor"],
+    "subjects": ["machines", "places"]
+  },
+  "/vector/decal/hidden-mobile-stronghold.svg": {
+    "description": "A square fortified block with notched corners and short spikes on each side.",
+    "tags": ["stronghold", "fortress", "vector"],
+    "subjects": ["places"]
+  },
+  "/vector/decal/house-atreides-badge.svg": {
+    "description": "A hawk with raised wings, head turned to one side.",
+    "tags": ["hawk", "Atreides", "badge", "vector"],
+    "subjects": ["symbols", "creatures"]
+  },
+  "/vector/decal/house-corrino-artwork-multicolor.svg": {
+    "description": "A throne hall in red and gold with tall windows over a city, guards standing to the left and a figure in a red cloak on a throne.",
+    "tags": ["Corrino", "Emperor", "throne", "scene", "multicolor"],
+    "subjects": ["places", "people"]
+  },
+  "/vector/decal/house-corrino-artwork.svg": {
+    "description": "A throne hall with tall windows over a city, guards standing to the left and a figure in a long cloak on a throne.",
+    "tags": ["Corrino", "Emperor", "throne", "scene", "vector"],
+    "subjects": ["places", "people"]
+  },
+  "/vector/decal/house-corrino-badge-2019.svg": {
+    "description": "A lion's head with a curved mane inside a thick rounded outline.",
+    "tags": ["lion", "Corrino", "badge", "vector"],
+    "subjects": ["symbols", "creatures"]
+  },
+  "/vector/decal/la-la-la.svg": {
+    "description": "A person stands with both hands raised high above the head.",
+    "tags": ["person", "hands raised", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/lasgun-treachery-graphic.svg": {
+    "description": "A lasgun above a small diagram: a person plus a lasgun equals an explosion.",
+    "tags": ["lasgun", "shield", "explosion", "vector"],
+    "subjects": ["weapons"]
+  },
+  "/vector/decal/mirror-weapon-multicolor.svg": {
+    "description": "Two hands holding opposing knives, each over a pale cream disc.",
+    "tags": ["knives", "hands", "multicolor", "knife", "blade", "weapon"],
+    "subjects": ["weapons", "people"]
+  },
+  "/vector/decal/ornithopter-kit-multicolor.svg": {
+    "description": "A pale ornithopter with long outstretched wings flies low over a brown horizon.",
+    "tags": ["ornithopter", "aircraft", "multicolor"],
+    "subjects": ["transport"]
+  },
+  "/vector/decal/ornithopter-kit.svg": {
+    "description": "An ornithopter with long outstretched wings flies low over a flat horizon.",
+    "tags": ["ornithopter", "aircraft", "vector"],
+    "subjects": ["transport"]
+  },
+  "/vector/decal/palm-tree-multicolor.svg": {
+    "description": "Dark green palm fronds hang beside a slanted ochre sand ledge.",
+    "tags": ["palm", "tree", "multicolor"],
+    "subjects": ["plants"]
+  },
+  "/vector/decal/palm-tree.svg": {
+    "description": "Dark palm fronds hang beside a slanted sand ledge.",
+    "tags": ["palm", "tree", "vector"],
+    "subjects": ["plants"]
+  },
+  "/vector/decal/paul-atreides-multicolor.svg": {
+    "description": "A young man in an olive uniform with a yellow sash stands with his arms folded and a sword at his hip.",
+    "tags": ["Paul Atreides", "portrait", "multicolor"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/paul-atreides.svg": {
+    "description": "A young man in a uniform stands with his arms folded and a sword at his hip.",
+    "tags": ["Paul Atreides", "portrait", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/shield-kit.svg": {
+    "description": "A standing human figure seen from the front, arms slightly away from the body.",
+    "tags": ["person", "shield", "body", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/decal/spacing-guild-artwork-multicolor.svg": {
+    "description": "A golden Guild Navigator's curled form beside a window onto a ship and robed figures, in orange and brown.",
+    "tags": ["Spacing Guild", "Navigator", "scene", "multicolor"],
+    "subjects": ["people", "space"]
+  },
+  "/vector/decal/spacing-guild-artwork.svg": {
+    "description": "A Guild Navigator's curled form beside a window onto a ship and robed figures.",
+    "tags": ["Spacing Guild", "Navigator", "scene", "vector"],
+    "subjects": ["people", "space"]
+  },
+  "/vector/decal/storm-alt-multicolor.svg": {
+    "description": "A towering sandstorm in olive and tan rolls over a pale desert, with a distant tower and two tiny figures in the foreground.",
+    "tags": ["sandstorm", "desert", "multicolor"],
+    "subjects": ["places"]
+  },
+  "/vector/decal/storm-alt.svg": {
+    "description": "A towering sandstorm rolls over a flat desert, with a distant tower and two tiny figures in the foreground.",
+    "tags": ["sandstorm", "desert", "vector"],
+    "subjects": ["places"]
+  },
+  "/vector/decal/typewriter-multicolor.svg": {
+    "description": "A boxy olive typewriter-like machine with yellow trim, rails and a round dial.",
+    "tags": ["typewriter", "machine", "multicolor"],
+    "subjects": ["machines"]
+  },
+  "/vector/decal/typewriter.svg": {
+    "description": "A boxy typewriter-like machine with a handle, rails and a round dial.",
+    "tags": ["typewriter", "machine", "vector"],
+    "subjects": ["machines"]
+  },
+  "/vector/icon/battle-phase.svg": {
+    "description": "A pistol firing into a jagged burst.",
+    "tags": ["pistol", "battle", "vector"],
+    "subjects": ["weapons"]
+  },
+  "/vector/icon/bidding-phase.svg": {
+    "description": "A gavel hammer at an angle.",
+    "tags": ["gavel", "hammer", "bidding", "vector"],
+    "subjects": ["symbols"]
+  },
+  "/vector/icon/fremen-devotee.svg": {
+    "description": "A kneeling figure with both arms raised overhead.",
+    "tags": ["person", "kneeling", "devotion", "vector"],
+    "subjects": ["people", "culture"]
+  },
+  "/vector/icon/hammer.svg": {
+    "description": "A solid gavel hammer at an angle.",
+    "tags": ["gavel", "hammer", "vector"],
+    "subjects": ["machines"]
+  },
+  "/vector/icon/hand-receiving.svg": {
+    "description": "A flat open hand seen side on, palm up.",
+    "tags": ["hand", "receive", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/icon/karama-alt.svg": {
+    "description": "An eight-point star over a disc, with small symbols around a hexagon of waves.",
+    "tags": ["Karama", "compass", "vector"],
+    "subjects": ["symbols"]
+  },
+  "/vector/icon/lasgun-blast.svg": {
+    "description": "An eight-pointed jagged burst outline.",
+    "tags": ["blast", "explosion", "vector"],
+    "subjects": ["weapons"]
+  },
+  "/vector/icon/lasgun.svg": {
+    "description": "A chunky laser rifle seen at an angle.",
+    "tags": ["lasgun", "rifle", "vector"],
+    "subjects": ["weapons"]
+  },
+  "/vector/icon/shai-hulud-alt.svg": {
+    "description": "A curling ribbed sandworm with an open mouth.",
+    "tags": ["sandworm", "Shai-Hulud", "vector"],
+    "subjects": ["creatures"]
+  },
+  "/vector/icon/shipping-and-movement-phase.svg": {
+    "description": "Two soldiers in helmets running forward with rifles.",
+    "tags": ["soldiers", "movement", "vector"],
+    "subjects": ["people"]
+  },
+  "/vector/icon/spice-harvest-phase-v2.svg": {
+    "description": "A spice aperture of curved blades inside an octagon.",
+    "tags": ["spice", "harvest", "vector"],
+    "subjects": ["symbols"]
+  },
+  "/vector/icon/treachery-alt.svg": {
+    "description": "A dagger across a globe of meridian lines.",
+    "tags": ["dagger", "treachery", "vector"],
+    "subjects": ["weapons"]
   }
 }

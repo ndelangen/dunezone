@@ -1,6 +1,6 @@
-import { Alert } from '@mantine/core';
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -259,11 +259,7 @@ export function CardEditFrame<Draft extends { name: string }>({
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
           <SaveErrorAlert error={saveError} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {children}
         </WorkbenchLayout>

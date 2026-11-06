@@ -2,7 +2,6 @@ import { Stack, TextInput } from '@mantine/core';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { PageTitle } from '@ui/block/PageTitle';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { helpLines } from '@ui/content/helpLines';
@@ -20,6 +19,7 @@ import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/Authorin
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/create')({
   head: () => pageHead('Create ruleset'),
@@ -171,9 +171,13 @@ function CreateRulesetPage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage title="Create ruleset" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </PageMessage>
+        <RoutePending
+          title="Create ruleset"
+          back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+          loading="Loading your profile"
+        >
+          Checking whether you are signed in.
+        </RoutePending>
       );
     case 'signed-out':
       return (

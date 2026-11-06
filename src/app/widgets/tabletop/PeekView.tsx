@@ -1,6 +1,8 @@
-import { Button, CloseButton } from '@mantine/core';
+import { CloseButton } from '@mantine/core';
 import type { TablePiece } from '@shared/play/model';
 import { PEEK_DECK_LIMIT, peeksWholeDeck, rearrangeable } from '@shared/play/peeking';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ArrowUpFromLine } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, RefObject } from 'react';
 
@@ -311,9 +313,12 @@ function DeckCard({ piece, stored, slot, placement, carrying, move, pull }: Deck
       >
         <Face piece={piece} item={item} height={DECK_CARD_HEIGHT_PX} />
       </div>
-      <Button size="compact-xs" variant="subtle" disabled={!pull} onClick={() => pull?.(piece.id, stored)}>
-        Pull out
-      </Button>
+      {/* One per card, so a pile that cannot change shows none rather than a column of dead tab stops. */}
+      {pull ? (
+        <LabeledAction size="compact-xs" icon={<ArrowUpFromLine size={12} />} onClick={() => pull(piece.id, stored)}>
+          Pull out
+        </LabeledAction>
+      ) : null}
     </li>
   );
 }

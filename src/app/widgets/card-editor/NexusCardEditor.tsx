@@ -1,14 +1,14 @@
-import { Button, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { GENERIC, EMBLEM } from '@shared/assetIds';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { ScrollText, Shield } from 'lucide-react';
+import { Replace, ScrollText, Shield } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -17,11 +17,10 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { backgroundPresets } from '@game/data/backgrounds';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
+import { CardProof } from './CardProof';
 
 export type NexusDraft = z.infer<typeof NexusCardAsset>;
 export type NexusMemory = CardHeadMemory;
@@ -83,9 +82,9 @@ function FactionFields({
           background={draft.factionSymbol.background}
         />
       ) : null}
-      <Button type="button" variant="default" onClick={() => setChoosing((current) => !current)}>
+      <LabeledAction icon={<Replace size={16} />} onClick={() => setChoosing((current) => !current)}>
         {draft.factionLink ? 'Change faction' : 'Choose faction'}
-      </Button>
+      </LabeledAction>
       {choosing ? (
         <FactionPicker
           copy={{
@@ -188,14 +187,9 @@ export function NexusCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CanvasScale
-          rounded
-          canvasWidth={CARD_SIZE.width}
-          canvasHeight={CARD_SIZE.height}
-          frameClassName={styles.proofFrame}
-        >
+        <CardProof>
           <NexusCard {...draft} frontStyle={frontStyle} />
-        </CanvasScale>
+        </CardProof>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

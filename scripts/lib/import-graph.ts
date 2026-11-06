@@ -47,6 +47,11 @@ export async function importGraph(
     packages: 'external',
     platform: 'neutral',
     format: 'esm',
+    /*
+     * Only the metafile is read. Without splitting esbuild printed a complete bundle for every entry, and the
+     * story job's thousand entries each repeated the same modules, which ran the contract test past its 60 s.
+     */
+    splitting: true,
     logLevel: 'silent',
     tsconfig: resolve(root, 'tsconfig.json'),
     /* The publisher Worker imports its rulebook renderer through a Vite alias; the graph follows it to the runtime source. */

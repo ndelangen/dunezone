@@ -40,14 +40,14 @@ export const Send = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Report a bug');
     const send = page.getByRole('button', { name: 'Send report' });
-    await expect(send).toBeDisabled();
+    await expect(send).toHaveAttribute('aria-disabled', 'true');
     await userEvent.type(
       page.getByRole('textbox', { name: 'What went wrong?' }),
       'Dragging a troop from Arrakeen leaves it behind.'
     );
-    await expect(send).toBeDisabled();
+    await expect(send).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('checkbox'));
-    await expect(send).toBeEnabled();
+    await expect(send).not.toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(send);
     await expect(page.findByText('Creating the GitHub issue...', undefined, { timeout: 8000 })).resolves.toBeVisible();
     creatingSeen = true;

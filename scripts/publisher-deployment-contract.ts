@@ -265,6 +265,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/tutorial/*',
         '/media',
         '/media/*',
+        '/public/*',
       ],
     },
     'Static Assets routing'

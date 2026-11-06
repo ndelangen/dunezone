@@ -1,6 +1,6 @@
 /* @jsxImportSource ./three-jsx */
 
-import { CENTER, contains, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, contains, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
 import { placeStickers, TABLE_STICKER_LARGEST } from '@shared/boards/stickerPlacement';
@@ -294,10 +294,7 @@ function TintedTerritory({
 }
 
 /** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline, or the tint is one outline round them all. */
-export function TerritoryTints({
-  board = retainedArrakisBoard(),
-  tints,
-}: Readonly<{ board?: Board; tints: readonly TerritoryTint[] }>) {
+export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints: readonly TerritoryTint[] }>) {
   const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({

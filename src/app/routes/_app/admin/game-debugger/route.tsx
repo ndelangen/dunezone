@@ -1,11 +1,14 @@
-import { Alert, Anchor, Button, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
+import { Alert, Anchor, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
 import { changes } from '@shared/jsonDiff';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { pageHead } from '@app/routes/pageTitle';
@@ -93,17 +96,13 @@ function GameDebugger() {
                 disabled={state.loading}
               />
               {state.loading && <Text role="status">Opening {state.name}…</Text>}
-              {state.error && (
-                <Alert color="negative" title="Cannot open report" role="alert">
-                  {state.error}
-                </Alert>
-              )}
+              {state.error && <FormError title="Cannot open report">{state.error}</FormError>}
               {report && (
                 <Group justify="space-between">
                   <Text>{state.name}</Text>
-                  <Button variant="default" onClick={() => dispatch({ kind: 'clear' })}>
+                  <LabeledAction icon={<X size={16} />} onClick={() => dispatch({ kind: 'clear' })}>
                     Close report
-                  </Button>
+                  </LabeledAction>
                 </Group>
               )}
             </Stack>

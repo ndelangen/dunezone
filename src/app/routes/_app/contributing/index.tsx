@@ -1,10 +1,12 @@
-import { Anchor, Badge, Button, Code, CopyButton, Group, List, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Anchor, Code, CopyButton, Group, List, SimpleGrid, Stack, Text } from '@mantine/core';
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
+import { ChipList } from '@ui/list/ChipList';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import {
   ArrowLeftRight,
@@ -12,9 +14,11 @@ import {
   Boxes,
   Braces,
   Cable,
+  Check,
   ClipboardList,
   Code2,
   Columns3,
+  Copy,
   Database,
   Dices,
   FileCode2,
@@ -308,9 +312,9 @@ function StartContent({ topic }: Readonly<{ topic: string }>) {
           action={
             <CopyButton value={SETUP_PROMPT}>
               {({ copied, copy }) => (
-                <Button variant="light" color="selected" onClick={copy}>
+                <LabeledAction icon={copied ? <Check size={16} /> : <Copy size={16} />} onClick={copy}>
                   {copied ? 'Copied' : 'Copy agent prompt'}
-                </Button>
+                </LabeledAction>
               )}
             </CopyButton>
           }
@@ -474,11 +478,7 @@ function TermSection({ term }: Readonly<{ term: TechnicalTerm }>) {
             <Text size="sm" c="dimmed">
               Names to avoid
             </Text>
-            {term.avoid.map((word) => (
-              <Badge key={word} variant="outline" color="gray" size="sm" tt="none">
-                {word}
-              </Badge>
-            ))}
+            <ChipList items={term.avoid.map((word) => ({ key: word, label: word }))} />
           </Group>
         ) : null}
       </Stack>

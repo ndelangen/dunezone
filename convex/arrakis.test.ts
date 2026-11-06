@@ -1,0 +1,67 @@
+/// <reference types="vite/client" />
+// @vitest-environment edge-runtime
+
+import { describe, expect, test } from 'vite-plus/test';
+
+import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
+import { arrakisBoardCapture } from '../src/shared/boards/arrakisPreset';
+import arrakisOfficialGeometry from '../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
+import { api } from './_generated/api';
+import { rulebookFixture } from './rulebooks.test.fixture';
+
+type Fixture = Awaited<ReturnType<typeof rulebookFixture>>;
+
+const geometry = componentGeometrySchema.parse(arrakisOfficialGeometry);
+
+async function insertArrakis(f: Fixture, isDeleted = false) {
+  return await f.t.run((ctx) =>
+    ctx.db.insert('assets', {
+      owner_id: f.ids.ownerId,
+      type: 'board',
+      data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+      slug: ARRAKIS_BOARD_SLUG,
+      created_at: '2026-10-01T00:00:00.000Z',
+      updated_at: '2026-10-01T00:00:00.000Z',
+      is_deleted: isDeleted,
+      group_id: null,
+    })
+  );
+}
+
+async function publish(f: Fixture, assetId: string) {
+  await f.t.run((ctx) =>
+    ctx.db.insert('publication_assets', {
+      asset_type: 'board',
+      asset_id: assetId,
+      cache_token: 'token-1',
+      published_at: 1,
+      component_geometry: geometry,
+    })
+  );
+}
+
+describe('The saved Arrakis face', () => {
+  test('is null while the site has no saved Arrakis, or only a deleted one', async () => {
+    const f = await rulebookFixture();
+    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+    await publish(f, await insertArrakis(f, true));
+    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+  });
+
+  test('is null until the board is published', async () => {
+    const f = await rulebookFixture();
+    await insertArrakis(f);
+    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+  });
+
+  test('answers the live board’s id, published image and territories, beside a deleted one of the same slug', async () => {
+    const f = await rulebookFixture();
+    await insertArrakis(f, true);
+    const id = await insertArrakis(f);
+    await publish(f, id);
+    const face = await f.t.query(api.arrakis.face, {});
+    expect(face).toEqual({ assetId: id, imageUrl: expect.stringContaining(id), geometry });
+    expect(face).not.toHaveProperty('board');
+  });
+});

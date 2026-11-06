@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { SECTORS_PART_KEY } from '../asset-publishing/componentGeometry';
 import {
   composeRulebookAssetExplainerSvg,
   projectRulebookAssetExplainerAnnotations,
   rulebookAnnotationCanvas,
+  RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES,
   rulebookAnnotationShapes,
 } from './assetExplainerAnnotations';
-import { resolveRulebookBoardDefinition } from './boardDefinitions';
-import { resolveRulebookBoardIllustration } from './boardIllustrations';
+import { ARRAKIS_OFFICIAL } from './fixtures/arrakisOfficial';
 import type { RulebookRenderBlockV1 } from './renderDocument';
 
 type Explainer = Extract<RulebookRenderBlockV1, { kind: 'asset-explainer' }>;
@@ -155,7 +156,120 @@ describe('AssetExplainer annotation projection', () => {
   });
 });
 
+describe('AssetExplainer highlight drawing', () => {
+  it('fills closed territory paths and strokes open sector lines, a pixel-sized dash however the geometry is scaled', () => {
+    const original = block();
+    if (original.source.status !== 'ready') {
+      throw new Error('Expected the ready source');
+    }
+    const board = { kind: 'board', boardId: 'arrakis-official' } as const;
+    original.source.reference = board;
+    original.items[0]!.target = { kind: 'named', key: 'name', source: board };
+    original.source.geometry = {
+      width: 1000,
+      height: 1000,
+      parts: [
+        {
+          key: 'name',
+          x: 0,
+          y: 0,
+          width: 1,
+          height: 1,
+          highlight: {
+            paths: [
+              { d: 'M0 0L100 0L100 100Z', transform: [0.01, 0, 0, 0.01, 0, 0] },
+              { d: 'M50 50L100 0', transform: [0.01, 0, 0, 0.01, 0, 0] },
+            ],
+          },
+        },
+      ],
+    };
+    const projection = projectRulebookAssetExplainerAnnotations(original);
+    const color = projection.entries[0]!.color;
+    const paths = rulebookAnnotationShapes(projection).filter(({ tag }) => tag === 'path');
+    expect(paths.map(({ attributes }) => attributes.fill)).toEqual([color, 'none']);
+    expect(paths[0]!.attributes.stroke).toBe('none');
+    expect(paths[1]!.attributes.stroke).toBe(color);
+    /* 0.6% of the 1000 px image is 6 px, which is 0.6 units once the image scale (1000) and the matrix (0.01) apply. */
+    expect(Number(paths[1]!.attributes['stroke-width'])).toBeCloseTo(0.6);
+    expect(paths[1]!.attributes['stroke-dasharray']).toBe('1.6 1');
+  });
+});
+
+describe('AssetExplainer sector lines', () => {
+  function boardBlock(sectorLines = false): Explainer {
+    const original = block();
+    const board = { kind: 'board', boardId: 'ns72fst9vtajbcc6066ejz92ph8fweez' } as const;
+    original.source = {
+      status: 'ready',
+      reference: board,
+      name: 'Arrakis',
+      imageUrl: '/board.jpg',
+      geometry: {
+        width: 1948,
+        height: 1948,
+        parts: [
+          { key: 'name', x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+          {
+            key: 'sectors',
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+            highlight: { paths: [{ d: 'M243 243L485 243' }, { d: 'M243 243L243 1' }] },
+          },
+        ],
+      },
+    };
+    original.items = [{ ...original.items[0]!, target: { kind: 'named', key: 'name', source: board } }];
+    return sectorLines ? { ...original, sectorLines } : original;
+  }
+  const guides = (explainer: Explainer) =>
+    rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(explainer)).filter(
+      ({ attributes }) => attributes['data-rulebook-guide'] === SECTORS_PART_KEY
+    );
+
+  it('draws faint dashed sector lines under every annotation when the block turns them on', () => {
+    const lines = guides(boardBlock(true));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.attributes).toMatchObject({ fill: 'none', stroke: '#000000', 'stroke-opacity': 0.3 });
+    expect(lines[0]!.attributes['stroke-dasharray']).toMatch(/^[\d.]+ [\d.]+$/);
+    const shapes = rulebookAnnotationShapes(projectRulebookAssetExplainerAnnotations(boardBlock(true)));
+    expect(shapes.findIndex(({ attributes }) => 'data-rulebook-guide' in attributes)).toBe(0);
+  });
+
+  it('draws no sector lines unless the block turns them on', () => {
+    expect(guides(boardBlock())).toEqual([]);
+  });
+
+  it('never draws a territory the board names Sectors as sector lines', () => {
+    const explainer = boardBlock(true);
+    if (explainer.source.status !== 'ready' || !explainer.source.geometry) {
+      throw new Error('Expected a ready board');
+    }
+    explainer.source.geometry.parts[1] = {
+      key: SECTORS_PART_KEY,
+      label: 'Sectors',
+      x: 0.2,
+      y: 0.2,
+      width: 0.1,
+      height: 0.1,
+      highlight: { paths: [{ d: 'M400 400L600 400L600 600Z' }] },
+    };
+    expect(guides(explainer)).toEqual([]);
+  });
+});
+
 describe('AssetExplainer SVG composition', () => {
+  it('embeds the largest source image the delivery accepts', () => {
+    const imageDataUrl = `data:image/jpeg;base64,${btoa('\0'.repeat(RULEBOOK_ANNOTATION_MAX_IMAGE_BYTES))}`;
+    const svg = composeRulebookAssetExplainerSvg({
+      projection: projectRulebookAssetExplainerAnnotations(block()),
+      imageDataUrl,
+    });
+    expect(svg).toContain(imageDataUrl.slice(0, 64));
+  });
+
   it('uses white on the reported brown badge and black on light badges in the legend and exported drawing', () => {
     const original = block();
     original.colorMode = 'manual';
@@ -186,8 +300,8 @@ describe('AssetExplainer SVG composition', () => {
     ).toThrow('Invalid annotated source image');
   });
 
-  it('embeds the maintained board with its bounded highlight geometry', () => {
-    const board = resolveRulebookBoardDefinition('arrakis')!;
+  it('embeds a board with its bounded highlight geometry', () => {
+    const board = ARRAKIS_OFFICIAL;
     const source = { kind: 'board', boardId: board.id } as const;
     const original = block();
     original.source = {
@@ -201,7 +315,7 @@ describe('AssetExplainer SVG composition', () => {
     const projection = projectRulebookAssetExplainerAnnotations(original);
     const svg = composeRulebookAssetExplainerSvg({
       projection,
-      imageDataUrl: `data:image/svg+xml;base64,${btoa(resolveRulebookBoardIllustration(board.id)!.svg)}`,
+      imageDataUrl: `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1948 1948"/>')}`,
     });
     expect(svg).toContain('data-rulebook-highlight="NAME"');
     expect(svg).toContain('matrix(');

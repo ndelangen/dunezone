@@ -10,6 +10,7 @@ import {
   HIDDEN_ZONE_GUIDANCE,
   PLAYER_CONVERSATION_GUIDANCE,
   REPLAY_GUIDANCE,
+  SEATS_GUIDANCE,
   RESULT_GUIDANCE,
   SHARED_INVENTORY_GUIDANCE,
   SPICE_GUIDANCE,
@@ -29,6 +30,13 @@ export type PanelWindow = Omit<TablePanel, 'content' | 'panels' | 'actions'>;
  */
 export const PANEL_WINDOWS = {
   alliances: { key: 'alliances', label: 'Alliances', topic: 'alliance', ...ALLIANCES_GUIDANCE },
+  seats: {
+    key: 'seats',
+    label: 'Seats & spectators',
+    topic: 'groups',
+    keywords: 'spectators observers watching join request seat approve',
+    ...SEATS_GUIDANCE,
+  },
   tints: { key: 'tints', label: 'Territory tints', topic: 'tints', ...TINTS_GUIDANCE },
   settings: { key: 'settings', label: 'Settings', topic: 'controls', ...GAME_LENGTH_GUIDANCE },
   gameLog: { key: 'game-log', label: 'Game log', topic: 'game', ...GAME_LOG_GUIDANCE },

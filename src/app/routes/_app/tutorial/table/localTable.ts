@@ -1,4 +1,6 @@
+import { arrakisBoardCapture } from '@shared/boards/arrakisPreset';
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import type { BoardCapture } from '@shared/play/capture';
 import { describeCardDraw } from '@shared/play/cardDraw';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
@@ -72,6 +74,8 @@ export class LocalTable {
   private readonly pingTimes: number[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The board the table plays on: a practice table has no ruleset, so it plays on the bundled Arrakis. */
+  readonly board: BoardCapture = arrakisBoardCapture;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */
@@ -107,7 +111,8 @@ export class LocalTable {
       () => this.session.actors.seats(),
       (userId) => this.factionFor(userId),
       undefined,
-      0
+      0,
+      () => this.board.definition
     );
   }
 
@@ -146,6 +151,7 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
+        board: this.board,
         ...(reviewableStage(room.snapshot.stage)
           ? {
               review: this.session.reviews.current(),

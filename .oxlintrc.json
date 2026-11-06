@@ -62,6 +62,56 @@
     },
     {
       /*
+       * Above the kit, a worded action is `LabeledAction`, `CallToAction` or `IconAction`, never Mantine's raw `Button` (Norbert, 2026-11-05).
+       * The same patterns as the doorway rule above, plus `Button`: a later override replaces the rule's options rather than adding to them.
+       * Stories and their fixtures stay free to stage the raw control.
+       * A file with a real exception (a shaped game control, a split button) disables the rule on that one import and says why; the disable covers the file, so the reason must cover every Button in it.
+       * The selectable list rows in pickers and the rulebook editor are exempt only until the kit has a selectable row of its own.
+       */
+      "files": ["src/**"],
+      "excludeFiles": [
+        "src/app/db/**",
+        "src/app/ui/**",
+        "src/**/*.stories.tsx",
+        "src/**/*.stories.fixture.tsx",
+        "src/**/*.test.tsx",
+        "src/**/*.spec.ts",
+        "src/**/*.spec.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Button"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["SegmentedControl"],
+                "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
+              },
+              {
+                "group": ["@mantine/core/**/SegmentedControl", "@mantine/core/**/SegmentedControl/**"],
+                "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
+              },
+              {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "Only `src/app/db` may import Convex. Re-export the shape you need from the domain module that owns it (`@db/factions`, `@db/groups`) and import it from there."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      /*
        * Hover labels are the kit's Mantine `Tooltip`, never the browser's native one (Norbert, 2026-10-26).
        * The rule reads a `title` attribute on an element, or on a Mantine or router component that passes it through.
        * The same guard covers application source and its Storybook previews.
@@ -82,6 +132,12 @@
       "files": ["src/**/*.stories.tsx"],
       "excludeFiles": ["src/app/ui/**"],
       "rules": { "local/story-owns-its-states": "error" }
+    },
+    {
+      /* A failure is the kit FormError, so every one is titled and announced the same way; the kit itself paints it. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**"],
+      "rules": { "local/form-error": "error" }
     },
     {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
@@ -200,6 +256,11 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Button"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],
                 "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
               },
@@ -253,6 +314,11 @@
           "error",
           {
             "patterns": [
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Button"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
               {
                 "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],

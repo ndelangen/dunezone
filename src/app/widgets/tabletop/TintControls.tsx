@@ -1,6 +1,7 @@
-import { ActionIcon, Button, ColorPicker, ColorSwatch, Group, Popover, SimpleGrid, Text, Tooltip } from '@mantine/core';
+import { ActionIcon, ColorPicker, ColorSwatch, Group, Popover, SimpleGrid, Text, Tooltip } from '@mantine/core';
 import { TINT_COLOR_NAMES, TINT_COLORS, TINT_STAMPS, withFillOpacity } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Brush, Square, Sticker } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -102,18 +103,16 @@ function StickerPicker({
           {TINT_STAMPS.map((stamp) => {
             const on = !!tint.stamps?.includes(stamp);
             return (
-              <Button
+              <LabeledAction
                 key={stamp}
                 size="compact-sm"
                 justify="flex-start"
-                variant={on ? 'light' : 'subtle'}
-                color={on ? 'yellow' : 'gray'}
-                aria-pressed={on}
-                leftSection={<StickerIcon stamp={stamp} />}
+                pressed={on}
+                icon={<StickerIcon stamp={stamp} />}
                 onClick={() => onToggle(stamp)}
               >
                 {TINT_STICKERS[stamp].label}
-              </Button>
+              </LabeledAction>
             );
           })}
         </SimpleGrid>

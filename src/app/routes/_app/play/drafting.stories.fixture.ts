@@ -2,6 +2,7 @@ import type { Background } from '@shared/factions/schema';
 import { CanonicalFactionStoredObject } from '@shared/factions/schema';
 import { emptySnapshot } from '@shared/play/commands';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { PublicControls } from '@shared/play/inventory';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -316,6 +317,8 @@ export function draftingSnapshot(
 ): GameSnapshot {
   return {
     ...emptySnapshot(),
+    /* A real game plays on its ruleset's board from the start. */
+    board: arrakisBoardCapture,
     roster: {
       seatCount,
       seats: players.map((player, position) => ({ id: player.seat, position, faction: null })),

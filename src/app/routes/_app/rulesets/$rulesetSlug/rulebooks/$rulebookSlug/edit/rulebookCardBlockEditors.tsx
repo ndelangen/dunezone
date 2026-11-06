@@ -5,15 +5,18 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, Group, Loader, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
+import { Button } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookCardSourceReference } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, useState } from 'react';
 
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import styles from './rulebookCardBlockEditors.module.css';
@@ -44,39 +47,26 @@ function CardSourceControl({
   references: RulebookEditorReferences;
   onChange: (source: RulebookCardSourceReference | undefined) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <ControlBlock
+    <PickerField
       title="Card"
       description="The name and image follow the selected Card. Your guidance stays in this Rulebook."
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" onClick={() => setOpened(!opened)}>
-              {cardLabel(source, references)}
-            </Button>
-            {source ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear Card
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading Cards" />}>
-              <RulebookSourcePicker
-                purpose="card-group"
-                onPick={(next) => {
-                  if (next.kind === 'asset') {
-                    onChange(next);
-                    setOpened(false);
-                  }
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={cardLabel(source, references)}
+      onClear={source ? () => onChange(undefined) : undefined}
+      clearLabel="Clear Card"
+      loadingLabel="Loading Cards"
+      picker={(close) => (
+        <RulebookSourcePicker
+          purpose="card-group"
+          onPick={(next) => {
+            if (next.kind === 'asset') {
+              onChange(next);
+              close();
+            }
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }

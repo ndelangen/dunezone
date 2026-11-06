@@ -1,10 +1,10 @@
-import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- A full-width disclosure toggle for the context panel, not an action. */
+import { Button } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -21,10 +21,12 @@ import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
@@ -46,12 +48,13 @@ import type { ReactNode } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import type { FaqReferencePreview } from '@db/faq';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession, faqQuestionHasChanges } from './faqEditingSession';
@@ -117,18 +120,16 @@ function FaqDetailError({ error }: ErrorComponentProps) {
     );
   }
   return (
-    <PageMessage
+    <RouteLoadError
       title="FAQ"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="This question could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -199,6 +200,24 @@ function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>
   };
 }
 
+/** The question's frame while it and its answers load. */
+function FaqQuestionPending() {
+  const { rulesetSlug } = Route.useParams();
+  return (
+    <RoutePending
+      title="FAQ"
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+      loading="Loading question"
+    >
+      This question and its answers are still loading.
+    </RoutePending>
+  );
+}
+
 function FaqDetailPage() {
   const { rulesetSlug, questionSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -243,18 +262,7 @@ function FaqDetailPage() {
   }, [item, answers]);
 
   if (!item) {
-    return (
-      <PageMessage
-        title="FAQ"
-        back={
-          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-            Back to ruleset
-          </PageMessage.Back>
-        }
-      >
-        <LoadPending title="Loading question">This question and its answers are still loading.</LoadPending>
-      </PageMessage>
-    );
+    return <FaqQuestionPending />;
   }
 
   /* The page is the same for everyone; its controls follow the viewer, whose capabilities are the signed-out ones until the session settles. */
@@ -431,16 +439,16 @@ function FaqAnswerPost({
               </div>
               {!hasAcceptedAnswer && answer.capabilities.acceptAnswer ? (
                 <Group justify="flex-end">
-                  <Button
-                    color="confirm"
-                    variant="filled"
+                  <LabeledAction
+                    intent="positive"
+                    emphasis="strong"
                     size="sm"
-                    leftSection={<BadgeCheck size={17} aria-hidden />}
-                    loading={faq.setAcceptedAnswer.isPending}
+                    icon={<BadgeCheck size={17} />}
+                    busy={faq.setAcceptedAnswer.isPending}
                     onClick={() => void faq.setAcceptedAnswer.run({ answerId: answer.id }).catch(() => undefined)}
                   >
                     Accept answer
-                  </Button>
+                  </LabeledAction>
                 </Group>
               ) : null}
             </>
@@ -660,11 +668,7 @@ function FaqQuestionPost({
               <Anchor href="#discussion" size="sm" underline="never">
                 Read the answers
               </Anchor>
-              {(item.tags ?? []).map((tag) => (
-                <Badge key={tag} size="xs" variant="outline" color="dune">
-                  {FAQ_TAG_LABELS[tag]}
-                </Badge>
-              ))}
+              <ChipList items={(item.tags ?? []).map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
             </Group>
           </Stack>
         </Card>
@@ -878,17 +882,17 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
           reference={reference}
           action={
             faq.canManageReferences ? (
-              <Button
-                variant="subtle"
-                size="compact-xs"
-                disabled={faq.removeReference.isPending}
-                aria-label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+              <IconAction
+                label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+                intent="negative"
+                emphasis="quiet"
+                size="sm"
+                icon={<X size={14} aria-hidden />}
+                loading={faq.removeReference.isPending}
                 onClick={() => {
                   void faq.removeReference.run(reference).catch(() => undefined);
                 }}
-              >
-                Remove
-              </Button>
+              />
             ) : undefined
           }
         />

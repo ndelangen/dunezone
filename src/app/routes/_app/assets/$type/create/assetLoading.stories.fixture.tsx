@@ -5,9 +5,9 @@ export async function loadExisting(canvasElement: HTMLElement, noun: string, opt
   const page = within(canvasElement.ownerDocument.body);
   await userEvent.click(await page.findByRole('button', { name: `Load existing ${noun}` }));
   await userEvent.click(await waitForFrame(() => page.getByRole('option', { name: option })));
-  const load = await page.findByRole('button', { name: new RegExp(`^Load ${noun}$`) });
-  /* The choice is read from its own page before it can be loaded. */
-  await waitFor(() => expect(load).toBeEnabled());
-  await userEvent.click(load);
+  const name = new RegExp(`^Load ${noun}$`);
+  /* The choice is read from its own page before it can be loaded; Load says so through aria-disabled. */
+  await waitFor(() => expect(page.getByRole('button', { name })).not.toHaveAttribute('aria-disabled', 'true'));
+  await userEvent.click(page.getByRole('button', { name }));
   return page;
 }

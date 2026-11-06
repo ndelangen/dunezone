@@ -80,7 +80,8 @@
       "/tutorial",
       "/tutorial/*",
       "/media",
-      "/media/*"
+      "/media/*",
+      "/public/*"
     ]
   },
   "browser": { "binding": "BROWSER" },

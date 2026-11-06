@@ -1584,7 +1584,8 @@
       "/vector/decal/wire.svg",
       "/vector/decal/sardaukar-knife.svg",
       "/vector/decal/sardaukar-sheath.svg",
-      "/vector/decal/ornate-spear.svg"
+      "/vector/decal/ornate-spear.svg",
+      "/vector/decal/mirror-weapon-multicolor.svg"
     ]
   },
   {
@@ -1601,7 +1602,8 @@
       "/vector/decal/pulse-lantern.svg",
       "/vector/decal/scatter-bell.svg",
       "/vector/decal/stunner.svg",
-      "/vector/decal/stone-burner.svg"
+      "/vector/decal/stone-burner.svg",
+      "/vector/decal/lasgun-treachery-graphic.svg"
     ]
   },
   {
@@ -1620,7 +1622,8 @@
       "/vector/decal/family-atomics-no-text.svg",
       "/vector/decal/family-atomics-multicolor.svg",
       "/vector/decal/stone-burner-alt-multicolor.svg",
-      "/vector/decal/stone-burner-alt.svg"
+      "/vector/decal/stone-burner-alt.svg",
+      "/vector/decal/atomic-explosion.svg"
     ]
   },
   {
@@ -1687,7 +1690,9 @@
       "/vector/decal/seal-breaker.svg",
       "/vector/decal/signal-shears.svg",
       "/vector/decal/vapor-comb.svg",
-      "/vector/decal/thumper-part-two.svg"
+      "/vector/decal/thumper-part-two.svg",
+      "/vector/decal/typewriter-multicolor.svg",
+      "/vector/decal/typewriter.svg"
     ]
   },
   {
@@ -1727,7 +1732,10 @@
       "/vector/decal/ornithopters.svg",
       "/vector/decal/storm-glider.svg",
       "/vector/decal/storm-glider-multicolor.svg",
-      "/vector/decal/trip.svg"
+      "/vector/decal/trip.svg",
+      "/vector/decal/carryalls-plus-multicolor.svg",
+      "/vector/decal/ornithopter-kit-multicolor.svg",
+      "/vector/decal/ornithopter-kit.svg"
     ]
   },
   {
@@ -1765,7 +1773,8 @@
       "/vector/decal/false-convoy-multicolor.svg",
       "/vector/decal/shield-anchor.svg",
       "/vector/decal/suspensor-cradle.svg",
-      "/vector/decal/suspensor-cradle-multicolor.svg"
+      "/vector/decal/suspensor-cradle-multicolor.svg",
+      "/vector/decal/harvester-alt-plus-multicolor.svg"
     ]
   },
   {
@@ -1886,7 +1895,9 @@
       "/vector/decal/smuggler.svg",
       "/vector/decal/smuggler-multicolor.svg",
       "/vector/decal/track-reader.svg",
-      "/vector/decal/track-reader-multicolor.svg"
+      "/vector/decal/track-reader-multicolor.svg",
+      "/vector/decal/fremen-artwork-multicolor.svg",
+      "/vector/decal/fremen-artwork.svg"
     ]
   },
   {
@@ -1914,7 +1925,20 @@
       "/vector/decal/rihani-decipherer.svg",
       "/vector/decal/rihani-decipherer-multicolor.svg",
       "/vector/decal/terms-withheld.svg",
-      "/vector/decal/terms-withheld-multicolor.svg"
+      "/vector/decal/terms-withheld-multicolor.svg",
+      "/vector/decal/bene-gesserit-artwork-multicolor.svg",
+      "/vector/decal/bene-gesserit-artwork.svg",
+      "/vector/decal/chair.svg",
+      "/vector/decal/duke-leto-atreides-multicolor.svg",
+      "/vector/decal/duke-leto-atreides.svg",
+      "/vector/decal/harkonnen-artwork-multicolor.svg",
+      "/vector/decal/harkonnen-artwork.svg",
+      "/vector/decal/house-corrino-artwork-multicolor.svg",
+      "/vector/decal/house-corrino-artwork.svg",
+      "/vector/decal/paul-atreides-multicolor.svg",
+      "/vector/decal/paul-atreides.svg",
+      "/vector/decal/spacing-guild-artwork-multicolor.svg",
+      "/vector/decal/spacing-guild-artwork.svg"
     ]
   },
   {
@@ -1987,7 +2011,9 @@
       "/vector/decal/palace-alt-multicolor.svg",
       "/vector/decal/palace-multicolor.svg",
       "/vector/decal/circular-throne-room.svg",
-      "/vector/decal/circular-throne-room-multicolor.svg"
+      "/vector/decal/circular-throne-room-multicolor.svg",
+      "/vector/decal/building-1.svg",
+      "/vector/decal/building-2.svg"
     ]
   },
   {
@@ -1998,7 +2024,9 @@
       "/vector/decal/storm-multicolor.svg",
       "/vector/decal/storm-standard-multicolor.svg",
       "/vector/decal/storm-standard.svg",
-      "/vector/decal/storm.svg"
+      "/vector/decal/storm.svg",
+      "/vector/decal/storm-alt-multicolor.svg",
+      "/vector/decal/storm-alt.svg"
     ]
   },
   {
@@ -2013,7 +2041,8 @@
       "/vector/decal/poison-tooth.svg",
       "/vector/decal/robbery.svg",
       "/vector/decal/secret-exchange.svg",
-      "/vector/decal/secret-exchange-multicolor.svg"
+      "/vector/decal/secret-exchange-multicolor.svg",
+      "/vector/decal/la-la-la.svg"
     ]
   },
   {
@@ -2031,7 +2060,11 @@
       "/vector/decal/sun-gear.svg",
       "/vector/decal/target.svg",
       "/vector/decal/troll.svg",
-      "/vector/decal/karama-2-0.svg"
+      "/vector/decal/karama-2-0.svg",
+      "/vector/decal/dune-2019-logo.svg",
+      "/vector/decal/fremen-badge-2021.svg",
+      "/vector/decal/house-atreides-badge.svg",
+      "/vector/decal/house-corrino-badge-2019.svg"
     ]
   },
   {
@@ -2068,7 +2101,10 @@
       "/vector/decal/turning-parry-multicolor.svg",
       "/vector/decal/weirding-way-multicolor.svg",
       "/vector/decal/weirding-way-plus.svg",
-      "/vector/decal/weirding-way.svg"
+      "/vector/decal/weirding-way.svg",
+      "/vector/decal/harass-withdraw-kit-multicolor.svg",
+      "/vector/decal/harass-withdraw-kit.svg",
+      "/vector/decal/harass-withdraw.svg"
     ]
   },
   {
@@ -2082,7 +2118,8 @@
       "/vector/decal/intercept-screen.svg",
       "/vector/decal/intercept-screen-multicolor.svg",
       "/vector/decal/storm-shutters.svg",
-      "/vector/decal/storm-shutters-multicolor.svg"
+      "/vector/decal/storm-shutters-multicolor.svg",
+      "/vector/decal/hidden-mobile-stronghold.svg"
     ]
   },
   {
@@ -2139,7 +2176,9 @@
       "/vector/decal/root-sanctuary-multicolor.svg",
       "/vector/decal/spore-harvest.svg",
       "/vector/decal/spore-harvest-multicolor.svg",
-      "/vector/decal/sealed-fruit.svg"
+      "/vector/decal/sealed-fruit.svg",
+      "/vector/decal/palm-tree-multicolor.svg",
+      "/vector/decal/palm-tree.svg"
     ]
   },
   {
@@ -2180,7 +2219,8 @@
       "/vector/decal/membrane.svg",
       "/vector/decal/residual-poison-multicolor.svg",
       "/vector/decal/residual-poison.svg",
-      "/vector/decal/shield.svg"
+      "/vector/decal/shield.svg",
+      "/vector/decal/shield-kit.svg"
     ]
   },
   {
@@ -2226,6 +2266,7 @@
       "/vector/generic/fremen.svg",
       "/vector/generic/great-house-emblem.svg",
       "/vector/generic/guild-eyes.svg",
+      "/vector/generic/harkonnen-ram.svg",
       "/vector/generic/honored-matres.svg",
       "/vector/generic/house-atreides.svg",
       "/vector/generic/house-corrino.svg",
@@ -2237,7 +2278,6 @@
       "/vector/generic/mercenaries.svg",
       "/vector/generic/peddlers.svg",
       "/vector/generic/qizarate.svg",
-      "/vector/generic/ram-skull.svg",
       "/vector/generic/sandworm.svg",
       "/vector/generic/sardaukar.svg",
       "/vector/generic/sisterhood.svg",
@@ -2289,7 +2329,7 @@
   {
     "label": "General symbols / Stargate",
     "keywords": "Stargate",
-    "assets": ["/vector/generic/apophis.svg", "/vector/generic/cronus.svg", "/vector/generic/ori.svg"]
+    "assets": ["/vector/generic/apophis.svg", "/vector/generic/ori.svg", "/vector/generic/oval-star.svg"]
   },
   {
     "label": "General symbols / Warhammer 40,000",

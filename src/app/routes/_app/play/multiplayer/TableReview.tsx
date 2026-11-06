@@ -1,12 +1,14 @@
-import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { reviewRunning } from '@shared/play/review';
 import type { TableReview } from '@shared/play/review';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { StatusBadge } from '@ui/content/StatusBadge';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, History, Radio, X } from 'lucide-react';
 import { useState } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { Ballots } from '../Ballots';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 
 type Props = Readonly<{ client: TableSession; table: TableProjection }>;
@@ -18,21 +20,6 @@ const BALLOT_BADGES = {
   decline: { tone: 'negative', label: 'Declined' },
   uncast: { tone: 'neutral', label: 'Not voted' },
 } as const;
-
-function Ballots({ ballots }: Readonly<{ ballots: TableReview['ballots'] }>) {
-  return (
-    <Stack gap={4}>
-      {ballots.map((ballot, index) => (
-        <Group key={`${ballot.seat}-${index}`} justify="space-between" gap="sm">
-          <Text size="sm">{ballot.name}</Text>
-          <StatusBadge tone={BALLOT_BADGES[ballot.choice ?? 'uncast'].tone}>
-            {BALLOT_BADGES[ballot.choice ?? 'uncast'].label}
-          </StatusBadge>
-        </Group>
-      ))}
-    </Stack>
-  );
-}
 
 /** A seated player's answer to an open proposal: agree or decline until the vote settles, or withdraw their own. */
 function ProposalActions({
@@ -49,31 +36,31 @@ function ProposalActions({
   return (
     <Group gap="xs" wrap="nowrap">
       {current.proposer.seat === review.seat ? (
-        <Button
+        <LabeledAction
           size="xs"
-          variant="default"
+          icon={<X size={14} />}
           onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}
         >
           Withdraw
-        </Button>
+        </LabeledAction>
       ) : (
         <>
-          <Button
+          <LabeledAction
             size="xs"
-            aria-pressed={own.choice === 'review'}
-            variant={own.choice === 'review' ? 'filled' : 'light'}
+            pressed={own.choice === 'review'}
+            icon={<Check size={14} />}
             onClick={() => choose('review')}
           >
             Agree
-          </Button>
-          <Button
+          </LabeledAction>
+          <LabeledAction
             size="xs"
-            aria-pressed={own.choice === 'decline'}
-            variant={own.choice === 'decline' ? 'filled' : 'light'}
+            pressed={own.choice === 'decline'}
+            icon={<X size={14} />}
             onClick={() => choose('decline')}
           >
             Decline
-          </Button>
+          </LabeledAction>
         </>
       )}
     </Group>
@@ -88,9 +75,13 @@ function ResumePlay({
 }: Readonly<{ client: TableSession; review: Review; current: TableReview }>) {
   return review.seat ? (
     <Stack gap={2} data-recall-return>
-      <Button color="cta" onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}>
+      <LabeledAction
+        emphasis="strong"
+        icon={<Radio size={16} />}
+        onClick={() => client.command({ kind: 'review-end', reviewId: current.id })}
+      >
         {review.finished ? 'End the recall' : 'Return to the game'}
-      </Button>
+      </LabeledAction>
     </Stack>
   ) : null;
 }
@@ -163,9 +154,14 @@ function Propose({ client, table, review }: Props & Readonly<{ review: Review }>
       )}
       <CheckpointPicker checkpoints={review.checkpoints} value={step} onChange={setChosen} />
       <Group>
-        <Button disabled={table.reconnecting} onClick={() => client.command({ kind: 'review-propose', step })}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<History size={16} />}
+          disabledReason={table.reconnecting ? 'Reconnecting to the table.' : undefined}
+          onClick={() => client.command({ kind: 'review-propose', step })}
+        >
           {review.finished ? 'Recall together' : 'Ask the table to recall'}
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -190,7 +186,7 @@ export function TableReviewPanel({ client, table, error }: Props & Readonly<{ er
                 : `${current.proposer.name} asks to recall ${current.context}. It starts once ${current.threshold} players agree.`}
             </Text>
             {/* A finished game's recall starts without a vote, so it has no ballots to show. */}
-            {!review.finished && <Ballots ballots={current.ballots} />}
+            {!review.finished && <Ballots ballots={current.ballots} badges={BALLOT_BADGES} />}
             {reviewRunning(current) ? (
               <ResumePlay client={client} review={review} current={current} />
             ) : (
