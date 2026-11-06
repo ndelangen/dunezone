@@ -27,9 +27,7 @@ export type BlogPostSlug = (typeof BLOG_POST_SLUGS)[number];
  * Posts that are published but unlisted: their page renders for anyone with the link, with a robots `noindex`, while the post list and the sitemap leave them out.
  * Used to show a post to someone it mentions before it goes public.
  */
-export const UNLISTED_BLOG_POST_SLUGS: ReadonlySet<BlogPostSlug> = new Set<BlogPostSlug>([
-  'dune-homebrew-art-ai-and-credits',
-]);
+export const UNLISTED_BLOG_POST_SLUGS: ReadonlySet<BlogPostSlug> = new Set<BlogPostSlug>([]);
 
 /** Each blog post's page, served under the blog's record-less root. */
 export const BLOG_POST_PAGES = BLOG_POST_SLUGS.map((slug) => `/blog/${slug}`);

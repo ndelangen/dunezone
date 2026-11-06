@@ -34,7 +34,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
   'dune-homebrew-art-ai-and-credits': {
     slug: 'dune-homebrew-art-ai-and-credits',
     title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
-    date: '2026-11-04',
+    date: '2026-11-06',
     author: 'Central419',
     summary:
       "The art in the 2019 Dune box began as a fan's free print-and-play. Here's how Dune Zone builds on that, where AI comes in, and who gets the credit.",
