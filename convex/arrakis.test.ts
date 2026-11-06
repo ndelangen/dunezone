@@ -41,27 +41,31 @@ async function publish(f: Fixture, assetId: string) {
   );
 }
 
-describe('The saved Arrakis face', () => {
+describe('The saved Arrakis board', () => {
   test('is null while the site has no saved Arrakis, or only a deleted one', async () => {
     const f = await rulebookFixture();
-    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+    expect(await f.t.query(api.arrakis.board, {})).toBeNull();
     await publish(f, await insertArrakis(f, true));
-    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+    expect(await f.t.query(api.arrakis.board, {})).toBeNull();
   });
 
   test('is null until the board is published', async () => {
     const f = await rulebookFixture();
     await insertArrakis(f);
-    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+    expect(await f.t.query(api.arrakis.board, {})).toBeNull();
   });
 
-  test('answers the live board’s id, published image and territories, beside a deleted one of the same slug', async () => {
+  test('answers the live board’s id, name, published image, territories and own data, beside a deleted one of the same slug', async () => {
     const f = await rulebookFixture();
     await insertArrakis(f, true);
     const id = await insertArrakis(f);
     await publish(f, id);
-    const face = await f.t.query(api.arrakis.face, {});
-    expect(face).toEqual({ assetId: id, imageUrl: expect.stringContaining(id), geometry });
-    expect(face).not.toHaveProperty('board');
+    expect(await f.t.query(api.arrakis.board, {})).toEqual({
+      assetId: id,
+      name: 'Arrakis Official',
+      imageUrl: expect.stringContaining(id),
+      geometry,
+      board: arrakisBoardCapture.definition,
+    });
   });
 });

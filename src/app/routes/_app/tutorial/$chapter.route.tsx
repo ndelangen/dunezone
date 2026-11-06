@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@db/arrakis';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -39,6 +40,8 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       throw notFound();
     }
   },
+  /* The saved Arrakis rides in the page's HTML, so the chapter's table sets up on it without waiting for a query. */
+  loader: async () => ({ arrakis: await loadArrakisBoard() }),
   head: ({ params }) => {
     const chapter = chapterAt(params.chapter);
     /* TUTORIAL_PAGES is held to CHAPTER_SCRIPTS by a test; the head reads it so the eager route tree does not pull every chapter script. */
@@ -59,8 +62,16 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
     const step = Number(params['step']);
     return Number.isInteger(step) && step > 1 ? { step } : {};
   },
-  component: ChapterPage,
+  component: SeededChapterPage,
 });
+
+function SeededChapterPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <ChapterPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
   <Link {...props} to="/tutorial">
