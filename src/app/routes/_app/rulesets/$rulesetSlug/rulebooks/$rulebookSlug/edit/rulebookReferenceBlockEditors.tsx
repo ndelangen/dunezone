@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/sortable';
 import { Stack, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -114,10 +115,10 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
   };
   return (
     <Stack gap="lg">
-      <ControlBlock
+      <ListChapter
         title="Columns"
-        description="Each column keeps its cells when reordered. Removing a column removes only its cells."
-        tool={
+        help="Each column keeps its cells when reordered. Removing a column removes only its cells."
+        actions={
           <AddAction
             label="Add column"
             onClick={() => {
@@ -130,53 +131,52 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
             }}
           />
         }
-        input={
-          value.columnOrder.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              This table has no columns yet.
-            </Text>
-          ) : (
-            <SortableEntries
-              order={value.columnOrder}
-              noun="Column"
-              onReorder={(columnOrder) => onChange({ ...value, columnOrder })}
-              onRemove={(columnId) =>
-                onChange({
-                  ...value,
-                  columnOrder: value.columnOrder.filter((id) => id !== columnId),
-                  columnsById: without(value.columnsById, columnId),
-                  rowsById: Object.fromEntries(
-                    Object.entries(value.rowsById).map(([rowId, row]) => [
-                      rowId,
-                      { ...row, cellsByColumnId: without(row.cellsByColumnId, columnId) },
-                    ])
-                  ),
-                })
-              }
-              renderEntry={(columnId, label) => (
-                <TextInput
-                  aria-label={`${label} label`}
-                  placeholder="Column label"
-                  value={value.columnsById[columnId]!.label}
-                  onChange={(event) =>
-                    onChange({
-                      ...value,
-                      columnsById: {
-                        ...value.columnsById,
-                        [columnId]: { id: columnId, label: event.currentTarget.value },
-                      },
-                    })
-                  }
-                />
-              )}
-            />
-          )
-        }
-      />
-      <ControlBlock
+      >
+        {value.columnOrder.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            This table has no columns yet.
+          </Text>
+        ) : (
+          <SortableEntries
+            order={value.columnOrder}
+            noun="Column"
+            onReorder={(columnOrder) => onChange({ ...value, columnOrder })}
+            onRemove={(columnId) =>
+              onChange({
+                ...value,
+                columnOrder: value.columnOrder.filter((id) => id !== columnId),
+                columnsById: without(value.columnsById, columnId),
+                rowsById: Object.fromEntries(
+                  Object.entries(value.rowsById).map(([rowId, row]) => [
+                    rowId,
+                    { ...row, cellsByColumnId: without(row.cellsByColumnId, columnId) },
+                  ])
+                ),
+              })
+            }
+            renderEntry={(columnId, label) => (
+              <TextInput
+                aria-label={`${label} label`}
+                placeholder="Column label"
+                value={value.columnsById[columnId]!.label}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    columnsById: {
+                      ...value.columnsById,
+                      [columnId]: { id: columnId, label: event.currentTarget.value },
+                    },
+                  })
+                }
+              />
+            )}
+          />
+        )}
+      </ListChapter>
+      <ListChapter
         title="Rows"
-        description="Write one cell per column. Limited formatting is allowed; there are no formulas or merged cells."
-        tool={
+        help="Write one cell per column. Limited formatting is allowed; there are no formulas or merged cells."
+        actions={
           <AddAction
             label="Add row"
             onClick={() => {
@@ -189,54 +189,53 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
             }}
           />
         }
-        input={
-          value.rowOrder.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              This table has no rows yet.
-            </Text>
-          ) : (
-            <SortableEntries
-              order={value.rowOrder}
-              noun="Row"
-              onReorder={(rowOrder) => onChange({ ...value, rowOrder })}
-              onRemove={(rowId) =>
-                onChange({
-                  ...value,
-                  rowOrder: value.rowOrder.filter((id) => id !== rowId),
-                  rowsById: without(value.rowsById, rowId),
-                })
-              }
-              renderEntry={(rowId, label) => (
-                <>
-                  <Text fw={700} size="sm">
-                    {label}
+      >
+        {value.rowOrder.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            This table has no rows yet.
+          </Text>
+        ) : (
+          <SortableEntries
+            order={value.rowOrder}
+            noun="Row"
+            onReorder={(rowOrder) => onChange({ ...value, rowOrder })}
+            onRemove={(rowId) =>
+              onChange({
+                ...value,
+                rowOrder: value.rowOrder.filter((id) => id !== rowId),
+                rowsById: without(value.rowsById, rowId),
+              })
+            }
+            renderEntry={(rowId, label) => (
+              <>
+                <Text fw={700} size="sm">
+                  {label}
+                </Text>
+                {value.columnOrder.length === 0 ? (
+                  <Text size="sm" c="dimmed">
+                    {label} has no cells until the table has a column.
                   </Text>
-                  {value.columnOrder.length === 0 ? (
-                    <Text size="sm" c="dimmed">
-                      {label} has no cells until the table has a column.
-                    </Text>
-                  ) : (
-                    value.columnOrder.map((columnId, index) => {
-                      const column = value.columnsById[columnId]!;
-                      const cellLabel = `${label}, ${column.label || `column ${index + 1}`}`;
-                      return (
-                        <FormattedTextInput
-                          key={columnId}
-                          aria-label={cellLabel}
-                          label={column.label || `Column ${index + 1}`}
-                          minRows={1}
-                          value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
-                          onChange={(text) => setCell(rowId, columnId, text)}
-                        />
-                      );
-                    })
-                  )}
-                </>
-              )}
-            />
-          )
-        }
-      />
+                ) : (
+                  value.columnOrder.map((columnId, index) => {
+                    const column = value.columnsById[columnId]!;
+                    const cellLabel = `${label}, ${column.label || `column ${index + 1}`}`;
+                    return (
+                      <FormattedTextInput
+                        key={columnId}
+                        aria-label={cellLabel}
+                        label={column.label || `Column ${index + 1}`}
+                        minRows={1}
+                        value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
+                        onChange={(text) => setCell(rowId, columnId, text)}
+                      />
+                    );
+                  })
+                )}
+              </>
+            )}
+          />
+        )}
+      </ListChapter>
       <ControlBlock
         title="Note"
         description="Optional explanation shown under the table."
@@ -263,10 +262,10 @@ export function CreditsEdit({ value, onChange }: RulebookBlockEditorProps<'credi
     onChange({ ...value, groupsById: { ...value.groupsById, [groupId]: group } });
   return (
     <Stack gap="lg">
-      <ControlBlock
+      <ListChapter
         title="Credit groups"
-        description="Name each group of contributors, such as Game design or Illustration."
-        tool={
+        help="Name each group of contributors, such as Game design or Illustration."
+        actions={
           <AddAction
             label="Add group"
             onClick={() => {
@@ -282,115 +281,114 @@ export function CreditsEdit({ value, onChange }: RulebookBlockEditorProps<'credi
             }}
           />
         }
-        input={
-          value.groupOrder.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              These credits have no groups yet.
-            </Text>
-          ) : (
-            <SortableEntries
-              order={value.groupOrder}
-              noun="Group"
-              onReorder={(groupOrder) => onChange({ ...value, groupOrder })}
-              onRemove={(groupId) =>
-                onChange({
-                  ...value,
-                  groupOrder: value.groupOrder.filter((id) => id !== groupId),
-                  groupsById: without(value.groupsById, groupId),
-                })
-              }
-              renderEntry={(groupId, label) => {
-                const group = value.groupsById[groupId]!;
-                return (
-                  <Stack gap="sm" className={styles.group}>
-                    <TextInput
-                      aria-label={`${label} heading`}
-                      placeholder="Group heading"
-                      value={group.heading}
-                      onChange={(event) => replaceGroup(groupId, { ...group, heading: event.currentTarget.value })}
-                    />
-                    <ControlBlock
-                      title="Contributors"
-                      description="A name and an optional role. Contributors do not need an account."
-                      tool={
-                        <AddAction
-                          label={`Add contributor to ${label.toLowerCase()}`}
-                          onClick={() => {
-                            const id = createRulebookLocalId(takenIds());
+      >
+        {value.groupOrder.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            These credits have no groups yet.
+          </Text>
+        ) : (
+          <SortableEntries
+            order={value.groupOrder}
+            noun="Group"
+            onReorder={(groupOrder) => onChange({ ...value, groupOrder })}
+            onRemove={(groupId) =>
+              onChange({
+                ...value,
+                groupOrder: value.groupOrder.filter((id) => id !== groupId),
+                groupsById: without(value.groupsById, groupId),
+              })
+            }
+            renderEntry={(groupId, label) => {
+              const group = value.groupsById[groupId]!;
+              return (
+                <Stack gap="sm" className={styles.group}>
+                  <TextInput
+                    aria-label={`${label} heading`}
+                    placeholder="Group heading"
+                    value={group.heading}
+                    onChange={(event) => replaceGroup(groupId, { ...group, heading: event.currentTarget.value })}
+                  />
+                  <ControlBlock
+                    title="Contributors"
+                    description="A name and an optional role. Contributors do not need an account."
+                    tool={
+                      <AddAction
+                        label={`Add contributor to ${label.toLowerCase()}`}
+                        onClick={() => {
+                          const id = createRulebookLocalId(takenIds());
+                          replaceGroup(groupId, {
+                            ...group,
+                            contributorOrder: [...group.contributorOrder, id],
+                            contributorsById: { ...group.contributorsById, [id]: { id, name: '' } },
+                          });
+                        }}
+                      />
+                    }
+                    input={
+                      group.contributorOrder.length === 0 ? (
+                        <Text size="sm" c="dimmed">
+                          {label} has no contributors yet.
+                        </Text>
+                      ) : (
+                        <SortableEntries
+                          order={group.contributorOrder}
+                          noun={`${label} contributor`}
+                          onReorder={(contributorOrder) => replaceGroup(groupId, { ...group, contributorOrder })}
+                          onRemove={(contributorId) =>
                             replaceGroup(groupId, {
                               ...group,
-                              contributorOrder: [...group.contributorOrder, id],
-                              contributorsById: { ...group.contributorsById, [id]: { id, name: '' } },
-                            });
+                              contributorOrder: group.contributorOrder.filter((id) => id !== contributorId),
+                              contributorsById: without(group.contributorsById, contributorId),
+                            })
+                          }
+                          renderEntry={(contributorId, contributorLabel) => {
+                            const contributor = group.contributorsById[contributorId]!;
+                            return (
+                              <>
+                                <TextInput
+                                  aria-label={`${contributorLabel} name`}
+                                  placeholder="Name"
+                                  value={contributor.name}
+                                  onChange={(event) =>
+                                    replaceGroup(groupId, {
+                                      ...group,
+                                      contributorsById: {
+                                        ...group.contributorsById,
+                                        [contributorId]: { ...contributor, name: event.currentTarget.value },
+                                      },
+                                    })
+                                  }
+                                />
+                                <TextInput
+                                  aria-label={`${contributorLabel} role`}
+                                  placeholder="Role (optional)"
+                                  value={contributor.role ?? ''}
+                                  onChange={(event) =>
+                                    replaceGroup(groupId, {
+                                      ...group,
+                                      contributorsById: {
+                                        ...group.contributorsById,
+                                        [contributorId]: {
+                                          ...contributor,
+                                          role: event.currentTarget.value || undefined,
+                                        },
+                                      },
+                                    })
+                                  }
+                                />
+                              </>
+                            );
                           }}
                         />
-                      }
-                      input={
-                        group.contributorOrder.length === 0 ? (
-                          <Text size="sm" c="dimmed">
-                            {label} has no contributors yet.
-                          </Text>
-                        ) : (
-                          <SortableEntries
-                            order={group.contributorOrder}
-                            noun={`${label} contributor`}
-                            onReorder={(contributorOrder) => replaceGroup(groupId, { ...group, contributorOrder })}
-                            onRemove={(contributorId) =>
-                              replaceGroup(groupId, {
-                                ...group,
-                                contributorOrder: group.contributorOrder.filter((id) => id !== contributorId),
-                                contributorsById: without(group.contributorsById, contributorId),
-                              })
-                            }
-                            renderEntry={(contributorId, contributorLabel) => {
-                              const contributor = group.contributorsById[contributorId]!;
-                              return (
-                                <>
-                                  <TextInput
-                                    aria-label={`${contributorLabel} name`}
-                                    placeholder="Name"
-                                    value={contributor.name}
-                                    onChange={(event) =>
-                                      replaceGroup(groupId, {
-                                        ...group,
-                                        contributorsById: {
-                                          ...group.contributorsById,
-                                          [contributorId]: { ...contributor, name: event.currentTarget.value },
-                                        },
-                                      })
-                                    }
-                                  />
-                                  <TextInput
-                                    aria-label={`${contributorLabel} role`}
-                                    placeholder="Role (optional)"
-                                    value={contributor.role ?? ''}
-                                    onChange={(event) =>
-                                      replaceGroup(groupId, {
-                                        ...group,
-                                        contributorsById: {
-                                          ...group.contributorsById,
-                                          [contributorId]: {
-                                            ...contributor,
-                                            role: event.currentTarget.value || undefined,
-                                          },
-                                        },
-                                      })
-                                    }
-                                  />
-                                </>
-                              );
-                            }}
-                          />
-                        )
-                      }
-                    />
-                  </Stack>
-                );
-              }}
-            />
-          )
-        }
-      />
+                      )
+                    }
+                  />
+                </Stack>
+              );
+            }}
+          />
+        )}
+      </ListChapter>
     </Stack>
   );
 }
