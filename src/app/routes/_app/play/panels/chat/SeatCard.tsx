@@ -1,4 +1,4 @@
-import { Avatar, Group, Text } from '@mantine/core';
+import { Avatar, Group, Text, Tooltip } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { Info, MessagesSquare } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export type SeatCardProps = Readonly<{
 export function SeatCard({ mention, onInfo, onChat }: SeatCardProps) {
   return (
     <Group gap="sm" wrap="nowrap" className={styles.card}>
-      <Group gap={6} wrap="nowrap">
+      <Group gap={6} wrap="nowrap" className={styles.who}>
         <span className={styles.faces}>
           {mention.detail && (
             <Avatar src={mention.avatar} size={FACE} radius="50%" alt="">
@@ -32,21 +32,24 @@ export function SeatCard({ mention, onInfo, onChat }: SeatCardProps) {
           )}
           <FactionTokenFace token={mention.token} size={FACE} aria-hidden />
         </span>
-        <Text size="sm" style={{ whiteSpace: 'nowrap' }}>
-          {mention.own ? (
-            'You are playing '
-          ) : mention.detail ? (
-            <>
-              <Text span size="sm" fw={600}>
-                {mention.detail}
-              </Text>
-              {' is playing '}
-            </>
-          ) : null}
-          <Text span size="sm" fw={600}>
-            {mention.label}
+        {/* The line in full, for names the card's width cuts short. */}
+        <Tooltip label={seatLine(mention)} openDelay={500} withinPortal>
+          <Text size="sm" truncate="end">
+            {mention.own ? (
+              'You are playing '
+            ) : mention.detail ? (
+              <>
+                <Text span size="sm" fw={600}>
+                  {mention.detail}
+                </Text>
+                {' is playing '}
+              </>
+            ) : null}
+            <Text span size="sm" fw={600}>
+              {mention.label}
+            </Text>
           </Text>
-        </Text>
+        </Tooltip>
       </Group>
       {(onInfo || onChat) && (
         <Group gap={2} wrap="nowrap" className={styles.actions}>
@@ -74,4 +77,10 @@ export function SeatCard({ mention, onInfo, onChat }: SeatCardProps) {
       )}
     </Group>
   );
+}
+
+/* The card's line as plain words. */
+function seatLine(mention: Mention) {
+  const who = mention.own ? 'You are' : mention.detail ? `${mention.detail} is` : null;
+  return who ? `${who} playing ${mention.label}` : mention.label;
 }

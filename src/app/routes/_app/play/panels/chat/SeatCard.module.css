@@ -3,6 +3,13 @@
   /* The compass's rule colour; the card opens in a portal, outside the compass that sets it. */
   --edge: rgb(from var(--ui-highlight) r g b / 0.2);
   padding: var(--space-xs) var(--space-sm);
+  /* One line however long the names, within the window: the names give way, the actions stay. */
+  max-width: min(28rem, calc(100vw - 2 * var(--space-md)));
+}
+
+.who {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* The player's avatar with the faction's token tucked a little over its right edge. */
@@ -21,6 +28,7 @@
   border-left: 1px solid var(--edge);
   align-self: stretch;
   align-items: center;
+  flex-shrink: 0;
 }
 
 /* Seats sharing a faction name stack in one card, a rule between each. */

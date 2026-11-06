@@ -55,3 +55,20 @@ export const SharedFactionName = meta.story({
     await expect(await card().findByText(args.seats[1]!.detail!)).toBeVisible();
   },
 });
+
+/** Names longer than the card has room for: they end in an ellipsis on the one line, and Info and Chat stay in reach. */
+export const LongNames = meta.story({
+  args: {
+    seats: [
+      {
+        ...other(),
+        detail: 'A player whose display name runs on and on well past any sensible length',
+        label: 'The Exceedingly Long-Named Faction of the Deep Desert',
+      },
+    ],
+  },
+  play: async () => {
+    const chat = await card().findByRole('button', { name: 'Chat' });
+    await expect(chat.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
+  },
+});
