@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { nameDiscColor } from './nameDisc';
+import { nameDiscColor } from './NameDisc';
 
 describe('nameDiscColor', () => {
   it('reads the name the way a reader does, not the way a database does', () => {

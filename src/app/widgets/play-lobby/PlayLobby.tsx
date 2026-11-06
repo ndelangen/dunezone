@@ -4,8 +4,7 @@ import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases'
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
-import { NameDisc } from '@ui/content/NameDisc';
-import { nameDiscColor } from '@ui/content/nameDisc';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { SeatedTable } from '@ui/content/SeatedTable';
 import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
