@@ -1,4 +1,4 @@
-/* The keyboard shortcuts window: right now in a row, the whole keyboard, then every key by group. */
+/* The keyboard shortcuts panel: right now in a row, the whole keyboard, then every key by group. */
 .root {
   display: flex;
   flex-direction: column;
@@ -54,7 +54,7 @@
   line-height: 1.25;
 }
 
-/* Between the keys for this moment and the window keys that hold at every moment. */
+/* Between the keys for this moment and the panel keys that hold at every moment. */
 .divider {
   flex: none;
   width: 1px;
@@ -111,7 +111,7 @@ html[data-motion="reduce"] .tile {
   animation: none;
 }
 
-/* The row's ends: where tiles run on past the edge, the edge fades into the window and offers an arrow to page on. */
+/* The row's ends: where tiles run on past the edge, the edge fades into the panel and offers an arrow to page on. */
 .rowFrame {
   position: relative;
 }

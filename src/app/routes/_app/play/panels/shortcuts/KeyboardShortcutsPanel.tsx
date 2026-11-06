@@ -17,8 +17,8 @@ import { Keys, PressFlash, tinted } from './ShortcutKeys';
 import { usePressedKey } from './usePressedKey';
 import type { Pressed } from './usePressedKey';
 
-/* The window keys are relevant at every moment, so they follow whatever is special right now. */
-const WINDOWS = ['compass', 'hand', 'hidden', 'battle', 'table', 'ally'];
+/* The panel keys are relevant at every moment, so they follow whatever is special right now. */
+const PANELS = ['compass', 'hand', 'hidden', 'battle', 'table', 'ally'];
 
 function NowTile({
   entry,
@@ -71,7 +71,7 @@ function useOverflow(row: RefObject<HTMLUListElement | null>, tiles: number) {
   return more;
 }
 
-/* When the keys of the moment change, such as bidding opening while the window is pinned, the row scrolls back to show them. */
+/* When the keys of the moment change, such as bidding opening while the panel is pinned, the row scrolls back to show them. */
 function useRowStart(row: RefObject<HTMLUListElement | null>, moment: string) {
   useEffect(() => {
     row.current?.scrollTo({ left: 0 });
@@ -79,16 +79,16 @@ function useRowStart(row: RefObject<HTMLUListElement | null>, moment: string) {
 }
 
 /**
- * The keyboard shortcuts window, one scrolling sheet in three layers: the keys that matter right now in one horizontal row, then the whole keyboard colour-coded by group, each key's tooltip telling what it does and how to remember it, then every key listed in its colour-coded group with its memory hook.
+ * The keyboard shortcuts panel, one scrolling sheet in three layers: the keys that matter right now in one horizontal row, then the whole keyboard colour-coded by group, each key's tooltip telling what it does and how to remember it, then every key listed in its colour-coded group with its memory hook.
  * A key pressed while it is open lights in all three.
  */
 export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly Now[] }>) {
   const [focus, setFocus] = useState<string | null>(null);
   const pressed = usePressedKey((key) => setFocus(key));
   const current = SHORTCUT_ENTRIES.filter((entry) => isNow(entry, now));
-  /* A window key that a key of this moment takes over, such as F flipping the piece instead of opening Ally chat, leaves the row. */
+  /* A panel key that a key of this moment takes over, such as F flipping the piece instead of opening Ally chat, leaves the row. */
   const taken = new Set(current.flatMap(capsOf));
-  const windows = WINDOWS.flatMap((id) => SHORTCUT_ENTRIES.filter((entry) => entry.id === id)).filter(
+  const panels = PANELS.flatMap((id) => SHORTCUT_ENTRIES.filter((entry) => entry.id === id)).filter(
     (entry) => !capsOf(entry).some((cap) => taken.has(cap))
   );
   const row = useRef<HTMLUListElement>(null);
@@ -111,7 +111,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
               <NowTile key={entry.id} entry={entry} pressed={pressed} index={index} lit />
             ))}
             {current.length > 0 && <li className={styles.divider} aria-hidden />}
-            {windows.map((entry, index) => (
+            {panels.map((entry, index) => (
               <NowTile key={entry.id} entry={entry} pressed={pressed} index={current.length + index} />
             ))}
           </ul>

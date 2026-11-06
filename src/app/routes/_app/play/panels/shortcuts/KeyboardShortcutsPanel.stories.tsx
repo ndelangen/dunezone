@@ -5,7 +5,7 @@ import { panelMeta } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 
-/* The keyboard shortcuts window on its own, in the centre window that ? and the bar's key button open. */
+/* The keyboard shortcuts panel on its own, in the centre panel that ? and the bar's key button open. */
 const frame = panelMeta(PANEL_WINDOWS.shortcuts);
 const meta = preview.meta({
   ...frame,
@@ -15,11 +15,11 @@ const meta = preview.meta({
   globals: { motion: 'on' },
 });
 
-/** At the table with nothing held: the window keys lead the row, and every key the table answers to follows. */
+/** At the table with nothing held: the panel keys lead the row, and every key the table answers to follows. */
 export const AtTheTable = meta.story({
   play: async ({ canvas }) => {
-    /* The window fades in as it opens, so the sheet is read once it has settled. */
-    await waitFor(() => expect(canvas.getByRole('heading', { name: 'Compass and windows' })).toBeVisible());
+    /* The panel fades in as it opens, so the sheet is read once it has settled. */
+    await waitFor(() => expect(canvas.getByRole('heading', { name: 'Compass and panels' })).toBeVisible());
     await expect(canvas.getByText('Ping the spot for everyone')).toBeInTheDocument();
     await expect(canvas.getByText('Right now · At the table')).toBeInTheDocument();
   },

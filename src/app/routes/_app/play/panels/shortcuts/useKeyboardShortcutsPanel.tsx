@@ -26,7 +26,7 @@ function useShortcutMoment(): readonly Now[] {
   ];
 }
 
-/** The keyboard shortcuts window as the hosted table shows it: the keys for the moment the viewer is in come first. */
+/** The keyboard shortcuts panel as the hosted table shows it: the keys for the moment the viewer is in come first. */
 export function ConnectedKeyboardShortcutsPanel() {
   return <KeyboardShortcutsPanel now={useShortcutMoment()} />;
 }

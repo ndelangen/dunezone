@@ -13,7 +13,7 @@ const meta = testingPreview.meta({
   parameters: { ...frame.parameters, panelFrame: 'centre' },
 });
 
-/** Pressing a key while the window is open lights its cap and its rows. */
+/** Pressing a key while the panel is open lights its cap and its rows. */
 export const PressingAKey = meta.story({
   args: { now: ['piece', 'flip', 'turn', 'split', 'draw', 'shuffle'] },
   play: async ({ canvas }) => {

@@ -6,12 +6,12 @@ import { PIN_KEYS } from '../../compass/useOpenWindows';
 import { TABLE_LABEL_OPTIONS } from '../../tableLabels';
 
 /*
- * Every key the table answers to, as the keyboard shortcuts window lists, draws and explains them.
- * Each key is one cap; every letter comes from the table the key is bound with, so the window cannot drift.
+ * Every key the table answers to, as the keyboard shortcuts panel lists, draws and explains them.
+ * Each key is one cap; every letter comes from the table the key is bound with, so the panel cannot drift.
  */
 
-/** What a key is for: the window colours and groups the keys by it. */
-export type ShortcutGroupId = 'windows' | 'view' | 'pieces' | 'bidding';
+/** What a key is for: the panel colours and groups the keys by it. */
+export type ShortcutGroupId = 'panels' | 'view' | 'pieces' | 'bidding';
 
 /**
  * What holds right now, so those keys come first: a piece under the pointer, each piece key the table would act on, and each bidding command it offers, read from the same checks the key handlers and the compass run.
@@ -19,7 +19,7 @@ export type ShortcutGroupId = 'windows' | 'view' | 'pieces' | 'bidding';
 export type Now = 'piece' | PieceKey | Command;
 
 /**
- * When a key answers: anywhere over the table, while something the window can see holds, or in a moment it only names: the pointer over the Spice Bank, or placing spice taken from the reserve with the keyboard.
+ * When a key answers: anywhere over the table, while something the panel can see holds, or in a moment it only names: the pointer over the Spice Bank, or placing spice taken from the reserve with the keyboard.
  */
 export type Situation = 'table' | Now | 'spice' | 'placing';
 
@@ -49,7 +49,7 @@ export type ShortcutEntry = Readonly<{
 }>;
 
 export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; short: string }>[] = [
-  { id: 'windows', title: 'Compass and windows', short: 'Windows' },
+  { id: 'panels', title: 'Compass and panels', short: 'Panels' },
   { id: 'view', title: 'Looking around', short: 'View' },
   { id: 'pieces', title: 'Pieces', short: 'Pieces' },
   { id: 'bidding', title: 'Bidding', short: 'Bidding' },
@@ -81,17 +81,17 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'compass',
     short: 'Compass',
-    group: 'windows',
+    group: 'panels',
     keys: ['Space'],
     action: 'Open the compass',
-    detail: 'Steer with the arrows, open with Space or Enter, or type to search for any window or command.',
+    detail: 'Steer with the arrows, open with Space or Enter, or type to search for any panel or command.',
     hook: 'The biggest key opens everything.',
     when: 'table',
   },
   {
     id: 'hand',
     short: 'Hand',
-    group: 'windows',
+    group: 'panels',
     keys: [cap(SHORTCUTS.hand)],
     action: 'Hand & spice',
     word: 'Hand',
@@ -100,7 +100,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'hidden',
     short: 'Side',
-    group: 'windows',
+    group: 'panels',
     keys: [cap(SHORTCUTS.hidden)],
     action: 'Private side-table',
     hook: 'Right beside H: your other private place.',
@@ -109,7 +109,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'battle',
     short: 'Battle',
-    group: 'windows',
+    group: 'panels',
     keys: [cap(SHORTCUTS.battle)],
     action: 'Battle plan',
     detail: 'Seats & spectators instead, while a seat request waits.',
@@ -119,7 +119,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'table',
     short: 'Chat',
-    group: 'windows',
+    group: 'panels',
     keys: [cap(SHORTCUTS.table)],
     action: 'Table chat',
     word: 'Group',
@@ -129,7 +129,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'ally',
     short: 'Ally',
-    group: 'windows',
+    group: 'panels',
     keys: [cap(SHORTCUTS.ally)],
     action: 'Ally chat',
     word: 'Friend',
@@ -139,17 +139,17 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'pin',
     short: 'Pin',
-    group: 'windows',
+    group: 'panels',
     keys: [PIN_KEYS.left, PIN_KEYS.right],
-    action: 'Pin the window left or right',
+    action: 'Pin the panel left or right',
     hook: 'The brackets point at the side.',
     when: 'table',
   },
-  { id: 'close', short: 'Close', group: 'windows', keys: ['Esc'], action: 'Close the centre window', when: 'table' },
+  { id: 'close', short: 'Close', group: 'panels', keys: ['Esc'], action: 'Close the centre panel', when: 'table' },
   {
     id: 'help',
     short: 'Help',
-    group: 'windows',
+    group: 'panels',
     keys: [SHORTCUTS.help],
     action: 'These shortcuts',
     hook: 'A question: what does what?',
@@ -419,7 +419,7 @@ export function whenLabel(entry: ShortcutEntry) {
     .join(' or ');
 }
 
-/* The moments as the window's heading names them: the bidding commands read as the phase they belong to. */
+/* The moments as the panel's heading names them: the bidding commands read as the phase they belong to. */
 const ON_A_PIECE = 'On a piece';
 const MOMENT_LABEL: Readonly<Record<Now, string>> = {
   piece: ON_A_PIECE,
@@ -436,7 +436,7 @@ const MOMENT_LABEL: Readonly<Record<Now, string>> = {
   faceUp: SITUATION_LABEL.faceUp,
 };
 
-/** What holds right now in words, for the window's heading: "Carrying a piece, Bidding". */
+/** What holds right now in words, for the panel's heading: "Carrying a piece, Bidding". */
 export function momentLabel(now: readonly Now[]) {
   const labels = new Set(now.map((each) => MOMENT_LABEL[each]));
   /* The piece keys that answer a carry belong to the carry. */

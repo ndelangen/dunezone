@@ -30,7 +30,7 @@ function ignored(event: KeyboardEvent) {
 }
 
 /**
- * Hears the listed keys while the shortcuts window is open, so it can light the cap the player just pressed.
+ * Hears the listed keys while the shortcuts panel is open, so it can light the cap the player just pressed.
  * It only listens: the key still does what it does at the table.
  * Keys typed into a field stay the field's.
  */

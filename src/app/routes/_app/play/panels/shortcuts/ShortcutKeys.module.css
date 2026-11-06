@@ -1,4 +1,4 @@
-/* The shortcuts window's shared marks: caps in a row, the word a letter stands for, each group's colour role, a pressed cap's dip. */
+/* The shortcuts panel's shared marks: caps in a row, the word a letter stands for, each group's colour role, a pressed cap's dip. */
 
 .keys {
   white-space: nowrap;
@@ -42,7 +42,7 @@
   --group-fill-now: color-mix(in srgb, var(--group) 24%, transparent);
 }
 
-.tinted[data-group="windows"] {
+.tinted[data-group="panels"] {
   --group: var(--color-brand);
 }
 

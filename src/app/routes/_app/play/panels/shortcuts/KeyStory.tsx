@@ -5,7 +5,7 @@ import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyStory.module.css';
 import { Keys, Word, tinted } from './ShortcutKeys';
 
-/* The key's word beside its action, unless the word is the action itself: "Hand" beside "Hand window". */
+/* The key's word beside its action, unless the word is the action itself: "Hand" beside "Hand panel". */
 function ActionWord({ entry }: Readonly<{ entry: ShortcutEntry }>) {
   if (!entry.word || entry.word === entry.action) {
     return null;
