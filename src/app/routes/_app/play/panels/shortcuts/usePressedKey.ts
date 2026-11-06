@@ -11,6 +11,14 @@ function typing(target: EventTarget | null) {
   );
 }
 
+/* A held key's repeats, a Cmd chord and typing in a field light nothing. */
+function ignored(event: KeyboardEvent) {
+  if (event.repeat || event.metaKey) {
+    return true;
+  }
+  return typing(event.target);
+}
+
 /**
  * Hears the listed keys while the shortcuts window is open, so it can light the cap the player just pressed.
  * It only listens: the key still does what it does at the table.
@@ -21,7 +29,7 @@ export function usePressedKey(onPress?: (key: string) => void): Pressed {
   const run = useEffectEvent((key: string) => onPress?.(key));
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
-      if (event.repeat || event.metaKey || typing(event.target)) {
+      if (ignored(event)) {
         return;
       }
       const key = capOfEvent(event);

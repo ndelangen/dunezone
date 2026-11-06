@@ -6,7 +6,7 @@ import type { Now } from './keyboardShortcuts';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 
 /** What holds at the table for the viewer: carrying a piece, a piece under the pointer or selected, and the Bidding phase. */
-export function useShortcutMoment(): readonly Now[] {
+function useShortcutMoment(): readonly Now[] {
   const carrying = useTabletopSelector((table) => table.state.draftMove != null);
   const onPiece = useTabletopSelector((table) => table.hoveredPieceId != null || table.selectedPiece != null);
   const bidding = use(CompassTableContext)?.token?.inBidding === true;

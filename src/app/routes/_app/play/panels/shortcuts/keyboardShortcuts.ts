@@ -43,7 +43,7 @@ export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; sho
   { id: 'bidding', title: 'Bidding', short: 'Bidding' },
 ];
 
-export const SITUATIONS: readonly Readonly<{ id: Situation; label: string }>[] = [
+const SITUATIONS: readonly Readonly<{ id: Situation; label: string }>[] = [
   { id: 'table', label: 'Anywhere over the table' },
   { id: 'piece', label: 'Pointer over a piece' },
   { id: 'carrying', label: 'Carrying a piece' },
