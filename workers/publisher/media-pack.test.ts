@@ -100,6 +100,29 @@ describe('media packs', () => {
     expect(indexProblem(twice)).toMatch(/twice/);
   });
 
+  test('answers 404 for a pack or index R2 lacks, and HEAD without a body', async () => {
+    const target = env();
+    const { bytes, sha256 } = await pack();
+    expect((await answer(`/__media/packs/${sha256}.bin`, { method: 'GET' }, target)).status).toBe(404);
+    expect((await answer('/__media/packs/latest.json', { method: 'GET' }, target)).status).toBe(404);
+
+    await answer(`/__media/packs/${sha256}.bin`, put(bytes), target);
+    const head = await answer(`/__media/packs/${sha256}.bin`, { method: 'HEAD' }, target);
+    expect(head.status).toBe(200);
+    expect(head.headers.get('X-Media-Bytes')).toBe(String(bytes.byteLength));
+    expect((await head.arrayBuffer()).byteLength).toBe(0);
+  });
+
+  test('refuses an index that is not JSON or not well formed', async () => {
+    const target = env();
+    expect((await answer('/__media/packs/latest.json', put('{'), target)).status).toBe(400);
+    expect((await answer('/__media/packs/latest.json', put('{}'), target)).status).toBe(422);
+    expect((await answer('/__media/packs/latest.json', put('{}', null), target)).status).toBe(401);
+    expect(indexProblem(null)).toMatch(/schemaVersion/);
+    expect(indexProblem({ schemaVersion: 1, release: RELEASE, packs: [] })).toMatch(/no packs/);
+    expect(indexProblem({ schemaVersion: 1, release: RELEASE, packs: [null] })).toMatch(/malformed/);
+  });
+
   test('leaves other paths alone and refuses unknown ones in its namespace', async () => {
     expect(await handleMediaPackRequest(new Request(`${ORIGIN}/__media/src/x`), env())).toBeNull();
     expect((await answer('/__media/packs/other', { method: 'GET' }, env())).status).toBe(404);
