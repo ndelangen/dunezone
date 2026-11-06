@@ -1175,7 +1175,7 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
                 onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
               />
               <ListChapter
-                title="Waypoints"
+                title={`Route ${routeIndex + 1} waypoints`}
                 actions={
                   <ListLengthActions
                     addLabel="Add waypoint"

@@ -308,10 +308,10 @@ export function CreditsEdit({ value, onChange }: RulebookBlockEditorProps<'credi
                     value={group.heading}
                     onChange={(event) => replaceGroup(groupId, { ...group, heading: event.currentTarget.value })}
                   />
-                  <ControlBlock
+                  <ListChapter
                     title="Contributors"
-                    description="A name and an optional role. Contributors do not need an account."
-                    tool={
+                    help="A name and an optional role. Contributors do not need an account."
+                    actions={
                       <AddAction
                         label={`Add contributor to ${label.toLowerCase()}`}
                         onClick={() => {
@@ -324,65 +324,64 @@ export function CreditsEdit({ value, onChange }: RulebookBlockEditorProps<'credi
                         }}
                       />
                     }
-                    input={
-                      group.contributorOrder.length === 0 ? (
-                        <Text size="sm" c="dimmed">
-                          {label} has no contributors yet.
-                        </Text>
-                      ) : (
-                        <SortableEntries
-                          order={group.contributorOrder}
-                          noun={`${label} contributor`}
-                          onReorder={(contributorOrder) => replaceGroup(groupId, { ...group, contributorOrder })}
-                          onRemove={(contributorId) =>
-                            replaceGroup(groupId, {
-                              ...group,
-                              contributorOrder: group.contributorOrder.filter((id) => id !== contributorId),
-                              contributorsById: without(group.contributorsById, contributorId),
-                            })
-                          }
-                          renderEntry={(contributorId, contributorLabel) => {
-                            const contributor = group.contributorsById[contributorId]!;
-                            return (
-                              <>
-                                <TextInput
-                                  aria-label={`${contributorLabel} name`}
-                                  placeholder="Name"
-                                  value={contributor.name}
-                                  onChange={(event) =>
-                                    replaceGroup(groupId, {
-                                      ...group,
-                                      contributorsById: {
-                                        ...group.contributorsById,
-                                        [contributorId]: { ...contributor, name: event.currentTarget.value },
+                  >
+                    {group.contributorOrder.length === 0 ? (
+                      <Text size="sm" c="dimmed">
+                        {label} has no contributors yet.
+                      </Text>
+                    ) : (
+                      <SortableEntries
+                        order={group.contributorOrder}
+                        noun={`${label} contributor`}
+                        onReorder={(contributorOrder) => replaceGroup(groupId, { ...group, contributorOrder })}
+                        onRemove={(contributorId) =>
+                          replaceGroup(groupId, {
+                            ...group,
+                            contributorOrder: group.contributorOrder.filter((id) => id !== contributorId),
+                            contributorsById: without(group.contributorsById, contributorId),
+                          })
+                        }
+                        renderEntry={(contributorId, contributorLabel) => {
+                          const contributor = group.contributorsById[contributorId]!;
+                          return (
+                            <>
+                              <TextInput
+                                aria-label={`${contributorLabel} name`}
+                                placeholder="Name"
+                                value={contributor.name}
+                                onChange={(event) =>
+                                  replaceGroup(groupId, {
+                                    ...group,
+                                    contributorsById: {
+                                      ...group.contributorsById,
+                                      [contributorId]: { ...contributor, name: event.currentTarget.value },
+                                    },
+                                  })
+                                }
+                              />
+                              <TextInput
+                                aria-label={`${contributorLabel} role`}
+                                placeholder="Role (optional)"
+                                value={contributor.role ?? ''}
+                                onChange={(event) =>
+                                  replaceGroup(groupId, {
+                                    ...group,
+                                    contributorsById: {
+                                      ...group.contributorsById,
+                                      [contributorId]: {
+                                        ...contributor,
+                                        role: event.currentTarget.value || undefined,
                                       },
-                                    })
-                                  }
-                                />
-                                <TextInput
-                                  aria-label={`${contributorLabel} role`}
-                                  placeholder="Role (optional)"
-                                  value={contributor.role ?? ''}
-                                  onChange={(event) =>
-                                    replaceGroup(groupId, {
-                                      ...group,
-                                      contributorsById: {
-                                        ...group.contributorsById,
-                                        [contributorId]: {
-                                          ...contributor,
-                                          role: event.currentTarget.value || undefined,
-                                        },
-                                      },
-                                    })
-                                  }
-                                />
-                              </>
-                            );
-                          }}
-                        />
-                      )
-                    }
-                  />
+                                    },
+                                  })
+                                }
+                              />
+                            </>
+                          );
+                        }}
+                      />
+                    )}
+                  </ListChapter>
                 </Stack>
               );
             }}

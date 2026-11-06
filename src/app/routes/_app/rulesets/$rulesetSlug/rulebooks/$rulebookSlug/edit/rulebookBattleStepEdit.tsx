@@ -203,7 +203,7 @@ function BattleCardFields({
   return (
     <>
       <ListChapter
-        title="Played cards"
+        title={`${label} cards`}
         help="These appear when the plan is revealed."
         actions={
           <ListLengthActions
@@ -342,7 +342,7 @@ function BattleTroopFields({ label, value, references, onChange }: BattleSideFie
   return (
     <>
       <ListChapter
-        title="Troops"
+        title={`${label} troops`}
         help="Choose troop faces and the counts visible at this point in the example."
         actions={
           <ListLengthActions
