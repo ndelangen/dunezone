@@ -1267,6 +1267,10 @@ export function TabletopScene({
     <div
       ref={areaRef}
       {...painting}
+      className={clsx(painting.className, styles.focusTarget)}
+      tabIndex={-1}
+      /* The focus target a chat's Escape hands the keys back to (focusTable). */
+      data-table-focus
       data-highlight-territory={highlightTerritory ?? undefined}
       onContextMenu={(event) => {
         event.preventDefault();

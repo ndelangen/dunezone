@@ -1,8 +1,8 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, waitFor } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { conversationMessages } from '../../game.stories.fixture';
-import { conversationPanelMeta, pendingMessage, savedPage } from './ConversationPanel.stories.fixture';
+import { conversationPanelMeta, pendingMessage, savedPage, tableChatArgs } from './ConversationPanel.stories.fixture';
 
 const meta = testingPreview.meta({ ...conversationPanelMeta, title: 'Play/Panels/Chat' });
 
@@ -53,5 +53,77 @@ export const MarksRead = meta.story({
   args: { page: savedPage(conversationMessages().slice(-3)), unread: true },
   play: async ({ args }) => {
     await waitFor(() => expect(args.onRead).toHaveBeenCalledWith(55));
+  },
+});
+
+/** Escape in the composer hands the keyboard back to the table: the composer lets go of the focus. */
+export const EscapeLeavesTheComposer = meta.story({
+  play: async ({ canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.click(composer);
+    await userEvent.keyboard('{Escape}');
+    await expect(composer).not.toHaveFocus();
+  },
+});
+
+/* The suggestions open in a portal, beside the window rather than inside it. */
+const suggestions = () => within(document.body);
+
+/** Tab writes the highlighted name with one space after it; the arrows move the highlight first, and a second space typed straight after is not written. */
+export const TabCompletesAMention = meta.story({
+  args: tableChatArgs(),
+  play: async ({ args, canvas }) => {
+    const second = args.mentions!.filter((mention) => !mention.own)[1]!;
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, 'Ask @');
+    const [first] = await suggestions().findAllByRole('option');
+    await expect(first).toHaveAttribute('data-combobox-selected');
+    await userEvent.keyboard('{ArrowDown}{Tab}');
+    await expect(composer).toHaveValue(`Ask @${second.label} `);
+    await expect(composer).toHaveFocus();
+    await userEvent.keyboard(' now');
+    await expect(composer).toHaveValue(`Ask @${second.label} now`);
+  },
+});
+
+/** A click on a suggestion writes it, as Tab does. */
+export const ClickCompletesAMention = meta.story({
+  args: tableChatArgs(),
+  play: async ({ args, canvas }) => {
+    const target = args.mentions!.filter((mention) => !mention.own).at(-1)!;
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, `@${target.label.slice(0, 3)}`);
+    const [option] = await suggestions().findAllByRole('option');
+    await expect(option).toHaveTextContent(new RegExp(`^${target.label}`));
+    await userEvent.click(option!);
+    await expect(composer).toHaveValue(`@${target.label} `);
+    await waitFor(() => expect(suggestions().queryByRole('listbox')).toBeNull());
+  },
+});
+
+/** What matches nobody stays plain text, and the suggestions go. */
+export const UnmatchedStaysText = meta.story({
+  args: tableChatArgs(),
+  play: async ({ canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, '@');
+    await suggestions().findAllByRole('option');
+    await userEvent.type(composer, 'zzz');
+    await waitFor(() => expect(suggestions().queryByRole('option')).toBeNull());
+    await userEvent.keyboard('{Tab}');
+    await expect(composer).toHaveValue('@zzz');
+  },
+});
+
+/** A player's name finds their faction, and the faction's name is what gets written. */
+export const PlayerNameCompletesTheirFaction = meta.story({
+  args: tableChatArgs(),
+  play: async ({ args, canvas }) => {
+    const seat = args.mentions!.find((mention) => !mention.own && mention.detail)!;
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, `@${seat.detail!.slice(0, 3).toLowerCase()}`);
+    await suggestions().findAllByRole('option');
+    await userEvent.keyboard('{Tab}');
+    await expect(composer).toHaveValue(`@${seat.label} `);
   },
 });

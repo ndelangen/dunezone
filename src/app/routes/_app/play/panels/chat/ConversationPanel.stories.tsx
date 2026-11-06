@@ -8,6 +8,7 @@ import {
   playerChatArgs,
   savedPage,
   tableChatArgs,
+  tableChatNamingArgs,
 } from './ConversationPanel.stories.fixture';
 
 /*
@@ -37,6 +38,30 @@ export const WithTheTable = meta.story({
       await expect(within(header).getByText(token.name)).toBeVisible();
       await expect(header.querySelector('img')).toHaveAttribute('src', token.src);
     }
+  },
+});
+
+/** Typing @ at the table suggests every other seat: its faction, with its token and player beside it. */
+export const SuggestsMentions = meta.story({
+  args: tableChatArgs(),
+  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  play: async ({ canvas, args, userEvent }) => {
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Message' }), '@');
+    const options = await within(document.body).findAllByRole('option');
+    await expect(options.map((option) => option.textContent)).toEqual(
+      args.mentions!.filter((mention) => !mention.own).map((mention) => `${mention.label}${mention.detail ?? ''}`)
+    );
+  },
+});
+
+/** A message that names a seat after an @ underlines it; hovering it shows the seat's card (see Mention card). */
+export const NamesASeat = meta.story({
+  args: tableChatNamingArgs(),
+  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  play: async ({ canvasElement }) => {
+    const named = canvasElement.querySelector<HTMLElement>('[data-mention]');
+    await expect(named).toBeVisible();
+    await expect(named!.textContent).toMatch(/^@/);
   },
 });
 
