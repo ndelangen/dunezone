@@ -17,8 +17,8 @@ export type Mention = Readonly<{
   chattable?: boolean;
 }>;
 
-/** A run of a message's text: plain, or a seat named after an @. */
-export type MessageSegment = Readonly<{ text: string; mention?: Mention }>;
+/** A run of a message's text: plain, or a name after an @ with every seat it can mean (more than one where seats share a faction name). */
+export type MessageSegment = Readonly<{ text: string; seats?: readonly Mention[] }>;
 
 /*
  * A message's text cut where it names a seat: an @ that opens a mention, then a faction's name, ending where a word would.
@@ -35,10 +35,7 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
     const named = byLength.find((mention) => {
       const end = at + 1 + mention.label.length;
       const written = text.slice(at + 1, end);
-      return (
-        written.localeCompare(mention.label, undefined, { sensitivity: 'base' }) === 0 &&
-        !/^[\p{L}\p{N}]/u.test(text.slice(end))
-      );
+      return fold(written) === fold(mention.label) && !/^[\p{L}\p{N}]/u.test(text.slice(end));
     });
     if (!named) {
       continue;
@@ -47,7 +44,9 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
       segments.push({ text: text.slice(plain, at) });
     }
     const end = at + 1 + named.label.length;
-    segments.push({ text: text.slice(at, end), mention: named });
+    /* Seats sharing a faction name are all meant: the name alone cannot tell them apart. */
+    const seats = mentions.filter((mention) => fold(mention.label) === fold(named.label));
+    segments.push({ text: text.slice(at, end), seats });
     plain = end;
     at = end - 1;
   }

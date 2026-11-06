@@ -78,15 +78,20 @@ describe('completeMention', () => {
 });
 
 describe('splitMentions', () => {
-  test('cuts out each faction named after an @, the longest name first, keeping the text as written', () => {
+  test('cuts out each faction named after an @, the longest name first, keeping the text as written, with every seat of that name', () => {
     const named = [...MENTIONS, mention('seat-5', 'House')];
     expect(splitMentions('ask @house atreides, not @Fremen.', named)).toEqual([
       { text: 'ask ' },
-      { text: '@house atreides', mention: named[0] },
+      { text: '@house atreides', seats: [named[0]] },
       { text: ', not ' },
-      { text: '@Fremen', mention: named[2] },
+      { text: '@Fremen', seats: [named[2], named[3]] },
       { text: '.' },
     ]);
+  });
+
+  test('a name two seats share means both of them', () => {
+    const shared = [...MENTIONS, mention('seat-6', 'Fremen', 'Bo')];
+    expect(splitMentions('@Fremen', shared)).toEqual([{ text: '@Fremen', seats: [shared[2], shared[3], shared[4]] }]);
   });
 
   test('leaves an @ inside a word, a name running on into a longer word, and an unknown name as text', () => {

@@ -12,7 +12,7 @@ const meta = preview.meta({
   title: 'Play/Panels/Chat/Mention card',
   component: MentionCard,
   args: {
-    mention: other(),
+    seats: [other()],
     children: <span>{`@${other().label}`}</span>,
     initiallyOpened: true,
     onInfo: fn(),
@@ -25,7 +25,7 @@ const card = () => within(document.body);
 /** Another player's seat: their avatar and name, their faction's token and name, and Info and Chat. */
 export const AnotherSeat = meta.story({
   play: async ({ args }) => {
-    await expect(await card().findByText(args.mention.detail!)).toBeVisible();
+    await expect(await card().findByText(args.seats[0]!.detail!)).toBeVisible();
     await expect(card().getByRole('button', { name: 'Info' })).toBeVisible();
     await expect(card().getByRole('button', { name: 'Chat' })).toBeVisible();
   },
@@ -33,9 +33,25 @@ export const AnotherSeat = meta.story({
 
 /** The viewer's own seat: there is nobody to chat with, so only Info. */
 export const OwnSeat = meta.story({
-  args: { mention: seats().find((mention) => mention.own)! },
+  args: { seats: [seats().find((mention) => mention.own)!] },
   play: async () => {
     await expect(await card().findByRole('button', { name: 'Info' })).toBeVisible();
     await expect(card().queryByRole('button', { name: 'Chat' })).toBeNull();
+  },
+});
+
+/** Two seats whose factions share a name: the name cannot tell them apart, so the card shows both. */
+export const SharedFactionName = meta.story({
+  args: {
+    seats: [
+      other(),
+      {
+        ...seats().find((mention) => !mention.own && mention.detail && mention.id !== other().id)!,
+        label: other().label,
+      },
+    ],
+  },
+  play: async ({ args }) => {
+    await expect(await card().findByText(args.seats[1]!.detail!)).toBeVisible();
   },
 });

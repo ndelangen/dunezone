@@ -22,3 +22,8 @@
   align-self: stretch;
   align-items: center;
 }
+
+/* Seats sharing a faction name stack in one card, a rule between each. */
+.card + .card {
+  border-top: 1px solid var(--edge);
+}

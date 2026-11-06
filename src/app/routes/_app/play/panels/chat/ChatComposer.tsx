@@ -1,7 +1,7 @@
 import { Combobox, Group, Text, Textarea, useCombobox } from '@mantine/core';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Send } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { focusTable } from '../../../../../widgets/tabletop/focusTable';
@@ -37,6 +37,9 @@ type ChatComposerProps = Readonly<{
 export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatComposerProps) {
   const [draft, setDraft] = useState(() => drafts.get(draftKey) ?? '');
   const field = useRef<HTMLTextAreaElement>(null);
+  /* Each suggestion's id, so the field can name the highlighted one to a screen reader (aria-activedescendant). */
+  const listId = useId();
+  const optionId = (index: number) => `${listId}-mention-${index}`;
   const mention = useMentionState(
     draft,
     mentions.filter((entry) => !entry.own)
@@ -111,7 +114,11 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
           }
         }}
       >
-        <Combobox.Target withKeyboardNavigation={false} withAriaAttributes>
+        <Combobox.Target
+          withKeyboardNavigation={false}
+          withAriaAttributes
+          aria-activedescendant={mention.open ? optionId(mention.active) : undefined}
+        >
           <Textarea
             ref={field}
             aria-label="Message"
@@ -142,6 +149,7 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
               <Combobox.Option
                 value={entry.id}
                 key={entry.id}
+                id={optionId(index)}
                 selected={index === mention.active}
                 aria-selected={index === mention.active}
                 ref={index === mention.active ? keepInView : undefined}
@@ -191,12 +199,6 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
   const open = focused && matches.length > 0;
   const store = useCombobox({ opened: open });
   const highlighted = active && active.query === query?.query ? Math.min(active.index, matches.length - 1) : 0;
-  /* The store follows the highlight, so the field names the highlighted option to a screen reader (aria-activedescendant). */
-  useEffect(() => {
-    if (open) {
-      store.selectOption(highlighted);
-    }
-  }, [store, open, highlighted, matches.length]);
   /* The space a completion wrote takes no second one typed straight after it. */
   const swallowsSpace = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     const { selectionStart, selectionEnd } = event.currentTarget;

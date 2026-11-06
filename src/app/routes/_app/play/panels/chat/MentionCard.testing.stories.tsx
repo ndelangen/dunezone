@@ -10,7 +10,7 @@ const meta = testingPreview.meta({
   title: 'Play/Panels/Chat/Mention card',
   component: MentionCard,
   args: {
-    mention: other(),
+    seats: [other()],
     children: <span>{`@${other().label}`}</span>,
     initiallyOpened: true,
     onInfo: fn(),
@@ -23,8 +23,8 @@ export const OpensInfoAndChat = meta.story({
   play: async ({ args }) => {
     const card = within(document.body);
     await userEvent.click(await card.findByRole('button', { name: 'Info' }));
-    await expect(args.onInfo).toHaveBeenCalledWith(args.mention.id);
+    await expect(args.onInfo).toHaveBeenCalledWith(args.seats[0]!.id);
     await userEvent.click(card.getByRole('button', { name: 'Chat' }));
-    await expect(args.onChat).toHaveBeenCalledWith(args.mention.id);
+    await expect(args.onChat).toHaveBeenCalledWith(args.seats[0]!.id);
   },
 });

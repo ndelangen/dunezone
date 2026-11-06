@@ -181,3 +181,30 @@ export const NamedSeatOpensOnFocus = meta.story({
     await expect(await suggestions().findByRole('button', { name: 'Info' })).toBeVisible();
   },
 });
+
+/** The field names the highlighted suggestion to a screen reader, following the arrows. */
+export const NamesTheHighlightedSuggestion = meta.story({
+  args: tableChatArgs(),
+  play: async ({ canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, '@');
+    const options = await suggestions().findAllByRole('option');
+    await expect(composer).toHaveAttribute('aria-activedescendant', options[0]!.id);
+    await userEvent.keyboard('{ArrowDown}');
+    await expect(composer).toHaveAttribute('aria-activedescendant', options[1]!.id);
+  },
+});
+
+/** From the keyboard, Enter on a named seat steps into its card, and Escape steps back out to the name. */
+export const NamedSeatCardTakesTheKeys = meta.story({
+  args: tableChatNamingArgs(),
+  play: async ({ canvasElement }) => {
+    const named = canvasElement.querySelector<HTMLElement>('[data-mention]')!;
+    named.focus();
+    const info = await suggestions().findByRole('button', { name: 'Info' });
+    await userEvent.keyboard('{Enter}');
+    await expect(info).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await expect(named).toHaveFocus();
+  },
+});
