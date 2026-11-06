@@ -2,6 +2,7 @@ import { ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@ma
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { Notice } from '@ui/block/Notice';
+import { HelpMark } from '@ui/content/HelpMark';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -190,12 +191,12 @@ function TokenLayerFields({
   const token = tokens[layer.asset_id];
   return (
     <Stack gap="sm">
-      <Text size="sm">
-        {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
-      </Text>
-      <Text size="sm" c="dimmed">
-        The front stays linked to the original token. Editing that token updates this card.
-      </Text>
+      <Group gap={4} wrap="nowrap">
+        <Text size="sm">
+          {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
+        </Text>
+        <HelpMark text="The front stays linked to the original token. Editing that token updates this card." />
+      </Group>
       <LabeledAction icon={<Replace size={16} />} onClick={() => setPicking(true)}>
         Replace token
       </LabeledAction>
@@ -303,13 +304,11 @@ function LayerPlacement({
 }) {
   const origin = [card.width / 2, card.height / 2];
   const isText = layer.kind === 'text';
+  const placed = isText
+    ? "the text box's top-left corner"
+    : `the ${layer.kind === 'token' ? 'token' : 'decal'}'s centre`;
   return (
     <Stack gap="md">
-      <Text size="sm" c="dimmed">
-        {isText
-          ? "Place the text box's top-left corner, measured from the card's top-left corner."
-          : `Place the ${layer.kind === 'token' ? 'token' : 'decal'}'s centre, measured from the card's top-left corner.`}
-      </Text>
       {(['Horizontal', 'Vertical'] as const).map((axis, index) => {
         const value = layer.offset[index] + origin[index];
         const max = index === 0 ? card.width : card.height;
@@ -322,6 +321,7 @@ function LayerPlacement({
           <RangeField
             key={axis}
             title={`${axis} position`}
+            description={`Where ${placed} sits, measured from the card's top-left corner.`}
             min={0}
             max={max}
             decimals={2}
@@ -499,12 +499,16 @@ export function CustomCardLayers({
             () => setPicking(false)
           )
         : null}
-      <Text size="sm" c="dimmed">
-        {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
-      </Text>
-      <Text size="sm" c="dimmed">
-        Each layer has its own tab. Layers stack in tab order on each side of the frame. The Head stays on top.
-      </Text>
+      <Group gap={4} wrap="nowrap">
+        <Text size="sm" c="dimmed">
+          {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
+        </Text>
+        <HelpMark
+          text={
+            'Each layer has its own tab.\nLayers stack in tab order on each side of the frame.\nThe Head stays on top.'
+          }
+        />
+      </Group>
       {draft.layers.length === 0 ? (
         <Notice title="No layers">Add decals and text, or choose a starting preset in Format.</Notice>
       ) : null}
