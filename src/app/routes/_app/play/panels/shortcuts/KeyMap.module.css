@@ -96,7 +96,7 @@
 }
 
 /* Pinned into a narrow slot, the keys keep their caps and colours and leave their words to the tooltips. */
-@container (max-width: 34rem) {
+@container (max-width: 26rem) {
   .row {
     gap: 0.2rem;
   }
