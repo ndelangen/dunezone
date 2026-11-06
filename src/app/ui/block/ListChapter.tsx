@@ -27,7 +27,7 @@ export interface ListChapterProps {
 /**
  * An editable list in an editor: its name with a (?) explanation and its add and remove controls on one row, a note when it is empty, then the items.
  * It is a `ControlBlock` whose input is the list, so a list and a single field share one heading size and one place for their controls.
- * The faction editor's chapters (phases, advantages, leaders, troops, planets, extras, alliance decals) and the asset editors' lists (deck cards, bundle tokens, decals, texts) render through this, so they cannot drift apart again.
+ * Every editable list in an editor (faction, asset and rulebook block editors) renders through this, so they cannot drift apart again.
  */
 export function ListChapter({ title, help, actions, note, children }: ListChapterProps) {
   return (

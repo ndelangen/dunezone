@@ -18,6 +18,7 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { originalArtwork } from '@shared/media/retiredArtwork';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -409,10 +410,10 @@ function GradientLayerFields({
         </SimpleGrid>
       )}
 
-      <ControlBlock
+      <ListChapter
         title="Gradient stops"
-        description="Ordered colors with positions from 0 to 1. Existing uncommon arrays remain editable."
-        tool={
+        help="Ordered colors with positions from 0 to 1. Existing uncommon arrays remain editable."
+        actions={
           <ListLengthActions
             addLabel="Add stop"
             removeLabel="Remove last stop"
@@ -427,50 +428,46 @@ function GradientLayerFields({
             onRemove={() => updateStops(value.stops.slice(0, -1))}
           />
         }
-        input={
-          <Stack gap="sm">
-            {value.stops.length === 0 ? (
-              <Text size="sm" c="dimmed" fs="italic">
-                This gradient has no stops. Add one to make its color visible.
-              </Text>
-            ) : null}
+      >
+        <Stack gap="sm">
+          {value.stops.length === 0 ? (
+            <Text size="sm" c="dimmed" fs="italic">
+              This gradient has no stops. Add one to make its color visible.
+            </Text>
+          ) : null}
 
-            {value.stops.map((stop, index) => (
-              <Group key={`${label}-stop-${index}`} align="flex-end" gap="sm" wrap="nowrap">
-                <Box style={{ flex: 1, minWidth: 0 }}>
-                  <ColorInput
-                    label={`Stop ${index + 1} color`}
-                    value={stop[0]}
-                    format="hex"
-                    onChange={(color) => {
-                      const next = [...value.stops];
-                      next[index] = [color, stop[1]];
-                      updateStops(next);
-                    }}
-                  />
-                </Box>
-                <NumberInput
-                  label="Position"
-                  w={110}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  decimalScale={2}
-                  value={stop[1]}
-                  onChange={(position) => {
+          {value.stops.map((stop, index) => (
+            <Group key={`${label}-stop-${index}`} align="flex-end" gap="sm" wrap="nowrap">
+              <Box style={{ flex: 1, minWidth: 0 }}>
+                <ColorInput
+                  label={`Stop ${index + 1} color`}
+                  value={stop[0]}
+                  format="hex"
+                  onChange={(color) => {
                     const next = [...value.stops];
-                    next[index] = [
-                      stop[0],
-                      typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1],
-                    ];
+                    next[index] = [color, stop[1]];
                     updateStops(next);
                   }}
                 />
-              </Group>
-            ))}
-          </Stack>
-        }
-      />
+              </Box>
+              <NumberInput
+                label="Position"
+                w={110}
+                min={0}
+                max={1}
+                step={0.01}
+                decimalScale={2}
+                value={stop[1]}
+                onChange={(position) => {
+                  const next = [...value.stops];
+                  next[index] = [stop[0], typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1]];
+                  updateStops(next);
+                }}
+              />
+            </Group>
+          ))}
+        </Stack>
+      </ListChapter>
     </Stack>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { Box, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookCardSourceReference } from '@shared/rulebooks/sources';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -263,10 +264,10 @@ export function CardGroupEdit({
           }
         />
       ) : null}
-      <ControlBlock
+      <ListChapter
         title="Cards"
-        description="Drag a Card to reorder it. Its guidance and quantity move with it."
-        tool={
+        help="Drag a Card to reorder it. Its guidance and quantity move with it."
+        actions={
           <ListLengthActions
             addLabel="Add Card"
             removeLabel="Remove last Card"
@@ -291,51 +292,50 @@ export function CardGroupEdit({
             }}
           />
         }
-        input={
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={({ active, over }) => {
-              if (!over) {
-                return;
-              }
-              const from = value.itemOrder.indexOf(String(active.id));
-              const to = value.itemOrder.indexOf(String(over.id));
-              if (from >= 0 && to >= 0 && from !== to) {
-                setSelectedId(activeId ?? null);
-                onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
-              }
-            }}
-          >
-            <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
-              <Stack component="ul" className={styles.entries} gap="xs">
-                {value.itemOrder.map((id, index) => (
-                  <SortableItem as="li" key={id} id={id}>
-                    {({ setActivatorNodeRef, attributes, listeners }) => (
-                      <Box className={styles.row}>
-                        <SelectableRow
-                          className={styles.select}
-                          selected={activeId === id}
-                          onSelect={() => setSelectedId(id)}
-                        >
-                          {index + 1}. {cardLabel(value.itemsById[id]!.source, references)}
-                        </SelectableRow>
-                        <SortableReorderHandle
-                          className={styles.handle}
-                          label={`Reorder Card ${index + 1}`}
-                          setActivatorNodeRef={setActivatorNodeRef}
-                          attributes={attributes}
-                          listeners={listeners}
-                        />
-                      </Box>
-                    )}
-                  </SortableItem>
-                ))}
-              </Stack>
-            </SortableContext>
-          </DndContext>
-        }
-      />
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={({ active, over }) => {
+            if (!over) {
+              return;
+            }
+            const from = value.itemOrder.indexOf(String(active.id));
+            const to = value.itemOrder.indexOf(String(over.id));
+            if (from >= 0 && to >= 0 && from !== to) {
+              setSelectedId(activeId ?? null);
+              onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
+            }
+          }}
+        >
+          <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" className={styles.entries} gap="xs">
+              {value.itemOrder.map((id, index) => (
+                <SortableItem as="li" key={id} id={id}>
+                  {({ setActivatorNodeRef, attributes, listeners }) => (
+                    <Box className={styles.row}>
+                      <SelectableRow
+                        className={styles.select}
+                        selected={activeId === id}
+                        onSelect={() => setSelectedId(id)}
+                      >
+                        {index + 1}. {cardLabel(value.itemsById[id]!.source, references)}
+                      </SelectableRow>
+                      <SortableReorderHandle
+                        className={styles.handle}
+                        label={`Reorder Card ${index + 1}`}
+                        setActivatorNodeRef={setActivatorNodeRef}
+                        attributes={attributes}
+                        listeners={listeners}
+                      />
+                    </Box>
+                  )}
+                </SortableItem>
+              ))}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+      </ListChapter>
       {item ? (
         <Stack key={item.id} gap="md">
           <Text size="sm" fw={700}>
