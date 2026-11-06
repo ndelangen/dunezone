@@ -1,7 +1,8 @@
-import { Accordion, Loader } from '@mantine/core';
+import { Accordion } from '@mantine/core';
 import type { RulebookBoardSceneValue } from '@shared/rulebooks/illustratedScenes';
 import { rulebookSceneBoard } from '@shared/rulebooks/sceneBoard';
 import type { RulebookResolvedAssetsById } from '@shared/rulebooks/sources';
+import { Pending } from '@ui/content/Pending';
 import { createContext, lazy, Suspense, useCallback, useContext, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 
@@ -109,7 +110,7 @@ export function rulebookMarkupEditor({
 }
 
 const tokenPicker: AssetPick = (onPick, onCancel) => (
-  <Suspense fallback={<Loader size="sm" />}>
+  <Suspense fallback={<Pending>Loading tokens</Pending>}>
     <AssetPicker
       types={['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance']}
       copy={{

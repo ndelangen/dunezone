@@ -9,7 +9,7 @@ export function KeyboardShortcutsPanel() {
   return (
     <>
       {SHORTCUT_GROUPS.map((group) => (
-        <Section key={group.title} title={group.title} description={group.description}>
+        <Section key={group.title} title={group.title} help={group.description}>
           <dl className={styles.list}>
             {group.rows.map((row) => (
               <div key={`${row.keys}:${row.action}`} className={styles.row}>

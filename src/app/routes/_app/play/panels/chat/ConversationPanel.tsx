@@ -69,7 +69,7 @@ export function ConversationPanel({
   const newest = useVisibleRead(online && unread ? latest : null, onRead);
   const arrival = useArrivalAnnouncement(peerId, page, factionId);
   return (
-    <Section hiddenHeading title="Conversation" description={CONVERSATION_HELP} className={styles.panel}>
+    <Section hiddenHeading title="Conversation" help={CONVERSATION_HELP} className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
         {!online && <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>}
         <Stack

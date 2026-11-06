@@ -1,4 +1,4 @@
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
@@ -51,7 +51,9 @@ export function AdminGate({
   if (!viewer.isAdmin) {
     return (
       <PageMessage size={size} title={title}>
-        <NotAvailable title={deniedTitle}>{deniedMessage}</NotAvailable>
+        <PageState kind="absent" title={deniedTitle}>
+          {deniedMessage}
+        </PageState>
       </PageMessage>
     );
   }

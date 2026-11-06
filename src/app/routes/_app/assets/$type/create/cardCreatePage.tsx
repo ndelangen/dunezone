@@ -1,7 +1,7 @@
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import type { SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -9,7 +9,6 @@ import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
 import { useAuthoringAccountKey } from '@db/authoring';
-import { useAuthoringPresets } from '@db/backgroundPresets';
 import { useSessionViewer } from '@db/profiles';
 import { useCreateAsset } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
@@ -18,12 +17,10 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
+import { assetNoun } from '../$slug/edit/cardEditPage';
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
 
-/*
- * What the card create pages share: the save and the page around the workbench.
- * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
- */
+/* What the card create page is built from: the save and the page around the workbench; `CardTypeCreatePage` holds the session. */
 
 type CardType =
   | 'card-treachery'
@@ -80,31 +77,13 @@ type CardCreateFrameProps<Draft extends { name: string }> = Readonly<{
   load: { schema: z.ZodType<Draft>; presets?: LoadPreset<Draft>[]; onLoaded: (draft: Draft) => void };
   saveError: Error | null;
   children: ReactNode;
-  backgrounds?: SharedBackgroundPreset[];
-  fronts?: CardFrontPreset[];
-  loadingPresets?: boolean;
+  backgrounds: SharedBackgroundPreset[];
+  fronts: CardFrontPreset[];
+  loadingPresets: boolean;
 }>;
 
-/** The page around a new card's workbench, shown once the viewer is known to be signed in. */
-export function CardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
-  return props.backgrounds === undefined ? (
-    <StandardCardCreateFrame {...props} />
-  ) : (
-    <CardCreateFrameContent {...props} />
-  );
-}
-function StandardCardCreateFrame<Draft extends { name: string }>(props: CardCreateFrameProps<Draft>) {
-  const standards = useAuthoringPresets();
-  return (
-    <CardCreateFrameContent
-      {...props}
-      backgrounds={standards?.backgrounds ?? []}
-      fronts={props.fronts ?? standards?.fronts}
-      loadingPresets={!standards || props.loadingPresets}
-    />
-  );
-}
-function CardCreateFrameContent<Draft extends { name: string }>({
+/** The page around a new card's workbench, shown once the viewer is known to be signed in and the design standards have loaded. */
+export function CardCreateFrame<Draft extends { name: string }>({
   type,
   title,
   headerSlot,
@@ -116,18 +95,20 @@ function CardCreateFrameContent<Draft extends { name: string }>({
   children,
   backgrounds,
   fronts,
-  loadingPresets = false,
+  loadingPresets,
 }: CardCreateFrameProps<Draft>) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
-  const noun = type === 'token-leader' ? 'token' : 'card';
+  const noun = assetNoun(type);
 
   switch (viewer.kind) {
     case 'pending':
       return (
         <AssetEditorMessage title={title} type={type}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -143,13 +124,15 @@ function CardCreateFrameContent<Draft extends { name: string }>({
   if (loadingPresets) {
     return (
       <AssetEditorMessage title={title} type={type}>
-        <LoadPending title="Loading presets">Loading the current design standards.</LoadPending>
+        <PageState kind="pending" title="Loading presets">
+          Loading the current design standards.
+        </PageState>
       </AssetEditorMessage>
     );
   }
 
   return (
-    <BackgroundLibrary presets={backgrounds ?? []} fronts={fronts}>
+    <BackgroundLibrary presets={backgrounds} fronts={fronts}>
       <PageLayout>
         {headerSlot}
         <PageLayout.Toolbar>
@@ -177,7 +160,7 @@ function CardCreateFrameContent<Draft extends { name: string }>({
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={saveError} />
+            <SaveErrorAlert subject={assetNoun(type)} verb="create" error={saveError} />
             {children}
           </WorkbenchLayout>
         </PageLayout.Content>

@@ -167,7 +167,7 @@ function Prediction({
   const { state } = row;
   return (
     /* The Setup window's guidance names the current step only, so every other declaration keeps its heading in view. */
-    <Section hiddenHeading={hiddenHeading && row.current} title={row.title} description={row.help}>
+    <Section hiddenHeading={hiddenHeading && row.current} title={row.title} help={row.help}>
       <Stack gap="sm">
         {state.kind === 'locked' ? (
           <>
@@ -220,7 +220,7 @@ export function SetupPanel(props: SetupPanelProps) {
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
-        <Section hiddenHeading={hiddenHeading} title={step.title} description={step.help}>
+        <Section hiddenHeading={hiddenHeading} title={step.title} help={step.help}>
           <Stack gap="sm">
             {step.kind === 'traitors' && !observing && (
               <>

@@ -115,6 +115,20 @@ answer 200 for an identical repeat and 409 for different contents. There is no r
 route: the ledger is read with wrangler. The deploy writes the record with
 `media:publish` (`MEDIA_RELEASE_ID` set) and the marker with `media:publish --deployed`.
 
+## Variant packs
+
+The same bucket holds variant packs for local setup (`media-pack.ts`). After marking the
+release deployed, the deploy runs `media:packs`, which groups every variant by the first hex
+digit of its name into 16 packs of about 15 MB. Each pack is stored at
+`packs/<sha256>.bin`, along with the index `packs/latest.json`, which lists each variant's
+offset, length and SHA-256. `GET /__media/packs/latest.json` and
+`GET /__media/packs/<sha256>.bin` need no token. `PUT` takes `MEDIA_PUBLISH_TOKEN`. A pack is
+created only if it is absent, and the index is refused while it names a pack that R2 lacks.
+A fresh checkout's `generate:images` reads the packs that hold at least 16 of its missing
+variants, about 17 requests in all, and fetches the rest from `/m`. Packs never decide what
+production serves. Superseded packs stay in R2 until someone removes them by hand. Retention
+reads only `releases/*.json`.
+
 ## Renderer revisions
 
 There is one deployed Renderer for each asset type. A checked-in Renderer revision

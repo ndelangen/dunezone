@@ -3,6 +3,7 @@ import { ASSET_TYPES } from '@shared/assets/types';
 import { FACTION_EXTRA_TYPES, factionExtraKey } from '@shared/factions/extras';
 import type { FactionExtra } from '@shared/factions/extras';
 import { ListChapter } from '@ui/block/ListChapter';
+import { TitledLine } from '@ui/content/TitledLine';
 
 import { AssetList, AssetListAdd } from '@app/pickers/AssetListPicker';
 
@@ -13,16 +14,7 @@ const EXTRA_TYPES = [...FACTION_EXTRA_TYPES];
 
 /* The proof names each Extra by catalogue address, the way the faction stores it; the chapter's list draws the assets themselves. */
 function ExtraLabel({ extra }: { extra: FactionExtra }) {
-  return (
-    <Stack gap={0} flex={1} miw={0}>
-      <Text size="sm" fw={600} truncate>
-        {extra.slug}
-      </Text>
-      <Text size="xs" c="dimmed">
-        {ASSET_TYPES[extra.type].label}
-      </Text>
-    </Stack>
-  );
+  return <TitledLine title={extra.slug} detail={ASSET_TYPES[extra.type].label} />;
 }
 
 /**
@@ -67,7 +59,7 @@ export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
 export function FactionExtrasProof({ extras }: { extras: readonly FactionExtra[] }) {
   return (
     <Stack component="section" gap="sm" className={styles.extrasProof} p="lg" aria-label="Starting Extras">
-      <Text ff="serif" fw={800} tt="uppercase">
+      <Text ff="serif" fw={800} className={styles.sheetCaps}>
         Added at setup
       </Text>
       {extras.length === 0 ? (

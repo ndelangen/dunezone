@@ -11,7 +11,7 @@
  * `--verify --all` downloads every entry whatever the record says.
  *
  * Publishing still asks R2 about every variant, so a release never goes live naming one R2 lacks or stores with other bytes.
- * The bytes come from the store `generate:images` fills (`.cache/media/local/v`), so run that first.
+ * The bytes come from the store `generate:images` fills (`scripts/lib/media-store.ts`), so run that first.
  * MEDIA_ORIGIN picks the Worker, https://dune.zone by default.
  * The Worker creates a variant only if it is absent and answers 409 when a stored one differs, so a run can be repeated or resumed at any point.
  * 429, 5xx and connection errors are retried as transport, not as findings.
@@ -25,6 +25,7 @@ import sharp from 'sharp';
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches, storedState } from './lib/media-fetch';
 import type { Fetched } from './lib/media-fetch';
+import { mediaStoreRoot } from './lib/media-store';
 import { readVerified, selectChecks, verifiedIdentity, writeVerified } from './lib/media-verified';
 import { fetchMediaAfterTokenRotation, waitForMediaPublishToken } from './media-publish-token';
 import { checksumRecord, matchesRecord, planVariants } from './media-variants';
@@ -32,7 +33,7 @@ import type { ChecksumRecord, PlannedVariant } from './media-variants';
 import { describeError } from './retry-transient';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
-const storeRoot = path.join(repoRoot, '.cache/media/local/v');
+const storeRoot = mediaStoreRoot(repoRoot);
 const origin = (process.env.MEDIA_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
 const verifyOnly = process.argv.includes('--verify');
 const verifyAll = process.argv.includes('--all');

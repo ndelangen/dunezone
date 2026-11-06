@@ -15,12 +15,11 @@ import { RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
@@ -58,6 +57,7 @@ import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { NotFoundState } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
@@ -156,7 +156,9 @@ function AssetDetailMessage({ children }: { children: ReactNode }) {
 function AssetDetailPending() {
   return (
     <AssetDetailMessage>
-      <LoadPending title="Loading">This asset is still loading.</LoadPending>
+      <PageState kind="pending" title="Loading">
+        This asset is still loading.
+      </PageState>
     </AssetDetailMessage>
   );
 }
@@ -430,7 +432,7 @@ function Composition({
       id="composition"
       icon={<TopicIcon topic="contents" size={20} />}
       title="Composition"
-      description={`The ${noun} in here and how many of each.`}
+      help={`The ${noun} in here and how many of each.`}
     >
       {members.length === 0 ? (
         <Surface padding="lg">
@@ -577,9 +579,7 @@ function AssetDetailPage() {
   if (!page) {
     return (
       <AssetDetailMessage>
-        <NotAvailable title="Asset not found">
-          This asset does not exist or was deleted. Renaming an asset re-slugs its URL, so an old link may have moved.
-        </NotAvailable>
+        <NotFoundState noun="asset" renamed />
       </AssetDetailMessage>
     );
   }
@@ -811,8 +811,16 @@ function LoadedAssetDetail({
       <PageLayout.Content>
         <Stack gap="xl">
           {groupActions.error}
-          {conversion.error ? <FormError title="Could not convert card">{conversion.error.message}</FormError> : null}
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          {conversion.error ? (
+            <ActionError subject="Card" verb="convert">
+              {conversion.error.message}
+            </ActionError>
+          ) : null}
+          {deletion.error ? (
+            <ActionError subject="Asset" verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>

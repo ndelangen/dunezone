@@ -1,7 +1,7 @@
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -39,7 +39,7 @@ const TYPE = 'token-enhance';
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored token has no room for (D3): the face and target kept across mode flips, the declared Custom intents,  and whether a save has already complained.
  * Rebuilding the whole state on `replace` is what makes a discarded pick actually discarded: while the face and target were refs in the widget, a Reset left them standing and the next save could write a reference the page never showed.
  */
@@ -116,7 +116,9 @@ export function RectangleCreatePage() {
     case 'pending':
       return (
         <AssetEditorMessage title="New enhance token" type={TYPE}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -168,7 +170,7 @@ export function RectangleCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <SaveErrorAlert subject="token" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
               <Notice tone="caution" title="No token picked" live>
                 Picking a token's back happens on the edit page; save with another back mode first.

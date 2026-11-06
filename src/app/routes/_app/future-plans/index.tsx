@@ -1,7 +1,9 @@
-import { Anchor, Badge, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
+import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -162,9 +164,9 @@ function FuturePlansPage() {
         <AtlasLayout className={styles.atlasFrame}>
           <AtlasLayout.Sidebar>
             <Stack component="aside" gap="md">
-              <Badge color="gray" variant="filled" w="fit-content">
-                All planned
-              </Badge>
+              <Box w="fit-content">
+                <StatusBadge>All planned</StatusBadge>
+              </Box>
               <Eyebrow>The territory</Eyebrow>
               <nav aria-label="Future plan themes">
                 <Bullets gap="none">

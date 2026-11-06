@@ -1,7 +1,6 @@
 import preview from '@sb/preview';
 import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { expect, within } from 'storybook/test';
 
 import { LoginGate } from './LoginGate';
@@ -13,7 +12,11 @@ const meta = preview.meta({
   args: {
     title: 'Faction',
     back: <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>,
-    children: <LoadPending title="Loading faction">The faction details are still loading.</LoadPending>,
+    children: (
+      <PageState kind="pending" title="Loading faction">
+        The faction details are still loading.
+      </PageState>
+    ),
   },
 });
 
@@ -23,7 +26,11 @@ export const Loading = meta.story({});
 /** The slug resolves to nothing, or to something the reader may not open. */
 export const Absent = meta.story({
   args: {
-    children: <NotAvailable title="Faction not found">This faction does not exist or was deleted.</NotAvailable>,
+    children: (
+      <PageState kind="absent" title="Faction not found">
+        This faction does not exist or was deleted.
+      </PageState>
+    ),
   },
 });
 
@@ -52,7 +59,11 @@ export const NoWayBack = meta.story({
   args: {
     title: 'Factions',
     back: undefined,
-    children: <LoadPending title="Loading factions">The faction catalogue is still loading.</LoadPending>,
+    children: (
+      <PageState kind="pending" title="Loading factions">
+        The faction catalogue is still loading.
+      </PageState>
+    ),
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

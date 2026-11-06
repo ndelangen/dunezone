@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -31,7 +31,7 @@ import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetE
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored bundle has no room for (D3), and `baseline` is what a reset returns to.
  * `clonedFrom` is the bundle loaded as this one's starting point, whose tokens the save copies.
  */
@@ -106,7 +106,9 @@ export function BundleCreatePage() {
     case 'pending':
       return (
         <AssetEditorMessage title="New bundle" type="bundle">
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -164,7 +166,7 @@ export function BundleCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <SaveErrorAlert subject="bundle" verb="create" error={createAsset.error} />
             <BundleEditor
               nameField={nameField}
               draft={state.data}

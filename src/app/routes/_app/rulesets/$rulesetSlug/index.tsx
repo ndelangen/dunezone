@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
 import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
@@ -7,9 +8,8 @@ import type { RouteNoticeCode } from '@shared/routeNotices';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FactionCard } from '@ui/block/FactionCard';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
@@ -54,7 +54,7 @@ import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRu
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
@@ -288,7 +288,7 @@ function RulesetFaqPreview({
       id="faq"
       icon={<CircleHelp size={20} aria-hidden />}
       title="Community FAQ"
-      description="Browse community questions and accepted answers."
+      help="Browse community questions and accepted answers."
     >
       <form
         role="search"
@@ -452,11 +452,7 @@ function RulesetDetailPage() {
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
   if (!page) {
-    return (
-      <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
+    return <RouteNotFound size="compact" title="Ruleset" back={backToRulesets} noun="ruleset" />;
   }
 
   /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */
@@ -670,7 +666,11 @@ function RulesetDetailPage() {
                   {routeNotice.message}
                 </Notice>
               ) : null}
-              {mutationError ? <FormError title="The change could not be saved">{mutationError}</FormError> : null}
+              {mutationError ? (
+                <ActionError subject="The change" verb="save">
+                  {mutationError}
+                </ActionError>
+              ) : null}
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">

@@ -15,6 +15,7 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@app/db/arrakis';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
@@ -25,6 +26,8 @@ import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
   ssr: true,
+  /* The saved Arrakis rides in the page's HTML, so the board terms draw it in the server's render. */
+  loader: async () => ({ arrakis: await loadArrakisBoard() }),
   head: () =>
     publicPageHead({
       name: 'Dune board game glossary',
@@ -33,8 +36,16 @@ export const Route = createFileRoute('/_app/glossary/')({
         "Explore Dune board game terms, based on the 2019 rulebook, with definitions and explanations of Dune Zone's preferred wording.",
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
-  component: GlossaryPage,
+  component: SeededGlossaryPage,
 });
+
+function SeededGlossaryPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <GlossaryPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
   pieces: 'troops',
@@ -229,8 +240,8 @@ function GlossaryPage() {
               className={styles.topic}
               icon={<TopicIcon topic={TOPIC_ICONS[topic.id]} size={20} />}
               title={topic.label}
-              description={topic.summary}
             >
+              <Text>{topic.summary}</Text>
               <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}

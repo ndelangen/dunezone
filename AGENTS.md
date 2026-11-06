@@ -360,7 +360,10 @@ tooltips, holds or menus; it proves its wiring through the child's accessible na
 description. Each visual story changes one thing from its component's baseline, so a story name that
 needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
 a tooltip in any story outside `src/app/ui`. Beside it, `local/form-error` rejects a red Mantine `Alert`
-outside the kit: a failure is a `FormError`.
+outside the kit: a failure is a `FormError`. `local/eyebrow` rejects `tt="uppercase"` on a Mantine
+`Text` outside the kit: a small capitals caption is an `Eyebrow`. Raw `Badge`, `Title` and `Loader`
+are restricted imports outside the kit, in favour of `StatusBadge`, `Section`/`Card`/`PageTitle` and
+`Pending`; a deliberate exception takes a reasoned `oxlint-disable-next-line` comment.
 
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
@@ -620,7 +623,10 @@ draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedM
 so it can be tried on a page and swapped without uploading (`generate:images` still refuses to run
 while one is present). A blog post using an unsynced image fails `postBodies.test.tsx` until it is synced. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
-need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
+need the generated files locally; CI produces the deployed bytes). `app:dev`, `storybook` and
+`play:local` run `generate:images --if-stale` on start, which does nothing while `public/` matches the
+lock and rules. Off CI the variant store is one directory per machine (`~/.cache/dunezone/media/v`), and
+missing variants come from `https://dune.zone/m/` before anything is encoded. `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +
 generator + pinned sharp version), never encoder output, so `publisher:release:verify` remains a
 local check. Image keys such as `/image/texture/021.jpg` are opaque asset ids stored on faction

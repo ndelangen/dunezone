@@ -1,20 +1,11 @@
-import {
-  Anchor,
-  Center,
-  Combobox,
-  Divider,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  useCombobox,
-} from '@mantine/core';
+import { Anchor, Combobox, Divider, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The picker's optional heading names a popover, which has no Section around it. */
+import { Title } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { FieldWarning } from '@ui/content/FieldWarning';
+import { Pending } from '@ui/content/Pending';
 import type { ActionIntent } from '@ui/control/actionIntent';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, X } from 'lucide-react';
@@ -161,9 +152,7 @@ export function FactionPicker(props: FactionPickerProps) {
       ) : null}
       {error && <FormError title={copy.errorTitle}>{error}</FormError>}
       {picker.isPending ? (
-        <Center py="md">
-          <Loader size="sm" aria-label="Loading factions" />
-        </Center>
+        <Pending>Loading factions</Pending>
       ) : availableRows.length === 0 ? (
         <Text size="sm" c="dimmed">
           {copy.emptyMessage}
@@ -244,11 +233,7 @@ export function FactionPicker(props: FactionPickerProps) {
               groupLabel={selectedRow.groupLabel}
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
-            {props.copy.confirmNote ? (
-              <Text size="xs" c="var(--color-caution)">
-                {props.copy.confirmNote}
-              </Text>
-            ) : null}
+            {props.copy.confirmNote ? <FieldWarning>{props.copy.confirmNote}</FieldWarning> : null}
             <Group justify="flex-end" gap="xs">
               <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={props.onCancel}>
                 Cancel

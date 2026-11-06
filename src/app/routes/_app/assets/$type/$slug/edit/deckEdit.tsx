@@ -2,8 +2,7 @@ import { Menu, Popover } from '@mantine/core';
 import { DeckAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -25,26 +24,16 @@ import { DeckBackPicker, DeckBackProof } from '@app/pickers/DeckBackPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import type {
-  DeckChapter,
-  DeckDraft,
-  DeckDraftCardback,
-  DeckMemory,
-  DeckWarning,
-} from '@app/widgets/deck-editor/DeckEditor';
+import type { DeckChapter, DeckDraft, DeckMemory, DeckWarning } from '@app/widgets/deck-editor/DeckEditor';
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
-import { LoginGate } from '@app/widgets/page-message/LoginGate';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
 import {
-  AssetEditorMessage,
-  DriftedAssetPage,
+  AssetEditChecks,
   SaveErrorAlert,
   useAssetDeletion,
   useAssetGroupActions,
   assetNameField,
-  AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 import { LoadedDeckDraft } from '../../../loadedDrafts';
 
@@ -62,69 +51,32 @@ export function DeckEditPage({ slug, loaderData }: { slug: string; loaderData: A
   const query = useAssetPage('deck', slug, { initialData: loaderData });
   const data = query.data;
 
-  if (data === null) {
-    return (
-      <AssetEditorMessage title="Edit deck" type="deck">
-        <NotAvailable title="Deck not found">No deck lives at this address.</NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerResolved) {
-    return <AssetEditorViewerPending name={data.asset.name} type="deck" />;
-  }
-
-  if (data.viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
-        <LoginGate action="edit decks" />
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerAccess.capabilities.edit) {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="deck">
-        <NotAvailable title="You cannot edit this deck">
-          {data.viewerAccess.assignedGroup
-            ? 'Only the deck owner or an active member of its group can edit this deck.'
-            : 'Only the deck owner can edit this deck.'}
-        </NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  const parsed = DeckAsset.safeParse(data.asset.data);
-  if (!parsed.success) {
-    return (
-      <DriftedAssetPage asset={data.asset} noun="deck" canDelete={data.viewerAccess.capabilities.delete}>
-        {`This deck's stored data no longer matches the deck schema, so it cannot be edited here.`}
-      </DriftedAssetPage>
-    );
-  }
-
-  const initialCardback: DeckDraftCardback = parsed.data.cardback;
-
   return (
-    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
-      <DeckEditSession
-        key={data.asset.id}
-        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-        asset={data.asset}
-        members={data.members}
-        presets={data.cardbackPresets}
-        backDeck={data.backDeck}
-        danglingBack={data.resolvedBack?.mode === 'dangling'}
-        initialDraft={{ ...parsed.data, cardback: initialCardback }}
-      />
-    </BackgroundLibrary>
+    <AssetEditChecks
+      type="deck"
+      noun="deck"
+      schemaName="deck"
+      schema={DeckAsset}
+      data={data}
+      session={({ page, asset, access, initialDraft }) => (
+        <DeckEditSession
+          access={access}
+          asset={asset}
+          members={page.members}
+          presets={page.cardbackPresets}
+          backDeck={page.backDeck}
+          danglingBack={page.resolvedBack?.mode === 'dangling'}
+          initialDraft={initialDraft}
+        />
+      )}
+    />
   );
 }
 
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored deck has no room for (D3): the declared Custom intents, the composition kept across mode flips, the picked deck the tile draws, and whether a save has already complained.
  * `baseline` is what a reset returns to.
  */
@@ -332,11 +284,17 @@ function DeckEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          <SaveErrorAlert subject="deck" error={updateAsset.error} />
+          {deletion.error ? (
+            <ActionError subject="Deck" verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {groupActions.error}
           {setCount.error ? (
-            <FormError title="Could not change the composition">{mutationErrorMessage(setCount.error)}</FormError>
+            <ActionError subject="deck composition" verb="change">
+              {mutationErrorMessage(setCount.error)}
+            </ActionError>
           ) : null}
           {state.memory.pickBlocked && pickless ? (
             <Notice tone="caution" title="No deck picked" live>

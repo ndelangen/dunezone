@@ -2,7 +2,7 @@ import { Stack, Text } from '@mantine/core';
 import { CustomCardAsset, SpiceAsset } from '@shared/assets/schema';
 import { slugify } from '@shared/slugify';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
@@ -24,10 +24,10 @@ import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from '@app/w
 import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 
 import { assetNameField } from '../../assetEditorStates';
+import type { AssetEditSessionProps } from '../../assetEditorStates';
 import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
 import { SpiceBoardRead, spiceBoardSelect } from '../../spiceCardBoard';
 import { CardEditGate } from './edit/cardEditPage';
-import type { CardEditSessionProps } from './edit/cardEditPage';
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/convert-to-spice')({
   loader: async ({ params }) => {
@@ -70,7 +70,7 @@ function reduce(state: State, event: Event): State {
   }
 }
 
-function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps<{ name: string; about: string }>) {
+function ConversionSession({ asset, initialDraft, access }: AssetEditSessionProps<{ name: string; about: string }>) {
   const initial = { ...INITIAL_SPICE_DRAFT, name: initialDraft.name, about: initialDraft.about };
   const [state, dispatch] = useReducer(reduce, { draft: initial, initial });
   const [chapter, setChapter] = useState<SpiceChapter>('identity');
@@ -174,7 +174,9 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
             </Stack>
           </Notice>
           {conversion.error ? (
-            <FormError title="Could not convert">{mutationErrorMessage(conversion.error)}</FormError>
+            <ActionError subject="Card" verb="convert">
+              {mutationErrorMessage(conversion.error)}
+            </ActionError>
           ) : null}
           <SpiceBoardRead
             draft={state.draft}

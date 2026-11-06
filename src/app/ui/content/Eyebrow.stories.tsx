@@ -23,3 +23,9 @@ export const LongLabelWraps = meta.story({
   args: { tone: 'accent', children: 'Proposed content · page query required before launch' },
   globals: { viewport: { value: 'contentNarrow' } },
 });
+
+/** Centred over a centred preview, such as the token and card tiles in the faction editor. */
+export const Centered = meta.story({
+  args: { align: 'center', children: 'Used on: troop tokens' },
+  decorators: [(Story) => <div style={{ width: 240 }}>{Story()}</div>],
+});

@@ -1,8 +1,10 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Badge, Box, Grid, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Grid, Stack, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
 import { ListChapter } from '@ui/block/ListChapter';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -59,29 +61,23 @@ function SupportingLeaderCard({
               {(field) => {
                 const value = field.state.value ?? '';
                 const blank = value.trim().length === 0;
-                const warningId = `leader-${index}-name-warning`;
                 return (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Leader name"
-                      description="Printed around this leader token."
-                      input={
-                        <TextInput
-                          id={`leader-${index}-name`}
-                          aria-label="Leader name"
-                          value={value}
-                          aria-describedby={blank ? warningId : undefined}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => field.handleChange(event.currentTarget.value)}
-                        />
-                      }
-                    />
-                    {blank ? (
-                      <Text id={warningId} c="var(--color-caution)" size="xs" role="status">
-                        This leader has no name. This is advisory and does not prevent saving.
-                      </Text>
-                    ) : null}
-                  </Stack>
+                  <ControlBlock
+                    title="Leader name"
+                    description="Printed around this leader token."
+                    inputId={`leader-${index}-name`}
+                    warning={
+                      blank ? 'This leader has no name. This is advisory and does not prevent saving.' : undefined
+                    }
+                    input={(control) => (
+                      <TextInput
+                        {...control}
+                        value={value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.currentTarget.value)}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>
@@ -150,9 +146,7 @@ function SupportingLeaderCard({
               {({ background, leader: currentLeader, emblem }) =>
                 currentLeader ? (
                   <Stack align="center" gap="sm">
-                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-                      Used as: leader token
-                    </Text>
+                    <Eyebrow align="center">Used as: leader token</Eyebrow>
                     <Box w={132} aria-label={`Token preview for supporting leader ${index + 1}`}>
                       <LeaderToken
                         background={background}
@@ -237,9 +231,7 @@ export function FactionFormSectionLeaders({
             }
             actions={
               <>
-                <Badge variant="light" color="gray">
-                  {count} / {SUPPORTING_LEADER_LIMIT}
-                </Badge>
+                <StatusBadge>{`${count} / ${SUPPORTING_LEADER_LIMIT}`}</StatusBadge>
                 <ListLengthActions
                   removeLabel="Remove last supporting leader"
                   addLabel="Add supporting leader"

@@ -1,5 +1,6 @@
 import { Divider, Grid, Stack, Text } from '@mantine/core';
 import { ListChapter } from '@ui/block/ListChapter';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -53,9 +54,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
     >
       {(preview) => (
         <Stack align="stretch" gap="sm" pos="sticky" top="calc(var(--app-shell-header-offset, 0px) + 6rem)">
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-            Used on: Alliance card
-          </Text>
+          <Eyebrow align="center">Used on: Alliance card</Eyebrow>
           <CanvasScale canvasWidth={CARD_SIZE.width} canvasHeight={CARD_SIZE.height} frameClassName={styles.cardFrame}>
             <AllianceCard {...preview} />
           </CanvasScale>
@@ -84,28 +83,25 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Alliance advantage"
-                      description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
-                      input={
-                        <FormattedTextInput
-                          id="rules-alliance"
-                          aria-label="Alliance advantage"
-                          minRows={4}
-                          value={field.state.value}
-                          aria-describedby={blank ? 'rules-alliance-warning' : undefined}
-                          onBlur={field.handleBlur}
-                          onChange={field.handleChange}
-                        />
-                      }
-                    />
-                    {blank ? (
-                      <Text id="rules-alliance-warning" c="var(--color-caution)" size="xs" role="status">
-                        The alliance advantage is empty. This is advisory and does not prevent saving.
-                      </Text>
-                    ) : null}
-                  </Stack>
+                  <ControlBlock
+                    title="Alliance advantage"
+                    description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
+                    inputId="rules-alliance"
+                    warning={
+                      blank
+                        ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
+                        : undefined
+                    }
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={4}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>

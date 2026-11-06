@@ -4,11 +4,14 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Dices, Images, Map, X } from 'lucide-react';
-import { useReducer, useState } from 'react';
+import { useMemo, useReducer, useState } from 'react';
+
+import { useArrakisBoard } from '@app/db/arrakis';
 
 import styles from './ProductTerms.module.css';
 import { PRODUCT_TERMS, productTermMatches } from './productVocabulary';
 import { TintBoard } from './TintBoard';
+import { tintLessonTerritories } from './tintLesson';
 
 function GameStages() {
   return (
@@ -72,18 +75,18 @@ function tintReducer(state: TintDraft, event: TintEvent): TintDraft {
 function TintDemo() {
   const [draft, dispatch] = useReducer(tintReducer, INITIAL_TINT);
   const strongholds = draft.territory === 'strongholds';
+  const board = useArrakisBoard()?.definition;
+  const territories = useMemo(() => tintLessonTerritories(board, draft.territory), [board, draft.territory]);
   const tint: BoardTint = {
     id: 'lesson',
     name: strongholds ? 'Strongholds' : 'Spice blow',
     color: '#2f7fe0',
-    territories: strongholds
-      ? ['arrakeen', 'carthag', 'tabr', 'habbanya', 'tueks']
-      : ['the-great-flat', 'funeral-plain', 'habbanya-erg'],
+    territories,
     ...(draft.outline ? { outline: true } : {}),
     ...(draft.stickers ? { stamps: [strongholds ? 'city' : 'spice'] } : {}),
   };
   return (
-    <Section title="Build a tint" description="Choose territories, outlines and stickers to see the board change.">
+    <Section title="Build a tint" help="Choose territories, outlines and stickers to see the board change.">
       <Radio.Group
         label="Territories to tint"
         value={draft.territory}

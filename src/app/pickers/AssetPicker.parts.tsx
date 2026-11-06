@@ -1,5 +1,6 @@
-import { Box, Group, Stack, Text } from '@mantine/core';
+import { Box } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { TitledLine } from '@ui/content/TitledLine';
 
 import type { AssetListEntry } from '@app/db/assets';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
@@ -42,16 +43,10 @@ function AssetPickerPreview({ entry, side }: { entry: AssetListEntry; side?: Ass
 
 export function AssetPickerOptionRow({ entry, previewSide }: { entry: AssetListEntry; previewSide?: AssetFaceSide }) {
   return (
-    <Group gap="sm" wrap="nowrap" align="center">
-      <AssetPickerPreview entry={entry} side={previewSide} />
-      <Stack gap={2} miw={0}>
-        <Text size="sm" fw={700} lh={1.25}>
-          {entry.name}
-        </Text>
-        <Text size="xs" c="dimmed" lh={1.2}>
-          {assetTypeLabel(entry.type)} · {assetOwnerLabel(entry)}
-        </Text>
-      </Stack>
-    </Group>
+    <TitledLine
+      media={<AssetPickerPreview entry={entry} side={previewSide} />}
+      title={entry.name}
+      detail={`${assetTypeLabel(entry.type)} · ${assetOwnerLabel(entry)}`}
+    />
   );
 }

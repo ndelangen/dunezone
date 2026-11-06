@@ -19,7 +19,7 @@ export function BattlePlanPanel({ plan, notice, help }: BattlePlanPanelProps) {
     return <LedgerPlan {...plan} />;
   }
   return (
-    <Section hiddenHeading title="Battle" description={help}>
+    <Section hiddenHeading title="Battle" help={help}>
       <Text size="sm">{notice}</Text>
     </Section>
   );

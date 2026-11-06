@@ -2,8 +2,8 @@ import { Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
@@ -107,7 +107,9 @@ function FaqCreatePage() {
     return (
       <PageMessage title="Ask a question" back={backToRuleset}>
         {profile.data === undefined ? (
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         ) : (
           <LoginGate action="ask a question" />
         )}
@@ -173,7 +175,9 @@ function FaqCreatePage() {
             />
             <FaqTagFieldset />
             {askQuestion.error ? (
-              <FormError title="Question could not be asked">{askQuestion.error.message}</FormError>
+              <ActionError subject="Question" verb="ask">
+                {askQuestion.error.message}
+              </ActionError>
             ) : null}
             <Group gap="xs" wrap="nowrap">
               <LabeledAction

@@ -67,6 +67,7 @@
        * Stories and their fixtures stay free to stage the raw control.
        * A file with a real exception (a shaped game control, a split button) disables the rule on that one import and says why; the disable covers the file, so the reason must cover every Button in it.
        * Selectable list rows use the kit's `SelectableRow`; `ActionIcon` and `Alert` are banned the same way, for `IconAction` and `Notice`.
+       * `Badge`, `Title` and `Loader` follow (2026-11-06): `StatusBadge`, the titled blocks, and `Pending`.
        */
       "files": ["src/**"],
       "excludeFiles": [
@@ -92,6 +93,21 @@
                 "group": ["@mantine/core"],
                 "importNames": ["Alert"],
                 "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
               },
               {
                 "group": ["@mantine/core"],
@@ -143,6 +159,12 @@
       "files": ["src/**"],
       "excludeFiles": ["src/app/ui/**"],
       "rules": { "local/form-error": "error" }
+    },
+    {
+      /* A small capitals caption is the kit Eyebrow; stories may still stage the raw text. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx"],
+      "rules": { "local/eyebrow": "error" }
     },
     {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
@@ -271,6 +293,21 @@
               },
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],
                 "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
               },
@@ -333,6 +370,21 @@
                 "group": ["@mantine/core"],
                 "importNames": ["Alert"],
                 "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
               },
               {
                 "group": ["@mantine/core"],

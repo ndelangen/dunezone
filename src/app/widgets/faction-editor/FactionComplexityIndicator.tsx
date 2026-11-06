@@ -2,6 +2,7 @@ import { Popover, Progress, Stack, Text, Tooltip, UnstyledButton } from '@mantin
 import type { FactionInput } from '@shared/factions/schema';
 import { complexityEditorPresentation, complexityOutOfTen } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { FieldWarning } from '@ui/content/FieldWarning';
 import { DetachedSurfaceBoundary, Surface } from '@ui/surface';
 
 import styles from './FactionComplexityIndicator.module.css';
@@ -57,16 +58,15 @@ export function FactionComplexityIndicator({ form }: { form: FactionFormApi }) {
                       Estimated live from the rules text. Set your own rating in the Complexity tab.
                     </Text>
                     {deviates ? (
-                      <Text c="var(--color-caution)" size="xs" role="status">
-                        Your manual rating ({complexityOutOfTen(manual ?? 0)}/10) sits far from this estimate. This is
-                        advisory and does not prevent saving.
-                      </Text>
+                      <FieldWarning>
+                        {`Your manual rating (${complexityOutOfTen(manual ?? 0)}/10) sits far from this estimate. This is advisory and does not prevent saving.`}
+                      </FieldWarning>
                     ) : null}
                     {nearCapacity ? (
-                      <Text c="var(--color-caution)" size="xs" role="status">
-                        The rules text is approaching the printed sheet&rsquo;s capacity — consider trimming. This is
-                        advisory and does not prevent saving.
-                      </Text>
+                      <FieldWarning>
+                        The rules text is approaching the printed sheet’s capacity — consider trimming. This is advisory
+                        and does not prevent saving.
+                      </FieldWarning>
                     ) : null}
                   </Stack>
                 </Surface>

@@ -1,6 +1,6 @@
 import { TUTORIAL_PAGES } from '@shared/recordlessPublicPages';
 import { ClientOnly, createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -8,6 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard, useArrakisBoard } from '@db/arrakis';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -39,6 +40,8 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       throw notFound();
     }
   },
+  /* The saved Arrakis rides in the page's HTML, so the chapter's table sets up on it without waiting for a query. */
+  loader: async () => ({ arrakis: await loadArrakisBoard() }),
   head: ({ params }) => {
     const chapter = chapterAt(params.chapter);
     /* TUTORIAL_PAGES is held to CHAPTER_SCRIPTS by a test; the head reads it so the eager route tree does not pull every chapter script. */
@@ -59,8 +62,16 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
     const step = Number(params['step']);
     return Number.isInteger(step) && step > 1 ? { step } : {};
   },
-  component: ChapterPage,
+  component: SeededChapterPage,
 });
+
+function SeededChapterPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <ChapterPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 const chaptersLink = ({ children, ...props }: { children?: ReactNode }) => (
   <Link {...props} to="/tutorial">
@@ -83,6 +94,8 @@ function nextLinkAfter(slug: string) {
 
 function ChapterPage() {
   const current = useCurrentProfile();
+  /* The table opens on the saved Arrakis, so no move is made before its territories are known. */
+  const arrakis = useArrakisBoard();
   const { chapter: slug } = Route.useParams();
   const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
@@ -90,9 +103,9 @@ function ChapterPage() {
   if (!chapter || !script) {
     return (
       <PageMessage size="compact" title="Learn to play">
-        <NotAvailable title="This chapter is not ready yet">
+        <PageState kind="absent" title="This chapter is not ready yet">
           Pick another chapter from the Learn to play page.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -112,7 +125,7 @@ function ChapterPage() {
       </PageLayout.Content>
     </PageLayout>
   );
-  if (current.data === undefined) {
+  if (current.data === undefined || arrakis === undefined) {
     return loading;
   }
   return (

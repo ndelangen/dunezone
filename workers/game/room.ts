@@ -259,8 +259,12 @@ export class Room {
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
     private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
-    /** The board the game captured with its ruleset; a table without one plays on the bundled Arrakis preset. */
-    private readonly board: () => Board = () => arrakisBoardCapture.definition
+    /**
+     * The board the game captured with its ruleset;
+     * a table without one plays on the bundled Arrakis preset.
+     * The homepage and tutorial tables follow the saved Arrakis instead, and have no territories until it arrives.
+     */
+    private readonly board: () => Board | undefined = () => arrakisBoardCapture.definition
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
     this.settledRevision = this.snapshot.revision;

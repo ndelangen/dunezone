@@ -30,7 +30,7 @@ export const Problems = meta.story({
   },
   play: async ({ args, canvasElement }) => {
     const alert = within(canvasElement).getByRole('alert');
-    await expect(alert).toHaveTextContent('Could not save');
+    await expect(alert).toHaveTextContent('Faction could not be saved');
     await expect(alert).toHaveTextContent(args.errors[0]!);
   },
 });

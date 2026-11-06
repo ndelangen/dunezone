@@ -1,8 +1,10 @@
-import { Badge, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The catalogue's h1 sits under the masthead fan, which takes the header band. */
+import { Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import type { CSSProperties } from 'react';
@@ -10,7 +12,7 @@ import type { CSSProperties } from 'react';
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
 import { publicPageHead } from '@app/routes/publicPage';
-import { AssetFace, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
+import { AssetPile, assetFaceAspect } from '@app/widgets/asset-face/AssetFace';
 
 import styles from './index.module.css';
 
@@ -65,30 +67,24 @@ const PILE_GROUPS = PILE_ROWS.map(({ label, categories }) => ({
 }));
 
 function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
-  const fan = cards.slice(0, 5);
   return (
     <Stack gap={4} align="center">
-      <div style={{ position: 'relative', height: 230, width: 540 }} aria-hidden>
-        {fan.map((card, i) => {
-          const mid = (fan.length - 1) / 2;
-          const off = i - mid;
-          return (
-            <div
-              key={card.id}
-              style={{
-                position: 'absolute',
-                width: MASTHEAD_CARD,
-                left: `calc(50% - 70px + ${off * 90 + (JITTER_LEFT[i] ?? 0)}px)`,
-                top: 28 + Math.abs(off) * 16 + (JITTER_TOP[i] ?? 0),
-                transform: `rotate(${off * 8 + (JITTER_ROT[i] ?? 0)}deg)`,
-                transformOrigin: '50% 130%',
-              }}
-            >
-              <AssetFace href={card.previewHref} type={card.type} data={card.data} name={card.name} />
-            </div>
-          );
-        })}
-      </div>
+      <AssetPile
+        decorative
+        faces={cards.slice(0, 5)}
+        style={{ position: 'relative', height: 230, width: 540 }}
+        place={(i, count) => {
+          const off = i - (count - 1) / 2;
+          return {
+            position: 'absolute',
+            width: MASTHEAD_CARD,
+            left: `calc(50% - 70px + ${off * 90 + (JITTER_LEFT[i] ?? 0)}px)`,
+            top: 28 + Math.abs(off) * 16 + (JITTER_TOP[i] ?? 0),
+            transform: `rotate(${off * 8 + (JITTER_ROT[i] ?? 0)}deg)`,
+            transformOrigin: '50% 130%',
+          };
+        }}
+      />
     </Stack>
   );
 }
@@ -110,22 +106,17 @@ function MiniFan({ entries }: { entries: AssetListEntry[] }) {
   const spread = (entries.length - 1) * FAN_OVERLAP;
   const mid = (entries.length - 1) / 2;
   return (
-    <div style={{ display: 'grid', width: '100%', padding: '8px 0' }}>
-      {entries.map((entry, i) => (
-        <div
-          key={entry.id}
-          style={{
-            ...PILE_CELL,
-            /* The track can shrink below the spread on a stacked row, so the face floors at 1px rather than going negative. */
-            width: `max(1px, calc(100% - ${spread}px))`,
-            transformOrigin: '50% 120%',
-            transform: `translate(${i * FAN_OVERLAP}px, ${Math.abs(i - mid) * 3}px) rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
-          }}
-        >
-          <AssetFace href={entry.previewHref} type={entry.type} data={entry.data} name={entry.name} />
-        </div>
-      ))}
-    </div>
+    <AssetPile
+      faces={entries}
+      style={{ display: 'grid', width: '100%', padding: '8px 0' }}
+      place={(i) => ({
+        ...PILE_CELL,
+        /* The track can shrink below the spread on a stacked row, so the face floors at 1px rather than going negative. */
+        width: `max(1px, calc(100% - ${spread}px))`,
+        transformOrigin: '50% 120%',
+        transform: `translate(${i * FAN_OVERLAP}px, ${Math.abs(i - mid) * 3}px) rotate(${(i - mid) * 4 + (JITTER_ROT[i % JITTER_ROT.length] ?? 0)}deg)`,
+      })}
+    />
   );
 }
 
@@ -133,16 +124,15 @@ function MiniFan({ entries }: { entries: AssetListEntry[] }) {
 function DeckPile({ entries }: { entries: AssetListEntry[] }) {
   const top = entries[0] as AssetListEntry;
   return (
-    <div style={{ display: 'grid', width: '100%', paddingBottom: 10 }}>
-      {[2, 1, 0].map((n) => (
-        <div
-          key={n}
-          style={{ ...PILE_CELL, width: 'max(1px, calc(100% - 6px))', transform: `translate(${n * 2}px, ${n * 4}px)` }}
-        >
-          <AssetFace href={top.previewHref} type={top.type} data={top.data} name={top.name} />
-        </div>
-      ))}
-    </div>
+    <AssetPile
+      faces={[top, top, top]}
+      style={{ display: 'grid', width: '100%', paddingBottom: 10 }}
+      /* Drawn bottom card first, so the card at the pile's resting offset ends up on top. */
+      place={(i) => {
+        const n = 2 - i;
+        return { ...PILE_CELL, width: 'max(1px, calc(100% - 6px))', transform: `translate(${n * 2}px, ${n * 4}px)` };
+      }}
+    />
   );
 }
 
@@ -180,37 +170,32 @@ function TokenStack({ entries, fill }: { entries: AssetListEntry[]; fill: boolea
    */
   const boxHeight = TOKEN_PILE_FACE + (placements[0]?.top ?? 0) + 6;
   return (
-    <div style={{ position: 'relative', width: fill ? '100%' : TOKEN_PILE_FACE + 26, height: boxHeight }}>
-      {shown.map((entry, i) => {
+    <AssetPile
+      faces={shown}
+      style={{ position: 'relative', width: fill ? '100%' : TOKEN_PILE_FACE + 26, height: boxHeight }}
+      place={(i) => {
         const placement = placements[i] ?? { top: 0, left: 0, rot: 0 };
-        return (
-          <div
-            key={entry.id}
-            style={{
-              position: 'absolute',
-              top: placement.top,
-              left: 6 + placement.left,
-              width: fill ? 'max(1px, calc(100% - 26px))' : TOKEN_PILE_FACE,
-              height: TOKEN_PILE_FACE,
-              display: 'grid',
-              /*
-               * `alignItems`, which centres the face inside its row, and not `alignContent`, which centres
-               * the row inside this box and does nothing when the two are the same size.
-               * They part company for the one face that outgrows the band: a token frame carries
-               * `overflow: hidden`, which zeroes its automatic minimum size, so the auto row stops growing
-               * at this box's own height instead of reaching the face's. An enhance token past a 181px
-               * track then started at the row's top edge rather than straddling it, 5.94px low at a 200px
-               * track, which is the shared centreline this box exists to hold.
-               */
-              alignItems: 'center',
-              transform: straight ? undefined : `rotate(${placement.rot}deg)`,
-            }}
-          >
-            <AssetFace href={entry.previewHref} type={entry.type} data={entry.data} name={entry.name} />
-          </div>
-        );
-      })}
-    </div>
+        return {
+          position: 'absolute',
+          top: placement.top,
+          left: 6 + placement.left,
+          width: fill ? 'max(1px, calc(100% - 26px))' : TOKEN_PILE_FACE,
+          height: TOKEN_PILE_FACE,
+          display: 'grid',
+          /*
+           * `alignItems`, which centres the face inside its row, and not `alignContent`, which centres
+           * the row inside this box and does nothing when the two are the same size.
+           * They part company for the one face that outgrows the band: a token frame carries
+           * `overflow: hidden`, which zeroes its automatic minimum size, so the auto row stops growing
+           * at this box's own height instead of reaching the face's. An enhance token past a 181px
+           * track then started at the row's top edge rather than straddling it, 5.94px low at a 200px
+           * track, which is the shared centreline this box exists to hold.
+           */
+          alignItems: 'center',
+          transform: straight ? undefined : `rotate(${placement.rot}deg)`,
+        };
+      }}
+    />
   );
 }
 
@@ -250,9 +235,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
       }}
     >
       {planned ? (
-        <Badge size="xs" variant="outline" color="gray">
-          Planned
-        </Badge>
+        <StatusBadge>Planned</StatusBadge>
       ) : (
         <Text size="xs" c="dimmed" ta="center" px={6}>
           none yet

@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The reconnect pill on the dark table carries its own tooltip and colour. */
 import { Anchor, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
@@ -134,13 +135,12 @@ function seatLabel(table: TableProjection): string {
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
-    <Section
-      hiddenHeading={Boolean(table.snapshot.stage)}
-      eyebrow="Hosted fixture"
-      title="Hosted connection"
-      description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
-    >
+    <Section hiddenHeading={Boolean(table.snapshot.stage)} eyebrow="Hosted fixture" title="Hosted connection">
       <Stack gap="sm">
+        <Text
+          size="sm"
+          c="dimmed"
+        >{`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}</Text>
         {error && <FormError title="From the table">{error}</FormError>}
         <ConnectedReplayPanel client={client} table={table} />
       </Stack>
@@ -263,7 +263,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={phaseHelp(table)}
+      help={phaseHelp(table)}
     >
       {!table.snapshot.stage && <Text size="sm">{PHASE_PREVIOUS}</Text>}
     </Section>

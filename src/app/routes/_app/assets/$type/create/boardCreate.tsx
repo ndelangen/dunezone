@@ -3,8 +3,8 @@ import { blankBoard, derive } from '@shared/boards/geometry';
 import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -79,7 +79,9 @@ export function BoardCreatePage() {
   if (viewer.kind === 'pending') {
     return (
       <AssetEditorMessage type="board" title="New board">
-        <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+        <PageState kind="pending" title="Loading your profile">
+          Checking whether you are signed in.
+        </PageState>
       </AssetEditorMessage>
     );
   }
@@ -162,7 +164,11 @@ export function BoardCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && <FormError title="Could not create">{saving.error.message}</FormError>}
+          {saving.error && (
+            <ActionError subject="Board" verb="create">
+              {saving.error.message}
+            </ActionError>
+          )}
           <BoardEditor
             state={state.editor}
             dispatch={(event) => dispatch({ kind: 'editor', event })}

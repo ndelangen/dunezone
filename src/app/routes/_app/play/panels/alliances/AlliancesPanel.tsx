@@ -31,7 +31,7 @@ export type AlliancesPanelProps = Readonly<{
  */
 export function AlliancesPanel({ rows, disabled, onAction }: AlliancesPanelProps) {
   return (
-    <Section hiddenHeading title="Alliances" description={ALLIANCES_HELP}>
+    <Section hiddenHeading title="Alliances" help={ALLIANCES_HELP}>
       <Stack gap="xs">
         {rows.map((row) => (
           <Group key={row.token.id} gap="sm" wrap="nowrap" align="flex-start">

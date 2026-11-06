@@ -21,7 +21,7 @@ export interface PageMessageProps {
   size?: PageHeaderSize;
   /** The way out, as a `PageMessage.Back`. Omit it on a page that is already the top of its own branch. */
   back?: ReactNode;
-  /** What the page has to say: `LoadPending`, `NotAvailable`, `LoadError`, `LoginGate`. */
+  /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. */
   children: ReactNode;
 }
 

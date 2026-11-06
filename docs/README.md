@@ -517,7 +517,9 @@ Dune card/faction rendering and Storybook stories live in `src/game`. **Source**
 (#1888). `bun run media:sync` downloads them into `media/` and uploads new or changed ones.
 Everything under `public/m/**`, `public/image/**` and `public/web/**` is generated output and
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
-(`src/shared/assetRules.ts`). Run `bun run generate:images` locally, and see the image pipeline
+(`src/shared/assetRules.ts`). `app:dev`, `storybook` and `play:local` bring it up to date on start
+(`generate:images --if-stale`), filling from a store shared by every checkout on the machine and from
+`https://dune.zone/m/`, so a fresh worktree makes no requests once another has run. See the image pipeline
 section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/media-runbooks.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
 the typed public-asset catalog used by game schemas, and `src/shared/media/vectorCrops.generated.ts`,
 the geometry used to fit illustrations after square normalization.

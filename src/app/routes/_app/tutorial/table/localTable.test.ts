@@ -1,4 +1,5 @@
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { storedSpawnContentsSchema } from '@shared/play/inventory';
 import type { PieceAction, ServerMessage } from '@shared/play/protocol';
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
@@ -364,5 +365,17 @@ describe('a tutorial table’s landings', () => {
   test('records a stack picked up whole as a carry that did not grow', () => {
     const piece = carry('whole', 0);
     expect(table.landings()).toEqual([{ itemIds: piece.items.map((item) => item.id), grew: false }]);
+  });
+});
+
+describe('the tutorial guide’s view of a table', () => {
+  test('is kept between frames, and follows the board the page puts the table on', () => {
+    const table = new LocalTable(startAt(setup as unknown as TutorialSetup, 'turn-1-storm', 'https://dune.zone'));
+    const before = table.guideSnapshot();
+    expect(before.board).toBeUndefined();
+    expect(table.guideSnapshot()).toBe(before);
+    table.setBoard(arrakisBoardCapture);
+    expect(table.guideSnapshot().board).toEqual(arrakisBoardCapture);
+    table.dispose();
   });
 });

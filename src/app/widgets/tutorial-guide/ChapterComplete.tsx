@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The tutorial dialog names itself by this heading's id; the tutorial pages stay as they are. */
 import { Stack, Text, Title } from '@mantine/core';
 import { KeyedText } from '@ui/content/Kbd';
 import { CallToAction } from '@ui/control/CallToAction';

@@ -15,7 +15,6 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
   if (!advantage) {
     return null;
   }
-  const warningId = `adv-${index}-text-warning`;
 
   return (
     <Stack gap="md">
@@ -48,27 +47,22 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
         {(field) => {
           const textIsBlank = field.state.value.trim().length === 0;
           return (
-            <Stack gap="md">
-              <ControlBlock
-                title="Advantage rule"
-                input={
-                  <FormattedTextInput
-                    id={`adv-${index}-text`}
-                    aria-label="Advantage rule"
-                    minRows={3}
-                    value={field.state.value}
-                    aria-describedby={textIsBlank ? warningId : undefined}
-                    onBlur={field.handleBlur}
-                    onChange={field.handleChange}
-                  />
-                }
-              />
-              {textIsBlank ? (
-                <Text id={warningId} c="var(--color-caution)" size="xs" role="status">
-                  Advantage text is empty. This is advisory and does not prevent saving.
-                </Text>
-              ) : null}
-            </Stack>
+            <ControlBlock
+              title="Advantage rule"
+              inputId={`adv-${index}-text`}
+              warning={
+                textIsBlank ? 'Advantage text is empty. This is advisory and does not prevent saving.' : undefined
+              }
+              input={(control) => (
+                <FormattedTextInput
+                  {...control}
+                  minRows={3}
+                  value={field.state.value}
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
+                />
+              )}
+            />
           );
         }}
       </form.Field>
