@@ -32,9 +32,13 @@ function senderTokens(
 /** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
 export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
   const { conversations: view, table } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  /* The tokens follow the table's snapshot, not every clock tick or connection change. */
+  /* Only at the table or in a recall does every faction write; the tokens follow the table's snapshot, not every clock tick. */
+  const shared = peerId === TABLE_CONVERSATION || isRecallConversation(peerId);
   const snapshot = table?.snapshot;
-  const tokens = useMemo(() => senderTokens(view.context, snapshot), [view.context, snapshot]);
+  const senders = useMemo(
+    () => (shared ? senderTokens(view.context, snapshot) : null),
+    [shared, view.context, snapshot]
+  );
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
@@ -50,7 +54,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       online={view.online}
       page={page}
       pending={view.pending.filter((entry) => entry.request.peerId === peerId)}
-      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? tokens : null}
+      senders={senders}
       unread={Boolean(summary?.unread) && latest === summary?.latest}
       drafts={client.conversations.drafts}
       onLoad={(before) => client.conversations.load({ peerId, before })}
