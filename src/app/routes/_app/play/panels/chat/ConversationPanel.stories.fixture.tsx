@@ -6,9 +6,10 @@ import { fn } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { conversationMessages, conversationPair, tableMessages } from '../../game.stories.fixture';
+import { factionToken } from '../../multiplayer/FactionTokenFace';
 import { ServerClockContext } from '../../multiplayer/useServerNow';
 import { playingSnapshot } from '../../product.stories.fixture';
-import { panelMeta } from '../PanelWindow.stories.fixture';
+import { panelMeta, tableOf } from '../PanelWindow.stories.fixture';
 import { PANEL_WINDOWS } from '../panelWindows';
 import { ConversationPanel } from './ConversationPanel';
 import type { ConversationPanelProps } from './ConversationPanel';
@@ -44,14 +45,17 @@ export function playerChatArgs(): ConversationPanelProps {
   };
 }
 
-/** The table's chat as seat 2 reads it: several factions talking, each message naming its writer's faction. */
+/** The table's chat as seat 2 reads it: several factions talking, each message beside its writer's faction token. */
 export function tableChatArgs(): ConversationPanelProps {
-  const seats = playingSnapshot().roster!.seats;
+  const snapshot = playingSnapshot();
+  const table = tableOf(snapshot);
+  const factions = snapshot.roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction] : []));
+  const names = Object.fromEntries(factions.map((faction) => [faction.id, faction.name]));
   return {
     ...playerChatArgs(),
     peerId: TABLE_CONVERSATION,
     page: savedPage(tableMessages()),
-    senders: Object.fromEntries(seats.flatMap((seat) => (seat.faction ? [[seat.faction.id, seat.faction.name]] : []))),
+    senders: Object.fromEntries(factions.map((faction) => [faction.id, factionToken(table, faction.id, names)])),
   };
 }
 
