@@ -53,55 +53,62 @@ export function mediaPackKey(sha256: string): string {
 
 export const MEDIA_PACK_INDEX_KEY = 'packs/latest.json';
 
-const isEntry = (value: unknown): value is MediaPackEntry => {
-  const entry = value as Record<string, unknown> | null;
-  return (
-    !!entry &&
-    typeof entry.name === 'string' &&
-    VARIANT_NAME.test(entry.name) &&
-    typeof entry.sha256 === 'string' &&
-    SHA256.test(entry.sha256) &&
-    Number.isSafeInteger(entry.bytes) &&
-    (entry.bytes as number) > 0 &&
-    Number.isSafeInteger(entry.offset)
-  );
+const isText = (pattern: RegExp) => (value: unknown) => typeof value === 'string' && pattern.test(value);
+const isCount = (value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0;
+const isNonEmptyList = (value: unknown) => Array.isArray(value) && value.length > 0;
+
+/** One check per field of a pack entry. */
+const ENTRY_FIELDS: Record<keyof MediaPackEntry, (value: unknown) => boolean> = {
+  name: isText(VARIANT_NAME),
+  sha256: isText(SHA256),
+  bytes: (value) => isCount(value) && (value as number) > 0,
+  offset: isCount,
 };
 
-/** A pack's entries must tile it exactly, in order, so no byte is unaccounted for. */
-function packProblem(value: unknown): string | null {
-  const pack = value as Record<string, unknown> | null;
-  if (!pack || typeof pack.sha256 !== 'string' || !SHA256.test(pack.sha256) || !Number.isSafeInteger(pack.bytes)) {
-    return 'A pack is malformed';
-  }
-  if (!Array.isArray(pack.entries) || pack.entries.length === 0 || !pack.entries.every(isEntry)) {
-    return `Pack ${pack.sha256} lists a malformed entry`;
-  }
-  let offset = 0;
-  for (const entry of pack.entries as MediaPackEntry[]) {
-    if (entry.offset !== offset) {
-      return `Pack ${pack.sha256} does not tile at ${entry.name}`;
-    }
-    offset += entry.bytes;
-  }
-  return offset === pack.bytes ? null : `Pack ${pack.sha256} entries do not add up to its length`;
+function isEntry(value: unknown): value is MediaPackEntry {
+  const entry = (value ?? {}) as Record<string, unknown>;
+  return Object.entries(ENTRY_FIELDS).every(([field, check]) => check(entry[field]));
+}
+
+/** The length the entries cover when each starts where the previous one ended, or -1 at the first gap or overlap. */
+function tiledLength(entries: readonly MediaPackEntry[]): number {
+  return entries.reduce((offset, entry) => (offset === entry.offset ? offset + entry.bytes : -1), 0);
+}
+
+/** Each rule a pack must meet, in order, with the reason it is refused when it does not. A pack's entries must tile it exactly. */
+const PACK_RULES: [(pack: Record<string, unknown>) => boolean, string][] = [
+  [(pack) => isText(SHA256)(pack.sha256) && isCount(pack.bytes), 'A pack is malformed'],
+  [
+    (pack) => isNonEmptyList(pack.entries) && (pack.entries as unknown[]).every(isEntry),
+    'A pack lists a malformed entry',
+  ],
+  [(pack) => tiledLength(pack.entries as MediaPackEntry[]) === pack.bytes, "A pack's entries do not tile it exactly"],
+];
+
+/** Each rule an index must meet, in order, with the reason it is refused when it does not. */
+const INDEX_RULES: [(index: Record<string, unknown>) => boolean, string][] = [
+  [
+    (index) => index.schemaVersion === 1 && isText(RELEASE)(index.release),
+    'The index must be schemaVersion 1 and name its release',
+  ],
+  [(index) => isNonEmptyList(index.packs), 'The index lists no packs'],
+];
+
+function firstFailure<T>(value: T, rules: readonly [(value: T) => boolean, string][]): string | null {
+  return rules.find(([meets]) => !meets(value))?.[1] ?? null;
 }
 
 /** Returns the reason an index is unacceptable, or null when it is well formed. */
 export function indexProblem(value: unknown): string | null {
-  const index = value as Record<string, unknown> | null;
-  if (!index || index.schemaVersion !== 1 || typeof index.release !== 'string' || !RELEASE.test(index.release)) {
-    return 'The index must be schemaVersion 1 and name its release';
+  const index = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const packs = (index.packs ?? []) as Record<string, unknown>[];
+  const problem =
+    firstFailure(index, INDEX_RULES) ??
+    packs.map((pack) => firstFailure((pack ?? {}) as Record<string, unknown>, PACK_RULES)).find(Boolean);
+  if (problem) {
+    return problem;
   }
-  if (!Array.isArray(index.packs) || index.packs.length === 0) {
-    return 'The index lists no packs';
-  }
-  for (const pack of index.packs) {
-    const problem = packProblem(pack);
-    if (problem) {
-      return problem;
-    }
-  }
-  const names = (index.packs as MediaPack[]).flatMap((pack) => pack.entries.map((entry) => entry.name));
+  const names = (packs as MediaPack[]).flatMap((pack) => pack.entries.map((entry) => entry.name));
   return new Set(names).size === names.length ? null : 'The index lists a variant twice';
 }
 
@@ -200,6 +207,15 @@ async function storeIndex(call: Call): Promise<Response> {
   );
 }
 
+/** Stores a pack, or the index when no pack is named, once the publish token checks out. */
+async function publish(call: Call, pack: string | undefined): Promise<Response> {
+  const refusal = await authorizeBearer(call.request, call.env.MEDIA_PUBLISH_TOKEN, 'Publishing');
+  if (refusal) {
+    return jsonError(refusal);
+  }
+  return pack ? await storePack(call, pack) : await storeIndex(call);
+}
+
 /** Answers `/__media/packs`, or returns null for any other path. */
 export async function handleMediaPackRequest(
   request: Request,
@@ -218,12 +234,5 @@ export async function handleMediaPackRequest(
   if (request.method === 'GET' || request.method === 'HEAD') {
     return pack ? await servePack(call, pack) : await serveIndex(call);
   }
-  if (request.method !== 'PUT') {
-    return jsonError(METHOD_NOT_ALLOWED);
-  }
-  const refusal = await authorizeBearer(request, env.MEDIA_PUBLISH_TOKEN, 'Publishing');
-  if (refusal) {
-    return jsonError(refusal);
-  }
-  return pack ? await storePack(call, pack) : await storeIndex(call);
+  return request.method === 'PUT' ? await publish(call, pack) : jsonError(METHOD_NOT_ALLOWED);
 }

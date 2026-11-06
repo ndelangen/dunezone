@@ -91,10 +91,10 @@ describe('media packs', () => {
     expect(indexProblem(index)).toBeNull();
     const gap = structuredClone(index);
     gap.packs[0].entries[1].offset = 4;
-    expect(indexProblem(gap)).toMatch(/does not tile/);
+    expect(indexProblem(gap)).toMatch(/tile it exactly/);
     const short = structuredClone(index);
     short.packs[0].bytes = 6;
-    expect(indexProblem(short)).toMatch(/add up/);
+    expect(indexProblem(short)).toMatch(/tile it exactly/);
     const twice = structuredClone(index);
     twice.packs.push(structuredClone(index.packs[0]));
     expect(indexProblem(twice)).toMatch(/twice/);
