@@ -76,8 +76,8 @@ html[data-motion="reduce"] .story {
 }
 
 .story {
-  margin: 0 -0.4rem;
-  padding: 0.15rem 0.4rem;
+  margin: 0 calc(var(--space-xs) * -0.8);
+  padding: calc(var(--space-xs) * 0.3) calc(var(--space-xs) * 0.8);
   border-radius: 0.35rem;
   transition: background-color 160ms ease;
 }

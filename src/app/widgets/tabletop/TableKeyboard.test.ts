@@ -105,6 +105,32 @@ describe('the piece keys that act now, as the shortcuts window reads them', () =
     expect([...pieceKeysNow(controls)]).toContain('flip');
   });
 
+  test('a locked deck or one in an inventory neither draws nor shuffles, as the room turns both down', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    for (const change of [{ locked: true }, { inventory: 'shared' as const }]) {
+      controls.state = {
+        ...controls.state,
+        pieces: controls.state.pieces.map((piece) => (piece.id === 'treachery-deck' ? { ...piece, ...change } : piece)),
+      };
+      expect([...pieceKeysNow(controls)]).not.toContain('shuffle');
+      expect([...pieceKeysNow(controls)]).not.toContain('draw');
+    }
+  });
+
+  test('a carried piece that cannot turn over, such as a marker, offers no flip', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const marker = { ...deck, kind: 'marker' as const };
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) => (piece.id === deck.id ? marker : piece)),
+      draftMove: draftForGesture(marker, 'top'),
+    };
+    expect([...pieceKeysNow(controls)]).not.toContain('flip');
+  });
+
   test('a viewer who may not handle the table has no live piece keys', () => {
     const { controls } = table();
     controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
@@ -771,4 +797,18 @@ describe('Tab pings', () => {
     expect(tab('keydown', {}, button).defaultPrevented).toBe(true);
     expect(controls.ping).toHaveBeenCalledTimes(1);
   });
+});
+
+test('F on a piece that cannot turn over is left for the window it opens', () => {
+  const { controls } = table();
+  controls.state = {
+    ...controls.state,
+    pieces: controls.state.pieces.map((piece) =>
+      piece.id === controls.state.selectedPieceId ? { ...piece, locked: true } : piece
+    ),
+  };
+  const event = new KeyboardEvent('keydown', { key: 'f', bubbles: true, cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(false);
+  expect(controls.flipSelected).not.toHaveBeenCalled();
 });

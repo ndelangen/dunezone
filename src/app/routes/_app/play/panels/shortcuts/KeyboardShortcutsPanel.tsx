@@ -1,8 +1,12 @@
+import { Section } from '@ui/block/Section';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { IconAction } from '@ui/control/IconAction';
 import clsx from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+
+import { useMotionAllowed } from '@app/styles/motion';
 
 import { GROUPS, SHORTCUT_ENTRIES, capsOf, isNow, momentLabel } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
@@ -16,9 +20,19 @@ import type { Pressed } from './usePressedKey';
 /* The window keys are relevant at every moment, so they follow whatever is special right now. */
 const WINDOWS = ['compass', 'hand', 'hidden', 'battle', 'table', 'ally'];
 
-function NowTile({ entry, pressed, index }: Readonly<{ entry: ShortcutEntry; pressed: Pressed; index: number }>) {
+function NowTile({
+  entry,
+  pressed,
+  index,
+  lit = false,
+}: Readonly<{ entry: ShortcutEntry; pressed: Pressed; index: number; lit?: boolean }>) {
   return (
-    <li className={clsx(styles.tile, tinted)} data-group={entry.group} style={{ animationDelay: `${index * 40}ms` }}>
+    <li
+      className={clsx(styles.tile, tinted)}
+      data-group={entry.group}
+      data-now={lit || undefined}
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
       <PressFlash pressed={pressed} keys={capsOf(entry)}>
         <span className={styles.big}>
           <Keys entry={entry} />
@@ -57,6 +71,13 @@ function useOverflow(row: RefObject<HTMLUListElement | null>, tiles: number) {
   return more;
 }
 
+/* When the keys of the moment change, such as bidding opening while the window is pinned, the row scrolls back to show them. */
+function useRowStart(row: RefObject<HTMLUListElement | null>, moment: string) {
+  useEffect(() => {
+    row.current?.scrollTo({ left: 0 });
+  }, [row, moment]);
+}
+
 /**
  * The keyboard shortcuts window, one scrolling sheet in three layers: the keys that matter right now in one horizontal row, then the whole keyboard colour-coded by group, each key's tooltip telling what it does and how to remember it, then every key listed in its colour-coded group with its memory hook.
  * A key pressed while it is open lights in all three.
@@ -65,20 +86,29 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
   const [focus, setFocus] = useState<string | null>(null);
   const pressed = usePressedKey((key) => setFocus(key));
   const current = SHORTCUT_ENTRIES.filter((entry) => isNow(entry, now));
-  const windows = WINDOWS.flatMap((id) => SHORTCUT_ENTRIES.filter((entry) => entry.id === id));
+  /* A window key that a key of this moment takes over, such as F flipping the piece instead of opening Ally chat, leaves the row. */
+  const taken = new Set(current.flatMap(capsOf));
+  const windows = WINDOWS.flatMap((id) => SHORTCUT_ENTRIES.filter((entry) => entry.id === id)).filter(
+    (entry) => !capsOf(entry).some((cap) => taken.has(cap))
+  );
   const row = useRef<HTMLUListElement>(null);
   const more = useOverflow(row, current.length);
+  const motion = useMotionAllowed();
   const page = (direction: 1 | -1) =>
-    row.current?.scrollBy({ left: direction * row.current.clientWidth * 0.8, behavior: 'smooth' });
+    row.current?.scrollBy({
+      left: direction * row.current.clientWidth * 0.8,
+      behavior: motion ? 'smooth' : 'instant',
+    });
+  useRowStart(row, current.map((entry) => entry.id).join(' '));
 
   return (
     <div className={styles.root}>
       <section aria-label="Right now">
-        <p className={styles.eyebrow}>Right now · {momentLabel(now)}</p>
+        <Eyebrow tone="accent">{`Right now · ${momentLabel(now)}`}</Eyebrow>
         <div className={styles.rowFrame}>
           <ul className={styles.row} ref={row}>
             {current.map((entry, index) => (
-              <NowTile key={entry.id} entry={entry} pressed={pressed} index={index} />
+              <NowTile key={entry.id} entry={entry} pressed={pressed} index={index} lit />
             ))}
             {current.length > 0 && <li className={styles.divider} aria-hidden />}
             {windows.map((entry, index) => (
@@ -110,14 +140,20 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
       </section>
 
       {GROUPS.map((group) => (
-        <section key={group.id} aria-label={group.title} data-group={group.id} className={clsx(styles.group, tinted)}>
-          <h3 className={styles.groupTitle}>{group.title}</h3>
-          <ul className={styles.list}>
-            {SHORTCUT_ENTRIES.filter((entry) => entry.group === group.id).map((entry) => (
-              <KeyStory key={entry.id} entry={entry} now={now} lit={focus !== null && capsOf(entry).includes(focus)} />
-            ))}
-          </ul>
-        </section>
+        <div key={group.id} data-group={group.id} className={clsx(styles.group, tinted)}>
+          <Section title={group.title}>
+            <ul className={styles.list}>
+              {SHORTCUT_ENTRIES.filter((entry) => entry.group === group.id).map((entry) => (
+                <KeyStory
+                  key={entry.id}
+                  entry={entry}
+                  now={now}
+                  lit={focus !== null && capsOf(entry).includes(focus)}
+                />
+              ))}
+            </ul>
+          </Section>
+        </div>
       ))}
     </div>
   );

@@ -35,6 +35,13 @@
 }
 
 /* Each group takes one of the palette's colour roles, for its caps' edge and its headings; scoped to .tinted so other data-group marks stay untouched. */
+/* One edge and one fill per state, shared by the row's tiles, the keyboard's keys and the legend, so a group reads the same colour everywhere. */
+.tinted {
+  --group-edge: color-mix(in srgb, var(--group) 50%, transparent);
+  --group-fill: color-mix(in srgb, var(--group) 9%, transparent);
+  --group-fill-now: color-mix(in srgb, var(--group) 24%, transparent);
+}
+
 .tinted[data-group="windows"] {
   --group: var(--color-brand);
 }

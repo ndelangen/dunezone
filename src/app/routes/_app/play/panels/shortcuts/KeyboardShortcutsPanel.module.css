@@ -6,15 +6,6 @@
   container: shortcuts / inline-size;
 }
 
-.eyebrow {
-  margin: 0;
-  color: var(--color-brand);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 /* The row of what matters now: one line of tiles that scrolls sideways, never wraps. */
 .row {
   display: flex;
@@ -31,14 +22,20 @@
   display: flex;
   flex: none;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: calc(var(--space-xs) * 0.3);
   width: 7.5rem;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid color-mix(in srgb, var(--group) 50%, transparent);
+  padding: var(--space-xs) calc(var(--space-xs) * 1.2);
+  border: 1px solid var(--group-edge);
   border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--group) 10%, transparent);
+  background: var(--group-fill);
   scroll-snap-align: start;
   animation: pop 220ms ease-out backwards;
+}
+
+/* A key of this moment wears the same lit fill and full edge as its key on the keyboard below. */
+.tile[data-now] {
+  border-color: var(--group);
+  background: var(--group-fill-now);
 }
 
 .big {
@@ -61,7 +58,7 @@
 .divider {
   flex: none;
   width: 1px;
-  margin: 0.3rem 0.15rem;
+  margin: calc(var(--space-xs) * 0.6) calc(var(--space-xs) * 0.3);
   background: color-mix(in srgb, var(--color-text) 18%, transparent);
 }
 
@@ -80,10 +77,10 @@
 }
 
 .chip {
-  padding: 0.1rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--group) 60%, transparent);
+  padding: calc(var(--space-xs) * 0.2) calc(var(--space-xs) * 1.1);
+  border: 1px solid var(--group-edge);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--group) 12%, transparent);
+  background: var(--group-fill);
   color: var(--group);
   font-size: 0.72rem;
   font-weight: 600;
@@ -95,18 +92,9 @@
   border-left: 3px solid var(--group);
 }
 
-.groupTitle {
-  margin: 0 0 var(--space-xs);
-  color: var(--group);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .list {
   display: grid;
-  gap: 0.3rem;
+  gap: calc(var(--space-xs) * 0.6);
   margin: 0;
   padding: 0;
   list-style: none;

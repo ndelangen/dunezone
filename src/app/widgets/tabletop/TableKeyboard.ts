@@ -1,5 +1,5 @@
 import { offersPieceAction } from '@shared/play/commands';
-import { canTakeAdditionalFromDraft } from '@shared/play/tableState';
+import { canFlipInHand, canTakeAdditionalFromDraft, heldPieceFor } from '@shared/play/tableState';
 
 import type { TabletopContextValue } from './TabletopContext';
 
@@ -29,29 +29,41 @@ function targetPieceId({ state, hoveredPieceId }: Reads) {
   return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
 }
 
-/* T draws from a deck under the pointer that the viewer may handle, with cards in it. */
-function canDraw(controls: Reads, pieceId: string) {
+/* How many cards the deck under the pointer holds, when the viewer may draw from or shuffle it: the room turns down a locked deck or one in an inventory. */
+function handleableDeckSize(controls: Reads, pieceId: string) {
   const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-  return (
+  const handleable =
     controls.canHandleTable &&
     controls.hoveredPieceId === pieceId &&
+    controls.deckControls != null &&
     piece?.kind === 'card' &&
-    piece.items.length > 0 &&
     !piece.locked &&
-    !piece.inventory &&
-    controls.deckControls != null
+    !piece.inventory;
+  return handleable ? piece.items.length : 0;
+}
+
+/*
+ * F turns the piece over when the room would: a carried piece by its in-hand rule, a resting one by its own flip check.
+ * The table cannot see which prediction cards are still unrevealed, so it counts them as revealed and lets the session turn one down.
+ */
+function canFlip({ state }: Reads, pieceId: string) {
+  if (state.draftMove) {
+    return canFlipInHand(heldPieceFor(state, state.draftMove), () => false);
+  }
+  return offersPieceAction(
+    state.pieces.find((candidate) => candidate.id === pieceId),
+    'flip'
   );
+}
+
+/* T draws from a deck under the pointer with cards in it. */
+function canDraw(controls: Reads, pieceId: string) {
+  return handleableDeckSize(controls, pieceId) > 0;
 }
 
 /* R shuffles a deck of two or more under the pointer. */
 function canShuffle(controls: Reads, pieceId: string) {
-  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-  return (
-    controls.hoveredPieceId === pieceId &&
-    piece?.kind === 'card' &&
-    piece.items.length > 1 &&
-    controls.deckControls != null
-  );
+  return handleableDeckSize(controls, pieceId) > 1;
 }
 
 /** A piece key's job, as the keyboard shortcuts window names it. */
@@ -70,16 +82,17 @@ function carryKeys(state: Reads['state'], keys: Set<PieceKey>) {
 
 /* The keys a piece at rest answers to, by the room's own checks: a locked piece does none, only cards and forces flip, only two or more split. */
 function pieceKeys(controls: Reads, pieceId: string, keys: Set<PieceKey>) {
-  /* A carried piece turns and flips in hand, as the session does with the carry; splitting and the deck keys wait until it is put down. */
-  if (controls.state.draftMove) {
+  if (canFlip(controls, pieceId)) {
     keys.add('flip');
+  }
+  /* A carried piece turns in hand, as the session does with the carry; splitting and the deck keys wait until it is put down. */
+  if (controls.state.draftMove) {
     keys.add('turn');
     return;
   }
   const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
   const offered = (
     [
-      ['flip', 'flip'],
       ['rotate', 'turn'],
       ['split', 'split'],
     ] as const
@@ -495,9 +508,11 @@ export class TableKeyboard {
       controls.rotateSelected(key === TABLE_KEYS.turnLeft ? -1 : 1, pieceId);
       return;
     }
-    /* F turns over a held piece in hand as it does one at rest. */
+    /* F turns over a held piece in hand as it does one at rest; a piece that cannot turn over leaves F to open Ally chat. */
     if (key === TABLE_KEYS.flip) {
-      pressOnce(event, () => controls.flipSelected(pieceId));
+      if (canFlip(controls, pieceId)) {
+        pressOnce(event, () => controls.flipSelected(pieceId));
+      }
       return;
     }
     if (!state.draftMove) {
