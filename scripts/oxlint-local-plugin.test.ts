@@ -239,6 +239,13 @@ describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => 
     );
   });
 
+  test('bans a raw ActionIcon, so a glyph action always carries its name and tooltip', async () => {
+    const icon = "import { ActionIcon } from '@mantine/core';\nexport const probe = ActionIcon;\n";
+    expect(await lintDiagnostics('probe.tsx', icon, 'src/app/routes/probe')).toContain(
+      "'ActionIcon' import from '@mantine/core' is restricted"
+    );
+  });
+
   test('leaves the kit alone', async () => {
     expect(await lintDiagnostics('probe.tsx', source, 'src/app/ui/control')).not.toContain('Button');
   });

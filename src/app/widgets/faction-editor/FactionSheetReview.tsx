@@ -1,7 +1,8 @@
-import { ActionIcon, Group, Stack, Text, Title } from '@mantine/core';
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
 import { Notice } from '@ui/block/Notice';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ChevronDown, X } from 'lucide-react';
@@ -157,16 +158,14 @@ function ReviewHeading({
           <LabeledAction icon={<X size={16} />} onClick={onClose}>
             Return to editing
           </LabeledAction>
-          <ActionIcon
+          <IconAction
             ref={closeButtonRef}
-            type="button"
-            variant="default"
+            label="Close faction sheet review"
+            emphasis="standard"
             size="lg"
-            aria-label="Close faction sheet review"
             onClick={onClose}
-          >
-            <X size={18} aria-hidden />
-          </ActionIcon>
+            icon={<X size={18} />}
+          />
         </Group>
       </Group>
       <Notice tone="caution" title="Share the faction URL, not a screenshot">

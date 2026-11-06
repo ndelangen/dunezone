@@ -85,7 +85,7 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
               },
               {
@@ -261,7 +261,7 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
               },
               {
@@ -326,7 +326,7 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
               },
               {

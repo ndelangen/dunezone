@@ -1,5 +1,6 @@
-import { ActionIcon, Group, NativeSelect, Popover, Stack, Text } from '@mantine/core';
+import { Group, NativeSelect, Popover, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
@@ -166,14 +167,12 @@ export function AssetListPicker({ value, types, defaultType, copy, onChange }: A
           {value.map((reference, index) => (
             <Group component="li" key={referenceKey(reference)} gap="sm" wrap="nowrap" justify="space-between">
               <ListedAsset reference={reference} entry={entries.get(referenceKey(reference))} />
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                aria-label={`Remove ${entries.get(referenceKey(reference))?.name ?? reference.slug}`}
+              <IconAction
+                label={`Remove ${entries.get(referenceKey(reference))?.name ?? reference.slug}`}
+                emphasis="quiet"
                 onClick={() => onChange(value.filter((_, at) => at !== index))}
-              >
-                <X size={16} aria-hidden />
-              </ActionIcon>
+                icon={<X size={16} />}
+              />
             </Group>
           ))}
         </Stack>
