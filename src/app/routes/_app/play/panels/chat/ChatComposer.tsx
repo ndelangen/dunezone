@@ -1,7 +1,7 @@
 import { Combobox, Group, Text, Textarea, useCombobox } from '@mantine/core';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Send } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
 import { focusTable } from '../../../../../widgets/tabletop/focusTable';
@@ -12,6 +12,9 @@ import { completeMention, matchMentions, mentionQuery } from './mentions';
 import type { Mention, MentionQuery } from './mentions';
 
 const MENTION_TOKEN_SIZE = 20;
+
+/* The longest message the table saves. */
+const MESSAGE_LIMIT = 2000;
 
 /* The highlighted suggestion scrolls into the list's view as the arrows reach it. */
 function keepInView(option: HTMLDivElement | null) {
@@ -39,6 +42,7 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
     mentions.filter((entry) => !entry.own)
   );
   const write = (text: string) => {
+    mention.edited(text);
     setDraft(text);
     if (text) {
       drafts.set(draftKey, text);
@@ -62,6 +66,10 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
     }
     const caret = field.current?.selectionStart ?? mention.caret;
     const next = completeMention(draft, mention.query, caret, chosen.label);
+    /* A name that would carry the message past its limit is not written; the query stays as typed. */
+    if (next.text.length > MESSAGE_LIMIT) {
+      return;
+    }
     write(next.text);
     caretAfter.current = next.caret;
     mention.completed(mention.query, next.caret);
@@ -75,10 +83,8 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
       focusTable();
       return;
     }
-    /* Enter sends, as chats do; Shift+Enter starts a new line, and Enter that ends a composed character stays the input method's. */
-    /* Safari can end a composition with an Enter that reads as not composing, but keeps the composing key code. */
-    const composing = event.nativeEvent.isComposing || event.keyCode === 229;
-    if (event.key === 'Enter' && !event.shiftKey && !composing) {
+    /* Enter sends, as chats do; Shift+Enter starts a new line. */
+    if (plainEnter(event)) {
       event.preventDefault();
       if (draft.trim()) {
         event.currentTarget.form?.requestSubmit();
@@ -122,7 +128,7 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
             /* Escape here hands the keyboard to the table rather than closing the window; a second Escape closes it. */
             data-takes-escape
             {...{ [WINDOW_FOCUS_ATTRIBUTE]: '' }}
-            maxLength={2000}
+            maxLength={MESSAGE_LIMIT}
             minRows={2}
             maxRows={5}
             rightSection={<ComposerSubmit disabled={!draft.trim()} />}
@@ -137,6 +143,7 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
                 value={entry.id}
                 key={entry.id}
                 selected={index === mention.active}
+                aria-selected={index === mention.active}
                 ref={index === mention.active ? keepInView : undefined}
               >
                 <MentionOption mention={entry} />
@@ -184,42 +191,37 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
   const open = focused && matches.length > 0;
   const store = useCombobox({ opened: open });
   const highlighted = active && active.query === query?.query ? Math.min(active.index, matches.length - 1) : 0;
+  /* The store follows the highlight, so the field names the highlighted option to a screen reader (aria-activedescendant). */
+  useEffect(() => {
+    if (open) {
+      store.selectOption(highlighted);
+    }
+  }, [store, open, highlighted, matches.length]);
+  /* The space a completion wrote takes no second one typed straight after it. */
+  const swallowsSpace = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const { selectionStart, selectionEnd } = event.currentTarget;
+    const swallowed = event.key === ' ' && selectionStart === selectionEnd && spaceAt.current === selectionStart;
+    spaceAt.current = null;
+    return swallowed && !composing(event);
+  };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>, complete: (chosen: Mention) => void) => {
-    const element = event.currentTarget;
-    const collapsed = element.selectionStart === element.selectionEnd;
-    if (
-      event.key === ' ' &&
-      collapsed &&
-      spaceAt.current === element.selectionStart &&
-      !event.nativeEvent.isComposing
-    ) {
+    if (swallowsSpace(event)) {
       event.preventDefault();
-      spaceAt.current = null;
       return true;
     }
-    spaceAt.current = null;
-    if (!open || event.metaKey || event.ctrlKey || event.altKey) {
+    const key = open ? suggestionKey(event) : null;
+    if (!key) {
       return false;
     }
-    const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-    if (step) {
-      event.preventDefault();
-      setActive({ query: query!.query, index: (highlighted + step + matches.length) % matches.length });
-      return true;
-    }
-    /* Tab or Enter takes the highlighted name; an Enter that ends a composed character stays the input method's. */
-    const composing = event.nativeEvent.isComposing || event.keyCode === 229;
-    if ((event.key === 'Tab' || event.key === 'Enter') && !event.shiftKey && !composing) {
-      event.preventDefault();
+    event.preventDefault();
+    if (key === 'complete') {
       complete(matches[highlighted]!);
-      return true;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
+    } else if (key === 'dismiss') {
       setDismissed(query!.at);
-      return true;
+    } else {
+      setActive({ query: query!.query, index: (highlighted + key + matches.length) % matches.length });
     }
-    return false;
+    return true;
   };
   return {
     store,
@@ -231,11 +233,44 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
     keyDown,
     setCaret,
     focus: setFocused,
+    /* An edit that takes away the dismissed @, or changes what comes before it, ends the dismissal: a message sent, an @ deleted and typed again. */
+    edited: (next: string) => {
+      if (dismissed !== null && (next[dismissed] !== '@' || next.slice(0, dismissed) !== draft.slice(0, dismissed))) {
+        setDismissed(null);
+      }
+    },
     completed: (completedQuery: MentionQuery, after: number) => {
       setDismissed(completedQuery.at);
       spaceAt.current = after;
     },
   };
+}
+
+/* An Enter that ends a composed character stays the input method's; Safari can end one with an Enter that reads as not composing but keeps the composing key code. */
+function composing(event: KeyboardEvent) {
+  return event.nativeEvent.isComposing || event.keyCode === 229;
+}
+
+/* Enter on its own, not ending a composed character. */
+function plainEnter(event: KeyboardEvent) {
+  return event.key === 'Enter' && !event.shiftKey && !composing(event);
+}
+
+/* What a key does while the suggestions are open: a step through them, taking the highlighted one, or closing them; null leaves the key to the composer. */
+function suggestionKey(event: KeyboardEvent): 1 | -1 | 'complete' | 'dismiss' | null {
+  /* While a character is being composed, its keys (the arrows pick a candidate) are the input method's. */
+  if (event.metaKey || event.ctrlKey || event.altKey || composing(event)) {
+    return null;
+  }
+  const keys: Partial<Record<string, 1 | -1 | 'complete' | 'dismiss'>> = {
+    ArrowDown: 1,
+    ArrowUp: -1,
+    Escape: 'dismiss',
+  };
+  if (event.key === 'Tab' && !event.shiftKey) {
+    return 'complete';
+  }
+  return plainEnter(event) ? 'complete' : (keys[event.key] ?? null);
 }
 
 function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {

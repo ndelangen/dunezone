@@ -109,8 +109,9 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       cleared={client.conversations.clearedThrough(peerId) > 0}
       mentions={mentions}
-      onMentionInfo={windows?.factionInfo}
-      onMentionChat={windows?.chat}
+      /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
+      onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}
+      onMentionChat={peerId === TABLE_CONVERSATION ? windows?.chat : undefined}
     />
   );
 }

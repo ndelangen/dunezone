@@ -2,7 +2,13 @@ import { testingPreview } from '@sb/preview';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { conversationMessages } from '../../game.stories.fixture';
-import { conversationPanelMeta, pendingMessage, savedPage, tableChatArgs } from './ConversationPanel.stories.fixture';
+import {
+  conversationPanelMeta,
+  pendingMessage,
+  savedPage,
+  tableChatArgs,
+  tableChatNamingArgs,
+} from './ConversationPanel.stories.fixture';
 
 const meta = testingPreview.meta({ ...conversationPanelMeta, title: 'Play/Panels/Chat' });
 
@@ -146,5 +152,32 @@ export const EnterCompletesAndEscapeCloses = meta.story({
     await expect(composer).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     await expect(composer).not.toHaveFocus();
+  },
+});
+
+/** A completed @ suggests nothing more, but once the message is sent, the next message's @ suggests again. */
+export const SuggestsAgainAfterSending = meta.story({
+  args: tableChatArgs(),
+  play: async ({ canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, '@');
+    await suggestions().findAllByRole('option');
+    await userEvent.keyboard('{Tab}hello{Enter}');
+    await expect(composer).toHaveValue('');
+    await userEvent.type(composer, '@');
+    await expect(await suggestions().findAllByRole('option')).not.toHaveLength(0);
+  },
+});
+
+/** A named seat is reachable from the keyboard: focusing it opens its card. */
+export const NamedSeatOpensOnFocus = meta.story({
+  args: tableChatNamingArgs(),
+  play: async ({ canvasElement }) => {
+    const named = canvasElement.querySelector<HTMLElement>('[data-mention]')!;
+    for (let step = 0; step < 40 && document.activeElement !== named; step += 1) {
+      await userEvent.tab();
+    }
+    await expect(named).toHaveFocus();
+    await expect(await suggestions().findByRole('button', { name: 'Info' })).toBeVisible();
   },
 });

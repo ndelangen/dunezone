@@ -29,7 +29,7 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
   const segments: MessageSegment[] = [];
   let plain = 0;
   for (let at = text.indexOf('@'); at >= 0; at = text.indexOf('@', at + 1)) {
-    if (at > 0 && !/[\s([{]/.test(text[at - 1]!)) {
+    if (!opensMention(text, at)) {
       continue;
     }
     const named = byLength.find((mention) => {
@@ -74,12 +74,18 @@ export function mentionQuery(text: string, caret: number): MentionQuery | null {
   if (at < 0 || caret - at - 1 > MAX_QUERY) {
     return null;
   }
-  const opener = at === 0 ? '' : before[at - 1]!;
   const query = before.slice(at + 1);
-  if ((opener && !/[\s([{]/.test(opener)) || query.includes('\n') || /^\s/.test(query)) {
-    return null;
-  }
-  return { at, query };
+  return opensMention(text, at) && namesSoFar(query) ? { at, query } : null;
+}
+
+/* An @ opens a mention at the start of the text or after a space or an opening bracket. */
+function opensMention(text: string, at: number) {
+  return at === 0 || /[\s([{]/.test(text[at - 1]!);
+}
+
+/* What follows the @ can still be a name: it neither starts with a space nor runs onto another line. */
+function namesSoFar(query: string) {
+  return !query.includes('\n') && !/^\s/.test(query);
 }
 
 /* Case and accents aside, so "@pa" finds "Paul" and "@atre" finds "Atréides". */

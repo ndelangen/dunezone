@@ -327,7 +327,10 @@ function SavedMessageHeader({
           <Group gap={6} wrap="nowrap">
             {seat && token ? (
               <MentionCard mention={seat} {...actions}>
-                {token}
+                {/* Reachable from the keyboard too: the card opens on focus as on hover. */}
+                <span className={styles.seatTrigger} role="button" tabIndex={0} aria-label={`${seat.label} seat`}>
+                  {token}
+                </span>
               </MentionCard>
             ) : (
               token

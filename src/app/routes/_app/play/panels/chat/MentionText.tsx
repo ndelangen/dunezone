@@ -25,7 +25,7 @@ export function MentionText({
   return splitMentions(text, mentions).map((segment, index) =>
     segment.mention ? (
       <MentionCard key={index} mention={segment.mention} {...actions}>
-        <span className={styles.mention} data-mention={segment.mention.id}>
+        <span className={styles.mention} data-mention={segment.mention.id} role="button" tabIndex={0}>
           {segment.text}
         </span>
       </MentionCard>
