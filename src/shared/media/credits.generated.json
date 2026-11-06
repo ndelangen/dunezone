@@ -1271,6 +1271,8 @@
         "amal.svg",
         "artillery-strike-multicolor.svg",
         "atomic-explosion.svg",
+        "atreides-artwork-multicolor.svg",
+        "atreides-artwork.svg",
         "bene-gesserit-artwork-multicolor.svg",
         "bene-gesserit-artwork.svg",
         "building-1.svg",
@@ -1823,10 +1825,20 @@
         "house-atreides-badge.svg",
         "house-corrino-badge-2019.svg"
       ],
-      "/vector/emblem/": ["ecaz.svg", "guild.svg", "harkonnen.svg", "moritani.svg", "richese.svg"],
+      "/vector/emblem/": [
+        "atreides-hawk.svg",
+        "ecaz-2022.svg",
+        "ecaz.svg",
+        "guild.svg",
+        "harkonnen-ox.svg",
+        "harkonnen.svg",
+        "moritani.svg",
+        "richese.svg"
+      ],
       "/vector/icon/": [
         "battle-phase.svg",
         "bidding-phase.svg",
+        "choam-disc.svg",
         "city.svg",
         "fremen-devotee.svg",
         "hammer.svg",

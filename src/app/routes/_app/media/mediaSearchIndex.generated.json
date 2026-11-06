@@ -10189,5 +10189,35 @@
     "description": "A dagger across a globe of meridian lines.",
     "tags": ["dagger", "treachery", "vector"],
     "subjects": ["weapons"]
+  },
+  "/vector/decal/atreides-artwork-multicolor.svg": {
+    "description": "A wide office scene in olive, sand and brown: a bearded man in uniform sits at a desk by a curved window over the desert, a young man stands by the window and a small ornithopter rests on the desk.",
+    "tags": ["Atreides", "Duke Leto", "Paul", "ornithopter", "scene", "multicolor"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/decal/atreides-artwork.svg": {
+    "description": "A one-colour silhouette of the office scene: a bearded man in uniform sits at a desk under a curved window frame, a young man stands beside him and a small ornithopter rests on the desk; the desert beyond the window is left out.",
+    "tags": ["Atreides", "Duke Leto", "Paul", "ornithopter", "scene", "vector"],
+    "subjects": ["people", "places"]
+  },
+  "/vector/emblem/atreides-hawk.svg": {
+    "description": "A hawk head in profile, its feathers drawn as sharp angular blades.",
+    "tags": ["hawk", "Atreides", "badge", "vector"],
+    "subjects": ["creatures", "symbols"]
+  },
+  "/vector/emblem/ecaz-2022.svg": {
+    "description": "A symmetrical flower crest with a pointed bud rising from curled leaves.",
+    "tags": ["flower", "Ecaz", "badge", "vector"],
+    "subjects": ["plants", "symbols"]
+  },
+  "/vector/emblem/harkonnen-ox.svg": {
+    "description": "A front-facing ox head with wide curved horns and a squared muzzle.",
+    "tags": ["ox", "bull", "Harkonnen", "badge", "vector"],
+    "subjects": ["creatures", "symbols"]
+  },
+  "/vector/icon/choam-disc.svg": {
+    "description": "A disc split across the middle, red on top and black below.",
+    "tags": ["CHOAM", "disc", "circle", "multicolor"],
+    "subjects": ["symbols"]
   }
 }

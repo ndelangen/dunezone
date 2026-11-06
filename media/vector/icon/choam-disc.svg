@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="780" viewBox="210 210 780 780" id="root" data-authored="svg-authoring Dune Classic kit Blender export by John Flower 2026-11-06">
+  <title>CHOAM Logo</title>
+  <g data-name="CHOAM Logo - Red Semicircle" data-material="Red CHOAM" data-z="0.000">
+    <path fill="#f71e15" fill-rule="evenodd" d="M990 600C990 384.61 815.39 210 600 210S210 384.61 210 600h780z"/>
+  </g>
+  <g data-name="CHOAM Logo - Black Semicircle" data-material="Black" data-z="0.000">
+    <path fill="#000000" fill-rule="evenodd" d="M990 600c0 215.39 -174.61 390 -390 390S210 815.39 210 600h780z"/>
+  </g>
+</svg>

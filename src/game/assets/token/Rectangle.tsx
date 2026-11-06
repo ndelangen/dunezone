@@ -57,7 +57,7 @@ function DecalLayer({ decals }: { decals: Face['decals'] }) {
  * Author-placed text.
  *
  * The font family is set inline rather than through a CSS class, which is a first for a renderer here.
- * It is deliberate: the author picks one of seven faces per element, so a class per element is a class per combination, and the family is data rather than styling.
+ * It is deliberate: the author picks one of eight faces per element, so a class per element is a class per combination, and the family is data rather than styling.
  * A newline in `content` is significant and starts a new line at 1.05 of the cap height, which is why no field in the editor has to defend against one.
  */
 function TextLayer({ texts }: { texts: Face['texts'] }) {

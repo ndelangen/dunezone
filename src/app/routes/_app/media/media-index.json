@@ -14502,5 +14502,47 @@
     "subjects": ["weapons"],
     "credit": "gf9-design-flower-redraw",
     "sourceHash": "01f1259cabc69fdbd87ae14f827b4a3b28b135e26784ebd243fa6cff80ba9524"
+  },
+  "/vector/decal/atreides-artwork-multicolor.svg": {
+    "description": "A wide office scene in olive, sand and brown: a bearded man in uniform sits at a desk by a curved window over the desert, a young man stands by the window and a small ornithopter rests on the desk.",
+    "tags": ["Atreides", "Duke Leto", "Paul", "ornithopter", "scene", "multicolor"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "294ed2faa8d79cc699a3c14f0a199b7bd64cc365d7ac026a3e39f3c7f2ecb868"
+  },
+  "/vector/decal/atreides-artwork.svg": {
+    "description": "A one-colour silhouette of the office scene: a bearded man in uniform sits at a desk under a curved window frame, a young man stands beside him and a small ornithopter rests on the desk; the desert beyond the window is left out.",
+    "tags": ["Atreides", "Duke Leto", "Paul", "ornithopter", "scene", "vector"],
+    "subjects": ["people", "places"],
+    "credit": "gf9-decal-flower-redraw",
+    "sourceHash": "d2abf2b9ad1016c27feabcbf96884bf1e7c09118c2a8a245562d10cce623bf76"
+  },
+  "/vector/emblem/atreides-hawk.svg": {
+    "description": "A hawk head in profile, its feathers drawn as sharp angular blades.",
+    "tags": ["hawk", "Atreides", "badge", "vector"],
+    "subjects": ["creatures", "symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "cba662b8873b8a2337ee84e6ace611091ea5e721837045c0f9963ee9dfbf21af"
+  },
+  "/vector/emblem/ecaz-2022.svg": {
+    "description": "A symmetrical flower crest with a pointed bud rising from curled leaves.",
+    "tags": ["flower", "Ecaz", "badge", "vector"],
+    "subjects": ["plants", "symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "23633a858df305d41e237351becc4dd8403226fdb1a51adc096332ee74fcc70e"
+  },
+  "/vector/emblem/harkonnen-ox.svg": {
+    "description": "A front-facing ox head with wide curved horns and a squared muzzle.",
+    "tags": ["ox", "bull", "Harkonnen", "badge", "vector"],
+    "subjects": ["creatures", "symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "3c69109d974ed897f565100f9229eaac3ab62ac5b88e9bf1d3b7bff13ba6bc41"
+  },
+  "/vector/icon/choam-disc.svg": {
+    "description": "A disc split across the middle, red on top and black below.",
+    "tags": ["CHOAM", "disc", "circle", "multicolor"],
+    "subjects": ["symbols"],
+    "credit": "gf9-design-flower-redraw",
+    "sourceHash": "8262ee746bb8b5d0207b0658efbdce5aa5a31dc0d1543a5f96c3161d7f58973c"
   }
 }
