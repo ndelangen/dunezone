@@ -153,12 +153,13 @@ function FuturePlansPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
-          <PageTitle eyebrow="Our ambitions" title="A map of what Dune Zone could become" />
-          <Text size="lg">
-            These are promises, not release dates. Explore the territory, then tell us where we should go next.
-          </Text>
-        </SimpleGrid>
+        <div className={styles.hero}>
+          <PageTitle
+            eyebrow="Our ambitions"
+            title="A map of what Dune Zone could become"
+            lede="These are promises, not release dates. Explore the territory, then tell us where we should go next."
+          />
+        </div>
       </PageLayout.Header>
       <PageLayout.Content>
         <AtlasLayout className={styles.atlasFrame}>

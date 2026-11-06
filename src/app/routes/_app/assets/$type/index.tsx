@@ -1,4 +1,4 @@
-import { Select, Stack, Text } from '@mantine/core';
+import { Select, Stack } from '@mantine/core';
 import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
@@ -175,10 +175,11 @@ function AssetTypePage() {
     <PageLayout>
       <PageLayout.Header>
         <Stack gap="xs" align="center">
-          <PageTitle eyebrow="Community assets" title={definition.label} />
-          <Text c="dimmed" ta="center" maw="34rem">
-            Every {noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.
-          </Text>
+          <PageTitle
+            eyebrow="Community assets"
+            title={definition.label}
+            lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
+          />
           {definition.status === 'live' ? (
             <CallToAction
               attention

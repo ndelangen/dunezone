@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -39,10 +39,11 @@ function PlayTutorials() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title="Learn to play" subtitle="How Dune Zone Play works" />
-          <Text size="lg" fw={500} maw="36rem">
-            Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with.
-          </Text>
+          <PageTitle
+            title="Learn to play"
+            subtitle="How Dune Zone Play works"
+            lede="Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>

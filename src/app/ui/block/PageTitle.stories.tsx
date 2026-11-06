@@ -55,3 +55,19 @@ export const WithSubtitle = meta.story({
 export const LongTitleWraps = meta.story({
   args: { size: 'hero', title: 'A game of conquest, diplomacy and betrayal on Arrakis', eyebrow: undefined },
 });
+
+/** One sentence under the name that says what the page is for, as the catalogue and learn pages use it. */
+export const WithLede = meta.story({
+  args: { lede: 'Custom factions for the Dune board game, made and shared by the community.' },
+});
+
+/** A hero with its subtitle and a lede, as Learn to play has it. */
+export const HeroWithLede = meta.story({
+  args: {
+    size: 'hero',
+    title: 'Learn to play',
+    eyebrow: undefined,
+    subtitle: 'How Dune Zone Play works',
+    lede: 'Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with.',
+  },
+});

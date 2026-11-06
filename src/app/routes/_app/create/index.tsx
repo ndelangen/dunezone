@@ -1,4 +1,4 @@
-import { Stack, Text } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -38,10 +38,11 @@ function CreatorTutorials() {
     <PageLayout>
       <PageLayout.Header size="hero">
         <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title="Learn to create" subtitle="How to make your own Dune content" />
-          <Text size="lg" fw={500} maw="36rem">
-            Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make.
-          </Text>
+          <PageTitle
+            title="Learn to create"
+            subtitle="How to make your own Dune content"
+            lede="Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>

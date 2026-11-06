@@ -239,10 +239,11 @@ function CatalogueHeader({ spotlights }: { spotlights?: FactionCataloguePageData
     <Stack className={styles.catalogueHeader} gap="lg">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
         <Stack gap={4} align="flex-start" miw={0}>
-          <PageTitle eyebrow="Explore the collection" title="Faction catalogue" />
-          <Text size="sm" c="dimmed">
-            Custom factions for the Dune board game, made and shared by the community.
-          </Text>
+          <PageTitle
+            eyebrow="Explore the collection"
+            title="Faction catalogue"
+            lede="Custom factions for the Dune board game, made and shared by the community."
+          />
         </Stack>
         <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}>
           Create your own faction
