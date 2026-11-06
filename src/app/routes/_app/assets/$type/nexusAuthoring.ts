@@ -4,9 +4,9 @@ import type { NexusDraft, NexusMemory } from '@app/widgets/card-editor/NexusCard
 import { NexusCardAssetInput } from '@game/data/objects';
 
 /* The page owns the saved baseline, draft and temporary background choices. */
-type NexusState = { data: NexusDraft; memory: NexusMemory; baseline: NexusDraft };
+export type NexusState = { data: NexusDraft; memory: NexusMemory; baseline: NexusDraft };
 
-type NexusEvent =
+export type NexusEvent =
   | { kind: 'patch'; update: Partial<NexusDraft> }
   | { kind: 'remember'; update: Partial<NexusMemory> }
   | { kind: 'replace'; data: NexusDraft }

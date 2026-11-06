@@ -5,6 +5,8 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
 import { customCardEditing, stormCardEditing } from '../../layeredCardEditing';
+import { CardTypeCreatePage } from '../cardSession';
+import { nexusCardSession, strongholdCardSession } from '../cardSessionConfigs';
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
@@ -12,10 +14,8 @@ import { HomeworldCreatePage } from './homeworldCreate';
 import { LayeredCreatePage } from './layeredCreate';
 import { LeaderSkillCreatePage } from './leaderSkillCreate';
 import { LeaderTokenCreatePage } from './leaderTokenCreate';
-import { NexusCreatePage } from './nexusCreate';
 import { RectangleCreatePage } from './rectangleCreate';
 import { SpiceCreatePage } from './spiceCreate';
-import { StrongholdCreatePage } from './strongholdCreate';
 import { TokenCreatePage } from './tokenCreate';
 import { TreacheryCreatePage } from './treacheryCreate';
 
@@ -50,13 +50,13 @@ function CreateAssetPage() {
     case 'card-homeworld':
       return <HomeworldCreatePage />;
     case 'card-nexus':
-      return <NexusCreatePage />;
+      return <CardTypeCreatePage key={type} config={nexusCardSession} />;
     case 'card-custom':
       return <LayeredCreatePage key={type} config={customCardEditing} />;
     case 'card-storm':
       return <LayeredCreatePage key={type} config={stormCardEditing} />;
     case 'card-stronghold':
-      return <StrongholdCreatePage />;
+      return <CardTypeCreatePage key={type} config={strongholdCardSession} />;
     case 'card-spice':
       return <SpiceCreatePage />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */

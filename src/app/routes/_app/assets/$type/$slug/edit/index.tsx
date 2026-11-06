@@ -6,6 +6,8 @@ import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
 import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing';
+import { CardTypeEditPage } from '../../cardSession';
+import { nexusCardSession, strongholdCardSession } from '../../cardSessionConfigs';
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
@@ -13,10 +15,8 @@ import { HomeworldEditPage } from './homeworldEdit';
 import { LayeredEditPage } from './layeredEdit';
 import { LeaderSkillEditPage } from './leaderSkillEdit';
 import { LeaderTokenEditPage } from './leaderTokenEdit';
-import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
 import { SpiceEditPage } from './spiceEdit';
-import { StrongholdEditPage } from './strongholdEdit';
 import { TokenEditPage } from './tokenEdit';
 import { TreacheryEditPage } from './treacheryEdit';
 
@@ -49,13 +49,13 @@ function EditAssetPage() {
     case 'card-homeworld':
       return <HomeworldEditPage slug={slug} loaderData={loaderData} />;
     case 'card-nexus':
-      return <NexusEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={nexusCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-custom':
       return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-storm':
       return <LayeredEditPage config={stormCardEditing} slug={slug} loaderData={loaderData} />;
     case 'card-stronghold':
-      return <StrongholdEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={strongholdCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-spice':
       return <SpiceEditPage slug={slug} loaderData={loaderData} />;
     case 'token-disc':
