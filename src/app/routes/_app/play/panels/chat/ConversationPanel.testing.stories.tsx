@@ -127,3 +127,24 @@ export const PlayerNameCompletesTheirFaction = meta.story({
     await expect(composer).toHaveValue(`@${seat.label} `);
   },
 });
+
+/** While the suggestions are open, Enter takes the highlighted name instead of sending; Escape closes them, and a second Escape leaves the composer. */
+export const EnterCompletesAndEscapeCloses = meta.story({
+  args: tableChatArgs(),
+  play: async ({ args, canvas }) => {
+    const first = args.mentions!.filter((mention) => !mention.own)[0]!;
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, '@');
+    await suggestions().findAllByRole('option');
+    await userEvent.keyboard('{Enter}');
+    await expect(composer).toHaveValue(`@${first.label} `);
+    await expect(args.onSubmit).not.toHaveBeenCalled();
+    await userEvent.type(composer, '@');
+    await suggestions().findAllByRole('option');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(suggestions().queryByRole('option')).toBeNull());
+    await expect(composer).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    await expect(composer).not.toHaveFocus();
+  },
+});

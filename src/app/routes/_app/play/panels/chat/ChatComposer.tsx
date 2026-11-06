@@ -28,7 +28,8 @@ type ChatComposerProps = Readonly<{
 
 /*
  * The composer: Enter sends, Shift+Enter starts a new line, and Escape hands the keyboard back to the table.
- * At the table an @ suggests the players and factions; Tab or a click writes the chosen name with a space after it.
+ * At the table an @ suggests the seats; Tab, Enter or a click writes the chosen faction's name with a space after it.
+ * While the suggestions are open, Escape closes them first, so a second Escape hands the keyboard to the table.
  */
 export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatComposerProps) {
   const [draft, setDraft] = useState(() => drafts.get(draftKey) ?? '');
@@ -206,7 +207,9 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
       setActive({ query: query!.query, index: (highlighted + step + matches.length) % matches.length });
       return true;
     }
-    if (event.key === 'Tab' && !event.shiftKey) {
+    /* Tab or Enter takes the highlighted name; an Enter that ends a composed character stays the input method's. */
+    const composing = event.nativeEvent.isComposing || event.keyCode === 229;
+    if ((event.key === 'Tab' || event.key === 'Enter') && !event.shiftKey && !composing) {
       event.preventDefault();
       complete(matches[highlighted]!);
       return true;
