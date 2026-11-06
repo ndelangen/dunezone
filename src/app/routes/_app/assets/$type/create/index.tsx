@@ -4,20 +4,23 @@ import { createFileRoute, notFound } from '@tanstack/react-router';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../assetEditorStates';
-import { customCardEditing, stormCardEditing } from '../../layeredCardEditing';
 import { CardTypeCreatePage } from '../cardSession';
-import { nexusCardSession, strongholdCardSession } from '../cardSessionConfigs';
+import {
+  customCardSession,
+  homeworldCardSession,
+  leaderSkillCardSession,
+  leaderTokenSession,
+  nexusCardSession,
+  spiceCardSession,
+  stormCardSession,
+  strongholdCardSession,
+  treacheryCardSession,
+} from '../cardSessionConfigs';
 import { BoardCreatePage } from './boardCreate';
 import { BundleCreatePage } from './bundleCreate';
 import { DeckCreatePage } from './deckCreate';
-import { HomeworldCreatePage } from './homeworldCreate';
-import { LayeredCreatePage } from './layeredCreate';
-import { LeaderSkillCreatePage } from './leaderSkillCreate';
-import { LeaderTokenCreatePage } from './leaderTokenCreate';
 import { RectangleCreatePage } from './rectangleCreate';
-import { SpiceCreatePage } from './spiceCreate';
 import { TokenCreatePage } from './tokenCreate';
-import { TreacheryCreatePage } from './treacheryCreate';
 
 /**
  * Creating any Asset, one route for every type.
@@ -44,21 +47,21 @@ function CreateAssetPage() {
     case 'board':
       return <BoardCreatePage />;
     case 'card-treachery':
-      return <TreacheryCreatePage />;
+      return <CardTypeCreatePage key={type} config={treacheryCardSession} />;
     case 'card-leaderability':
-      return <LeaderSkillCreatePage />;
+      return <CardTypeCreatePage key={type} config={leaderSkillCardSession} />;
     case 'card-homeworld':
-      return <HomeworldCreatePage />;
+      return <CardTypeCreatePage key={type} config={homeworldCardSession} />;
     case 'card-nexus':
       return <CardTypeCreatePage key={type} config={nexusCardSession} />;
     case 'card-custom':
-      return <LayeredCreatePage key={type} config={customCardEditing} />;
+      return <CardTypeCreatePage key={type} config={customCardSession} />;
     case 'card-storm':
-      return <LayeredCreatePage key={type} config={stormCardEditing} />;
+      return <CardTypeCreatePage key={type} config={stormCardSession} />;
     case 'card-stronghold':
       return <CardTypeCreatePage key={type} config={strongholdCardSession} />;
     case 'card-spice':
-      return <SpiceCreatePage />;
+      return <CardTypeCreatePage key={type} config={spiceCardSession} />;
     /* One editor for all three shapes: shape is the type, and only the proof's clip differs. */
     case 'token-disc':
     case 'token-tech':
@@ -67,7 +70,7 @@ function CreateAssetPage() {
       return <TokenCreatePage type={type} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
     case 'token-leader':
-      return <LeaderTokenCreatePage />;
+      return <CardTypeCreatePage key={type} config={leaderTokenSession} />;
     case 'token-enhance':
       return <RectangleCreatePage />;
     case 'deck':

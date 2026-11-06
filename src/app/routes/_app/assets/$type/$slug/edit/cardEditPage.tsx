@@ -28,10 +28,7 @@ import {
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 
-/*
- * What the card edit pages share: the checks before a session opens, the save, and the page around the workbench.
- * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
- */
+/* What the card edit page is built from: the checks before a session opens, the save, and the page around the workbench; `CardTypeEditPage` holds the session. */
 
 type CardType =
   | 'card-treachery'
@@ -82,7 +79,7 @@ export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
   return <CardEditChecks {...props} data={query.data} />;
 }
 
-/** The custom page owns the live read because its unsaved Token layers determine that read's arguments. */
+/** The checks alone, for a page that owns the live read because its unsaved draft decides that read's arguments. */
 export function CardEditChecks<Draft>({
   type,
   schemaName,

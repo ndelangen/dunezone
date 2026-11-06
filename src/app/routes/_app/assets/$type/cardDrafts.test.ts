@@ -1,9 +1,17 @@
 import { DUKE_PRAD_VIDAL_TOKEN } from '@shared/assets/leaderToken';
+import { LeaderTokenAssetInput } from '@shared/assets/schema';
 import { expect, test } from 'vite-plus/test';
 
 import { emptyBackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
 
-import { reduceLeaderTokenDraft } from './leaderTokenAuthoring';
+import { memoryDraftSession } from './cardDrafts';
+
+/* The leader token's own session: its memory holds strength text the field refused, which a reset must drop. */
+const { reduce: reduceLeaderTokenDraft } = memoryDraftSession(LeaderTokenAssetInput, () => ({
+  declaredCustom: false,
+  backgroundMode: emptyBackgroundModeMemory(),
+  refusedStrength: null as string | null,
+}));
 
 test('a completed save retains edits made after the submitted payload', () => {
   const submitted = { ...DUKE_PRAD_VIDAL_TOKEN, strength: '7' };
