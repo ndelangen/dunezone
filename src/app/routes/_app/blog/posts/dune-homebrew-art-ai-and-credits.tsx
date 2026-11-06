@@ -108,12 +108,12 @@ function WhatSection() {
         edition announcement, matched to the other Atreides leaders. It&rsquo;s still based on GF9&rsquo;s picture.
       </Paragraph>
       <Paragraph>
-        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens created by Roxsy-Variant
-        and drawn by their friend{' '}
+        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens created and drawn by{' '}
         <Anchor href={ALOEWING} target="_blank" rel="noreferrer">
           AloeWing
         </Anchor>
-        . Together we brought those drawings into the GF9 look, and we have permission to use them as open source.
+        . Together with their friend Roxsy-Variant, we brought those drawings into the GF9 look, and we have permission
+        to use them as open source.
       </Paragraph>
       <Paragraph>
         <strong>New marks.</strong> Emblems and decals for homebrew factions, designed here and traced into clean vector
@@ -235,8 +235,9 @@ function ArtistsSection() {
   return (
     <Section title="Artists, you're invited">
       <Paragraph>
-        The Hivers show how I&rsquo;d like this to work. Roxsy-Variant created them, AloeWing drew them, and together we
-        made them fit the Dune look. The art is still AloeWing&rsquo;s, and we have permission to use it as open source.
+        The Hivers show how I&rsquo;d like this to work. AloeWing created and drew them, and Roxsy-Variant and I worked
+        together to make them fit the Dune look. The art is still AloeWing&rsquo;s, and we have permission to use it as
+        open source.
       </Paragraph>
       <Paragraph>
         If you draw, that&rsquo;s an open invitation. I&rsquo;ll add your artwork to Dune Zone with your name on it. If
@@ -246,7 +247,7 @@ function ArtistsSection() {
         One last thing. Whatever you think of AI, the person using it to build something is still a person. Let&rsquo;s
         be kind to each other about it, even when we don&rsquo;t agree.
       </Paragraph>
-      <WideFigure caption="The Hivers, created by Roxsy-Variant and drawn by AloeWing, brought into the GF9 look.">
+      <WideFigure caption="The Hivers, created and drawn by AloeWing, brought into the GF9 look.">
         <HiversRow />
       </WideFigure>
     </Section>
