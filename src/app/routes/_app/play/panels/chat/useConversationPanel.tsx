@@ -4,6 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { factionToken } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
@@ -18,8 +20,27 @@ function senderNames(context: ConversationView['context']): Record<string, strin
     : {};
 }
 
-/** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
-export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
+/* Every faction's token at the table, by faction: its face as it lies on the table, or its initial while the table is out of reach. */
+function senderTokens(
+  context: ConversationView['context'],
+  table: TableProjection | undefined
+): Record<string, FactionToken> {
+  const names = senderNames(context);
+  return Object.fromEntries(
+    Object.entries(names).map(([id, name]) => [id, table ? factionToken(table, id, names) : { id, name }])
+  );
+}
+
+/**
+ * A conversation at a live table: the caller selects the faction pair;
+ * this loads its history and sends what the viewer writes.
+ * The table, where it is in reach, gives each writer at the table's chat their faction's token.
+ */
+export function ConnectedConversationPanel({
+  client,
+  peerId,
+  table,
+}: Readonly<{ client: TableSession; peerId: string; table?: TableProjection }>) {
   const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const page = view.pages[peerId];
   useEffect(() => {
@@ -36,7 +57,7 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       online={view.online}
       page={page}
       pending={view.pending.filter((entry) => entry.request.peerId === peerId)}
-      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? senderNames(view.context) : null}
+      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? senderTokens(view.context, table) : null}
       unread={Boolean(summary?.unread) && latest === summary?.latest}
       drafts={client.conversations.drafts}
       onLoad={(before) => client.conversations.load({ peerId, before })}
@@ -60,7 +81,9 @@ export function ConnectedPlayerChat({
   if (!context || !peerId || (peerId !== TABLE_CONVERSATION && !context.peers.some((peer) => peer.id === peerId))) {
     return null;
   }
-  return <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
+  return (
+    <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} table={table} />
+  );
 }
 
 /** The eraser for a seat's chat, or the table's, while it has messages the viewer has not cleared. */

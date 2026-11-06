@@ -6,8 +6,11 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { History, RotateCcw, Send } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
+import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { CONVERSATION_HELP } from '../../multiplayer/panelGuidance';
 import { useServerNowAs } from '../../multiplayer/useServerNow';
 import styles from './ConversationPanel.module.css';
@@ -30,8 +33,8 @@ export type ConversationPanelProps = Readonly<{
   page: Page | undefined;
   /** The viewer's messages on their way, oldest first. */
   pending: readonly Pending[];
-  /** At the table every faction writes, so each message there also names its writer's faction; null in a chat with one player. */
-  senders: Readonly<Record<string, string>> | null;
+  /** At the table every faction writes, so each message there also shows its writer's faction token and name; null in a chat with one player. */
+  senders: Readonly<Record<string, FactionToken>> | null;
   /** Whether the newest message is unread, so seeing it marks the conversation read. */
   unread: boolean;
   /** Unsent messages by conversation, which outlive the composer. */
@@ -86,12 +89,17 @@ export function ConversationPanel({
               key={message.sequence}
               message={message}
               factionId={factionId}
-              faction={senders?.[message.senderFactionId]}
+              sender={senders ? (senders[message.senderFactionId] ?? unknownSender(message)) : undefined}
             />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
-            <PendingMessage key={entry.request.requestId} entry={entry} retry={onRetry} />
+            <PendingMessage
+              key={entry.request.requestId}
+              entry={entry}
+              retry={onRetry}
+              sender={senders && factionId ? senders[factionId] : undefined}
+            />
           ))}
         </Stack>
         <VisuallyHidden role="status">{arrival}</VisuallyHidden>
@@ -190,14 +198,37 @@ function useArrivalAnnouncement(peerId: string, page: Page | undefined, factionI
   return announcement;
 }
 
+/* A writer the table no longer names, as a faction that left; their token shows the author's initial. */
+function unknownSender(message: ConversationMessage): FactionToken {
+  return { id: message.senderFactionId, name: message.author };
+}
+
+/* The size of a writer's faction token beside their message: about two lines of message text. */
+const SENDER_TOKEN_SIZE = 32;
+
+/* At the table, a message sits beside its writer's faction token; in a chat with one player it stands alone. */
+function MessageRow({ sender, children }: Readonly<{ sender: FactionToken | undefined; children: ReactNode }>) {
+  if (!sender) {
+    return <Stack gap="xs">{children}</Stack>;
+  }
+  return (
+    <Group gap="sm" wrap="nowrap" align="flex-start" data-message-sender={sender.id}>
+      <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} />
+      <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+        {children}
+      </Stack>
+    </Group>
+  );
+}
+
 function SavedMessage({
   message,
   factionId,
-  faction,
-}: Readonly<{ message: ConversationMessage; factionId?: string; faction?: string }>) {
+  sender,
+}: Readonly<{ message: ConversationMessage; factionId?: string; sender?: FactionToken }>) {
   return (
-    <Stack gap="xs">
-      <SavedMessageHeader message={message} faction={faction} />
+    <MessageRow sender={sender}>
+      <SavedMessageHeader message={message} faction={sender?.name} />
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         {message.text}
       </Text>
@@ -206,18 +237,22 @@ function SavedMessage({
           Sent
         </Text>
       )}
-    </Stack>
+    </MessageRow>
   );
 }
 
-function PendingMessage({ entry, retry }: Readonly<{ entry: Pending; retry: (requestId: string) => void }>) {
+function PendingMessage({
+  entry,
+  retry,
+  sender,
+}: Readonly<{ entry: Pending; retry: (requestId: string) => void; sender?: FactionToken }>) {
   return (
-    <Stack gap="xs">
+    <MessageRow sender={sender}>
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         {entry.request.text}
       </Text>
       <PendingStatus entry={entry} retry={retry} />
-    </Stack>
+    </MessageRow>
   );
 }
 
