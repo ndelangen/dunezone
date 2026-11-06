@@ -79,7 +79,8 @@
 }
 
 /*
- * Orthodox Herbertarian by DuneFish (DuneFishUK), 2009 ("MP/DFUK 2009 CC"; no licence named, original sha256 4bb75bd6...).
+ * Orthodox Herbertarian, traced in 2009 by MEP (DuneFish, DuneFishUK) from the typeface on the Ace/Berkley Frank Herbert
+ * paperbacks. The author's June 2019 note: "please feel free to use it for anything you like" (original sha256 4bb75bd6...).
  * It has letters and a little punctuation but no digits, so a second face of the same family supplies digits and the
  * missing punctuation from Copperplate Gothic; it is declared later, so the browser tries it first for those characters.
  */
@@ -101,7 +102,7 @@
     url("/font/copperplategothic-bold.woff") format("woff");
   font-weight: normal;
   font-style: normal;
-  unicode-range: U+0021, U+0023-0026, U+0028-002B, U+002F-0039, U+003B-003D, U+003F-0040;
+  unicode-range: U+0021, U+0023-0026, U+0028-002B, U+002F-0039, U+003B-003D, U+003F-0040, U+005D, U+007C;
 }
 
 /* App shell: body text vs headings (game modules keep their own font-family) */

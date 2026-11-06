@@ -1,324 +1,109 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2268" height="912" viewBox="0 0 2268 912" id="root" data-authored="svg-authoring from Dune (1) asset folder">
-  <title>Atreides Artwork</title>
-  <g data-name="Sky 1" data-material="Sky 1 - Atreides" data-z="-7.412">
-    <path fill="#fffcf2" fill-rule="evenodd" d="M2273.57 187.07H474.37V378.1h1799.2V187.07z"/>
-  </g>
-  <g data-name="Sky 2" data-material="Sky 2 - Atreides" data-z="-6.636">
-    <path fill="#f5f2de" fill-rule="evenodd" d="M1967.6 206.97l-215.05 39.82l-238.26 11.51l-43.54 9.36l-34.93 21.67l-19.5 2.53l-140.1 15.62L1100 304.13l-45.88 5.67l-44.1 -8.58L878.9 294.18l-214.08 18.55L538.56 246.97l139.54 -59.9h1301.2l-11.7 19.9z"/>
-  </g>
-  <g data-name="Sky 3" data-material="Sky 3" data-z="-5.436">
-    <path fill="#f2e8c2" fill-rule="evenodd" d="M538.56 279.96l206.66 -14.44l18.53 -11.13l189.69 5.27l48.97 11.51l23.24 4.3l130.15 -29.47l76.51 -8.39l51.12 5.08l64 -5.08l99.9 -33.74l70.08 -16.8H498.57l39.99 92.89z"/>
-  </g>
-  <g data-name="Building 1" data-material="Buildings - Atreides" data-z="-3.942">
-    <path fill="#c2bd8f" fill-rule="evenodd" d="M840.07 331.85l-1.18 -15.62l-7.21 -7.8l-2.34 -23.01l-2.93 3.31l-2.15 19.12l-29.29 -0.97l-2.15 -39.23l-9.36 1.37l-9.95 35.11l-26.14 -0.19l-10.95 19.33l30.66 17.75l72.98 -9.17z"/>
-  </g>
-  <g data-name="Building 2" data-material="Buildings - Atreides" data-z="-3.942">
-    <path fill="#c2bd8f" fill-rule="evenodd" d="M1092.76 359.54v-16.37l-5.08 -2.93l-4.46 14.03h-11.51l-8.79 -19.49l-24.98 0.19l-4.3 -40.38l-6.43 3.12l-10.95 54.63l55.45 7.8l21.06 -0.59z"/>
-  </g>
-  <g data-name="Hill 1" data-material="Hills Far" data-z="-2.942">
-    <path fill="#c7b280" fill-rule="evenodd" d="M1162.63 378.1l-37.08 -18.55l-79.81 -4.27l-67.12 -11.32L939 349.6l-32.78 -15.78l-68.3 -5.67l-28.5 4.3l-59.51 -12.5L579.73 305.32l-52.68 -17.18v89.96h635.58z"/>
-  </g>
-  <g data-name="Hill 2" data-material="Hills Far" data-z="-2.942">
-    <path fill="#c7b280" fill-rule="evenodd" d="M1887.78 379.47l-56.98 -17.18l-44.1 5.65l-68.49 -9.95l-34.15 5.67l-42.73 -18.74l-179.74 20.3l-45.47 -11.51L1325 377.88l562.78 1.59z"/>
-  </g>
-  <g data-name="Hill 3" data-material="Hills Far" data-z="-2.942">
-    <path fill="#c7b280" fill-rule="evenodd" d="M1905.53 378.1l51.52 -9.95h135.61l59.73 -16l19.12 8.58l35.34 -8.58l32.97 25.95h-334.29z"/>
-  </g>
-  <g data-name="Hill Very Far" data-material="Hills Very Far" data-z="-2.942">
-    <path fill="#ccbd94" fill-rule="evenodd" d="M1265.27 377.88l-25.76 -8.58l-28.67 8.58h54.43z"/>
-  </g>
-  <g data-name="Desert Light" data-material="Desert Light" data-z="-1.942">
-    <path fill="#ffedbd" fill-rule="evenodd" d="M2273.57 446.57H474.37v-68.69h1799.2v68.69z"/>
-  </g>
-  <g data-name="Hill Near" data-material="Hill Near" data-z="-1.118">
-    <path fill="#baab7a" fill-rule="evenodd" d="M542.27 187.07c60.69 77.27 108.88 164.68 141.1 259.5h-209v-259.5h67.9z"/>
-  </g>
-  <g data-name="Desert Shadow" data-material="Desert Shadow" data-z="-0.942">
-    <path fill="#d1bf94" fill-rule="evenodd" d="M752.24 404.63l226.56 -2.37l301.32 2.37l-36.3 6.43H856.85l-104.61 -6.43zm646.71 22.42l226.56 -4.49l301.29 4.49l-36.3 12.88h-386.75l-104.8 -12.88zm169.58 -30.25l226.56 -2.12l301.51 2.12l-36.3 6.64h-386.97l-104.8 -6.64z"/>
-  </g>
-  <g data-name="Wall Top -Light" data-material="Brown, Light - Atreides" data-z="-0.200">
-    <path fill="#c2ab69" fill-rule="evenodd" d="M2273.57 187.29H474.37V-4.11h1799.2v191.4z"/>
-  </g>
-  <g data-name="Wall Bottom" data-material="Green Paint, Light - Atreides.001" data-z="-0.100">
-    <path fill="#70703d" fill-rule="evenodd" d="M2273.57 446.36H474.37v230.81h1799.2V446.36z"/>
-  </g>
-  <g data-name="Floor" data-material="Green Paint, Very Dark - Atreides" data-z="0.000">
-    <path fill="#403d29" fill-rule="evenodd" d="M2273.57 917.93H-6.07V676.98h2279.64v240.95z"/>
-  </g>
-  <g data-name="Loose Triangle - Delete?" data-material="SVGMat.103" data-z="0.000">
-    <path fill="#faff91" fill-rule="evenodd" d="M837.85 573.18l-7.61 41.75l35.34 -20.49l-27.73 -21.27z"/>
-  </g>
-  <g data-name="path106" data-material="Grey" data-z="0.000">
-    <path fill="#3b3326" fill-rule="evenodd" d="M2273.57 187.29H474.37v-23.04h1799.2v23.04z"/>
-  </g>
-  <g data-name="path60" data-material="Grey" data-z="0.000">
-    <path fill="#3b3326" fill-rule="evenodd" d="M2273.57 484.99H474.37v-38.82h1799.2v38.82z"/>
-  </g>
-  <g data-name="path66" data-material="Brown, W4 - Atreides" data-z="0.000">
-    <path fill="#3b3326" fill-rule="evenodd" d="M871.88 187.07c60.67 77.27 108.88 164.68 141.07 259.5h-41.57C937.04 350.97 885.73 263.37 821.32 187.07h50.55z"/>
-  </g>
-  <g data-name="path68" data-material="Brown, W4 - Atreides" data-z="0.000">
-    <path fill="#3b3326" fill-rule="evenodd" d="M1218.05 187.07c60.69 77.27 108.88 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.68 -183.2 -150.05 -259.5h50.53z"/>
-  </g>
-  <g data-name="path70" data-material="Brown, W4 - Atreides" data-z="0.000">
-    <path fill="#3b3326" fill-rule="evenodd" d="M1564.22 187.07c60.69 77.27 108.88 164.68 141.29 259.5h-41.76c-34.34 -95.61 -85.46 -183.2 -150.05 -259.5h50.53z"/>
-  </g>
-  <g data-name="path72" data-material="Brown, W3 - Atreides" data-z="0.000">
-    <path fill="#635742" fill-rule="evenodd" d="M1910.8 187.07c60.51 77.27 108.69 164.68 140.88 259.5h-41.55c-34.34 -95.61 -85.49 -183.2 -150.08 -259.5h50.74z"/>
-  </g>
-  <g data-name="Wall Bottom, Stripe" data-material="Brown, Light - Atreides" data-z="0.000">
-    <path fill="#c2ab69" fill-rule="evenodd" d="M2273.57 484.62H474.37v110.04h1799.2V484.62z"/>
-  </g>
-  <g data-name="Wall Internal" data-material="Wall Internal" data-z="0.000">
-    <path fill="#615738" fill-rule="evenodd" d="M-6.07 -4.11h480.63v681.29H-6.07V-4.11z"/>
-  </g>
-  <g data-name="Wall Top - Dark" data-material="Green Paint, Mid Dark - Atreides" data-z="0.000">
-    <path fill="#544f36" fill-rule="evenodd" d="M2273.57 98.89H474.37v-103h1799.2v103z"/>
-  </g>
-  <g data-name="Face Shadow" data-material="Skin - Paul Atreides" data-z="0.069">
-    <path fill="#d9b075" fill-rule="evenodd" d="M1814.02 308.62l-0.97 -3.9l-2.93 0.4h-7.05l-2.53 -9.76l-0.78 -8.01l-2.34 -2.53l2.74 -8.01l-0.4 -5.46l-3.9 -0.56l6.64 -14.25l28.48 1.37l9.36 14.81l-2.9 22.05l-0.4 3.52v0.19l-0.78 4.49h0.4v0.97l-14.44 4.68l-6.27 2.55l-1.94 -2.55z"/>
-  </g>
-  <g data-name="Circular Decoration" data-material="White - Atreides" data-z="0.100">
-    <path fill="#fff5d6" fill-rule="evenodd" d="M600.44 37.83c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.68 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.52 4.68 10.52 10.35c0 6.05 -4.46 10.51 -10.52 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.52 4.68 10.52 10.35c0 6.05 -4.46 10.51 -10.52 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35z"/>
-  </g>
-  <g data-name="Duke Leto's Shadow" data-material="Duke Leto's Shadow" data-z="0.100">
-    <path fill="#524a2e" fill-rule="evenodd" d="M452.51 677.17H-6.07v-442.3l72.39 90.74l98.15 -23.42l107.14 145.16l79.03 27.91l101.86 201.91z"/>
-  </g>
-  <g data-name="path67" data-material="Brown, W2 - Atreides.001" data-z="0.100">
-    <path fill="#998554" fill-rule="evenodd" d="M888.44 187.07c60.88 77.27 108.91 164.68 141.29 259.5h-41.57C953.82 350.97 902.32 263.37 837.91 187.07h50.53z"/>
-  </g>
-  <g data-name="path69" data-material="Brown, W2 - Atreides.001" data-z="0.100">
-    <path fill="#998554" fill-rule="evenodd" d="M1234.83 187.07c60.69 77.27 108.7 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.68 -183.2 -150.08 -259.5h50.56z"/>
-  </g>
-  <g data-name="path71" data-material="Brown, W2 - Atreides.001" data-z="0.100">
-    <path fill="#998554" fill-rule="evenodd" d="M1581 187.07c60.69 77.27 108.91 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.65 -183.2 -150.05 -259.5H1581z"/>
-  </g>
-  <g data-name="path73" data-material="Brown, W1 - Atreides" data-z="0.100">
-    <path fill="#826e4f" fill-rule="evenodd" d="M1927.2 187.07c60.69 77.27 108.69 164.68 141.29 259.5h-41.76c-34.37 -95.61 -85.49 -183.2 -150.08 -259.5h50.56z"/>
-  </g>
-  <g data-name="Hand - L" data-material="Skin - Paul Atreides" data-z="0.169">
-    <path fill="#d9b075" fill-rule="evenodd" d="M1788.63 366.78l-3.31 -3.12l-7.61 3.12l-1.75 6.83l8.58 0.97l4.09 -7.8z"/>
-  </g>
-  <g data-name="Uniform" data-material="Green - Atreides Uniform" data-z="0.169">
-    <path fill="#5c6145" fill-rule="evenodd" d="M1810.9 309.4l3.12 -0.97l22.24 -5.67l5.46 -1.16l1.56 16.4l29.1 3.68l4.28 5.67l-1.16 18.34l-6.83 14.06l-8.01 19.3l-0.38 12.48l-6.05 7.23l0.19 20.49l12.48 64.77l-6.62 3.31l4.68 39.63l-2.56 27.5l7.42 13.07l1.37 17.18l3.71 10.73l4.68 72.57l-5.08 5.08l4.71 24.38l-2.15 6.83l-30.66 0.38l1.18 -9.73l3.71 -17.37l-5.86 -2.34l1.75 -36.7l-2.9 -19.49l-6.83 -35.52l-4.68 -4.68l2.53 -16.4l-6.24 -19.9l-1.77 -16.78l-9.95 -33.74l-21.06 61.06l5.84 12.69l-1.75 5.83l1.75 9.76l-6.43 7.61l-5.46 52.88l-6.08 34.14l-6.24 4.09l3.34 14.44l0.38 9.17l-48.38 0.59v-7.61l14.63 -7.61L1758 675.61l-5.06 -6.05l6.8 -33.93l4.71 -46.65l-6.45 -4.68l8.79 -20.3l3.12 -26.54l2.53 -51.7l-7.21 -2.93l9.73 -61.65l-2.12 -11.29l-10.54 -3.92l-4.3 -10.51l2.93 -15.03l-2.15 -9.36l7.23 -11.32l3.31 -16.02l3.9 -5.84l-1.34 -7.61l7.99 -6.83l11.32 -0.4l17.37 -5.65l2.34 -8.01z"/>
-  </g>
-  <g data-name="Painting of Hawk &amp; Sun" data-material="Paint" data-z="0.200">
-    <path fill="none" stroke="#dec782" stroke-width="4.093" stroke-linecap="butt" stroke-linejoin="round" d="M79.79 426.27c11.51 -7.8 25.36 -12.29 39.8 -12.29c42.73 0 77.29 38.63 77.29 86.22c0 23.23 -8.2 44.31 -21.67 59.9M79.79 113.14h290.56v446.98H79.79V113.14zM216 204.63c57.17 47.8 99.9 110.45 134.46 183.41l19.9 49.95M222.24 165.81c52.49 24.98 101.68 70.44 148.12 135.8M220.27 132.84c49.97 8.2 104.61 35.3 150.08 78.24M144.76 113.14c-8.39 1.56 -14.82 5.67 -17.75 14.25l-17 7.61l-5.84 7.99l31.6 8.6c27.54 8.98 54.05 28.47 80.22 53.04c0.78 -11.69 -0.97 -23.79 -7.02 -36.08c9.73 -0.59 19.31 -3.9 29.07 -12.1c-4.3 -9.95 -10.54 -18.74 -19.52 -23.42c17.37 -2.93 32 -9.36 43.32 -19.9m-107.14 12.1c2.93 0 5.27 2.53 5.27 5.86c0 3.31 -2.34 6.05 -5.27 6.05s-5.27 -2.74 -5.27 -6.05c0 -3.33 2.34 -5.86 5.27 -5.86zm65.19 366.4v-2.15c0 -27.5 20.09 -49.95 44.88 -49.95c13.47 0 25.57 6.64 33.75 17.18c17.56 -12.1 38.45 -19.3 60.69 -19.3c3.71 0 7.42 0.19 11.13 0.59m-173.88 54.04c4.11 -1 8.39 -1.37 12.88 -1.37c34.15 0 62.06 30.81 62.06 69.07v0.38m27.11 0c0 -44.28 32.21 -79.99 71.83 -79.99M164.07 248.94c19.71 0 35.74 17.93 35.74 39.79s-16.03 39.6 -35.74 39.6c-19.5 0 -35.5 -17.74 -35.5 -39.6s16 -39.79 35.5 -39.79zm151.05 73.16L199 296.33m-69.65 -15.4L79.79 269.99m283.14 166.64L193.76 310.77m-59.13 -44.09L79.79 225.9m175.63 214.82L184 321.69m-39.61 -65.92L79.79 148.06m120.58 343.2L171.11 327.55m-13.85 -77.84l-17.37 -96.79m44.1 24.79l-12.88 72m-13.85 77.84l-16 89.96M215.4 203.07L184 255.77m-39.61 65.92L82.51 424.53M243.32 229.61l-49.56 37.08m-59.13 44.09l-54.83 40.6m194.75 -87.03L199 280.93m-69.65 15.4l-49.56 10.92"/>
-  </g>
-  <g data-name="Wall Internal Detail" data-material="Wall Internal Detail" data-z="0.200">
-    <path fill="#29261c" fill-rule="evenodd" d="M406.06 -4.11h8.77v681.29h-8.77V-4.11z"/>
-  </g>
-  <g data-name="Palm Tree" data-material="Green - Palm Tree" data-z="0.214">
-    <path fill="#364024" fill-rule="evenodd" d="M2308.31 631.74l-95.41 -15.03l3.31 -68.1l-34.34 63.02l-32.22 8.98l-6.02 -42.16l-32.4 59.12l-74.76 14.06l16.4 -52.7l29.47 -42.53l48.78 -38.23l47.41 -14.81l-30.44 -36.89l53.86 -12.29l-62.63 0.38l-24.98 -39.6l54.83 -21.27l30.25 3.52l25.36 28.88l-6.43 -26.73l19.5 2.34l13.47 -23.82l-34.74 -56.94l1 -30.06l-22.64 29.06l-50.56 13.07l7.42 -66.14l-37.46 62.83l-20.3 14.63l-19.5 -31.99l-6.27 48.99l-38.83 23.2L2016 342.39l-28.32 49.36l-49.94 6.05l4.49 -38.45l36.68 -45.06l-25.38 14.81l41.38 -53.64l48 -19.33l-16.19 -3.31l176 -65.76h59.13l3.31 -102.62L2043.32 39.01l-65.78 -43.12h330.76v635.85z"/>
-  </g>
-  <g data-name="Boots" data-material="Black - Leather" data-z="0.269">
-    <path fill="#1f1c17" fill-rule="evenodd" d="M1872.56 588.4l2.34 6.83l4.68 72.59l-5.08 5.08l4.71 24.57l-2.15 6.83l-30.66 0.38l1.18 -9.73l3.71 -17.56l-5.86 -2.37l1.75 -36.67l-2.9 -19.49l-5.49 -28.69l33.77 -1.77zm-76.88 1.18l-5.46 52.08l-6.08 34.14l-6.24 4.11l3.33 14.63l0.38 9.17l-48.38 0.59v-7.61l14.63 -7.61L1758 675.42l-5.05 -6.05l6.8 -33.96l4.49 -46.43l31.44 0.59z"/>
-  </g>
-  <g data-name="Collar Tag" data-material="Yellow - Atreides Uniform Trim" data-z="0.269">
-    <path fill="#ffed99" fill-rule="evenodd" d="M1816.17 312.92l-1.78 11.51l11.32 -5.08l-0.38 -8.39l-9.17 1.96z"/>
-  </g>
-  <g data-name="Cummerband" data-material="Yellow - Atreides Uniform Trim" data-z="0.269">
-    <path fill="#ffed99" fill-rule="evenodd" d="M1854.22 401.7l0.19 16.97l-0.97 -0.19l-35.34 2.53l-42.33 -0.38h-1l-1.94 -10.54l24.98 -7.61l9.95 8.95l4.09 -4.46l14.44 5.27l16.4 -0.21l7.02 -10.32h4.49z"/>
-  </g>
-  <g data-name="Face" data-material="Skin Shadow - Paul Atreides" data-z="0.269">
-    <path fill="#826b4a" fill-rule="evenodd" d="M1812.84 305.5l-2.93 -0.38h-3.12l4.71 -0.78l10.33 -3.33l5.27 -6.83l1.37 -4.87h2.15l6.24 7.21l0.19 7.61l-15.03 4.49l-6.24 2.55l-1.94 -2.55l-0.99 -3.12zm16.21 -20.86l-0.78 -5.27l2.15 -4.3h3.5l0.59 3.12l-2.15 5.27l-3.31 1.18zm-27.54 -20.11l8.61 0.4l6.24 8.58l7.61 1.77l4.09 -4.89l-15.22 -11.91l-15.01 1.77l3.68 4.27zm2.34 9.57l2.74 6.64l10.35 -3.71l-4.71 -3.52l-8.39 0.59zm-4.28 10.54l4.87 0.97l-4.68 3.31l-0.19 -4.28z"/>
-  </g>
-  <g data-name="Hand - R" data-material="Skin - Paul Atreides" data-z="0.269">
-    <path fill="#d9b075" fill-rule="evenodd" d="M1823.38 376.91l11.91 -9.54l10.14 -2.93l8.39 3.31l-3.31 3.71l3.9 7.42l-4.3 2.93l-8.39 -0.81l-8.39 3.71l-3.9 -5.65l-6.05 -2.15z"/>
-  </g>
-  <g data-name="Uniform Shadow" data-material="Green - Atreides Uniform Shadow" data-z="0.269">
-    <path fill="#333829" fill-rule="evenodd" d="M1876.08 337.12l-0.59 8.58l-6.83 14.06l-8.01 19.3l-0.38 12.48l-6.05 7.23l0.19 12.88l-25.36 3.9L1806 408.53l-0.56 -12.5l20.68 4.89l8.58 -3.33l7.42 -0.78l3.12 -7.21l-6.83 -9.36l16 -11.32l5.86 -1.96l-3.12 -10.35l14.63 -8.95l4.3 -10.54zm-21.67 79.39v2.74l9.17 47.62l-8.2 14.63l-29.07 -61.27l27.91 -4.3l0.19 0.59zm8.98 69.26l-3.12 1.56l4.68 39.63l-2.56 27.5l7.42 13.07l1.37 17.37l3.71 10.54l0.19 1.75l-24.58 -6.83l6.43 -12.29l6.83 -10.35l-20.87 0.59l2.15 -13.28l13.45 -19.71l-8.77 -25.54l1.94 -15.03l-17.37 -1.56l-13.85 5.86l-0.56 2.15l-2.74 -9.17l-21.08 61.06l5.86 12.69l-1.75 5.83l1.75 9.97l-6.43 7.58l-1.18 11.13l-22.24 -2.93l-0.59 -9.76l22.83 -9.54l-19.71 -6.05l13.85 -12.29l-2.53 -7.82l6.43 -26.72l8.98 -18.15l-10.73 -1.56l1.18 -11.69L1772.07 493l0.38 -7.23l16.59 1.18l3.31 -66.54l4.3 -0.78l-1.56 67.7h1.37l60.48 -0.97l6.45 -0.59zm-89.76 -71.6l-0.78 -4.27l-10.54 -3.93l-4.3 -10.32l24.01 -1.37l10.92 -0.4l9.76 16.21l-29.07 4.09zm-1.18 -34.14l3.52 -3.71l3.5 -15.22l-11.11 14.25v6.24l4.09 -1.56zm38.64 -7.21l13.66 -12.1l4.49 1.56l6.24 -15.22l14.04 -16.4l4.89 0.78l-11.13 13.09l-0.38 10.92l-5.65 8.2l-0.99 11.1l-7.8 3.71l-17.37 -5.65zm1.56 -39.23l15.62 -4.49l13.85 -8.98l-0.78 -3.5l-9.95 4.49l-17.96 8.76l-0.78 3.71zm-5.08 -0.38l-4.49 11.1l-3.31 15.62l-1.16 8.58l-4.71 -0.97l2.74 -6.64l4.09 -16.97l6.83 -10.73z"/>
-  </g>
-  <g data-name="Palm Shadow" data-material="Brown, Dark, Desk Shadow- Atreides" data-z="0.343">
-    <path fill="#826e42" fill-rule="evenodd" d="M2273.57 805.95l-268.7 -18.15l-39.42 -34.33l142.07 -6.45l-80 -12.69h246.06v71.62z"/>
-  </g>
-  <g data-name="Uniform Details" data-material="Black" data-z="0.361">
-    <path fill="none" stroke="#000000" stroke-width="1.109" stroke-linecap="butt" stroke-linejoin="round" d="M1863.58 475.64l-19.12 2.34l-48 -0.38l-18.56 -0.59l-11.89 -2.15m-6.64 143.6l34.34 0.97m49.37 -1.16l33.96 -2.34m-116.12 13.44l31.81 1.18m52.09 -2.34h32.03m-24.01 46.22l6.05 -2.9l16.97 6.05m-114.93 -2.55l11.13 0.4l6.05 9.36m-3.71 -116.28l23.42 -2.72m-21.67 20.49l16.59 -5.67m-19.9 -171.29l21.06 -5.27"/>
-  </g>
-  <g data-name="Cuff - Paul Atreides" data-material="Green - Atreides Uniform Cuff" data-z="0.369">
-    <path fill="#3d452e" fill-rule="evenodd" d="M1822.41 377.5L1790 365.03l-5.27 1.16l-6.43 6.05l0.19 7.42l2.15 7.61l27.32 24.17l3.9 -4.27l-5.46 -3.31l1.37 -10.16l4.87 -11.88l9.57 -3.52l0.19 -0.78z"/>
-  </g>
-  <g data-name="Eye" data-material="Black" data-z="0.369">
-    <path fill="#000000" fill-rule="evenodd" d="M1808.34 274.29l1.77 3.52l5.46 -1.96l-7.23 -1.56z"/>
-  </g>
-  <g data-name="Hair - Paul Atreides" data-material="Black - Hair" data-z="0.369">
-    <path fill="#302e26" fill-rule="evenodd" d="M1799.39 271.17l-8.01 -1.18l2.15 -7.99l-5.08 1.16l-5.06 6.45l2.12 -12.69l9.17 -2.53l5.86 -5.46l4.3 -3.33l8.98 3.33l8.96 -5.46l16.81 2.53l11.29 28.69l-5.46 9.36v10.14l-8.39 4.3l-0.19 0.59l-7.42 0.38l0.59 -8.95l-1.75 -1.18l3.9 -2.15l3.5 -8.58l0.78 -4.89l-4.28 -2.12l-3.52 0.97l-1.94 6.24l-2.93 0.59l-0.78 -5.86l-2.56 -4.87l-0.78 4.87l-5.46 -5.27l-4.49 -5.46l-7.39 -0.59l-2.37 8.39l-0.56 0.59z"/>
-  </g>
-  <g data-name="Scabard" data-material="Black - Leather" data-z="0.369">
-    <path fill="#1f1c17" fill-rule="evenodd" d="M1901.04 583.34l-7.61 -5.46L1834.7 420.41l8.39 -1.75l58.95 154.14l-0.99 10.54z"/>
-  </g>
-  <g data-name="Chair 1" data-material="Chair" data-z="0.400">
-    <path fill="#2e2b21" fill-rule="evenodd" d="M399.42 457.89h330.39l21.46 29.25l-21.46 75.52H399.42l-16 -22.05l-3.9 -22.85l6.83 -36.27l13.07 -23.61z"/>
-  </g>
-  <g data-name="Chair 2" data-material="Chair" data-z="0.400">
-    <path fill="#2e2b21" fill-rule="evenodd" d="M398.05 560.51h330.39l21.46 29.44l-21.46 75.52H398.05l-16 -22.05l-3.9 -22.83l6.83 -36.3l13.07 -23.79z"/>
-  </g>
-  <g data-name="Desk Top" data-material="Brown, Light, Desk - Atreides" data-z="0.968">
-    <path fill="#ccb070" fill-rule="evenodd" d="M-6.07 917.93h2279.64v-183.6H-6.07v183.6z"/>
-  </g>
-  <g data-name="path169" data-material="Book Brown, Light, Highlight" data-z="1.000">
-    <path fill="#cca863" fill-rule="evenodd" d="M243.91 515.83H-6.07v-9.76h108.51l141.48 9.76z"/>
-  </g>
-  <g data-name="Desk Front" data-material="SVGMat.088" data-z="1.068">
-    <path fill="#4c422e" fill-rule="evenodd" d="M-6.07 917.93h2279.64v-77.65H-6.07v77.65z"/>
-  </g>
-  <g data-name="Shadow - Typewriter, arm, and books" data-material="Brown, Dark, Desk Shadow- Atreides" data-z="1.068">
-    <path fill="#826e42" fill-rule="evenodd" d="M-6.07 817.84l166.65 1l19.12 -15.03l112.41 -40.6l-298.17 6.64v47.99zm291.15 -86.81l-3.52 28.5l95.63 -2.93l104.58 10.32l121.79 2.55l39.4 -12.88l-67.31 -10.54l159.22 -0.22l-14.44 19.33l-39.02 22.42l56.58 26.94h354.4l33.35 -19.52l-118.64 -37.26L725.1 734.33l-440.02 -3.31z"/>
-  </g>
-  <g data-name="Paper Top" data-material="Paper 2" data-z="1.100">
-    <path fill="#fff79c" fill-rule="evenodd" d="M312.78 769.85l334.88 -0.97l45.45 28.47l-36.46 11.51l10.51 12.5L334.24 806.52l-31.79 -29.44l10.33 -7.23z"/>
-  </g>
-  <g data-name="path121" data-material="Book Brown, Light" data-z="1.100">
-    <path fill="#996b29" fill-rule="evenodd" d="M243.91 566.94H-6.07v-51.51h249.98l8.39 8.98l3.68 16l-2.9 17.37l-9.17 9.17z"/>
-  </g>
-  <g data-name="path122" data-material="Book Pages" data-z="1.100">
-    <path fill="#d4c79c" fill-rule="evenodd" d="M287.23 575.92l-4.3 14.25L282.34 613l4.9 17.15H-6.07v-54.23h293.3z"/>
-  </g>
-  <g data-name="path128" data-material="Book Grey" data-z="1.100">
-    <path fill="#1f1f17" fill-rule="evenodd" d="M-6.07 639.53h301.1v-9.57H-6.07v9.57zm0 -63.42h301.1v-9.36H-6.07v9.36z"/>
-  </g>
-  <g data-name="path78" data-material="Book Brown" data-z="1.100">
-    <path fill="#542100" fill-rule="evenodd" d="M287.23 696.88H-6.07v72.97h293.3l9.92 -12.88l4.12 -22.42l-3.31 -24.39l-10.73 -13.28z"/>
-  </g>
-  <g data-name="path79" data-material="Book Green" data-z="1.100">
-    <path fill="#4c521c" fill-rule="evenodd" d="M267.12 697.07H-6.07v-57.75h273.19l8.98 10.35l4.09 17.74l-3.31 19.52l-9.76 10.14z"/>
-  </g>
-  <g data-name="Face Skin" data-material="Skin - Atreides" data-z="1.114">
-    <path fill="#ffe3ba" fill-rule="evenodd" d="M693.7 382.59L698 361.7l2.15 -12.1l-6.45 -13.44l7.8 -9.38L698 313.3l-3.52 -16.37l-7.61 -13.85l-46.04 -13.87l-36.12 22.64l-16 64.77l30.84 33.77l31.79 19.89l32.4 1.16l7.42 -13.25l2.53 -15.59z"/>
-  </g>
-  <g data-name="Nose" data-material="SVGMat.079" data-z="1.114">
-    <path fill="#6b5c45" fill-rule="evenodd" d="M658.98 354.49l1.16 8.39L650 370.86l8.98 -16.37zm3.31 7.39l3.71 -1.16l3.71 1.56l0.56 3.9l-7.99 -4.3z"/>
-  </g>
-  <g data-name="path113" data-material="Green - Atreides Uniform" data-z="1.114">
-    <path fill="#5c6145" fill-rule="evenodd" d="M610.57 753.47l-9.95 -1.37l-17.96 8.39l-21.46 -2.15l-11.32 -13.47l-6.43 3.52l-11.32 5.08l-109.69 -5.08L392.4 715.62l27.13 -73.96l-12.88 -30.62l21.46 -56.38l-7.8 -12.69l30.63 -63.58l-7.23 -5.08l9.39 -6.24l134.65 -32.21l-8.01 -34.93l55.83 -6.24l56.98 12.1l-2.93 32.77l116.9 22.64l11.32 23.6l-1.37 14.25l19.31 22.23l-7.21 21.27l17.75 11.51l5.86 37.07L996.76 728.5l-356.93 7.8l-8.58 -0.59l-9.17 12.69l-11.51 5.08z"/>
-  </g>
-  <g data-name="path141" data-material="SVGMat.082" data-z="1.114">
-    <path fill="#a18a69" fill-rule="evenodd" d="M588.12 334.57l-4.87 -7.21h-7.02v20.08l11.89 23.04l-0.97 -19.52l0.97 -16.4z"/>
-  </g>
-  <g data-name="Uniform Shadows" data-material="Green - Atreides Uniform Shadow" data-z="1.169">
-    <path fill="#333829" fill-rule="evenodd" d="M810.59 728.5l-11.7 -73.56l3.12 -46.06L779.18 506.26l20.09 -16.37l-5.86 27.88l13.66 21.27l16.59 10.94l-1.37 8.98l-18.93 -2.34l2.93 21.64l24.2 50.52l-1.37 22.85l23.05 15l45.45 59.71l-87.02 2.15zM477.87 501.77l37.08 28.69l9.95 26.35l2.93 23.61l-13.47 10.73l7.05 19.12l1.34 13.66l-5.65 16.19l11.51 10.16l-4.3 7.8l8.42 39.79l84.87 14.25l-44.1 -73.34l-0.78 -18.55l-25.76 -32.77l-16.19 -57.56l-22.83 -19.3l-30.06 -17.75l-0.59 -6.45l65.78 -23.01l11.51 15.59l29.66 7.42l36.12 -7.02l15.79 35.52l12.69 56.19l8.58 53.45l11.51 79.8l1.37 19.9l6.45 11.32l7.61 -0.19l1.56 -3.33V716.4l-7.8 -14.25l-8.6 -80.39l-14.23 -54.23l-9.95 -56.97L627.54 469l42.73 -19.12l9.57 -22.42l-9.57 -18.93l-40.39 -14.25l-50.15 5.65l8.01 34.93l-22.24 5.27l-17 8.98l-6.83 -3.31l-88.58 21.27l-9.38 6.24l7.23 5.27l-30.63 63.4l7.8 12.69l-21.46 56.38l12.88 30.62l-27.13 73.96l30.04 32.77l57.57 2.74l8.58 -24.01l-41.36 -34.14l-11.32 -21.46l19.9 -11.32l35.71 1.37l-5.65 -16.4l-38.64 -21.27l16.4 -8.58l5.06 -32.77l-10.73 -24.98l37.86 15.03l-5.86 -17.18l-22.62 -26.35l10.51 -27.32z"/>
-  </g>
-  <g data-name="Cuff" data-material="Green - Atreides Uniform Cuff" data-z="1.176">
-    <path fill="#3d452e" fill-rule="evenodd" d="M571.55 672.09l-22.86 -9.36l-47.01 -7.8l-29.88 12.1l-25.95 18.52l-3.5 30.65l2.9 18.52l20.71 18.34l76.29 2.55l32 -30.84l-2.72 -52.7z"/>
-  </g>
-  <g data-name="Buttons" data-material="Yellow - Atreides Uniform Trim" data-z="1.197">
-    <path fill="#ffed99" fill-rule="evenodd" d="M685.12 688.3l8.39 6.43l4.3 -6.83l-7.82 -6.43l-4.87 6.83zM641.61 478.57l7.99 6.43l4.49 -6.83l-7.99 -6.43l-4.49 6.83zm19.12 66.14l8.39 6.64l4.28 -7.04l-7.8 -6.24l-4.87 6.64zm16.38 72.78l8.2 6.43l4.49 -6.64l-8.01 -6.61l-4.68 6.83z"/>
-  </g>
-  <g data-name="Collar Tags" data-material="Yellow - Atreides Uniform Trim" data-z="1.197">
-    <path fill="#ffed99" fill-rule="evenodd" d="M655.46 453.99l-2.74 -19.33l-25.55 -7.02l-0.99 21.64l29.28 4.7zm12.69 -2.55l2.12 -22.05l11.91 -4.87l-3.12 25.16l-10.92 1.75z"/>
-  </g>
-  <g data-name="Pocket?" data-material="Yellow - Atreides Uniform Trim" data-z="1.197">
-    <path fill="#ffed99" fill-rule="evenodd" d="M553 533.2l1.18 14.81l61.66 -5.84l-2.34 -15.03L553 533.2z"/>
-  </g>
-  <g data-name="Book Trim Diamond" data-material="Book Trim, Gold" data-z="1.200">
-    <path fill="#cfc98f" fill-rule="evenodd" d="M215.03 541l-9.38 -8.58l-7.8 9.36l9.57 9.57L215.03 541z"/>
-  </g>
-  <g data-name="Book Trims" data-material="Book Trim, Gold" data-z="1.200">
-    <path fill="#cfc98f" fill-rule="evenodd" d="M211.32 734.73L189.27 720.7l-17.56 15l21.84 15.03l17.78 -16zm15.78 -37.86h-15l10.54 13.07l3.71 24.6l-4.49 22.23l-9.76 13.07h15l9.98 -13.07l4.09 -22.23l-3.31 -24.6L227.1 696.88zm-29.85 -43.69c12.88 0 23.02 7.39 23.02 16.56s-10.14 16.59 -23.02 16.59c-12.67 0 -23.02 -7.42 -23.02 -16.59s10.35 -16.56 23.02 -16.56zm-3.31 -86.25h-8.2l6.83 -9.17l2.15 -17.37l-2.56 -16l-6.43 -8.98h8.2l6.05 8.98l2.72 16l-2.12 17.37l-6.64 9.17zm-20.89 0h-8.18l6.83 -9.17l2.12 -17.37l-2.93 -16l-6.02 -8.98h8.18l6.05 8.98l2.74 16l-2.15 17.37l-6.64 9.17z"/>
-  </g>
-  <g data-name="Paper Shadow" data-material="Paper Shadow" data-z="1.200">
-    <path fill="#bab57d" fill-rule="evenodd" d="M690.39 799.91l-30.84 9.55l10.54 12.5H555.74l-240.22 -2.93l-13.07 -41.94l10.33 -7.23l9.17 25.38l369.03 2.9l-0.59 1.77z"/>
-  </g>
-  <g data-name="path178" data-material="Bookmark" data-z="1.200">
-    <path fill="#3d4029" fill-rule="evenodd" d="M193.17 600.9h-63.03l10.14 8.98l10.94 40.57l57.95 -18.15l-8.39 -23.01l-7.61 -8.39z"/>
-  </g>
-  <g data-name="Typewriter Body" data-material="Typewriter" data-z="1.211">
-    <path fill="#454738" fill-rule="evenodd" d="M780.74 662.55l-60.5 53.85v48.77l70.46 25.94H1115l18.37 -14.81l-10.54 -100.1l-16.4 -13.66H780.74z"/>
-  </g>
-  <g data-name="path136" data-material="SVGMat.077" data-z="1.214">
-    <path fill="#a18a69" fill-rule="evenodd" d="M677.1 335.56l1.37 7.61l8.98 -6.05L682 327.95l-4.11 2.72l-0.78 4.89z"/>
-  </g>
-  <g data-name="Ornithopter  Tail" data-material="SVGMat.095" data-z="1.254">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1666.68 654.53c-28.48 -10.14 -56.8 -18.71 -84.49 -23.2c-28.88 -4.89 -45.88 -3.71 -50.74 3.5c41.95 0.81 87.05 11.13 133.09 24.01l2.15 -4.3zm31.03 -0.38l0.19 5.27c38.24 -14.44 78.44 -21.86 119.42 -27.32c-6.24 -3.12 -21.06 -3.52 -50.93 1.37c-23.42 5.65 -46.44 12.29 -68.68 20.68h0z"/>
-  </g>
-  <g data-name="Hand" data-material="Skin - Atreides" data-z="1.284">
-    <path fill="#ffe3ba" fill-rule="evenodd" d="M603.93 754.04l-9.36 -1.37l-16.4 7.82l-19.71 -1.96l-10.51 -12.48l-5.86 3.31l-7.42 3.12l-2.53 -1.75l-8.61 -11.91l1 -18.93l9.17 -12.29l23.99 -16.37l16.59 -11.51l30.25 -10.54l29.66 17.15l14.25 26.16l-1 19.12l-20.49 -1.37l-1.56 7.42l-2.34 -0.21l-8.58 11.91l-10.54 4.68z"/>
-  </g>
-  <g data-name="Ornithopter Shadow" data-material="SVGMat.032" data-z="1.285">
-    <path fill="#826e42" fill-rule="evenodd" d="M1187.21 790.33l208.44 3.12l132.49 -5.27l24.39 11.32l32.19 0.4l63.03 -17.18l59.73 12.88l247.83 1.18l-21.27 -16.02l-196.52 -2.12l-15.03 -8.6l-55.61 -2.15l91.91 -13.07l-117.46 4.3H1513.1l19.12 10.92l-155.92 8.6l-164.5 -7.61l-24.61 19.3z"/>
-  </g>
-  <g data-name="path182" data-material="Yellow - Atreides Uniform Trim" data-z="1.291">
-    <path fill="#ffed99" fill-rule="evenodd" d="M529.58 753.26l-8.39 -15.41l-0.59 -25.57l10.76 -12.66l15.41 -13.66l25.17 -12.1l-5.27 -2.74l-22.05 8.6l-37.86 9.54l17.56 6.64l-10.51 14.81l0.38 28.69l8.01 13.85h7.39z"/>
-  </g>
-  <g data-name="path183" data-material="Yellow - Atreides Uniform Trim" data-z="1.291">
-    <path fill="#ffed99" fill-rule="evenodd" d="M465.39 668.97l0.38 -0.97l7.42 -4.09l14.25 4.27l3.71 6.83l-28.29 -0.78l2.53 -5.27z"/>
-  </g>
-  <g data-name="Lapels" data-material="Yellow - Atreides Uniform Trim" data-z="1.297">
-    <path fill="#ffed99" fill-rule="evenodd" d="M805.51 460.04l-42.92 -9.57L690.58 437l3.12 5.67l72.01 13.44l42.92 9.57l-3.12 -5.65zm-355.75 17.75l-6.05 -4.3l9.38 -6.24L579.35 437l14.04 6.05l2.93 7.61l-65.56 12.88l-63.41 18.55l-17.59 -4.3z"/>
-  </g>
-  <g data-name="Paper Bottom" data-material="Paper 2" data-z="1.300">
-    <path fill="#fff79c" fill-rule="evenodd" d="M322.73 803.8l0.59 6.05l212.12 -1.37L322.73 803.8z"/>
-  </g>
-  <g data-name="Paper in Typewriter" data-material="Paper 1" data-z="1.311">
-    <path fill="#faff91" fill-rule="evenodd" d="M807.66 652.41h267.92l39.05 -164.08H846.68l-39.02 164.08z"/>
-  </g>
-  <g data-name="Typewriter Details 1" data-material="Typewriter Detail 1" data-z="1.311">
-    <path fill="#191919" fill-rule="evenodd" d="M1040.65 742.53h70.08v8.79h-70.08v-8.79zm-182.24 -4.09c9.55 0 17.56 7.8 17.56 17.56c0 9.54 -8.01 17.37 -17.56 17.37c-9.57 0 -17.37 -7.82 -17.37 -17.37c0 -9.76 7.8 -17.56 17.37 -17.56zm180.71 -15.62h69.86v8.79h-69.86v-8.79z"/>
-  </g>
-  <g data-name="Typewriter Details 2" data-material="Typewriter Detail 2" data-z="1.311">
-    <path fill="#333329" fill-rule="evenodd" d="M919.1 780.98l-6.45 -109.26h7.05l6.62 109.26h-7.21zm30.63 0l-6.64 -109.26h7.04l6.43 109.26h-6.83zm30.25 0l-6.45 -109.26h7.04L987 780.98h-7.02zm30.23 0l-6.43 -109.26h7.02l6.45 109.26h-7.04z"/>
-  </g>
-  <g data-name="Typewriter Details 3" data-material="Typewriter Detail 3" data-z="1.311">
-    <path fill="#ccc78a" fill-rule="evenodd" d="M864.64 685.96c4.3 0 7.8 3.5 7.8 7.8c0 4.3 -3.5 7.8 -7.8 7.8c-4.09 0 -7.8 -3.5 -7.8 -7.8c0 -4.3 3.71 -7.8 7.8 -7.8zm-30.63 0c4.28 0 7.8 3.5 7.8 7.8c0 4.3 -3.52 7.8 -7.8 7.8c-4.3 0 -7.8 -3.5 -7.8 -7.8c0 -4.3 3.5 -7.8 7.8 -7.8z"/>
-  </g>
-  <g data-name="Typewriter Highlight" data-material="Typewriter Highlight" data-z="1.311">
-    <path fill="#757352" fill-rule="evenodd" d="M1125.17 782.91l8.2 -6.61l-10.54 -100.28l-16.4 -13.47H785.23l10.33 11.88l312.83 -1.16l16.78 109.64z"/>
-  </g>
-  <g data-name="Face Shadows" data-material="Skin Shadow - Atreides" data-z="1.314">
-    <path fill="#a18a69" fill-rule="evenodd" d="M667.15 336.15l3.71 16.96l0.59 5.08l4.68 4.68l5.65 -1.18l-8.39 7.61l-26.92 3.9l-0.19 -9.76l2.93 -14.63l-5.08 -9.54l-2.53 -5.08l-8.61 1.96l3.71 6.24l-10.33 -3.52l-5.08 5.08l4.09 8.76l15.03 18.15l0.19 14.63l-17.16 16.21l-28.1 -44.68L593.2 305.5l16.97 -32.96l81.97 14.25l0.78 6.43l-25.76 3.12l-30.23 -7.42l-14.25 7.82l3.12 11.7l-1.37 8.2l7.42 6.05l28.1 6.05l8.2 -0.59l-1 8.01zm5.86 63.02l8.01 -8.2h-13.28l-12.48 -2.34l7.99 -3.15l14.63 -0.19l8.98 8.39l5.08 8.2l3.71 -16.59l-11.32 -8.58l-36.49 2.15l-14.44 23.39l27.7 12.88l11.91 -15.97z"/>
-  </g>
-  <g data-name="Ornithopter Tail" data-material="SVGMat.094" data-z="1.315">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1698.87 659.21l-0.78 -5.05h-32.38l-1.78 4.3l8.42 14.81l26.51 -14.06z"/>
-  </g>
-  <g data-name="Eyebrows" data-material="Black - Eyebrows" data-z="1.325">
-    <path fill="#333333" fill-rule="evenodd" d="M681.03 323.65l-0.78 6.05l11.29 -3.9h10.94v-3.71l-2.74 -3.5l-11.32 1.34l-2.15 3.71h-5.24zm-14.66 1.56l-3.71 4.49L649 330.1l-15.6 -5.08l-13.07 7.61l0.56 -5.67l11.72 -7.02l15.81 0.78l10.54 6.05l7.4 -1.56z"/>
-  </g>
-  <g data-name="Eyes" data-material="Black" data-z="1.329">
-    <path fill="#000000" fill-rule="evenodd" d="M679.25 335.16l3.52 -6.64l7.8 2.15l5.86 5.08l-6.64 -0.59l-10.54 0zm-51.52 2.34l8.61 -6.24l14.82 -0.4l-2.15 5.67l-21.27 0.97z"/>
-  </g>
-  <g data-name="Ornithopter Wings" data-material="SVGMat.093" data-z="1.363">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1558.39 671.34c-115.34 -27.53 -223.44 -41.56 -308.93 -13.47c17.77 -20.11 45.47 -30.25 83.15 -30.44c77.26 1.16 154.73 12.66 232.21 38.04l-6.43 5.86zm110.26 6.43c109.26 -27.5 221.1 -27.13 334.26 -11.7c-5.65 -17.58 -30.63 -26.54 -74.73 -26.94c-90.36 -5.46 -174.66 2.93 -250.95 30.25l-8.58 8.39z"/>
-  </g>
-  <g data-name="path184" data-material="Atreides Logo - Low Poly" data-z="1.411">
-    <path fill="#5c6145" fill-rule="evenodd" d="M895.86 514.27l-27.91 34.33l31.03 25.76l43.72 -18.15l-11.72 -14.03l-13.85 4.49v-9.97l35.34 -4.27l17.16 -20.3l-73.76 2.15z"/>
-  </g>
-  <g data-name="Unknown poly" data-material="SVGMat.102" data-z="1.411">
-    <path fill="#faff91" fill-rule="evenodd" d="M1013.88 530.46l-52.49 61.06l67.52 -22.61l-15.03 -38.45z"/>
-  </g>
-  <g data-name="Hand Shadows" data-material="Skin Shadow - Atreides" data-z="1.418">
-    <path fill="#a18a69" fill-rule="evenodd" d="M580.72 759.31l-2.56 1.18l-19.71 -1.96l-10.51 -12.48l-5.86 3.31l-7.42 3.12l-2.53 -1.75l-8.61 -11.91l1.18 -22.05l19.31 -1.75l21.08 13.25l14.44 24.98l1.18 6.05zm42.92 -32.59l-5.46 -19.89l-27.91 -23.2l7.23 -0.4l26.92 16.97l8.01 11.91l6.02 13.66l-1.35 5.27l-13.47 -4.3zm-48.19 -3.12l12.67 22.45l-3.5 8.39l10.14 -1.37l4.87 -0.97l-0.97 -9.36L584.22 720.7l-10.33 -0.4l1.56 3.31z"/>
-  </g>
-  <g data-name="Box Small" data-material="Brown, Dark, Box - Atreides" data-z="1.445">
-    <path fill="#453b2e" fill-rule="evenodd" d="M1208.69 778.42H1308V756l-24.2 -8.39h-99.12v22.42l24.01 8.39z"/>
-  </g>
-  <g data-name="Ornithopter Legs 1" data-material="SVGMat.091" data-z="1.497">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1687.95 728.69c-16.19 -8.39 -32.4 -13.47 -48.78 -13.28l0.38 -14.22c19.71 1.93 38.05 8.76 54.86 20.86l5.24 -1.94l2.56 2.12l-0.99 6.05c8.98 7.42 16.4 16.59 22.05 27.91l3.33 -0.97l0.19 11.7l-4.49 0.78l-3.9 -10.73c-5.06 -9.55 -12.1 -17.75 -20.49 -25.17l-4.87 4.3l-4.11 -2.34l-0.97 -5.08zm-175.22 33.18l6.43 0.78l1.75 -13.66c9.38 -10.54 19.34 -18.74 30.06 -25.16l4.68 3.71l4.68 -1.77v-5.27c12.88 -4.27 26.35 -6.43 39.83 -7.8l-1 -13.66c-14.04 1.16 -27.7 5.46 -40.98 13.85l-5.46 -4.27l-5.27 2.9l-0.78 6.83c-11.51 8.79 -21.65 18.15 -29.26 29.09l-5.49 -0.22l0.81 14.65z"/>
-  </g>
-  <g data-name="Ornithopter Engines" data-material="SVGMat.096" data-z="1.577">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1674.48 657.28c8.39 0 15.22 6.83 15.22 15.22c0 8.58 -6.83 15.4 -15.22 15.4c-3.5 0 -6.83 -1.16 -9.36 -3.31l-11.13 5.46l-11.7 10.54l3.52 12.1l-12.32 14.44l-7.61 -1.56l-41.76 -8.58l14.84 -18.93l-6.83 -10.35l-11.91 -6.83c-2.72 3.52 -7.02 5.86 -11.89 5.86c-8.39 0 -15.22 -6.83 -15.22 -15.41c0 -8.41 6.83 -15.03 15.22 -15.03c7.39 0 13.85 5.46 14.82 12.66l24.39 3.33l43.51 0.78l8.42 -2.74c0.97 -7.42 7.39 -13.07 15.01 -13.07z"/>
-  </g>
-  <g data-name="Ornithopter Engine Mounting" data-material="SVGMat.097" data-z="1.610">
-    <path fill="#73705c" fill-rule="evenodd" d="M1666.09 685.37c-0.38 -0.19 -0.56 -0.4 -0.97 -0.78l-11.13 5.46l-11.7 10.54l0.38 1.75l-2.12 6.64l-2.93 6.05l-3.9 -1.18l-2.34 -15l-2.74 -7.23l-7.23 -2.72h-14.41l-6.83 2.34l-0.59 5.05l7.61 -0.56l11.51 1.56l6.83 14.03l1.37 14.06l-4.89 8.76l-27.89 -5.27l-6.05 -17.93l9.36 -14.44h0.59l-5.86 -8.79l-11.91 -6.83c-1.56 2.15 -3.68 3.71 -6.43 4.89l0.97 -1.77l-7.99 1.56l-5.08 -1.75l-4.09 -1.96l-2.93 -11.29l3.31 -6.64l10.92 -0.21l8.2 5.27l0.78 9.17l-0.97 2.15l6.83 -3.9l12.48 4.3l4.3 5.65v0.59l9.57 -3.71l18.53 1.37l9.76 4.87l9.57 -5.65l14.63 -3.12L1662 680.1l-1.56 -10.54l10.33 -5.65l11.91 2.72l3.31 5.27l-1.16 9.17l-6.83 4.89l-11.13 -1.18l-1.34 -1.37l0.56 1.96zm-36.68 42.16l-1.37 -15.62l6.24 3.5l2.15 8.98l-1.94 2.93l-5.08 0.22z"/>
-  </g>
-  <g data-name="Ornithopter Legs 2" data-material="SVGMat.092" data-z="1.610">
-    <path fill="#73705c" fill-rule="evenodd" d="M1687.95 728.5c-15.03 -7.61 -30.07 -12.69 -45.07 -13.28l-1.78 -7.8c16.03 2.15 33.18 7.42 51.93 16.97l-1.56 4.3l5.84 -2.74l0.4 6.05l-4.68 4.11l-4.11 -2.34l-0.97 -5.27zm-128.41 -12.69c13.28 -8.39 25.57 -11.91 39.61 -13.28l0.78 9.98c-13.47 1.34 -26.92 3.5 -39.8 7.8v5.27l-4.68 1.75l-6.27 -6.05l2.37 -6.24l7.99 0.78z"/>
-  </g>
-  <g data-name="Hair" data-material="Black - Hair" data-z="1.614">
-    <path fill="#302e26" fill-rule="evenodd" d="M702.3 418.85l-24.98 17.77l-21.49 2.9l-39.21 -0.75l-3.71 -16.4l-20.49 -8.58l-4.3 -16.21l-18.53 -5.06l2.15 -26.35l-13.66 -5.65l7.99 -30.06l-5.84 -14.25l10.51 -35.11L597.1 258.7l25.57 -10.54l23.61 4.09l12.29 -1.56l10.73 9.38l13.07 -1.37l9.95 14.22l9.17 1.37l9.39 10.73l-6.45 12.1l9.17 4.89l7.23 3.71l-11.51 4.27l-8.6 -2.93l-13.63 -17.37l-21.68 2.74l-12.48 -4.49l-13.88 -6.05l-29.66 12.29l2.93 23.61l-14.23 16.99l6.43 23.61l7.02 15.59l3.52 -15.59l8.58 20.68l12.29 5.65l0.78 -7.21l25.57 -16.96l8.58 5.65l12.1 -2.93l10.73 12.1l5.67 6.64l-3.52 14.04l6.45 22.83zm-11.13 -20.68l-1.75 -8.76l-12.5 -9.76l-6.64 0.19l-20.68 6.64l-4.28 8.98l-5.27 7.8l15.78 2.53l5.49 -12.88l10.73 0.78l9.55 -2.93l-0.19 13.28l9.76 -5.86z"/>
-  </g>
-  <g data-name="Hair Shadows" data-material="Black - Hair Shadow" data-z="1.632">
-    <path fill="#191919" fill-rule="evenodd" d="M637.49 281.31l-5.65 -8.98l-31.62 -2.53l7.42 -2.93l14.63 0.21l8.61 -3.12l17.94 6.43l-0.78 14.25l-10.54 -3.33zm52.3 -12.1l1.96 2.93l-1 0.78l-14.04 5.67l-11.91 12.47l-6.24 -2.34l14.25 -13.44l16.97 -6.08zm-116.71 74.34l-5.65 -22.61l15.41 -4.11l13.1 6.64l15 -5.67l-13.45 13.07l-19.93 -2.72l-4.49 15.41zm84.12 95.79l-1.37 0.19l-39.21 -0.75l-3.71 -16.59l-11.13 -4.49l11.91 -17.96l2.15 22.83l7.21 12.5l22.64 -0.21l6.45 -7.99l16 -6.05l-9.57 10.54l-1.37 7.99zm-84.68 -65.36l10.92 -11.69l5.08 9.95l-4.68 17.18l3.31 5.83l-8.98 -7.02l-0.59 -12.69l-5.06 -1.56zm22.05 -2.9l-2.34 15l1.16 9.17l10.95 -11.88l-8.01 -4.89l-1.75 -7.39z"/>
-  </g>
-  <g data-name="Ornithopter Leg" data-material="SVGMat.090" data-z="1.638">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1595.26 767.51l-0.78 19.52l6.64 0.56l5.06 -21.64l-10.92 1.56z"/>
-  </g>
-  <g data-name="Ornithopter Canopy" data-material="SVGMat.104" data-z="1.686">
-    <path fill="#36362b" fill-rule="evenodd" d="M1583.94 767.7l10.54 5.86l15.22 -2.15l5.86 -9.95l5.84 -7.99l5.08 -19.14l-3.5 -15.78L1614 708.39l-15.62 -2.71l-9.55 6.05l-5.86 7.99l-4.87 19.12l5.84 28.88z"/>
-  </g>
-  <g data-name="Ornithopter Canopy Frame 2" data-material="SVGMat.106" data-z="1.698">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1583.34 718.93l-0.38 0.78l-0.97 3.33l8.39 -3.33l8.96 -0.97l8.79 1.96l8.2 8.76l1.16 -3.71l-7.99 -7.21l-8.79 -2.34l-9.76 0.78l-7.61 1.94z"/>
-  </g>
-  <g data-name="Ornithopter Canopy Frame 1" data-material="SVGMat.105" data-z="1.757">
-    <path fill="#fffae8" fill-rule="evenodd" d="M1605.99 772l2.15 -0.4l1.18 -19.9l4.68 -12.29l8.98 -20.68l-2.15 -2.53l-9.95 21.45l-4.3 12.29l-6.05 -2.53l-13.26 -0.78l-7.05 2.53l0.4 2.15l6.05 -1.18l14.04 0.59l5.68 2.93l-0.4 18.34z"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="2268" height="912" viewBox="0 0 2268 912" id="root" data-authored="svg-authoring Dune Classic kit Blender export by John Flower, clipped to the camera frame 2026-11-06">
+  <path fill="#fffcf2" d="M474.37 187.07L2268 187.07L2268 378.1L474.37 378.1Z"/>
+  <path fill="#f5f2de" fill-rule="evenodd" d="M1967.6 206.97l-215.05 39.82l-238.26 11.51l-43.54 9.36l-34.93 21.67l-19.5 2.53l-140.1 15.62L1100 304.13l-45.88 5.67l-44.1 -8.58L878.9 294.18l-214.08 18.55L538.56 246.97l139.54 -59.9h1301.2l-11.7 19.9z"/>
+  <path fill="#f2e8c2" fill-rule="evenodd" d="M538.56 279.96l206.66 -14.44l18.53 -11.13l189.69 5.27l48.97 11.51l23.24 4.3l130.15 -29.47l76.51 -8.39l51.12 5.08l64 -5.08l99.9 -33.74l70.08 -16.8H498.57l39.99 92.89z"/>
+  <path fill="#c2bd8f" fill-rule="evenodd" d="M840.07 331.85l-1.18 -15.62l-7.21 -7.8l-2.34 -23.01l-2.93 3.31l-2.15 19.12l-29.29 -0.97l-2.15 -39.23l-9.36 1.37l-9.95 35.11l-26.14 -0.19l-10.95 19.33l30.66 17.75l72.98 -9.17z"/>
+  <path fill="#c2bd8f" fill-rule="evenodd" d="M1092.76 359.54v-16.37l-5.08 -2.93l-4.46 14.03h-11.51l-8.79 -19.49l-24.98 0.19l-4.3 -40.38l-6.43 3.12l-10.95 54.63l55.45 7.8l21.06 -0.59z"/>
+  <path fill="#c7b280" fill-rule="evenodd" d="M1162.63 378.1l-37.08 -18.55l-79.81 -4.27l-67.12 -11.32L939 349.6l-32.78 -15.78l-68.3 -5.67l-28.5 4.3l-59.51 -12.5L579.73 305.32l-52.68 -17.18v89.96h635.58z"/>
+  <path fill="#c7b280" fill-rule="evenodd" d="M1887.78 379.47l-56.98 -17.18l-44.1 5.65l-68.49 -9.95l-34.15 5.67l-42.73 -18.74l-179.74 20.3l-45.47 -11.51L1325 377.88l562.78 1.59z"/>
+  <path fill="#c7b280" fill-rule="evenodd" d="M1905.53 378.1l51.52 -9.95h135.61l59.73 -16l19.12 8.58l35.34 -8.58l32.97 25.95h-334.29z"/>
+  <path fill="#ccbd94" fill-rule="evenodd" d="M1265.27 377.88l-25.76 -8.58l-28.67 8.58h54.43z"/>
+  <path fill="#ffedbd" d="M474.37 377.88L2268 377.88L2268 446.57L474.37 446.57Z"/>
+  <path fill="#baab7a" fill-rule="evenodd" d="M542.27 187.07c60.69 77.27 108.88 164.68 141.1 259.5h-209v-259.5h67.9z"/>
+  <path fill="#d1bf94" fill-rule="evenodd" d="M752.24 404.63l226.56 -2.37l301.32 2.37l-36.3 6.43H856.85l-104.61 -6.43zm646.71 22.42l226.56 -4.49l301.29 4.49l-36.3 12.88h-386.75l-104.8 -12.88zm169.58 -30.25l226.56 -2.12l301.51 2.12l-36.3 6.64h-386.97l-104.8 -6.64z"/>
+  <path fill="#c2ab69" d="M474.37 0L2268 0L2268 187.29L474.37 187.29Z"/>
+  <path fill="#70703d" d="M474.37 446.36L2268 446.36L2268 677.17L474.37 677.17Z"/>
+  <path fill="#403d29" d="M0 676.98L2268 676.98L2268 912L0 912Z"/>
+  <path fill="#faff91" fill-rule="evenodd" d="M837.85 573.18l-7.61 41.75l35.34 -20.49l-27.73 -21.27z"/>
+  <path fill="#3b3326" d="M474.37 164.25L2268 164.25L2268 187.29L474.37 187.29Z"/>
+  <path fill="#3b3326" d="M474.37 446.17L2268 446.17L2268 484.99L474.37 484.99Z"/>
+  <path fill="#3b3326" fill-rule="evenodd" d="M871.88 187.07c60.67 77.27 108.88 164.68 141.07 259.5h-41.57C937.04 350.97 885.73 263.37 821.32 187.07h50.55z"/>
+  <path fill="#3b3326" fill-rule="evenodd" d="M1218.05 187.07c60.69 77.27 108.88 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.68 -183.2 -150.05 -259.5h50.53z"/>
+  <path fill="#3b3326" fill-rule="evenodd" d="M1564.22 187.07c60.69 77.27 108.88 164.68 141.29 259.5h-41.76c-34.34 -95.61 -85.46 -183.2 -150.05 -259.5h50.53z"/>
+  <path fill="#635742" fill-rule="evenodd" d="M1910.8 187.07c60.51 77.27 108.69 164.68 140.88 259.5h-41.55c-34.34 -95.61 -85.49 -183.2 -150.08 -259.5h50.74z"/>
+  <path fill="#c2ab69" d="M474.37 484.62L2268 484.62L2268 594.66L474.37 594.66Z"/>
+  <path fill="#615738" d="M0 0L474.56 0L474.56 677.18L0 677.18Z"/>
+  <path fill="#544f36" d="M474.37 0L2268 0L2268 98.89L474.37 98.89Z"/>
+  <path fill="#d9b075" fill-rule="evenodd" d="M1814.02 308.62l-0.97 -3.9l-2.93 0.4h-7.05l-2.53 -9.76l-0.78 -8.01l-2.34 -2.53l2.74 -8.01l-0.4 -5.46l-3.9 -0.56l6.64 -14.25l28.48 1.37l9.36 14.81l-2.9 22.05l-0.4 3.52v0.19l-0.78 4.49h0.4v0.97l-14.44 4.68l-6.27 2.55l-1.94 -2.55z"/>
+  <path fill="#fff5d6" fill-rule="evenodd" d="M600.44 37.83c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.68 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.52 4.68 10.52 10.35c0 6.05 -4.46 10.51 -10.52 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.52 4.68 10.52 10.35c0 6.05 -4.46 10.51 -10.52 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35zm233.72 0c6.05 0 10.51 4.68 10.51 10.35c0 6.05 -4.46 10.51 -10.51 10.51c-5.67 0 -10.35 -4.46 -10.35 -10.51c0 -5.67 4.68 -10.35 10.35 -10.35z"/>
+  <path fill="#524a2e" d="M0 677.17L0 242.48L66.32 325.61L164.47 302.19L271.61 447.35L350.64 475.26L452.5 677.17L-0 677.17Z"/>
+  <path fill="#998554" fill-rule="evenodd" d="M888.44 187.07c60.88 77.27 108.91 164.68 141.29 259.5h-41.57C953.82 350.97 902.32 263.37 837.91 187.07h50.53z"/>
+  <path fill="#998554" fill-rule="evenodd" d="M1234.83 187.07c60.69 77.27 108.7 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.68 -183.2 -150.08 -259.5h50.56z"/>
+  <path fill="#998554" fill-rule="evenodd" d="M1581 187.07c60.69 77.27 108.91 164.68 141.1 259.5h-41.57c-34.34 -95.61 -85.65 -183.2 -150.05 -259.5H1581z"/>
+  <path fill="#826e4f" fill-rule="evenodd" d="M1927.2 187.07c60.69 77.27 108.69 164.68 141.29 259.5h-41.76c-34.37 -95.61 -85.49 -183.2 -150.08 -259.5h50.56z"/>
+  <path fill="#d9b075" fill-rule="evenodd" d="M1788.63 366.78l-3.31 -3.12l-7.61 3.12l-1.75 6.83l8.58 0.97l4.09 -7.8z"/>
+  <path fill="#5c6145" fill-rule="evenodd" d="M1810.9 309.4l3.12 -0.97l22.24 -5.67l5.46 -1.16l1.56 16.4l29.1 3.68l4.28 5.67l-1.16 18.34l-6.83 14.06l-8.01 19.3l-0.38 12.48l-6.05 7.23l0.19 20.49l12.48 64.77l-6.62 3.31l4.68 39.63l-2.56 27.5l7.42 13.07l1.37 17.18l3.71 10.73l4.68 72.57l-5.08 5.08l4.71 24.38l-2.15 6.83l-30.66 0.38l1.18 -9.73l3.71 -17.37l-5.86 -2.34l1.75 -36.7l-2.9 -19.49l-6.83 -35.52l-4.68 -4.68l2.53 -16.4l-6.24 -19.9l-1.77 -16.78l-9.95 -33.74l-21.06 61.06l5.84 12.69l-1.75 5.83l1.75 9.76l-6.43 7.61l-5.46 52.88l-6.08 34.14l-6.24 4.09l3.34 14.44l0.38 9.17l-48.38 0.59v-7.61l14.63 -7.61L1758 675.61l-5.06 -6.05l6.8 -33.93l4.71 -46.65l-6.45 -4.68l8.79 -20.3l3.12 -26.54l2.53 -51.7l-7.21 -2.93l9.73 -61.65l-2.12 -11.29l-10.54 -3.92l-4.3 -10.51l2.93 -15.03l-2.15 -9.36l7.23 -11.32l3.31 -16.02l3.9 -5.84l-1.34 -7.61l7.99 -6.83l11.32 -0.4l17.37 -5.65l2.34 -8.01z"/>
+  <path fill="none" d="M79.79 426.27c11.51 -7.8 25.36 -12.29 39.8 -12.29c42.73 0 77.29 38.63 77.29 86.22c0 23.23 -8.2 44.31 -21.67 59.9M79.79 113.14h290.56v446.98H79.79V113.14zM216 204.63c57.17 47.8 99.9 110.45 134.46 183.41l19.9 49.95M222.24 165.81c52.49 24.98 101.68 70.44 148.12 135.8M220.27 132.84c49.97 8.2 104.61 35.3 150.08 78.24M144.76 113.14c-8.39 1.56 -14.82 5.67 -17.75 14.25l-17 7.61l-5.84 7.99l31.6 8.6c27.54 8.98 54.05 28.47 80.22 53.04c0.78 -11.69 -0.97 -23.79 -7.02 -36.08c9.73 -0.59 19.31 -3.9 29.07 -12.1c-4.3 -9.95 -10.54 -18.74 -19.52 -23.42c17.37 -2.93 32 -9.36 43.32 -19.9m-107.14 12.1c2.93 0 5.27 2.53 5.27 5.86c0 3.31 -2.34 6.05 -5.27 6.05s-5.27 -2.74 -5.27 -6.05c0 -3.33 2.34 -5.86 5.27 -5.86zm65.19 366.4v-2.15c0 -27.5 20.09 -49.95 44.88 -49.95c13.47 0 25.57 6.64 33.75 17.18c17.56 -12.1 38.45 -19.3 60.69 -19.3c3.71 0 7.42 0.19 11.13 0.59m-173.88 54.04c4.11 -1 8.39 -1.37 12.88 -1.37c34.15 0 62.06 30.81 62.06 69.07v0.38m27.11 0c0 -44.28 32.21 -79.99 71.83 -79.99M164.07 248.94c19.71 0 35.74 17.93 35.74 39.79s-16.03 39.6 -35.74 39.6c-19.5 0 -35.5 -17.74 -35.5 -39.6s16 -39.79 35.5 -39.79zm151.05 73.16L199 296.33m-69.65 -15.4L79.79 269.99m283.14 166.64L193.76 310.77m-59.13 -44.09L79.79 225.9m175.63 214.82L184 321.69m-39.61 -65.92L79.79 148.06m120.58 343.2L171.11 327.55m-13.85 -77.84l-17.37 -96.79m44.1 24.79l-12.88 72m-13.85 77.84l-16 89.96M215.4 203.07L184 255.77m-39.61 65.92L82.51 424.53M243.32 229.61l-49.56 37.08m-59.13 44.09l-54.83 40.6m194.75 -87.03L199 280.93m-69.65 15.4l-49.56 10.92"/>
+  <path fill="#29261c" d="M406.06 0L414.83 0L414.83 677.18L406.06 677.18Z"/>
+  <path fill="#364024" d="M2268 625.39L2212.9 616.71L2216.21 548.61L2181.87 611.63L2149.65 620.61L2143.63 578.45L2111.23 637.57L2036.47 651.63L2052.87 598.93L2082.34 556.4L2131.12 518.17L2178.53 503.36L2148.09 466.47L2201.95 454.18L2139.32 454.56L2114.34 414.96L2169.17 393.69L2199.42 397.21L2224.78 426.09L2218.35 399.36L2237.85 401.7L2251.32 377.88L2216.58 320.94L2217.58 290.88L2194.94 319.94L2144.38 333.01L2151.8 266.87L2114.34 329.7L2094.04 344.33L2074.54 312.34L2068.27 361.33L2029.44 384.53L2016 342.39L1987.68 391.75L1937.74 397.8L1942.23 359.35L1978.91 314.29L1953.53 329.1L1994.91 275.46L2042.91 256.13L2026.72 252.82L2202.72 187.06L2261.85 187.06L2265.16 84.44L2043.32 39.01L1983.81 -0L2268 0L2268 625.39Z"/>
+  <path fill="#1f1c17" fill-rule="evenodd" d="M1872.56 588.4l2.34 6.83l4.68 72.59l-5.08 5.08l4.71 24.57l-2.15 6.83l-30.66 0.38l1.18 -9.73l3.71 -17.56l-5.86 -2.37l1.75 -36.67l-2.9 -19.49l-5.49 -28.69l33.77 -1.77zm-76.88 1.18l-5.46 52.08l-6.08 34.14l-6.24 4.11l3.33 14.63l0.38 9.17l-48.38 0.59v-7.61l14.63 -7.61L1758 675.42l-5.05 -6.05l6.8 -33.96l4.49 -46.43l31.44 0.59z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M1816.17 312.92l-1.78 11.51l11.32 -5.08l-0.38 -8.39l-9.17 1.96z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M1854.22 401.7l0.19 16.97l-0.97 -0.19l-35.34 2.53l-42.33 -0.38h-1l-1.94 -10.54l24.98 -7.61l9.95 8.95l4.09 -4.46l14.44 5.27l16.4 -0.21l7.02 -10.32h4.49z"/>
+  <path fill="#826b4a" fill-rule="evenodd" d="M1812.84 305.5l-2.93 -0.38h-3.12l4.71 -0.78l10.33 -3.33l5.27 -6.83l1.37 -4.87h2.15l6.24 7.21l0.19 7.61l-15.03 4.49l-6.24 2.55l-1.94 -2.55l-0.99 -3.12zm16.21 -20.86l-0.78 -5.27l2.15 -4.3h3.5l0.59 3.12l-2.15 5.27l-3.31 1.18zm-27.54 -20.11l8.61 0.4l6.24 8.58l7.61 1.77l4.09 -4.89l-15.22 -11.91l-15.01 1.77l3.68 4.27zm2.34 9.57l2.74 6.64l10.35 -3.71l-4.71 -3.52l-8.39 0.59zm-4.28 10.54l4.87 0.97l-4.68 3.31l-0.19 -4.28z"/>
+  <path fill="#d9b075" fill-rule="evenodd" d="M1823.38 376.91l11.91 -9.54l10.14 -2.93l8.39 3.31l-3.31 3.71l3.9 7.42l-4.3 2.93l-8.39 -0.81l-8.39 3.71l-3.9 -5.65l-6.05 -2.15z"/>
+  <path fill="#333829" fill-rule="evenodd" d="M1876.08 337.12l-0.59 8.58l-6.83 14.06l-8.01 19.3l-0.38 12.48l-6.05 7.23l0.19 12.88l-25.36 3.9L1806 408.53l-0.56 -12.5l20.68 4.89l8.58 -3.33l7.42 -0.78l3.12 -7.21l-6.83 -9.36l16 -11.32l5.86 -1.96l-3.12 -10.35l14.63 -8.95l4.3 -10.54zm-21.67 79.39v2.74l9.17 47.62l-8.2 14.63l-29.07 -61.27l27.91 -4.3l0.19 0.59zm8.98 69.26l-3.12 1.56l4.68 39.63l-2.56 27.5l7.42 13.07l1.37 17.37l3.71 10.54l0.19 1.75l-24.58 -6.83l6.43 -12.29l6.83 -10.35l-20.87 0.59l2.15 -13.28l13.45 -19.71l-8.77 -25.54l1.94 -15.03l-17.37 -1.56l-13.85 5.86l-0.56 2.15l-2.74 -9.17l-21.08 61.06l5.86 12.69l-1.75 5.83l1.75 9.97l-6.43 7.58l-1.18 11.13l-22.24 -2.93l-0.59 -9.76l22.83 -9.54l-19.71 -6.05l13.85 -12.29l-2.53 -7.82l6.43 -26.72l8.98 -18.15l-10.73 -1.56l1.18 -11.69L1772.07 493l0.38 -7.23l16.59 1.18l3.31 -66.54l4.3 -0.78l-1.56 67.7h1.37l60.48 -0.97l6.45 -0.59zm-89.76 -71.6l-0.78 -4.27l-10.54 -3.93l-4.3 -10.32l24.01 -1.37l10.92 -0.4l9.76 16.21l-29.07 4.09zm-1.18 -34.14l3.52 -3.71l3.5 -15.22l-11.11 14.25v6.24l4.09 -1.56zm38.64 -7.21l13.66 -12.1l4.49 1.56l6.24 -15.22l14.04 -16.4l4.89 0.78l-11.13 13.09l-0.38 10.92l-5.65 8.2l-0.99 11.1l-7.8 3.71l-17.37 -5.65zm1.56 -39.23l15.62 -4.49l13.85 -8.98l-0.78 -3.5l-9.95 4.49l-17.96 8.76l-0.78 3.71zm-5.08 -0.38l-4.49 11.1l-3.31 15.62l-1.16 8.58l-4.71 -0.97l2.74 -6.64l4.09 -16.97l6.83 -10.73z"/>
+  <path fill="#826e42" d="M2268 734.33L2268 805.57L2004.87 787.8L1965.45 753.47L2107.52 747.02L2027.52 734.33L2268 734.33Z"/>
+  <path fill="none" d="M1863.58 475.64l-19.12 2.34l-48 -0.38l-18.56 -0.59l-11.89 -2.15m-6.64 143.6l34.34 0.97m49.37 -1.16l33.96 -2.34m-116.12 13.44l31.81 1.18m52.09 -2.34h32.03m-24.01 46.22l6.05 -2.9l16.97 6.05m-114.93 -2.55l11.13 0.4l6.05 9.36m-3.71 -116.28l23.42 -2.72m-21.67 20.49l16.59 -5.67m-19.9 -171.29l21.06 -5.27"/>
+  <path fill="#3d452e" fill-rule="evenodd" d="M1822.41 377.5L1790 365.03l-5.27 1.16l-6.43 6.05l0.19 7.42l2.15 7.61l27.32 24.17l3.9 -4.27l-5.46 -3.31l1.37 -10.16l4.87 -11.88l9.57 -3.52l0.19 -0.78z"/>
+  <path fill="#000000" fill-rule="evenodd" d="M1808.34 274.29l1.77 3.52l5.46 -1.96l-7.23 -1.56z"/>
+  <path fill="#302e26" fill-rule="evenodd" d="M1799.39 271.17l-8.01 -1.18l2.15 -7.99l-5.08 1.16l-5.06 6.45l2.12 -12.69l9.17 -2.53l5.86 -5.46l4.3 -3.33l8.98 3.33l8.96 -5.46l16.81 2.53l11.29 28.69l-5.46 9.36v10.14l-8.39 4.3l-0.19 0.59l-7.42 0.38l0.59 -8.95l-1.75 -1.18l3.9 -2.15l3.5 -8.58l0.78 -4.89l-4.28 -2.12l-3.52 0.97l-1.94 6.24l-2.93 0.59l-0.78 -5.86l-2.56 -4.87l-0.78 4.87l-5.46 -5.27l-4.49 -5.46l-7.39 -0.59l-2.37 8.39l-0.56 0.59z"/>
+  <path fill="#1f1c17" fill-rule="evenodd" d="M1901.04 583.34l-7.61 -5.46L1834.7 420.41l8.39 -1.75l58.95 154.14l-0.99 10.54z"/>
+  <path fill="#2e2b21" fill-rule="evenodd" d="M399.42 457.89h330.39l21.46 29.25l-21.46 75.52H399.42l-16 -22.05l-3.9 -22.85l6.83 -36.27l13.07 -23.61z"/>
+  <path fill="#2e2b21" fill-rule="evenodd" d="M398.05 560.51h330.39l21.46 29.44l-21.46 75.52H398.05l-16 -22.05l-3.9 -22.83l6.83 -36.3l13.07 -23.79z"/>
+  <path fill="#ccb070" d="M0 734.33L2268 734.33L2268 912L0 912Z"/>
+  <path fill="#cca863" d="M0 515.83L0 506.07L102.44 506.07L243.91 515.83L0 515.83Z"/>
+  <path fill="#4c422e" d="M0 840.28L2268 840.28L2268 912L0 912Z"/>
+  <path fill="#826e42" d="M285.08 731.03L285.08 731.02L725.1 734.33L1007.1 757.74L1125.74 795L1092.39 814.52L737.99 814.52L681.41 787.58L720.43 765.16L734.87 745.83L575.65 746.05L642.96 756.59L603.56 769.47L481.77 766.92L377.19 756.6L281.56 759.53ZM0 817.88L0 769.72L292.11 763.21L179.7 803.81L160.58 818.84L0 817.88Z"/>
+  <path fill="#fff79c" fill-rule="evenodd" d="M312.78 769.85l334.88 -0.97l45.45 28.47l-36.46 11.51l10.51 12.5L334.24 806.52l-31.79 -29.44l10.33 -7.23z"/>
+  <path fill="#996b29" d="M243.91 566.94L0 566.94L0 515.43L243.91 515.43L252.3 524.41L255.98 540.41L253.08 557.78L243.91 566.95Z"/>
+  <path fill="#d4c79c" d="M287.23 575.92L282.93 590.17L282.34 613L287.24 630.15L0 630.15L0 575.92Z"/>
+  <path fill="#1f1f17" d="M0 639.53L0 629.96L295.03 629.96L295.03 639.53L0 639.53ZM0 576.11L0 566.75L295.03 566.75L295.03 576.11L0 576.11Z"/>
+  <path fill="#542100" d="M287.23 696.88L297.96 710.16L301.27 734.55L297.15 756.97L287.23 769.85L0 769.85L0 696.88Z"/>
+  <path fill="#4c521c" d="M267.12 697.07L0 697.07L0 639.32L267.12 639.32L276.1 649.67L280.19 667.41L276.88 686.93Z"/>
+  <path fill="#ffe3ba" fill-rule="evenodd" d="M693.7 382.59L698 361.7l2.15 -12.1l-6.45 -13.44l7.8 -9.38L698 313.3l-3.52 -16.37l-7.61 -13.85l-46.04 -13.87l-36.12 22.64l-16 64.77l30.84 33.77l31.79 19.89l32.4 1.16l7.42 -13.25l2.53 -15.59z"/>
+  <path fill="#6b5c45" fill-rule="evenodd" d="M658.98 354.49l1.16 8.39L650 370.86l8.98 -16.37zm3.31 7.39l3.71 -1.16l3.71 1.56l0.56 3.9l-7.99 -4.3z"/>
+  <path fill="#5c6145" fill-rule="evenodd" d="M610.57 753.47l-9.95 -1.37l-17.96 8.39l-21.46 -2.15l-11.32 -13.47l-6.43 3.52l-11.32 5.08l-109.69 -5.08L392.4 715.62l27.13 -73.96l-12.88 -30.62l21.46 -56.38l-7.8 -12.69l30.63 -63.58l-7.23 -5.08l9.39 -6.24l134.65 -32.21l-8.01 -34.93l55.83 -6.24l56.98 12.1l-2.93 32.77l116.9 22.64l11.32 23.6l-1.37 14.25l19.31 22.23l-7.21 21.27l17.75 11.51l5.86 37.07L996.76 728.5l-356.93 7.8l-8.58 -0.59l-9.17 12.69l-11.51 5.08z"/>
+  <path fill="#a18a69" fill-rule="evenodd" d="M588.12 334.57l-4.87 -7.21h-7.02v20.08l11.89 23.04l-0.97 -19.52l0.97 -16.4z"/>
+  <path fill="#333829" fill-rule="evenodd" d="M810.59 728.5l-11.7 -73.56l3.12 -46.06L779.18 506.26l20.09 -16.37l-5.86 27.88l13.66 21.27l16.59 10.94l-1.37 8.98l-18.93 -2.34l2.93 21.64l24.2 50.52l-1.37 22.85l23.05 15l45.45 59.71l-87.02 2.15zM477.87 501.77l37.08 28.69l9.95 26.35l2.93 23.61l-13.47 10.73l7.05 19.12l1.34 13.66l-5.65 16.19l11.51 10.16l-4.3 7.8l8.42 39.79l84.87 14.25l-44.1 -73.34l-0.78 -18.55l-25.76 -32.77l-16.19 -57.56l-22.83 -19.3l-30.06 -17.75l-0.59 -6.45l65.78 -23.01l11.51 15.59l29.66 7.42l36.12 -7.02l15.79 35.52l12.69 56.19l8.58 53.45l11.51 79.8l1.37 19.9l6.45 11.32l7.61 -0.19l1.56 -3.33V716.4l-7.8 -14.25l-8.6 -80.39l-14.23 -54.23l-9.95 -56.97L627.54 469l42.73 -19.12l9.57 -22.42l-9.57 -18.93l-40.39 -14.25l-50.15 5.65l8.01 34.93l-22.24 5.27l-17 8.98l-6.83 -3.31l-88.58 21.27l-9.38 6.24l7.23 5.27l-30.63 63.4l7.8 12.69l-21.46 56.38l12.88 30.62l-27.13 73.96l30.04 32.77l57.57 2.74l8.58 -24.01l-41.36 -34.14l-11.32 -21.46l19.9 -11.32l35.71 1.37l-5.65 -16.4l-38.64 -21.27l16.4 -8.58l5.06 -32.77l-10.73 -24.98l37.86 15.03l-5.86 -17.18l-22.62 -26.35l10.51 -27.32z"/>
+  <path fill="#3d452e" fill-rule="evenodd" d="M571.55 672.09l-22.86 -9.36l-47.01 -7.8l-29.88 12.1l-25.95 18.52l-3.5 30.65l2.9 18.52l20.71 18.34l76.29 2.55l32 -30.84l-2.72 -52.7z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M685.12 688.3l8.39 6.43l4.3 -6.83l-7.82 -6.43l-4.87 6.83zM641.61 478.57l7.99 6.43l4.49 -6.83l-7.99 -6.43l-4.49 6.83zm19.12 66.14l8.39 6.64l4.28 -7.04l-7.8 -6.24l-4.87 6.64zm16.38 72.78l8.2 6.43l4.49 -6.64l-8.01 -6.61l-4.68 6.83z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M655.46 453.99l-2.74 -19.33l-25.55 -7.02l-0.99 21.64l29.28 4.7zm12.69 -2.55l2.12 -22.05l11.91 -4.87l-3.12 25.16l-10.92 1.75z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M553 533.2l1.18 14.81l61.66 -5.84l-2.34 -15.03L553 533.2z"/>
+  <path fill="#cfc98f" fill-rule="evenodd" d="M215.03 541l-9.38 -8.58l-7.8 9.36l9.57 9.57L215.03 541z"/>
+  <path fill="#cfc98f" fill-rule="evenodd" d="M211.32 734.73L189.27 720.7l-17.56 15l21.84 15.03l17.78 -16zm15.78 -37.86h-15l10.54 13.07l3.71 24.6l-4.49 22.23l-9.76 13.07h15l9.98 -13.07l4.09 -22.23l-3.31 -24.6L227.1 696.88zm-29.85 -43.69c12.88 0 23.02 7.39 23.02 16.56s-10.14 16.59 -23.02 16.59c-12.67 0 -23.02 -7.42 -23.02 -16.59s10.35 -16.56 23.02 -16.56zm-3.31 -86.25h-8.2l6.83 -9.17l2.15 -17.37l-2.56 -16l-6.43 -8.98h8.2l6.05 8.98l2.72 16l-2.12 17.37l-6.64 9.17zm-20.89 0h-8.18l6.83 -9.17l2.12 -17.37l-2.93 -16l-6.02 -8.98h8.18l6.05 8.98l2.74 16l-2.15 17.37l-6.64 9.17z"/>
+  <path fill="#bab57d" fill-rule="evenodd" d="M690.39 799.91l-30.84 9.55l10.54 12.5H555.74l-240.22 -2.93l-13.07 -41.94l10.33 -7.23l9.17 25.38l369.03 2.9l-0.59 1.77z"/>
+  <path fill="#3d4029" fill-rule="evenodd" d="M193.17 600.9h-63.03l10.14 8.98l10.94 40.57l57.95 -18.15l-8.39 -23.01l-7.61 -8.39z"/>
+  <path fill="#454738" fill-rule="evenodd" d="M780.74 662.55l-60.5 53.85v48.77l70.46 25.94H1115l18.37 -14.81l-10.54 -100.1l-16.4 -13.66H780.74z"/>
+  <path fill="#a18a69" fill-rule="evenodd" d="M677.1 335.56l1.37 7.61l8.98 -6.05L682 327.95l-4.11 2.72l-0.78 4.89z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1666.68 654.53c-28.48 -10.14 -56.8 -18.71 -84.49 -23.2c-28.88 -4.89 -45.88 -3.71 -50.74 3.5c41.95 0.81 87.05 11.13 133.09 24.01l2.15 -4.3zm31.03 -0.38l0.19 5.27c38.24 -14.44 78.44 -21.86 119.42 -27.32c-6.24 -3.12 -21.06 -3.52 -50.93 1.37c-23.42 5.65 -46.44 12.29 -68.68 20.68h0z"/>
+  <path fill="#ffe3ba" fill-rule="evenodd" d="M603.93 754.04l-9.36 -1.37l-16.4 7.82l-19.71 -1.96l-10.51 -12.48l-5.86 3.31l-7.42 3.12l-2.53 -1.75l-8.61 -11.91l1 -18.93l9.17 -12.29l23.99 -16.37l16.59 -11.51l30.25 -10.54l29.66 17.15l14.25 26.16l-1 19.12l-20.49 -1.37l-1.56 7.42l-2.34 -0.21l-8.58 11.91l-10.54 4.68z"/>
+  <path fill="#826e42" fill-rule="evenodd" d="M1187.21 790.33l208.44 3.12l132.49 -5.27l24.39 11.32l32.19 0.4l63.03 -17.18l59.73 12.88l247.83 1.18l-21.27 -16.02l-196.52 -2.12l-15.03 -8.6l-55.61 -2.15l91.91 -13.07l-117.46 4.3H1513.1l19.12 10.92l-155.92 8.6l-164.5 -7.61l-24.61 19.3z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M529.58 753.26l-8.39 -15.41l-0.59 -25.57l10.76 -12.66l15.41 -13.66l25.17 -12.1l-5.27 -2.74l-22.05 8.6l-37.86 9.54l17.56 6.64l-10.51 14.81l0.38 28.69l8.01 13.85h7.39z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M465.39 668.97l0.38 -0.97l7.42 -4.09l14.25 4.27l3.71 6.83l-28.29 -0.78l2.53 -5.27z"/>
+  <path fill="#ffed99" fill-rule="evenodd" d="M805.51 460.04l-42.92 -9.57L690.58 437l3.12 5.67l72.01 13.44l42.92 9.57l-3.12 -5.65zm-355.75 17.75l-6.05 -4.3l9.38 -6.24L579.35 437l14.04 6.05l2.93 7.61l-65.56 12.88l-63.41 18.55l-17.59 -4.3z"/>
+  <path fill="#fff79c" fill-rule="evenodd" d="M322.73 803.8l0.59 6.05l212.12 -1.37L322.73 803.8z"/>
+  <path fill="#faff91" fill-rule="evenodd" d="M807.66 652.41h267.92l39.05 -164.08H846.68l-39.02 164.08z"/>
+  <path fill="#191919" fill-rule="evenodd" d="M1040.65 742.53h70.08v8.79h-70.08v-8.79zm-182.24 -4.09c9.55 0 17.56 7.8 17.56 17.56c0 9.54 -8.01 17.37 -17.56 17.37c-9.57 0 -17.37 -7.82 -17.37 -17.37c0 -9.76 7.8 -17.56 17.37 -17.56zm180.71 -15.62h69.86v8.79h-69.86v-8.79z"/>
+  <path fill="#333329" fill-rule="evenodd" d="M919.1 780.98l-6.45 -109.26h7.05l6.62 109.26h-7.21zm30.63 0l-6.64 -109.26h7.04l6.43 109.26h-6.83zm30.25 0l-6.45 -109.26h7.04L987 780.98h-7.02zm30.23 0l-6.43 -109.26h7.02l6.45 109.26h-7.04z"/>
+  <path fill="#ccc78a" fill-rule="evenodd" d="M864.64 685.96c4.3 0 7.8 3.5 7.8 7.8c0 4.3 -3.5 7.8 -7.8 7.8c-4.09 0 -7.8 -3.5 -7.8 -7.8c0 -4.3 3.71 -7.8 7.8 -7.8zm-30.63 0c4.28 0 7.8 3.5 7.8 7.8c0 4.3 -3.52 7.8 -7.8 7.8c-4.3 0 -7.8 -3.5 -7.8 -7.8c0 -4.3 3.5 -7.8 7.8 -7.8z"/>
+  <path fill="#757352" fill-rule="evenodd" d="M1125.17 782.91l8.2 -6.61l-10.54 -100.28l-16.4 -13.47H785.23l10.33 11.88l312.83 -1.16l16.78 109.64z"/>
+  <path fill="#a18a69" fill-rule="evenodd" d="M667.15 336.15l3.71 16.96l0.59 5.08l4.68 4.68l5.65 -1.18l-8.39 7.61l-26.92 3.9l-0.19 -9.76l2.93 -14.63l-5.08 -9.54l-2.53 -5.08l-8.61 1.96l3.71 6.24l-10.33 -3.52l-5.08 5.08l4.09 8.76l15.03 18.15l0.19 14.63l-17.16 16.21l-28.1 -44.68L593.2 305.5l16.97 -32.96l81.97 14.25l0.78 6.43l-25.76 3.12l-30.23 -7.42l-14.25 7.82l3.12 11.7l-1.37 8.2l7.42 6.05l28.1 6.05l8.2 -0.59l-1 8.01zm5.86 63.02l8.01 -8.2h-13.28l-12.48 -2.34l7.99 -3.15l14.63 -0.19l8.98 8.39l5.08 8.2l3.71 -16.59l-11.32 -8.58l-36.49 2.15l-14.44 23.39l27.7 12.88l11.91 -15.97z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1698.87 659.21l-0.78 -5.05h-32.38l-1.78 4.3l8.42 14.81l26.51 -14.06z"/>
+  <path fill="#333333" fill-rule="evenodd" d="M681.03 323.65l-0.78 6.05l11.29 -3.9h10.94v-3.71l-2.74 -3.5l-11.32 1.34l-2.15 3.71h-5.24zm-14.66 1.56l-3.71 4.49L649 330.1l-15.6 -5.08l-13.07 7.61l0.56 -5.67l11.72 -7.02l15.81 0.78l10.54 6.05l7.4 -1.56z"/>
+  <path fill="#000000" fill-rule="evenodd" d="M679.25 335.16l3.52 -6.64l7.8 2.15l5.86 5.08l-6.64 -0.59l-10.54 0zm-51.52 2.34l8.61 -6.24l14.82 -0.4l-2.15 5.67l-21.27 0.97z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1558.39 671.34c-115.34 -27.53 -223.44 -41.56 -308.93 -13.47c17.77 -20.11 45.47 -30.25 83.15 -30.44c77.26 1.16 154.73 12.66 232.21 38.04l-6.43 5.86zm110.26 6.43c109.26 -27.5 221.1 -27.13 334.26 -11.7c-5.65 -17.58 -30.63 -26.54 -74.73 -26.94c-90.36 -5.46 -174.66 2.93 -250.95 30.25l-8.58 8.39z"/>
+  <path fill="#5c6145" fill-rule="evenodd" d="M895.86 514.27l-27.91 34.33l31.03 25.76l43.72 -18.15l-11.72 -14.03l-13.85 4.49v-9.97l35.34 -4.27l17.16 -20.3l-73.76 2.15z"/>
+  <path fill="#faff91" fill-rule="evenodd" d="M1013.88 530.46l-52.49 61.06l67.52 -22.61l-15.03 -38.45z"/>
+  <path fill="#a18a69" fill-rule="evenodd" d="M580.72 759.31l-2.56 1.18l-19.71 -1.96l-10.51 -12.48l-5.86 3.31l-7.42 3.12l-2.53 -1.75l-8.61 -11.91l1.18 -22.05l19.31 -1.75l21.08 13.25l14.44 24.98l1.18 6.05zm42.92 -32.59l-5.46 -19.89l-27.91 -23.2l7.23 -0.4l26.92 16.97l8.01 11.91l6.02 13.66l-1.35 5.27l-13.47 -4.3zm-48.19 -3.12l12.67 22.45l-3.5 8.39l10.14 -1.37l4.87 -0.97l-0.97 -9.36L584.22 720.7l-10.33 -0.4l1.56 3.31z"/>
+  <path fill="#453b2e" fill-rule="evenodd" d="M1208.69 778.42H1308V756l-24.2 -8.39h-99.12v22.42l24.01 8.39z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1687.95 728.69c-16.19 -8.39 -32.4 -13.47 -48.78 -13.28l0.38 -14.22c19.71 1.93 38.05 8.76 54.86 20.86l5.24 -1.94l2.56 2.12l-0.99 6.05c8.98 7.42 16.4 16.59 22.05 27.91l3.33 -0.97l0.19 11.7l-4.49 0.78l-3.9 -10.73c-5.06 -9.55 -12.1 -17.75 -20.49 -25.17l-4.87 4.3l-4.11 -2.34l-0.97 -5.08zm-175.22 33.18l6.43 0.78l1.75 -13.66c9.38 -10.54 19.34 -18.74 30.06 -25.16l4.68 3.71l4.68 -1.77v-5.27c12.88 -4.27 26.35 -6.43 39.83 -7.8l-1 -13.66c-14.04 1.16 -27.7 5.46 -40.98 13.85l-5.46 -4.27l-5.27 2.9l-0.78 6.83c-11.51 8.79 -21.65 18.15 -29.26 29.09l-5.49 -0.22l0.81 14.65z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1674.48 657.28c8.39 0 15.22 6.83 15.22 15.22c0 8.58 -6.83 15.4 -15.22 15.4c-3.5 0 -6.83 -1.16 -9.36 -3.31l-11.13 5.46l-11.7 10.54l3.52 12.1l-12.32 14.44l-7.61 -1.56l-41.76 -8.58l14.84 -18.93l-6.83 -10.35l-11.91 -6.83c-2.72 3.52 -7.02 5.86 -11.89 5.86c-8.39 0 -15.22 -6.83 -15.22 -15.41c0 -8.41 6.83 -15.03 15.22 -15.03c7.39 0 13.85 5.46 14.82 12.66l24.39 3.33l43.51 0.78l8.42 -2.74c0.97 -7.42 7.39 -13.07 15.01 -13.07z"/>
+  <path fill="#73705c" fill-rule="evenodd" d="M1666.09 685.37c-0.38 -0.19 -0.56 -0.4 -0.97 -0.78l-11.13 5.46l-11.7 10.54l0.38 1.75l-2.12 6.64l-2.93 6.05l-3.9 -1.18l-2.34 -15l-2.74 -7.23l-7.23 -2.72h-14.41l-6.83 2.34l-0.59 5.05l7.61 -0.56l11.51 1.56l6.83 14.03l1.37 14.06l-4.89 8.76l-27.89 -5.27l-6.05 -17.93l9.36 -14.44h0.59l-5.86 -8.79l-11.91 -6.83c-1.56 2.15 -3.68 3.71 -6.43 4.89l0.97 -1.77l-7.99 1.56l-5.08 -1.75l-4.09 -1.96l-2.93 -11.29l3.31 -6.64l10.92 -0.21l8.2 5.27l0.78 9.17l-0.97 2.15l6.83 -3.9l12.48 4.3l4.3 5.65v0.59l9.57 -3.71l18.53 1.37l9.76 4.87l9.57 -5.65l14.63 -3.12L1662 680.1l-1.56 -10.54l10.33 -5.65l11.91 2.72l3.31 5.27l-1.16 9.17l-6.83 4.89l-11.13 -1.18l-1.34 -1.37l0.56 1.96zm-36.68 42.16l-1.37 -15.62l6.24 3.5l2.15 8.98l-1.94 2.93l-5.08 0.22z"/>
+  <path fill="#73705c" fill-rule="evenodd" d="M1687.95 728.5c-15.03 -7.61 -30.07 -12.69 -45.07 -13.28l-1.78 -7.8c16.03 2.15 33.18 7.42 51.93 16.97l-1.56 4.3l5.84 -2.74l0.4 6.05l-4.68 4.11l-4.11 -2.34l-0.97 -5.27zm-128.41 -12.69c13.28 -8.39 25.57 -11.91 39.61 -13.28l0.78 9.98c-13.47 1.34 -26.92 3.5 -39.8 7.8v5.27l-4.68 1.75l-6.27 -6.05l2.37 -6.24l7.99 0.78z"/>
+  <path fill="#302e26" fill-rule="evenodd" d="M702.3 418.85l-24.98 17.77l-21.49 2.9l-39.21 -0.75l-3.71 -16.4l-20.49 -8.58l-4.3 -16.21l-18.53 -5.06l2.15 -26.35l-13.66 -5.65l7.99 -30.06l-5.84 -14.25l10.51 -35.11L597.1 258.7l25.57 -10.54l23.61 4.09l12.29 -1.56l10.73 9.38l13.07 -1.37l9.95 14.22l9.17 1.37l9.39 10.73l-6.45 12.1l9.17 4.89l7.23 3.71l-11.51 4.27l-8.6 -2.93l-13.63 -17.37l-21.68 2.74l-12.48 -4.49l-13.88 -6.05l-29.66 12.29l2.93 23.61l-14.23 16.99l6.43 23.61l7.02 15.59l3.52 -15.59l8.58 20.68l12.29 5.65l0.78 -7.21l25.57 -16.96l8.58 5.65l12.1 -2.93l10.73 12.1l5.67 6.64l-3.52 14.04l6.45 22.83zm-11.13 -20.68l-1.75 -8.76l-12.5 -9.76l-6.64 0.19l-20.68 6.64l-4.28 8.98l-5.27 7.8l15.78 2.53l5.49 -12.88l10.73 0.78l9.55 -2.93l-0.19 13.28l9.76 -5.86z"/>
+  <path fill="#191919" fill-rule="evenodd" d="M637.49 281.31l-5.65 -8.98l-31.62 -2.53l7.42 -2.93l14.63 0.21l8.61 -3.12l17.94 6.43l-0.78 14.25l-10.54 -3.33zm52.3 -12.1l1.96 2.93l-1 0.78l-14.04 5.67l-11.91 12.47l-6.24 -2.34l14.25 -13.44l16.97 -6.08zm-116.71 74.34l-5.65 -22.61l15.41 -4.11l13.1 6.64l15 -5.67l-13.45 13.07l-19.93 -2.72l-4.49 15.41zm84.12 95.79l-1.37 0.19l-39.21 -0.75l-3.71 -16.59l-11.13 -4.49l11.91 -17.96l2.15 22.83l7.21 12.5l22.64 -0.21l6.45 -7.99l16 -6.05l-9.57 10.54l-1.37 7.99zm-84.68 -65.36l10.92 -11.69l5.08 9.95l-4.68 17.18l3.31 5.83l-8.98 -7.02l-0.59 -12.69l-5.06 -1.56zm22.05 -2.9l-2.34 15l1.16 9.17l10.95 -11.88l-8.01 -4.89l-1.75 -7.39z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1595.26 767.51l-0.78 19.52l6.64 0.56l5.06 -21.64l-10.92 1.56z"/>
+  <path fill="#36362b" fill-rule="evenodd" d="M1583.94 767.7l10.54 5.86l15.22 -2.15l5.86 -9.95l5.84 -7.99l5.08 -19.14l-3.5 -15.78L1614 708.39l-15.62 -2.71l-9.55 6.05l-5.86 7.99l-4.87 19.12l5.84 28.88z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1583.34 718.93l-0.38 0.78l-0.97 3.33l8.39 -3.33l8.96 -0.97l8.79 1.96l8.2 8.76l1.16 -3.71l-7.99 -7.21l-8.79 -2.34l-9.76 0.78l-7.61 1.94z"/>
+  <path fill="#fffae8" fill-rule="evenodd" d="M1605.99 772l2.15 -0.4l1.18 -19.9l4.68 -12.29l8.98 -20.68l-2.15 -2.53l-9.95 21.45l-4.3 12.29l-6.05 -2.53l-13.26 -0.78l-7.05 2.53l0.4 2.15l6.05 -1.18l14.04 0.59l5.68 2.93l-0.4 18.34z"/>
 </svg>

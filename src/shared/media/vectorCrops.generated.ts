@@ -11,7 +11,7 @@ export const VECTOR_CROPS = {
   '/vector/decal/atomic-explosion.svg': [50.004999999999995, 50, 98.09, 82],
   '/vector/decal/atomics-multicolor.svg': [50, 49.99, 100, 80.3],
   '/vector/decal/atomics.svg': [50, 49.699999999999996, 100, 77.7],
-  '/vector/decal/atreides-artwork-multicolor.svg': [50, 50.04, 100, 40.76],
+  '/vector/decal/atreides-artwork-multicolor.svg': [50, 50, 100, 40.32],
   '/vector/decal/atreides-artwork.svg': [50, 50, 100, 40.3],
   '/vector/decal/audience-petition-multicolor.svg': [50.835, 49.39, 67.43, 62.06],
   '/vector/decal/audience-petition.svg': [50.835, 49.395, 67.43, 62.05],
