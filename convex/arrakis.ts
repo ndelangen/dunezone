@@ -9,11 +9,11 @@ import { resolveRulebookAsset } from './lib/rulebookReferences';
 import type { QueryCtx } from './types';
 
 /**
- * The saved Arrakis board's live row: its published face and its own board data.
- * The face is the last publication, and the board data is the saved row's, so republishing the board hides neither.
+ * The saved Arrakis board's live row and its published face.
+ * The face is the last publication, so republishing the board does not hide it.
  * `null` without a live board, or before its first publication with territories.
  */
-async function savedArrakis(ctx: QueryCtx) {
+async function savedArrakisFace(ctx: QueryCtx) {
   /* A slug names one live asset, but a deleted one can keep it; the live one is taken. */
   const rows = await ctx.db
     .query('assets')
@@ -21,15 +21,8 @@ async function savedArrakis(ctx: QueryCtx) {
     .take(8);
   const row = rows.find((candidate) => !candidate.is_deleted);
   const face = row ? await resolveRulebookAsset(ctx, row._id, false) : null;
-  const data = BoardAsset.safeParse(row?.data);
-  return face?.imageUrl && face.geometry && data.success
-    ? {
-        assetId: face.assetId,
-        name: face.name,
-        imageUrl: face.imageUrl,
-        geometry: face.geometry,
-        board: data.data.board,
-      }
+  return row && face?.imageUrl && face.geometry
+    ? { row, assetId: face.assetId, name: face.name, imageUrl: face.imageUrl, geometry: face.geometry }
     : null;
 }
 
@@ -48,7 +41,20 @@ export const board = publicQuery({
       board: zodToConvex(BoardDefinition),
     })
   ),
-  handler: async (ctx) => await savedArrakis(ctx),
+  /* The board data is the saved row's own, so a republish in progress does not hide it either. */
+  handler: async (ctx) => {
+    const face = await savedArrakisFace(ctx);
+    const data = BoardAsset.safeParse(face?.row.data);
+    return face && data.success
+      ? {
+          assetId: face.assetId,
+          name: face.name,
+          imageUrl: face.imageUrl,
+          geometry: face.geometry,
+          board: data.data.board,
+        }
+      : null;
+  },
 });
 
 /**
@@ -62,7 +68,8 @@ export const face = publicQuery({
     v.object({ assetId: v.string(), imageUrl: v.string(), geometry: zodToConvex(componentGeometrySchema) })
   ),
   handler: async (ctx) => {
-    const found = await savedArrakis(ctx);
+    /* The face does not need board data that passes the board schema. */
+    const found = await savedArrakisFace(ctx);
     return found && { assetId: found.assetId, imageUrl: found.imageUrl, geometry: found.geometry };
   },
 });

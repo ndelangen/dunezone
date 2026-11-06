@@ -1,4 +1,5 @@
 import { AssetCapture } from '@shared/play/assetCapture';
+import type { BoardCapture } from '@shared/play/capture';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -69,38 +70,32 @@ export function useTutorialTable(
 ) {
   /* The players at the table greet the learner by their own name when they answer a chat message. */
   const username = useCurrentProfile().data?.username ?? undefined;
-  /* The table plays on the saved Arrakis, which arrives after the table opens; a Reset keeps it. */
+  /* The table plays on the saved Arrakis; a Reset keeps the one it plays on. */
   const board = useArrakisBoard()?.capture;
   const [table] = useState(() => {
     const origin = window.location.origin;
-    const open = () => {
+    /* The board goes in before the opening, so what the opening places lands on the saved board's territories. */
+    const open = (onBoard: BoardCapture | undefined) => {
       const local = new LocalTable(start());
+      local.setBoard(onBoard);
       local.open();
       opening?.(playersAt(() => local));
       return local;
     };
-    const holder = { current: open() };
+    /* A page whose HTML embedded the saved board has it already; otherwise it joins the table when it arrives. */
+    const holder = { current: open(board) };
     const runtime = localRuntime(
       () => holder.current,
       withOrigin(setup.factions, origin),
       new AssetCapture(readAssetSupply, origin)
     );
-    /* The guide asks every frame, so the table is projected again only once its room has moved on. */
-    let seen: { room: unknown; snapshot: GameSnapshot } | undefined;
     const control: TutorialTableControl = {
-      snapshot: () => {
-        const room = holder.current.room.snapshot;
-        if (seen?.room !== room) {
-          seen = { room, snapshot: holder.current.frame().snapshot };
-        }
-        return seen.snapshot;
-      },
+      snapshot: () => holder.current.guideSnapshot(),
       players: playersAt(() => holder.current),
       reset: () => {
-        const { deliver, board } = holder.current;
+        const { deliver, board: kept } = holder.current;
         holder.current.dispose();
-        holder.current = open();
-        holder.current.setBoard(board);
+        holder.current = open(kept);
         holder.current.deliver = deliver;
         /* A read the old table left behind is answered now, so a stalled one does not hold the page's next request. */
         runtime.settleCaptures();

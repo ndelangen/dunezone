@@ -8,7 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@db/arrakis';
+import { ArrakisBoardSeedProvider, loadArrakisBoard, useArrakisBoard } from '@db/arrakis';
 import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -94,6 +94,8 @@ function nextLinkAfter(slug: string) {
 
 function ChapterPage() {
   const current = useCurrentProfile();
+  /* The table opens on the saved Arrakis, so no move is made before its territories are known. */
+  const arrakis = useArrakisBoard();
   const { chapter: slug } = Route.useParams();
   const { step } = Route.useSearch();
   const chapter = chapterAt(slug);
@@ -123,7 +125,7 @@ function ChapterPage() {
       </PageLayout.Content>
     </PageLayout>
   );
-  if (current.data === undefined) {
+  if (current.data === undefined || arrakis === undefined) {
     return loading;
   }
   return (

@@ -104,6 +104,8 @@ export interface NativePeer {
   seatLimitMode: 'answer' | 'hold' | 'error';
   /* Whether Convex finds a live session behind a bug report's seat pass. */
   bugReportMode: 'allow' | 'deny';
+  /* The saved Arrakis read: `answer` returns the board, `missing` finds none, `error` fails the request. */
+  arrakisBoardMode: 'answer' | 'missing' | 'error';
   summaries: z.infer<typeof playPublishSummaryRequestSchema>[];
   requests: PeerRequest[];
   provisionExpiresAt: number;
@@ -332,6 +334,15 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       break;
     case 'arrakis:board':
       /* The saved Arrakis board the homepage table plays on. */
+      if (peer.arrakisBoardMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Convex unavailable');
+        break;
+      }
+      if (peer.arrakisBoardMode === 'missing') {
+        record.release(null);
+        break;
+      }
       record.release({
         assetId: arrakisBoardCapture.asset.id,
         name: arrakisBoardCapture.asset.name,
@@ -380,6 +391,7 @@ export async function createPeer(): Promise<NativePeer> {
     seatLimitReached: new Set(),
     seatLimitMode: 'answer',
     bugReportMode: 'allow',
+    arrakisBoardMode: 'answer',
     summaries: [],
     requests: [],
     provisionExpiresAt: Date.now() + 60_000,

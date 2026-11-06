@@ -1,4 +1,3 @@
-import type { ComponentGeometry } from '@shared/asset-publishing/componentGeometry';
 import { ARRAKIS_BOARD_SLUG } from '@shared/boards/arrakisOfficial';
 import type { Board } from '@shared/boards/schema';
 import type { BoardCapture } from '@shared/play/capture';
@@ -11,20 +10,20 @@ import { useLiveQuery } from '@app/db/core/live';
 
 import { api } from '../../../convex/_generated/api';
 
-export type ArrakisBoard = Readonly<{
-  assetId: string;
-  name: string;
-  /** The published face, and its territories in that image's frame. */
-  imageUrl: string;
-  geometry: ComponentGeometry;
-  /** The board's own territories, for drawing tints and placing pieces on it. */
-  definition: Board;
-  /** The board as a table captures it, for a practice table without a game behind it. */
-  capture: BoardCapture;
-}>;
-
 /** The saved Arrakis board as the server answers it, before it is checked. */
 export type ArrakisBoardSeed = FunctionReturnType<typeof api.arrakis.board>;
+
+/**
+ * The saved Arrakis board as pages use it: the query's answer (its id, name, published face and territories in that image's frame), with its board data as a board definition and as a table captures it.
+ */
+export type ArrakisBoard = Readonly<
+  NonNullable<ArrakisBoardSeed> & {
+    /** The board's own territories, for drawing tints and placing pieces on it. */
+    definition: Board;
+    /** The board as a table captures it, for a practice table without a game behind it. */
+    capture: BoardCapture;
+  }
+>;
 
 /**
  * The saved Arrakis board for a server-rendered page's loader, so the page's HTML carries it and draws it before the live query answers.

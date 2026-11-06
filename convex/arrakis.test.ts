@@ -14,12 +14,16 @@ type Fixture = Awaited<ReturnType<typeof rulebookFixture>>;
 
 const geometry = componentGeometrySchema.parse(arrakisOfficialGeometry);
 
-async function insertArrakis(f: Fixture, isDeleted = false) {
+async function insertArrakis(
+  f: Fixture,
+  isDeleted = false,
+  data: unknown = { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition }
+) {
   return await f.t.run((ctx) =>
     ctx.db.insert('assets', {
       owner_id: f.ids.ownerId,
       type: 'board',
-      data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+      data: data as never,
       slug: ARRAKIS_BOARD_SLUG,
       created_at: '2026-10-01T00:00:00.000Z',
       updated_at: '2026-10-01T00:00:00.000Z',
@@ -71,31 +75,46 @@ describe('The saved Arrakis board', () => {
 });
 
 describe('The saved Arrakis board while it republishes', () => {
-  test('keeps its published face and its own board data while a new capture is queued or has failed', async () => {
-    const f = await rulebookFixture();
-    const id = await insertArrakis(f);
-    await publish(f, id);
-    await f.t.run((ctx) =>
-      ctx.db.insert('publication_jobs', {
-        asset_type: 'board',
-        asset_id: id,
-        asset_data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
-        status: 'error',
-        attempt_counter: 3,
-        created_at: 2,
-        updated_at: 2,
-      } as never)
-    );
-    expect(await f.t.query(api.arrakis.board, {})).toMatchObject({
-      assetId: id,
-      geometry,
-      board: arrakisBoardCapture.definition,
-    });
-    expect(await f.t.query(api.arrakis.face, {})).toMatchObject({ assetId: id, geometry });
-  });
+  test.each(['pending', 'error'] as const)(
+    'keeps its published face and its own board data while a new capture is %s',
+    async (status) => {
+      const f = await rulebookFixture();
+      const id = await insertArrakis(f);
+      await publish(f, id);
+      await f.t.run((ctx) =>
+        ctx.db.insert('publication_jobs', {
+          asset_type: 'board',
+          asset_id: id,
+          asset_data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+          status,
+          attempt_counter: 3,
+          created_at: 2,
+          updated_at: 2,
+        } as never)
+      );
+      expect(await f.t.query(api.arrakis.board, {})).toMatchObject({
+        assetId: id,
+        geometry,
+        board: arrakisBoardCapture.definition,
+      });
+      expect(await f.t.query(api.arrakis.face, {})).toMatchObject({ assetId: id, geometry });
+    }
+  );
 });
 
 describe('The saved Arrakis face, kept for bundles from before the board query', () => {
+  test('stays when the saved board data no longer passes the board schema', async () => {
+    const f = await rulebookFixture();
+    const id = await insertArrakis(f, false, { name: 'Arrakis Official', about: '', board: { territories: 'broken' } });
+    await publish(f, id);
+    expect(await f.t.query(api.arrakis.board, {})).toBeNull();
+    expect(await f.t.query(api.arrakis.face, {})).toEqual({
+      assetId: id,
+      imageUrl: expect.stringContaining(id),
+      geometry,
+    });
+  });
+
   test('answers only the live board’s id, published image and territories', async () => {
     const f = await rulebookFixture();
     const id = await insertArrakis(f);

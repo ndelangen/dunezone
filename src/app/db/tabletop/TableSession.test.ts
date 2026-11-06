@@ -1103,6 +1103,17 @@ describe('hosted table interaction', () => {
     expect(table(client).snapshot.board).toBeUndefined();
   });
 
+  test('a board whose territories change under the same name is drawn anew', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const redrawn = structuredClone(arrakisBoardCapture);
+    const [key] = Object.keys(redrawn.definition.properties);
+    redrawn.definition.properties[key!]!.name = 'Redrawn territory';
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: redrawn } }));
+    expect(table(client).snapshot.board?.asset).toEqual(arrakisBoardCapture.asset);
+    expect(table(client).snapshot.board?.definition.properties[key!]?.name).toBe('Redrawn territory');
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);

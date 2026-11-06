@@ -43,6 +43,8 @@ const BOARD_KEY = 'arrakis-board';
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
+/* A failed board read tries again after each of these waits, then waits for the next table or wake. */
+const BOARD_RETRY_MS = [1000, 5000, 30_000, 120_000, 600_000];
 const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'];
 
 /* One public table, with private games' physical rules and its own admission and hourly lifetime. */
@@ -56,6 +58,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private scheduledAlarm = 0;
   private delivery = new RoomDelivery();
   private activityTimer?: ReturnType<typeof setTimeout>;
+  private boardRetry?: ReturnType<typeof setTimeout>;
+  private boardFailures = 0;
+  /* Reads overlap (a wake's and a reset's); only the latest one's answer is applied. */
+  private boardReads = 0;
   private readonly connections = new Map<WebSocket, Connection>();
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
@@ -157,25 +163,43 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     );
   }
 
-  /* Reads the saved Arrakis Official board and puts the table on it; a failed read leaves the table on the board it had. */
+  /*
+   * Reads the saved Arrakis Official board and puts the table on it. When Convex finds no saved board the table
+   * leaves its board; a failed read keeps the board it had and tries again a few times.
+   */
   private async loadBoard() {
-    await this.diagnostics
-      .run('board', async () => {
+    clearTimeout(this.boardRetry);
+    this.boardRetry = undefined;
+    const read = ++this.boardReads;
+    try {
+      await this.diagnostics.run('board', async () => {
         const found = await gameHttpClient(this.env.CONVEX_URL).query(api.arrakis.board, {});
+        if (read !== this.boardReads) {
+          return;
+        }
         const board = found
           ? boardCaptureSchema.parse({
               asset: { id: found.assetId, slug: ARRAKIS_BOARD_SLUG, name: found.name },
               definition: found.board,
             })
           : undefined;
-        if (!board || JSON.stringify(board) === JSON.stringify(this.board)) {
+        if (JSON.stringify(board) === JSON.stringify(this.board)) {
           return;
         }
         this.board = board;
-        await this.ctx.storage.put(BOARD_KEY, board);
+        await (board ? this.ctx.storage.put(BOARD_KEY, board) : this.ctx.storage.delete(BOARD_KEY));
         this.broadcast();
-      })
-      .catch(() => undefined);
+      });
+      this.boardFailures = 0;
+    } catch {
+      if (read !== this.boardReads) {
+        return;
+      }
+      const wait = BOARD_RETRY_MS[this.boardFailures++];
+      if (wait !== undefined) {
+        this.boardRetry = setTimeout(() => void this.loadBoard(), wait);
+      }
+    }
   }
 
   private frame() {

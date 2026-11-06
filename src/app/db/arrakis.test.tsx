@@ -83,4 +83,18 @@ describe('the saved Arrakis board', () => {
     mocks.live = null;
     expect(renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) }).result.current).toBeNull();
   });
+
+  test('moves from the embedded copy to a newer live board when it arrives', () => {
+    const newer = { ...answer, assetId: 'newer-board', name: 'Arrakis Revised', board: arrakisBoard() };
+    const { result, rerender } = renderHook(() => useArrakisBoard(), { wrapper: seeded(answer) });
+    expect(result.current?.assetId).toBe('arrakis-board');
+    mocks.live = newer;
+    rerender();
+    expect(result.current).toMatchObject({ assetId: 'newer-board', geometry: newer.geometry });
+    expect(result.current?.definition).toBe(newer.board);
+    expect(result.current?.capture).toEqual({
+      asset: { id: 'newer-board', slug: 'arrakis-official', name: 'Arrakis Revised' },
+      definition: newer.board,
+    });
+  });
 });

@@ -89,9 +89,50 @@ describe('the public homepage table', () => {
     await command(member, { kind: 'rotate', pieceId: 'treachery-card-loose', direction: 1 });
     const saved = await runtime.fetch('/native-test/saved-board');
     expect(await saved.json()).toEqual({ name: 'Arrakis Official' });
+    /* Convex is down across the restart, so the board can only come from the room's own storage. */
+    peer.arrakisBoardMode = 'error';
     await runtime.restart();
     const resumed = await visitor();
-    expect((await syncView(resumed)).snapshot.board?.asset.name).toBe('Arrakis Official');
+    expect((await resumed.message('view')).snapshot.board?.asset.name).toBe('Arrakis Official');
+  });
+
+  it('leaves the board when the saved Arrakis is gone', async () => {
+    const member = await visitor();
+    await member.message('view', (view) => view.snapshot.board !== undefined);
+    peer.arrakisBoardMode = 'missing';
+    /* The next hour's table reads the board again. */
+    await runtime.fetch('/native-test/clock?offset=3600001');
+    await eventually(
+      async () => ((await (await runtime.fetch('/native-test/saved-board')).json()) as { name: unknown }).name === null,
+      'saved board removed'
+    );
+    /* The removal reaches the visitor's table, which then holds no board. */
+    const cleared = await eventually(
+      () => member.messages.findLast((message) => message.type === 'view')?.snapshot.board === undefined,
+      'board removed from the table'
+    );
+    expect(cleared).toBe(true);
+  });
+
+  it('tries the board read again when Convex fails it', async () => {
+    peer.arrakisBoardMode = 'error';
+    const member = await visitor();
+    await eventually(() => peer.requests.some((request) => request.function === 'arrakis:board'), 'board read');
+    const synced = await syncView(member);
+    if (synced.snapshot.board) {
+      console.log(
+        'DEBUG',
+        JSON.stringify(runtime.logs).match(/(BOARDREAD|FRAME)[^"]*/g),
+        peer.requests.filter((r) => r.function === 'arrakis:board').map((r) => [r.startedAt, r.completedAt]),
+        Date.now(),
+        member.messages.map(
+          (m) => m.type + ':' + ('snapshot' in m && m.snapshot && 'board' in m.snapshot ? !!m.snapshot.board : '-')
+        )
+      );
+    }
+    expect(synced.snapshot.board).toBeUndefined();
+    peer.arrakisBoardMode = 'answer';
+    await member.message('view', (view) => view.snapshot.board?.asset.name === 'Arrakis Official');
   });
 
   it('grants the first pickup after hibernation without a preliminary resync', async () => {

@@ -6,7 +6,8 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   return { ...actual, createFileRoute: () => (options: unknown) => ({ options }) };
 });
 vi.mock('@db/profiles', () => ({ useSessionViewer: () => undefined }));
-vi.mock('@db/arrakis', () => ({ ArrakisBoardSeedProvider: () => null, loadArrakisBoard: async () => null }));
+const savedBoard = vi.hoisted(() => ({ assetId: 'arrakis-board', name: 'Arrakis Official' }));
+vi.mock('@db/arrakis', () => ({ ArrakisBoardSeedProvider: () => null, loadArrakisBoard: async () => savedBoard }));
 
 import { Route } from './index';
 
@@ -28,7 +29,7 @@ describe('the homepage head', () => {
 
   it('embeds the saved Arrakis board in the page, so its table draws it without a query', async () => {
     const loader = (Route as unknown as { options: { loader: () => Promise<{ arrakis: unknown }> } }).options.loader;
-    await expect(loader()).resolves.toMatchObject({ arrakis: null });
+    await expect(loader()).resolves.toMatchObject({ arrakis: savedBoard });
   });
 
   it('leaves the SPA shell, which runs no loaders below the root, without a page identity', () => {

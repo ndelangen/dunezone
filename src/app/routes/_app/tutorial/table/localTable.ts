@@ -75,6 +75,8 @@ export class LocalTable {
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
   /** The board the table plays on: the saved Arrakis, once the page has read it. */
   board: BoardCapture | undefined;
+  /* The guide's last view of the table, and the room and board it showed. */
+  private guideSeen: { room: unknown; board: BoardCapture | undefined; snapshot: GameSnapshot } | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */
@@ -146,6 +148,15 @@ export class LocalTable {
     );
     const holder = viewers.find((viewer) => session.seatOf(viewer.userId) === seat) ?? this.opening.viewers[seat]!;
     return { ...holder, viewerSeat: seat };
+  }
+
+  /** The page's seat's view for the guide, which asks every frame: projected again only once the room or its board has moved on. */
+  guideSnapshot() {
+    const { snapshot: room } = this.room;
+    if (this.guideSeen?.room !== room || this.guideSeen.board !== this.board) {
+      this.guideSeen = { room, board: this.board, snapshot: this.frame().snapshot };
+    }
+    return this.guideSeen.snapshot;
   }
 
   /** The view a seat receives of the room as it stands, projected as the Worker projects it. */
