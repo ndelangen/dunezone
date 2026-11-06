@@ -326,21 +326,24 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
   };
 }
 
-/* The writer's name, then at the table their faction's token and name. */
+/*
+ * The writer's name, then at the table their faction's token and name.
+ * In a narrow window the token and faction name move under the name together, and the time onto its own line, rather than overlap.
+ */
 function SavedMessageHeader({ message, sender }: Readonly<{ message: ConversationMessage; sender?: FactionToken }>) {
   return (
-    <Group gap="sm" justify="space-between" wrap="nowrap">
-      <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }} data-message-sender={sender?.id}>
+    <Group gap="sm" justify="space-between">
+      <Group gap={6} data-message-sender={sender?.id}>
         <Text size="sm" fw={700}>
           {message.author}
         </Text>
         {sender ? (
-          <>
+          <Group gap={6} wrap="nowrap">
             <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0, fontSize: 9 }} />
             <Text span size="sm" c="dimmed">
               {sender.name}
             </Text>
-          </>
+          </Group>
         ) : null}
       </Group>
       <MessageTime savedAt={message.savedAt} />
