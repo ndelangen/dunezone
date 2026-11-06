@@ -65,7 +65,7 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
       return;
     }
     const caret = field.current?.selectionStart ?? mention.caret;
-    const next = completeMention(draft, mention.query, caret, chosen.label);
+    const next = completeMention({ text: draft, caret }, mention.query, chosen);
     /* A name that would carry the message past its limit is not written; the query stays as typed. */
     if (next.text.length > MESSAGE_LIMIT) {
       return;
@@ -183,11 +183,11 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
   const [active, setActive] = useState<{ query: string; index: number } | null>(null);
   const [focused, setFocused] = useState(false);
   const spaceAt = useRef<number | null>(null);
-  const typed = mentions.length ? mentionQuery(draft, caret) : null;
+  const typed = mentions.length ? mentionQuery({ text: draft, caret }) : null;
   /* A dismissed @ that was deleted, or typed again, is no longer dismissed. */
   const live = dismissed !== null && draft[dismissed] === '@' && typed?.at === dismissed;
   const query = typed && !live ? typed : null;
-  const matches = query ? matchMentions(mentions, query.query) : [];
+  const matches = query ? matchMentions(mentions, query) : [];
   const open = focused && matches.length > 0;
   const store = useCombobox({ opened: open });
   const highlighted = active && active.query === query?.query ? Math.min(active.index, matches.length - 1) : 0;
@@ -235,7 +235,7 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
     focus: setFocused,
     /* An edit that takes away the dismissed @, or changes what comes before it, ends the dismissal: a message sent, an @ deleted and typed again. */
     edited: (next: string) => {
-      if (dismissed !== null && (next[dismissed] !== '@' || next.slice(0, dismissed) !== draft.slice(0, dismissed))) {
+      if (dismissed !== null && !dismissalHolds(draft, next, dismissed)) {
         setDismissed(null);
       }
     },
@@ -244,6 +244,12 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
       spaceAt.current = after;
     },
   };
+}
+
+/* A dismissed @ stays dismissed through an edit that keeps it, and everything before it, as it was. */
+function dismissalHolds(draft: string, next: string, at: number) {
+  const kept = next[at] === '@';
+  return kept && next.slice(0, at) === draft.slice(0, at);
 }
 
 /* An Enter that ends a composed character stays the input method's; Safari can end one with an Enter that reads as not composing but keeps the composing key code. */

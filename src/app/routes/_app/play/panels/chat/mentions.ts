@@ -29,7 +29,7 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
   const segments: MessageSegment[] = [];
   let plain = 0;
   for (let at = text.indexOf('@'); at >= 0; at = text.indexOf('@', at + 1)) {
-    if (!opensMention(text, at)) {
+    if (!opensMention({ text, caret: at })) {
       continue;
     }
     const named = byLength.find((mention) => {
@@ -60,6 +60,9 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
 /** The @ being typed before the caret: where it sits and what follows it so far. */
 export type MentionQuery = Readonly<{ at: number; query: string }>;
 
+/** A composer's text and where its caret stands in it. */
+export type Draft = Readonly<{ text: string; caret: number }>;
+
 /* Names are short; a run of text this long after an @ is a sentence, not a name being typed. */
 const MAX_QUERY = 40;
 
@@ -68,24 +71,21 @@ const MAX_QUERY = 40;
  * An @ opens a mention at the start of the text or after a space or an opening bracket, so an e-mail address never does.
  * A line break ends it; spaces do not, since a name can have them, and the suggestions close once nothing matches.
  */
-export function mentionQuery(text: string, caret: number): MentionQuery | null {
+export function mentionQuery({ text, caret }: Draft): MentionQuery | null {
   const before = text.slice(0, caret);
   const at = before.lastIndexOf('@');
   if (at < 0 || caret - at - 1 > MAX_QUERY) {
     return null;
   }
   const query = before.slice(at + 1);
-  return opensMention(text, at) && namesSoFar(query) ? { at, query } : null;
+  /* What follows the @ can still be a name: it neither starts with a space nor runs onto another line. */
+  const namesSoFar = !query.includes('\n') && !/^\s/.test(query);
+  return opensMention({ text, caret: at }) && namesSoFar ? { at, query } : null;
 }
 
-/* An @ opens a mention at the start of the text or after a space or an opening bracket. */
-function opensMention(text: string, at: number) {
-  return at === 0 || /[\s([{]/.test(text[at - 1]!);
-}
-
-/* What follows the @ can still be a name: it neither starts with a space nor runs onto another line. */
-function namesSoFar(query: string) {
-  return !query.includes('\n') && !/^\s/.test(query);
+/* The @ at the caret opens a mention: it stands at the start of the text or after a space or an opening bracket. */
+function opensMention({ text, caret }: Draft) {
+  return caret === 0 || /[\s([{]/.test(text[caret - 1]!);
 }
 
 /* Case and accents aside, so "@pa" finds "Paul" and "@atre" finds "Atréides". */
@@ -101,7 +101,7 @@ function fold(text: string) {
  * A name starting with it comes first.
  * Every seat shows, even two whose factions share a name: their players tell them apart.
  */
-export function matchMentions(mentions: readonly Mention[], query: string): Mention[] {
+export function matchMentions(mentions: readonly Mention[], { query }: MentionQuery): Mention[] {
   const wanted = fold(query);
   const names = (mention: Mention) => [mention.label, mention.detail ?? ''].map(fold);
   const starts = mentions.filter((mention) => names(mention).some((name) => name.startsWith(wanted)));
@@ -119,14 +119,9 @@ export function matchMentions(mentions: readonly Mention[], query: string): Ment
  * The text with the @ and what follows it up to the caret replaced by the chosen name and one space, and where the caret then goes.
  * Where a space already follows, the caret steps over it rather than writing a second.
  */
-export function completeMention(
-  text: string,
-  { at }: MentionQuery,
-  caret: number,
-  label: string
-): { text: string; caret: number } {
+export function completeMention({ text, caret }: Draft, { at }: MentionQuery, chosen: Mention): Draft {
   const after = text.slice(caret);
   const spaced = after.startsWith(' ');
-  const mention = `@${label}${spaced ? '' : ' '}`;
+  const mention = `@${chosen.label}${spaced ? '' : ' '}`;
   return { text: text.slice(0, at) + mention + after, caret: at + mention.length + (spaced ? 1 : 0) };
 }

@@ -7,6 +7,8 @@ function mention(id: string, label: string, detail: string | null = null): Menti
   return { id, label, detail, token: { id, name: label } };
 }
 
+const PAULA = mention('seat-9', 'Paula');
+
 const MENTIONS = [
   mention('seat-1', 'House Atreides', 'Paula'),
   mention('seat-2', 'Harkonnen', 'Sam'),
@@ -16,56 +18,59 @@ const MENTIONS = [
 
 describe('mentionQuery', () => {
   test('an @ at the start or after a space opens a mention', () => {
-    expect(mentionQuery('@pa', 3)).toEqual({ at: 0, query: 'pa' });
-    expect(mentionQuery('hi @', 4)).toEqual({ at: 3, query: '' });
-    expect(mentionQuery('hi (@fr', 7)).toEqual({ at: 4, query: 'fr' });
+    expect(mentionQuery({ text: '@pa', caret: 3 })).toEqual({ at: 0, query: 'pa' });
+    expect(mentionQuery({ text: 'hi @', caret: 4 })).toEqual({ at: 3, query: '' });
+    expect(mentionQuery({ text: 'hi (@fr', caret: 7 })).toEqual({ at: 4, query: 'fr' });
   });
 
   test('an @ inside a word, after a line break, or followed by a space opens none', () => {
-    expect(mentionQuery('me@home', 7)).toBeNull();
-    expect(mentionQuery('@pa\nx', 5)).toBeNull();
-    expect(mentionQuery('@ pa', 4)).toBeNull();
-    expect(mentionQuery('no at sign', 5)).toBeNull();
+    expect(mentionQuery({ text: 'me@home', caret: 7 })).toBeNull();
+    expect(mentionQuery({ text: '@pa\nx', caret: 5 })).toBeNull();
+    expect(mentionQuery({ text: '@ pa', caret: 4 })).toBeNull();
+    expect(mentionQuery({ text: 'no at sign', caret: 5 })).toBeNull();
   });
 
   test('only the text before the caret counts', () => {
-    expect(mentionQuery('@paula rest', 3)).toEqual({ at: 0, query: 'pa' });
+    expect(mentionQuery({ text: '@paula rest', caret: 3 })).toEqual({ at: 0, query: 'pa' });
   });
 });
 
 describe('matchMentions', () => {
   test("a player's name finds their faction", () => {
-    expect(matchMentions(MENTIONS, 'sa').map((entry) => entry.label)).toEqual(['Harkonnen']);
+    expect(matchMentions(MENTIONS, { at: 0, query: 'sa' }).map((entry) => entry.label)).toEqual(['Harkonnen']);
   });
 
   test('names starting with the query come first, then names with a word starting with it', () => {
-    expect(matchMentions(MENTIONS, 'a').map((entry) => entry.id)).toEqual(['seat-3', 'seat-1']);
+    expect(matchMentions(MENTIONS, { at: 0, query: 'a' }).map((entry) => entry.id)).toEqual(['seat-3', 'seat-1']);
   });
 
   test('case and accents do not matter, and two seats sharing a faction name both show', () => {
-    expect(matchMentions(MENTIONS, 'FRÉ').map((entry) => entry.id)).toEqual(['seat-3', 'seat-4']);
+    expect(matchMentions(MENTIONS, { at: 0, query: 'FRÉ' }).map((entry) => entry.id)).toEqual(['seat-3', 'seat-4']);
   });
 
   test('an empty query suggests everyone; one that matches nobody suggests nothing', () => {
-    expect(matchMentions(MENTIONS, '')).toHaveLength(4);
-    expect(matchMentions(MENTIONS, 'zz')).toEqual([]);
+    expect(matchMentions(MENTIONS, { at: 0, query: '' })).toHaveLength(4);
+    expect(matchMentions(MENTIONS, { at: 0, query: 'zz' })).toEqual([]);
   });
 });
 
 describe('completeMention', () => {
   test('writes the name and one space, with the caret after it', () => {
-    expect(completeMention('hi @pa', { at: 3, query: 'pa' }, 6, 'Paula')).toEqual({ text: 'hi @Paula ', caret: 10 });
+    expect(completeMention({ text: 'hi @pa', caret: 6 }, { at: 3, query: 'pa' }, PAULA)).toEqual({
+      text: 'hi @Paula ',
+      caret: 10,
+    });
   });
 
   test('steps over a space that already follows instead of writing a second', () => {
-    expect(completeMention('@pa there', { at: 0, query: 'pa' }, 3, 'Paula')).toEqual({
+    expect(completeMention({ text: '@pa there', caret: 3 }, { at: 0, query: 'pa' }, PAULA)).toEqual({
       text: '@Paula there',
       caret: 7,
     });
   });
 
   test('keeps a line break that follows and still writes the space', () => {
-    expect(completeMention('@pa\nnext', { at: 0, query: 'pa' }, 3, 'Paula')).toEqual({
+    expect(completeMention({ text: '@pa\nnext', caret: 3 }, { at: 0, query: 'pa' }, PAULA)).toEqual({
       text: '@Paula \nnext',
       caret: 7,
     });
