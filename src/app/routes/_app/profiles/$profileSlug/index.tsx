@@ -3,6 +3,7 @@ import { Anchor, Box, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
+import { FactionCard } from '@ui/block/FactionCard';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
@@ -12,8 +13,8 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { FactionList } from '@ui/list/FactionList';
 import { FaqList } from '@ui/list/FaqList';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
@@ -104,7 +105,11 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
   }
   return (
     <Stack gap="md">
-      <FactionList factions={page.factions} />
+      <TileGrid size="card">
+        {page.factions.map((faction) => (
+          <FactionCard key={faction._id} faction={faction} />
+        ))}
+      </TileGrid>
       {page.listedFactionCount > page.factions.length ? (
         <Box>
           <LabeledAction

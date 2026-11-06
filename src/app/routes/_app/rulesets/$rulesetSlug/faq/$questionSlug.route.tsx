@@ -882,7 +882,7 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
 
 function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
   return faq.references.length > 0 ? (
-    <TileGrid density="compact">
+    <TileGrid size="compact">
       {faq.references.map((reference) => (
         <FaqReferenceTile
           key={reference.id}

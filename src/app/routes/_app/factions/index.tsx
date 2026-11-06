@@ -10,6 +10,7 @@ import type { FactionCatalogueSearch, FactionComplexityRange } from '@shared/fac
 import { Link, createFileRoute, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps, NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
+import { FactionCard } from '@ui/block/FactionCard';
 import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
@@ -24,7 +25,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { FactionList } from '@ui/list/FactionList';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowDownAZ, ChevronsDown, Filter, FilterX, Plus, RotateCcw, UsersRound } from 'lucide-react';
@@ -194,7 +195,13 @@ function CatalogueContent({
             }
       }
       noun="factions"
-      renderEntries={(cards) => <FactionList factions={cards} selectedRulesetSlug={selectedRulesetSlug} />}
+      renderEntries={(cards) => (
+        <TileGrid size="card">
+          {cards.map((faction) => (
+            <FactionCard key={faction._id} faction={faction} selectedRulesetSlug={selectedRulesetSlug} />
+          ))}
+        </TileGrid>
+      )}
       noMatches="No faction matches this search or these filters."
       noMatchesAction={
         <LabeledAction icon={<RotateCcw size={16} />} onClick={onReset}>
