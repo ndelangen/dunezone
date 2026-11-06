@@ -339,7 +339,7 @@ function SavedMessageHeader({ message, sender }: Readonly<{ message: Conversatio
         </Text>
         {sender ? (
           <Group gap={6} wrap="nowrap">
-            <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0, fontSize: 9 }} />
+            <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} aria-hidden />
             <Text span size="sm" c="dimmed">
               {sender.name}
             </Text>

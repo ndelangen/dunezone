@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { PANEL_WINDOWS } from '../panelWindows';
 import {
@@ -27,9 +27,16 @@ export const WithAPlayer = meta.story({
 export const WithTheTable = meta.story({
   args: tableChatArgs(),
   parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
-  play: async ({ canvas, canvasElement }) => {
+  play: async ({ canvas, canvasElement, args }) => {
     await expect(canvas.getByText('Who is bidding on this one?')).toBeVisible();
-    await expect(canvasElement.querySelectorAll('[data-message-sender]')).toHaveLength(5);
+    /* Each message names its writer's faction beside the faction's token face as it lies on the table. */
+    const headers = [...canvasElement.querySelectorAll<HTMLElement>('[data-message-sender]')];
+    await expect(headers).toHaveLength(args.page!.entries.length);
+    for (const header of headers) {
+      const token = args.senders![header.dataset.messageSender!]!;
+      await expect(within(header).getByText(token.name)).toBeVisible();
+      await expect(header.querySelector('img')).toHaveAttribute('src', token.src);
+    }
   },
 });
 

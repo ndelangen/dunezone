@@ -1,10 +1,10 @@
 import { Select, Stack } from '@mantine/core';
 import { TABLE_CONVERSATION, isRecallConversation } from '@shared/play/conversations';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
-import { factionToken } from '../../multiplayer/FactionTokenFace';
+import { snapshotFactionToken } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
@@ -23,25 +23,18 @@ function senderNames(context: ConversationView['context']): Record<string, strin
 /* Every faction's token at the table, by faction: its face as it lies on the table, or its initial while the table is out of reach. */
 function senderTokens(
   context: ConversationView['context'],
-  table: TableProjection | undefined
+  snapshot: TableProjection['snapshot'] | undefined
 ): Record<string, FactionToken> {
   const names = senderNames(context);
-  return Object.fromEntries(
-    Object.entries(names).map(([id, name]) => [id, table ? factionToken(table, id, names) : { id, name }])
-  );
+  return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
 }
 
-/**
- * A conversation at a live table: the caller selects the faction pair;
- * this loads its history and sends what the viewer writes.
- * The table, where it is in reach, gives each writer at the table's chat their faction's token.
- */
-export function ConnectedConversationPanel({
-  client,
-  peerId,
-  table,
-}: Readonly<{ client: TableSession; peerId: string; table?: TableProjection }>) {
-  const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+/** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
+export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
+  const { conversations: view, table } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* The tokens follow the table's snapshot, not every clock tick or connection change. */
+  const snapshot = table?.snapshot;
+  const tokens = useMemo(() => senderTokens(view.context, snapshot), [view.context, snapshot]);
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
@@ -57,7 +50,7 @@ export function ConnectedConversationPanel({
       online={view.online}
       page={page}
       pending={view.pending.filter((entry) => entry.request.peerId === peerId)}
-      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? senderTokens(view.context, table) : null}
+      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? tokens : null}
       unread={Boolean(summary?.unread) && latest === summary?.latest}
       drafts={client.conversations.drafts}
       onLoad={(before) => client.conversations.load({ peerId, before })}
@@ -81,9 +74,7 @@ export function ConnectedPlayerChat({
   if (!context || !peerId || (peerId !== TABLE_CONVERSATION && !context.peers.some((peer) => peer.id === peerId))) {
     return null;
   }
-  return (
-    <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} table={table} />
-  );
+  return <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
 }
 
 /** The eraser for a seat's chat, or the table's, while it has messages the viewer has not cleared. */

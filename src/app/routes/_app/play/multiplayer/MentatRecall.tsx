@@ -123,12 +123,7 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
                 'This chat is separate from table chat. All messages and drafts disappear when this recall closes.',
               fill: true,
               content: (
-                <ConnectedConversationPanel
-                  key={current.id}
-                  client={client}
-                  peerId={recallConversation(current.id)}
-                  table={table}
-                />
+                <ConnectedConversationPanel key={current.id} client={client} peerId={recallConversation(current.id)} />
               ),
             },
           ]
