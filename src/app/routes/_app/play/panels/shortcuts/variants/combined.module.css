@@ -1,0 +1,45 @@
+/* What the combined variants share around the keyboard and the key stories. */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-brand);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heading {
+  margin: 0 0 var(--space-xs);
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panel {
+  min-height: 4.6rem;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--mantine-font-size-sm);
+}
+
+.list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

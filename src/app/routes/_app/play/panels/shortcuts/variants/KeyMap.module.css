@@ -1,0 +1,111 @@
+/* The drawn keyboard: rows of key tiles, each in its group's colour, glowing when it does something only now. */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.keyboard[data-mini] {
+  gap: 0.2rem;
+  font-size: 0.75rem;
+}
+
+.row {
+  display: flex;
+  gap: inherit;
+}
+
+.key {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+  height: 3.1rem;
+  padding: 0.2rem 0.1rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  color: color-mix(in srgb, var(--color-text) 30%, transparent);
+  font: inherit;
+  transition:
+    opacity 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.keyboard[data-mini] .key {
+  height: 1.9rem;
+  padding: 0;
+  border-radius: 0.3rem;
+}
+
+.key[data-blank] {
+  visibility: hidden;
+}
+
+.key[data-state] {
+  border-color: color-mix(in srgb, var(--group) 50%, transparent);
+  background: color-mix(in srgb, var(--group) 9%, transparent);
+  color: var(--color-text);
+  cursor: help;
+}
+
+/* A key that only does something now glows in its colour, softly breathing once as it lights. */
+.key[data-state="now"] {
+  border-color: var(--group);
+  background: color-mix(in srgb, var(--group) 24%, transparent);
+  box-shadow: 0 0 0.6rem color-mix(in srgb, var(--group) 45%, transparent);
+  animation: light 700ms ease-out;
+}
+
+/* With emphasis, a key that does nothing now steps back. */
+.key[data-emphasis][data-state="later"] {
+  opacity: 0.35;
+}
+
+.key[data-focus] {
+  outline: 2px solid var(--group, var(--color-text));
+  outline-offset: 1px;
+}
+
+.caption {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: word-in 260ms ease-out;
+}
+
+.key[data-state="now"] .caption {
+  color: var(--color-text);
+}
+
+.lit {
+  color: var(--group);
+  font-weight: 800;
+}
+
+@keyframes light {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--group) 80%, transparent);
+  }
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.25rem;
+  }
+}
+
+html[data-motion="reduce"] .key[data-state="now"],
+html[data-motion="reduce"] .caption {
+  animation: none;
+}

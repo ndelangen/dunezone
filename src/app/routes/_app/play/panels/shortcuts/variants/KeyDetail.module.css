@@ -1,0 +1,74 @@
+.list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A key's story on one line: caps, what it does with its word, the hook beneath, and when it answers. */
+.story {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr max-content;
+  gap: 0 var(--space-sm);
+  align-items: baseline;
+  font-size: var(--mantine-font-size-sm);
+  animation: slide-in 180ms ease-out;
+}
+
+.caps {
+  justify-self: end;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.action {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.word {
+  font-weight: 400;
+}
+
+.hook {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.when {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.story[data-now] .when {
+  color: var(--group);
+  font-weight: 700;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    translate: -0.4rem 0;
+  }
+}
+
+html[data-motion="reduce"] .story {
+  animation: none;
+}
+
+.story[data-lit] {
+  background: color-mix(in srgb, var(--group) 16%, transparent);
+}
+
+.story {
+  margin: 0 -0.4rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.35rem;
+  transition: background-color 160ms ease;
+}

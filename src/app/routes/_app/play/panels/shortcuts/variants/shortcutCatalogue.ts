@@ -24,6 +24,8 @@ export type ShortcutEntry = Readonly<{
   press?: 'hold' | 'range';
   /** A pointer gesture rather than a key, such as scrolling. */
   pointer?: boolean;
+  /** One word for what the key does, small enough to sit on the key itself. */
+  short: string;
   /** What the key does, as short as the compass would say it. */
   action: string;
   /** The longer story, for variants with room for it. */
@@ -56,6 +58,7 @@ const [COUNTS, NAMES] = TABLE_LABEL_OPTIONS;
 export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   {
     id: 'compass',
+    short: 'Compass',
     group: 'windows',
     keys: ['Space'],
     action: 'Open the compass',
@@ -63,9 +66,18 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     hook: 'The biggest key opens everything.',
     when: 'table',
   },
-  { id: 'hand', group: 'windows', keys: [cap(SHORTCUTS.hand)], action: 'Hand & spice', word: 'Hand', when: 'table' },
+  {
+    id: 'hand',
+    short: 'Hand',
+    group: 'windows',
+    keys: [cap(SHORTCUTS.hand)],
+    action: 'Hand & spice',
+    word: 'Hand',
+    when: 'table',
+  },
   {
     id: 'hidden',
+    short: 'Side',
     group: 'windows',
     keys: [cap(SHORTCUTS.hidden)],
     action: 'Private side-table',
@@ -74,6 +86,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'battle',
+    short: 'Battle',
     group: 'windows',
     keys: [cap(SHORTCUTS.battle)],
     action: 'Battle plan',
@@ -83,6 +96,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'table',
+    short: 'Chat',
     group: 'windows',
     keys: [cap(SHORTCUTS.table)],
     action: 'Table chat',
@@ -92,6 +106,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'ally',
+    short: 'Ally',
     group: 'windows',
     keys: [cap(SHORTCUTS.ally)],
     action: 'Ally chat',
@@ -101,15 +116,17 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'pin',
+    short: 'Pin',
     group: 'windows',
     keys: [PIN_KEYS.left, PIN_KEYS.right],
     action: 'Pin the window left or right',
     hook: 'The brackets point at the side.',
     when: 'table',
   },
-  { id: 'close', group: 'windows', keys: ['Esc'], action: 'Close the centre window', when: 'table' },
+  { id: 'close', short: 'Close', group: 'windows', keys: ['Esc'], action: 'Close the centre window', when: 'table' },
   {
     id: 'help',
+    short: 'Help',
     group: 'windows',
     keys: [SHORTCUTS.help],
     action: 'These shortcuts',
@@ -118,6 +135,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'pan',
+    short: 'Pan',
     group: 'view',
     keys: ['←', '↑', '→', '↓'],
     action: 'Slide the view',
@@ -126,6 +144,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'top-down',
+    short: 'Top',
     group: 'view',
     keys: [cap(SHORTCUTS.faceUp)],
     action: 'Look straight down, and back',
@@ -135,6 +154,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'zoom',
+    short: 'Zoom',
     group: 'view',
     keys: ['Scroll'],
     pointer: true,
@@ -143,6 +163,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'counts',
+    short: 'Close-up',
     group: 'view',
     keys: [COUNTS.key],
     press: 'hold',
@@ -152,6 +173,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'names',
+    short: 'Names',
     group: 'view',
     keys: [NAMES.key],
     press: 'hold',
@@ -160,15 +182,25 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'ping',
+    short: 'Ping',
     group: 'view',
     keys: ['Tab'],
     action: 'Ping the spot for everyone',
     hook: 'Tap the table with Tab.',
     when: 'table',
   },
-  { id: 'flip', group: 'pieces', keys: [cap(TABLE_KEYS.flip)], action: 'Flip it', word: 'Flip', when: 'piece' },
+  {
+    id: 'flip',
+    short: 'Flip',
+    group: 'pieces',
+    keys: [cap(TABLE_KEYS.flip)],
+    action: 'Flip it',
+    word: 'Flip',
+    when: 'piece',
+  },
   {
     id: 'turn',
+    short: 'Turn',
     group: 'pieces',
     keys: [cap(TABLE_KEYS.turnLeft), cap(TABLE_KEYS.turnRight)],
     action: 'Turn it left or right',
@@ -177,6 +209,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'stack',
+    short: 'Stack',
     group: 'pieces',
     keys: [cap(TABLE_KEYS.stack)],
     action: 'Stack the pieces there',
@@ -185,6 +218,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'lock',
+    short: 'Lock',
     group: 'pieces',
     keys: [cap(TABLE_KEYS.lock)],
     action: 'Lock or unlock it',
@@ -193,6 +227,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'take',
+    short: 'Take',
     group: 'pieces',
     keys: [cap(TABLE_KEYS.take)],
     action: 'Draw from the deck',
@@ -202,6 +237,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'shuffle',
+    short: 'Riffle',
     group: 'pieces',
     keys: [cap(TABLE_KEYS.shuffle)],
     action: 'Shuffle the deck',
@@ -210,6 +246,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'split',
+    short: 'Split',
     group: 'pieces',
     keys: ['1', '9'],
     press: 'range',
@@ -217,10 +254,26 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     detail: 'Hold the digit a second. 0 for ten.',
     when: 'piece',
   },
-  { id: 'menu', group: 'pieces', keys: ['Right-click'], pointer: true, action: 'The piece’s menu', when: 'piece' },
-  { id: 'put-back', group: 'pieces', keys: ['Esc'], action: 'Put back what you carry', when: 'carrying' },
+  {
+    id: 'menu',
+    short: 'Menu',
+    group: 'pieces',
+    keys: ['Right-click'],
+    pointer: true,
+    action: 'The piece’s menu',
+    when: 'piece',
+  },
+  {
+    id: 'put-back',
+    short: 'Put back',
+    group: 'pieces',
+    keys: ['Esc'],
+    action: 'Put back what you carry',
+    when: 'carrying',
+  },
   {
     id: 'spice-take',
+    short: 'Spice',
     group: 'pieces',
     keys: ['1', '9'],
     press: 'range',
@@ -230,6 +283,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'spice-place',
+    short: 'Move',
     group: 'pieces',
     keys: ['←', '↑', '→', '↓'],
     action: 'Move spice you are placing',
@@ -238,6 +292,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'raise',
+    short: 'Raise',
     group: 'bidding',
     keys: [cap(SHORTCUTS.raise)],
     action: 'Raise your bid by one',
@@ -246,6 +301,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'lower',
+    short: 'Undo',
     group: 'bidding',
     keys: [cap(SHORTCUTS.lower)],
     action: 'Take back your last raise',
@@ -254,6 +310,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'pass',
+    short: 'Pass',
     group: 'bidding',
     keys: [cap(SHORTCUTS.pass)],
     action: 'Pass',
@@ -263,6 +320,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
   },
   {
     id: 'rejoin',
+    short: 'Rejoin',
     group: 'bidding',
     keys: [cap(SHORTCUTS.faceUp)],
     action: 'Rejoin the bidding',
@@ -309,3 +367,30 @@ export function capOfEvent(event: Pick<KeyboardEvent, 'key'>): string | null {
 export function entriesForCap(key: string) {
   return SHORTCUT_ENTRIES.filter((entry) => capsOf(entry).includes(key));
 }
+
+/** What holds besides the table itself. */
+export type Now = Exclude<Situation, 'table'>;
+
+/**
+ * What a key does at this moment: what it does in a situation that holds wins, as a piece's own keys do over the table's;
+ * otherwise what it does anywhere.
+ * Null for a key that does nothing now.
+ */
+export function meaningNow(key: string, now: readonly Now[]): ShortcutEntry | null {
+  const entries = entriesForCap(key);
+  return (
+    entries.find((entry) => entry.when !== 'table' && now.includes(entry.when)) ??
+    entries.find((entry) => entry.when === 'table') ??
+    null
+  );
+}
+
+/** Whether an entry belongs to a situation that holds right now, rather than to the table at large. */
+export function isNow(entry: ShortcutEntry, now: readonly Now[]) {
+  return entry.when !== 'table' && now.includes(entry.when);
+}
+
+/** The label of each situation. */
+export const SITUATION_LABEL: Readonly<Record<Situation, string>> = Object.fromEntries(
+  SITUATIONS.map((situation) => [situation.id, situation.label])
+) as Record<Situation, string>;

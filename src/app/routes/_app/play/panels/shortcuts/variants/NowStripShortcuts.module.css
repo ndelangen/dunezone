@@ -1,0 +1,55 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A chip: the key and its word, in its group's colour. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--group) 45%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--group) 10%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: help;
+  transition: background-color 160ms ease;
+}
+
+.chip[data-focus] {
+  background: color-mix(in srgb, var(--group) 26%, transparent);
+}
+
+.word {
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.toggle {
+  display: flex;
+  justify-content: center;
+}
+
+/* The keyboard unfolds downward from the toggle. */
+.unfold {
+  animation: unfold 260ms ease-out;
+  transform-origin: top center;
+}
+
+@keyframes unfold {
+  from {
+    opacity: 0;
+    scale: 1 0.85;
+  }
+}
+
+html[data-motion="reduce"] .unfold {
+  animation: none;
+}
