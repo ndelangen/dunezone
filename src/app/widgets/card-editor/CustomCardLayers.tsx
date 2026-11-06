@@ -1,8 +1,8 @@
 import { ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
-import { Notice } from '@ui/block/Notice';
-import { HelpMark } from '@ui/content/HelpMark';
+import { ListChapter } from '@ui/block/ListChapter';
+import { helpLines } from '@ui/content/helpLines';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -191,15 +191,23 @@ function TokenLayerFields({
   const token = tokens[layer.asset_id];
   return (
     <Stack gap="sm">
-      <Group gap={4} wrap="nowrap">
-        <Text size="sm">
-          {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
-        </Text>
-        <HelpMark text="The front stays linked to the original token. Editing that token updates this card." />
-      </Group>
-      <LabeledAction icon={<Replace size={16} />} onClick={() => setPicking(true)}>
-        Replace token
-      </LabeledAction>
+      <ControlBlock
+        title="Token"
+        description={helpLines(
+          'The front stays linked to the original token.',
+          'Editing that token updates this card.'
+        )}
+        tool={
+          <LabeledAction icon={<Replace size={16} />} onClick={() => setPicking(true)}>
+            Replace token
+          </LabeledAction>
+        }
+        input={
+          <Text size="sm">
+            {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
+          </Text>
+        }
+      />
       {picking
         ? tokenPicker(
             (asset_id) => {
@@ -304,9 +312,7 @@ function LayerPlacement({
 }) {
   const origin = [card.width / 2, card.height / 2];
   const isText = layer.kind === 'text';
-  const placed = isText
-    ? "the text box's top-left corner"
-    : `the ${layer.kind === 'token' ? 'token' : 'decal'}'s centre`;
+  const placed = isText ? "the text box's top-left corner" : `the ${LAYER_NAME[layer.kind].toLowerCase()}'s centre`;
   return (
     <Stack gap="md">
       {(['Horizontal', 'Vertical'] as const).map((axis, index) => {
@@ -321,7 +327,7 @@ function LayerPlacement({
           <RangeField
             key={axis}
             title={`${axis} position`}
-            description={`Where ${placed} sits, measured from the card's top-left corner.`}
+            description={`How far ${placed} sits from the card's ${index === 0 ? 'left' : 'top'} edge.`}
             min={0}
             max={max}
             decimals={2}
@@ -463,7 +469,25 @@ export function CustomCardLayers({
     onChapterChange(`layer:${layer.layerId}`);
   };
   return (
-    <Stack gap="md">
+    <ListChapter
+      title="Layers"
+      titleHidden
+      help={helpLines(
+        'Each layer has its own tab.',
+        'Layers stack in tab order on each side of the frame.',
+        'The Head stays on top.'
+      )}
+      actions={
+        <Text size="sm" c="dimmed">
+          {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
+        </Text>
+      }
+      note={
+        draft.layers.length === 0
+          ? { title: 'No layers', text: 'Add decals and text, or choose a starting preset in Format.' }
+          : null
+      }
+    >
       <Group>
         <LabeledAction
           intent="positive"
@@ -499,19 +523,6 @@ export function CustomCardLayers({
             () => setPicking(false)
           )
         : null}
-      <Group gap={4} wrap="nowrap">
-        <Text size="sm" c="dimmed">
-          {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
-        </Text>
-        <HelpMark
-          text={
-            'Each layer has its own tab.\nLayers stack in tab order on each side of the frame.\nThe Head stays on top.'
-          }
-        />
-      </Group>
-      {draft.layers.length === 0 ? (
-        <Notice title="No layers">Add decals and text, or choose a starting preset in Format.</Notice>
-      ) : null}
       {draft.layers.map((layer, index) => (
         <LabeledAction
           key={layer.layerId}
@@ -522,6 +533,6 @@ export function CustomCardLayers({
           {`${index + 1}. ${LAYER_NAME[layer.kind]}`}
         </LabeledAction>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
