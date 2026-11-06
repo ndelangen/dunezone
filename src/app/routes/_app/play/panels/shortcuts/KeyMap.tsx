@@ -1,5 +1,4 @@
 import { Tooltip } from '@mantine/core';
-import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 
 import { actionOf, entriesForCap, isNow, meaningNow, whenLabel } from './keyboardShortcuts';
@@ -65,7 +64,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
   if (all.length === 0) {
     return (
       <span className={styles.key} style={{ flexGrow: width }} data-blank={!keyName || undefined} aria-hidden>
-        {keyName && <Kbd>{keyName}</Kbd>}
+        {keyName && <span className={styles.letter}>{keyName}</span>}
       </span>
     );
   }
@@ -94,7 +93,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
         onClick={() => onFocus(keyName)}
       >
         <PressFlash pressed={pressed} keys={[keyName]}>
-          <Kbd>{keyName}</Kbd>
+          <span className={styles.letter}>{keyName}</span>
         </PressFlash>
         {/* Keyed by the meaning, so a key that changes meaning fades its new word in. */}
         <span key={shown.id} className={styles.caption}>

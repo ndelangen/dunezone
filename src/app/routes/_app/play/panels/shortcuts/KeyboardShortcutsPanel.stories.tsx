@@ -27,9 +27,9 @@ export const AtTheTable = meta.story({
 
 /** The pointer over a piece: the piece's keys lead the row and glow on the keyboard, and F and G read Flip and Stack. */
 export const OverAPiece = meta.story({
-  args: { now: ['piece'] },
+  args: { now: ['piece', 'flip', 'turn', 'split', 'draw', 'shuffle'] },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText('Right now · Pointer over a piece')).toBeVisible());
+    await waitFor(() => expect(canvas.getByText('Right now · On a piece')).toBeVisible());
     await expect(canvas.getByRole('button', { name: /^F: Ally chat, Flip it$/ })).toHaveAttribute('data-state', 'now');
   },
 });
@@ -39,9 +39,9 @@ export const Bidding = meta.story({ args: { now: ['raise', 'lower', 'pass'] } })
 
 /** Pressing a key while the window is open lights its cap and its rows. */
 export const PressingAKey = meta.story({
-  args: { now: ['piece'] },
+  args: { now: ['piece', 'flip', 'turn', 'split', 'draw', 'shuffle'] },
   play: async ({ canvas }) => {
-    await waitFor(() => expect(canvas.getByText('Right now · Pointer over a piece')).toBeVisible());
+    await waitFor(() => expect(canvas.getByText('Right now · On a piece')).toBeVisible());
     await userEvent.keyboard('t');
     /* The rows below the keyboard light the key's story; the row of right now has its own copy of the words. */
     const pieces = within(canvas.getByRole('region', { name: 'Pieces' }));

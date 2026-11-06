@@ -21,6 +21,77 @@ type Controls = Pick<
   | 'state'
   | 'takeAdditionalFromTarget'
 >;
+type Reads = Pick<Controls, 'canHandleTable' | 'deckControls' | 'hoveredPieceId' | 'state'>;
+
+/* The piece a piece key acts on: the carried one first, then the one under the pointer, then the selected one. */
+function targetPieceId({ state, hoveredPieceId }: Reads) {
+  return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
+}
+
+/* T draws from a deck under the pointer that the viewer may handle, with cards in it. */
+function canDraw(controls: Reads, pieceId: string) {
+  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+  return (
+    controls.canHandleTable &&
+    controls.hoveredPieceId === pieceId &&
+    piece?.kind === 'card' &&
+    piece.items.length > 0 &&
+    !piece.locked &&
+    !piece.inventory &&
+    controls.deckControls != null
+  );
+}
+
+/* R shuffles a deck of two or more under the pointer. */
+function canShuffle(controls: Reads, pieceId: string) {
+  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+  return (
+    controls.hoveredPieceId === pieceId &&
+    piece?.kind === 'card' &&
+    piece.items.length > 1 &&
+    controls.deckControls != null
+  );
+}
+
+/** A piece key's job, as the keyboard shortcuts window names it. */
+export type PieceKey = 'flip' | 'turn' | 'draw' | 'shuffle' | 'split' | 'takeMore' | 'putBack';
+
+/* The keys a carry answers to: Esc puts it back, and T takes one more from a pile that has more. */
+function carryKeys(state: Reads['state'], keys: Set<PieceKey>) {
+  if (!state.draftMove) {
+    return;
+  }
+  keys.add('putBack');
+  if (canTakeAdditionalFromDraft(state, state.draftMove)) {
+    keys.add('takeMore');
+  }
+}
+
+/**
+ * The piece keys that act right now, by the same checks the handlers below run, so the keyboard shortcuts window shows a key as live exactly when pressing it does something.
+ */
+export function pieceKeysNow(controls: Reads): ReadonlySet<PieceKey> {
+  const keys = new Set<PieceKey>();
+  carryKeys(controls.state, keys);
+  const pieceId = targetPieceId(controls);
+  if (!pieceId) {
+    return keys;
+  }
+  keys.add('flip');
+  keys.add('turn');
+  if (controls.state.draftMove) {
+    return keys;
+  }
+  keys.add('split');
+  if (canDraw(controls, pieceId)) {
+    keys.add('draw');
+  }
+  if (canShuffle(controls, pieceId)) {
+    keys.add('shuffle');
+  }
+  return keys;
+}
+
 type Binding = {
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>;
   read(): Controls;
@@ -392,7 +463,7 @@ export class TableKeyboard {
       pressOnce(event, () => controls.takeAdditionalFromTarget());
       return;
     }
-    const pieceId = state.draftMove?.pieceId ?? controls.hoveredPieceId ?? state.selectedPieceId ?? undefined;
+    const pieceId = targetPieceId(controls);
     if (!pieceId) {
       return;
     }
@@ -415,35 +486,17 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
-      case TABLE_KEYS.take: {
-        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-        if (
-          controls.canHandleTable &&
-          controls.hoveredPieceId === pieceId &&
-          piece?.kind === 'card' &&
-          piece.items.length > 0 &&
-          !piece.locked &&
-          !piece.inventory &&
-          controls.deckControls
-        ) {
+      case TABLE_KEYS.take:
+        if (canDraw(controls, pieceId)) {
           pressOnce(event, () => controls.deckControls?.draw(pieceId));
         }
         return;
-      }
-      case TABLE_KEYS.shuffle: {
-        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-        if (
-          controls.hoveredPieceId === pieceId &&
-          !event.repeat &&
-          piece?.kind === 'card' &&
-          piece.items.length > 1 &&
-          controls.deckControls
-        ) {
+      case TABLE_KEYS.shuffle:
+        if (!event.repeat && canShuffle(controls, pieceId)) {
           event.preventDefault();
-          controls.deckControls.shuffle(pieceId);
+          controls.deckControls?.shuffle(pieceId);
         }
         return;
-      }
     }
     const digit = digitOf(event);
     if (digit !== null) {

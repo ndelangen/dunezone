@@ -4,7 +4,7 @@ import { draftForGesture } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PointerSession } from './PointerSession';
-import { TableKeyboard } from './TableKeyboard';
+import { pieceKeysNow, TableKeyboard } from './TableKeyboard';
 
 const unbinds: (() => void)[] = [];
 
@@ -74,6 +74,24 @@ test('Escape cancels a number-key split before its hold finishes', () => {
   expect(cancelDraft).toHaveBeenCalledOnce();
   vi.advanceTimersByTime(500);
   expect(controls.splitSelected).not.toHaveBeenCalled();
+});
+
+describe('the piece keys that act now, as the shortcuts window reads them', () => {
+  test('a hovered deck draws and shuffles; a selected one only flips, turns and splits', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.state = { ...controls.state, selectedPieceId: 'treachery-deck' };
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['flip', 'split', 'turn']);
+    controls.hoveredPieceId = 'treachery-deck';
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['draw', 'flip', 'shuffle', 'split', 'turn']);
+  });
+
+  test('a carry from a deck puts back, flips, turns and takes one more', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    controls.state = { ...controls.state, draftMove: draftForGesture(deck, 'top') };
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['flip', 'putBack', 'takeMore', 'turn']);
+  });
 });
 
 test('T draws once from the hovered deck and 0 splits ten pieces', () => {

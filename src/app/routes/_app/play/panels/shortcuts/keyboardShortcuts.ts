@@ -1,4 +1,5 @@
 import { PAN_LETTERS, TABLE_KEYS } from '../../../../../widgets/tabletop/TableKeyboard';
+import type { PieceKey } from '../../../../../widgets/tabletop/TableKeyboard';
 import { SHORTCUTS } from '../../compass/shortcuts';
 import type { Command } from '../../compass/shortcuts';
 import { PIN_KEYS } from '../../compass/useOpenWindows';
@@ -13,9 +14,9 @@ import { TABLE_LABEL_OPTIONS } from '../../tableLabels';
 export type ShortcutGroupId = 'windows' | 'view' | 'pieces' | 'bidding';
 
 /**
- * What the window can tell holds right now, so those keys come first: a resting piece under the pointer or selected, a carried piece, and each bidding command the table offers this moment, read from the same checks the compass runs.
+ * What holds right now, so those keys come first: a piece under the pointer, each piece key the table would act on, and each bidding command it offers, read from the same checks the key handlers and the compass run.
  */
-export type Now = 'piece' | 'carrying' | Command;
+export type Now = 'piece' | PieceKey | Command;
 
 /**
  * When a key answers: anywhere over the table, while something the window can see holds, or in a moment it only names: the pointer over the Spice Bank, or placing spice taken from the reserve with the keyboard.
@@ -58,7 +59,13 @@ export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; sho
 const SITUATION_LABEL: Readonly<Record<Situation, string>> = {
   table: 'Anywhere over the table',
   piece: 'Pointer over a piece',
-  carrying: 'Carrying a piece',
+  flip: 'On a piece you point at, select or carry',
+  turn: 'On a piece you point at, select or carry',
+  split: 'On a piece you point at or select',
+  draw: 'Pointer over a deck you may draw from',
+  shuffle: 'Pointer over a deck of two or more',
+  takeMore: 'Carrying from a pile that has more',
+  putBack: 'Carrying a piece',
   raise: 'Your turn to bid',
   lower: 'After you raise',
   pass: 'Bidding, while you are in',
@@ -218,7 +225,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(TABLE_KEYS.flip)],
     action: 'Flip it',
     word: 'Flip',
-    when: ['piece', 'carrying'],
+    when: 'flip',
   },
   {
     id: 'turn',
@@ -227,7 +234,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(TABLE_KEYS.turnLeft), cap(TABLE_KEYS.turnRight)],
     action: 'Turn it left or right',
     hook: 'Q and E sit left and right of W.',
-    when: ['piece', 'carrying'],
+    when: 'turn',
   },
   {
     id: 'take',
@@ -235,9 +242,18 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     group: 'pieces',
     keys: [cap(TABLE_KEYS.take)],
     action: 'Draw from the deck',
-    detail: 'While carrying, take one more.',
     word: 'Take',
-    when: 'piece',
+    when: 'draw',
+  },
+  {
+    id: 'take-more',
+    short: 'Take',
+    group: 'pieces',
+    keys: [cap(TABLE_KEYS.take)],
+    action: 'Take one more',
+    detail: 'Adds the next one from the pile to what you carry.',
+    word: 'Take',
+    when: 'takeMore',
   },
   {
     id: 'shuffle',
@@ -246,7 +262,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(TABLE_KEYS.shuffle)],
     action: 'Shuffle the deck',
     word: 'Riffle',
-    when: 'piece',
+    when: 'shuffle',
   },
   {
     id: 'split',
@@ -257,7 +273,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     action: 'Split that many into a pile',
     actionFor: (count) => `Split ${count} into a pile`,
     detail: 'Hold the digit a second.',
-    when: 'piece',
+    when: 'split',
   },
   {
     id: 'menu',
@@ -274,7 +290,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     group: 'pieces',
     keys: ['Esc'],
     action: 'Put back what you carry',
-    when: 'carrying',
+    when: 'putBack',
   },
   {
     id: 'spice-take',
@@ -404,9 +420,16 @@ export function whenLabel(entry: ShortcutEntry) {
 }
 
 /* The moments as the window's heading names them: the bidding commands read as the phase they belong to. */
+const ON_A_PIECE = 'On a piece';
 const MOMENT_LABEL: Readonly<Record<Now, string>> = {
-  piece: SITUATION_LABEL.piece,
-  carrying: SITUATION_LABEL.carrying,
+  piece: ON_A_PIECE,
+  flip: ON_A_PIECE,
+  turn: ON_A_PIECE,
+  split: ON_A_PIECE,
+  draw: ON_A_PIECE,
+  shuffle: ON_A_PIECE,
+  takeMore: SITUATION_LABEL.putBack,
+  putBack: SITUATION_LABEL.putBack,
   raise: 'Bidding',
   lower: 'Bidding',
   pass: 'Bidding',
@@ -415,7 +438,12 @@ const MOMENT_LABEL: Readonly<Record<Now, string>> = {
 
 /** What holds right now in words, for the window's heading: "Carrying a piece, Bidding". */
 export function momentLabel(now: readonly Now[]) {
-  return [...new Set(now.map((each) => MOMENT_LABEL[each]))].join(', ') || 'At the table';
+  const labels = new Set(now.map((each) => MOMENT_LABEL[each]));
+  /* The piece keys that answer a carry belong to the carry. */
+  if (labels.has(SITUATION_LABEL.putBack)) {
+    labels.delete(ON_A_PIECE);
+  }
+  return [...labels].join(', ') || 'At the table';
 }
 
 /**

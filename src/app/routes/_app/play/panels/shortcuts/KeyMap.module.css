@@ -52,10 +52,23 @@
   animation: light 700ms ease-out;
 }
 
-/* A key that does nothing now steps back. */
 .key[data-focus] {
   outline: 2px solid var(--group, var(--color-text));
   outline-offset: 1px;
+}
+
+/* The key's own letter, large and plain, growing under the pointer. */
+.letter {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: scale 160ms ease-out;
+}
+
+.key[data-state]:hover .letter,
+.key[data-state]:focus-visible .letter {
+  scale: 1.35;
 }
 
 .caption {
@@ -103,9 +116,8 @@
     font-size: 0.8rem;
   }
 
-  .key kbd {
-    min-width: 0;
-    padding-inline: 0.25em;
+  .letter {
+    font-size: 1.05rem;
   }
 
   .caption {
@@ -116,6 +128,10 @@
 html[data-motion="reduce"] .key[data-state="now"],
 html[data-motion="reduce"] .caption {
   animation: none;
+}
+
+html[data-motion="reduce"] .letter {
+  transition: none;
 }
 
 /* The tooltip: one line per meaning, its group's colour on the left edge. */

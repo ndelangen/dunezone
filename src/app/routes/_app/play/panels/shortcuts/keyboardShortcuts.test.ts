@@ -27,6 +27,7 @@ test('each lettered key stands for what it does, and for nothing else', () => {
     [TABLE_KEYS.turnLeft, 'Turn it left or right'],
     [TABLE_KEYS.turnRight, 'Turn it left or right'],
     [TABLE_KEYS.take, 'Draw from the deck'],
+    [TABLE_KEYS.take, 'Take one more'],
     [TABLE_KEYS.shuffle, 'Shuffle the deck'],
     ...PAN_LETTERS.map((letter): [string, string] => [letter, 'Slide the view']),
   ];
@@ -46,10 +47,12 @@ test('each lettered key stands for what it does, and for nothing else', () => {
 test('a key shows what it does in the moment that holds, and what it does anywhere otherwise', () => {
   const flip = cap(TABLE_KEYS.flip);
   expect(meaningNow(flip, [])?.action).toBe('Ally chat');
-  expect(meaningNow(flip, ['piece'])?.action).toBe('Flip it');
+  expect(meaningNow(flip, ['piece', 'flip'])?.action).toBe('Flip it');
   expect(meaningNow(cap(SHORTCUTS.raise), [])).toBeNull();
   expect(meaningNow(cap(SHORTCUTS.raise), ['raise'])?.action).toBe('Raise your bid by one');
-  expect(meaningNow(flip, ['carrying'])?.action).toBe('Flip it');
+  expect(meaningNow(cap(TABLE_KEYS.take), ['flip', 'turn', 'split'])).toBeNull();
+  expect(meaningNow(cap(TABLE_KEYS.take), ['putBack', 'takeMore'])?.action).toBe('Take one more');
+  expect(meaningNow(cap(TABLE_KEYS.take), ['piece', 'draw'])?.action).toBe('Draw from the deck');
   expect(meaningNow(cap(SHORTCUTS.faceUp), ['pass'])?.action).toBe('Look straight down, and back');
   expect(meaningNow(cap(SHORTCUTS.faceUp), ['faceUp'])?.action).toBe('Rejoin the bidding');
 });
