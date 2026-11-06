@@ -6,8 +6,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Box, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
-import { Button } from '@mantine/core';
 import { COMPONENT_PART_LABELS } from '@shared/asset-publishing/componentGeometry';
 import {
   projectRulebookAssetExplainerAnnotations,
@@ -19,6 +17,7 @@ import { rulebookSourceTakesSectorLines } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { SelectableRow } from '@ui/control/SelectableRow';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { useState } from 'react';
@@ -201,19 +200,15 @@ export function AssetExplainerEdit({
                   <SortableItem as="li" key={entry.id} id={entry.id}>
                     {({ setActivatorNodeRef, attributes, listeners }) => (
                       <Box className={styles.row}>
-                        <Button
-                          fullWidth
+                        <SelectableRow
                           className={styles.select}
-                          justify="start"
-                          color="selected"
-                          variant={activeId === entry.id ? 'light' : 'subtle'}
-                          aria-pressed={activeId === entry.id}
-                          onClick={() => setSelectedId(entry.id)}
+                          selected={activeId === entry.id}
+                          onSelect={() => setSelectedId(entry.id)}
                         >
                           {entry.label ? `${entry.label}. ` : ''}
                           {entry.title}
                           {entry.status !== 'ready' && entry.status !== 'unselected' ? ' (unavailable)' : ''}
-                        </Button>
+                        </SelectableRow>
                         <SortableReorderHandle
                           emphasis="silent"
                           className={styles.handle}

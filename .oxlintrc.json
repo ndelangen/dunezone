@@ -66,7 +66,7 @@
        * The same patterns as the doorway rule above, plus `Button`: a later override replaces the rule's options rather than adding to them.
        * Stories and their fixtures stay free to stage the raw control.
        * A file with a real exception (a shaped game control, a split button) disables the rule on that one import and says why; the disable covers the file, so the reason must cover every Button in it.
-       * The selectable list rows in pickers and the rulebook editor are exempt only until the kit has a selectable row of its own.
+       * Selectable list rows use the kit's `SelectableRow`; `ActionIcon` and `Alert` are banned the same way, for `IconAction` and `Notice`.
        */
       "files": ["src/**"],
       "excludeFiles": [
@@ -85,8 +85,13 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
               },
               {
                 "group": ["@mantine/core"],
@@ -256,8 +261,13 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
               },
               {
                 "group": ["@mantine/core"],
@@ -316,8 +326,13 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
-                "importNames": ["Button"],
+                "importNames": ["Button", "ActionIcon"],
                 "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
               },
               {
                 "group": ["@mantine/core"],

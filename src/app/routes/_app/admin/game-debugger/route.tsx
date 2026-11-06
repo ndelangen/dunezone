@@ -1,7 +1,8 @@
-import { Alert, Anchor, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
+import { Anchor, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
 import { changes } from '@shared/jsonDiff';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
@@ -147,10 +148,10 @@ function ReportContents({
           Captured {report.server.capturedAt}. Server revision {summary(report.server.state.revision)}.
         </Text>
         <Text size="sm">Code version: {report.server.gitSha || 'unknown'}</Text>
-        <Alert color="caution" title="One captured moment">
+        <Notice tone="caution" title="One captured moment">
           This report does not contain replay checkpoints or a complete action history. Events below describe what
           happened, but selecting one cannot reconstruct the table at that time.
-        </Alert>
+        </Notice>
       </Section>
       <Tabs defaultValue="state" keepMounted={false}>
         <Tabs.List>
@@ -211,10 +212,10 @@ function CapturedTable({ report }: { report: Report }) {
           <ReportTable key={`${report.server.gameId}:${report.server.capturedAt}:${source}`} snapshot={snapshot} />
         </Suspense>
       ) : (
-        <Alert color="caution">
+        <Notice tone="caution">
           This capture cannot be rendered with the current schema or contains unsupported artwork addresses. Its data
           remains available in State.
-        </Alert>
+        </Notice>
       )}
     </Stack>
   );

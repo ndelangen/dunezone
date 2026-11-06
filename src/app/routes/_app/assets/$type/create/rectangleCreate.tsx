@@ -1,7 +1,7 @@
-import { Alert } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
+import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -170,9 +170,9 @@ export function RectangleCreatePage() {
           <WorkbenchLayout gap="sm">
             <SaveErrorAlert error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
-              <Alert color="yellow" variant="light" role="alert" title="No token picked">
+              <Notice tone="caution" title="No token picked" live>
                 Picking a token's back happens on the edit page; save with another back mode first.
-              </Alert>
+              </Notice>
             ) : null}
             <RectangleTokenEditor
               nameField={nameField}

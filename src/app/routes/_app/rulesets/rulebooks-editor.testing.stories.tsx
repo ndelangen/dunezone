@@ -81,7 +81,7 @@ export const ClippedAuthorWarning = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('button', { name: 'Page 1 / Referenced illustration: is clipped' }, { timeout: 30_000 });
     await expect(page.getByText('Needs attention')).toBeVisible();
-    await expect(page.queryByRole('alert', { name: 'Referenced illustration is clipped' })).toBeNull();
+    await expect(page.queryByRole('note', { name: 'Referenced illustration is clipped' })).toBeNull();
     await expect(page.getByRole('button', { name: 'Publish Edition 2' })).not.toHaveAttribute('aria-disabled');
     if (canvasElement.ownerDocument.defaultView) {
       canvasElement.ownerDocument.defaultView.location.hash = '#RULE/details';
@@ -106,7 +106,7 @@ export const ClippedAuthorWarning = meta.story({
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERA'));
     const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
     await expect(
-      within(editor).findByRole('alert', { name: 'Referenced illustration is clipped' })
+      within(editor).findByRole('note', { name: 'Referenced illustration is clipped' })
     ).resolves.toHaveTextContent(
       'Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.'
     );
@@ -150,7 +150,7 @@ export const RepeatedClippedAuthorWarnings = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Page 1 / Referenced illustration 2: is clipped' }));
     await waitFor(() => expect(canvasElement.ownerDocument.defaultView?.location.hash).toBe('#CHAP/HERB'));
     const editor = page.getByRole('region', { name: 'Saved movement revision editor' });
-    await expect(within(editor).getByRole('alert', { name: 'Referenced illustration is clipped' })).toBeVisible();
+    await expect(within(editor).getByRole('note', { name: 'Referenced illustration is clipped' })).toBeVisible();
     await expect((within(editor).getByRole('textbox', { name: 'Caption' }) as HTMLTextAreaElement).value).toBe(
       'A second clipped illustration.'
     );

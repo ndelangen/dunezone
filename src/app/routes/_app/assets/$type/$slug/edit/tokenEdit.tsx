@@ -1,10 +1,11 @@
-import { Alert, Group, Popover } from '@mantine/core';
+import { Group, Popover } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -276,9 +277,9 @@ function TokenEditSession({
           {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
-            <Alert color="yellow" variant="light" role="alert" title="No token picked">
+            <Notice tone="caution" title="No token picked" live>
               Pick a token whose back this one wears, or choose another back mode.
-            </Alert>
+            </Notice>
           ) : null}
           <TokenEditor
             nameField={nameField}

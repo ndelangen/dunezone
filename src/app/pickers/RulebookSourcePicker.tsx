@@ -1,6 +1,4 @@
 import { Box, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- Each option is a row of the picker's list, a portrait and a name, not an action. */
-import { Button } from '@mantine/core';
 import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -8,6 +6,7 @@ import { TokenImage } from '@ui/content/TokenImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
+import { SelectableRow } from '@ui/control/SelectableRow';
 import { ArrowLeft, X } from 'lucide-react';
 import { useReducer } from 'react';
 
@@ -60,12 +59,9 @@ function FactionMemberChoices({
           {result.data.members
             .filter((member) => !traitor || member.role === 'Leader')
             .map((member) => (
-              <Button
+              <SelectableRow
                 key={member.memberId}
-                variant="subtle"
-                justify="start"
-                h="auto"
-                onClick={() =>
+                onSelect={() =>
                   onPick({
                     kind: 'faction-member',
                     factionId,
@@ -85,7 +81,7 @@ function FactionMemberChoices({
                     {member.name || `Unnamed ${member.role.toLowerCase()}`} · {member.role}
                   </Text>
                 </Group>
-              </Button>
+              </SelectableRow>
             ))}
         </Stack>
       }
@@ -123,13 +119,7 @@ function FactionTroopChoices({
             }
             const reference = source.reference;
             return (
-              <Button
-                key={`${reference.troopId}.${reference.face}`}
-                variant="subtle"
-                justify="start"
-                h="auto"
-                onClick={() => onPick(reference)}
-              >
+              <SelectableRow key={`${reference.troopId}.${reference.face}`} onSelect={() => onPick(reference)}>
                 <Group gap="sm" wrap="nowrap">
                   {source.status === 'ready' ? (
                     <Box w={44} miw={44} aria-hidden>
@@ -141,7 +131,7 @@ function FactionTroopChoices({
                     {reference.face === 'back' ? ' · Back' : ''}
                   </Text>
                 </Group>
-              </Button>
+              </SelectableRow>
             );
           })}
         </Stack>

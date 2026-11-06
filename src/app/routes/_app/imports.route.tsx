@@ -1,7 +1,8 @@
-import { Alert, Anchor, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
+import { Anchor, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { contentImportPackageSchema } from '@shared/contentImports/package';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -194,11 +195,7 @@ function ImportExportPage() {
                 </Group>
               </Surface>
             </Section>
-            {state.error && (
-              <Alert title="Could not finish" role="alert">
-                {state.error}
-              </Alert>
-            )}
+            {state.error && <FormError title="Could not finish">{state.error}</FormError>}
             <Section
               title="Import a package"
               description="Choose a JSON file or paste its contents. Preview checks the format, destination and proposed changes."

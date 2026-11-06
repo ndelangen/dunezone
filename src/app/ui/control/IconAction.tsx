@@ -124,84 +124,75 @@ export function IconAction({
   const vars = tinted ? () => tileVars(intent ?? 'neutral', pressed === true) : undefined;
   const classes = clsx(className, pressed && styles.pressed);
   const pressedState = pressed ?? actionIconProps['aria-pressed'];
-  if (disabledReason != null) {
-    /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover. The reason is also the control's description, for a reader who never hovers. */
-    return (
-      <>
-        <Tooltip label={disabledReason} multiline maw={320} events={TOOLTIP_EVENTS}>
+  const disabled = disabledReason != null;
+  /* A caller that already describes the control (a form's own message for the same reason) keeps that description instead of a second copy. */
+  const ownReason = disabled && actionIconProps['aria-describedby'] == null;
+  const describedBy = ownReason ? reasonId : actionIconProps['aria-describedby'];
+  /*
+   * One tree for both states, so the button a reader is focused on stays that button when its reason comes or goes.
+   * Disabled is Mantine's own look without the `disabled` attribute that would swallow the hover, and the reason is also the control's description, for a reader who never hovers.
+   * A disabled link renders as a button, since there is nowhere it may go.
+   * Two element branches rather than one spread: `component="a"` re-types the whole element, so the anchor form cannot carry the button-shaped ref, click handler or form binding anyway.
+   */
+  return (
+    <>
+      {/* A longer explanation wraps at a readable width; the bare name stays on one line. */}
+      <Tooltip
+        label={disabled ? disabledReason : (tooltip ?? label)}
+        opened={disabled ? undefined : tooltipOpened}
+        events={TOOLTIP_EVENTS}
+        multiline={disabled || tooltip != null}
+        maw={disabled || tooltip != null ? 320 : undefined}
+      >
+        {href == null || disabled ? (
           <ActionIcon
-            size={actionIconProps.size}
+            {...actionIconProps}
             color={resolvedColor}
             variant={resolvedVariant}
             vars={vars}
+            /* A reason replaces Mantine's own disabled and loading, which set the attribute that swallows the hover. */
+            disabled={disabled ? undefined : actionIconProps.disabled}
+            loading={disabled ? undefined : actionIconProps.loading}
+            aria-pressed={pressedState}
             ref={ref}
-            type="button"
-            data-disabled
-            aria-disabled
+            type={disabled ? 'button' : renderRoot ? undefined : type}
+            form={disabled ? undefined : form}
+            data-disabled={disabled || undefined}
+            aria-disabled={disabled || actionIconProps['aria-disabled'] || undefined}
+            aria-describedby={describedBy}
             aria-label={label}
-            aria-describedby={actionIconProps['aria-describedby'] ?? reasonId}
-            onClick={(event) => event.preventDefault()}
+            onClick={disabled ? (event) => event.preventDefault() : onClick}
+            onPointerDown={disabled ? undefined : onPointerDown}
+            onPointerUp={disabled ? undefined : onPointerUp}
+            onPointerLeave={disabled ? undefined : onPointerLeave}
+            onPointerCancel={disabled ? undefined : onPointerCancel}
+            onKeyDown={disabled ? undefined : onKeyDown}
+            onKeyUp={disabled ? undefined : onKeyUp}
+            onContextMenu={disabled ? undefined : onContextMenu}
+            onBlur={onBlur}
+            className={classes}
+            renderRoot={disabled ? undefined : renderRoot}
+          >
+            {icon}
+          </ActionIcon>
+        ) : (
+          <ActionIcon
+            {...actionIconProps}
+            color={resolvedColor}
+            variant={resolvedVariant}
+            vars={vars}
+            component="a"
+            href={href}
+            target={target}
+            rel={rel}
+            aria-label={label}
             className={classes}
           >
             {icon}
           </ActionIcon>
-        </Tooltip>
-        {actionIconProps['aria-describedby'] ? null : <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden>}
-      </>
-    );
-  }
-  /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
-     anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
-  return (
-    /* A longer explanation wraps at a readable width; the bare name stays on one line. */
-    <Tooltip
-      label={tooltip ?? label}
-      opened={tooltipOpened}
-      events={TOOLTIP_EVENTS}
-      multiline={tooltip != null}
-      maw={tooltip == null ? undefined : 320}
-    >
-      {href == null ? (
-        <ActionIcon
-          {...actionIconProps}
-          color={resolvedColor}
-          variant={resolvedVariant}
-          vars={vars}
-          aria-pressed={pressedState}
-          ref={ref}
-          type={renderRoot ? undefined : type}
-          form={form}
-          aria-label={label}
-          onClick={onClick}
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerLeave}
-          onPointerCancel={onPointerCancel}
-          onKeyDown={onKeyDown}
-          onKeyUp={onKeyUp}
-          onContextMenu={onContextMenu}
-          onBlur={onBlur}
-          className={classes}
-          renderRoot={renderRoot}
-        >
-          {icon}
-        </ActionIcon>
-      ) : (
-        <ActionIcon
-          {...actionIconProps}
-          color={resolvedColor}
-          variant={resolvedVariant}
-          vars={vars}
-          component="a"
-          href={href}
-          target={target}
-          rel={rel}
-          aria-label={label}
-          className={classes}
-        >
-          {icon}
-        </ActionIcon>
-      )}
-    </Tooltip>
+        )}
+      </Tooltip>
+      {ownReason ? <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden> : null}
+    </>
   );
 }

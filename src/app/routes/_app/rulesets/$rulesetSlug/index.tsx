@@ -1,4 +1,4 @@
-import { Alert, Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -10,6 +10,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
@@ -665,15 +666,9 @@ function RulesetDetailPage() {
           <ColumnsWithRailLayout.Primary>
             <Stack gap="xl">
               {routeNotice ? (
-                <Alert
-                  color={routeNotice.color}
-                  title={routeNotice.title}
-                  role="alert"
-                  withCloseButton
-                  onClose={dismissRouteNotice}
-                >
+                <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
                   {routeNotice.message}
-                </Alert>
+                </Notice>
               ) : null}
               {mutationError ? <FormError title="The change could not be saved">{mutationError}</FormError> : null}
 

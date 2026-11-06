@@ -7,7 +7,7 @@ describe('route notices', () => {
   test('resolves an approved code to its fixed presentation', () => {
     expect(resolveRouteNotice(defaultGroupUnavailableRouteNoticeCode)).toEqual({
       code: defaultGroupUnavailableRouteNoticeCode,
-      color: 'yellow',
+      tone: 'caution',
       title: 'Saved without its default Group',
       message: 'The item was saved, but the default Group was no longer available and was not set.',
     });

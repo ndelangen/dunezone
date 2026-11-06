@@ -1,8 +1,9 @@
-import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
+import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
@@ -548,7 +549,7 @@ function PendingRequestsPanel({
     return null;
   }
   return (
-    <Alert color="yellow" variant="light" title={`Pending requests (${pendingMembers.length})`}>
+    <Notice tone="caution" title={`Pending requests (${pendingMembers.length})`}>
       <Stack gap="xs">
         {pendingMembers.map((entry) => (
           <MemberRow
@@ -560,7 +561,7 @@ function PendingRequestsPanel({
           />
         ))}
       </Stack>
-    </Alert>
+    </Notice>
   );
 }
 
