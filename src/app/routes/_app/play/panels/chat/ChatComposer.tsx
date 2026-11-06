@@ -189,7 +189,7 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
   const [caret, setCaret] = useState(draft.length);
   const [dismissed, setDismissed] = useState<number | null>(null);
   /* The highlighted suggestion, by the query it was picked for: typing on starts again at the first. */
-  const [active, setActive] = useState<{ query: string; index: number } | null>(null);
+  const [active, setActive] = useState<{ at: number; query: string; index: number } | null>(null);
   const [focused, setFocused] = useState(false);
   const spaceAt = useRef<number | null>(null);
   const typed = mentions.length ? mentionQuery({ text: draft, caret }) : null;
@@ -199,7 +199,7 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
   const matches = query ? matchMentions(mentions, query) : [];
   const open = focused && matches.length > 0;
   const store = useCombobox({ opened: open });
-  const highlighted = active && active.query === query?.query ? Math.min(active.index, matches.length - 1) : 0;
+  const highlighted = active && sameQuery(active, query) ? Math.min(active.index, matches.length - 1) : 0;
   /* The space a completion wrote takes no second one typed straight after it. */
   const swallowsSpace = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     const { selectionStart, selectionEnd } = event.currentTarget;
@@ -222,7 +222,7 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
     } else if (key === 'dismiss') {
       setDismissed(query!.at);
     } else {
-      setActive({ query: query!.query, index: (highlighted + key + matches.length) % matches.length });
+      setActive({ ...query!, index: (highlighted + key + matches.length) % matches.length });
     }
     return true;
   };
@@ -238,15 +238,25 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
     focus: setFocused,
     /* An edit that takes away the dismissed @, or changes what comes before it, ends the dismissal: a message sent, an @ deleted and typed again. */
     edited: (next: string) => {
+      /* A message sent starts the next @ at its first suggestion. */
+      if (!next) {
+        setActive(null);
+      }
       if (dismissed !== null && !dismissalHolds(draft, next, dismissed)) {
         setDismissed(null);
       }
     },
     completed: (completedQuery: MentionQuery, after: number) => {
       setDismissed(completedQuery.at);
+      setActive(null);
       spaceAt.current = after;
     },
   };
+}
+
+/* The highlight belongs to the @ it was picked at, and to what was typed after it: a new @, or typing on, starts again at the first suggestion. */
+function sameQuery(a: MentionQuery, b: MentionQuery | null) {
+  return a.at === b?.at && a.query === b.query;
 }
 
 /* A dismissed @ stays dismissed through an edit that keeps it, and everything before it, as it was. */

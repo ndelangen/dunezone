@@ -40,7 +40,11 @@ type MentionCardProps = Readonly<{
   /** The seats the name means: one, or each seat sharing a faction name. */
   seats: readonly Mention[];
   /** What hovering shows the card: a single element. */
-  children: ReactElement<{ onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void }>;
+  children: ReactElement<{
+    onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
+    /* Space steps into the card, so the table's own Space (the compass) leaves it alone. */
+    'aria-keyshortcuts'?: string;
+  }>;
   /** Shows the card from the start rather than on hover. */
   initiallyOpened?: boolean;
 }> &
@@ -61,7 +65,9 @@ export function MentionCard({ seats, children, onInfo, onChat, initiallyOpened =
       shadow="md"
       initiallyOpened={initiallyOpened}
     >
-      <HoverCard.Target>{cloneElement(children, { onKeyDown: enterCard })}</HoverCard.Target>
+      <HoverCard.Target>
+        {cloneElement(children, { onKeyDown: enterCard, 'aria-keyshortcuts': 'Enter Space' })}
+      </HoverCard.Target>
       <HoverCard.Dropdown p={0} onKeyDown={leaveCard}>
         {seats.map((seat) => (
           <SeatCard

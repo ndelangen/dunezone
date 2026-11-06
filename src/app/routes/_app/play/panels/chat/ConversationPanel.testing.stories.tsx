@@ -195,16 +195,31 @@ export const NamesTheHighlightedSuggestion = meta.story({
   },
 });
 
-/** From the keyboard, Enter on a named seat steps into its card, and Escape steps back out to the name. */
+/** From the keyboard, Enter or Space on a named seat steps into its card, and Escape steps back out to the name. */
 export const NamedSeatCardTakesTheKeys = meta.story({
   args: tableChatNamingArgs(),
   play: async ({ canvasElement }) => {
     const named = canvasElement.querySelector<HTMLElement>('[data-mention]')!;
+    /* Space is declared, so the table's own Space (the compass) leaves it to the card. */
+    await expect(named).toHaveAttribute('aria-keyshortcuts', 'Enter Space');
     named.focus();
     const info = await suggestions().findByRole('button', { name: 'Info' });
-    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
     await expect(info).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     await expect(named).toHaveFocus();
+  },
+});
+
+/** The next @ starts at the first suggestion, whichever the last one took. */
+export const NextMentionStartsAtTheFirst = meta.story({
+  args: tableChatArgs(),
+  play: async ({ canvas }) => {
+    const composer = canvas.getByRole('textbox', { name: 'Message' });
+    await userEvent.type(composer, '@');
+    await suggestions().findAllByRole('option');
+    await userEvent.keyboard('{ArrowDown}{Tab}@');
+    const options = await suggestions().findAllByRole('option');
+    await expect(composer).toHaveAttribute('aria-activedescendant', options[0]!.id);
   },
 });
