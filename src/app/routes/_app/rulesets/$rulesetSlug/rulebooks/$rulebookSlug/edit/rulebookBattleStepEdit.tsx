@@ -276,62 +276,104 @@ function BattleCardFields({
   );
 }
 
+type FactionTroop = NonNullable<RulebookEditorReferences['factionsById'][string]['troops']>[number];
+
+/**
+ * Which troop and which face, from a faction's troops: the pair a battle side's row and a board scene's group both ask.
+ * A troop the faction no longer has stays selectable as "Unavailable troop", so a stale pick is visible rather than silently blank.
+ * Renders the two fields bare, so the caller lays them out among its own.
+ */
+export function TroopChoice({
+  troops,
+  troopId,
+  face,
+  troopLabel,
+  faceLabel,
+  clearable = false,
+  onChange,
+}: {
+  troops: readonly FactionTroop[];
+  troopId: string | undefined;
+  face: 'front' | 'back';
+  /** The troop field's accessible name. */
+  troopLabel: string;
+  /** The face field's accessible name. */
+  faceLabel: string;
+  /** Whether the troop can be cleared, for a scene group that may not have one yet. */
+  clearable?: boolean;
+  onChange: (fields: { troopId?: string; face: 'front' | 'back' }) => void;
+}) {
+  const selected = troops.find((troop) => troop.troopId === troopId);
+  const options = troops.flatMap((troop) =>
+    troop.troopId ? [{ value: troop.troopId, label: troop.name || 'Unnamed troop' }] : []
+  );
+  if (troopId && !options.some((option) => option.value === troopId)) {
+    options.push({ value: troopId, label: 'Unavailable troop' });
+  }
+  return (
+    <>
+      <ControlBlock
+        title="Troop"
+        input={
+          <Select
+            aria-label={troopLabel}
+            placeholder={clearable ? 'Choose troop' : undefined}
+            data={options}
+            value={troopId ?? null}
+            clearable={clearable}
+            onChange={(next) => {
+              if (next || clearable) {
+                onChange({ troopId: next ?? undefined, face: 'front' });
+              }
+            }}
+          />
+        }
+      />
+      <ControlBlock
+        title="Face"
+        input={
+          <Select
+            aria-label={faceLabel}
+            value={face}
+            data={[
+              { value: 'front', label: selected?.name || 'Front' },
+              ...(selected?.back || face === 'back' ? [{ value: 'back', label: selected?.back?.name || 'Back' }] : []),
+            ]}
+            onChange={(next) => {
+              if (next === 'front' || next === 'back') {
+                onChange({ troopId, face: next });
+              }
+            }}
+          />
+        }
+      />
+    </>
+  );
+}
+
 function BattleTroopRow({
   label,
   group,
   index,
   faction,
-  troopOptions,
   onChange,
 }: {
   label: string;
   group: RulebookBattleSideValue['troops'][number];
   index: number;
   faction: RulebookEditorReferences['factionsById'][string] | undefined;
-  troopOptions: { value: string; label: string }[];
   onChange: (fields: Partial<RulebookBattleSideValue['troops'][number]>) => void;
 }) {
-  const selected = faction?.troops?.find((troop) => troop.troopId === group.troopId);
-  const options = troopOptions.some((option) => option.value === group.troopId)
-    ? troopOptions
-    : [...troopOptions, { value: group.troopId, label: 'Unavailable troop' }];
   return (
     <Stack gap="sm">
       <Group grow>
-        <ControlBlock
-          title="Troop"
-          input={
-            <Select
-              aria-label={`${label} troop ${index + 1}`}
-              data={options}
-              value={group.troopId}
-              onChange={(troopId) => {
-                if (troopId) {
-                  onChange({ troopId, face: 'front' });
-                }
-              }}
-            />
-          }
-        />
-        <ControlBlock
-          title="Face"
-          input={
-            <Select
-              aria-label={`${label} troop ${index + 1} face`}
-              data={[
-                { value: 'front', label: selected?.name || 'Front' },
-                ...(selected?.back || group.face === 'back'
-                  ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
-                  : []),
-              ]}
-              value={group.face}
-              onChange={(face) => {
-                if (face === 'front' || face === 'back') {
-                  onChange({ face });
-                }
-              }}
-            />
-          }
+        <TroopChoice
+          troops={faction?.troops ?? []}
+          troopId={group.troopId}
+          face={group.face}
+          troopLabel={`${label} troop ${index + 1}`}
+          faceLabel={`${label} troop ${index + 1} face`}
+          onChange={({ troopId, face }) => onChange({ troopId: troopId ?? group.troopId, face })}
         />
       </Group>
       <Group grow>
@@ -406,7 +448,6 @@ function BattleTroopFields({ label, value, references, onChange }: BattleSideFie
               group={group}
               index={index}
               faction={faction}
-              troopOptions={troopOptions}
               onChange={(fields) =>
                 update({
                   troops: value.troops.map((troop) => (troop.id === group.id ? { ...troop, ...fields } : troop)),
