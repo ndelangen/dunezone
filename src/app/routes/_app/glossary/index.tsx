@@ -7,6 +7,8 @@ import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -186,19 +188,22 @@ function GlossaryPage() {
       terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
     }))
     .filter((entry) => entry.terms.length > 0);
-  const topicSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.topicSegment}
-      variant={label ? 'default' : 'unstyled'}
-      aria-label={label ? undefined : 'Topic'}
-      label={label}
-      placeholder="All topics"
-      clearable
-      data={GLOSSARY_TOPICS.map((topic) => ({ value: topic.id, label: topic.label }))}
-      value={onlyTopic}
-      onChange={(value) => setOnlyTopic(value as GlossaryTopic | null)}
-    />
-  );
+  const topicSelect = (label?: string) => {
+    const field = (fieldProps?: ControlBlockField) => (
+      <Select
+        {...fieldProps}
+        className={label ? undefined : styles.topicSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label={label ? undefined : 'Topic'}
+        placeholder="All topics"
+        clearable
+        data={GLOSSARY_TOPICS.map((topic) => ({ value: topic.id, label: topic.label }))}
+        value={onlyTopic}
+        onChange={(value) => setOnlyTopic(value as GlossaryTopic | null)}
+      />
+    );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
 
   return (
     <PageLayout>

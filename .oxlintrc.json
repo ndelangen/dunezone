@@ -167,6 +167,12 @@
       "rules": { "local/eyebrow": "error" }
     },
     {
+      /* A field is captioned by the kit ControlBlock; stories may still stage the raw input. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx", "src/**/*.test.tsx"],
+      "rules": { "local/control-block-label": "error" }
+    },
+    {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
       "files": ["src/**"],
       "excludeFiles": ["src/game/**"],

@@ -72,7 +72,9 @@ function FactionFields({
       <ControlBlock
         title="Faction"
         description="The linked faction supplies the name, symbol and colours."
-        input={<TextInput aria-label="Faction" value={draft.faction} readOnly placeholder="Choose a faction" />}
+        input={(fieldProps) => (
+          <TextInput {...fieldProps} value={draft.faction} readOnly placeholder="Choose a faction" />
+        )}
       />
       {draft.factionLink && factionEmblem.success ? (
         <FactionLink
@@ -168,14 +170,14 @@ export function NexusCardEditor({
                         key={key}
                         title={label}
                         description={`${description} Up to 400 characters and six lines.`}
-                        input={
+                        input={(fieldProps) => (
                           <FormattedTextInput
-                            aria-label={label}
+                            {...fieldProps}
                             minRows={3}
                             value={draft[key]}
                             onChange={(text) => patch({ [key]: text })}
                           />
-                        }
+                        )}
                       />
                     ))}
                   </Stack>

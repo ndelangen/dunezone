@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -191,23 +192,33 @@ function MergeProfiles({
     <Section title="Merge profiles">
       <Surface padding="lg">
         <Stack>
-          <Select
-            label="Profile to keep"
-            placeholder="Choose the profile to keep"
-            searchable
-            data={options}
-            value={state.target}
-            onChange={(target) => onUpdate({ target, review: false, error: null })}
-            disabled={state.busy}
+          <ControlBlock
+            title="Profile to keep"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                placeholder="Choose the profile to keep"
+                searchable
+                data={options}
+                value={state.target}
+                onChange={(target) => onUpdate({ target, review: false, error: null })}
+                disabled={state.busy}
+              />
+            )}
           />
-          <Select
-            label="Profile to merge into it"
-            placeholder="Choose the other profile"
-            searchable
-            data={options.filter((option) => option.value !== state.target)}
-            value={state.source}
-            onChange={(source) => onUpdate({ source, review: false, error: null })}
-            disabled={state.busy}
+          <ControlBlock
+            title="Profile to merge into it"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                placeholder="Choose the other profile"
+                searchable
+                data={options.filter((option) => option.value !== state.target)}
+                value={state.source}
+                onChange={(source) => onUpdate({ source, review: false, error: null })}
+                disabled={state.busy}
+              />
+            )}
           />
           {state.error && (
             <ActionError subject="Profiles" verb="merge">

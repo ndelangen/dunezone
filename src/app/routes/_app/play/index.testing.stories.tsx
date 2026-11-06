@@ -20,7 +20,7 @@ export const Finished = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await page.findByRole('list', { name: 'Games' }, { timeout: 30_000 });
     /* The refine popover holds a second, hidden Show games until it opens; the one to press is the field showing. */
-    const showGames = page.getAllByLabelText('Show games').find((field) => field.checkVisibility());
+    const showGames = page.getAllByLabelText(/^Show( games)?$/).find((field) => field.checkVisibility());
     await userEvent.click(showGames!);
     await userEvent.click(await page.findByRole('option', { name: /^Finished/ }));
     const games = page.getByRole('list', { name: 'Games' });

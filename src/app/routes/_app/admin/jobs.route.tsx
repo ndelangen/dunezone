@@ -4,6 +4,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -86,10 +87,10 @@ function PublicationJobsDashboard() {
                   </Text>
                 </div>
                 <Switch
+                  label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
                   size="lg"
                   checked={result.settings?.publicationPickupEnabled ?? false}
                   disabled={result.settings === null || pickupMutation.isPending}
-                  label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
                   onChange={(event) => pickupMutation.mutate({ enabled: event.currentTarget.checked })}
                 />
               </Group>
@@ -121,33 +122,43 @@ function PublicationJobsDashboard() {
           <Surface>
             <Group p="md" justify="space-between" align="end" wrap="wrap">
               <Group align="end">
-                <Select
-                  label="Status"
-                  clearable
-                  placeholder="All statuses"
-                  value={status ?? null}
-                  data={[
-                    { value: 'error', label: 'Error' },
-                    { value: 'in_progress', label: 'In progress' },
-                    { value: 'pending', label: 'Pending' },
-                  ]}
-                  onChange={(value) =>
-                    dispatch({
-                      kind: 'filter',
-                      update: { status: (value as PublicationJobStatus | null) ?? undefined },
-                    })
-                  }
+                <ControlBlock
+                  title="Status"
+                  input={(fieldProps) => (
+                    <Select
+                      {...fieldProps}
+                      clearable
+                      placeholder="All statuses"
+                      value={status ?? null}
+                      data={[
+                        { value: 'error', label: 'Error' },
+                        { value: 'in_progress', label: 'In progress' },
+                        { value: 'pending', label: 'Pending' },
+                      ]}
+                      onChange={(value) =>
+                        dispatch({
+                          kind: 'filter',
+                          update: { status: (value as PublicationJobStatus | null) ?? undefined },
+                        })
+                      }
+                    />
+                  )}
                 />
-                <Select
-                  label="Asset type"
-                  clearable
-                  placeholder="All asset types"
-                  value={assetType ?? null}
-                  data={Object.keys(result.settings?.rendererRevisions ?? {}).map((value) => ({
-                    value,
-                    label: formatAssetType(value),
-                  }))}
-                  onChange={(value) => dispatch({ kind: 'filter', update: { assetType: value ?? undefined } })}
+                <ControlBlock
+                  title="Asset type"
+                  input={(fieldProps) => (
+                    <Select
+                      {...fieldProps}
+                      clearable
+                      placeholder="All asset types"
+                      value={assetType ?? null}
+                      data={Object.keys(result.settings?.rendererRevisions ?? {}).map((value) => ({
+                        value,
+                        label: formatAssetType(value),
+                      }))}
+                      onChange={(value) => dispatch({ kind: 'filter', update: { assetType: value ?? undefined } })}
+                    />
+                  )}
                 />
               </Group>
               <Text size="sm" c="dimmed">

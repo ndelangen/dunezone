@@ -73,9 +73,9 @@ export function CoverEdit({
           description={
             'Paste an HTTPS image URL. Saving stores a copy for this Rulebook.\nThe image fills the Page, cropped at the edges if its shape differs.'
           }
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Background image URL"
+              {...fieldProps}
               type="url"
               value={sourceUrl}
               error={checkedUrl && !checkedUrl.success ? checkedUrl.error.issues[0]?.message : undefined}
@@ -88,7 +88,7 @@ export function CoverEdit({
                 })
               }
             />
-          }
+          )}
         />
       )}
       <ControlBlock
@@ -105,38 +105,38 @@ export function CoverEdit({
       <ControlBlock
         title="Show subtitle"
         description="Hide the subtitle without removing its text."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Show subtitle"
+            {...fieldProps}
             checked={value.showSubtitle ?? true}
             onChange={(event) => onChange({ ...value, showSubtitle: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       {value.showSubtitle !== false ? (
         <ControlBlock
           title="Subtitle"
           description="Optional subtitle below the Page title."
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Subtitle"
+              {...fieldProps}
               value={value.subtitle}
               onChange={(event) => onChange({ ...value, subtitle: event.currentTarget.value })}
             />
-          }
+          )}
         />
       ) : null}
       <ControlBlock
         title="Supporting text"
         description="Optional short introduction or edition details."
-        input={
+        input={(fieldProps) => (
           <Textarea
-            aria-label="Supporting text"
+            {...fieldProps}
             value={value.supportingText}
             onChange={(event) => onChange({ ...value, supportingText: event.currentTarget.value })}
             minRows={3}
           />
-        }
+        )}
       />
     </Stack>
   );
@@ -168,25 +168,25 @@ export function CoverFooterEdit({
         <Stack gap="md">
           <ControlBlock
             title="Footer title"
-            input={
+            input={(fieldProps) => (
               <Textarea
-                aria-label="Footer title"
+                {...fieldProps}
                 value={value.title}
                 minRows={2}
                 onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
               />
-            }
+            )}
           />
           {footerFactionControls}
           <ControlBlock
             title="Footer label"
-            input={
+            input={(fieldProps) => (
               <TextInput
-                aria-label="Footer label"
+                {...fieldProps}
                 value={value.label}
                 onChange={(event) => onChange({ ...value, label: event.currentTarget.value })}
               />
-            }
+            )}
           />
         </Stack>
       ) : null}

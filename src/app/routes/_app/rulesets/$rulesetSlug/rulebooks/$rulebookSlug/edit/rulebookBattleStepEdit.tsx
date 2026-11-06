@@ -5,6 +5,7 @@ import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { ListChapter } from '@ui/block/ListChapter';
 import { Pending } from '@ui/content/Pending';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { lazy, Suspense, useState } from 'react';
@@ -114,58 +115,69 @@ function BattleStrengthFields({ label, value, onChange }: BattleSideFieldsProps)
   return (
     <>
       <Group grow align="start">
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Dial"
-          aria-label={`${label} dial`}
-          min={0}
-          max={200}
-          step={0.5}
-          decimalScale={1}
-          value={value.dial}
-          onChange={(dial) => {
-            if (typeof dial === 'number') {
-              update({ dial: Math.round(dial * 2) / 2 });
-            } else if (dial === '') {
-              update({ dial: 0 });
-            }
-          }}
+        <ControlBlock
+          title="Dial"
+          description={
+            'The troop strength shown in this step, including any adjustment.\nHidden plans keep these values private.'
+          }
+          input={
+            <NumberInput
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              aria-label={`${label} dial`}
+              min={0}
+              max={200}
+              step={0.5}
+              decimalScale={1}
+              value={value.dial}
+              onChange={(dial) => {
+                if (typeof dial === 'number') {
+                  update({ dial: Math.round(dial * 2) / 2 });
+                } else if (dial === '') {
+                  update({ dial: 0 });
+                }
+              }}
+            />
+          }
         />
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Spice"
-          aria-label={`${label} spice`}
-          min={0}
-          max={200}
-          allowDecimal={false}
-          value={value.spice}
-          onChange={(spice) => update({ spice: typeof spice === 'number' ? spice : 0 })}
+        <ControlBlock
+          title="Spice"
+          input={
+            <NumberInput
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              aria-label={`${label} spice`}
+              min={0}
+              max={200}
+              allowDecimal={false}
+              value={value.spice}
+              onChange={(spice) => update({ spice: typeof spice === 'number' ? spice : 0 })}
+            />
+          }
         />
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Adjustment"
-          aria-label={`${label} adjustment`}
-          min={-200}
-          max={200}
-          step={0.5}
-          decimalScale={1}
-          value={value.adjustment ?? ''}
-          onChange={(adjustment) => {
-            if (typeof adjustment === 'number') {
-              update({ adjustment: Math.round(adjustment * 2) / 2 });
-            } else if (adjustment === '') {
-              update({ adjustment: undefined });
-            }
-          }}
+        <ControlBlock
+          title="Adjustment"
+          input={
+            <NumberInput
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              aria-label={`${label} adjustment`}
+              min={-200}
+              max={200}
+              step={0.5}
+              decimalScale={1}
+              value={value.adjustment ?? ''}
+              onChange={(adjustment) => {
+                if (typeof adjustment === 'number') {
+                  update({ adjustment: Math.round(adjustment * 2) / 2 });
+                } else if (adjustment === '') {
+                  update({ adjustment: undefined });
+                }
+              }}
+            />
+          }
         />
       </Group>
-      <Text size="sm" c="dimmed">
-        The dial is the troop strength shown in this step, including any adjustment. Hidden plans keep these values
-        private.
-      </Text>
     </>
   );
 }
@@ -286,47 +298,59 @@ function BattleTroopRow({
   return (
     <Stack gap="sm">
       <Group grow>
-        <Select
-          label="Troop"
-          aria-label={`${label} troop ${index + 1}`}
-          data={options}
-          value={group.troopId}
-          onChange={(troopId) => {
-            if (troopId) {
-              onChange({ troopId, face: 'front' });
-            }
-          }}
+        <ControlBlock
+          title="Troop"
+          input={
+            <Select
+              aria-label={`${label} troop ${index + 1}`}
+              data={options}
+              value={group.troopId}
+              onChange={(troopId) => {
+                if (troopId) {
+                  onChange({ troopId, face: 'front' });
+                }
+              }}
+            />
+          }
         />
-        <Select
-          label="Face"
-          aria-label={`${label} troop ${index + 1} face`}
-          data={[
-            { value: 'front', label: selected?.name || 'Front' },
-            ...(selected?.back || group.face === 'back'
-              ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
-              : []),
-          ]}
-          value={group.face}
-          onChange={(face) => {
-            if (face === 'front' || face === 'back') {
-              onChange({ face });
-            }
-          }}
+        <ControlBlock
+          title="Face"
+          input={
+            <Select
+              aria-label={`${label} troop ${index + 1} face`}
+              data={[
+                { value: 'front', label: selected?.name || 'Front' },
+                ...(selected?.back || group.face === 'back'
+                  ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
+                  : []),
+              ]}
+              value={group.face}
+              onChange={(face) => {
+                if (face === 'front' || face === 'back') {
+                  onChange({ face });
+                }
+              }}
+            />
+          }
         />
       </Group>
       <Group grow>
         {(['supported', 'unsupported'] as const).map((field) => (
-          <NumberInput
-            clampBehavior="strict"
-            allowLeadingZeros={false}
+          <ControlBlock
             key={field}
-            label={field === 'supported' ? 'Supported' : 'Unsupported'}
-            aria-label={`${label} troop ${index + 1} ${field}`}
-            min={0}
-            max={100}
-            allowDecimal={false}
-            value={group[field]}
-            onChange={(count) => onChange({ [field]: typeof count === 'number' ? count : 0 })}
+            title={field === 'supported' ? 'Supported' : 'Unsupported'}
+            input={
+              <NumberInput
+                clampBehavior="strict"
+                allowLeadingZeros={false}
+                aria-label={`${label} troop ${index + 1} ${field}`}
+                min={0}
+                max={100}
+                allowDecimal={false}
+                value={group[field]}
+                onChange={(count) => onChange({ [field]: typeof count === 'number' ? count : 0 })}
+              />
+            }
           />
         ))}
       </Group>
@@ -409,12 +433,16 @@ function BattleSideEdit({ label, value, references, onChange }: BattleSideFields
         openPicker={openPicker}
         setOpenPicker={setOpenPicker}
       />
-      <TextInput
-        label="Role"
-        aria-label={`${label} role`}
-        placeholder="Aggressor or defender"
-        value={value.role}
-        onChange={(event) => update({ role: event.currentTarget.value })}
+      <ControlBlock
+        title="Role"
+        input={
+          <TextInput
+            aria-label={`${label} role`}
+            placeholder="Aggressor or defender"
+            value={value.role}
+            onChange={(event) => update({ role: event.currentTarget.value })}
+          />
+        }
       />
       <Switch
         label="Reveal this battle plan"
@@ -433,12 +461,16 @@ function BattleSideEdit({ label, value, references, onChange }: BattleSideFields
         setOpenPicker={setOpenPicker}
       />
       <BattleTroopFields label={label} value={value} references={references} onChange={onChange} />
-      <TextInput
-        label="Result"
-        aria-label={`${label} result`}
-        placeholder="Optional result beside this plan"
-        value={value.result ?? ''}
-        onChange={(event) => update({ result: event.currentTarget.value || undefined })}
+      <ControlBlock
+        title="Result"
+        input={
+          <TextInput
+            aria-label={`${label} result`}
+            placeholder="Optional result beside this plan"
+            value={value.result ?? ''}
+            onChange={(event) => update({ result: event.currentTarget.value || undefined })}
+          />
+        }
       />
     </Stack>
   );
@@ -486,32 +518,48 @@ export function BattleStepEdit({
     <Stack gap="md">
       <Group grow align="start">
         {hideStep ? null : (
-          <TextInput
-            label="Step"
-            aria-label={`${labelPrefix}Step`}
-            value={value.step}
-            onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
+          <ControlBlock
+            title="Step"
+            input={
+              <TextInput
+                aria-label={`${labelPrefix}Step`}
+                value={value.step}
+                onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
+              />
+            }
           />
         )}
-        <TextInput
-          label="Title"
-          aria-label={`${labelPrefix}Title`}
-          value={value.title}
-          onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+        <ControlBlock
+          title="Title"
+          input={
+            <TextInput
+              aria-label={`${labelPrefix}Title`}
+              value={value.title}
+              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+            />
+          }
         />
       </Group>
-      <Textarea
-        label="Explanation"
-        aria-label={`${labelPrefix}Explanation`}
-        minRows={2}
-        value={value.caption}
-        onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+      <ControlBlock
+        title="Explanation"
+        input={
+          <Textarea
+            aria-label={`${labelPrefix}Explanation`}
+            minRows={2}
+            value={value.caption}
+            onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+          />
+        }
       />
-      <TextInput
-        label="Outcome"
-        aria-label={`${labelPrefix}Outcome`}
-        value={value.outcome ?? ''}
-        onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
+      <ControlBlock
+        title="Outcome"
+        input={
+          <TextInput
+            aria-label={`${labelPrefix}Outcome`}
+            value={value.outcome ?? ''}
+            onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
+          />
+        }
       />
       <Switch
         label="Show faction names and roles"
@@ -569,31 +617,39 @@ function BattleDialogueFields({
       <Stack gap="sm">
         {value?.map((line, index) => (
           <Group key={index} grow align="start">
-            <Select
-              label="Speaker"
-              aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
-              data={[
-                { value: 'left', label: 'Left faction' },
-                { value: 'right', label: 'Right faction' },
-              ]}
-              value={line.speaker}
-              onChange={(speaker) => {
-                if (speaker === 'left' || speaker === 'right') {
-                  onChange(value?.map((entry, position) => (position === index ? { ...entry, speaker } : entry)));
-                }
-              }}
+            <ControlBlock
+              title="Speaker"
+              input={
+                <Select
+                  aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
+                  data={[
+                    { value: 'left', label: 'Left faction' },
+                    { value: 'right', label: 'Right faction' },
+                  ]}
+                  value={line.speaker}
+                  onChange={(speaker) => {
+                    if (speaker === 'left' || speaker === 'right') {
+                      onChange(value?.map((entry, position) => (position === index ? { ...entry, speaker } : entry)));
+                    }
+                  }}
+                />
+              }
             />
-            <Textarea
-              label="Speech"
-              aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
-              minRows={2}
-              value={line.text}
-              onChange={(event) =>
-                onChange(
-                  value?.map((entry, position) =>
-                    position === index ? { ...entry, text: event.currentTarget.value } : entry
-                  )
-                )
+            <ControlBlock
+              title="Speech"
+              input={
+                <Textarea
+                  aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
+                  minRows={2}
+                  value={line.text}
+                  onChange={(event) =>
+                    onChange(
+                      value?.map((entry, position) =>
+                        position === index ? { ...entry, text: event.currentTarget.value } : entry
+                      )
+                    )
+                  }
+                />
               }
             />
           </Group>

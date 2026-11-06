@@ -1,5 +1,6 @@
 import { Stack, Text, TextInput } from '@mantine/core';
 import { playGameNameSchema } from '@shared/play/gameNames';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useEffect, useState } from 'react';
 
 import { useGameNameAvailability } from '@db/play';
@@ -24,14 +25,19 @@ export function GameNameInput({
   const probe = value === settled && playGameNameSchema.safeParse(value).success;
   return (
     <Stack gap="xs">
-      <TextInput
-        label="Custom name"
+      <ControlBlock
+        title="Custom name"
         description="Keep names family-friendly. Turn the switch off to go back to the generated name."
-        placeholder="Name your game"
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        error={error}
-        disabled={disabled}
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            placeholder="Name your game"
+            value={value}
+            onChange={(event) => onChange(event.currentTarget.value)}
+            error={error}
+            disabled={disabled}
+          />
+        )}
       />
       {probe ? <NameAdvice key={value} name={value} /> : null}
     </Stack>

@@ -147,25 +147,25 @@ function SurfaceFields({
       <ControlBlock
         title="Edge ring"
         description="A rounded inset rule. Off by default, unlike the round shapes."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Edge ring"
+            {...fieldProps}
             checked={face.ring}
             onChange={(event) => patch({ ring: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Ring shadow"
         description="A pronounced shadow under the ring. Needs the ring."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Ring shadow"
+            {...fieldProps}
             checked={face.ringShadow ?? false}
             disabled={!face.ring}
             onChange={(event) => patch({ ringShadow: event.currentTarget.checked })}
           />
-        }
+        )}
       />
     </Stack>
   );

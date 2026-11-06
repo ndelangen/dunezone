@@ -300,10 +300,10 @@ function RulesetEditor({
                     'Only the ruleset owner can rename it.'
                   )
                 }
-                input={
+                inputId="ruleset-settings-name"
+                input={(fieldProps) => (
                   <TextInput
-                    id="ruleset-settings-name"
-                    aria-label="Name"
+                    {...fieldProps}
                     name="name"
                     required
                     error={nameError}
@@ -316,16 +316,16 @@ function RulesetEditor({
                     }
                     disabled={!canRename}
                   />
-                }
+                )}
               />
 
               <ControlBlock
                 title="About"
                 description={helpLines(RULESET_ABOUT_HELP, FORMATTED_TEXT_SYNTAX_HELP)}
-                input={
+                inputId="ruleset-settings-about"
+                input={(fieldProps) => (
                   <FormattedTextInput
-                    id="ruleset-settings-about"
-                    aria-label="About"
+                    {...fieldProps}
                     name="about"
                     description={rulesetAboutCount(about)}
                     error={aboutError}
@@ -334,7 +334,7 @@ function RulesetEditor({
                     value={about}
                     onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
                   />
-                }
+                )}
               />
 
               <ControlBlock
@@ -342,10 +342,10 @@ function RulesetEditor({
                 description={
                   'Optional. A full https:// URL.\nSaving stores a copy, so later changes at the source do not show here.\nLeave empty to clear the cover.'
                 }
-                input={
+                inputId="ruleset-settings-cover"
+                input={(fieldProps) => (
                   <TextInput
-                    id="ruleset-settings-cover"
-                    aria-label="Cover image URL"
+                    {...fieldProps}
                     type="url"
                     error={coverFormatError ?? rehostFailure ?? undefined}
                     value={coverUrl}
@@ -358,7 +358,7 @@ function RulesetEditor({
                     placeholder="https://…"
                     autoComplete="off"
                   />
-                }
+                )}
               />
 
               <ControlBlock

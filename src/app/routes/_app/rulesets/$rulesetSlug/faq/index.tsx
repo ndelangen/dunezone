@@ -7,6 +7,8 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -236,11 +238,11 @@ function FaqTagSelect({
   onChange: (tag: string | undefined) => void;
 }) {
   const inToolbar = label == null;
-  return (
+  const field = (fieldProps?: ControlBlockField) => (
     <Select
+      {...fieldProps}
       className={inToolbar ? styles.tagSegment : undefined}
       variant={inToolbar ? 'unstyled' : 'default'}
-      label={label}
       aria-label={inToolbar ? 'Tag' : undefined}
       allowDeselect={false}
       data={[
@@ -251,6 +253,7 @@ function FaqTagSelect({
       onChange={(value) => onChange(value === ALL_TAGS ? undefined : (value ?? undefined))}
     />
   );
+  return label ? <ControlBlock title={label} input={field} /> : field();
 }
 
 function AskQuestion({ rulesetSlug }: { rulesetSlug: string }) {

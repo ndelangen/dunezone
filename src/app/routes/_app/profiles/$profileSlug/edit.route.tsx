@@ -382,10 +382,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             description={
               'A public link; ownership is not verified, so it cannot sign you in.\nClear it and save to remove it.'
             }
-            input={
+            input={(fieldProps) => (
               <TextInput
+                {...fieldProps}
                 ref={bggProfileUrlRef}
-                aria-label="BoardGameGeek profile URL"
                 type="url"
                 value={bggProfileUrl}
                 onChange={(event) => dispatch({ kind: 'patch', update: { bggProfileUrl: event.target.value } })}
@@ -393,7 +393,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 autoComplete="off"
                 maxLength={500}
               />
-            }
+            )}
           />
           <AvatarPreview avatarUrl={avatarUrl} username={username} />
         </Stack>
@@ -411,13 +411,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             description={
               'New rulesets and factions start in this Group.\nYou can change an item’s Group after its first save.'
             }
-            input={
+            input={(fieldProps) => (
               <Select
+                {...fieldProps}
                 ref={defaultGroupRef}
-                aria-label="Default Group"
-                /* Not yet loaded is not the same as "you are in no Groups", and an enabled control
-                   offering only "No default Group" says the second. The derivation above gates on
-                   the same distinction; this is the other half of it. */
                 disabled={defaultGroupOptions === undefined}
                 value={defaultGroupId ?? ''}
                 onChange={(value) =>
@@ -429,7 +426,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 ]}
                 clearable
               />
-            }
+            )}
           />
         </Stack>
       ),

@@ -825,6 +825,95 @@ const eyebrowRule: Rule = {
   },
 };
 
+const CONTROL_LABEL_RULE_NAME = 'control-block-label';
+
+/* The Mantine fields whose `label` and `description` are a field caption; Slider's `label` is its value bubble, and a Switch, Checkbox or Radio labels its own option. */
+const LABELLED_FIELDS = new Set([
+  'TextInput',
+  'Select',
+  'NumberInput',
+  'Textarea',
+  'ColorInput',
+  'MultiSelect',
+  'NativeSelect',
+  'FileInput',
+  'PasswordInput',
+  'Autocomplete',
+  'TagsInput',
+  'JsonInput',
+]);
+const LABELLED_GROUPS = new Set(['Radio', 'Checkbox']);
+
+/**
+ * Keeps every field caption on the kit's ControlBlock, so a field is titled one way and its help sits behind the (?).
+ * Mantine's own `label` and `description` drew a second, smaller caption with a help paragraph under it (Norbert, 2026-11-06).
+ * The rule reads `label` or `description` on a Mantine field, or on `Radio.Group` and `Checkbox.Group`.
+ * A group's `label` given as a `<VisuallyHidden>` element is allowed: Mantine names the radiogroup only through `label`, so that is its accessible name and draws no caption.
+ * It sees direct `@mantine/core` imports only: `Input.Wrapper` and kit wrappers that pass Mantine's props through (FormattedTextInput, BattleValueInput) are not checked.
+ */
+const controlBlockLabelRule: Rule = {
+  meta: {
+    name: CONTROL_LABEL_RULE_NAME,
+    messages: {
+      controlBlockLabel:
+        "A field is captioned by ControlBlock (title, and description behind its (?)), not by the input's own label or description.",
+    },
+  },
+  create(context) {
+    const fields = new Set<string>();
+    const groups = new Set<string>();
+    const hiders = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier') {
+            continue;
+          }
+          if (LABELLED_FIELDS.has(specifier.imported.name)) {
+            fields.add(specifier.local.name);
+          }
+          if (LABELLED_GROUPS.has(specifier.imported.name)) {
+            groups.add(specifier.local.name);
+          }
+          if (specifier.imported.name === 'VisuallyHidden') {
+            hiders.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || (node.name.name !== 'label' && node.name.name !== 'description')) {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement') {
+          return;
+        }
+        const name = element.name;
+        const isField = name.type === 'JSXIdentifier' && fields.has(name.name);
+        const isGroup =
+          name.type === 'JSXMemberExpression' &&
+          name.object.type === 'JSXIdentifier' &&
+          groups.has(name.object.name) &&
+          name.property.name === 'Group';
+        const value = node.value;
+        const namesOnly =
+          isGroup &&
+          node.name.name === 'label' &&
+          value?.type === 'JSXExpressionContainer' &&
+          value.expression.type === 'JSXElement' &&
+          value.expression.openingElement.name.type === 'JSXIdentifier' &&
+          hiders.has(value.expression.openingElement.name.name);
+        if ((isField || isGroup) && !namesOnly) {
+          context.report({ node, messageId: 'controlBlockLabel' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -840,5 +929,6 @@ export default {
     [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
     [FORM_ERROR_RULE_NAME]: formErrorRule,
     [EYEBROW_RULE_NAME]: eyebrowRule,
+    [CONTROL_LABEL_RULE_NAME]: controlBlockLabelRule,
   },
 };

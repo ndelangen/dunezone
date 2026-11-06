@@ -3,6 +3,7 @@ import { useDebouncedValue } from '@mantine/hooks';
 import type { SpawnType } from '@shared/play/captureTypes';
 import { SPAWN_PICKER_STEP, spawnableKey } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnableAssets, SpawnSelection } from '@shared/play/inventory';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { useEffect, useState } from 'react';
 
@@ -93,26 +94,27 @@ export function SpawnAssetPicker({ value, types = [], disabled = false, onPick }
           }
         }}
       >
-        <Combobox.EventsTarget>
-          <TextInput
-            label="Search the catalogue"
-            placeholder={`${withArticle(spawnTypeWords(types).one)}, or who made it`}
-            value={search}
-            disabled={disabled}
-            /*
-             * Safari and password-manager extensions ignore autoComplete="off" alone.
-             * The search type, neutral name and vendor opt-outs keep credential autofill prompts off this field.
-             */
-            type="search"
-            name="catalogue-search"
-            autoComplete="off"
-            data-1p-ignore
-            data-lpignore="true"
-            data-bwignore
-            data-form-type="other"
-            onChange={(event) => setSearch(event.currentTarget.value)}
-          />
-        </Combobox.EventsTarget>
+        <ControlBlock
+          title="Search the catalogue"
+          input={(fieldProps) => (
+            <Combobox.EventsTarget>
+              <TextInput
+                {...fieldProps}
+                placeholder={`${withArticle(spawnTypeWords(types).one)}, or who made it`}
+                value={search}
+                disabled={disabled}
+                type="search"
+                name="catalogue-search"
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
+                data-bwignore
+                data-form-type="other"
+                onChange={(event) => setSearch(event.currentTarget.value)}
+              />
+            </Combobox.EventsTarget>
+          )}
+        />
         <SpawnAssetOptions
           entries={data.entries}
           types={types}

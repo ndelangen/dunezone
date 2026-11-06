@@ -4,7 +4,7 @@ import { VECTOR_ARTWORK_ALIASES } from '@shared/vectorRules';
 import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useReducer, useRef } from 'react';
+import { useId, useReducer, useRef } from 'react';
 
 import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
@@ -123,6 +123,8 @@ export function AssetSelect({
   placeholder,
   ...props
 }: AssetSelectProps) {
+  const filterNameId = useId();
+  const fieldLabelledBy = props['aria-labelledby'];
   const [browse, dispatch] = useReducer(browseReducer, {
     collection: '',
     mode: 'artwork',
@@ -320,8 +322,24 @@ export function AssetSelect({
                               className={styles.filterSlot}
                               onMouseDown={(event) => event.preventDefault()}
                             >
+                              {/* A field named by a caption elsewhere names its filter after that caption, word for word. */}
+                              {fieldLabelledBy ? (
+                                <>
+                                  <span id={`${filterNameId}-before`} hidden>
+                                    Filter
+                                  </span>
+                                  <span id={`${filterNameId}-after`} hidden>
+                                    collections
+                                  </span>
+                                </>
+                              ) : null}
                               <IconAction
                                 label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                                aria-labelledby={
+                                  fieldLabelledBy
+                                    ? `${filterNameId}-before ${fieldLabelledBy} ${filterNameId}-after`
+                                    : undefined
+                                }
                                 tooltip={activeCollection || 'Filter by collection'}
                                 icon={<SlidersHorizontal size={17} aria-hidden />}
                                 intent="neutral"

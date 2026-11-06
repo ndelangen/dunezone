@@ -89,9 +89,9 @@ export function IllustrationSizeControl({
     <ControlBlock
       title="Illustration size"
       description="Fit the whole image within a small, medium or large area."
-      input={
+      input={(fieldProps) => (
         <Select
-          aria-label="Illustration size"
+          {...fieldProps}
           clearable
           placeholder="Original size"
           value={value ?? null}
@@ -102,7 +102,7 @@ export function IllustrationSizeControl({
           ]}
           onChange={(next) => onChange(rulebookIllustrationSizeSchema.optional().parse(next ?? undefined))}
         />
-      }
+      )}
     />
   );
 }
@@ -122,13 +122,13 @@ export function ReferencedIllustrationEdit({
       <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
       <ControlBlock
         title="Caption"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Caption"
+            {...fieldProps}
             value={value.caption}
             onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
           />
-        }
+        )}
       />
     </Stack>
   );
@@ -155,24 +155,24 @@ export function IllustratedInventoryEdit({
     <Stack gap="md">
       <ControlBlock
         title="Heading"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Heading"
+            {...fieldProps}
             value={value.title ?? ''}
             onChange={(event) => onChange({ ...value, title: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Introduction"
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Introduction"
+            {...fieldProps}
             minRows={2}
             value={value.introduction}
             onChange={(introduction) => onChange({ ...value, introduction })}
           />
-        }
+        )}
       />
       <ListChapter
         title="Entries"
@@ -262,37 +262,37 @@ export function IllustratedInventoryEdit({
           <ControlBlock
             title="Quantity"
             description="Optional count for this inventory. Leave empty when the count is not relevant."
-            input={
+            input={(fieldProps) => (
               <NumberInput
-                aria-label="Quantity"
+                {...fieldProps}
                 min={0}
                 allowDecimal={false}
                 value={item.quantity ?? ''}
                 onChange={(quantity) => updateItem({ quantity: typeof quantity === 'number' ? quantity : undefined })}
               />
-            }
+            )}
           />
           <ControlBlock
             title="Caption"
             description="Optional label for display-only artwork."
-            input={
+            input={(fieldProps) => (
               <TextInput
-                aria-label="Caption"
+                {...fieldProps}
                 value={item.caption ?? ''}
                 onChange={(event) => updateItem({ caption: event.currentTarget.value || undefined })}
               />
-            }
+            )}
           />
           <ControlBlock
             title="Explanation"
-            input={
+            input={(fieldProps) => (
               <FormattedTextInput
-                aria-label="Explanation"
+                {...fieldProps}
                 minRows={3}
                 value={item.text}
                 onChange={(text) => updateItem({ text })}
               />
-            }
+            )}
           />
         </Stack>
       ) : null}
@@ -338,24 +338,24 @@ export function FactionIntroductionEdit({
       <ControlBlock
         title="Flip layout"
         description="Place the faction token on the right in wide layouts."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Flip layout"
+            {...fieldProps}
             checked={value.flipped ?? false}
             onChange={(event) => onChange({ ...value, flipped: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Introduction"
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Introduction"
+            {...fieldProps}
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
           />
-        }
+        )}
       />
     </Stack>
   );

@@ -30,15 +30,15 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
           <ControlBlock
             title="Title (optional)"
             description="Leave blank when the rule text is sufficient on its own."
-            input={
+            inputId={`adv-${index}-title`}
+            input={(fieldProps) => (
               <TextInput
-                id={`adv-${index}-title`}
-                aria-label="Title (optional)"
+                {...fieldProps}
                 value={field.state.value ?? ''}
                 onBlur={field.handleBlur}
                 onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
               />
-            }
+            )}
           />
         )}
       </form.Field>
@@ -72,16 +72,16 @@ function AdvantageCard({ form, index }: { form: FactionFormApi; index: number })
           <ControlBlock
             title="Karama interaction (optional)"
             description="Describe the Karama effect only when this advantage has one."
-            input={
+            inputId={`adv-${index}-karama`}
+            input={(fieldProps) => (
               <FormattedTextInput
-                id={`adv-${index}-karama`}
-                aria-label="Karama interaction (optional)"
+                {...fieldProps}
                 minRows={2}
                 value={field.state.value ?? ''}
                 onBlur={field.handleBlur}
                 onChange={(value) => field.handleChange(value || undefined)}
               />
-            }
+            )}
           />
         )}
       </form.Field>

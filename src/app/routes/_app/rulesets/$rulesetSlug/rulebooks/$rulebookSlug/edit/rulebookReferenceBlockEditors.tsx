@@ -220,13 +220,17 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
                     const column = value.columnsById[columnId]!;
                     const cellLabel = `${label}, ${column.label || `column ${index + 1}`}`;
                     return (
-                      <FormattedTextInput
+                      <ControlBlock
                         key={columnId}
-                        aria-label={cellLabel}
-                        label={column.label || `Column ${index + 1}`}
-                        minRows={1}
-                        value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
-                        onChange={(text) => setCell(rowId, columnId, text)}
+                        title={column.label || `Column ${index + 1}`}
+                        input={
+                          <FormattedTextInput
+                            aria-label={cellLabel}
+                            minRows={1}
+                            value={value.rowsById[rowId]!.cellsByColumnId[columnId] ?? ''}
+                            onChange={(text) => setCell(rowId, columnId, text)}
+                          />
+                        }
                       />
                     );
                   })
@@ -239,14 +243,14 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
       <ControlBlock
         title="Note"
         description="Optional explanation shown under the table."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Note"
+            {...fieldProps}
             minRows={2}
             value={value.note}
             onChange={(note) => onChange({ ...value, note })}
           />
-        }
+        )}
       />
     </Stack>
   );

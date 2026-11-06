@@ -84,10 +84,10 @@ export function FactionFormSectionIdentity({
             <ControlBlock
               title="Faction emblem"
               description="Used on faction tokens and faction-branded game artifacts."
-              input={
+              inputId="faction-emblem"
+              input={(fieldProps) => (
                 <AssetSelect
-                  id="faction-emblem"
-                  aria-label="Faction emblem"
+                  {...fieldProps}
                   allowDeselect={false}
                   data={emblemSelectOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
@@ -99,7 +99,7 @@ export function FactionFormSectionIdentity({
                     }
                   }}
                 />
-              }
+              )}
             />
           )}
         </form.Field>
@@ -109,16 +109,16 @@ export function FactionFormSectionIdentity({
             <ControlBlock
               title="Faction sheet theme"
               description="Used for headings and accents on the complete faction sheet."
-              input={
+              inputId="faction-theme-color"
+              input={(fieldProps) => (
                 <ColorInput
-                  id="faction-theme-color"
-                  aria-label="Faction sheet theme"
+                  {...fieldProps}
                   format="hex"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={field.handleChange}
                 />
-              }
+              )}
             />
           )}
         </form.Field>

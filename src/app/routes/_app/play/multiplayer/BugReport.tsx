@@ -205,18 +205,18 @@ function ReportForm({ draft, dispatch, send, check }: ReportFormProps) {
       <Text size="sm">{BUG_REPORT_DISCLOSURE}</Text>
       <ControlBlock
         title="What went wrong?"
-        input={
+        description="Describe what happened, what you expected, and how to reproduce it."
+        input={(fieldProps) => (
           <Textarea
-            aria-label="What went wrong?"
+            {...fieldProps}
             required
             maxLength={8000}
             minRows={5}
-            description="Describe what happened, what you expected, and how to reproduce it."
             value={draft.description}
             disabled={submitted}
             onChange={(event) => dispatch({ type: 'edit', value: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <Checkbox
         label="I understand this publicly reveals hidden game information to everyone."

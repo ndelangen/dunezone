@@ -151,8 +151,11 @@ test('ordinary sign-in still returns an authenticated player to the requested pa
 test('local recovery returns with a fresh page after password sign-in', async () => {
   vi.stubEnv('VITE_E2E_LOCAL_AUTH', 'true');
   await page();
-  fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'krell@example.test' } });
-  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'local-test-password' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Email' }), { target: { value: 'krell@example.test' } });
+  fireEvent.change(
+    screen.getAllByLabelText('Password').find((element) => element instanceof HTMLInputElement)!,
+    { target: { value: 'local-test-password' } }
+  );
   await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue with local auth' }));
   });

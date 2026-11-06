@@ -48,3 +48,16 @@ export const Caution = meta.story({
     children: <Text size="sm">Leader 1</Text>,
   },
 });
+
+/** Under a heading that already names the list, only its controls show; the name stays for screen readers. */
+export const TitleHidden = meta.story({
+  args: {
+    titleHidden: true,
+    children: <Text size="sm">Decal 1</Text>,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('group', { name: 'Decals' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Add decal' })).toBeVisible();
+  },
+});

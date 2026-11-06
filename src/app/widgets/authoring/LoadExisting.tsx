@@ -2,6 +2,7 @@ import { Checkbox, Group, Popover, Stack, Text, Textarea } from '@mantine/core';
 import { rawAuthoringError } from '@shared/authoring/raw';
 import { FormError } from '@ui/block/FormError';
 import { Pending } from '@ui/content/Pending';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Surface } from '@ui/surface/Surface';
@@ -360,22 +361,27 @@ function RawLoadInput<Draft>({
   const rename = raw.rename && state.choice && raw.rename.currentName !== state.choice.name ? raw.rename : null;
   return (
     <Stack gap="sm">
-      <Textarea
-        ref={input}
-        label="Writable JSON"
+      <ControlBlock
+        title="Writable JSON"
         description="Paste one complete data value. Load changes this draft; Save remains separate."
-        minRows={12}
-        value={state.text}
-        onChange={(event) => {
-          generation.current += 1;
-          patch({
-            text: event.currentTarget.value,
-            choice: null,
-            busy: Boolean(event.currentTarget.value.trim()),
-            error: null,
-            rename: false,
-          });
-        }}
+        input={(fieldProps) => (
+          <Textarea
+            {...fieldProps}
+            ref={input}
+            minRows={12}
+            value={state.text}
+            onChange={(event) => {
+              generation.current += 1;
+              patch({
+                text: event.currentTarget.value,
+                choice: null,
+                busy: Boolean(event.currentTarget.value.trim()),
+                error: null,
+                rename: false,
+              });
+            }}
+          />
+        )}
       />
       {state.error ? <FormError title="This JSON cannot be loaded">{state.error}</FormError> : null}
       {state.choice ? (

@@ -1,4 +1,4 @@
-import { Group, Text, TextInput } from '@mantine/core';
+import { Group, Stack, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
@@ -231,13 +231,19 @@ export function assetNameField({
   noun?: string;
 }): ReactNode {
   return (
-    <TextInput
-      aria-label="Name"
-      value={name}
-      onChange={(event) => onName(event.currentTarget.value)}
-      disabled={!canRename}
-      description={canRename ? undefined : `Only the ${noun} owner can rename it.`}
-    />
+    <Stack gap={4}>
+      <TextInput
+        aria-label="Name"
+        value={name}
+        onChange={(event) => onName(event.currentTarget.value)}
+        disabled={!canRename}
+      />
+      {canRename ? null : (
+        <Text size="xs" c="dimmed">
+          Only the {noun} owner can rename it.
+        </Text>
+      )}
+    </Stack>
   );
 }
 

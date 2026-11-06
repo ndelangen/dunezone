@@ -142,9 +142,9 @@ function ArtworkFields({
     <Stack gap="md">
       <ControlBlock
         title="Leader portrait"
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Leader portrait"
+            {...fieldProps}
             allowDeselect={false}
             data={portraits}
             previewShape="disc"
@@ -157,13 +157,13 @@ function ArtworkFields({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Emblem"
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Emblem"
+            {...fieldProps}
             allowDeselect={false}
             data={emblems}
             getPreviewSrc={(image) => image}
@@ -175,7 +175,7 @@ function ArtworkFields({
               }
             }}
           />
-        }
+        )}
       />
     </Stack>
   );

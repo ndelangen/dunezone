@@ -87,8 +87,8 @@ export function FactionFormSectionComplexity({
                   />
 
                   <Switch
-                    size="sm"
                     label="Set the rating manually"
+                    size="sm"
                     checked={active}
                     onChange={(event) => {
                       if (event.currentTarget.checked) {

@@ -44,13 +44,13 @@ export function CardbackFields({
         <ControlBlock
           title="Label"
           description="The word printed across the back."
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Label"
+              {...fieldProps}
               value={cardback.name}
               onChange={(event) => onChange({ ...cardback, name: event.currentTarget.value })}
             />
-          }
+          )}
         />
       ) : null}
       {!section || section === 'background' ? (
@@ -72,9 +72,9 @@ export function CardbackFields({
           <ControlBlock
             title="Emblem"
             description="The artwork at the centre of the back."
-            input={
+            input={(fieldProps) => (
               <AssetSelect
-                aria-label="Emblem"
+                {...fieldProps}
                 allowDeselect={false}
                 data={emblemOptions}
                 getPreviewSrc={assetOptionToPreviewSrc}
@@ -86,14 +86,14 @@ export function CardbackFields({
                   }
                 }}
               />
-            }
+            )}
           />
           <ControlBlock
             title="Emblem background shade"
             description="Tint the gold disc behind the emblem."
-            input={
+            input={(fieldProps) => (
               <ColorInput
-                aria-label="Emblem background shade"
+                {...fieldProps}
                 eyeDropperButtonProps={{ 'aria-label': 'Pick emblem background shade from screen' }}
                 format="hex"
                 value={cardback.emblemBackground?.color ?? '#d9c879'}
@@ -104,14 +104,14 @@ export function CardbackFields({
                   })
                 }
               />
-            }
+            )}
           />
           <ControlBlock
             title="Emblem background intensity"
             description="Zero keeps the original gold. Full strength applies the selected shade."
-            input={
+            input={(fieldProps) => (
               <Slider
-                aria-label="Emblem background intensity"
+                {...fieldProps}
                 thumbLabel="Emblem background intensity"
                 min={0}
                 max={1}
@@ -125,13 +125,13 @@ export function CardbackFields({
                   })
                 }
               />
-            }
+            )}
           />
           <ControlBlock
             title="Emblem scale"
-            input={
+            input={(fieldProps) => (
               <Slider
-                aria-label="Emblem scale"
+                {...fieldProps}
                 thumbLabel="Emblem scale"
                 min={0}
                 max={2}
@@ -140,7 +140,7 @@ export function CardbackFields({
                 value={cardback.imageScale}
                 onChange={(imageScale) => onChange({ ...cardback, imageScale })}
               />
-            }
+            )}
           />
           <ControlBlock
             title="Emblem offset"
@@ -157,9 +157,9 @@ export function CardbackFields({
                 }}
               />
             }
-            input={
+            input={(fieldProps) => (
               <Slider
-                aria-label="Emblem offset"
+                {...fieldProps}
                 thumbLabel="Emblem offset"
                 min={-60}
                 max={60}
@@ -167,7 +167,7 @@ export function CardbackFields({
                 value={Math.min(60, Math.max(-60, cardback.imageOffset[1]))}
                 onChange={(offset) => onChange({ ...cardback, imageOffset: [cardback.imageOffset[0], offset] })}
               />
-            }
+            )}
           />
         </>
       ) : null}

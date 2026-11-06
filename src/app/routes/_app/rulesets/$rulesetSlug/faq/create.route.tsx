@@ -6,6 +6,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulesetLink } from '@ui/content/RulesetLink';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -155,23 +156,33 @@ function FaqCreatePage() {
                 .catch(() => undefined);
             }}
           >
-            <FormattedTextInput
-              label="Ask a question"
-              name="question"
-              profile="marks-only"
-              required
-              minLength={1}
-              placeholder="Your question..."
-              value={question}
-              onChange={(next) => dispatch({ kind: 'patch', update: { question: next } })}
+            <ControlBlock
+              title="Ask a question"
+              input={(fieldProps) => (
+                <FormattedTextInput
+                  {...fieldProps}
+                  name="question"
+                  profile="marks-only"
+                  required
+                  minLength={1}
+                  placeholder="Your question..."
+                  value={question}
+                  onChange={(next) => dispatch({ kind: 'patch', update: { question: next } })}
+                />
+              )}
             />
-            <FormattedTextInput
-              label="Your answer (optional-you can add or edit it later)"
-              name="answer"
-              rows={3}
-              placeholder="Optional answer..."
-              value={answer}
-              onChange={(next) => dispatch({ kind: 'patch', update: { answer: next } })}
+            <ControlBlock
+              title="Your answer (optional-you can add or edit it later)"
+              input={(fieldProps) => (
+                <FormattedTextInput
+                  {...fieldProps}
+                  name="answer"
+                  rows={3}
+                  placeholder="Optional answer..."
+                  value={answer}
+                  onChange={(next) => dispatch({ kind: 'patch', update: { answer: next } })}
+                />
+              )}
             />
             <FaqTagFieldset />
             {askQuestion.error ? (

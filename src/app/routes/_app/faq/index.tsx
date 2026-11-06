@@ -7,6 +7,8 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -246,12 +248,12 @@ function RulesetSelect({
     label: option.name,
     questions: option.questions,
   }));
-  return (
+  const field = (fieldProps?: ControlBlockField) => (
     <MultiSelect
+      {...fieldProps}
       className={inToolbar ? styles.rulesetSegment : undefined}
       classNames={inToolbar ? { pillsList: styles.pillsRow } : undefined}
       variant={inToolbar ? 'unstyled' : 'default'}
-      label={label}
       aria-label={inToolbar ? 'Rulesets' : undefined}
       placeholder={value.length === 0 ? 'All rulesets' : undefined}
       data={data}
@@ -264,6 +266,7 @@ function RulesetSelect({
       comboboxProps={{ withinPortal: true }}
     />
   );
+  return label ? <ControlBlock title={label} input={field} /> : field();
 }
 
 /** The way to a question's home: questions belong to rulesets, so a new one is asked from its ruleset's page. */

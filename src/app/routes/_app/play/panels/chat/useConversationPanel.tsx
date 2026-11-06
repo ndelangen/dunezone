@@ -1,5 +1,6 @@
 import { Select, Stack } from '@mantine/core';
 import { TABLE_CONVERSATION, isRecallConversation } from '@shared/play/conversations';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
@@ -165,11 +166,16 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
   }
   return (
     <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
-      <Select
-        label="Conversation"
-        value={peerId}
-        onChange={setSelected}
-        data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
+      <ControlBlock
+        title="Conversation"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            value={peerId}
+            onChange={setSelected}
+            data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
+          />
+        )}
       />
       <ConnectedConversationPanel key={`${view.context?.factionId}:${peerId}`} client={client} peerId={peerId} />
     </Stack>

@@ -168,9 +168,9 @@ export function RulebookSourcePicker({
     <Stack gap="md">
       <ControlBlock
         title="Source type"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Source type"
+            {...fieldProps}
             value={state.kind}
             data={[
               { value: 'asset', label: 'Published Asset' },
@@ -186,14 +186,14 @@ export function RulebookSourcePicker({
               }
             }}
           />
-        }
+        )}
       />
       {state.kind === 'faction' || state.kind === 'faction-member' ? (
         <ControlBlock
           title="Presentation"
-          input={
+          input={(fieldProps) => (
             <Select
-              aria-label="Presentation"
+              {...fieldProps}
               value={state.sheet ? 'sheet' : state.alternate ? 'alternate' : 'default'}
               data={
                 state.kind === 'faction'
@@ -211,7 +211,7 @@ export function RulebookSourcePicker({
                 dispatch({ type: 'presentation', alternate: value === 'alternate', sheet: value === 'sheet' })
               }
             />
-          }
+          )}
         />
       ) : null}
       {state.kind === 'asset' ? (
@@ -238,9 +238,9 @@ export function RulebookSourcePicker({
       {state.kind === 'stock' ? (
         <ControlBlock
           title="Artwork"
-          input={
+          input={(fieldProps) => (
             <AssetSelect
-              aria-label="Artwork"
+              {...fieldProps}
               value={null}
               placeholder="Choose artwork"
               data={stockAssetOptions(RULEBOOK_STOCK_ARTWORK).map((option) => ({
@@ -254,7 +254,7 @@ export function RulebookSourcePicker({
                 }
               }}
             />
-          }
+          )}
         />
       ) : null}
       {state.kind === 'board' ? (

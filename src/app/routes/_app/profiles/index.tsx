@@ -6,6 +6,8 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Stats } from '@ui/list/Stats';
@@ -131,19 +133,22 @@ function ProfilesPage() {
   const query = useSearchDraft(search.q ?? '', commitQuery);
 
   /* A search is always best match, so its sort takes no change; choosing an order is for browsing. */
-  const sortSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.sortSegment}
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label="Sort"
-      allowDeselect={false}
-      data={sortOptions(Boolean(search.q))}
-      value={search.q ? 'relevance' : (search.sort ?? 'name')}
-      disabled={Boolean(search.q)}
-      onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
-    />
-  );
+  const sortSelect = (label?: string) => {
+    const field = (fieldProps?: ControlBlockField) => (
+      <Select
+        {...fieldProps}
+        className={label ? undefined : styles.sortSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label="Sort"
+        allowDeselect={false}
+        data={sortOptions(Boolean(search.q))}
+        value={search.q ? 'relevance' : (search.sort ?? 'name')}
+        disabled={Boolean(search.q)}
+        onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
+      />
+    );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
 
   return (
     <PageLayout>

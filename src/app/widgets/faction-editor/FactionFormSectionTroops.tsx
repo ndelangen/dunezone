@@ -154,10 +154,10 @@ function TroopCard({
                   <ControlBlock
                     title="Physical supply"
                     description="The sheet lists this once as ×N, including two-sided troops."
-                    input={
+                    inputId={`troop-${index}-count`}
+                    input={(fieldProps) => (
                       <NumberInput
-                        id={`troop-${index}-count`}
-                        aria-label="Physical supply"
+                        {...fieldProps}
                         min={1}
                         step={1}
                         allowDecimal={false}
@@ -169,7 +169,7 @@ function TroopCard({
                           )
                         }
                       />
-                    }
+                    )}
                   />
                 )}
               </form.Field>

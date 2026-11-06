@@ -68,86 +68,110 @@ function TextLayerFields({
           />
         }
       />
-      <Select
-        label="Font"
-        aria-label={`Font for ${label}`}
-        allowDeselect={false}
-        data={RECTANGLE_TOKEN_FONTS.map((font) => ({
-          value: font,
-          label: font.replace(/^C_/, '').replace(/_/g, ' '),
-        }))}
-        value={layer.font}
-        onChange={(font) => {
-          if (font) {
-            onChange({ ...layer, font: font as typeof layer.font });
-          }
-        }}
-        renderOption={({ option }) => (
-          <span style={{ fontFamily: `"${option.value}", sans-serif` }}>{option.label}</span>
-        )}
+      <ControlBlock
+        title="Font"
+        input={
+          <Select
+            aria-label={`Font for ${label}`}
+            allowDeselect={false}
+            data={RECTANGLE_TOKEN_FONTS.map((font) => ({
+              value: font,
+              label: font.replace(/^C_/, '').replace(/_/g, ' '),
+            }))}
+            value={layer.font}
+            onChange={(font) => {
+              if (font) {
+                onChange({ ...layer, font: font as typeof layer.font });
+              }
+            }}
+            renderOption={({ option }) => (
+              <span style={{ fontFamily: `"${option.value}", sans-serif` }}>{option.label}</span>
+            )}
+          />
+        }
       />
       <Group grow>
-        <NumberInput
-          label="Text size"
-          aria-label={`Text size for ${label}`}
-          value={layer.size}
-          min={1}
-          max={200}
-          onChange={(size) => {
-            if (typeof size === 'number') {
-              onChange({ ...layer, size });
-            }
-          }}
+        <ControlBlock
+          title="Text size"
+          input={
+            <NumberInput
+              aria-label={`Text size for ${label}`}
+              value={layer.size}
+              min={1}
+              max={200}
+              onChange={(size) => {
+                if (typeof size === 'number') {
+                  onChange({ ...layer, size });
+                }
+              }}
+            />
+          }
         />
-        <Select
-          label="Alignment"
-          aria-label={`Alignment for ${label}`}
-          value={layer.align}
-          allowDeselect={false}
-          data={['left', 'center', 'right']}
-          onChange={(align) => {
-            if (align) {
-              onChange({ ...layer, align: align as typeof layer.align });
-            }
-          }}
+        <ControlBlock
+          title="Alignment"
+          input={
+            <Select
+              aria-label={`Alignment for ${label}`}
+              value={layer.align}
+              allowDeselect={false}
+              data={['left', 'center', 'right']}
+              onChange={(align) => {
+                if (align) {
+                  onChange({ ...layer, align: align as typeof layer.align });
+                }
+              }}
+            />
+          }
         />
       </Group>
       <Group grow>
-        <NumberInput
-          label="Width"
-          aria-label={`Width for ${label}`}
-          value={layer.width}
-          min={1}
-          max={900}
-          onChange={(width) => {
-            if (typeof width === 'number') {
-              onChange({ ...layer, width });
-            }
-          }}
+        <ControlBlock
+          title="Width"
+          input={
+            <NumberInput
+              aria-label={`Width for ${label}`}
+              value={layer.width}
+              min={1}
+              max={900}
+              onChange={(width) => {
+                if (typeof width === 'number') {
+                  onChange({ ...layer, width });
+                }
+              }}
+            />
+          }
         />
-        <NumberInput
-          label="Height"
-          aria-label={`Height for ${label}`}
-          value={layer.height}
-          min={1}
-          max={1263}
-          onChange={(height) => {
-            if (typeof height === 'number') {
-              onChange({ ...layer, height });
-            }
-          }}
+        <ControlBlock
+          title="Height"
+          input={
+            <NumberInput
+              aria-label={`Height for ${label}`}
+              value={layer.height}
+              min={1}
+              max={1263}
+              onChange={(height) => {
+                if (typeof height === 'number') {
+                  onChange({ ...layer, height });
+                }
+              }}
+            />
+          }
         />
       </Group>
-      <ColorInput
-        label="Text color"
-        aria-label={`Text color for ${label}`}
-        format="hex"
-        value={layer.color}
-        onChangeEnd={(color) => {
-          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-            onChange({ ...layer, color });
-          }
-        }}
+      <ControlBlock
+        title="Text color"
+        input={
+          <ColorInput
+            aria-label={`Text color for ${label}`}
+            format="hex"
+            value={layer.color}
+            onChangeEnd={(color) => {
+              if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+                onChange({ ...layer, color });
+              }
+            }}
+          />
+        }
       />
     </>
   );
@@ -230,12 +254,16 @@ function LayerFields({
         </>
       )}
       {layer.kind === 'decal' ? (
-        <Switch
-          label="Behind frame"
-          aria-label="Behind frame"
+        <ControlBlock
+          title="Behind frame"
           description="Draw this decal under the frame, which hides artwork outside its window."
-          checked={layer.behindFrame ?? false}
-          onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={layer.behindFrame ?? false}
+              onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
+            />
+          )}
         />
       ) : null}
       {layer.kind !== 'decal' ? (

@@ -5,6 +5,7 @@ import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -173,10 +174,15 @@ export function BoardCreatePage() {
             state={state.editor}
             dispatch={(event) => dispatch({ kind: 'editor', event })}
             identity={
-              <TextInput
-                label="Board name"
-                value={state.draft.name}
-                onChange={(e) => dispatch({ kind: 'name', name: e.currentTarget.value })}
+              <ControlBlock
+                title="Board name"
+                input={(fieldProps) => (
+                  <TextInput
+                    {...fieldProps}
+                    value={state.draft.name}
+                    onChange={(e) => dispatch({ kind: 'name', name: e.currentTarget.value })}
+                  />
+                )}
               />
             }
           />

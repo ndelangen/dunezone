@@ -127,6 +127,8 @@ export const NamesItsInput = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('combobox', { name: 'Preferred player color' })).toBeVisible();
+    /* The group takes no name of its own, so the title names the input alone. */
+    await expect(canvas.getAllByLabelText('Preferred player color')).toHaveLength(1);
   },
 });
 
@@ -142,7 +144,7 @@ export const WithWarning = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole('textbox', { name: 'Leader name' })).toBeVisible();
-    await expect(canvas.getByRole('group', { name: 'Leader name' })).toHaveAccessibleDescription(
+    await expect(canvas.getByRole('group')).toHaveAccessibleDescription(
       'Printed around this leader token. This leader has no name. This is advisory and does not prevent saving.'
     );
     await expect(canvas.getByRole('status')).toHaveTextContent('This leader has no name.');

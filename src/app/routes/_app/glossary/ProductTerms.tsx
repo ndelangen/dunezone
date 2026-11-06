@@ -1,7 +1,8 @@
-import { Group, Radio, Stack, Switch, Text } from '@mantine/core';
+import { Group, Radio, Stack, Switch, Text, VisuallyHidden } from '@mantine/core';
 import type { BoardTint } from '@shared/boards/markup';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Dices, Images, Map, X } from 'lucide-react';
 import { useMemo, useReducer, useState } from 'react';
@@ -87,16 +88,21 @@ function TintDemo() {
   };
   return (
     <Section title="Build a tint" help="Choose territories, outlines and stickers to see the board change.">
-      <Radio.Group
-        label="Territories to tint"
-        value={draft.territory}
-        onChange={(value) => dispatch({ type: 'territory', value: value as TintDraft['territory'] })}
-      >
-        <Group mt="xs">
-          <Radio value="strongholds" label="Strongholds" />
-          <Radio value="spice" label="Spice blow" />
-        </Group>
-      </Radio.Group>
+      <ControlBlock
+        title="Territories to tint"
+        input={
+          <Radio.Group
+            label={<VisuallyHidden>Territories to tint</VisuallyHidden>}
+            value={draft.territory}
+            onChange={(value) => dispatch({ type: 'territory', value: value as TintDraft['territory'] })}
+          >
+            <Group mt="xs">
+              <Radio value="strongholds" label="Strongholds" />
+              <Radio value="spice" label="Spice blow" />
+            </Group>
+          </Radio.Group>
+        }
+      />
       <Group>
         <Switch
           label="Outline only"

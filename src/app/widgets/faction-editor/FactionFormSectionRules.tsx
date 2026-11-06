@@ -73,10 +73,10 @@ function SetupFields({ form }: { form: FactionFormApi }) {
             <ControlBlock
               title="Starting spice"
               description="Rendered in At start as “Starting spice: N”; use a positive whole number."
-              input={
+              inputId="rules-spice"
+              input={(fieldProps) => (
                 <NumberInput
-                  id="rules-spice"
-                  aria-label="Starting spice"
+                  {...fieldProps}
                   min={1}
                   step={1}
                   allowDecimal={false}
@@ -86,7 +86,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
                     field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
                   }
                 />
-              }
+              )}
             />
           )}
         </form.Field>
@@ -124,15 +124,15 @@ function FateFields({ form }: { form: FactionFormApi }) {
                 <ControlBlock
                   title="Rule title (optional)"
                   description="Leave blank when this rule does not need a separate title."
-                  input={
+                  inputId="rules-fate-title"
+                  input={(fieldProps) => (
                     <TextInput
-                      id="rules-fate-title"
-                      aria-label="Rule title (optional)"
+                      {...fieldProps}
                       value={field.state.value ?? ''}
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
                     />
-                  }
+                  )}
                 />
               )}
             </form.Field>
