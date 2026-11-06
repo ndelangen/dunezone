@@ -27,7 +27,7 @@ const PACK_PATH = /^\/__media\/packs\/([0-9a-f]{64})\.bin$/;
 const INDEX_PATH = '/__media/packs/latest.json';
 const VARIANT_NAME = /^[0-9a-f]{20}\.[0-9a-f]{10}\.(png|jpg|webp)$/;
 const SHA256 = /^[0-9a-f]{64}$/;
-const RELEASE = /^[0-9a-f]{40}-[0-9]{1,20}$/;
+const RELEASE = /^[0-9a-f]{40}-\d{1,20}$/;
 
 /** Sixteen packs hold about 230 MB today, so each is near 15 MB; the bound keeps one upload well inside the Worker's memory. */
 export const MEDIA_PACK_MAX_BYTES = 32 * 1024 * 1024;
@@ -100,7 +100,7 @@ function firstFailure<T>(value: T, rules: readonly [(value: T) => boolean, strin
 
 /** Returns the reason an index is unacceptable, or null when it is well formed. */
 export function indexProblem(value: unknown): string | null {
-  const index = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+  const index = (typeof value === 'object' ? (value ?? {}) : {}) as Record<string, unknown>;
   const packs = (index.packs ?? []) as Record<string, unknown>[];
   const problem =
     firstFailure(index, INDEX_RULES) ??
@@ -226,7 +226,7 @@ export async function handleMediaPackRequest(
   if (!inNamespace(url.pathname, MEDIA_PACK_NAMESPACE)) {
     return null;
   }
-  const pack = url.pathname.match(PACK_PATH)?.[1];
+  const pack = PACK_PATH.exec(url.pathname)?.[1];
   if (!pack && url.pathname !== INDEX_PATH) {
     return jsonError(NOT_FOUND);
   }

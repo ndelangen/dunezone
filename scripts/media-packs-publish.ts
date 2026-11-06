@@ -28,7 +28,7 @@ const token = process.env.MEDIA_PUBLISH_TOKEN;
 const release = process.env.MEDIA_RELEASE_ID;
 const RETRY_DELAYS_MS = [2000, 4000, 8000];
 
-if (!token || !release || !/^[0-9a-f]{40}-[0-9]{1,20}$/.test(release)) {
+if (!token || !release || !/^[0-9a-f]{40}-\d{1,20}$/.test(release)) {
   console.error('media:packs needs MEDIA_PUBLISH_TOKEN and a valid MEDIA_RELEASE_ID.');
   process.exit(1);
 }
@@ -48,20 +48,23 @@ const variants = Object.keys(lock).flatMap((key) =>
 const packs = buildPacks(variants);
 const headers = { Authorization: `Bearer ${token}` };
 
-let uploaded = 0;
-for (const { pack, body } of packs) {
+/** Uploads the pack unless R2 already holds it, and returns whether it did. */
+async function publishPack({ pack, body }: (typeof packs)[number]): Promise<boolean> {
   const url = `${origin}/__media/packs/${pack.sha256}.bin`;
   const subject = `pack ${pack.sha256}`;
   const head = await fetchMedia(url, { method: 'HEAD' }, { subject, delaysMs: RETRY_DELAYS_MS });
   if (head.status === 200 && head.headers.get('X-Media-SHA256') === pack.sha256) {
-    continue;
+    return false;
   }
   const put = await fetchMedia(url, { method: 'PUT', body, headers }, { subject, delaysMs: RETRY_DELAYS_MS });
   if (put.status !== 201 && put.status !== 200) {
     throw new Error(`${subject}: PUT answered ${put.status} ${new TextDecoder().decode(put.bytes)}`);
   }
-  uploaded += 1;
+  return true;
 }
+
+/* Usually one pack changes, so all sixteen are asked about at once. */
+const uploaded = (await Promise.all(packs.map(publishPack))).filter(Boolean).length;
 
 const index: PackIndex = { schemaVersion: 1, release, packs: packs.map(({ pack }) => pack) };
 const written = await fetchMedia(

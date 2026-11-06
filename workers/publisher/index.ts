@@ -105,6 +105,19 @@ async function handleGameIngress(request: Request, url: URL, env: Env): Promise<
   return response;
 }
 
+/** The `/__media` namespace: the release ledger, the variant packs, then originals, which answer 404 for anything else under it. */
+async function handleMediaNamespaceRequest(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response | null> {
+  return (
+    (await handleMediaReleaseRequest(request, env)) ??
+    (await handleMediaPackRequest(request, env, { ctx })) ??
+    (await handleMediaSourceRequest(request, env))
+  );
+}
+
 const publisherWorker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -153,17 +166,9 @@ const publisherWorker = {
     if (legacyMedia) {
       return legacyMedia;
     }
-    const mediaRelease = await handleMediaReleaseRequest(request, env);
-    if (mediaRelease) {
-      return mediaRelease;
-    }
-    const mediaPack = await handleMediaPackRequest(request, env, { ctx });
-    if (mediaPack) {
-      return mediaPack;
-    }
-    const mediaSource = await handleMediaSourceRequest(request, env);
-    if (mediaSource) {
-      return mediaSource;
+    const mediaNamespace = await handleMediaNamespaceRequest(request, env, ctx);
+    if (mediaNamespace) {
+      return mediaNamespace;
     }
     const userImage = await handleUserImageRequest(request, env, ctx);
     if (userImage) {

@@ -24,18 +24,20 @@ export function buildPacks(
     const group = variant.name[0];
     groups.set(group, [...(groups.get(group) ?? []), variant]);
   }
-  return [...groups.keys()].sort().map((group) => {
-    const members = groups.get(group)!.sort((left, right) => (left.name < right.name ? -1 : 1));
-    const body = new Uint8Array(members.reduce((total, member) => total + member.bytes.byteLength, 0));
-    let offset = 0;
-    const entries = members.map((member) => {
-      body.set(member.bytes, offset);
-      const entry = { name: member.name, sha256: sha256(member.bytes), bytes: member.bytes.byteLength, offset };
-      offset += member.bytes.byteLength;
-      return entry;
+  return [...groups.keys()]
+    .sort((left, right) => left.localeCompare(right))
+    .map((group) => {
+      const members = groups.get(group)!.sort((left, right) => left.name.localeCompare(right.name));
+      const body = new Uint8Array(members.reduce((total, member) => total + member.bytes.byteLength, 0));
+      let offset = 0;
+      const entries = members.map((member) => {
+        body.set(member.bytes, offset);
+        const entry = { name: member.name, sha256: sha256(member.bytes), bytes: member.bytes.byteLength, offset };
+        offset += member.bytes.byteLength;
+        return entry;
+      });
+      return { pack: { sha256: sha256(body), bytes: body.byteLength, entries }, body };
     });
-    return { pack: { sha256: sha256(body), bytes: body.byteLength, entries }, body };
-  });
 }
 
 /** The variants a downloaded pack holds, each checked against its entry, or an error when the pack itself is not the one indexed. */
