@@ -38,7 +38,7 @@ export class Harness {
    * Takes a seat with a stack account no other harness on this machine holds (the one asked for, else the first free);
    * returns at once, and the seat's status shows how joining goes.
    */
-  join(options: { stack: Stack; game: string; account?: number; want: string; brain: 'claude' | 'codex' }) {
+  join(options: { stack: Stack; game: string; account?: number; want: string; brain: 'claude' | 'codex'; model?: string }) {
     const { account: number, id } = claimAccount(options.stack, this.url(), options.account);
     const account = options.stack.accounts.bots![number - 1]!;
     const held: Held = { id, name: account.name, want: options.want, token: randomBytes(24).toString('base64url') };
@@ -54,7 +54,14 @@ export class Harness {
       game: options.game,
       account: number,
       want: options.want,
-      brain: (workdir) => (options.brain === 'codex' ? codexBrain({ workdir, tools }) : claudeBrain({ workdir, tools })),
+      brain: (workdir) => {
+        /* Empty leaves the CLI's own default, which on a Claude plan is often its most capable and costly model. */
+        const model = options.model || undefined;
+        /* The Claude aliases name nothing to Codex, which then keeps its own default. */
+        return options.brain === 'codex'
+          ? codexBrain({ workdir, tools, model: model && !['sonnet', 'haiku', 'opus'].includes(model) ? model : undefined })
+          : claudeBrain({ workdir, tools, model });
+      },
       onClose: (code, reason) => end(`the game closed the connection (${code}${reason ? ` ${reason}` : ''})`),
     }).then(
       (seat) => {

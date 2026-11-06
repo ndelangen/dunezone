@@ -49,8 +49,9 @@ bun run play:bot:watch                                                # http://1
 bun run play:bot:harness -- --game <URL> --faction fremen             # or one harness by hand
 ```
 
-On the manager page, paste the game's URL, list the factions and press Start bots: it starts one harness process per
-faction. Each claims a bot account no other harness holds (an account whose harness ended is free again), so harnesses
+On the manager page, paste the game's URL, list the factions, pick the model (Sonnet by default; "CLI default" leaves
+the CLI's own choice, which on a Claude plan is often its most costly model) and press Start bots: it starts one harness
+process per faction. Each claims a bot account no other harness holds (an account whose harness ended is free again), so harnesses
 never sign in as the same bot, and takes a free port for its own page. The manager shows every bot on the machine,
 however it was started, with its status (joining, asking for a seat, seated, playing, thinking, not running), a link to
 its harness and a Stop button, which ends that harness and gives its account back. The harnesses keep running if the

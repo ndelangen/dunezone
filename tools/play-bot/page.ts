@@ -41,6 +41,8 @@ const { values } = parseArgs({
     game: { type: 'string' },
     faction: { type: 'string' },
     brain: { type: 'string', default: 'claude' },
+    /* The model the brain's CLI runs: an alias such as sonnet or haiku, or empty for the CLI's own default. */
+    model: { type: 'string', default: 'sonnet' },
     /* A particular stack bot account (from 1); by default the first no other harness holds. */
     account: { type: 'string' },
   },
@@ -58,7 +60,7 @@ const harness = new Harness(() => `http://127.0.0.1:${port}`);
  * The manager's start: one harness process per faction, each its own bot. It outlives nothing: the harnesses keep
  * running if this page stops, and any page can stop them.
  */
-function startHarnesses(game: string, factions: string[], brain: 'claude' | 'codex') {
+function startHarnesses(game: string, factions: string[], brain: 'claude' | 'codex', model: string) {
   const free = (readStack(values.stack).accounts.bots ?? []).filter((bot) => !claimOf(bot.email.split('@')[0]!, root));
   if (free.length < factions.length) {
     throw new Error(
@@ -68,7 +70,7 @@ function startHarnesses(game: string, factions: string[], brain: 'claude' | 'cod
   for (const faction of factions) {
     const child = spawn(
       process.execPath,
-      [path.join(import.meta.dirname, 'page.ts'), '--harness', '--port', '0', '--game', game, '--faction', faction, '--brain', brain, '--stack', values.stack!],
+      [path.join(import.meta.dirname, 'page.ts'), '--harness', '--port', '0', '--game', game, '--faction', faction, '--brain', brain, '--model', model, '--stack', values.stack!],
       { stdio: 'ignore', detached: true }
     );
     child.unref();
@@ -76,12 +78,12 @@ function startHarnesses(game: string, factions: string[], brain: 'claude' | 'cod
 }
 
 /** This harness's one bot, on a bot account no other harness on this machine holds. */
-function launch(game: string, faction: string, brain: 'claude' | 'codex') {
+function launch(game: string, faction: string, brain: 'claude' | 'codex', model: string) {
   const current = harness.states().find((seat) => !seat.ended);
   if (current) {
     throw new Error(`This harness already plays ${current.name}. Start another harness for another bot.`);
   }
-  harness.join({ stack: readStack(values.stack), game, want: faction, brain, account: values.account ? Number(values.account) : undefined });
+  harness.join({ stack: readStack(values.stack), game, want: faction, brain, model, account: values.account ? Number(values.account) : undefined });
 }
 
 /* A page on another site could post here too; a JSON body from this page's own origin is the only thing accepted. */
@@ -222,6 +224,7 @@ const page = /* html */ `<!doctype html>
   <input id="game" type="url" required placeholder="Game URL, such as http://127.0.0.1:8787/play/…" size="48">
   <input id="faction" value="${isHarness ? 'fremen' : 'fremen,harkonnen'}" title="${isHarness ? 'The faction this bot drafts' : 'One bot, and one harness, per faction'}" size="18">
   <select id="brain"><option value="claude">Claude Code</option><option value="codex">Codex</option></select>
+  <select id="model" title="The model each bot thinks with"><option value="sonnet">Sonnet</option><option value="haiku">Haiku</option><option value="opus">Opus</option><option value="">CLI default</option></select>
   <button>${isHarness ? 'Start bot' : 'Start bots'}</button>
   <span id="launch-error" class="error"></span>
 </form>
@@ -318,6 +321,7 @@ document.getElementById('launch').addEventListener('submit', (event) => {
     game: document.getElementById('game').value,
     faction: document.getElementById('faction').value.trim(),
     brain: document.getElementById('brain').value,
+    model: document.getElementById('model').value,
   });
 });
 
@@ -377,6 +381,7 @@ const server = createServer((request, response) => {
         }
         const game = new URL(String(data.game));
         const brain = data.brain === 'codex' ? 'codex' : 'claude';
+        const model = /^[\w.-]{0,64}$/u.test(String(data.model ?? '')) ? String(data.model ?? '') : 'sonnet';
         const names = String(data.faction ?? '').split(',').map((name) => name.trim()).filter(Boolean);
         if (!names.length) {
           throw new Error('Name the faction to draft.');
@@ -385,9 +390,9 @@ const server = createServer((request, response) => {
           if (names.length > 1) {
             throw new Error('A harness plays one bot: name one faction, or start bots from the manager page.');
           }
-          launch(game.href, names[0]!, brain);
+          launch(game.href, names[0]!, brain, model);
         } else {
-          startHarnesses(game.href, names, brain);
+          startHarnesses(game.href, names, brain, model);
         }
         json(200, { ok: true });
       })
@@ -412,7 +417,7 @@ server.on('listening', () => {
   console.log(isHarness ? `Bot harness: http://127.0.0.1:${port}` : `Every bot on this machine: http://127.0.0.1:${port} (${root})`);
   if (isHarness && values.game && values.faction) {
     try {
-      launch(new URL(values.game).href, values.faction.trim(), values.brain === 'codex' ? 'codex' : 'claude');
+      launch(new URL(values.game).href, values.faction.trim(), values.brain === 'codex' ? 'codex' : 'claude', values.model ?? '');
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
     }
