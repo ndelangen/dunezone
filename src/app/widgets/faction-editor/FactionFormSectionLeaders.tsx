@@ -1,28 +1,20 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Box, Grid, Stack, TextInput } from '@mantine/core';
-import { LEADERS } from '@shared/assetIds';
+import { Grid, Stack } from '@mantine/core';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
 import { ListChapter } from '@ui/block/ListChapter';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
-import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useLayoutEffect, useRef, useState } from 'react';
 
-import type { Faction } from '@db/factions';
 import { LeaderStrengthInput } from '@app/widgets/leader-strength/LeaderStrengthInput';
-import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
 import { FactionCollectionShelf } from './FactionCollectionShelf';
-import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { LeaderNameField, LeaderPortraitField, LeaderRow, LeaderTokenPreview } from './LeaderFields';
 
 const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
-
-const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
 /** Strength text a leader's field could not take, owned by the authoring session so replacing the draft clears it. */
 export type StrengthRefusal = { leader: number; text: string } | null;
@@ -54,32 +46,22 @@ function SupportingLeaderCard({
 
   return (
     <Stack gap="md">
-      <Grid gap="xl" align="center">
-        <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
-          <Stack gap="md">
+      <LeaderRow
+        showPreview={showPreview}
+        fields={
+          <>
             <form.Field name={`leaders[${index}].name`}>
-              {(field) => {
-                const value = field.state.value ?? '';
-                const blank = value.trim().length === 0;
-                return (
-                  <ControlBlock
-                    title="Leader name"
-                    description="Printed around this leader token."
-                    inputId={`leader-${index}-name`}
-                    warning={
-                      blank ? 'This leader has no name. This is advisory and does not prevent saving.' : undefined
-                    }
-                    input={(control) => (
-                      <TextInput
-                        {...control}
-                        value={value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.currentTarget.value)}
-                      />
-                    )}
-                  />
-                );
-              }}
+              {(field) => (
+                <LeaderNameField
+                  title="Leader name"
+                  description="Printed around this leader token."
+                  inputId={`leader-${index}-name`}
+                  blankWarning="This leader has no name. This is advisory and does not prevent saving."
+                  value={field.state.value ?? ''}
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
+                />
+              )}
             </form.Field>
 
             <Grid>
@@ -108,61 +90,43 @@ function SupportingLeaderCard({
               <Grid.Col span={{ base: 12, xs: 8 }}>
                 <form.Field name={`leaders[${index}].image`}>
                   {(field) => (
-                    <ControlBlock
+                    <LeaderPortraitField
                       title="Leader portrait"
                       inputId={`leader-${index}-img`}
-                      input={(fieldProps) => (
-                        <AssetSelect
-                          {...fieldProps}
-                          allowDeselect={false}
-                          data={leaderImageOptions}
-                          previewShape="disc"
-                          getPreviewSrc={assetOptionToPreviewSrc}
-                          value={field.state.value}
-                          onChange={(value) => {
-                            if (value) {
-                              field.handleChange(value as Faction['leaders'][number]['image']);
-                            }
-                          }}
-                        />
-                      )}
+                      value={field.state.value}
+                      onChange={field.handleChange}
                     />
                   )}
                 </form.Field>
               </Grid.Col>
             </Grid>
-          </Stack>
-        </Grid.Col>
-
-        {showPreview ? (
-          <Grid.Col span={4} visibleFrom="sm">
-            <form.Subscribe
-              selector={(state) => ({
-                background: state.values.background,
-                leader: state.values.leaders[index],
-                emblem: state.values.emblem,
-              })}
-            >
-              {({ background, leader: currentLeader, emblem }) =>
-                currentLeader ? (
-                  <Stack align="center" gap="sm">
-                    <Eyebrow align="center">Used as: leader token</Eyebrow>
-                    <Box w={132} aria-label={`Token preview for supporting leader ${index + 1}`}>
-                      <LeaderToken
-                        background={background}
-                        image={currentLeader.image}
-                        emblem={emblem}
-                        name={currentLeader.name}
-                        strength={currentLeader.strength}
-                      />
-                    </Box>
-                  </Stack>
-                ) : null
-              }
-            </form.Subscribe>
-          </Grid.Col>
-        ) : null}
-      </Grid>
+          </>
+        }
+        preview={
+          <form.Subscribe
+            selector={(state) => ({
+              background: state.values.background,
+              leader: state.values.leaders[index],
+              emblem: state.values.emblem,
+            })}
+          >
+            {({ background, leader: currentLeader, emblem }) =>
+              currentLeader ? (
+                <LeaderTokenPreview
+                  caption="Used as: leader token"
+                  width={132}
+                  label={`Token preview for supporting leader ${index + 1}`}
+                  background={background}
+                  image={currentLeader.image}
+                  emblem={emblem}
+                  name={currentLeader.name}
+                  strength={currentLeader.strength}
+                />
+              ) : null
+            }
+          </form.Subscribe>
+        }
+      />
     </Stack>
   );
 }
