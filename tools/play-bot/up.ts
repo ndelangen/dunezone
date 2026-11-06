@@ -17,7 +17,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { BOTS_DIR, claimOf } from './claims';
-import { MIRROR_FILE } from './mirror';
+import { MIRROR_FILE, mirrorProblems, readMirror } from './mirror';
 
 const { values } = parseArgs({
   options: {
@@ -86,6 +86,20 @@ if (values.pull || !existsSync(path.join(mirror, MIRROR_FILE))) {
   children.splice(children.indexOf(pull), 1);
   if (code !== 0) {
     console.error('The catalogue copy failed; see above.');
+    process.exit(1);
+  }
+}
+
+/* A deck this code refuses would be left off the table without a word, so the demo stops here instead. */
+const copy = readMirror(mirror);
+const problems = mirrorProblems(copy);
+if (problems.length) {
+  const required = copy.ruleset.slots
+    .filter((entry) => entry.slot === 'treachery' || entry.slot === 'spice')
+    .map((entry) => `${entry.asset.type}/${entry.asset.slug}`);
+  console.error(['A game on this copy would leave out:', ...problems.map((problem) => `  ${problem}`)].join('\n'));
+  if (problems.some((problem) => required.some((key) => problem.startsWith(`${key}:`)))) {
+    console.error('A required deck is among them. Update this checkout (git pull), or copy the catalogue again with --pull.');
     process.exit(1);
   }
 }

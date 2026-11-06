@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { matchPublishedPath, publishedR2Key } from '../../src/shared/asset-publishing/publicationTargets';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../../src/shared/play/capture';
 import type { AssetSupply, RulesetSupply } from '../../src/shared/play/capture';
+import { parseAssetDataForWrite } from '../../src/shared/assets/validation';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 
@@ -127,4 +128,45 @@ export function mirrorAnswer(mirror: Mirror, localRulesetId: string, name: strin
     default:
       return undefined;
   }
+}
+
+/** The one revision every mirrored Leader is installed under locally; the live site's revisions are not in the answers. */
+export const MIRROR_COMPONENT_REVISION = '00000000-0000-4000-8000-000000000001';
+
+/** The mirror's Leader images, which the publisher serves as components rather than as plain published files. */
+export function mirroredLeaders(file: MirrorFile): { assetId: string; file: string }[] {
+  return file.media.flatMap((image) => {
+    const match = matchPublishedPath(image.path);
+    return match?.assetType === 'faction-leader' ? [{ assetId: match.assetId, file: image.file }] : [];
+  });
+}
+
+/**
+ * The decks and bundles a game on this mirror would refuse at creation, by the same definition check the game makes:
+ * a refused deck is left off the table without a word, as the Spice Deck once was when the schema had moved on.
+ */
+export function mirrorProblems(mirror: Mirror): string[] {
+  const problems: string[] = [];
+  for (const [key, supply] of mirror.assets) {
+    if (supply.membersTruncated) {
+      problems.push(`${key}: its member list is truncated.`);
+    }
+    const failing = [supply, ...supply.members].flatMap((entry) =>
+      [entry.asset, entry.backToken, entry.backDeck].flatMap((row) => {
+        if (!row) {
+          return [];
+        }
+        try {
+          parseAssetDataForWrite(row.type, row.data);
+          return [];
+        } catch (error) {
+          return [`${row.name} (${row.type}): ${error instanceof Error ? error.message.split('\n')[0] : String(error)}`];
+        }
+      })
+    );
+    if (failing.length) {
+      problems.push(`${key}: ${failing.length} definition${failing.length === 1 ? '' : 's'} this code refuses, such as ${failing[0]}`);
+    }
+  }
+  return problems;
 }

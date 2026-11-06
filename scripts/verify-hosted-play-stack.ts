@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { chmodSync, closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -500,6 +500,48 @@ async function installMirrorMedia(source: NonNullable<typeof mirror>, workerOutp
       label: 'Mirrored image',
     });
   }
+  /* A Leader is served as a component: an envelope holding its image, under the revision the executor proxy names. */
+  const { mirroredLeaders, MIRROR_COMPONENT_REVISION } = await import('../tools/play-bot/mirror');
+  const { componentEnvelopeKey } = await import('../src/shared/asset-publishing/componentPublication');
+  const leaders = mirroredLeaders(source.file);
+  if (leaders.length) {
+    console.log(`Installing ${leaders.length} mirrored Leaders...`);
+  }
+  for (const leader of leaders) {
+    const image = readFileSync(path.join(source.directory, leader.file));
+    const envelope = {
+      schemaVersion: 1,
+      assetId: leader.assetId,
+      assetType: 'faction-leader',
+      revision: MIRROR_COMPONENT_REVISION,
+      payloadHash: createHash('sha256').update(image).digest('hex'),
+      geometry: { width: 600, height: 600, parts: [] },
+      image: { contentType: 'image/jpeg', base64: image.toString('base64') },
+    };
+    const envelopeFile = path.join(runtime, 'leader-envelope.json');
+    writeFileSync(envelopeFile, JSON.stringify(envelope));
+    run({
+      command: node,
+      args: [
+        path.join(root, 'node_modules/wrangler/bin/wrangler.js'),
+        'r2',
+        'object',
+        'put',
+        `${bucket.bucket_name}/${componentEnvelopeKey(leader.assetId, MIRROR_COMPONENT_REVISION)}`,
+        '--local',
+        '--persist-to',
+        path.join(workerRuntime, 'state'),
+        '--config',
+        config,
+        '--file',
+        envelopeFile,
+        '--content-type',
+        'application/json',
+      ],
+      env: environment,
+      label: 'Mirrored Leader',
+    });
+  }
   const sample = source.file.media[0];
   if (sample) {
     const response = await fetch(`${origin}${sample.path}`);
@@ -621,6 +663,8 @@ try {
    */
   /* With a mirror, the game Worker asks its catalogue questions through a proxy that answers them from the mirror. */
   const proxyPort = mirror ? await freePort() : undefined;
+  /* And the publisher asks about the mirror's Leaders through one that says each is published (see installMirrorMedia). */
+  const executorPort = mirror ? await freePort() : undefined;
   const workerArguments = [
     '--no-env-file',
     path.join(root, 'scripts/play-local.ts'),
@@ -629,6 +673,7 @@ try {
     '--convex-site-url',
     siteUrl,
     ...(proxyPort ? ['--game-convex-url', `http://127.0.0.1:${proxyPort}`] : []),
+    ...(executorPort ? ['--publisher-executor-url', `http://127.0.0.1:${executorPort}/asset-publishing/executor`] : []),
     '--port',
     String(appPort),
     ...(values['skip-generate'] ? ['--skip-generate'] : []),
@@ -694,8 +739,9 @@ try {
   });
   await ready(`${backendUrl}/version`, backend, 30_000);
   if (mirror && proxyPort) {
-    const { startCatalogueProxy } = await import('../tools/play-bot/catalogue-proxy');
+    const { startCatalogueProxy, startExecutorProxy } = await import('../tools/play-bot/catalogue-proxy');
     await startCatalogueProxy({ mirror, backendUrl, localRulesetId: () => servedRulesetId, port: proxyPort });
+    await startExecutorProxy({ mirror, siteUrl, port: executorPort });
   }
   const localEnv = { ...environment, CONVEX_SELF_HOSTED_URL: backendUrl, CONVEX_SELF_HOSTED_ADMIN_KEY: adminKey };
   const convex = (args: string[]) => {

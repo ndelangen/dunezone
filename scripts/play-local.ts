@@ -27,6 +27,8 @@ const { values } = parseArgs({
     'convex-url': { type: 'string' },
     'convex-site-url': { type: 'string' },
     'game-convex-url': { type: 'string' },
+    /* Where the publisher asks about its components, such as a stand-in that answers for a mirrored catalogue's Leaders. */
+    'publisher-executor-url': { type: 'string' },
     port: { type: 'string', default: '8787' },
     'skip-build': { type: 'boolean', default: false },
     'skip-generate': { type: 'boolean', default: false },
@@ -172,7 +174,7 @@ Object.assign(publisher, local, {
     CAPTURE_BASE_URL: origin,
     CONVEX_CLOUD_BASE_URL: convexUrl,
     CONVEX_AUTH_BASE_URL: convexSiteUrl,
-    CONVEX_EXECUTOR_BASE_URL: `${convexSiteUrl}/asset-publishing/executor`,
+    CONVEX_EXECUTOR_BASE_URL: values['publisher-executor-url'] ?? `${convexSiteUrl}/asset-publishing/executor`,
     CONVEX_RENDER_URL: `${convexSiteUrl}/asset-publishing/render`,
     GIT_SHA: LOCAL_ISOLATED_GIT_SHA,
     ASSET_PUBLISHER_EXECUTOR_SECRET: 'isolated-local-executor-not-for-deployment',

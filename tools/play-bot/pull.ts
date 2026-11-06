@@ -18,8 +18,10 @@ import { ConvexHttpClient } from 'convex/browser';
 import { anyApi } from 'convex/server';
 import type { FunctionReference } from 'convex/server';
 
+import { publishedPath } from '../../src/shared/asset-publishing/publicationTargets';
 import { assetSupplySchema, factionDefinitionSchema, rulesetSupplySchema } from '../../src/shared/play/capture';
 import { playDraftableFactionsSchema } from '../../src/shared/play/drafting';
+import { SPICE_TOKEN_HREF } from '../../src/shared/play/spiceToken';
 import { MIRROR_FILE, publishedKey, publishedPaths, RULEBOOK_FILE } from './mirror';
 import { rulebookMarkdown } from './rulebook';
 import type { RulebookContents } from './rulebook';
@@ -149,14 +151,23 @@ const answers = { rulesetSupply: ruleset.raw, assetSupply, draftableFactions, fa
 const media: MirrorFile['media'] = [];
 const mediaDirectory = path.join(directory, 'media');
 mkdirSync(mediaDirectory, { recursive: true });
-const paths = publishedPaths(answers);
-console.log(`Downloading ${paths.length} images from ${values['media-origin']}...`);
+/*
+ * The images the answers name, plus the physical spice token every table uses, plus each token the answers name only by
+ * its id (a spice card's spice, a faction's extras): those have no address in the answers, so each token type is tried.
+ */
+const named = new Set([...publishedPaths(answers), SPICE_TOKEN_HREF.split('?')[0]!]);
+const tokenIds = [...new Set([...JSON.stringify(answers).matchAll(/"asset_id":"([^"]+)"/gu)].map((match) => match[1]!))];
+const TOKEN_TYPES = ['token-disc', 'token-tech', 'token-plate', 'token-pointer', 'token-enhance'] as const;
+const paths = [...named];
+console.log(`Downloading ${paths.length} images and up to ${tokenIds.length} tokens from ${values['media-origin']}...`);
 const missing: string[] = [];
-for (const publishedPath of paths) {
+const download = async (publishedPath: string, quiet = false) => {
   const response = await fetch(new URL(publishedPath, values['media-origin']));
   if (!response.ok) {
-    missing.push(`${publishedPath} (${response.status})`);
-    continue;
+    if (!quiet) {
+      missing.push(`${publishedPath} (${response.status})`);
+    }
+    return false;
   }
   const file = path.join('media', publishedKey(publishedPath));
   mkdirSync(path.dirname(path.join(directory, file)), { recursive: true });
@@ -166,6 +177,26 @@ for (const publishedPath of paths) {
     file,
     contentType: response.headers.get('content-type') ?? 'application/octet-stream',
   });
+  return true;
+};
+for (const publishedPath of paths) {
+  await download(publishedPath);
+}
+for (const id of tokenIds) {
+  /* publishedPath refuses an id that cannot be that type's, so such a type is skipped. */
+  const candidates = TOKEN_TYPES.flatMap((type) => {
+    try {
+      return [publishedPath(type, id)];
+    } catch {
+      return [];
+    }
+  }).filter((candidate) => !named.has(candidate));
+  for (const candidate of candidates) {
+    if (await download(candidate, true)) {
+      named.add(candidate);
+      break;
+    }
+  }
 }
 
 const mirror: MirrorFile = {

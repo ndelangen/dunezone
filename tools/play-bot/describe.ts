@@ -2,7 +2,7 @@
  * Turns the bot's view into text a language model can read: the phase, the board by territory, its hand, its spice,
  * and what the table is doing. It names only what the seat's own view carries.
  */
-import { retainedArrakisBoard } from '../../src/shared/boards/geometry';
+import { arrakisBoard } from '../../src/shared/boards/geometry';
 import type { Board } from '../../src/shared/boards/geometry';
 import { isFactionToken } from '../../src/shared/play/factionToken';
 import type { TablePiece } from '../../src/shared/play/model';
@@ -18,7 +18,7 @@ export type NamedTerritory = TableTerritory & { label: string };
 const boards = new WeakMap<object, NamedTerritory[]>();
 
 export function boardOf(view: BotView): Board {
-  return (view.snapshot?.board?.definition as Board | undefined) ?? retainedArrakisBoard();
+  return (view.snapshot?.board?.definition as Board | undefined) ?? arrakisBoard();
 }
 
 /** Every territory with a label unique on this board: a name shared by several sectors gets its sector's number. */
