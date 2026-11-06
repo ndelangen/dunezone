@@ -42,20 +42,20 @@ export function treacheryIdentityChapters({
           <ControlBlock
             title="Type"
             description="Shown under the name, for example Weapon - Projectile."
-            input={
+            input={(fieldProps) => (
               <TextInput
-                aria-label="Type"
+                {...fieldProps}
                 value={draft.subName}
                 onChange={(event) => patch({ subName: event.currentTarget.value })}
               />
-            }
+            )}
           />
           <ControlBlock
             title="Category"
             description="Uses the standard head and matching symbol background for this category."
-            input={
+            input={(fieldProps) => (
               <Select
-                aria-label="Category"
+                {...fieldProps}
                 allowDeselect={false}
                 value={style.key}
                 data={TREACHERY_STYLES.map(({ key, label }) => ({ value: key, label }))}
@@ -66,7 +66,7 @@ export function treacheryIdentityChapters({
                   }
                 }}
               />
-            }
+            )}
           />
         </Stack>
       ),
@@ -79,9 +79,9 @@ export function treacheryIdentityChapters({
         <ControlBlock
           title="Icon"
           description="Choose the card's vector symbol. Its placement and styling are fixed."
-          input={
+          input={(fieldProps) => (
             <AssetSelect
-              aria-label="Icon"
+              {...fieldProps}
               allowDeselect={false}
               data={symbols}
               getPreviewSrc={assetOptionToPreviewSrc}
@@ -93,7 +93,7 @@ export function treacheryIdentityChapters({
                 }
               }}
             />
-          }
+          )}
         />
       ),
     },

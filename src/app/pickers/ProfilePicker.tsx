@@ -1,5 +1,6 @@
 import { Avatar, Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import { Pending } from '@ui/content/Pending';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, ChevronsDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -43,16 +44,21 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
           onOptionSubmit={(userId) => setSelectedUserId(userId as ReplacementProfile['userId'])}
         >
           <Combobox.EventsTarget>
-            <TextInput
-              label="Search profiles"
-              type="search"
-              name="profile-search"
-              autoComplete="off"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
-              }}
+            <ControlBlock
+              title="Search profiles"
+              input={(fieldProps) => (
+                <TextInput
+                  {...fieldProps}
+                  type="search"
+                  name="profile-search"
+                  autoComplete="off"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.currentTarget.value);
+                    combobox.selectFirstOption();
+                  }}
+                />
+              )}
             />
           </Combobox.EventsTarget>
           <ScrollArea.Autosize mah={260} type="auto">

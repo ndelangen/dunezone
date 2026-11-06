@@ -1274,15 +1274,15 @@ function blockEditorPanel(
     <ControlBlock
       title="Anchor"
       description="Set the stable public anchor used in links to this Block."
-      input={
+      input={(fieldProps) => (
         <TextInput
-          aria-label="Anchor"
+          {...fieldProps}
           leftSection={<Link2 size={16} aria-hidden />}
           leftSectionPointerEvents="none"
           value={block.anchor ?? ''}
           onChange={(event) => replaceBlock({ ...block, anchor: event.currentTarget.value || undefined })}
         />
-      }
+      )}
     />
   );
   const change = (value: object) => replaceBlock({ ...block, ...value });
@@ -2724,17 +2724,22 @@ function RulebookDifferenceReview({
                 ? (() => {
                     const options = reviewPlacementOptions(result, difference);
                     return (
-                      <Select
-                        label="Choose the position"
-                        placeholder="Select a destination"
-                        value={null}
-                        data={options.map((option, index) => ({ value: String(index), label: option.label }))}
-                        onChange={(value) => {
-                          const option = value === null ? undefined : options[Number(value)];
-                          if (option) {
-                            approve(difference, { kind: 'placement', destination: option.destination });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Choose the position"
+                        input={(fieldProps) => (
+                          <Select
+                            {...fieldProps}
+                            placeholder="Select a destination"
+                            value={null}
+                            data={options.map((option, index) => ({ value: String(index), label: option.label }))}
+                            onChange={(value) => {
+                              const option = value === null ? undefined : options[Number(value)];
+                              if (option) {
+                                approve(difference, { kind: 'placement', destination: option.destination });
+                              }
+                            }}
+                          />
+                        )}
                       />
                     );
                   })()
@@ -2794,13 +2799,18 @@ function RulebookRename({
         }
       }}
     >
-      <TextInput
-        label="Rulebook name"
-        value={name}
-        required
-        disabled={rename.isPending}
-        onChange={(event) => setName(event.currentTarget.value)}
+      <ControlBlock
+        title="Rulebook name"
         description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            value={name}
+            required
+            disabled={rename.isPending}
+            onChange={(event) => setName(event.currentTarget.value)}
+          />
+        )}
       />
       {rename.error ? (
         <ActionError subject="Rulebook" verb="rename">
@@ -3051,47 +3061,55 @@ function RulebookSettingsPopover({
 function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSettingsEditorProps) {
   return (
     <Stack gap="md">
-      <Radio.Group
-        label="Book size"
-        value={settings.size}
-        onChange={(size) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
-          if (parsed.success) {
-            onChange(parsed.data);
-          }
-        }}
-      >
-        <Stack gap="xs" pt="xs">
-          {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
-            const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
-            return (
-              <Radio
-                key={id}
-                value={id}
-                label={`${label} (${widthMm} × ${heightMm} mm)`}
-                description={supported ? undefined : 'Page layouts do not fit'}
-                disabled={!supported}
-              />
-            );
-          })}
-        </Stack>
-      </Radio.Group>
-      <Radio.Group
-        label="Book design"
-        value={settings.design}
-        onChange={(design) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
-          if (parsed.success) {
-            onChange(parsed.data);
-          }
-        }}
-      >
-        <Stack gap="xs" pt="xs">
-          {rulebookDesignCatalogue.map(({ id, label }) => (
-            <Radio key={id} value={id} label={label} />
-          ))}
-        </Stack>
-      </Radio.Group>
+      <ControlBlock
+        title="Book size"
+        input={
+          <Radio.Group
+            value={settings.size}
+            onChange={(size) => {
+              const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
+              if (parsed.success) {
+                onChange(parsed.data);
+              }
+            }}
+          >
+            <Stack gap="xs" pt="xs">
+              {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+                return (
+                  <Radio
+                    key={id}
+                    value={id}
+                    label={`${label} (${widthMm} × ${heightMm} mm)`}
+                    description={supported ? undefined : 'Page layouts do not fit'}
+                    disabled={!supported}
+                  />
+                );
+              })}
+            </Stack>
+          </Radio.Group>
+        }
+      />
+      <ControlBlock
+        title="Book design"
+        input={
+          <Radio.Group
+            value={settings.design}
+            onChange={(design) => {
+              const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
+              if (parsed.success) {
+                onChange(parsed.data);
+              }
+            }}
+          >
+            <Stack gap="xs" pt="xs">
+              {rulebookDesignCatalogue.map(({ id, label }) => (
+                <Radio key={id} value={id} label={label} />
+              ))}
+            </Stack>
+          </Radio.Group>
+        }
+      />
     </Stack>
   );
 }

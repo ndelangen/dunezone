@@ -17,6 +17,7 @@ import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
 import { CallToAction } from '@ui/control/CallToAction';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
@@ -324,16 +325,21 @@ function NameField({
             Roll another name
           </LabeledAction>
         )}
-        <Switch
-          label="Set a custom name"
-          checked={draft.custom}
-          onChange={(event) =>
-            dispatch({
-              kind: 'patch',
-              update: { custom: event.currentTarget.checked },
-            })
-          }
-          disabled={disabled}
+        <ControlBlock
+          title="Set a custom name"
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={draft.custom}
+              onChange={(event) =>
+                dispatch({
+                  kind: 'patch',
+                  update: { custom: event.currentTarget.checked },
+                })
+              }
+              disabled={disabled}
+            />
+          )}
         />
       </Group>
       {draft.custom ? (
@@ -385,33 +391,8 @@ function RulesetField({
   const recheckable = onRecheck && chosen && check !== 'checking';
   const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
   return (
-    <Select
-      label="Ruleset"
-      placeholder="Choose a ruleset"
-      searchable
-      nothingFoundMessage="No ruleset has that name"
-      value={value || null}
-      onChange={(id) => id && onChange(id)}
-      allowDeselect={false}
-      disabled={disabled}
-      data={rulesets.map((ruleset) => ({
-        value: ruleset.id,
-        label: ruleset.name,
-        disabled: !ruleset.selectable,
-      }))}
-      renderOption={({ option }) => {
-        const objection = objections.get(option.value);
-        return (
-          <Stack gap={0}>
-            <Text size="sm">{option.label}</Text>
-            {objection ? (
-              <Text size="xs" c="red">
-                {objection}
-              </Text>
-            ) : null}
-          </Stack>
-        );
-      }}
+    <ControlBlock
+      title="Ruleset"
       description={
         chosen ? (
           <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
@@ -427,7 +408,37 @@ function RulesetField({
           </Text>
         ) : undefined
       }
-      comboboxProps={{ shadow: 'md' }}
+      input={(fieldProps) => (
+        <Select
+          {...fieldProps}
+          placeholder="Choose a ruleset"
+          searchable
+          nothingFoundMessage="No ruleset has that name"
+          value={value || null}
+          onChange={(id) => id && onChange(id)}
+          allowDeselect={false}
+          disabled={disabled}
+          data={rulesets.map((ruleset) => ({
+            value: ruleset.id,
+            label: ruleset.name,
+            disabled: !ruleset.selectable,
+          }))}
+          renderOption={({ option }) => {
+            const objection = objections.get(option.value);
+            return (
+              <Stack gap={0}>
+                <Text size="sm">{option.label}</Text>
+                {objection ? (
+                  <Text size="xs" c="red">
+                    {objection}
+                  </Text>
+                ) : null}
+              </Stack>
+            );
+          }}
+          comboboxProps={{ shadow: 'md' }}
+        />
+      )}
     />
   );
 }

@@ -3,6 +3,7 @@ import { slugify } from '@shared/slugify';
 import { CodeExample } from '@ui/content/CodeExample';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
@@ -159,7 +160,12 @@ export function SlugExample() {
   const slug = slugify(name);
   return (
     <Stack gap="sm">
-      <TextInput label="Try a faction name" value={name} onChange={(event) => setName(event.currentTarget.value)} />
+      <ControlBlock
+        title="Try a faction name"
+        input={(fieldProps) => (
+          <TextInput {...fieldProps} value={name} onChange={(event) => setName(event.currentTarget.value)} />
+        )}
+      />
       <output className={styles.address} aria-label="Example faction URL">
         <span>https://dune.zone/factions/</span>
         <strong>{slug || '…'}</strong>

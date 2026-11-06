@@ -1,6 +1,7 @@
 import { NumberInput, Text } from '@mantine/core';
 import { MAX_LAST_TURN, MIN_LAST_TURN } from '@shared/play/lastTurn';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useEffect, useRef, useState } from 'react';
 
 import { GAME_LENGTH_HELP } from '../../multiplayer/panelGuidance';
@@ -46,29 +47,34 @@ export function GameLengthPanel({ lastTurn, disabled, observing, onLastTurn }: G
   }
   return (
     <Section hiddenHeading title="Game length" help={GAME_LENGTH_HELP}>
-      <NumberInput
-        label="Last turn"
-        min={MIN_LAST_TURN}
-        max={MAX_LAST_TURN}
-        value={draft}
-        disabled={disabled}
-        onChange={(value) => {
-          edited.current = true;
-          setDraft(value);
-        }}
-        onFocus={() => {
-          editing.current = true;
-          edited.current = false;
-        }}
-        onBlur={() => {
-          editing.current = false;
-          const next = edited.current ? changedTurn(draft, lastTurn) : null;
-          if (next === null) {
-            setDraft(lastTurn);
-            return;
-          }
-          onLastTurn(next);
-        }}
+      <ControlBlock
+        title="Last turn"
+        input={(fieldProps) => (
+          <NumberInput
+            {...fieldProps}
+            min={MIN_LAST_TURN}
+            max={MAX_LAST_TURN}
+            value={draft}
+            disabled={disabled}
+            onChange={(value) => {
+              edited.current = true;
+              setDraft(value);
+            }}
+            onFocus={() => {
+              editing.current = true;
+              edited.current = false;
+            }}
+            onBlur={() => {
+              editing.current = false;
+              const next = edited.current ? changedTurn(draft, lastTurn) : null;
+              if (next === null) {
+                setDraft(lastTurn);
+                return;
+              }
+              onLastTurn(next);
+            }}
+          />
+        )}
       />
     </Section>
   );

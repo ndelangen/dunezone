@@ -85,26 +85,21 @@ function CardGuidanceFields({
       <ControlBlock
         title="Quantity"
         description="Optional count for the collection or example you are describing."
-        input={
+        input={(fieldProps) => (
           <NumberInput
-            aria-label="Quantity"
+            {...fieldProps}
             min={0}
             allowDecimal={false}
             value={quantity ?? ''}
             onChange={(next) => onChange({ quantity: typeof next === 'number' ? next : undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Guidance"
-        input={
-          <FormattedTextInput
-            aria-label="Guidance"
-            minRows={3}
-            value={text}
-            onChange={(next) => onChange({ text: next })}
-          />
-        }
+        input={(fieldProps) => (
+          <FormattedTextInput {...fieldProps} minRows={3} value={text} onChange={(next) => onChange({ text: next })} />
+        )}
       />
     </Stack>
   );
@@ -125,20 +120,20 @@ export function CardEntryEdit({
       <ControlBlock
         title="Name"
         description="Optional name when using artwork instead of a saved Card."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Name"
+            {...fieldProps}
             value={value.name ?? ''}
             onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
       <ControlBlock
         title="Image side"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Image side"
+            {...fieldProps}
             value={value.imageSide ?? 'left'}
             data={[
               { value: 'left', label: 'Left' },
@@ -150,13 +145,13 @@ export function CardEntryEdit({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Text flow"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Text flow"
+            {...fieldProps}
             value={value.textFlow ?? 'beside'}
             data={[
               { value: 'beside', label: 'Beside image' },
@@ -168,7 +163,7 @@ export function CardEntryEdit({
               }
             }}
           />
-        }
+        )}
       />
       <CardGuidanceFields
         text={value.text}
@@ -200,31 +195,31 @@ export function CardGroupEdit({
     <Stack gap="md">
       <ControlBlock
         title="Heading"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Heading"
+            {...fieldProps}
             value={value.title}
             onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Shared guidance"
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Shared guidance"
+            {...fieldProps}
             minRows={3}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Treatment"
         description="Use compact rows, a gallery, a featured Card, or a fan. All members keep their guidance."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Treatment"
+            {...fieldProps}
             value={value.variant}
             data={[
               { value: 'compact', label: 'Compact' },
@@ -243,15 +238,15 @@ export function CardGroupEdit({
               }
             }}
           />
-        }
+        )}
       />
       {value.variant === 'featured-member' ? (
         <ControlBlock
           title="Featured Card"
           description="Choose a member of this group. It stays featured when you reorder the group."
-          input={
+          input={(fieldProps) => (
             <Select
-              aria-label="Featured Card"
+              {...fieldProps}
               clearable
               placeholder="Choose a member"
               value={value.featuredItemId ?? null}
@@ -261,7 +256,7 @@ export function CardGroupEdit({
               }))}
               onChange={(id) => onChange({ ...value, featuredItemId: id ?? undefined })}
             />
-          }
+          )}
         />
       ) : null}
       <ListChapter

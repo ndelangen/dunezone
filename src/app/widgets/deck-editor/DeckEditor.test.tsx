@@ -1,13 +1,19 @@
 import { MantineProvider } from '@mantine/core';
 /** @vitest-environment jsdom */
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import type { DeckChapter, DeckDraft, DeckMemory } from './DeckEditor';
 import { DeckEditor, INITIAL_DECK_DRAFT, initialDeckMemory } from './DeckEditor';
+
+/* A field is named by its ControlBlock title through aria-labelledby, so it is found inside the first group with that title. */
+function fieldTitled(container: HTMLElement, title: string) {
+  const [group] = within(container).queryAllByRole('group', { name: title });
+  return group?.querySelector<HTMLInputElement>('input') ?? null;
+}
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -86,7 +92,7 @@ it('reaches an authored cardback from the stock one it starts on', () => {
   selectChapter('Back');
   const tile = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
   /* By attribute rather than by label text: the composition panel names more than one thing 'Label'. */
-  const labelField = () => container.querySelector('input[aria-label="Label"]');
+  const labelField = () => fieldTitled(container, 'Label');
 
   expect(tile('Shared preset').checked).toBe(true);
   expect(labelField()).toBeNull();
@@ -109,7 +115,7 @@ it('keeps a composed cardback across a trip through the reference tile', () => {
   const { container } = render(<Harness />);
   selectChapter('Back');
   const tile = (name: string) => screen.getByRole('radio', { name }) as HTMLInputElement;
-  const labelField = () => container.querySelector<HTMLInputElement>('input[aria-label="Label"]');
+  const labelField = () => fieldTitled(container, 'Label');
 
   fireEvent.click(tile('Composed here'));
   selectChapter('Identity');

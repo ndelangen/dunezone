@@ -2,6 +2,7 @@ import { Group, Radio, Stack, Switch, Text } from '@mantine/core';
 import type { BoardTint } from '@shared/boards/markup';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Dices, Images, Map, X } from 'lucide-react';
 import { useMemo, useReducer, useState } from 'react';
@@ -87,26 +88,40 @@ function TintDemo() {
   };
   return (
     <Section title="Build a tint" help="Choose territories, outlines and stickers to see the board change.">
-      <Radio.Group
-        label="Territories to tint"
-        value={draft.territory}
-        onChange={(value) => dispatch({ type: 'territory', value: value as TintDraft['territory'] })}
-      >
-        <Group mt="xs">
-          <Radio value="strongholds" label="Strongholds" />
-          <Radio value="spice" label="Spice blow" />
-        </Group>
-      </Radio.Group>
+      <ControlBlock
+        title="Territories to tint"
+        input={
+          <Radio.Group
+            value={draft.territory}
+            onChange={(value) => dispatch({ type: 'territory', value: value as TintDraft['territory'] })}
+          >
+            <Group mt="xs">
+              <Radio value="strongholds" label="Strongholds" />
+              <Radio value="spice" label="Spice blow" />
+            </Group>
+          </Radio.Group>
+        }
+      />
       <Group>
-        <Switch
-          label="Outline only"
-          checked={draft.outline}
-          onChange={(event) => dispatch({ type: 'outline', value: event.currentTarget.checked })}
+        <ControlBlock
+          title="Outline only"
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={draft.outline}
+              onChange={(event) => dispatch({ type: 'outline', value: event.currentTarget.checked })}
+            />
+          )}
         />
-        <Switch
-          label="Add stickers"
-          checked={draft.stickers}
-          onChange={(event) => dispatch({ type: 'stickers', value: event.currentTarget.checked })}
+        <ControlBlock
+          title="Add stickers"
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={draft.stickers}
+              onChange={(event) => dispatch({ type: 'stickers', value: event.currentTarget.checked })}
+            />
+          )}
         />
       </Group>
       <div className={styles.board}>

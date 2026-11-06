@@ -17,6 +17,7 @@ import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -157,17 +158,22 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
           .catch(() => undefined);
       }}
     >
-      <FormattedTextInput
-        label="Your answer"
+      <ControlBlock
+        title="Your answer"
         description="Post one answer. You can update it later."
-        error={createAnswer.isError ? createAnswer.error?.message : undefined}
-        name="answer"
-        rows={3}
-        required
-        minLength={1}
-        placeholder="Your answer..."
-        value={answer}
-        onChange={setAnswer}
+        input={(fieldProps) => (
+          <FormattedTextInput
+            {...fieldProps}
+            error={createAnswer.isError ? createAnswer.error?.message : undefined}
+            name="answer"
+            rows={3}
+            required
+            minLength={1}
+            placeholder="Your answer..."
+            value={answer}
+            onChange={setAnswer}
+          />
+        )}
       />
       <Group gap="xs" wrap="nowrap">
         <IconAction
@@ -408,11 +414,16 @@ function FaqAnswerPost({
           <FaqAnswerHeading faq={faq} answer={answer} editing={editing} editingSession={editingSession} />
           {editing.editingAnswerId === answer.id ? (
             <Stack gap="sm">
-              <FormattedTextInput
-                label="Edit your answer"
-                value={editing.answerValue}
-                onChange={(value) => editingSession.setAnswerValue(value)}
-                rows={3}
+              <ControlBlock
+                title="Edit your answer"
+                input={(fieldProps) => (
+                  <FormattedTextInput
+                    {...fieldProps}
+                    value={editing.answerValue}
+                    onChange={(value) => editingSession.setAnswerValue(value)}
+                    rows={3}
+                  />
+                )}
               />
               {faq.editAnswer.error ? (
                 <ActionError subject="Answer" verb="save">
@@ -680,12 +691,17 @@ function FaqQuestionEditor({ faq, editing, editingSession }: FaqPostEditing) {
   const item = faq.page!.question;
   return (
     <Stack gap="sm">
-      <FormattedTextInput
-        label="Edit question"
-        value={editing.questionValue}
-        onChange={(value) => editingSession.setQuestionValue(value)}
-        profile="marks-only"
-        rows={2}
+      <ControlBlock
+        title="Edit question"
+        input={(fieldProps) => (
+          <FormattedTextInput
+            {...fieldProps}
+            value={editing.questionValue}
+            onChange={(value) => editingSession.setQuestionValue(value)}
+            profile="marks-only"
+            rows={2}
+          />
+        )}
       />
       <FaqTagFieldset value={editing.tagValues} onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)} />
       {faq.editQuestion.error ? (

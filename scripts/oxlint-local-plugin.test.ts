@@ -523,3 +523,45 @@ export const probe = <Text tt="uppercase">Phase</Text>;
     expect(reports(kit)).toBe(0);
   });
 });
+
+describe('control-block-label', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(control-block-label)').length - 1;
+
+  test('reports a caption on a Mantine field or a visible group label', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Radio, TextInput as Field } from '@mantine/core';
+export const probe = [
+  <Field label="Name" />,
+  <Field description="Shown on the sheet" />,
+  <Radio.Group label="Start from" />,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(3);
+  });
+
+  test('leaves a hidden group name, Slider, option labels and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Checkbox, Radio, Slider, VisuallyHidden } from '@mantine/core';
+export const probe = [
+  <Radio.Group label={<VisuallyHidden>Side</VisuallyHidden>} />,
+  <Slider label={(value) => value} />,
+  <Checkbox label="Show grid" />,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { TextInput } from '@mantine/core';
+export const probe = <TextInput label="Name" />;
+`,
+      'src/app/ui/control'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});

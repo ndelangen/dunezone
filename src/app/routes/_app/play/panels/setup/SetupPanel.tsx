@@ -3,6 +3,7 @@ import type { setupStep } from '@shared/play/setup';
 import { playUiColors } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Stepper } from '@ui/control/Stepper';
@@ -119,13 +120,18 @@ function PredictionInput({
     choice.factionId && typeof choice.turn === 'number' && Number.isSafeInteger(choice.turn) && choice.turn >= 1;
   return (
     <Stack gap="sm">
-      <Select
-        label="Predicted winner"
-        data={options}
-        renderOption={({ option }) => factionOption(options, option.value)}
-        value={choice.factionId}
-        onChange={(factionId) => change({ factionId })}
-        disabled={disabled}
+      <ControlBlock
+        title="Predicted winner"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            data={options}
+            renderOption={({ option }) => factionOption(options, option.value)}
+            value={choice.factionId}
+            onChange={(factionId) => change({ factionId })}
+            disabled={disabled}
+          />
+        )}
       />
       <Stepper
         label="Predicted turn"

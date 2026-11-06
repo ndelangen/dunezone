@@ -68,26 +68,26 @@ function AbilityFields({
       <ControlBlock
         title="General ability"
         description="Applies while the skilled leader is alive and the card is face up."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="General ability"
+            {...fieldProps}
             minRows={4}
             value={draft.generalText}
             onChange={(generalText) => patch({ generalText })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Battle ability"
         description="The card adds the words This leader in battle before this ability."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Battle ability"
+            {...fieldProps}
             minRows={4}
             value={draft.battleText}
             onChange={(battleText) => patch({ battleText })}
           />
-        }
+        )}
       />
     </Stack>
   );

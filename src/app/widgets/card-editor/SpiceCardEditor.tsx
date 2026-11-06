@@ -93,20 +93,20 @@ function IdentityFields({ draft, patch, nameField }: { draft: SpiceDraft; patch:
       <ControlBlock
         title="Type"
         description="Shown under the name, e.g. “Spice blow”."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Type"
+            {...fieldProps}
             value={draft.subName}
             onChange={(event) => patch({ subName: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Icon"
         description="The vector in the top-right disc."
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Icon"
+            {...fieldProps}
             allowDeselect={false}
             data={iconOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
@@ -118,7 +118,7 @@ function IdentityFields({ draft, patch, nameField }: { draft: SpiceDraft; patch:
               }
             }}
           />
-        }
+        )}
       />
       <CardIconScaleControl value={draft} onChange={patch} />
       <CardIconVerticalOffsetControl value={draft} onChange={patch} />
@@ -140,10 +140,10 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
       <ControlBlock
         title="Amount"
         description="The spice this card adds, shown in its corner."
-        input={
+        input={(fieldProps) => (
           <NumberInput
+            {...fieldProps}
             key={amountField}
-            aria-label="Amount"
             min={1}
             step={1}
             allowDecimal={false}
@@ -156,21 +156,21 @@ function BodyFields({ draft, patch }: { draft: SpiceDraft; patch: Patch }) {
             }}
             onBlur={resetAmountField}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Body"
         description={
           'Starts as the standard sentence for the name and amount, until you edit it.\nEmpty it to bring the standard sentence back.'
         }
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Body"
+            {...fieldProps}
             minRows={3}
             value={spiceDraftText(draft)}
             onChange={(text) => patch({ text })}
           />
-        }
+        )}
       />
     </Stack>
   );

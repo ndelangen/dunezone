@@ -1,6 +1,7 @@
 import { Group, NativeSelect, Popover, Stack } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { TitledLine } from '@ui/content/TitledLine';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { X } from 'lucide-react';
@@ -112,11 +113,16 @@ export function AssetListAdd({ value, types, defaultType, copy, onChange }: Asse
       </Popover.Target>
       <Popover.Dropdown>
         <Stack gap="sm">
-          <NativeSelect
-            label="Type"
-            value={type}
-            data={typeOptions(types)}
-            onChange={(event) => setType(event.currentTarget.value)}
+          <ControlBlock
+            title="Type"
+            input={(fieldProps) => (
+              <NativeSelect
+                {...fieldProps}
+                value={type}
+                data={typeOptions(types)}
+                onChange={(event) => setType(event.currentTarget.value)}
+              />
+            )}
           />
           <AssetPicker
             key={type}

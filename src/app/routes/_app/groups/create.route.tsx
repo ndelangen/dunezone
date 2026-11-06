@@ -1,6 +1,7 @@
 import { Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -127,15 +128,20 @@ function GroupCreatePage() {
               );
             }}
           >
-            <TextInput
-              ref={nameInputRef}
-              label="Group name"
-              error={nameError ?? createGroup.error?.message}
-              name="name"
-              required
-              minLength={1}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+            <ControlBlock
+              title="Group name"
+              input={(fieldProps) => (
+                <TextInput
+                  {...fieldProps}
+                  ref={nameInputRef}
+                  error={nameError ?? createGroup.error?.message}
+                  name="name"
+                  required
+                  minLength={1}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              )}
             />
           </Stack>
         </Surface>

@@ -8,6 +8,7 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -152,19 +153,35 @@ function AssetTypePage() {
   const plural = definition.label.toLowerCase();
 
   /* A search is always best match, so its sort takes no change; choosing an order is for browsing. */
-  const sortSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.sortSegment}
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label="Sort"
-      allowDeselect={false}
-      data={sortOptions(Boolean(search.q))}
-      value={search.q ? 'relevance' : (search.sort ?? 'newest')}
-      disabled={Boolean(search.q)}
-      onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
-    />
-  );
+  const sortSelect = (label?: string) =>
+    label ? (
+      <ControlBlock
+        title={label}
+        input={
+          <Select
+            className={label ? undefined : styles.sortSegment}
+            variant={label ? 'default' : 'unstyled'}
+            aria-label="Sort"
+            allowDeselect={false}
+            data={sortOptions(Boolean(search.q))}
+            value={search.q ? 'relevance' : (search.sort ?? 'newest')}
+            disabled={Boolean(search.q)}
+            onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
+          />
+        }
+      />
+    ) : (
+      <Select
+        className={label ? undefined : styles.sortSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label="Sort"
+        allowDeselect={false}
+        data={sortOptions(Boolean(search.q))}
+        value={search.q ? 'relevance' : (search.sort ?? 'newest')}
+        disabled={Boolean(search.q)}
+        onChange={(value) => changeSearch({ sort: value === 'newest' ? undefined : value })}
+      />
+    );
 
   return (
     <PageLayout>

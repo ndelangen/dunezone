@@ -63,9 +63,9 @@ function BodyField({ draft, patch }: { draft: TreacheryDraft; patch: Patch }) {
     <ControlBlock
       title="Body"
       description="Line breaks become paragraphs on the card."
-      input={
-        <FormattedTextInput aria-label="Body" minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
-      }
+      input={(fieldProps) => (
+        <FormattedTextInput {...fieldProps} minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
+      )}
     />
   );
 }
@@ -149,9 +149,9 @@ export function TreacheryCardEditor({
                   <>
                     <ControlBlock
                       title="Body layout"
-                      input={
+                      input={(fieldProps) => (
                         <Select
-                          aria-label="Body layout"
+                          {...fieldProps}
                           allowDeselect={false}
                           data={[
                             { value: 'illustrated', label: 'Illustrated' },
@@ -162,7 +162,7 @@ export function TreacheryCardEditor({
                             patch({ bodyLayout: value === 'text-only' ? 'text-only' : 'illustrated' })
                           }
                         />
-                      }
+                      )}
                     />
                     <BodyField draft={draft} patch={patch} />
                   </>

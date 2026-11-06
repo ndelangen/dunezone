@@ -150,9 +150,9 @@ function FaceFields({
       <ControlBlock
         title="Symbol"
         description="The vector at the centre of the face."
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Symbol"
+            {...fieldProps}
             allowDeselect={false}
             data={symbolOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
@@ -164,33 +164,43 @@ function FaceFields({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Symbol colours"
         description="Leave a colour empty to use the renderer's default."
         input={
           <Group grow>
-            <ColorInput
-              label="Symbol fill"
-              format="hexa"
-              value={face.symbolFill ?? ''}
-              onChange={(value) => patch({ symbolFill: value || undefined })}
+            <ControlBlock
+              title="Symbol fill"
+              input={(fieldProps) => (
+                <ColorInput
+                  {...fieldProps}
+                  format="hexa"
+                  value={face.symbolFill ?? ''}
+                  onChange={(value) => patch({ symbolFill: value || undefined })}
+                />
+              )}
             />
-            <ColorInput
-              label="Symbol outline"
-              format="hexa"
-              value={face.symbolStroke ?? ''}
-              onChange={(value) => patch({ symbolStroke: value || undefined })}
+            <ControlBlock
+              title="Symbol outline"
+              input={(fieldProps) => (
+                <ColorInput
+                  {...fieldProps}
+                  format="hexa"
+                  value={face.symbolStroke ?? ''}
+                  onChange={(value) => patch({ symbolStroke: value || undefined })}
+                />
+              )}
             />
           </Group>
         }
       />
       <ControlBlock
         title="Symbol outline width"
-        input={
+        input={(fieldProps) => (
           <NumberInput
-            aria-label="Symbol outline width"
+            {...fieldProps}
             min={0}
             max={20}
             step={0.5}
@@ -201,24 +211,24 @@ function FaceFields({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Symbol shadow"
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Symbol shadow"
+            {...fieldProps}
             checked={face.symbolShadow ?? true}
             onChange={(event) => patch({ symbolShadow: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Symbol scale"
         description="Against the renderer's reference size."
-        input={
+        input={(fieldProps) => (
           <Slider
-            aria-label="Symbol scale"
+            {...fieldProps}
             min={0.5}
             max={2}
             step={0.05}
@@ -226,7 +236,7 @@ function FaceFields({
             value={face.symbolScale}
             onChange={(symbolScale) => patch({ symbolScale })}
           />
-        }
+        )}
       />
     </>
   );
@@ -244,25 +254,25 @@ function FaceRim({ face, patch, type }: { face: TokenFaceDraft; patch: FacePatch
       <ControlBlock
         title="Edge ring"
         description="The thin ring just inside the edge."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Edge ring"
+            {...fieldProps}
             checked={face.ring}
             onChange={(event) => patch({ ring: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Ring shadow"
         description="A pronounced shadow under the ring. Needs the ring."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Ring shadow"
+            {...fieldProps}
             checked={face.ringShadow ?? false}
             disabled={!face.ring}
             onChange={(event) => patch({ ringShadow: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       {hasLabels(type) ? (
         <ControlBlock
@@ -270,17 +280,32 @@ function FaceRim({ face, patch, type }: { face: TokenFaceDraft; patch: FacePatch
           description="One curved line along the top, two along the bottom."
           input={
             <Stack gap="sm">
-              <TextInput label="Top label" value={face.top} onChange={(e) => patch({ top: e.currentTarget.value })} />
+              <ControlBlock
+                title="Top label"
+                input={(fieldProps) => (
+                  <TextInput {...fieldProps} value={face.top} onChange={(e) => patch({ top: e.currentTarget.value })} />
+                )}
+              />
               <Group grow>
-                <TextInput
-                  label="Bottom line 1"
-                  value={face.bottomFirst}
-                  onChange={(e) => patch({ bottomFirst: e.currentTarget.value })}
+                <ControlBlock
+                  title="Bottom line 1"
+                  input={(fieldProps) => (
+                    <TextInput
+                      {...fieldProps}
+                      value={face.bottomFirst}
+                      onChange={(e) => patch({ bottomFirst: e.currentTarget.value })}
+                    />
+                  )}
                 />
-                <TextInput
-                  label="Bottom line 2"
-                  value={face.bottomSecond}
-                  onChange={(e) => patch({ bottomSecond: e.currentTarget.value })}
+                <ControlBlock
+                  title="Bottom line 2"
+                  input={(fieldProps) => (
+                    <TextInput
+                      {...fieldProps}
+                      value={face.bottomSecond}
+                      onChange={(e) => patch({ bottomSecond: e.currentTarget.value })}
+                    />
+                  )}
                 />
               </Group>
             </Stack>

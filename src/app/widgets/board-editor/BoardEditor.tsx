@@ -476,38 +476,53 @@ export function BoardEditor({
     <Stack gap="sm">
       {property && (
         <Stack gap="sm">
-          <TextInput
-            label="Territory name"
-            required
-            value={property.name}
-            error={territoryNameError(
-              property.name,
-              Object.entries(state.board.properties)
-                .filter(([key]) => key !== selectedKey)
-                .map(([, p]) => p.name)
+          <ControlBlock
+            title="Territory name"
+            input={(fieldProps) => (
+              <TextInput
+                {...fieldProps}
+                required
+                value={property.name}
+                error={territoryNameError(
+                  property.name,
+                  Object.entries(state.board.properties)
+                    .filter(([key]) => key !== selectedKey)
+                    .map(([, p]) => p.name)
+                )}
+                onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
+                onBlur={() => dispatch({ type: 'history.group-ended' })}
+              />
             )}
-            onChange={(e) => patchProperty({ name: e.currentTarget.value }, 'territory-name')}
-            onBlur={() => dispatch({ type: 'history.group-ended' })}
           />
-          <Select
-            label="Territory type"
-            value={property.type}
-            data={['sand', 'rock', 'stronghold', 'polar']}
-            onChange={(value) => {
-              if (value) {
-                patchProperty({
-                  type: value as Properties['type'],
-                  insetLine: defaults('', value as Properties['type']).insetLine,
-                  appearance: undefined,
-                });
-              }
-            }}
+          <ControlBlock
+            title="Territory type"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                value={property.type}
+                data={['sand', 'rock', 'stronghold', 'polar']}
+                onChange={(value) => {
+                  if (value) {
+                    patchProperty({
+                      type: value as Properties['type'],
+                      insetLine: defaults('', value as Properties['type']).insetLine,
+                      appearance: undefined,
+                    });
+                  }
+                }}
+              />
+            )}
           />
-          <Select
-            label="Inset line"
-            value={property.insetLine}
-            data={['none', 'solid', 'dashed']}
-            onChange={(value) => value && patchProperty({ insetLine: value as Properties['insetLine'] })}
+          <ControlBlock
+            title="Inset line"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                value={property.insetLine}
+                data={['none', 'solid', 'dashed']}
+                onChange={(value) => value && patchProperty({ insetLine: value as Properties['insetLine'] })}
+              />
+            )}
           />
           <Divider />
           <Group gap="xs">
@@ -609,10 +624,15 @@ export function BoardEditor({
                           }
                         />
                       ))}
-                      <Switch
-                        label={`Decal ${i + 1} outline`}
-                        checked={decal.outline}
-                        onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
+                      <ControlBlock
+                        title={`Decal ${i + 1} outline`}
+                        input={(fieldProps) => (
+                          <Switch
+                            {...fieldProps}
+                            checked={decal.outline}
+                            onChange={(e) => patchDecal(decal.id, { outline: e.currentTarget.checked })}
+                          />
+                        )}
                       />
                       <Divider />
                     </Stack>

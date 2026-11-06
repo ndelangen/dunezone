@@ -332,7 +332,12 @@ function ColorLayerEditor({
       </Radio.Group>
 
       {typeof value === 'string' ? (
-        <ColorInput label={`${label} color`} value={value} format="hex" swatchesPerRow={6} onChange={onChange} />
+        <ControlBlock
+          title={`${label} color`}
+          input={(fieldProps) => (
+            <ColorInput {...fieldProps} value={value} format="hex" swatchesPerRow={6} onChange={onChange} />
+          )}
+        />
       ) : (
         <GradientLayerFields label={label} value={value} onChange={onChange} />
       )}
@@ -357,9 +362,9 @@ function GradientLayerFields({
         <ControlBlock
           title="Gradient angle"
           description="Direction in degrees. The complete admitted range is 0–360."
-          input={
+          input={(fieldProps) => (
             <NumberInput
-              aria-label="Gradient angle"
+              {...fieldProps}
               min={0}
               max={360}
               step={1}
@@ -375,36 +380,41 @@ function GradientLayerFields({
                 })
               }
             />
-          }
+          )}
         />
       ) : (
         <SimpleGrid cols={{ base: 1, xs: 3 }}>
           {(['x', 'y', 'r'] as const).map((property) => (
-            <NumberInput
+            <ControlBlock
               key={property}
-              label={
+              title={
                 property === 'x'
                   ? 'Center X (optional)'
                   : property === 'y'
                     ? 'Center Y (optional)'
                     : 'Radius (optional)'
               }
-              placeholder="Renderer default"
-              value={value[property] ?? ''}
-              decimalScale={2}
-              onChange={(next) =>
-                onChange({
-                  ...value,
-                  /* '' is the clearing affordance (back to the renderer default); any other
+              input={(fieldProps) => (
+                <NumberInput
+                  {...fieldProps}
+                  placeholder="Renderer default"
+                  value={value[property] ?? ''}
+                  decimalScale={2}
+                  onChange={(next) =>
+                    onChange({
+                      ...value,
+                      /* '' is the clearing affordance (back to the renderer default); any other
                      unparseable draft ('.', '-') keeps the stored value instead of clearing it. */
-                  [property]:
-                    typeof next === 'number' && Number.isFinite(next)
-                      ? next
-                      : next === ''
-                        ? undefined
-                        : value[property],
-                })
-              }
+                      [property]:
+                        typeof next === 'number' && Number.isFinite(next)
+                          ? next
+                          : next === ''
+                            ? undefined
+                            : value[property],
+                    })
+                  }
+                />
+              )}
             />
           ))}
         </SimpleGrid>
@@ -439,30 +449,43 @@ function GradientLayerFields({
           {value.stops.map((stop, index) => (
             <Group key={`${label}-stop-${index}`} align="flex-end" gap="sm" wrap="nowrap">
               <Box style={{ flex: 1, minWidth: 0 }}>
-                <ColorInput
-                  label={`Stop ${index + 1} color`}
-                  value={stop[0]}
-                  format="hex"
-                  onChange={(color) => {
-                    const next = [...value.stops];
-                    next[index] = [color, stop[1]];
-                    updateStops(next);
-                  }}
+                <ControlBlock
+                  title={`Stop ${index + 1} color`}
+                  input={(fieldProps) => (
+                    <ColorInput
+                      {...fieldProps}
+                      value={stop[0]}
+                      format="hex"
+                      onChange={(color) => {
+                        const next = [...value.stops];
+                        next[index] = [color, stop[1]];
+                        updateStops(next);
+                      }}
+                    />
+                  )}
                 />
               </Box>
-              <NumberInput
-                label="Position"
-                w={110}
-                min={0}
-                max={1}
-                step={0.01}
-                decimalScale={2}
-                value={stop[1]}
-                onChange={(position) => {
-                  const next = [...value.stops];
-                  next[index] = [stop[0], typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1]];
-                  updateStops(next);
-                }}
+              <ControlBlock
+                title="Position"
+                input={(fieldProps) => (
+                  <NumberInput
+                    {...fieldProps}
+                    w={110}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    decimalScale={2}
+                    value={stop[1]}
+                    onChange={(position) => {
+                      const next = [...value.stops];
+                      next[index] = [
+                        stop[0],
+                        typeof position === 'number' ? Math.min(1, Math.max(0, position)) : stop[1],
+                      ];
+                      updateStops(next);
+                    }}
+                  />
+                )}
               />
             </Group>
           ))}
@@ -618,11 +641,16 @@ export function BackgroundComposer({
                         {selectedPattern?.label ?? 'Existing pattern'}
                       </Text>
                       {/* Invert lives with the pattern it flips, not in the sliders column. */}
-                      <Switch
-                        size="sm"
-                        label="Invert"
-                        checked={value.invert}
-                        onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
+                      <ControlBlock
+                        title="Invert"
+                        input={(fieldProps) => (
+                          <Switch
+                            {...fieldProps}
+                            size="sm"
+                            checked={value.invert}
+                            onChange={(event) => onChange({ ...value, invert: event.currentTarget.checked })}
+                          />
+                        )}
                       />
                       <LabeledAction
                         size="compact-sm"

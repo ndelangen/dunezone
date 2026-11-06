@@ -151,15 +151,15 @@ function TroopBattleFields({
           <ControlBlock
             title={isBack ? 'Back side fights in battle' : 'Fights in battle'}
             description="Off keeps this side out of the battle planner, whatever its strengths."
-            input={
+            inputId={`${idBase}-capable`}
+            input={(fieldProps) => (
               <Switch
-                id={`${idBase}-capable`}
-                aria-label={isBack ? 'Back side fights in battle' : 'Fights in battle'}
+                {...fieldProps}
                 checked={capable.state.value !== false}
                 onBlur={capable.handleBlur}
                 onChange={(event) => capable.handleChange(event.currentTarget.checked ? undefined : false)}
               />
-            }
+            )}
           />
           {capable.state.value !== false ? (
             <form.Field name={battleValuesField}>
@@ -173,10 +173,10 @@ function TroopBattleFields({
                           key={key}
                           title={label}
                           description={description}
-                          input={
+                          inputId={`${idBase}-${key}`}
+                          input={(fieldProps) => (
                             <BattleValueInput
-                              id={`${idBase}-${key}`}
-                              aria-label={label}
+                              {...fieldProps}
                               placeholder={whole ? '1' : 'Not set'}
                               step={whole ? 1 : 0.5}
                               whole={whole}
@@ -186,7 +186,7 @@ function TroopBattleFields({
                                 battleValues.handleBlur();
                               }}
                             />
-                          }
+                          )}
                         />
                       );
                     })}
@@ -239,15 +239,15 @@ export function TroopSideFields({
                     ? 'Name printed for the reverse side of this physical troop.'
                     : 'Used on the troop token and faction sheet.'
                 }
-                input={
+                inputId={`${idBase}-name`}
+                input={(fieldProps) => (
                   <TextInput
-                    id={`${idBase}-name`}
-                    aria-label={title}
+                    {...fieldProps}
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(event) => field.handleChange(event.currentTarget.value)}
                   />
-                }
+                )}
               />
             );
           }}
@@ -259,10 +259,10 @@ export function TroopSideFields({
             return (
               <ControlBlock
                 title={title}
-                input={
+                inputId={`${idBase}-img`}
+                input={(fieldProps) => (
                   <AssetSelect
-                    id={`${idBase}-img`}
-                    aria-label={title}
+                    {...fieldProps}
                     allowDeselect={false}
                     data={troopImageOptions}
                     getPreviewSrc={assetOptionToPreviewSrc}
@@ -274,7 +274,7 @@ export function TroopSideFields({
                       }
                     }}
                   />
-                }
+                )}
               />
             );
           }}
@@ -288,16 +288,16 @@ export function TroopSideFields({
             <ControlBlock
               title={title}
               description="Used as the troop rules description on the faction sheet."
-              input={
+              inputId={`${idBase}-desc`}
+              input={(fieldProps) => (
                 <FormattedTextInput
-                  id={`${idBase}-desc`}
-                  aria-label={title}
+                  {...fieldProps}
                   minRows={2}
                   value={field.state.value ?? ''}
                   onBlur={field.handleBlur}
                   onChange={field.handleChange}
                 />
-              }
+              )}
             />
           );
         }}
@@ -330,16 +330,16 @@ export function TroopSideFields({
               <ControlBlock
                 title={title}
                 description="Optional color for the star modifier; cream when unset."
-                input={
+                inputId={`${idBase}-hue`}
+                input={(fieldProps) => (
                   <ColorInput
-                    id={`${idBase}-hue`}
-                    aria-label={title}
+                    {...fieldProps}
                     placeholder="Default"
                     value={field.state.value ?? ''}
                     onBlur={field.handleBlur}
                     onChangeEnd={(value) => field.handleChange(value ? value : undefined)}
                   />
-                }
+                )}
               />
             );
           }}
@@ -353,15 +353,15 @@ export function TroopSideFields({
                 <ControlBlock
                   title={title}
                   description="Adds the striped treatment to this side only."
-                  input={
+                  inputId={`${idBase}-striped`}
+                  input={(fieldProps) => (
                     <Switch
-                      id={`${idBase}-striped`}
-                      aria-label={title}
+                      {...fieldProps}
                       checked={field.state.value === true}
                       onBlur={field.handleBlur}
                       onChange={(event) => field.handleChange(event.currentTarget.checked ? true : undefined)}
                     />
-                  }
+                  )}
                 />
               );
             }}

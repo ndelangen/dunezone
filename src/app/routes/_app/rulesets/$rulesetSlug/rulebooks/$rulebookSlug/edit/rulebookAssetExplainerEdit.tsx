@@ -69,20 +69,20 @@ export function AssetExplainerEdit({
       />
       <ControlBlock
         title="Caption"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Caption"
+            {...fieldProps}
             value={value.caption}
             onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Marker labels"
         description="Automatic numbers follow entry order. Custom labels stay with their entries when reordered."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Marker labels"
+            {...fieldProps}
             value={value.numbering}
             data={[
               { value: 'automatic', label: 'Automatic numbers (1, 2, 3)' },
@@ -94,14 +94,14 @@ export function AssetExplainerEdit({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Automatic colors"
         description="Colors follow entry order. Turn off to choose each marker's color. Your manual choices are kept."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Automatic colors"
+            {...fieldProps}
             checked={value.colorMode === 'automatic'}
             onChange={(event) => {
               const automatic = event.currentTarget.checked;
@@ -119,20 +119,19 @@ export function AssetExplainerEdit({
               onChange({ ...value, colorMode: automatic ? 'automatic' : 'manual', itemsById });
             }}
           />
-        }
+        )}
       />
       {rulebookSourceTakesSectorLines(value.source) ? (
         <ControlBlock
           title="Sector lines"
           description="Draws the storm sector lines faintly over the map. Off by default."
-          input={
+          input={(fieldProps) => (
             <Switch
-              aria-label="Sector lines"
+              {...fieldProps}
               checked={value.sectorLines ?? false}
-              /* The editor merges a change into the saved block, so turning the lines off sets the key to undefined rather than leaving it out. */
               onChange={(event) => onChange({ ...value, sectorLines: event.currentTarget.checked || undefined })}
             />
-          }
+          )}
         />
       ) : null}
       <ListChapter
@@ -237,22 +236,22 @@ export function AssetExplainerEdit({
                     <ControlBlock
                       title="Marker label"
                       description="Number, letter or symbol."
-                      input={
+                      input={(fieldProps) => (
                         <TextInput
-                          aria-label="Marker label"
+                          {...fieldProps}
                           maxLength={32}
                           value={item.label}
                           onChange={(event) => updateItem({ label: event.currentTarget.value })}
                         />
-                      }
+                      )}
                     />
                   ) : null}
                   <ControlBlock
                     title="Target type"
                     description="Choose a named part or set a position on this source."
-                    input={
+                    input={(fieldProps) => (
                       <Select
-                        aria-label="Target type"
+                        {...fieldProps}
                         value={item.target.kind}
                         data={[
                           { value: 'named', label: 'Named part' },
@@ -270,16 +269,16 @@ export function AssetExplainerEdit({
                           }
                         }}
                       />
-                    }
+                    )}
                   />
                 </Group>
                 {value.colorMode === 'manual' ? (
                   <ControlBlock
                     title="Marker color"
                     description="Used for the marker, connector, highlight and explanation."
-                    input={
+                    input={(fieldProps) => (
                       <ColorInput
-                        aria-label="Marker color"
+                        {...fieldProps}
                         format="hex"
                         swatches={[...RULEBOOK_ANNOTATION_COLORS]}
                         value={item.color ?? selected.color}
@@ -290,15 +289,15 @@ export function AssetExplainerEdit({
                             : undefined
                         }
                       />
-                    }
+                    )}
                   />
                 ) : null}
                 {item.target.kind === 'named' ? (
                   <ControlBlock
                     title={value.source?.kind === 'board' ? 'Territory or region' : 'Part of the component'}
-                    input={
+                    input={(fieldProps) => (
                       <Select
-                        aria-label={value.source?.kind === 'board' ? 'Territory or region' : 'Part of the component'}
+                        {...fieldProps}
                         searchable
                         clearable
                         placeholder={
@@ -306,21 +305,21 @@ export function AssetExplainerEdit({
                             ? `${selected.title} (previous source)`
                             : 'Choose a part'
                         }
-                        value={selected.status === 'source-replaced' ? null : item.target.key || null}
+                        value={selected.status === 'source-replaced' ? null : namedKey || null}
                         data={[
                           ...parts.map((part) => ({
                             value: part.key,
                             label: part.label ?? COMPONENT_PART_LABELS[part.key] ?? part.key,
                           })),
-                          ...(item.target.key && !parts.some((part) => part.key === namedKey)
-                            ? [{ value: item.target.key, label: `${selected.title} (unavailable)` }]
+                          ...(namedKey && !parts.some((part) => part.key === namedKey)
+                            ? [{ value: namedKey, label: `${selected.title} (unavailable)` }]
                             : []),
                         ]}
                         onChange={(key) =>
                           updateItem({ target: { kind: 'named', key: key ?? '', source: value.source } })
                         }
                       />
-                    }
+                    )}
                   />
                 ) : (
                   <Stack gap="md">
@@ -381,14 +380,14 @@ export function AssetExplainerEdit({
                 )}
                 <ControlBlock
                   title="Explanation"
-                  input={
+                  input={(fieldProps) => (
                     <FormattedTextInput
-                      aria-label="Explanation"
+                      {...fieldProps}
                       minRows={3}
                       value={item.text}
                       onChange={(text) => updateItem({ text })}
                     />
-                  }
+                  )}
                 />
               </Stack>
             }

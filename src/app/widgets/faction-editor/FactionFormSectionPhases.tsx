@@ -78,19 +78,24 @@ function PhasePlacementFields({
 
         <form.Field name={`extraPhases[${index}].before`}>
           {(field) => (
-            <Select
-              id={`phase-${index}-placement`}
-              label="Placement"
-              required
-              allowDeselect={false}
-              data={placementOptions}
-              value={field.state.value ?? null}
-              error={problems.before}
-              onChange={(value) => {
-                if (value) {
-                  field.handleChange(value as PhaseTarget);
-                }
-              }}
+            <ControlBlock
+              title="Placement"
+              inputId={`phase-${index}-placement`}
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  required
+                  allowDeselect={false}
+                  data={placementOptions}
+                  value={field.state.value ?? null}
+                  error={problems.before}
+                  onChange={(value) => {
+                    if (value) {
+                      field.handleChange(value as PhaseTarget);
+                    }
+                  }}
+                />
+              )}
             />
           )}
         </form.Field>
@@ -114,35 +119,44 @@ function PhaseBehaviourFields({
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={`extraPhases[${index}].type`}>
           {(field) => (
-            <Select
-              id={`phase-${index}-type`}
-              label="Type"
+            <ControlBlock
+              title="Type"
               description="Prediction uses the built-in prediction controls and goes before a setup step."
-              allowDeselect={false}
-              data={typeOptions}
-              value={field.state.value ?? null}
-              error={problems.type}
-              onChange={(value) => {
-                if (value) {
-                  field.handleChange(value as PhaseDeclaration['type']);
-                }
-              }}
+              inputId={`phase-${index}-type`}
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  allowDeselect={false}
+                  data={typeOptions}
+                  value={field.state.value ?? null}
+                  error={problems.type}
+                  onChange={(value) => {
+                    if (value) {
+                      field.handleChange(value as PhaseDeclaration['type']);
+                    }
+                  }}
+                />
+              )}
             />
           )}
         </form.Field>
 
         <form.Field name={`extraPhases[${index}].priority`}>
           {(field) => (
-            <NumberInput
-              id={`phase-${index}-priority`}
-              label="Priority"
+            <ControlBlock
+              title="Priority"
               description="Lower runs first among phases before the same step."
-              allowDecimal
-              value={field.state.value ?? ''}
-              error={problems.priority}
-              onBlur={field.handleBlur}
-              /* An empty or fractional entry is kept as typed, so the row names the problem rather than hiding it. */
-              onChange={(value) => field.handleChange(value as number)}
+              inputId={`phase-${index}-priority`}
+              input={(fieldProps) => (
+                <NumberInput
+                  {...fieldProps}
+                  allowDecimal
+                  value={field.state.value ?? ''}
+                  error={problems.priority}
+                  onBlur={field.handleBlur}
+                  onChange={(value) => field.handleChange(value as number)}
+                />
+              )}
             />
           )}
         </form.Field>
@@ -155,14 +169,14 @@ function PhaseBehaviourFields({
             description={
               'Next waits until every player is ready, like Mentat Pause.\nA prediction phase waits on its lock instead.'
             }
-            input={
+            inputId={`phase-${index}-ready`}
+            input={(fieldProps) => (
               <Switch
-                id={`phase-${index}-ready`}
-                aria-label="Everyone must be ready"
+                {...fieldProps}
                 checked={field.state.value ?? false}
                 onChange={(event) => field.handleChange(event.currentTarget.checked)}
               />
-            }
+            )}
           />
         )}
       </form.Field>
@@ -184,15 +198,20 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
 
             <form.Field name={`extraPhases[${index}].title`}>
               {(field) => (
-                <TextInput
-                  id={`phase-${index}-title`}
-                  label="Title"
+                <ControlBlock
+                  title="Title"
                   description="Shown to players in the phase header and on the tracker."
-                  required
-                  value={field.state.value ?? ''}
-                  error={problems.title}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  inputId={`phase-${index}-title`}
+                  input={(fieldProps) => (
+                    <TextInput
+                      {...fieldProps}
+                      required
+                      value={field.state.value ?? ''}
+                      error={problems.title}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value)}
+                    />
+                  )}
                 />
               )}
             </form.Field>
@@ -201,15 +220,20 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
 
             <form.Field name={`extraPhases[${index}].instructions`}>
               {(field) => (
-                <Textarea
-                  id={`phase-${index}-instructions`}
-                  label="Instructions"
+                <ControlBlock
+                  title="Instructions"
                   description="What players do during this phase. Optional."
-                  minRows={3}
-                  value={field.state.value ?? ''}
-                  error={problems.instructions}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                  inputId={`phase-${index}-instructions`}
+                  input={(fieldProps) => (
+                    <Textarea
+                      {...fieldProps}
+                      minRows={3}
+                      value={field.state.value ?? ''}
+                      error={problems.instructions}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                    />
+                  )}
                 />
               )}
             </form.Field>

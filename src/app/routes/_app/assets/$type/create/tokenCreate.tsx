@@ -6,6 +6,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
@@ -178,25 +179,30 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
               </Notice>
             ) : null}
             {type === 'token-disc' ? (
-              <Select
-                label="Discovery preset"
-                placeholder="Choose a standard"
-                value={null}
-                data={(standards?.discovery ?? []).map((preset) => ({ value: preset.key, label: preset.label }))}
-                onChange={(key) => {
-                  const preset = standards?.discovery.find((entry) => entry.key === key);
-                  if (preset) {
-                    dispatch({
-                      kind: 'replace',
-                      data: {
-                        ...state.data,
-                        front: { ...preset.front, image: state.data.front.image },
-                        back: { mode: 'custom', face: preset.back },
-                      },
-                      pick: null,
-                    });
-                  }
-                }}
+              <ControlBlock
+                title="Discovery preset"
+                input={(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    placeholder="Choose a standard"
+                    value={null}
+                    data={(standards?.discovery ?? []).map((preset) => ({ value: preset.key, label: preset.label }))}
+                    onChange={(key) => {
+                      const preset = standards?.discovery.find((entry) => entry.key === key);
+                      if (preset) {
+                        dispatch({
+                          kind: 'replace',
+                          data: {
+                            ...state.data,
+                            front: { ...preset.front, image: state.data.front.image },
+                            back: { mode: 'custom', face: preset.back },
+                          },
+                          pick: null,
+                        });
+                      }
+                    }}
+                  />
+                )}
               />
             ) : null}
             <TokenEditor

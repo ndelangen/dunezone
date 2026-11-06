@@ -123,25 +123,25 @@ function CreateRulesetForm() {
             <ControlBlock
               title="Name"
               description="The name determines the ruleset URL."
-              input={
+              inputId="ruleset-create-name"
+              input={(fieldProps) => (
                 <TextInput
-                  id="ruleset-create-name"
-                  aria-label="Name"
+                  {...fieldProps}
                   name="name"
                   required
                   error={nameError}
                   value={name}
                   onChange={(event) => dispatch({ kind: 'patch', update: { name: event.currentTarget.value } })}
                 />
-              }
+              )}
             />
             <ControlBlock
               title="About"
               description={helpLines(RULESET_ABOUT_HELP, FORMATTED_TEXT_SYNTAX_HELP)}
-              input={
+              inputId="ruleset-create-about"
+              input={(fieldProps) => (
                 <FormattedTextInput
-                  id="ruleset-create-about"
-                  aria-label="About"
+                  {...fieldProps}
                   name="about"
                   description={rulesetAboutCount(about)}
                   error={aboutError}
@@ -150,7 +150,7 @@ function CreateRulesetForm() {
                   value={about}
                   onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
                 />
-              }
+              )}
             />
             {createRuleset.error ? (
               <ActionError subject="Ruleset" verb="create">

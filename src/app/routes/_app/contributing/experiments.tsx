@@ -4,6 +4,7 @@ import { CodeExample } from '@ui/content/CodeExample';
 import type { CodeExampleLine } from '@ui/content/CodeExample';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useState } from 'react';
 
 import styles from './experiments.module.css';
@@ -436,10 +437,11 @@ function MigrationLab() {
   const [oldClient, setOldClient] = useState(true);
   return (
     <Section title="Rename name to displayName">
-      <Switch
-        label="Send the old client shape"
-        checked={oldClient}
-        onChange={(event) => setOldClient(event.currentTarget.checked)}
+      <ControlBlock
+        title="Send the old client shape"
+        input={(fieldProps) => (
+          <Switch {...fieldProps} checked={oldClient} onChange={(event) => setOldClient(event.currentTarget.checked)} />
+        )}
       />
       <Text size="sm" c="dimmed">
         Try the same request against every stage. The four example records show the rollout separately.

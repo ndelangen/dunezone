@@ -66,13 +66,13 @@ function HeadFields({
       <ControlBlock
         title="Type"
         description="Shown under the name, for example Weapon - Projectile."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Type"
+            {...fieldProps}
             value={draft.subName}
             onChange={(event) => patch({ subName: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <BackgroundPresetControl
         title="Head background"
@@ -130,9 +130,9 @@ function IconFields({
       <ControlBlock
         title="Icon"
         description="The vector in the top-right disc."
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Icon"
+            {...fieldProps}
             allowDeselect={false}
             data={iconOptions}
             getPreviewSrc={assetOptionToPreviewSrc}
@@ -144,7 +144,7 @@ function IconFields({
               }
             }}
           />
-        }
+        )}
       />
       <BackgroundPresetControl
         title="Icon background"
@@ -215,7 +215,7 @@ export function fixedCardHeadChapter(nameField: ReactNode, type?: string) {
           <ControlBlock
             title="Type"
             description="This card type is fixed."
-            input={<TextInput aria-label="Type" value={type} readOnly />}
+            input={(fieldProps) => <TextInput {...fieldProps} value={type} readOnly />}
           />
         ) : null}
       </Stack>

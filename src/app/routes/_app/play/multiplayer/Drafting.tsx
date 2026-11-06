@@ -28,6 +28,7 @@ import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
@@ -614,10 +615,11 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
           onChange={(event) => setQuery(event.currentTarget.value)}
           className={styles.search}
         />
-        <Switch
-          label="Show all factions"
-          checked={showAll}
-          onChange={(event) => setShowAll(event.currentTarget.checked)}
+        <ControlBlock
+          title="Show all factions"
+          input={(fieldProps) => (
+            <Switch {...fieldProps} checked={showAll} onChange={(event) => setShowAll(event.currentTarget.checked)} />
+          )}
         />
       </Group>
       <ul className={styles.list} aria-label="Factions">

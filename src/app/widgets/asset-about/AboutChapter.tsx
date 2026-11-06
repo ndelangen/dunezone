@@ -53,9 +53,9 @@ function PhysicalSizeControl({ value, onChange }: PhysicalSizeField) {
       description={
         "This token's size on a private side-table, against a standard token.\nMake it small for a marker that sits on a card's track."
       }
-      input={
+      input={(fieldProps) => (
         <Slider
-          aria-label="Physical size"
+          {...fieldProps}
           min={PHYSICAL_SIZE_MIN * 100}
           max={PHYSICAL_SIZE_MAX * 100}
           step={5}
@@ -65,7 +65,7 @@ function PhysicalSizeControl({ value, onChange }: PhysicalSizeField) {
           marks={[{ value: 100, label: 'Standard' }]}
           mb="lg"
         />
-      }
+      )}
     />
   );
 }

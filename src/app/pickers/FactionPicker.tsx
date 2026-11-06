@@ -7,6 +7,7 @@ import { FormError } from '@ui/block/FormError';
 import { FieldWarning } from '@ui/content/FieldWarning';
 import { Pending } from '@ui/content/Pending';
 import type { ActionIntent } from '@ui/control/actionIntent';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -171,24 +172,26 @@ export function FactionPicker(props: FactionPickerProps) {
           }}
         >
           <Combobox.EventsTarget>
-            <TextInput
-              label="Search factions"
-              placeholder="Type name, owner, group, or token…"
-              value={search}
-              // Safari and password-manager extensions ignore autoComplete="off"
-              // alone; the search type, neutral name, and vendor opt-outs keep
-              // credential autofill prompts off this field.
-              type="search"
-              name="faction-search"
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-bwignore
-              data-form-type="other"
-              onChange={(event) => {
-                setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
-              }}
+            <ControlBlock
+              title="Search factions"
+              input={(fieldProps) => (
+                <TextInput
+                  {...fieldProps}
+                  placeholder="Type name, owner, group, or token…"
+                  value={search}
+                  type="search"
+                  name="faction-search"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-bwignore
+                  data-form-type="other"
+                  onChange={(event) => {
+                    setSearch(event.currentTarget.value);
+                    combobox.selectFirstOption();
+                  }}
+                />
+              )}
             />
           </Combobox.EventsTarget>
           <ScrollArea.Autosize mah={260} type="auto">

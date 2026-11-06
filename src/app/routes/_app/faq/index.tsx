@@ -7,6 +7,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -246,12 +247,32 @@ function RulesetSelect({
     label: option.name,
     questions: option.questions,
   }));
-  return (
+  return label ? (
+    <ControlBlock
+      title={label}
+      input={
+        <MultiSelect
+          className={inToolbar ? styles.rulesetSegment : undefined}
+          classNames={inToolbar ? { pillsList: styles.pillsRow } : undefined}
+          variant={inToolbar ? 'unstyled' : 'default'}
+          aria-label={inToolbar ? 'Rulesets' : undefined}
+          placeholder={value.length === 0 ? 'All rulesets' : undefined}
+          data={data}
+          renderOption={renderRulesetOption}
+          renderPill={inToolbar ? summaryPill(value) : undefined}
+          value={value}
+          onChange={onChange}
+          clearable
+          searchable={!inToolbar}
+          comboboxProps={{ withinPortal: true }}
+        />
+      }
+    />
+  ) : (
     <MultiSelect
       className={inToolbar ? styles.rulesetSegment : undefined}
       classNames={inToolbar ? { pillsList: styles.pillsRow } : undefined}
       variant={inToolbar ? 'unstyled' : 'default'}
-      label={label}
       aria-label={inToolbar ? 'Rulesets' : undefined}
       placeholder={value.length === 0 ? 'All rulesets' : undefined}
       data={data}

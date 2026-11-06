@@ -13,6 +13,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { PairedProofLayout } from '@ui/layout/PairedProofLayout';
@@ -287,12 +288,17 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
           <Stack gap="md">
             {definition ? (
               <>
-                <TextInput
-                  label="Shared background name"
-                  value={definition.name}
-                  onChange={(event) =>
-                    dispatch({ kind: 'background', value: { ...definition, name: event.currentTarget.value } })
-                  }
+                <ControlBlock
+                  title="Shared background name"
+                  input={(fieldProps) => (
+                    <TextInput
+                      {...fieldProps}
+                      value={definition.name}
+                      onChange={(event) =>
+                        dispatch({ kind: 'background', value: { ...definition, name: event.currentTarget.value } })
+                      }
+                    />
+                  )}
                 />
                 <Text size="sm">Saving updates every linked use and queues new captures.</Text>
               </>
@@ -396,35 +402,45 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
                   ) : null}
                   {editing && !('style' in preset) ? (
                     <>
-                      <NumberInput
-                        label="Front symbol size"
-                        min={0.5}
-                        max={2}
-                        step={0.05}
-                        value={preset.front.symbolScale}
-                        onChange={(value) => {
-                          if (typeof value === 'number') {
-                            dispatch({
-                              kind: 'draft',
-                              value: { ...preset, front: { ...preset.front, symbolScale: value } },
-                            });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Front symbol size"
+                        input={(fieldProps) => (
+                          <NumberInput
+                            {...fieldProps}
+                            min={0.5}
+                            max={2}
+                            step={0.05}
+                            value={preset.front.symbolScale}
+                            onChange={(value) => {
+                              if (typeof value === 'number') {
+                                dispatch({
+                                  kind: 'draft',
+                                  value: { ...preset, front: { ...preset.front, symbolScale: value } },
+                                });
+                              }
+                            }}
+                          />
+                        )}
                       />
-                      <NumberInput
-                        label="Back symbol size"
-                        min={0.5}
-                        max={2}
-                        step={0.05}
-                        value={preset.back.symbolScale}
-                        onChange={(value) => {
-                          if (typeof value === 'number') {
-                            dispatch({
-                              kind: 'draft',
-                              value: { ...preset, back: { ...preset.back, symbolScale: value } },
-                            });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Back symbol size"
+                        input={(fieldProps) => (
+                          <NumberInput
+                            {...fieldProps}
+                            min={0.5}
+                            max={2}
+                            step={0.05}
+                            value={preset.back.symbolScale}
+                            onChange={(value) => {
+                              if (typeof value === 'number') {
+                                dispatch({
+                                  kind: 'draft',
+                                  value: { ...preset, back: { ...preset.back, symbolScale: value } },
+                                });
+                              }
+                            }}
+                          />
+                        )}
                       />
                     </>
                   ) : null}
@@ -495,11 +511,16 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          <TextInput
-            label="Find a preset"
-            placeholder="Card type or Discovery group"
-            value={state.search}
-            onChange={(event) => dispatch({ kind: 'search', value: event.currentTarget.value })}
+          <ControlBlock
+            title="Find a preset"
+            input={(fieldProps) => (
+              <TextInput
+                {...fieldProps}
+                placeholder="Card type or Discovery group"
+                value={state.search}
+                onChange={(event) => dispatch({ kind: 'search', value: event.currentTarget.value })}
+              />
+            )}
           />
           <SaveErrorAlert subject="preset" error={saveFamily.error ?? saveDiscovery.error} />
           {saveFamily.data !== undefined || saveDiscovery.data !== undefined ? (

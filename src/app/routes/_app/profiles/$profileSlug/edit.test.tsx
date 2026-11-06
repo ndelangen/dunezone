@@ -333,8 +333,8 @@ describe('profile settings page', () => {
     const view = await renderPage();
     await chooseTab(view, 'Creation defaults');
 
-    /* Disabled, so it is no longer exposed as a combobox; find it by its label. */
-    const field = view.container.querySelector('input[aria-label="Default Group"]');
+    /* Disabled, so it is no longer exposed as a combobox; find it inside its titled group. */
+    const field = view.getByRole('group', { name: 'Default Group' }).querySelector('input');
     expect(field).toHaveProperty('disabled', true);
   });
 

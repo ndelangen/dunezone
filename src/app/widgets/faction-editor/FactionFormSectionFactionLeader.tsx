@@ -55,10 +55,10 @@ export function FactionFormSectionFactionLeader({
               {(field) => (
                 <ControlBlock
                   title="Faction leader portrait"
-                  input={
+                  inputId="faction-leader-image"
+                  input={(fieldProps) => (
                     <AssetSelect
-                      id="faction-leader-image"
-                      aria-label="Faction leader portrait"
+                      {...fieldProps}
                       allowDeselect={false}
                       data={leaderImageOptions}
                       previewShape="disc"
@@ -70,7 +70,7 @@ export function FactionFormSectionFactionLeader({
                         }
                       }}
                     />
-                  }
+                  )}
                 />
               )}
             </form.Field>

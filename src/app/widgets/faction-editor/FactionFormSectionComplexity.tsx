@@ -4,6 +4,7 @@ import { complexityEditorPresentation, complexityOutOfTen } from '@ui/content/co
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { FieldWarning } from '@ui/content/FieldWarning';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
 
 import type { FactionFormApi } from './factionFormTypes';
 
@@ -86,18 +87,23 @@ export function FactionFormSectionComplexity({
                     thumbLabel="Manual complexity rating"
                   />
 
-                  <Switch
-                    size="sm"
-                    label="Set the rating manually"
-                    checked={active}
-                    onChange={(event) => {
-                      if (event.currentTarget.checked) {
-                        field.handleChange(retainedManualRating ?? calculated);
-                        return;
-                      }
-                      onRetainedManualRatingChange(manual ?? calculated);
-                      field.handleChange(undefined);
-                    }}
+                  <ControlBlock
+                    title="Set the rating manually"
+                    input={(fieldProps) => (
+                      <Switch
+                        {...fieldProps}
+                        size="sm"
+                        checked={active}
+                        onChange={(event) => {
+                          if (event.currentTarget.checked) {
+                            field.handleChange(retainedManualRating ?? calculated);
+                            return;
+                          }
+                          onRetainedManualRatingChange(manual ?? calculated);
+                          field.handleChange(undefined);
+                        }}
+                      />
+                    )}
                   />
 
                   <Text size="xs" c="dimmed">

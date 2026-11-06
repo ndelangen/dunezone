@@ -280,68 +280,82 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
         });
       }}
     >
-      <TextInput
-        label="Rulebook name"
-        name="name"
-        required
-        value={draft.name}
-        disabled={create.isPending}
-        error={nameError}
-        onChange={(event) => send({ kind: 'name', value: event.currentTarget.value })}
-      />
-      <Radio.Group
-        label="Start from"
-        value={draft.source}
-        onChange={(value) => {
-          if (value === 'starter' || value === 'clone') {
-            send({ kind: 'source', value });
-          }
-        }}
-      >
-        <Stack gap="sm">
-          <Radio
-            value="starter"
-            label="Starter template"
-            description="Begin with the application layouts and sample structured Blocks."
+      <ControlBlock
+        title="Rulebook name"
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            name="name"
+            required
+            value={draft.name}
             disabled={create.isPending}
+            error={nameError}
+            onChange={(event) => send({ kind: 'name', value: event.currentTarget.value })}
           />
-          <Radio
-            value="clone"
-            label="Saved Rulebook"
-            description="Copy a Rulebook from this Ruleset. Unsaved edits and Edition history are not copied."
-            disabled={create.isPending || page.rulebooks.length === 0}
-          />
-        </Stack>
-      </Radio.Group>
+        )}
+      />
+      <ControlBlock
+        title="Start from"
+        input={
+          <Radio.Group
+            value={draft.source}
+            onChange={(value) => {
+              if (value === 'starter' || value === 'clone') {
+                send({ kind: 'source', value });
+              }
+            }}
+          >
+            <Stack gap="sm">
+              <Radio
+                value="starter"
+                label="Starter template"
+                description="Begin with the application layouts and sample structured Blocks."
+                disabled={create.isPending}
+              />
+              <Radio
+                value="clone"
+                label="Saved Rulebook"
+                description="Copy a Rulebook from this Ruleset. Unsaved edits and Edition history are not copied."
+                disabled={create.isPending || page.rulebooks.length === 0}
+              />
+            </Stack>
+          </Radio.Group>
+        }
+      />
       {draft.source === 'clone' ? (
-        <Select
-          label="Rulebook to copy"
-          placeholder="Choose a saved Rulebook"
-          required
-          searchable
-          value={draft.cloneId}
-          onChange={(value) => send({ kind: 'clone', value })}
-          disabled={create.isPending}
-          data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
-          renderOption={({ option }) => {
-            const rulebook = page.rulebooks.find((book) => book._id === option.value);
-            return (
-              <Group gap="sm" wrap="nowrap">
-                <Box w={32} miw={32} aria-hidden>
-                  <RulebookPreview
-                    name={option.label}
-                    size={rulebook?.settings.size}
-                    imageUrl={rulebook?.first_page_image_url}
-                    status={rulebook?.first_page_capture_status}
-                    nameOnHover
-                  />
-                </Box>
-                <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-                  {option.label}
-                </Text>
-              </Group>
-            );
-          }}
+        <ControlBlock
+          title="Rulebook to copy"
+          input={(fieldProps) => (
+            <Select
+              {...fieldProps}
+              placeholder="Choose a saved Rulebook"
+              required
+              searchable
+              value={draft.cloneId}
+              onChange={(value) => send({ kind: 'clone', value })}
+              disabled={create.isPending}
+              data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
+              renderOption={({ option }) => {
+                const rulebook = page.rulebooks.find((book) => book._id === option.value);
+                return (
+                  <Group gap="sm" wrap="nowrap">
+                    <Box w={32} miw={32} aria-hidden>
+                      <RulebookPreview
+                        name={option.label}
+                        size={rulebook?.settings.size}
+                        imageUrl={rulebook?.first_page_image_url}
+                        status={rulebook?.first_page_capture_status}
+                        nameOnHover
+                      />
+                    </Box>
+                    <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
+                      {option.label}
+                    </Text>
+                  </Group>
+                );
+              }}
+            />
+          )}
         />
       ) : null}
       {settings ? (

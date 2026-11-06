@@ -1,6 +1,7 @@
 import { Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { GameResultKind } from '@shared/play/result';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Eye, Trophy, X } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -120,23 +121,33 @@ function DeclareBar({
             </Group>
           </Radio.Group>
           {choice.kind === 'faction' && (
-            <Select
-              label="Winning faction"
-              data={options}
-              renderOption={({ option }) => factionOption(options, option.value)}
-              value={choice.faction}
-              onChange={(faction) => onChange({ faction })}
-              disabled={disabled}
+            <ControlBlock
+              title="Winning faction"
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  data={options}
+                  renderOption={({ option }) => factionOption(options, option.value)}
+                  value={choice.faction}
+                  onChange={(faction) => onChange({ faction })}
+                  disabled={disabled}
+                />
+              )}
             />
           )}
           {choice.kind === 'alliance' && (
-            <MultiSelect
-              label="Winning alliance"
-              data={options}
-              renderOption={({ option }) => factionOption(options, option.value)}
-              value={choice.alliance}
-              onChange={(alliance) => onChange({ alliance })}
-              disabled={disabled}
+            <ControlBlock
+              title="Winning alliance"
+              input={(fieldProps) => (
+                <MultiSelect
+                  {...fieldProps}
+                  data={options}
+                  renderOption={({ option }) => factionOption(options, option.value)}
+                  value={choice.alliance}
+                  onChange={(alliance) => onChange({ alliance })}
+                  disabled={disabled}
+                />
+              )}
             />
           )}
           <Group gap="xs" justify="flex-end">

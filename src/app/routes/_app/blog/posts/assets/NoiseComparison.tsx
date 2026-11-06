@@ -1,6 +1,7 @@
 import { ColorInput, Group, SimpleGrid, Slider, Stack, Switch, Text, UnstyledButton } from '@mantine/core';
 import type { Background as BackgroundSchema } from '@shared/factions/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useId, useReducer } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 import type { z } from 'zod';
@@ -145,11 +146,16 @@ function GeneratedNoise({ pattern, dispatch }: Readonly<{ pattern: Pattern; disp
             label={null}
           />
         </Setting>
-        <ColorInput
-          size="xs"
-          label="Colour"
-          value={pattern.color}
-          onChange={(color) => dispatch({ type: 'pattern', change: { color } })}
+        <ControlBlock
+          title="Colour"
+          input={(fieldProps) => (
+            <ColorInput
+              {...fieldProps}
+              size="xs"
+              value={pattern.color}
+              onChange={(color) => dispatch({ type: 'pattern', change: { color } })}
+            />
+          )}
         />
       </SimpleGrid>
     </Stack>
@@ -199,22 +205,37 @@ function PhotoTexture({ texture, dispatch }: Readonly<{ texture: TextureState; d
             label={null}
           />
         </Setting>
-        <ColorInput
-          size="xs"
-          label="Colour one"
-          value={plainColour(texture.colors[0])}
-          onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
+        <ControlBlock
+          title="Colour one"
+          input={(fieldProps) => (
+            <ColorInput
+              {...fieldProps}
+              size="xs"
+              value={plainColour(texture.colors[0])}
+              onChange={(value) => dispatch({ type: 'colour', index: 0, value })}
+            />
+          )}
         />
-        <ColorInput
-          size="xs"
-          label="Colour two"
-          value={plainColour(texture.colors[1])}
-          onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
+        <ControlBlock
+          title="Colour two"
+          input={(fieldProps) => (
+            <ColorInput
+              {...fieldProps}
+              size="xs"
+              value={plainColour(texture.colors[1])}
+              onChange={(value) => dispatch({ type: 'colour', index: 1, value })}
+            />
+          )}
         />
-        <Switch
-          label="Invert"
-          checked={texture.invert ?? true}
-          onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
+        <ControlBlock
+          title="Invert"
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={texture.invert ?? true}
+              onChange={(event) => dispatch({ type: 'texture', change: { invert: event.currentTarget.checked } })}
+            />
+          )}
         />
       </SimpleGrid>
     </Stack>

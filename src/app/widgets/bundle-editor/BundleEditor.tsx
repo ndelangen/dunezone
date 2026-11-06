@@ -83,13 +83,13 @@ function BandFields({
       <ControlBlock
         title="Label"
         description="The word across the band. Falls back to the bundle's name when blank."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Label"
+            {...fieldProps}
             value={band.label}
             onChange={(event) => onChange({ ...band, label: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <BackgroundPresetControl
         title="Band"
@@ -202,9 +202,9 @@ export function BundleEditor({
                     <ControlBlock
                       title="Band"
                       description="A bundle has no face of its own, so this is what tells it apart."
-                      input={
+                      input={(fieldProps) => (
                         <Select
-                          aria-label="Band"
+                          {...fieldProps}
                           allowDeselect={false}
                           data={[
                             ...STOCK_BANDS.map((stock) => ({ value: stock.key, label: `${stock.label} band` })),
@@ -224,7 +224,7 @@ export function BundleEditor({
                             }
                           }}
                         />
-                      }
+                      )}
                     />
                     {selected === CUSTOM ? (
                       <BandFields

@@ -5,6 +5,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -179,19 +180,33 @@ function ImportExportPage() {
               </Text>
               <Surface>
                 <Group grow align="start">
-                  <TextInput
-                    label="Ruleset address"
+                  <ControlBlock
+                    title="Ruleset address"
                     description="The last part of its URL, such as gf9."
-                    value={state.rulesetSlug}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { rulesetSlug: event.currentTarget.value } })}
+                    input={(fieldProps) => (
+                      <TextInput
+                        {...fieldProps}
+                        value={state.rulesetSlug}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          dispatch({ kind: 'edit', patch: { rulesetSlug: event.currentTarget.value } })
+                        }
+                      />
+                    )}
                   />
-                  <TextInput
-                    label="Group address"
+                  <ControlBlock
+                    title="Group address"
                     description="Every imported faction and asset is assigned to this group."
-                    value={state.groupSlug}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { groupSlug: event.currentTarget.value } })}
+                    input={(fieldProps) => (
+                      <TextInput
+                        {...fieldProps}
+                        value={state.groupSlug}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          dispatch({ kind: 'edit', patch: { groupSlug: event.currentTarget.value } })
+                        }
+                      />
+                    )}
                   />
                 </Group>
               </Surface>
@@ -217,12 +232,17 @@ function ImportExportPage() {
                       }
                     }}
                   />
-                  <Textarea
-                    label="Package JSON"
-                    minRows={8}
-                    value={state.json}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}
+                  <ControlBlock
+                    title="Package JSON"
+                    input={(fieldProps) => (
+                      <Textarea
+                        {...fieldProps}
+                        minRows={8}
+                        value={state.json}
+                        disabled={disabled}
+                        onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}
+                      />
+                    )}
                   />
                   <Group>
                     <LabeledAction
@@ -341,38 +361,53 @@ function ImportExportPage() {
               <Surface>
                 <Stack gap="md">
                   <Group grow align="start">
-                    <Select
-                      label="Record kind"
-                      data={[
-                        { value: 'rulebook', label: 'Rulebook draft' },
-                        { value: 'faction', label: 'Faction' },
-                        { value: 'asset', label: 'Asset' },
-                      ]}
-                      value={state.exportKind}
-                      disabled={disabled}
-                      onChange={(value) => {
-                        if (value) {
-                          patch({ exportKind: value as State['exportKind'] });
-                        }
-                      }}
+                    <ControlBlock
+                      title="Record kind"
+                      input={(fieldProps) => (
+                        <Select
+                          {...fieldProps}
+                          data={[
+                            { value: 'rulebook', label: 'Rulebook draft' },
+                            { value: 'faction', label: 'Faction' },
+                            { value: 'asset', label: 'Asset' },
+                          ]}
+                          value={state.exportKind}
+                          disabled={disabled}
+                          onChange={(value) => {
+                            if (value) {
+                              patch({ exportKind: value as State['exportKind'] });
+                            }
+                          }}
+                        />
+                      )}
                     />
-                    <TextInput
-                      label="Record address"
-                      value={state.exportSlug}
-                      disabled={disabled}
-                      onChange={(event) => patch({ exportSlug: event.currentTarget.value })}
+                    <ControlBlock
+                      title="Record address"
+                      input={(fieldProps) => (
+                        <TextInput
+                          {...fieldProps}
+                          value={state.exportSlug}
+                          disabled={disabled}
+                          onChange={(event) => patch({ exportSlug: event.currentTarget.value })}
+                        />
+                      )}
                     />
                     {state.exportKind === 'asset' && (
-                      <Select
-                        label="Asset type"
-                        data={ASSET_TYPE_KEYS.map((value) => ({ value, label: ASSET_TYPES[value].label }))}
-                        value={state.exportType}
-                        disabled={disabled}
-                        onChange={(value) => {
-                          if (value) {
-                            patch({ exportType: value });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Asset type"
+                        input={(fieldProps) => (
+                          <Select
+                            {...fieldProps}
+                            data={ASSET_TYPE_KEYS.map((value) => ({ value, label: ASSET_TYPES[value].label }))}
+                            value={state.exportType}
+                            disabled={disabled}
+                            onChange={(value) => {
+                              if (value) {
+                                patch({ exportType: value });
+                              }
+                            }}
+                          />
+                        )}
                       />
                     )}
                   </Group>

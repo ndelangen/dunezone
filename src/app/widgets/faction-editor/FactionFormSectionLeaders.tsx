@@ -110,10 +110,10 @@ function SupportingLeaderCard({
                   {(field) => (
                     <ControlBlock
                       title="Leader portrait"
-                      input={
+                      inputId={`leader-${index}-img`}
+                      input={(fieldProps) => (
                         <AssetSelect
-                          id={`leader-${index}-img`}
-                          aria-label="Leader portrait"
+                          {...fieldProps}
                           allowDeselect={false}
                           data={leaderImageOptions}
                           previewShape="disc"
@@ -125,7 +125,7 @@ function SupportingLeaderCard({
                             }
                           }}
                         />
-                      }
+                      )}
                     />
                   )}
                 </form.Field>

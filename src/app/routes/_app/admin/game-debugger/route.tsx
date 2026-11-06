@@ -6,6 +6,7 @@ import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -87,14 +88,21 @@ function GameDebugger() {
         <Stack gap="lg">
           <Surface padding="lg">
             <Stack gap="sm">
-              <FileInput
-                label="Bug report file"
-                description="Download state.json from a reported-bug issue. The file stays in this browser tab and is not uploaded or saved."
-                accept="application/json,.json"
-                placeholder="Choose a report"
-                value={null}
-                onChange={(file) => void load(file)}
-                disabled={state.loading}
+              <ControlBlock
+                title="Bug report file"
+                description={
+                  'Download state.json from a reported-bug issue.\nThe file stays in this browser tab and is not uploaded or saved.'
+                }
+                input={(fieldProps) => (
+                  <FileInput
+                    {...fieldProps}
+                    accept="application/json,.json"
+                    placeholder="Choose a report"
+                    value={null}
+                    onChange={(file) => void load(file)}
+                    disabled={state.loading}
+                  />
+                )}
               />
               {state.loading && <Text role="status">Opening {state.name}…</Text>}
               {state.error && <FormError title="Cannot open report">{state.error}</FormError>}
@@ -167,11 +175,16 @@ function ReportContents({
         </Tabs.Panel>
         <Tabs.Panel value="state" pt="md">
           <Stack gap="md">
-            <Select
-              label="Inspect"
-              data={Object.keys(sections)}
-              value={section}
-              onChange={(value) => value && onSection(value)}
+            <ControlBlock
+              title="Inspect"
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  data={Object.keys(sections)}
+                  value={section}
+                  onChange={(value) => value && onSection(value)}
+                />
+              )}
             />
             <JsonFields value={sections[section]} />
           </Stack>
@@ -195,14 +208,19 @@ function CapturedTable({ report }: { report: Report }) {
   const snapshot = renderSnapshot(report, source);
   return (
     <Stack gap="md">
-      <Select
-        label="Table capture"
-        value={source}
-        data={[
-          { value: 'browser', label: 'Reporting browser' },
-          { value: 'server', label: 'Server' },
-        ]}
-        onChange={(value) => value && select(value as 'server' | 'browser')}
+      <ControlBlock
+        title="Table capture"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            value={source}
+            data={[
+              { value: 'browser', label: 'Reporting browser' },
+              { value: 'server', label: 'Server' },
+            ]}
+            onChange={(value) => value && select(value as 'server' | 'browser')}
+          />
+        )}
       />
       <Text size="sm">
         A static table preview using the current renderer. Artwork loads from Dune Zone. The original game is never

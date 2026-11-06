@@ -6,6 +6,7 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -135,19 +136,35 @@ function RulesetsPage() {
   const query = useSearchDraft(search.q ?? '', commitQuery);
 
   /* A search is always best match, so its sort takes no change; choosing an order is for browsing. */
-  const sortSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.sortSegment}
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label="Sort"
-      allowDeselect={false}
-      data={sortOptions(Boolean(search.q))}
-      value={search.q ? 'relevance' : (search.sort ?? 'name')}
-      disabled={Boolean(search.q)}
-      onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
-    />
-  );
+  const sortSelect = (label?: string) =>
+    label ? (
+      <ControlBlock
+        title={label}
+        input={
+          <Select
+            className={label ? undefined : styles.sortSegment}
+            variant={label ? 'default' : 'unstyled'}
+            aria-label="Sort"
+            allowDeselect={false}
+            data={sortOptions(Boolean(search.q))}
+            value={search.q ? 'relevance' : (search.sort ?? 'name')}
+            disabled={Boolean(search.q)}
+            onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
+          />
+        }
+      />
+    ) : (
+      <Select
+        className={label ? undefined : styles.sortSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label="Sort"
+        allowDeselect={false}
+        data={sortOptions(Boolean(search.q))}
+        value={search.q ? 'relevance' : (search.sort ?? 'name')}
+        disabled={Boolean(search.q)}
+        onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
+      />
+    );
 
   return (
     <PageLayout>

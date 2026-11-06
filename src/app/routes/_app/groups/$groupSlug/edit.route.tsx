@@ -5,6 +5,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -114,16 +115,21 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
             onSubmit={handleSubmit}
             onBlurCapture={validationHeader.settle}
           >
-            <TextInput
-              ref={nameInputRef}
-              label="Group name"
+            <ControlBlock
+              title="Group name"
               description={<SlugRenameNotice noun="group" url={`…/groups/${initial.slug}`} />}
-              name="name"
-              required
-              minLength={1}
-              error={nameError}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              input={(fieldProps) => (
+                <TextInput
+                  {...fieldProps}
+                  ref={nameInputRef}
+                  name="name"
+                  required
+                  minLength={1}
+                  error={nameError}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              )}
             />
             {mutationError ? (
               <ActionError subject="Group" verb="save">
