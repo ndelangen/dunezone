@@ -501,12 +501,15 @@ const noTitleTooltipRule: Rule = {
 
 const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
 
-/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and the help a ControlBlock or a Section shows behind its (?). */
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and the help a ControlBlock, a Section or a kit wrapper around them shows behind its (?). */
 const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
   Tooltip: 'label',
   HelpMark: 'text',
   ControlBlock: 'description',
   Section: 'help',
+  ListChapter: 'help',
+  RangeField: 'description',
+  PickerField: 'description',
 };
 const TOOLTIP_LINE_MAX = 100;
 
