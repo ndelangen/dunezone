@@ -77,10 +77,12 @@ export function MentionCard({ seats, children, onInfo, onChat, initiallyOpened =
 }
 
 /* Enter or Space on what names a seat steps into its open card (the one the name's aria-controls points at), onto the first button. */
+const ACTIVATE = new Set(['Enter', ' ']);
+
 function enterCard(event: KeyboardEvent<HTMLElement>) {
   const card = document.getElementById(event.currentTarget.getAttribute('aria-controls') ?? '');
   const first = card?.querySelector<HTMLElement>('button');
-  if ((event.key === 'Enter' || event.key === ' ') && first) {
+  if (ACTIVATE.has(event.key) && first) {
     event.preventDefault();
     first.focus();
   }
