@@ -1,6 +1,7 @@
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import type { SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -18,7 +19,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { assetNoun } from '../$slug/edit/cardEditPage';
-import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
+import { AssetEditorMessage } from '../../assetEditorStates';
 
 /* What the card create page is built from: the save and the page around the workbench; `CardTypeCreatePage` holds the session. */
 
@@ -160,7 +161,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert subject={assetNoun(type)} verb="create" error={saveError} />
+            <ActionError subject={assetNoun(type)} verb="create" error={saveError} />
             {children}
           </WorkbenchLayout>
         </PageLayout.Content>

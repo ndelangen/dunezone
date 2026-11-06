@@ -152,11 +152,7 @@ function CreateRulesetForm() {
                 />
               )}
             />
-            {createRuleset.error ? (
-              <ActionError subject="Ruleset" verb="create">
-                {createRuleset.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Ruleset" verb="create" error={createRuleset.error} />
           </Stack>
         </Surface>
       </PageLayout.Content>

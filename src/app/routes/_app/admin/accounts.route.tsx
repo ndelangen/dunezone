@@ -220,11 +220,7 @@ function MergeProfiles({
               />
             )}
           />
-          {state.error && (
-            <ActionError subject="Profiles" verb="merge">
-              {state.error}
-            </ActionError>
-          )}
+          <ActionError subject="Profiles" verb="merge" error={state.error} />
           {state.review && source && target ? (
             <>
               <Text>

@@ -15,7 +15,6 @@ import { useReducer, useState } from 'react';
 
 import { loadAssetPage, useConvertCustomToSpice } from '@app/db/assets';
 import { useAuthoringAccountKey } from '@app/db/authoring';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
@@ -175,11 +174,7 @@ function ConversionSession({ asset, initialDraft, access }: AssetEditSessionProp
               <Text size="sm">Loading changes this draft only. Hold the conversion action when it is ready.</Text>
             </Stack>
           </Notice>
-          {conversion.error ? (
-            <ActionError subject="Card" verb="convert">
-              {mutationErrorMessage(conversion.error)}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Card" verb="convert" error={conversion.error} />
           <SpiceBoardRead
             draft={state.draft}
             render={(boardRead) => (

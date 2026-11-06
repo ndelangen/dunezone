@@ -1,5 +1,6 @@
 import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -26,7 +27,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { BundleAsset } from '@game/data/objects';
 
-import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, assetNameField } from '../../assetEditorStates';
 
 /**
  * This page's authoring state, and the four things that happen to it.
@@ -166,7 +167,7 @@ export function BundleCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert subject="bundle" verb="create" error={createAsset.error} />
+            <ActionError subject="bundle" verb="create" error={createAsset.error} />
             <BundleEditor
               nameField={nameField}
               draft={state.data}

@@ -222,11 +222,7 @@ function GroupDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {capabilities?.delete ? (
-                <HoldAction
-                  label="Delete group"
-                  pending={deleteGroup.isPending}
-                  onConfirm={handleDeleteGroup}
-                />
+                <HoldAction label="Delete group" pending={deleteGroup.isPending} onConfirm={handleDeleteGroup} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -236,11 +232,7 @@ function GroupDetailPage() {
         {requestError || deleteGroup.error ? (
           <Stack gap="lg" mb="lg">
             {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
-            {deleteGroup.error ? (
-              <ActionError subject="Group" verb="delete">
-                {deleteGroup.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Group" verb="delete" error={deleteGroup.error} />
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>

@@ -42,8 +42,21 @@ export interface ActionErrorProps extends Pick<FormErrorProps, 'action'> {
   subject: string;
   /** What the reader tried to do to it. */
   verb: FailedAction;
-  /** The reason, usually the rejected mutation's message. */
-  children: string;
+  /**
+   * The failure, usually the rejected mutation's `error`, or the reason as words.
+   * Nothing renders while it is empty, so a caller passes its mutation's error as it stands instead of guarding it.
+   * A server refusal (a `ConvexError` with words as its data) is shown in the server's own words.
+   */
+  error: Error | string | null | undefined;
+}
+
+/** The reason under the title. Read structurally, because the kit must not import Convex to recognise its error. */
+function reason(error: Error | string): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+  const data: unknown = (error as { data?: unknown }).data;
+  return typeof data === 'string' ? data : error.message;
 }
 
 /**
@@ -51,11 +64,14 @@ export interface ActionErrorProps extends Pick<FormErrorProps, 'action'> {
  * The title names the thing, so the failure reads on its own even when it sits away from the button that caused it (Norbert, 2026-11-06).
  * Failures that are not an action on a thing (sign-in, an import, the table) keep `FormError` with their own words.
  */
-export function ActionError({ subject, verb, children, action }: ActionErrorProps) {
+export function ActionError({ subject, verb, error, action }: ActionErrorProps) {
+  if (error == null || error === '') {
+    return null;
+  }
   const name = `${subject[0]?.toUpperCase() ?? ''}${subject.slice(1)}`;
   return (
     <FormError title={`${name} could not be ${DONE[verb]}`} action={action}>
-      {children}
+      {reason(error)}
     </FormError>
   );
 }

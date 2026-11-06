@@ -185,11 +185,7 @@ function FaqCreatePage() {
               )}
             />
             <FaqTagFieldset />
-            {askQuestion.error ? (
-              <ActionError subject="Question" verb="ask">
-                {askQuestion.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Question" verb="ask" error={askQuestion.error} />
             <Group gap="xs" wrap="nowrap">
               <LabeledAction
                 type="submit"

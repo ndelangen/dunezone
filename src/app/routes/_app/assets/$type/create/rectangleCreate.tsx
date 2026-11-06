@@ -1,5 +1,6 @@
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -27,7 +28,7 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { referencedRectangleBackFace } from '../$slug/edit/referencedBackFace';
 import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
-import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, assetNameField } from '../../assetEditorStates';
 import { LoadedRectangleDraft, tokenLoad } from '../../loadedDrafts';
 
 const TYPE = 'token-enhance';
@@ -170,7 +171,7 @@ export function RectangleCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert subject="token" verb="create" error={createAsset.error} />
+            <ActionError subject="token" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
               <Notice tone="caution" title="No token picked" live>
                 Picking a token's back happens on the edit page; save with another back mode first.

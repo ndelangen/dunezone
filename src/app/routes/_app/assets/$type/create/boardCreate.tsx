@@ -165,11 +165,7 @@ export function BoardCreatePage() {
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && (
-            <ActionError subject="Board" verb="create">
-              {saving.error.message}
-            </ActionError>
-          )}
+          <ActionError subject="Board" verb="create" error={saving.error} />
           <BoardEditor
             state={state.editor}
             dispatch={(event) => dispatch({ kind: 'editor', event })}

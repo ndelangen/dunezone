@@ -16,7 +16,6 @@ import { useReducer, useState } from 'react';
 import { useAuthoringAccountKey } from '@db/authoring';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import type { PickedBackDeck } from '@app/pickers/DeckBackPicker';
@@ -28,13 +27,7 @@ import type { DeckChapter, DeckDraft, DeckMemory, DeckWarning } from '@app/widge
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
-import {
-  AssetEditChecks,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 import { LoadedDeckDraft } from '../../../loadedDrafts';
 
 /**
@@ -284,18 +277,10 @@ function DeckEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject="deck" error={updateAsset.error} />
-          {deletion.error ? (
-            <ActionError subject="Deck" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject="deck" error={updateAsset.error} />
+          <ActionError subject="Deck" verb="delete" error={deletion.error} />
           {groupActions.error}
-          {setCount.error ? (
-            <ActionError subject="deck composition" verb="change">
-              {mutationErrorMessage(setCount.error)}
-            </ActionError>
-          ) : null}
+          <ActionError subject="deck composition" verb="change" error={setCount.error} />
           {state.memory.pickBlocked && pickless ? (
             <Notice tone="caution" title="No deck picked" live>
               Pick a deck whose cardback this one wears, or choose another back mode.

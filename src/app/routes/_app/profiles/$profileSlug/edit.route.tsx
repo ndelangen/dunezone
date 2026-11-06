@@ -6,8 +6,8 @@ import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -314,11 +314,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     );
   };
 
-  const panelError = mutationError ? (
-    <ActionError subject="Profile" verb="save">
-      {mutationError}
-    </ActionError>
-  ) : null;
+  const panelError = <ActionError subject="Profile" verb="save" error={mutationError} />;
 
   const tabs = [
     {
@@ -682,11 +678,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
           Profile merge in progress. Sign-in methods are locked.
         </StatusBadge>
       )}
-      {state.error && (
-        <ActionError subject="Sign-in methods" verb="change">
-          {state.error}
-        </ActionError>
-      )}
+      <ActionError subject="Sign-in methods" verb="change" error={state.error} />
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(

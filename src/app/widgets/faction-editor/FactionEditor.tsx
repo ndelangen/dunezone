@@ -79,9 +79,7 @@ export const FactionEditor = forwardRef<FactionAuthoringViewHandle, FactionEdito
       <div className={styles.root}>
         <Stack gap="sm">
           {errors.map((error) => (
-            <ActionError subject="Faction" verb="save" key={error}>
-              {error}
-            </ActionError>
+            <ActionError subject="Faction" verb="save" key={error} error={error} />
           ))}
         </Stack>
 

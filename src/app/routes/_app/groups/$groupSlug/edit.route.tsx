@@ -131,11 +131,7 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
                 />
               )}
             />
-            {mutationError ? (
-              <ActionError subject="Group" verb="save">
-                {mutationError}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Group" verb="save" error={mutationError} />
           </Stack>
         </Surface>
       </PageLayout.Content>

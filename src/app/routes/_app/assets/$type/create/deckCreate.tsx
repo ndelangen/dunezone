@@ -1,5 +1,6 @@
 import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
@@ -30,7 +31,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
-import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, assetNameField } from '../../assetEditorStates';
 import { LoadedDeckDraft } from '../../loadedDrafts';
 
 /**
@@ -202,7 +203,7 @@ export function DeckCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert subject="deck" verb="create" error={createAsset.error} />
+            <ActionError subject="deck" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
               <Notice tone="caution" title="No deck picked" live>
                 Pick a deck whose cardback this one wears, or choose another back mode.

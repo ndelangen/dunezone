@@ -2,7 +2,6 @@ import { Group, Stack, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
-import type { FailedAction } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { HoldAction } from '@ui/control/HoldAction';
@@ -14,7 +13,6 @@ import type { z } from 'zod';
 
 import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { NotFoundState } from '@app/routes/routeStates';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -121,11 +119,7 @@ function DriftedAssetPage({
           <Text size="sm" c="dimmed">
             Deleting it is still open to you. The drifted data blocks the editor, not the delete.
           </Text>
-          {deletion.error ? (
-            <ActionError subject={noun} verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject={noun} verb="delete" error={deletion.error} />
           <Group>
             <HoldAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
@@ -210,11 +204,7 @@ export function useAssetGroupActions({
   return {
     accessActions,
     status: groupAccessStatus(assignedGroup?.name ?? null),
-    error: setAssetGroup.error ? (
-      <ActionError subject="Group assignment" verb="change">
-        {setAssetGroup.error.message}
-      </ActionError>
-    ) : null,
+    error: <ActionError subject="Group assignment" verb="change" error={setAssetGroup.error} />,
   };
 }
 
@@ -244,30 +234,6 @@ export function assetNameField({
         </Text>
       )}
     </Stack>
-  );
-}
-
-/**
- * The alert under a failed save, once for every editor organ.
- * It replaced ten hand-written copies of the same Alert, whose only drift risk was exactly the ConvexError unwrap it applies.
- */
-export function SaveErrorAlert({
-  error,
-  subject,
-  verb = 'save',
-}: {
-  error: Error | null;
-  /** What was being saved, as the title names it: "deck", "preset". */
-  subject: string;
-  verb?: FailedAction;
-}) {
-  if (!error) {
-    return null;
-  }
-  return (
-    <ActionError subject={subject} verb={verb}>
-      {mutationErrorMessage(error)}
-    </ActionError>
   );
 }
 

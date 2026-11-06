@@ -95,11 +95,7 @@ function PublicationJobsDashboard() {
                 />
               </Group>
 
-              {pickupMutation.isError ? (
-                <ActionError subject="publisher pickup" verb="update">
-                  {pickupMutation.error?.message || 'Try again in a moment.'}
-                </ActionError>
-              ) : null}
+              <ActionError subject="publisher pickup" verb="update" error={pickupMutation.error} />
 
               <Group gap="xl" align="flex-start" wrap="wrap">
                 <Count label="Pending" value={result.counts.pending} tone="pending" />

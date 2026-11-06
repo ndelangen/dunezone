@@ -760,11 +760,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {remove.error ? (
-              <ActionError subject="Rulebook" verb="delete">
-                {remove.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Rulebook" verb="delete" error={remove.error} />
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}

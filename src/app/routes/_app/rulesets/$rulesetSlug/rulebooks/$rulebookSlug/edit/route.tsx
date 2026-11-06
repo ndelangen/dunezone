@@ -84,8 +84,8 @@ import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -2276,13 +2276,7 @@ function RulebookWorkspace({
                     );
                   })}
                   <NestedTabs.Tools>
-                    <HoldAction
-                      key={page.id}
-                      label="Delete Page"
-                      size="sm"
-                      pending={false}
-                      onConfirm={deletePage}
-                    />
+                    <HoldAction key={page.id} label="Delete Page" size="sm" pending={false} onConfirm={deletePage} />
                     <AddMenu
                       label="Add Block"
                       values={availableBlockKinds}
@@ -2811,11 +2805,7 @@ function RulebookRename({
           />
         )}
       />
-      {rename.error ? (
-        <ActionError subject="Rulebook" verb="rename">
-          {rename.error.message}
-        </ActionError>
-      ) : null}
+      <ActionError subject="Rulebook" verb="rename" error={rename.error} />
       <Group gap="xs">
         <LabeledAction
           type="submit"
@@ -3410,7 +3400,8 @@ function RulebookEditorSession({
                     </Toolbar.Cluster>
                     <Toolbar.Cluster kind="commit">
                       {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-                      <HoldAction verb="publish"
+                      <HoldAction
+                        verb="publish"
                         label={`Publish Edition ${nextEditionNumber}`}
                         pending={publishMutation.isPending}
                         disabledReason={publishBlocker}
@@ -3478,11 +3469,7 @@ function RulebookEditorSession({
           {result.operationError ? (
             <FormError title="That change was not made">{result.operationError}</FormError>
           ) : null}
-          {publishMutation.error ? (
-            <ActionError subject="Edition" verb="publish">
-              {publishMutation.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Edition" verb="publish" error={publishMutation.error} />
           {view.notice === 'stale' ? (
             <Notice tone="caution" live>
               Another editor saved first. Your changes are still here.{' '}

@@ -799,11 +799,7 @@ function LoadedAssetDetail({
                 />
               ) : null}
               {capabilities.delete ? (
-                <HoldAction
-                  label={`Delete ${asset.name}`}
-                  pending={deletion.pending}
-                  onConfirm={deletion.confirm}
-                />
+                <HoldAction label={`Delete ${asset.name}`} pending={deletion.pending} onConfirm={deletion.confirm} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -813,16 +809,8 @@ function LoadedAssetDetail({
       <PageLayout.Content>
         <Stack gap="xl">
           {groupActions.error}
-          {conversion.error ? (
-            <ActionError subject="Card" verb="convert">
-              {conversion.error.message}
-            </ActionError>
-          ) : null}
-          {deletion.error ? (
-            <ActionError subject="Asset" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Card" verb="convert" error={conversion.error} />
+          <ActionError subject="Asset" verb="delete" error={deletion.error} />
           {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>

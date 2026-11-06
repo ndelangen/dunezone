@@ -32,13 +32,7 @@ import type {
   RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import {
-  AssetEditChecks,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 import { LoadedRectangleDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedRectangleBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
@@ -242,12 +236,8 @@ function RectangleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject="token" error={updateAsset.error} />
-          {deletion.error ? (
-            <ActionError subject="Token" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject="token" error={updateAsset.error} />
+          <ActionError subject="Token" verb="delete" error={deletion.error} />
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
             <Notice tone="caution" title="No token picked" live>

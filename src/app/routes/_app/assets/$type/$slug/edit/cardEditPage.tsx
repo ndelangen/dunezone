@@ -15,7 +15,7 @@ import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 
-import { AssetEditChecks, SaveErrorAlert, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
 import type { AssetEditAccess, AssetEditChecksProps } from '../../../assetEditorStates';
 
 /* What the card edit page is built from: the checks before a session opens, the save, and the page around the workbench; `CardTypeEditPage` holds the session. */
@@ -162,12 +162,8 @@ export function CardEditFrame<Draft extends { name: string }>({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject={assetNoun(type)} error={saveError} />
-          {deletion.error ? (
-            <ActionError subject={assetNoun(type)} verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject={assetNoun(type)} error={saveError} />
+          <ActionError subject={assetNoun(type)} verb="delete" error={deletion.error} />
           {groupActions.error}
           {children}
         </WorkbenchLayout>

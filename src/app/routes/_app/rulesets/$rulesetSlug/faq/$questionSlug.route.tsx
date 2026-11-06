@@ -8,7 +8,6 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
@@ -16,10 +15,10 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -306,11 +305,11 @@ function FaqDetailPage() {
                     ? 'Accepted answer first. Other answers run from oldest to newest.'
                     : 'Answers run from oldest to newest.'}
                 </Text>
-                {faq.setAcceptedAnswer.error || faq.deleteAnswer.error ? (
-                  <ActionError subject="Answer" verb="update">
-                    {errorMessage(faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error)}
-                  </ActionError>
-                ) : null}
+                <ActionError
+                  subject="Answer"
+                  verb="update"
+                  error={faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error}
+                />
                 {answers.length ? (
                   <ul className={styles.answerList}>
                     {answers.map((answer) => (
@@ -425,11 +424,7 @@ function FaqAnswerPost({
                   />
                 )}
               />
-              {faq.editAnswer.error ? (
-                <ActionError subject="Answer" verb="save">
-                  {faq.editAnswer.error.message}
-                </ActionError>
-              ) : null}
+              <ActionError subject="Answer" verb="save" error={faq.editAnswer.error} />
               <FaqEditorActions
                 name="answer"
                 dirty={editing.answerValue.trim() !== answer.text}
@@ -559,7 +554,12 @@ function FaqPostActions({
         {onDelete ? (
           <>
             {onEdit || onUnmark ? <Menu.Divider /> : null}
-            <HoldAction shape="menu-item" label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
+            <HoldAction
+              shape="menu-item"
+              label={`Hold to delete ${name}`}
+              pending={deletePending}
+              onConfirm={onDelete}
+            />
           </>
         ) : null}
       </Menu.Dropdown>
@@ -662,11 +662,7 @@ function FaqQuestionPost({
                 · {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
               </Text>
             </Group>
-            {faq.deleteQuestion.error ? (
-              <ActionError subject="Question" verb="delete">
-                {faq.deleteQuestion.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Question" verb="delete" error={faq.deleteQuestion.error} />
             {editing.editingQuestion ? (
               <FaqQuestionEditor faq={faq} editing={editing} editingSession={editingSession} />
             ) : item.text.trim() !== questionHeading ? (
@@ -704,11 +700,7 @@ function FaqQuestionEditor({ faq, editing, editingSession }: FaqPostEditing) {
         )}
       />
       <FaqTagFieldset value={editing.tagValues} onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)} />
-      {faq.editQuestion.error ? (
-        <ActionError subject="Question" verb="save">
-          {faq.editQuestion.error.message}
-        </ActionError>
-      ) : null}
+      <ActionError subject="Question" verb="save" error={faq.editQuestion.error} />
       <FaqEditorActions
         name="question"
         dirty={faqQuestionHasChanges(item, editing)}
@@ -880,11 +872,7 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
                 void faq.addReference.run(target).catch(() => undefined);
               }}
             />
-            {faq.addReference.error ? (
-              <ActionError subject="reference" verb="add">
-                {errorMessage(faq.addReference.error)}
-              </ActionError>
-            ) : null}
+            <ActionError subject="reference" verb="add" error={faq.addReference.error} />
           </Stack>
         ) : null}
       </Popover.Dropdown>
@@ -925,9 +913,5 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
 }
 
 function FaqReferenceError({ faq }: { faq: FaqQuestionCommands }) {
-  return faq.addReference.error || faq.removeReference.error ? (
-    <ActionError subject="references" verb="update">
-      {errorMessage(faq.addReference.error ?? faq.removeReference.error)}
-    </ActionError>
-  ) : null;
+  return <ActionError subject="references" verb="update" error={faq.addReference.error ?? faq.removeReference.error} />;
 }

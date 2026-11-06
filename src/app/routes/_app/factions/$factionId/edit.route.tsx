@@ -248,11 +248,7 @@ function FactionEditPage() {
                 {routeNotice.message}
               </Notice>
             ) : null}
-            {deleteFaction.error ? (
-              <ActionError subject="Faction" verb="delete">
-                {deleteFaction.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
             <FactionEditor
               nameField={nameField}
               key={faction._id}

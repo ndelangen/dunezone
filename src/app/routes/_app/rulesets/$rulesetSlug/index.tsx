@@ -647,11 +647,7 @@ function RulesetDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {actionVisibility.canDelete ? (
-                <HoldAction
-                  label="Delete ruleset"
-                  pending={deleteRuleset.isPending}
-                  onConfirm={handleDelete}
-                />
+                <HoldAction label="Delete ruleset" pending={deleteRuleset.isPending} onConfirm={handleDelete} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -666,11 +662,7 @@ function RulesetDetailPage() {
                   {routeNotice.message}
                 </Notice>
               ) : null}
-              {mutationError ? (
-                <ActionError subject="The change" verb="save">
-                  {mutationError}
-                </ActionError>
-              ) : null}
+              <ActionError subject="The change" verb="save" error={mutationError} />
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">
