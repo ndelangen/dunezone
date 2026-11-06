@@ -120,7 +120,7 @@ export function TerritoryTintsPanel({
                 key={removalAttempt}
                 label={`Remove ${tint.name}`}
                 verb="remove"
-                size="sm"
+                size="md"
                 pending={false}
                 disabled={!canEdit}
                 onConfirm={() => onRemove(tint.id)}

@@ -1,7 +1,8 @@
-import { Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES } from '@shared/assets/types';
 import { FACTION_EXTRA_TYPES, factionExtraKey } from '@shared/factions/extras';
 import type { FactionExtra } from '@shared/factions/extras';
+import { HelpMark } from '@ui/content/HelpMark';
 
 import { AssetListPicker } from '@app/pickers/AssetListPicker';
 
@@ -31,16 +32,16 @@ function ExtraLabel({ extra }: { extra: FactionExtra }) {
 export function FactionFormSectionExtras({ form }: { form: FactionFormApi }) {
   return (
     <Stack component="section" gap="md" aria-labelledby="extras-heading">
-      <Stack gap="xs">
+      <Group gap={6} wrap="nowrap">
         <Text id="extras-heading" fw={700} size="lg">
           Faction Extras
         </Text>
-        <Text c="dimmed" size="sm">
-          Any cards, tokens, decks or bundles from the catalogue that this faction adds to its hand at setup. A deck or
-          bundle brings its own counts; a single card or token is one piece, and a single card wears the back of the
-          deck that holds it. Each Extra is listed once.
-        </Text>
-      </Stack>
+        <HelpMark
+          text={
+            'Catalogue cards, tokens, decks or bundles this faction adds at setup.\nA deck or bundle brings its own counts; a single card or token is one piece.\nA single card wears the back of the deck that holds it. Each Extra is listed once.'
+          }
+        />
+      </Group>
       <form.Field name="extras">
         {(field) => (
           <AssetListPicker

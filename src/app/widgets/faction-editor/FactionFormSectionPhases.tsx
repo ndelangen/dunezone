@@ -11,6 +11,7 @@ import {
 import type { PhaseDeclaration, PhaseTarget } from '@shared/factions/extraPhases';
 import { TABLE_PHASES } from '@shared/play/phases';
 import { Notice } from '@ui/block/Notice';
+import { HelpMark } from '@ui/content/HelpMark';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -236,16 +237,14 @@ export function FactionFormSectionPhases({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
   return (
     <Stack component="section" gap="md" aria-labelledby="phases-heading">
-      <Stack gap="xs">
+      <Group gap={6} wrap="nowrap">
         <Text id="phases-heading" fw={700} size="lg">
           Faction phases
         </Text>
-        <Text c="dimmed" size="sm">
-          Phases this faction adds to the game. A phase before a setup step runs once; a phase before a turn phase runs
-          every turn. Phases before the same step run by priority, then in storm order between factions, then in this
-          list&apos;s order. Priority {DEFAULT_PHASE_PRIORITY} is the default.
-        </Text>
-      </Stack>
+        <HelpMark
+          text={`Phases this faction adds to the game.\nBefore a setup step: runs once. Before a turn phase: runs every turn.\nSame step: by priority, then storm order, then this list's order.\nPriority ${DEFAULT_PHASE_PRIORITY} is the default.`}
+        />
+      </Group>
 
       <form.Field name="extraPhases" mode="array">
         {(field) => {

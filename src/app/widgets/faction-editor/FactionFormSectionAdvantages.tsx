@@ -1,6 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import { Box, Group, Stack, Text, TextInput } from '@mantine/core';
 import { Notice } from '@ui/block/Notice';
+import { HelpMark } from '@ui/content/HelpMark';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -109,14 +110,14 @@ export function FactionFormSectionAdvantages({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
   return (
     <Stack component="section" gap="md" aria-labelledby="advantages-heading">
-      <Stack gap="xs">
+      <Group gap={6} wrap="nowrap">
         <Text id="advantages-heading" fw={700} size="lg">
           Faction advantages
         </Text>
-        <Text c="dimmed" size="sm">
-          Advantages appear in this order in faction rules output. Titles and Karama interactions are optional.
-        </Text>
-      </Stack>
+        <HelpMark
+          text={'Advantages appear in this order in the faction rules.\nTitles and Karama interactions are optional.'}
+        />
+      </Group>
 
       <form.Field name="rules.advantages" mode="array">
         {(field) => {

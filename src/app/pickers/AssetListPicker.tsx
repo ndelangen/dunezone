@@ -1,8 +1,8 @@
 import { Group, NativeSelect, Popover, Stack, Text } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { IconAction } from '@ui/control/IconAction';
-import { LabeledAction } from '@ui/control/LabeledAction';
-import { Plus, X } from 'lucide-react';
+import { AddAction } from '@ui/control/ListLengthActions';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAssetsByReference } from '@app/db/assets';
@@ -120,14 +120,7 @@ export function AssetListPicker({ value, types, defaultType, copy, onChange }: A
           returnFocus
         >
           <Popover.Target>
-            <LabeledAction
-              intent="positive"
-              size="compact-sm"
-              icon={<Plus size={14} />}
-              onClick={() => setPicking((open) => !open)}
-            >
-              {copy.addLabel}
-            </LabeledAction>
+            <AddAction label={copy.addLabel} onClick={() => setPicking((open) => !open)} />
           </Popover.Target>
           <Popover.Dropdown>
             <Stack gap="sm">
