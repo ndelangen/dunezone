@@ -2607,7 +2607,9 @@ function RulebookDifferenceReview({
   return (
     <Section
       title="Review differences"
-      help="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
+      help={
+        'Choose which version to keep.\nYou can return to editing at any time; Save waits until every difference is reviewed.'
+      }
       action={
         <LabeledAction icon={<ArrowLeft size={16} />} onClick={onClose}>
           Back to editing

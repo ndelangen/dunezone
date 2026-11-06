@@ -102,7 +102,7 @@
               {
                 "group": ["@mantine/core"],
                 "importNames": ["Title"],
-                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting."
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
               },
               {
                 "group": ["@mantine/core"],
@@ -299,7 +299,7 @@
               {
                 "group": ["@mantine/core"],
                 "importNames": ["Title"],
-                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting."
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
               },
               {
                 "group": ["@mantine/core"],
@@ -379,7 +379,7 @@
               {
                 "group": ["@mantine/core"],
                 "importNames": ["Title"],
-                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting."
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
               },
               {
                 "group": ["@mantine/core"],

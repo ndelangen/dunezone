@@ -32,9 +32,14 @@ import type {
   RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
 
-import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
+import {
+  AssetEditChecks,
+  SaveErrorAlert,
+  useAssetDeletion,
+  useAssetGroupActions,
+  assetNameField,
+} from '../../../assetEditorStates';
 import { LoadedRectangleDraft, tokenLoad } from '../../../loadedDrafts';
-import { AssetEditChecks } from './cardEditPage';
 import { referencedRectangleBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
 

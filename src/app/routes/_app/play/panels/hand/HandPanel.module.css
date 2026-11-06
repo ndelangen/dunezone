@@ -17,6 +17,7 @@
   flex-basis: 100%;
 }
 
+/* Not an Eyebrow: the caption carries a count after its label, and Eyebrow takes only words. */
 .caption {
   text-transform: uppercase;
   color: var(--ink-dim);

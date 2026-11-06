@@ -230,8 +230,7 @@ function PublicationJobsDashboard() {
   );
 }
 
-/* The same three meanings the job badges carry, at the tally's own size. */
-
+/* The same three meanings the job badges carry, under a caption naming the tally. */
 function Count({ label, value, tone }: { label: string; value: number; tone: 'pending' | 'progress' | 'negative' }) {
   return (
     <div>

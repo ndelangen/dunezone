@@ -165,7 +165,7 @@ function InitializePresets() {
         >
           Import DB designs and recapture
         </LabeledAction>
-        <SaveErrorAlert subject="design library" error={initialize.error} />
+        <SaveErrorAlert subject="designs" verb="import" error={initialize.error} />
       </Stack>
     </PageMessage>
   );

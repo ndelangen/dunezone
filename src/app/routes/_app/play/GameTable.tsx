@@ -489,10 +489,11 @@ function SpiceBankControls() {
   const canSpawn = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
   const { spawnSpice } = useTabletopCommands();
   return (
-    <Section
-      title="Spice Bank"
-      help="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
-    >
+    <Section title="Spice Bank">
+      <Text size="sm" c="dimmed">
+        Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc
+        to return it to the Spice Bank.
+      </Text>
       <Group gap="xs" role="group" aria-label="Spawn spice">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
           <Button

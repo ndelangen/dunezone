@@ -24,9 +24,14 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
-import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
+import {
+  AssetEditChecks,
+  SaveErrorAlert,
+  useAssetDeletion,
+  useAssetGroupActions,
+  assetNameField,
+} from '../../../assetEditorStates';
 import { LoadedTokenDraft, tokenLoad } from '../../../loadedDrafts';
-import { AssetEditChecks } from './cardEditPage';
 import { referencedTokenBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
 

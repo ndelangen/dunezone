@@ -2,7 +2,7 @@ import { FormError } from './FormError';
 import type { FormErrorProps } from './FormError';
 
 /** What the reader tried to do to the thing, as a verb. */
-type FailedAction =
+export type FailedAction =
   | 'save'
   | 'create'
   | 'delete'
@@ -16,7 +16,8 @@ type FailedAction =
   | 'clear'
   | 'ask'
   | 'merge'
-  | 'store';
+  | 'store'
+  | 'import';
 
 const DONE: Record<FailedAction, string> = {
   save: 'saved',
@@ -33,6 +34,7 @@ const DONE: Record<FailedAction, string> = {
   ask: 'asked',
   merge: 'merged',
   store: 'stored',
+  import: 'imported',
 };
 
 export interface ActionErrorProps extends Pick<FormErrorProps, 'action'> {

@@ -23,8 +23,13 @@ import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/w
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
-import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
-import { AssetEditChecks } from './cardEditPage';
+import {
+  AssetEditChecks,
+  SaveErrorAlert,
+  useAssetDeletion,
+  useAssetGroupActions,
+  assetNameField,
+} from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
 const TOKEN_TYPES = ASSET_TYPE_KEYS.filter(holdsBundleMembership);

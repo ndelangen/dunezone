@@ -28,9 +28,14 @@ import type { DeckChapter, DeckDraft, DeckMemory, DeckWarning } from '@app/widge
 import { deckDraftWarnings, DeckEditor, initialDeckMemory } from '@app/widgets/deck-editor/DeckEditor';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
-import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
+import {
+  AssetEditChecks,
+  SaveErrorAlert,
+  useAssetDeletion,
+  useAssetGroupActions,
+  assetNameField,
+} from '../../../assetEditorStates';
 import { LoadedDeckDraft } from '../../../loadedDrafts';
-import { AssetEditChecks } from './cardEditPage';
 
 /**
  * Every card type a deck may hold, derived so it grows with the registry rather than with this file.

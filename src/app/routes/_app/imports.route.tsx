@@ -199,7 +199,9 @@ function ImportExportPage() {
             {state.error && <FormError title="Could not finish">{state.error}</FormError>}
             <Section
               title="Import a package"
-              help="Choose a JSON file or paste its contents. Preview checks the format, destination and proposed changes."
+              help={
+                'Choose a JSON file or paste its contents.\nPreview checks the format, destination and proposed changes.'
+              }
             >
               <Surface>
                 <Stack gap="md">
@@ -332,7 +334,9 @@ function ImportExportPage() {
             )}
             <Section
               title="Export a record"
-              help="Export a saved Rulebook draft, faction or asset for review and editing. The download lists any references that need binding before use elsewhere."
+              help={
+                'Export a saved Rulebook draft, faction or asset for review and editing.\nThe download lists any references that need binding before use elsewhere.'
+              }
             >
               <Surface>
                 <Stack gap="md">

@@ -106,6 +106,7 @@
   padding-top: var(--mantine-spacing-md);
 }
 
+/* Not an Eyebrow: the caption carries a count after its label, and Eyebrow takes only words. */
 .rowLabel {
   text-transform: uppercase;
   color: var(--ink-dim);

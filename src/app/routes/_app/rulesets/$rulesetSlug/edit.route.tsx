@@ -997,7 +997,9 @@ function RulesetAssetSlots({
   return (
     <Section
       title="Board, decks and bundles"
-      help="What this ruleset puts on the table. Choose a board to make it available for Play. Any deck may fill any deck slot."
+      help={
+        'What this ruleset puts on the table.\nChoose a board to make it available for Play. Any deck may fill any deck slot.'
+      }
     >
       {setSlot.error ? (
         <ActionError subject="Slot" verb="fill">

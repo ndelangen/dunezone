@@ -24,10 +24,10 @@ import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from '@app/w
 import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 
 import { assetNameField } from '../../assetEditorStates';
+import type { AssetEditSessionProps } from '../../assetEditorStates';
 import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
 import { SpiceBoardRead, spiceBoardSelect } from '../../spiceCardBoard';
 import { CardEditGate } from './edit/cardEditPage';
-import type { AssetEditSessionProps } from './edit/cardEditPage';
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/convert-to-spice')({
   loader: async ({ params }) => {

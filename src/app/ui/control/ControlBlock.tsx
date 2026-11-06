@@ -41,6 +41,13 @@ export function ControlBlock({ title, description, warning, tool, input, inputId
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
   const warningId = `${id}-warning`;
+  const describedBy: string[] = [];
+  if (description) {
+    describedBy.push(descriptionId);
+  }
+  if (warning) {
+    describedBy.push(warningId);
+  }
   const field: ControlField = {
     id: inputId ?? `${id}-input`,
     'aria-labelledby': titleId,
@@ -51,7 +58,7 @@ export function ControlBlock({ title, description, warning, tool, input, inputId
     <Stack
       role="group"
       aria-labelledby={titleId}
-      aria-describedby={[description ? descriptionId : '', warning ? warningId : ''].join(' ').trim() || undefined}
+      aria-describedby={describedBy.length > 0 ? describedBy.join(' ') : undefined}
       gap={6}
     >
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">

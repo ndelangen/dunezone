@@ -294,15 +294,12 @@ function FaqDetailPage() {
             />
             <FaqContext faq={faq} />
             <div className={styles.answers}>
-              <Section
-                title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`}
-                id="discussion"
-                help={
-                  hasAcceptedAnswer
+              <Section title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`} id="discussion">
+                <Text size="sm" c="dimmed">
+                  {hasAcceptedAnswer
                     ? 'Accepted answer first. Other answers run from oldest to newest.'
-                    : 'Answers run from oldest to newest.'
-                }
-              >
+                    : 'Answers run from oldest to newest.'}
+                </Text>
                 {faq.setAcceptedAnswer.error || faq.deleteAnswer.error ? (
                   <ActionError subject="Answer" verb="update">
                     {errorMessage(faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error)}

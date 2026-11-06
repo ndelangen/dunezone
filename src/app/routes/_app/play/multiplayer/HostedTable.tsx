@@ -135,13 +135,12 @@ function seatLabel(table: TableProjection): string {
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
-    <Section
-      hiddenHeading={Boolean(table.snapshot.stage)}
-      eyebrow="Hosted fixture"
-      title="Hosted connection"
-      help={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
-    >
+    <Section hiddenHeading={Boolean(table.snapshot.stage)} eyebrow="Hosted fixture" title="Hosted connection">
       <Stack gap="sm">
+        <Text
+          size="sm"
+          c="dimmed"
+        >{`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}</Text>
         {error && <FormError title="From the table">{error}</FormError>}
         <ConnectedReplayPanel client={client} table={table} />
       </Stack>

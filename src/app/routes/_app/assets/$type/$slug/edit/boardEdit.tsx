@@ -21,9 +21,8 @@ import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 
-import { useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
-import { AssetEditChecks } from './cardEditPage';
-import type { AssetEditSessionProps } from './cardEditPage';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
+import type { AssetEditSessionProps } from '../../../assetEditorStates';
 
 type Draft = Omit<BoardAssetData, 'name'> & { name: string };
 type State = { draft: Draft; baseline: Draft; editor: BoardEditorState };

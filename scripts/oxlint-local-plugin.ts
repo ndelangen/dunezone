@@ -501,11 +501,12 @@ const noTitleTooltipRule: Rule = {
 
 const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
 
-/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and a ControlBlock's description, which its (?) shows. */
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and the help a ControlBlock or a Section shows behind its (?). */
 const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
   Tooltip: 'label',
   HelpMark: 'text',
   ControlBlock: 'description',
+  Section: 'help',
 };
 const TOOLTIP_LINE_MAX = 100;
 
@@ -770,6 +771,8 @@ const EYEBROW_RULE_NAME = 'eyebrow';
  * Keeps every small capitals caption on the kit's Eyebrow, which owns its size, weight, spacing and tone.
  * Hand-made `tt="uppercase"` captions had drifted to four weights and three letter spacings.
  * Printed sheet typography sets its capitals in its own CSS module instead.
+ * The rule reads only `tt="uppercase"` on Mantine `Text`;
+ * a CSS module's `text-transform` is out of its reach, so such a caption carries a comment naming why it is not an Eyebrow.
  */
 const eyebrowRule: Rule = {
   meta: {
