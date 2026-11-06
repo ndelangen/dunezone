@@ -168,7 +168,7 @@ function ReviewHeading({
           />
         </Group>
       </Group>
-      <Notice tone="caution" title="Share the faction URL, not a screenshot">
+      <Notice tone="info" title="Share the faction URL, not a screenshot">
         Save this draft first, then share its canonical faction URL so everyone reaches the published version.
       </Notice>
     </Stack>

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
  * the colour and glyph follow from it, never the other way round.
  * A failure is not a tone here: an attempt that did not happen is a `FormError`.
  */
-export type NoticeTone = 'neutral' | 'caution' | 'positive' | 'info';
+type NoticeTone = 'neutral' | 'caution' | 'positive' | 'info';
 
 const TONE: Record<NoticeTone, { color: string; icon: ReactNode }> = {
   /* An optional part left empty, or a choice about to replace what is there. */
