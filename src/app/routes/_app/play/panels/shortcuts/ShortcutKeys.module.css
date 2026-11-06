@@ -29,20 +29,20 @@
   text-underline-offset: 3px;
 }
 
-/* Each group takes one of the palette's colour roles, for its caps' edge and its headings. */
-[data-group="windows"] {
+/* Each group takes one of the palette's colour roles, for its caps' edge and its headings; scoped to .tinted so other data-group marks stay untouched. */
+.tinted[data-group="windows"] {
   --group: var(--color-brand);
 }
 
-[data-group="view"] {
+.tinted[data-group="view"] {
   --group: var(--color-progress);
 }
 
-[data-group="pieces"] {
+.tinted[data-group="pieces"] {
   --group: var(--color-positive);
 }
 
-[data-group="bidding"] {
+.tinted[data-group="bidding"] {
   --group: var(--color-publish);
 }
 

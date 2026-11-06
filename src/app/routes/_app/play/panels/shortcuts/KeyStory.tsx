@@ -1,7 +1,9 @@
+import clsx from 'clsx';
+
 import { SITUATION_LABEL, isNow } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyStory.module.css';
-import { Keys, Word } from './ShortcutKeys';
+import { Keys, Word, tinted } from './ShortcutKeys';
 
 /** One key's story: what it does, its word with the letter lit, and why it sits where it does. */
 export function KeyStory({
@@ -16,7 +18,7 @@ export function KeyStory({
 }>) {
   return (
     <li
-      className={styles.story}
+      className={clsx(styles.story, tinted)}
       data-group={entry.group}
       data-now={isNow(entry, now) || undefined}
       data-lit={lit || undefined}

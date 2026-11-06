@@ -5,14 +5,17 @@ import { CompassTableContext } from '../../compass/compassTable';
 import type { Now } from './keyboardShortcuts';
 import { KeyboardShortcutsPanel } from './KeyboardShortcutsPanel';
 
-/** What holds at the table for the viewer: carrying a piece, a piece under the pointer or selected, and the Bidding phase. */
+/**
+ * What holds at the table for the viewer: carrying a piece, a piece under the pointer, selected or carried, and the Bidding phase.
+ * A carried piece still answers the piece keys, as the table flips and turns the carried piece first.
+ */
 function useShortcutMoment(): readonly Now[] {
   const carrying = useTabletopSelector((table) => table.state.draftMove != null);
   const onPiece = useTabletopSelector((table) => table.hoveredPieceId != null || table.selectedPiece != null);
   const bidding = use(CompassTableContext)?.token?.inBidding === true;
   return [
     ...(carrying ? (['carrying'] as const) : []),
-    ...(onPiece && !carrying ? (['piece'] as const) : []),
+    ...(onPiece || carrying ? (['piece'] as const) : []),
     ...(bidding ? (['bidding'] as const) : []),
   ];
 }

@@ -1,10 +1,11 @@
 import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
+import clsx from 'clsx';
 
 import { SITUATION_LABEL, entriesForCap, isNow, meaningNow } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyMap.module.css';
-import { PressFlash } from './ShortcutKeys';
+import { PressFlash, tinted } from './ShortcutKeys';
 import type { Pressed } from './usePressedKey';
 
 /* The keyboard, as far as the table uses it; a number is how many key widths a wide key takes, and '' is an unused gap. */
@@ -47,7 +48,7 @@ function KeyTip({ keyName, now }: Readonly<{ keyName: string; now: readonly Now[
       {entriesForCap(keyName)
         .toSorted((a, b) => Number(isNow(b, now)) - Number(isNow(a, now)))
         .map((entry) => (
-          <span key={entry.id} className={styles.tipLine} data-group={entry.group}>
+          <span key={entry.id} className={clsx(styles.tipLine, tinted)} data-group={entry.group}>
             <b className={styles.tipAction}>{entry.action}</b>
             <span className={styles.tipWhen}>{isNow(entry, now) ? 'Now' : SITUATION_LABEL[entry.when]}</span>
             {(entry.hook ?? entry.detail) && <span className={styles.tipHook}>{entry.hook ?? entry.detail}</span>}
@@ -75,7 +76,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
     <Tooltip label={<KeyTip keyName={keyName} now={now} />} multiline maw={260} withArrow openDelay={120}>
       <button
         type="button"
-        className={styles.key}
+        className={clsx(styles.key, tinted)}
         style={{ flexGrow: width }}
         data-group={shown.group}
         data-state={state}
@@ -85,7 +86,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
         onFocus={() => onFocus(keyName)}
         onClick={() => onFocus(keyName)}
       >
-        <PressFlash pressed={pressed} keyName={keyName}>
+        <PressFlash pressed={pressed} keys={[keyName]}>
           <Kbd>{keyName}</Kbd>
         </PressFlash>
         {/* Keyed by the meaning, so a key that changes meaning fades its new word in. */}

@@ -1,22 +1,22 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 
+import { isTypingTarget } from '../../typingTarget';
 import { capOfEvent } from './keyboardShortcuts';
 
 /** The last listed key pressed, with a count that changes on every press so a repeat replays its animation. */
 export type Pressed = Readonly<{ key: string; count: number }> | null;
 
-function typing(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select') !== null)
-  );
+/* A chord with Ctrl or Alt, unless it is that key itself, which the table answers to: the table ignores the chord too. */
+function chord(event: KeyboardEvent) {
+  return (event.ctrlKey && event.key !== 'Control') || (event.altKey && event.key !== 'Alt');
 }
 
-/* A held key's repeats, a Cmd chord and typing in a field light nothing. */
+/* A held key's repeats, a Cmd, Ctrl or Alt chord and typing in a field light nothing. */
 function ignored(event: KeyboardEvent) {
-  if (event.repeat || event.metaKey) {
+  if (event.repeat || event.metaKey || chord(event)) {
     return true;
   }
-  return typing(event.target);
+  return isTypingTarget(event.target);
 }
 
 /**

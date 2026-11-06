@@ -1,4 +1,5 @@
 import { IconAction } from '@ui/control/IconAction';
+import clsx from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
@@ -8,7 +9,7 @@ import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyboardShortcutsPanel.module.css';
 import { Caption, KeyMap } from './KeyMap';
 import { KeyStory } from './KeyStory';
-import { Keys, PressFlash } from './ShortcutKeys';
+import { Keys, PressFlash, tinted } from './ShortcutKeys';
 import { usePressedKey } from './usePressedKey';
 import type { Pressed } from './usePressedKey';
 
@@ -17,8 +18,8 @@ const WINDOWS = ['compass', 'hand', 'hidden', 'battle', 'table', 'ally'];
 
 function NowTile({ entry, pressed, index }: Readonly<{ entry: ShortcutEntry; pressed: Pressed; index: number }>) {
   return (
-    <li className={styles.tile} data-group={entry.group} style={{ animationDelay: `${index * 40}ms` }}>
-      <PressFlash pressed={pressed} keyName={entry.keys[0] ?? ''}>
+    <li className={clsx(styles.tile, tinted)} data-group={entry.group} style={{ animationDelay: `${index * 40}ms` }}>
+      <PressFlash pressed={pressed} keys={capsOf(entry)}>
         <span className={styles.big}>
           <Keys entry={entry} />
         </span>
@@ -31,19 +32,19 @@ function NowTile({ entry, pressed, index }: Readonly<{ entry: ShortcutEntry; pre
   );
 }
 
-/* Which ends of the row have more tiles past them, kept up to date as it scrolls or resizes. */
-function useOverflow(row: RefObject<HTMLUListElement | null>) {
+/* Which ends of the row have more tiles past them, kept up to date as it scrolls, resizes or its tiles change. */
+function useOverflow(row: RefObject<HTMLUListElement | null>, tiles: number) {
   const [more, setMore] = useState({ before: false, after: false });
   useEffect(() => {
     const element = row.current;
     if (!element) {
       return;
     }
-    const measure = () =>
-      setMore({
-        before: element.scrollLeft > 2,
-        after: element.scrollLeft + element.clientWidth < element.scrollWidth - 2,
-      });
+    const measure = () => {
+      const before = element.scrollLeft > 2;
+      const after = element.scrollLeft + element.clientWidth < element.scrollWidth - 2;
+      setMore((last) => (last.before === before && last.after === after ? last : { before, after }));
+    };
     measure();
     element.addEventListener('scroll', measure, { passive: true });
     const observer = new ResizeObserver(measure);
@@ -52,7 +53,7 @@ function useOverflow(row: RefObject<HTMLUListElement | null>) {
       element.removeEventListener('scroll', measure);
       observer.disconnect();
     };
-  }, [row]);
+  }, [row, tiles]);
   return more;
 }
 
@@ -66,7 +67,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
   const current = SHORTCUT_ENTRIES.filter((entry) => isNow(entry, now));
   const windows = WINDOWS.flatMap((id) => SHORTCUT_ENTRIES.filter((entry) => entry.id === id));
   const row = useRef<HTMLUListElement>(null);
-  const more = useOverflow(row);
+  const more = useOverflow(row, current.length);
   const page = (direction: 1 | -1) =>
     row.current?.scrollBy({ left: direction * row.current.clientWidth * 0.8, behavior: 'smooth' });
 
@@ -76,7 +77,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
         <p className={styles.eyebrow}>
           Right now · {now.length ? now.map((each) => SITUATION_LABEL[each]).join(', ') : 'At the table'}
         </p>
-        <div className={styles.rowFrame} data-before={more.before || undefined} data-after={more.after || undefined}>
+        <div className={styles.rowFrame}>
           <ul className={styles.row} ref={row}>
             {current.map((entry, index) => (
               <NowTile key={entry.id} entry={entry} pressed={pressed} index={index} />
@@ -102,7 +103,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
       <section aria-label="Whole keyboard" className={styles.keyboard}>
         <div className={styles.legend}>
           {GROUPS.map((group) => (
-            <span key={group.id} className={styles.chip} data-group={group.id}>
+            <span key={group.id} className={clsx(styles.chip, tinted)} data-group={group.id}>
               {group.short}
             </span>
           ))}
@@ -111,7 +112,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
       </section>
 
       {GROUPS.map((group) => (
-        <section key={group.id} aria-label={group.title} data-group={group.id} className={styles.group}>
+        <section key={group.id} aria-label={group.title} data-group={group.id} className={clsx(styles.group, tinted)}>
           <h3 className={styles.groupTitle}>{group.title}</h3>
           <ul className={styles.list}>
             {SHORTCUT_ENTRIES.filter((entry) => entry.group === group.id).map((entry) => (

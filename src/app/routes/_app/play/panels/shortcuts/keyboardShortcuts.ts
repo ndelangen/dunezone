@@ -11,8 +11,13 @@ import { TABLE_LABEL_OPTIONS } from '../../tableLabels';
 /** What a key is for: the window colours and groups the keys by it. */
 export type ShortcutGroupId = 'windows' | 'view' | 'pieces' | 'bidding';
 
-/** When a key answers: anywhere over the table, or only while something holds. */
-export type Situation = 'table' | 'piece' | 'carrying' | 'bidding' | 'spice';
+/** What the window can tell holds right now, so those keys come first: a piece under the pointer or carried, and the Bidding phase. */
+export type Now = 'piece' | 'carrying' | 'bidding';
+
+/**
+ * When a key answers: anywhere over the table, while something the window can see holds, or in a moment it only names: the pointer over the Spice Bank, or placing spice taken from the reserve with the keyboard.
+ */
+export type Situation = 'table' | Now | 'spice' | 'placing';
 
 export type ShortcutEntry = Readonly<{
   id: string;
@@ -43,13 +48,15 @@ export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; sho
   { id: 'bidding', title: 'Bidding', short: 'Bidding' },
 ];
 
-const SITUATIONS: readonly Readonly<{ id: Situation; label: string }>[] = [
-  { id: 'table', label: 'Anywhere over the table' },
-  { id: 'piece', label: 'Pointer over a piece' },
-  { id: 'carrying', label: 'Carrying a piece' },
-  { id: 'bidding', label: 'Bidding' },
-  { id: 'spice', label: 'Over the Spice Bank' },
-];
+/** The label of each situation. */
+export const SITUATION_LABEL: Readonly<Record<Situation, string>> = {
+  table: 'Anywhere over the table',
+  piece: 'Pointer over a piece',
+  carrying: 'Carrying a piece',
+  bidding: 'Bidding',
+  spice: 'Over the Spice Bank',
+  placing: 'Placing spice from your reserve',
+};
 
 const cap = (letter: string) => letter.toUpperCase();
 const [COUNTS, NAMES] = TABLE_LABEL_OPTIONS;
@@ -294,7 +301,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: ['←', '↑', '→', '↓'],
     action: 'Move spice you are placing',
     detail: 'Shift for small steps, Enter to put it down.',
-    when: 'carrying',
+    when: 'placing',
   },
   {
     id: 'raise',
@@ -358,19 +365,29 @@ function capOfKey(event: Pick<KeyboardEvent, 'key'>): string {
   return named[event.key] ?? (event.key.length === 1 ? event.key.toUpperCase() : event.key);
 }
 
+/* Each cap's entries, worked out once. */
+const BY_CAP = new Map<string, ShortcutEntry[]>();
+for (const entry of SHORTCUT_ENTRIES) {
+  for (const key of capsOf(entry)) {
+    BY_CAP.set(key, [...(BY_CAP.get(key) ?? []), entry]);
+  }
+}
+
 /** The cap a keyboard event stands for, or null for a key the sheet does not list. */
 export function capOfEvent(event: Pick<KeyboardEvent, 'key'>): string | null {
   const key = capOfKey(event);
-  return SHORTCUT_ENTRIES.some((entry) => capsOf(entry).includes(key)) ? key : null;
+  return BY_CAP.has(key) ? key : null;
 }
 
 /** The entries a cap stands in. */
-export function entriesForCap(key: string) {
-  return SHORTCUT_ENTRIES.filter((entry) => capsOf(entry).includes(key));
+export function entriesForCap(key: string): readonly ShortcutEntry[] {
+  return BY_CAP.get(key) ?? [];
 }
 
-/** What holds besides the table itself. */
-export type Now = Exclude<Situation, 'table'>;
+/** Whether an entry belongs to a situation that holds right now, rather than to the table at large. */
+export function isNow(entry: ShortcutEntry, now: readonly Now[]) {
+  return (now as readonly Situation[]).includes(entry.when);
+}
 
 /**
  * What a key does at this moment: what it does in a situation that holds wins, as a piece's own keys do over the table's;
@@ -379,19 +396,5 @@ export type Now = Exclude<Situation, 'table'>;
  */
 export function meaningNow(key: string, now: readonly Now[]): ShortcutEntry | null {
   const entries = entriesForCap(key);
-  return (
-    entries.find((entry) => entry.when !== 'table' && now.includes(entry.when)) ??
-    entries.find((entry) => entry.when === 'table') ??
-    null
-  );
+  return entries.find((entry) => isNow(entry, now)) ?? entries.find((entry) => entry.when === 'table') ?? null;
 }
-
-/** Whether an entry belongs to a situation that holds right now, rather than to the table at large. */
-export function isNow(entry: ShortcutEntry, now: readonly Now[]) {
-  return entry.when !== 'table' && now.includes(entry.when);
-}
-
-/** The label of each situation. */
-export const SITUATION_LABEL: Readonly<Record<Situation, string>> = Object.fromEntries(
-  SITUATIONS.map((situation) => [situation.id, situation.label])
-) as Record<Situation, string>;

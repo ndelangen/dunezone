@@ -25,6 +25,7 @@ import { PieceImage, pieceName, useHandCloseUp } from '../../multiplayer/HandPie
 import { HandPieceMenu, handMenuAnchor } from '../../multiplayer/HandPieceMenu';
 import type { HandMenuAnchor } from '../../multiplayer/HandPieceMenu';
 import { HIDDEN_ZONE_HELP } from '../../multiplayer/panelGuidance';
+import { isTypingTarget } from '../../typingTarget';
 import { fitZoom, UNZOOMED, wheelFactor, zoomAbout } from './hiddenZoneZoom';
 import type { HiddenZoneZoom } from './hiddenZoneZoom';
 import styles from './PrivateSideTablePanel.module.css';
@@ -126,14 +127,6 @@ function turnedReach(width: number, depth: number, spot: HiddenZoneSpot) {
 
 /* How the zone draws a piece turned in 15° steps. */
 const turned = (spot: HiddenZoneSpot) => (spot.turn ? `rotate(${spot.turn * 15}deg)` : undefined);
-
-/* A key typed into a text field belongs to that field. */
-function typing(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
-  );
-}
 
 /**
  * The faction's hidden zone: a private top-down patch of table where it lays out pieces from its hand, such as a token on a card's track.
@@ -294,7 +287,13 @@ export function PrivateSideTablePanel({ hand, enabled, onLay, awaiting, onPlace 
       }
       return;
     }
-    if ((key !== 'q' && key !== 'e') || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) {
+    if (
+      (key !== 'q' && key !== 'e') ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      isTypingTarget(event.target)
+    ) {
       return;
     }
     if (!enabled || !pieceId) {

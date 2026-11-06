@@ -51,13 +51,20 @@ export function Word({ entry }: Readonly<{ entry: ShortcutEntry }>) {
   );
 }
 
-/** Wraps a cap so it dips and glows each time the player presses that key; every press replays it. */
+/** The class that gives an element with data-group its group's colour role as --group. */
+export const tinted = styles.tinted;
+
+/** Wraps a cap so it dips and glows each time the player presses one of its keys; every press replays it. */
 export function PressFlash({
   pressed,
-  keyName,
+  keys,
   children,
-}: Readonly<{ pressed: Readonly<{ key: string; count: number }> | null; keyName: string; children: ReactNode }>) {
-  const hit = pressed?.key === keyName;
+}: Readonly<{
+  pressed: Readonly<{ key: string; count: number }> | null;
+  keys: readonly string[];
+  children: ReactNode;
+}>) {
+  const hit = pressed !== null && keys.includes(pressed.key);
   return (
     <span key={hit ? pressed.count : 'rest'} className={clsx(styles.flash, hit && styles.pressed)}>
       {children}
