@@ -32,6 +32,7 @@ function table() {
     flipSelected: vi.fn(),
     /* The cursor is over the table unless a test moves it off. */
     ping: vi.fn(() => true),
+    reservedPieceIds: new Set<string>(),
     rotateSelected: vi.fn(),
     spawnSpice: vi.fn(),
     splitSelected: vi.fn(),
@@ -129,6 +130,14 @@ describe('the piece keys that act now, as the shortcuts window reads them', () =
       draftMove: draftForGesture(marker, 'top'),
     };
     expect([...pieceKeysNow(controls)]).not.toContain('flip');
+  });
+
+  test('a piece another player holds answers no piece key', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    controls.reservedPieceIds = new Set(['treachery-deck']);
+    expect([...pieceKeysNow(controls)]).toEqual([]);
   });
 
   test('a viewer who may not handle the table has no live piece keys', () => {

@@ -16,13 +16,19 @@ type Controls = Pick<
   | 'flipSelected'
   | 'hoveredPieceId'
   | 'ping'
+  | 'reservedPieceIds'
   | 'rotateSelected'
   | 'spawnSpice'
   | 'splitSelected'
   | 'state'
   | 'takeAdditionalFromTarget'
 >;
-type Reads = Pick<Controls, 'canHandleTable' | 'deckControls' | 'hoveredPieceId' | 'state'>;
+type Reads = Pick<Controls, 'canHandleTable' | 'deckControls' | 'hoveredPieceId' | 'reservedPieceIds' | 'state'>;
+
+/* The resting piece a key would act on, unless another player holds it: the room turns down every command on a reserved piece. */
+function restingPiece({ state, reservedPieceIds }: Reads, pieceId: string) {
+  return reservedPieceIds.has(pieceId) ? undefined : state.pieces.find((candidate) => candidate.id === pieceId);
+}
 
 /* The piece a piece key acts on: the carried one first, then the one under the pointer, then the selected one. */
 function targetPieceId({ state, hoveredPieceId }: Reads) {
@@ -31,7 +37,7 @@ function targetPieceId({ state, hoveredPieceId }: Reads) {
 
 /* How many cards the deck under the pointer holds, when the viewer may draw from or shuffle it: the room turns down a locked deck or one in an inventory. */
 function handleableDeckSize(controls: Reads, pieceId: string) {
-  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+  const piece = restingPiece(controls, pieceId);
   const handleable =
     controls.canHandleTable &&
     controls.hoveredPieceId === pieceId &&
@@ -46,14 +52,12 @@ function handleableDeckSize(controls: Reads, pieceId: string) {
  * F turns the piece over when the room would: a carried piece by its in-hand rule, a resting one by its own flip check.
  * The table cannot see which prediction cards are still unrevealed, so it counts them as revealed and lets the session turn one down.
  */
-function canFlip({ state }: Reads, pieceId: string) {
+function canFlip(controls: Reads, pieceId: string) {
+  const { state } = controls;
   if (state.draftMove) {
     return canFlipInHand(heldPieceFor(state, state.draftMove), () => false);
   }
-  return offersPieceAction(
-    state.pieces.find((candidate) => candidate.id === pieceId),
-    'flip'
-  );
+  return offersPieceAction(restingPiece(controls, pieceId), 'flip');
 }
 
 /* T draws from a deck under the pointer with cards in it. */
@@ -90,7 +94,7 @@ function pieceKeys(controls: Reads, pieceId: string, keys: Set<PieceKey>) {
     keys.add('turn');
     return;
   }
-  const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
+  const piece = restingPiece(controls, pieceId);
   const offered = (
     [
       ['rotate', 'turn'],
