@@ -486,6 +486,7 @@ function BoardPlayerFields({ value, onChange, references }: BoardSceneFieldsProp
       <Accordion.Panel>
         <ListChapter
           title="Player markers"
+          titleHidden
           actions={
             <ListLengthActions
               addLabel="Add player marker"
@@ -556,6 +557,7 @@ function BoardTroopFields({ value, onChange, references }: BoardSceneFieldsProps
       <Accordion.Panel>
         <ListChapter
           title="Troop groups"
+          titleHidden
           actions={
             <ListLengthActions
               addLabel="Add board troop group"
@@ -615,6 +617,7 @@ function BoardHighlightFields({ value, onChange }: BoardSceneFieldsProps) {
       <Accordion.Panel>
         <ListChapter
           title="Highlights"
+          titleHidden
           actions={
             <ListLengthActions
               addLabel="Add highlight"
@@ -665,6 +668,7 @@ function BoardAnnotationFields({ value, onChange }: BoardSceneFieldsProps) {
       <Accordion.Panel>
         <ListChapter
           title="Annotations"
+          titleHidden
           actions={
             <ListLengthActions
               addLabel="Add annotation"
@@ -1247,6 +1251,7 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
       <Accordion.Panel>
         <ListChapter
           title="Routes"
+          titleHidden
           actions={
             <ListLengthActions
               addLabel="Add route"

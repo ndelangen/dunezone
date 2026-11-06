@@ -1,4 +1,4 @@
-import { Box, Group, Stack } from '@mantine/core';
+import { Box, Group, Stack, VisuallyHidden } from '@mantine/core';
 import { FieldWarning } from '@ui/content/FieldWarning';
 import { HelpMark } from '@ui/content/HelpMark';
 import { TruncatedText } from '@ui/content/TruncatedText';
@@ -14,6 +14,8 @@ export interface ControlBlockField {
 
 export interface ControlBlockProps {
   title: string;
+  /** Keeps the title for assistive tech only, when a heading right above already names the control on screen. */
+  titleHidden?: boolean;
   /** Reserved for a constraint or consequence the control itself cannot show; surfaces behind the (?) help icon. */
   description?: ReactNode;
   /** A value that is allowed but probably not meant, shown as one caution line under the input. */
@@ -37,7 +39,15 @@ export interface ControlBlockProps {
  * the group then takes no name of its own, so the title names one element and is not read twice, and a lookup by label finds only the input.
  * Icon-only tools remain responsible for their own accessible names.
  */
-export function ControlBlock({ title, description, warning, tool, input, inputId }: ControlBlockProps) {
+export function ControlBlock({
+  title,
+  titleHidden = false,
+  description,
+  warning,
+  tool,
+  input,
+  inputId,
+}: ControlBlockProps) {
   const id = useId();
   const titleId = `${id}-title`;
   const descriptionId = `${id}-description`;
@@ -65,9 +75,13 @@ export function ControlBlock({ title, description, warning, tool, input, inputId
     >
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
-          <TruncatedText id={titleId} htmlFor={namesItsInput ? field.id : undefined} fw={700} size="sm">
-            {title}
-          </TruncatedText>
+          {titleHidden ? (
+            <VisuallyHidden id={titleId}>{title}</VisuallyHidden>
+          ) : (
+            <TruncatedText id={titleId} htmlFor={namesItsInput ? field.id : undefined} fw={700} size="sm">
+              {title}
+            </TruncatedText>
+          )}
           {description ? <HelpMark id={descriptionId} text={description} /> : null}
         </Group>
         {tool ? <Box>{tool}</Box> : null}

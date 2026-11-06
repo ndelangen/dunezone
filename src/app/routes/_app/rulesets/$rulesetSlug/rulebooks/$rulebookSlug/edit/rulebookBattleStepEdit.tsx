@@ -117,6 +117,9 @@ function BattleStrengthFields({ label, value, onChange }: BattleSideFieldsProps)
       <Group grow align="start">
         <ControlBlock
           title="Dial"
+          description={
+            'The troop strength shown in this step, including any adjustment.\nHidden plans keep these values private.'
+          }
           input={
             <NumberInput
               clampBehavior="strict"
@@ -175,10 +178,6 @@ function BattleStrengthFields({ label, value, onChange }: BattleSideFieldsProps)
           }
         />
       </Group>
-      <Text size="sm" c="dimmed">
-        The dial is the troop strength shown in this step, including any adjustment. Hidden plans keep these values
-        private.
-      </Text>
     </>
   );
 }
