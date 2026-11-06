@@ -92,7 +92,7 @@
     "publisher:types": "wrangler types workers/publisher/worker-configuration.d.ts --config workers/publisher/wrangler.jsonc",
     "publisher:types:check": "wrangler types workers/publisher/worker-configuration.d.ts --check --config workers/publisher/wrangler.jsonc",
     "statistics:verify": "bun run ./scripts/verify-statistics.ts",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "(bun run generate:images --if-stale || echo 'Images could not be brought up to date.') && storybook dev -p 6006",
     "storybook:test": "vp test run --config vitest.storybook.config.ts",
     "storybook:test:shard": "bun run ./scripts/storybook-shard.ts",
     "test": "vp test run --exclude 'workers/game/**' --exclude 'workers/publisher/**'",

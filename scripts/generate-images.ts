@@ -1,14 +1,18 @@
 /**
  * Generates every file under public/m/**, public/image/** and public/web/** from the raster lock and the sources in media/, per src/shared/assetRules.ts, sparing the committed files that `COMMITTED_WEB_FILES` names.
  *
- * Bun run generate:images [--prune]
+ * Bun run generate:images [--prune] [--if-stale]
  *
  * Per source `media/image/texture/021.jpg` this emits: public/image/texture/021-small.jpg (+ -large, and -print where declared) public/image/texture/021.jpg (safety-net re-encode at the canonical name, capped, same extension).
- * Each variant is first encoded into the content-addressed store `.cache/media/local/v/<src20>.<recipe10>.<ext>`, beside a `<name>.sha256` record of its SHA-256 and byte length (#1888 step 3).
+ * Each variant is first encoded into the content-addressed store `<store>/<src20>.<recipe10>.<ext>`, beside a `<name>.sha256` record of its SHA-256 and byte length (#1888 step 3).
+ * The store is one directory for the whole machine (`~/.cache/dunezone/media/v`), so a new worktree reuses what any earlier checkout fetched.
+ * CI keeps it in `.cache/media/local/v`, and MEDIA_STORE_DIR overrides both (scripts/lib/media-store.ts).
  * The store is never wiped: a variant whose record still matches is reused, so only new originals or changed recipes are encoded.
  * public/ is then rebuilt from the store, so removals in media/ still propagate: each variant at its `/m/<name>`, which `resolveAsset` emits (#1888 step 5), and at its legacy path.
  * `--prune` deletes stored variants the current plan no longer names, so a store carried between CI runs stays the size of one store.
- * With MEDIA_FILL_ORIGIN set (CI sets https://dune.zone), a variant the store lacks is first downloaded from `/m`, where each deploy publishes them, and kept only when its bytes match the `X-Media-SHA256` and `X-Media-Bytes` it was served with.
+ * It trims only a checkout's own store, never the machine's shared one.
+ * `--if-stale` does nothing when `public/` was already generated from the same inputs, so dev servers can run it on every start.
+ * A variant the store lacks is first downloaded from `/m` at MEDIA_FILL_ORIGIN (https://dune.zone unless set, and off when set empty), where each deploy publishes them, and kept only when its bytes match the `X-Media-SHA256` and `X-Media-Bytes` it was served with.
  * Anything not published, or not verifiable, is encoded from the original as before, so the fill never decides correctness.
  * An original missing locally is downloaded from `/__media/src` at MEDIA_ORIGIN (https://dune.zone by default) and checked against the lock.
  * The runtime map of colours comes from the raster lock too (`bun run media:lock`), so nothing here is imported by the app.
@@ -19,6 +23,7 @@
  */
 import { createHash } from 'node:crypto';
 import {
+  constants as fsConstants,
   copyFileSync,
   existsSync,
   mkdirSync,
@@ -37,6 +42,13 @@ import { COMMITTED_WEB_FILES } from '../src/shared/assetRules';
 import type { RasterLock } from '../src/shared/media/rasterLock';
 import { fetchMedia, integrityMatches } from './lib/media-fetch';
 import { download } from './lib/media-originals';
+import {
+  generatedImagesCurrent,
+  imageInputsDigest,
+  imageStampPath,
+  isCheckoutStore,
+  mediaStoreRoot,
+} from './lib/media-store';
 import { sourcePath } from './lib/raster-lock';
 import { assertEncodable, checksumRecord, matchesRecord, planVariants } from './media-variants';
 import type { ChecksumRecord, PlannedVariant } from './media-variants';
@@ -45,10 +57,11 @@ import { describeError } from './retry-transient';
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const mediaRoot = path.join(repoRoot, 'media');
 const publicRoot = path.join(repoRoot, 'public');
-const storeRoot = path.join(repoRoot, '.cache/media/local/v');
+const storeRoot = mediaStoreRoot(repoRoot);
 const RASTER = /\.(png|jpe?g)$/i;
 const prune = process.argv.includes('--prune');
-const fillOrigin = process.env.MEDIA_FILL_ORIGIN?.replace(/\/$/, '');
+const ifStale = process.argv.includes('--if-stale');
+const fillOrigin = (process.env.MEDIA_FILL_ORIGIN ?? 'https://dune.zone').replace(/\/$/, '');
 const FILL_CONCURRENCY = 16;
 const FILL_RETRY_DELAYS_MS = [1000, 2000, 4000];
 
@@ -211,19 +224,29 @@ function clearGenerated(): void {
 
 /** Writes every variant at the legacy path that already-issued URLs still name, and each size tier at the `/m` name `resolveAsset` emits. */
 function materialize(plan: PlannedVariant[]): void {
+  rmSync(imageStampPath(repoRoot), { force: true });
   clearGenerated();
   mkdirSync(path.join(publicRoot, 'm'));
   for (const variant of plan) {
     const target = path.join(publicRoot, variant.legacyPath);
     mkdirSync(path.dirname(target), { recursive: true });
-    copyFileSync(path.join(storeRoot, variant.name), target);
+    copyFileSync(path.join(storeRoot, variant.name), target, fsConstants.COPYFILE_FICLONE);
   }
   for (const variant of plan.filter(({ recipe }) => recipe.tier !== 'canonical')) {
-    copyFileSync(path.join(storeRoot, variant.name), path.join(publicRoot, 'm', variant.name));
+    copyFileSync(
+      path.join(storeRoot, variant.name),
+      path.join(publicRoot, 'm', variant.name),
+      fsConstants.COPYFILE_FICLONE
+    );
   }
 }
 
 const started = performance.now();
+const digest = imageInputsDigest(repoRoot, sharp.versions);
+if (ifStale && generatedImagesCurrent(repoRoot, digest)) {
+  console.log(JSON.stringify({ upToDate: true, store: storeRoot }));
+  process.exit(0);
+}
 assertLockCoversOriginals();
 const keys = Object.keys(lock).sort((left, right) => left.localeCompare(right));
 const plans = new Map(keys.map((key) => [key, planVariants(key, lock[key], sharp.versions)]));
@@ -232,6 +255,10 @@ mkdirSync(storeRoot, { recursive: true });
 const fetched = await fillFromPublished(plan);
 
 function pruneStore(plan: PlannedVariant[]): number {
+  if (!isCheckoutStore(repoRoot, storeRoot)) {
+    console.log(`Not pruning ${storeRoot}: other checkouts on this machine share it.`);
+    return 0;
+  }
   const kept = new Set(plan.flatMap((variant) => [variant.name, `${variant.name}.sha256`]));
   const stale = readdirSync(storeRoot).filter((entry) => !kept.has(entry));
   for (const entry of stale) {
@@ -243,9 +270,12 @@ function pruneStore(plan: PlannedVariant[]): number {
 const encoded = await pool(keys, availableParallelism(), (key) => fillOriginal(key, plans.get(key)!));
 materialize(plan);
 const pruned = prune ? pruneStore(plan) : 0;
+mkdirSync(path.dirname(imageStampPath(repoRoot)), { recursive: true });
+writeFileSync(imageStampPath(repoRoot), digest);
 
 console.log(
   JSON.stringify({
+    store: storeRoot,
     sources: keys.length,
     variants: plan.length,
     fetched,

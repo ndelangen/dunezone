@@ -31,9 +31,7 @@ fi
 bash ./scripts/codex-worktree-setup.sh
 bun install --frozen-lockfile --ignore-scripts
 
-if [[ ! -f src/game/data/assetMap.generated.ts ]]; then
-  bun run generate:images
-fi
+bun run generate:images --if-stale
 if [[ ! -d public/vector ]]; then
   bun run generate:vectors
 fi
