@@ -715,7 +715,7 @@
     "/vector/icon/choam-disc.svg": {
       "kitFile": "Assets/Factions/CHOAM/Logos/CHOAM Logo.blend",
       "collections": ["CHOAM Logo"],
-      "kitFileSha256": "PENDING",
+      "kitFileSha256": "64bd1723dab5aaaa676870dee27c643e73a21a44ff3008421b47e980e704663f",
       "source": "sources/CHOAM-Logo--CHOAM-Logo.svg",
       "editedBy": "John Flower"
     }
