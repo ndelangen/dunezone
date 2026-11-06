@@ -105,3 +105,60 @@
 html[data-motion="reduce"] .tile {
   animation: none;
 }
+
+/* The row's ends: where tiles run on past the edge, the edge fades into the window and offers an arrow to page on. */
+.rowFrame {
+  position: relative;
+}
+
+.edgeBefore,
+.edgeAfter {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  width: 3.5rem;
+  pointer-events: none;
+  animation: edge-in 200ms ease-out;
+}
+
+.edgeBefore {
+  left: 0;
+  justify-content: flex-start;
+  background: linear-gradient(to left, transparent, var(--glass, var(--color-ground)) 70%);
+}
+
+.edgeAfter {
+  right: 0;
+  justify-content: flex-end;
+  background: linear-gradient(to right, transparent, var(--glass, var(--color-ground)) 70%);
+}
+
+.edgeBefore > *,
+.edgeAfter > * {
+  pointer-events: auto;
+}
+
+/* The arrow nudges once toward the hidden tiles when the row first shows it. */
+.edgeAfter > * {
+  animation: nudge 900ms ease-in-out 400ms 2;
+}
+
+@keyframes edge-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes nudge {
+  50% {
+    translate: 0.25rem 0;
+  }
+}
+
+html[data-motion="reduce"] .edgeBefore,
+html[data-motion="reduce"] .edgeAfter,
+html[data-motion="reduce"] .edgeAfter > * {
+  animation: none;
+}
