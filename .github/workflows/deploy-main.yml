@@ -331,6 +331,8 @@ jobs:
           export MEDIA_PUBLISH_TOKEN
           bun run media:publish --verify
           bun run media:publish --deployed
+          # Local setup reads these packs instead of one request per variant; they never decide what production serves.
+          bun run media:packs
 
       - name: Keep the variant entries this deploy proved
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

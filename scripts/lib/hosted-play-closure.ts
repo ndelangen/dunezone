@@ -55,6 +55,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/generate-*',
   'scripts/lib/media-fetch.ts',
   'scripts/lib/media-originals.ts',
+  'scripts/lib/media-packs.ts',
+  'scripts/lib/media-store.ts',
   'scripts/lib/raster-lock.ts',
   'scripts/media-variants.ts',
   'scripts/retry-transient.ts',

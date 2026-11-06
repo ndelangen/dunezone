@@ -620,7 +620,10 @@ draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedM
 so it can be tried on a page and swapped without uploading (`generate:images` still refuses to run
 while one is present). A blog post using an unsynced image fails `postBodies.test.tsx` until it is synced. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
-need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
+need the generated files locally; CI produces the deployed bytes). `app:dev`, `storybook` and
+`play:local` run `generate:images --if-stale` on start, which does nothing while `public/` matches the
+lock and rules. Off CI the variant store is one directory per machine (`~/.cache/dunezone/media/v`), and
+missing variants come from `https://dune.zone/m/` before anything is encoded. `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +
 generator + pinned sharp version), never encoder output, so `publisher:release:verify` remains a
 local check. Image keys such as `/image/texture/021.jpg` are opaque asset ids stored on faction

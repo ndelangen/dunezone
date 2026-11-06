@@ -123,7 +123,7 @@ if (!values['skip-build']) {
       );
     }
   } else {
-    await command(['run', 'generate:images']);
+    await command(['run', 'generate:images', '--if-stale']);
     await command(['run', 'generate:vectors']);
   }
   await command(['run', 'generate:objs']);
