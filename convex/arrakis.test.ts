@@ -69,3 +69,17 @@ describe('The saved Arrakis board', () => {
     });
   });
 });
+
+describe('The saved Arrakis face, kept for bundles from before the board query', () => {
+  test('answers only the live board’s id, published image and territories', async () => {
+    const f = await rulebookFixture();
+    const id = await insertArrakis(f);
+    expect(await f.t.query(api.arrakis.face, {})).toBeNull();
+    await publish(f, id);
+    expect(await f.t.query(api.arrakis.face, {})).toEqual({
+      assetId: id,
+      imageUrl: expect.stringContaining(id),
+      geometry,
+    });
+  });
+});

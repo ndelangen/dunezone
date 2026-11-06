@@ -83,6 +83,13 @@ describe('the public homepage table', () => {
     expect((await syncView(nextWake)).epoch).toBe(replaced.epoch);
   });
 
+  it('keeps the saved Arrakis it read through a move, so a restart does not depend on reading it again', async () => {
+    const member = await visitor(true);
+    await command(member, { kind: 'rotate', pieceId: 'treachery-card-loose', direction: 1 });
+    const saved = await runtime.fetch('/native-test/saved-board');
+    expect(await saved.json()).toEqual({ name: 'Arrakis Official' });
+  });
+
   it('grants the first pickup after hibernation without a preliminary resync', async () => {
     const member = await visitor(true);
     const before = await syncView(member);

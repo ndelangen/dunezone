@@ -476,7 +476,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       message.type === 'drop'
         ? this.room.drop(viewer, message.carryId, message)
         : this.room.command(viewer, message.action, message.expectedRevision);
-    await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next, epoch: this.epoch });
+    await this.ctx.storage.put<Saved>('table', {
+      resetAt: this.resetAt,
+      snapshot: next,
+      epoch: this.epoch,
+      board: this.board,
+    });
     this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
     this.broadcast({ socket, commandId: message.commandId });
   }
