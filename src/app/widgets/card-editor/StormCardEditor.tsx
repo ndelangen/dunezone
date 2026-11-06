@@ -1,9 +1,10 @@
-import { Alert, Select, Stack } from '@mantine/core';
+import { Select, Stack } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StormCardAsset } from '@shared/assets/schema';
 import { StormCardAssetInput } from '@shared/assets/schema';
 import { standardStormCard } from '@shared/assets/standardStormDeck';
 import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -92,9 +93,9 @@ export function StormCardEditor({
       <WorkbenchLayout.Chapters>
         <div onBlurCapture={onSettle}>
           {draft.layers.some((layer) => layer.kind === 'token' && tokens[layer.asset_id] === null) ? (
-            <Alert title="Linked token unavailable" color="yellow">
+            <Notice tone="caution" title="Linked token unavailable">
               Replace the missing token in its layer tab, or remove the layer.
-            </Alert>
+            </Notice>
           ) : null}
           <ConnectedTabs<CustomCardChapter>
             value={

@@ -1,6 +1,7 @@
-import { Alert, Divider, Group, Select, Stack, Switch, Text, Textarea } from '@mantine/core';
+import { Divider, Group, Select, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
+import { Notice } from '@ui/block/Notice';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -185,11 +186,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
           onRemove={() => patch({ decals: face.decals.slice(0, -1) })}
         />
       </Group>
-      {face.decals.length === 0 ? (
-        <Alert color="gray" variant="light" title="No decals">
-          Add one and put it anywhere on the face.
-        </Alert>
-      ) : null}
+      {face.decals.length === 0 ? <Notice title="No decals">Add one and put it anywhere on the face.</Notice> : null}
       {face.decals.map((decal, index) => (
         <Stack key={index} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -269,9 +266,9 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
         />
       </Group>
       {face.texts.length === 0 ? (
-        <Alert color="gray" variant="light" title="No text">
+        <Notice title="No text">
           The rectangle places its text rather than slotting it. Add one and put it anywhere.
-        </Alert>
+        </Notice>
       ) : null}
       {face.texts.map((text, index) => (
         <Stack key={index} gap="sm">

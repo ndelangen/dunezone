@@ -1,9 +1,10 @@
-import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
@@ -242,16 +243,16 @@ function ReaderStatus({
   }
   if (targetMissing) {
     return (
-      <Alert color="yellow" title="Linked target unavailable" role="alert">
+      <Notice tone="caution" title="Linked target unavailable" live>
         The linked target does not exist in this Edition. The Rulebook starts at its first Page.
-      </Alert>
+      </Notice>
     );
   }
   if (locatorStatus === 'stale') {
     return (
-      <Alert color="yellow" title="Selected words changed" role="status">
+      <Notice tone="caution" title="Selected words changed" live>
         The words changed, but the stable Page or Block link still identifies the intended part of the Rulebook.
-      </Alert>
+      </Notice>
     );
   }
   return null;

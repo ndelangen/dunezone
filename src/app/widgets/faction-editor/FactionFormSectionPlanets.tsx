@@ -1,4 +1,5 @@
-import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Notice } from '@ui/block/Notice';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -29,9 +30,9 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
         return (
           <Stack gap="sm">
             {!isCurated ? (
-              <Alert color="yellow" variant="light" title="Existing external illustration preserved">
+              <Notice tone="caution" title="Existing external illustration preserved">
                 This planet uses an older external image. It remains unchanged until you select a curated illustration.
-              </Alert>
+              </Notice>
             ) : null}
 
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -153,9 +154,9 @@ export function FactionFormSectionPlanets({
               </Group>
 
               {count === 0 ? (
-                <Alert color="gray" variant="light" title="No planets">
+                <Notice title="No planets">
                   Planets are optional. Add one when a planet is part of this faction&apos;s identity.
-                </Alert>
+                </Notice>
               ) : null}
 
               {planets.map((_, index) => (

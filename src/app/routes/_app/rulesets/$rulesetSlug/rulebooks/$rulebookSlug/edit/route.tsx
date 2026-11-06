@@ -30,7 +30,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
 /* oxlint-disable-next-line no-restricted-imports -- The film strip's pages are draggable thumbnails, not actions. */
 import { Button } from '@mantine/core';
 import {
@@ -80,6 +80,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -2615,9 +2616,9 @@ function RulebookDifferenceReview({
     >
       <Stack gap="lg">
         {result.incompatibilities.length === 0 ? (
-          <Alert color="confirm" role="status">
+          <Notice tone="positive" live>
             All differences are reviewed. Return to editing to check and save your draft.
-          </Alert>
+          </Notice>
         ) : null}
         {result.incompatibilities.map((difference) => {
           let name: string;
@@ -3456,22 +3457,22 @@ function RulebookEditorSession({
             <FormError title="Edition could not be published">{publishMutation.error.message}</FormError>
           ) : null}
           {view.notice === 'stale' ? (
-            <Alert color="yellow" role="status">
+            <Notice tone="caution" live>
               Another editor saved first. Your changes are still here.{' '}
               {needsReview
                 ? 'Review the differences before saving.'
                 : 'The saved changes have been combined with yours. Save again when ready.'}
-            </Alert>
+            </Notice>
           ) : null}
           {view.notice === 'published' ? (
-            <Alert color="confirm" role="status">
+            <Notice tone="positive" live>
               The new Edition is now current. HTML and PDF are being prepared independently.
-            </Alert>
+            </Notice>
           ) : null}
           {view.notice === 'unchanged' ? (
-            <Alert color="blue" role="status">
+            <Notice tone="info" live>
               The saved draft already matches the current Edition.
-            </Alert>
+            </Notice>
           ) : null}
           {view.reviewing ? (
             <RulebookDifferenceReview

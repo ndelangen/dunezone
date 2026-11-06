@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Box, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Notice } from '@ui/block/Notice';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -148,9 +149,9 @@ export function FactionFormSectionAdvantages({
               </Group>
 
               {count === 0 ? (
-                <Alert color="gray" variant="light" title="No faction advantages">
+                <Notice title="No faction advantages">
                   This faction currently has no authored special advantages.
-                </Alert>
+                </Notice>
               ) : null}
 
               {count > 0 ? (

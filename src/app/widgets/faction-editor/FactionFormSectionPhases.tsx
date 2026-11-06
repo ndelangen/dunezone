@@ -1,17 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  Alert,
-  Group,
-  Input,
-  NumberInput,
-  Select,
-  SimpleGrid,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Group, Input, NumberInput, Select, SimpleGrid, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core';
 import {
   DEFAULT_PHASE_PRIORITY,
   PHASE_TYPE_LABELS,
@@ -22,6 +10,7 @@ import {
 } from '@shared/factions/extraPhases';
 import type { PhaseDeclaration, PhaseTarget } from '@shared/factions/extraPhases';
 import { TABLE_PHASES } from '@shared/play/phases';
+import { Notice } from '@ui/block/Notice';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -289,9 +278,9 @@ export function FactionFormSectionPhases({
               </Group>
 
               {count === 0 ? (
-                <Alert color="gray" variant="light" title="No faction phases">
+                <Notice title="No faction phases">
                   This faction adds no phases. The game runs the standard setup and turn.
-                </Alert>
+                </Notice>
               ) : (
                 <>
                   <FactionCollectionShelf

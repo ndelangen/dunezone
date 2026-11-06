@@ -61,7 +61,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await expectFactionEditReady(page, factionAName);
     factionAEditUrl = page.url();
     await page.goto(`${factionAEditUrl}?notice=default-group-unavailable`);
-    await expect(page.getByRole('alert')).toContainText('Saved without its default Group');
+    await expect(page.getByRole('status')).toContainText('Saved without its default Group');
 
     expect(factionBEditUrl).not.toBe(factionAEditUrl);
   });

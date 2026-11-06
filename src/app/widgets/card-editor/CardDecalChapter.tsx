@@ -1,5 +1,6 @@
-import { Alert, Divider, Group, Stack, Text } from '@mantine/core';
+import { Divider, Group, Stack, Text } from '@mantine/core';
 import type { Decal } from '@shared/assets/schema';
+import { Notice } from '@ui/block/Notice';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import type { z } from 'zod';
@@ -47,9 +48,7 @@ function CardDecalFields({
         />
       </Group>
       {decals.length === 0 ? (
-        <Alert color="gray" variant="light" title="No decals">
-          Decals are optional. The card remains valid without them.
-        </Alert>
+        <Notice title="No decals">Decals are optional. The card remains valid without them.</Notice>
       ) : null}
       {decals.map((decal, index) => (
         <Stack key={index /* Positional slots are only appended or removed at the tail. NOSONAR */} gap="sm">

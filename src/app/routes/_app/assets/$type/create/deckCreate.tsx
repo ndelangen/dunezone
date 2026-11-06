@@ -1,6 +1,7 @@
-import { Alert, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
 import { LoadPending } from '@ui/block/LoadPending';
+import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -201,9 +202,9 @@ export function DeckCreatePage() {
           <WorkbenchLayout gap="sm">
             <SaveErrorAlert error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
-              <Alert color="yellow" variant="light" role="alert" title="No deck picked">
+              <Notice tone="caution" title="No deck picked" live>
                 Pick a deck whose cardback this one wears, or choose another back mode.
-              </Alert>
+              </Notice>
             ) : null}
             <DeckEditor
               presets={presets}

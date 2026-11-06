@@ -36,11 +36,11 @@ test('owner can create and delete a ruleset in a two-user flow', async ({ page, 
   await expect(page.getByLabel('Edit ruleset')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
   await page.goto(`${createdUrl}?notice=default-group-unavailable`);
-  await expect(page.getByRole('alert')).toContainText('Saved without its default Group');
+  await expect(page.getByRole('status')).toContainText('Saved without its default Group');
   await page.goto(`${createdUrl}?notice=not-a-route-notice`);
   /* Same anchoring: the page has to have rendered before "no alert" is a statement about the notice. */
   await expect(page.getByText(uniqueName).first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('Saved without its default Group')).toHaveCount(0);
 
   const userB = await newUserPage({ storageState: '.playwright/user-b.json' });
   const userBPage = userB.page;

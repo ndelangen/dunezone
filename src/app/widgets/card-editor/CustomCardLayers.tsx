@@ -1,6 +1,7 @@
-import { Alert, ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@mantine/core';
+import { ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
+import { Notice } from '@ui/block/Notice';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -477,9 +478,7 @@ export function CustomCardLayers({
         Each layer has its own tab. Layers stack in tab order on each side of the frame. The Head stays on top.
       </Text>
       {draft.layers.length === 0 ? (
-        <Alert title="No layers" color="gray">
-          Add decals and text, or choose a starting preset in Format.
-        </Alert>
+        <Notice title="No layers">Add decals and text, or choose a starting preset in Format.</Notice>
       ) : null}
       {draft.layers.map((layer, index) => (
         <LabeledAction

@@ -1,7 +1,8 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
+import { Notice } from '@ui/block/Notice';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -254,13 +255,11 @@ export function FactionFormSectionLeaders({
               </Group>
 
               {count === 0 ? (
-                <Alert color="yellow" variant="light" title="No supporting leaders">
+                <Notice tone="caution" title="No supporting leaders">
                   Zero is valid, but unusual. Most factions use five supporting leaders.
-                </Alert>
+                </Notice>
               ) : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT ? (
-                <Alert color="gray" variant="light">
-                  Most factions use five supporting leaders; this roster is still valid.
-                </Alert>
+                <Notice>Most factions use five supporting leaders; this roster is still valid.</Notice>
               ) : null}
 
               {field.state.value.length > 0 ? (

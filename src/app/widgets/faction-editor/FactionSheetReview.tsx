@@ -1,9 +1,10 @@
-import { ActionIcon, Alert, Group, Stack, Text, Title } from '@mantine/core';
+import { ActionIcon, Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
+import { Notice } from '@ui/block/Notice';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import { ChevronDown, Link2, X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -168,14 +169,9 @@ function ReviewHeading({
           </ActionIcon>
         </Group>
       </Group>
-      <Alert
-        variant="light"
-        color="orange"
-        icon={<Link2 size={18} aria-hidden />}
-        title="Share the faction URL, not a screenshot"
-      >
+      <Notice tone="caution" title="Share the faction URL, not a screenshot">
         Save this draft first, then share its canonical faction URL so everyone reaches the published version.
-      </Alert>
+      </Notice>
     </Stack>
   );
 }

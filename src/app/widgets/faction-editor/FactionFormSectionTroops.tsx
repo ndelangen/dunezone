@@ -1,6 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import {
-  Alert,
   Badge,
   Box,
   Grid,
@@ -14,6 +13,7 @@ import {
   Tooltip,
   VisuallyHidden,
 } from '@mantine/core';
+import { Notice } from '@ui/block/Notice';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -323,9 +323,7 @@ export function FactionFormSectionTroops({
               </Group>
 
               {count === 0 ? (
-                <Alert color="gray" variant="light" title="No troop types">
-                  This faction currently has no physical troop inventory.
-                </Alert>
+                <Notice title="No troop types">This faction currently has no physical troop inventory.</Notice>
               ) : null}
 
               {count > 0 ? (
