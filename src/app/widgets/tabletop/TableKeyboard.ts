@@ -1,4 +1,5 @@
-import { canTakeAdditionalFromDraft } from '@shared/play/tableState';
+import { offersPieceAction } from '@shared/play/commands';
+import { canFlipInHand, canTakeAdditionalFromDraft, heldPieceFor } from '@shared/play/tableState';
 
 import type { TabletopContextValue } from './TabletopContext';
 
@@ -15,14 +16,120 @@ type Controls = Pick<
   | 'flipSelected'
   | 'hoveredPieceId'
   | 'ping'
+  | 'reservedPieceIds'
   | 'rotateSelected'
   | 'spawnSpice'
   | 'splitSelected'
-  | 'stackSelected'
   | 'state'
   | 'takeAdditionalFromTarget'
-  | 'toggleLockSelected'
 >;
+type Reads = Pick<Controls, 'canHandleTable' | 'deckControls' | 'hoveredPieceId' | 'reservedPieceIds' | 'state'>;
+
+/* The resting piece a key would act on, unless another player holds it: the room turns down every command on a reserved piece. */
+function restingPiece({ state, reservedPieceIds }: Reads, pieceId: string) {
+  return reservedPieceIds.has(pieceId) ? undefined : state.pieces.find((candidate) => candidate.id === pieceId);
+}
+
+/* The piece a piece key acts on: the carried one first, then the one under the pointer, then the selected one. */
+function targetPieceId({ state, hoveredPieceId }: Reads) {
+  return state.draftMove?.pieceId ?? hoveredPieceId ?? state.selectedPieceId ?? undefined;
+}
+
+/* How many cards the deck under the pointer holds, when the viewer may draw from or shuffle it: the room turns down a locked deck or one in an inventory. */
+function handleableDeckSize(controls: Reads, pieceId: string) {
+  const piece = restingPiece(controls, pieceId);
+  const handleable =
+    controls.canHandleTable &&
+    controls.hoveredPieceId === pieceId &&
+    controls.deckControls != null &&
+    piece?.kind === 'card' &&
+    !piece.locked &&
+    !piece.inventory;
+  return handleable ? piece.items.length : 0;
+}
+
+/*
+ * F turns the piece over when the room would: a carried piece by its in-hand rule, a resting one by its own flip check.
+ * The table cannot see which prediction cards are still unrevealed, so it counts them as revealed and lets the session turn one down.
+ */
+function canFlip(controls: Reads, pieceId: string) {
+  const { state } = controls;
+  if (state.draftMove) {
+    return canFlipInHand(heldPieceFor(state, state.draftMove), () => false);
+  }
+  return offersPieceAction(restingPiece(controls, pieceId), 'flip');
+}
+
+/* T draws from a deck under the pointer with cards in it. */
+function canDraw(controls: Reads, pieceId: string) {
+  return handleableDeckSize(controls, pieceId) > 0;
+}
+
+/* R shuffles a deck of two or more under the pointer. */
+function canShuffle(controls: Reads, pieceId: string) {
+  return handleableDeckSize(controls, pieceId) > 1;
+}
+
+/** A piece key's job, as the keyboard shortcuts window names it. */
+export type PieceKey = 'flip' | 'turn' | 'draw' | 'shuffle' | 'split' | 'takeMore' | 'putBack';
+
+/* The keys a carry answers to: Esc puts it back, and T takes one more from a pile that has more. */
+function carryKeys(state: Reads['state'], keys: Set<PieceKey>) {
+  if (!state.draftMove) {
+    return;
+  }
+  keys.add('putBack');
+  if (canTakeAdditionalFromDraft(state, state.draftMove)) {
+    keys.add('takeMore');
+  }
+}
+
+/* The keys a piece at rest answers to, by the room's own checks: a locked piece does none, only cards and forces flip, only two or more split. */
+function pieceKeys(controls: Reads, pieceId: string, keys: Set<PieceKey>) {
+  if (canFlip(controls, pieceId)) {
+    keys.add('flip');
+  }
+  /* A carried piece turns in hand, as the session does with the carry; splitting and the deck keys wait until it is put down. */
+  if (controls.state.draftMove) {
+    keys.add('turn');
+    return;
+  }
+  const piece = restingPiece(controls, pieceId);
+  const offered = (
+    [
+      ['rotate', 'turn'],
+      ['split', 'split'],
+    ] as const
+  ).filter(([action]) => offersPieceAction(piece, action));
+  for (const [, key] of offered) {
+    keys.add(key);
+  }
+  if (canDraw(controls, pieceId)) {
+    keys.add('draw');
+  }
+  if (canShuffle(controls, pieceId)) {
+    keys.add('shuffle');
+  }
+}
+
+/**
+ * The piece keys that act right now, by the same checks the handlers below run, so the keyboard shortcuts window shows a key as live exactly when pressing it does something.
+ */
+export function pieceKeysNow(controls: Reads): ReadonlySet<PieceKey> {
+  const keys = new Set<PieceKey>();
+  /* An onlooker, or a player once the game is over, may not handle pieces: the session turns every piece key down. */
+  if (!controls.canHandleTable) {
+    return keys;
+  }
+  carryKeys(controls.state, keys);
+  const pieceId = targetPieceId(controls);
+  if (!pieceId) {
+    return keys;
+  }
+  pieceKeys(controls, pieceId, keys);
+  return keys;
+}
+
 type Binding = {
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>;
   read(): Controls;
@@ -45,8 +152,6 @@ export const TABLE_KEYS = {
   flip: 'f',
   turnLeft: 'q',
   turnRight: 'e',
-  stack: 'g',
-  lock: 'l',
   take: 't',
   shuffle: 'r',
 } as const;
@@ -396,7 +501,7 @@ export class TableKeyboard {
       pressOnce(event, () => controls.takeAdditionalFromTarget());
       return;
     }
-    const pieceId = state.draftMove?.pieceId ?? controls.hoveredPieceId ?? state.selectedPieceId ?? undefined;
+    const pieceId = targetPieceId(controls);
     if (!pieceId) {
       return;
     }
@@ -407,9 +512,11 @@ export class TableKeyboard {
       controls.rotateSelected(key === TABLE_KEYS.turnLeft ? -1 : 1, pieceId);
       return;
     }
-    /* F turns over a held piece in hand as it does one at rest. */
+    /* F turns over a held piece in hand as it does one at rest; a piece that cannot turn over leaves F to open Ally chat. */
     if (key === TABLE_KEYS.flip) {
-      pressOnce(event, () => controls.flipSelected(pieceId));
+      if (canFlip(controls, pieceId)) {
+        pressOnce(event, () => controls.flipSelected(pieceId));
+      }
       return;
     }
     if (!state.draftMove) {
@@ -419,40 +526,16 @@ export class TableKeyboard {
 
   private restingPieceKey(event: KeyboardEvent, pieceId: string, controls: Controls) {
     switch (event.key.toLowerCase()) {
-      case TABLE_KEYS.take: {
-        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-        if (
-          controls.canHandleTable &&
-          controls.hoveredPieceId === pieceId &&
-          piece?.kind === 'card' &&
-          piece.items.length > 0 &&
-          !piece.locked &&
-          !piece.inventory &&
-          controls.deckControls
-        ) {
+      case TABLE_KEYS.take:
+        if (canDraw(controls, pieceId)) {
           pressOnce(event, () => controls.deckControls?.draw(pieceId));
         }
         return;
-      }
-      case TABLE_KEYS.shuffle: {
-        const piece = controls.state.pieces.find((candidate) => candidate.id === pieceId);
-        if (
-          controls.hoveredPieceId === pieceId &&
-          !event.repeat &&
-          piece?.kind === 'card' &&
-          piece.items.length > 1 &&
-          controls.deckControls
-        ) {
+      case TABLE_KEYS.shuffle:
+        if (!event.repeat && canShuffle(controls, pieceId)) {
           event.preventDefault();
-          controls.deckControls.shuffle(pieceId);
+          controls.deckControls?.shuffle(pieceId);
         }
-        return;
-      }
-      case TABLE_KEYS.lock:
-        pressOnce(event, () => controls.toggleLockSelected(pieceId));
-        return;
-      case TABLE_KEYS.stack:
-        pressOnce(event, () => controls.stackSelected(pieceId));
         return;
     }
     const digit = digitOf(event);

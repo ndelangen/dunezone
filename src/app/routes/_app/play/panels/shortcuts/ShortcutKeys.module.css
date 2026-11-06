@@ -1,0 +1,89 @@
+/* The shortcuts panel's shared marks: caps in a row, the word a letter stands for, each group's colour role, a pressed cap's dip. */
+
+.keys {
+  white-space: nowrap;
+}
+
+.wrap {
+  white-space: normal;
+  line-height: 1.9;
+}
+
+.hold {
+  margin-right: 0.25em;
+  color: var(--color-muted);
+  font-size: 0.85em;
+}
+
+.pointer {
+  color: var(--color-muted);
+  font-size: 0.85em;
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.word {
+  color: var(--color-muted);
+}
+
+.letter {
+  color: var(--group, var(--color-brand));
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+/* Each group takes one of the palette's colour roles, for its caps' edge and its headings; scoped to .tinted so other data-group marks stay untouched. */
+/* One edge and one fill per state, shared by the row's tiles, the keyboard's keys and the legend, so a group reads the same colour everywhere. */
+.tinted {
+  --group-edge: color-mix(in srgb, var(--group) 50%, transparent);
+  --group-fill: color-mix(in srgb, var(--group) 9%, transparent);
+  --group-fill-now: color-mix(in srgb, var(--group) 24%, transparent);
+}
+
+.tinted[data-group="panels"] {
+  --group: var(--color-brand);
+}
+
+.tinted[data-group="view"] {
+  --group: var(--color-progress);
+}
+
+.tinted[data-group="pieces"] {
+  --group: var(--color-positive);
+}
+
+.tinted[data-group="bidding"] {
+  --group: var(--color-publish);
+}
+
+/* A cap the player just pressed dips and glows once. */
+.pressed {
+  animation: press 380ms ease-out;
+}
+
+@keyframes press {
+  0% {
+    translate: 0 0;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--group, var(--color-brand)) 70%, transparent);
+  }
+
+  25% {
+    translate: 0 2px;
+  }
+
+  100% {
+    translate: 0 0;
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+html[data-motion="reduce"] .pressed {
+  animation: none;
+}
+
+.flash {
+  display: inline-block;
+  border-radius: 0.35em;
+}

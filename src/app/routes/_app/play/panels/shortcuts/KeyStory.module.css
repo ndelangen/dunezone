@@ -1,0 +1,83 @@
+/* A key's story on one line: caps, what it does with its word, the hook beneath, and when it answers. */
+.story {
+  display: grid;
+  grid-template-columns: 6.6rem 1fr max-content;
+  gap: 0 var(--space-sm);
+  align-items: baseline;
+  font-size: var(--mantine-font-size-sm);
+  animation: slide-in 180ms ease-out;
+}
+
+.caps {
+  justify-self: end;
+  text-align: end;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.action {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.word {
+  font-weight: 400;
+}
+
+.detail {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+}
+
+.hook {
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.when {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.story[data-now] .when {
+  color: var(--group);
+  font-weight: 700;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    translate: -0.4rem 0;
+  }
+}
+
+/* In a narrow pinned slot the situation goes beneath the action, so the action keeps the width. */
+@container shortcuts (max-width: 24rem) {
+  .story {
+    grid-template-columns: 4.6rem 1fr;
+  }
+
+  .when {
+    grid-column: 2;
+  }
+}
+
+html[data-motion="reduce"] .story {
+  animation: none;
+}
+
+.story[data-lit] {
+  background: color-mix(in srgb, var(--group) 16%, transparent);
+}
+
+.story {
+  margin: 0 calc(var(--space-xs) * -0.8);
+  padding: calc(var(--space-xs) * 0.3) calc(var(--space-xs) * 0.8);
+  border-radius: 0.35rem;
+  transition: background-color 160ms ease;
+}

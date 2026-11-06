@@ -1,5 +1,5 @@
 import { isFactionToken } from './factionToken';
-import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
+import { freshTableState, gestureBlockReason, isFlippablePiece, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { publicPieceLabel } from './peeking';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
@@ -408,8 +408,25 @@ function splitDescription(piece: TablePiece, count: number) {
   return `${count} ${count === 1 ? one : many} taken from ${publicPieceLabel(piece)}.`;
 }
 
+/* Only a stack or deck of two or more splits. */
+const canSplit = (piece: TablePiece) => pieceCount(piece) > 1;
+
+/**
+ * Whether the room takes up a flip, turn or split of this piece, by the same checks it runs before working out where the result goes: the piece is there and unlocked, a flip needs a card or force, and a split needs two or more.
+ * The keyboard shortcuts window asks it which piece keys are live.
+ */
+export function offersPieceAction(piece: TablePiece | undefined, kind: 'flip' | 'rotate' | 'split'): boolean {
+  if (!piece || pieceCount(piece) === 0 || gestureBlockReason(piece)) {
+    return false;
+  }
+  if (kind === 'flip') {
+    return isFlippablePiece(piece);
+  }
+  return kind === 'split' ? canSplit(piece) : true;
+}
+
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
-  if (pieceCount(piece) <= 1) {
+  if (!canSplit(piece)) {
     throw new GameRejection('That piece cannot be split.');
   }
   const count = Math.min(requestedCount, pieceCount(piece));
