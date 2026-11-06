@@ -247,6 +247,7 @@ function backendBinary(): string {
   /*
    * The verified archive is kept across runs, so only a machine's first run downloads it; that one download gets room for a slow link.
    * GitHub's release asset host answers an occasional error, and curl --retry alone skips a 4xx or a failed connection, so every error gets three more tries; one such answer failed hosted_play (protocol) before any flow on 5 Nov 2026.
+   * Each try gets 120 s, so all four and curl's backoff fit inside the 540 s this step allows.
    */
   const archive = cachedBackendArchive({
     directory: backendCacheDirectory(),
@@ -260,7 +261,7 @@ function backendBinary(): string {
           '--silent',
           '--show-error',
           '--max-time',
-          '240',
+          '120',
           '--retry',
           '3',
           '--retry-all-errors',

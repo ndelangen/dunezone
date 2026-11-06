@@ -186,13 +186,18 @@ describe('where production sits in git history', () => {
     let calls = 0;
     const flaky = github(async () => {
       calls += 1;
-      return calls === 1 ? new Response('', { status: 502 }) : Response.json({ status: 'ahead' });
+      return calls < 3 ? new Response('', { status: 502 }) : Response.json({ status: 'ahead' });
     });
     expect(await position(CHILD, PARENT, flaky)).toBe('older');
-    expect(calls).toBe(2);
+    expect(calls).toBe(3);
     await expect(position(CHILD, PARENT, unreachable)).rejects.toThrow('could not place');
-    const broken = github(async () => new Response('', { status: 503 }));
+    let brokenCalls = 0;
+    const broken = github(async () => {
+      brokenCalls += 1;
+      return new Response('', { status: 503 });
+    });
     await expect(position(CHILD, PARENT, broken)).rejects.toThrow('HTTP 503');
+    expect(brokenCalls).toBe(3);
   });
 
   test('never puts a short or path-shaped value in the URL, even a prefix GitHub could resolve', async () => {
