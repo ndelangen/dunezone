@@ -1,4 +1,6 @@
+/* A caller can size the picture by overriding this, as the drafting ledger does. */
 .link {
+  --entity-link-media-size: 24px;
   display: inline-flex;
   gap: var(--space-xs);
   text-decoration: none;
@@ -7,13 +9,8 @@
   vertical-align: middle;
 }
 
-/*
- * Kept in step with the same rule in the profile link's own stylesheet. The family reads as one
- * thing on a page, so a hover that behaved differently on a person than on a ruleset would look
- * like a bug; those two files are the whole family and the pairing is small enough to hold by hand.
- */
-.link:hover .name,
-.link:focus-visible .name {
+.link.underlined:hover .name,
+.link.underlined:focus-visible .name {
   text-decoration: underline;
 }
 
@@ -22,10 +19,10 @@
   color: var(--color-text);
 }
 
-/* The circle each citation fills: a faction's symbol, a ruleset's cover, a group's colour. */
+/* The circle each citation fills: a person's avatar, a faction's symbol, a ruleset's cover, a group's colour. */
 .media {
-  width: 24px;
-  height: 24px;
+  width: var(--entity-link-media-size);
+  height: var(--entity-link-media-size);
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
@@ -44,4 +41,31 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* Pure white with the same drop shadow as an inverse `Eyebrow`, so header text reads as one treatment. */
+.name.inverse {
+  color: var(--color-inverse);
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+}
+
+.compact .name {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.contributor {
+  --entity-link-media-size: 56px;
+
+  display: grid;
+  grid-template-columns: var(--entity-link-media-size) minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@container (width >= 48rem) {
+  .contributor {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
 }

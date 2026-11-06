@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
 
-/** The drop shadow under white text on header artwork; `ProfileLink.module.css` repeats it for an inverse name. */
+/** The drop shadow under white text on header artwork; `EntityLink.module.css` repeats it for an inverse name. */
 const INVERSE_TEXT_SHADOW = '0 2px 8px rgb(from var(--color-shadow) r g b / 85%)';
 
 export interface EyebrowProps {

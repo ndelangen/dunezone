@@ -171,7 +171,7 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
       title={name}
       style={
         {
-          '--profile-link-avatar-size': `${size}rem`,
+          '--entity-link-media-size': `${size}rem`,
         } as CSSProperties
       }
     />
