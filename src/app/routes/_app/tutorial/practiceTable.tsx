@@ -21,6 +21,7 @@ import type { TutorialSetup } from './setup/tutorialSetup';
 import { localRuntime } from './table/localRuntime';
 import { LocalTable } from './table/localTable';
 import type { TableStart } from './table/localTable';
+import { tutorialBoard } from './tutorialBoard';
 
 /*
  * A chapter's live table: the Play table itself, connected to a game Worker table running in the page from the chapter's
@@ -71,7 +72,7 @@ export function useTutorialTable(
   /* The players at the table greet the learner by their own name when they answer a chat message. */
   const username = useCurrentProfile().data?.username ?? undefined;
   /* The table plays on the saved Arrakis; a Reset keeps the one it plays on. */
-  const board = useArrakisBoard()?.capture;
+  const board = tutorialBoard(useArrakisBoard());
   const [table] = useState(() => {
     const origin = window.location.origin;
     /* The board goes in before the opening, so what the opening places lands on the saved board's territories. */
