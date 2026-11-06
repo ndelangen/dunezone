@@ -32,10 +32,10 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
     if (!opensMention({ text, caret: at })) {
       continue;
     }
+    let end = -1;
     const named = byLength.find((mention) => {
-      const end = at + 1 + mention.label.length;
-      const written = text.slice(at + 1, end);
-      return fold(written) === fold(mention.label) && !/^[\p{L}\p{N}]/u.test(text.slice(end));
+      end = nameEnd({ text, caret: at + 1 }, mention);
+      return end >= 0 && !/^[\p{L}\p{N}]/u.test(text.slice(end));
     });
     if (!named) {
       continue;
@@ -43,7 +43,6 @@ export function splitMentions(text: string, mentions: readonly Mention[]): Messa
     if (at > plain) {
       segments.push({ text: text.slice(plain, at) });
     }
-    const end = at + 1 + named.label.length;
     /* Seats sharing a faction name are all meant: the name alone cannot tell them apart. */
     const seats = mentions.filter((mention) => fold(mention.label) === fold(named.label));
     segments.push({ text: text.slice(at, end), seats });
@@ -62,9 +61,6 @@ export type MentionQuery = Readonly<{ at: number; query: string }>;
 /** A composer's text and where its caret stands in it. */
 export type Draft = Readonly<{ text: string; caret: number }>;
 
-/* Names are short; a run of text this long after an @ is a sentence, not a name being typed. */
-const MAX_QUERY = 40;
-
 /*
  * The @ the caret is typing after, if any.
  * An @ opens a mention at the start of the text or after a space or an opening bracket, so an e-mail address never does.
@@ -73,7 +69,7 @@ const MAX_QUERY = 40;
 export function mentionQuery({ text, caret }: Draft): MentionQuery | null {
   const before = text.slice(0, caret);
   const at = before.lastIndexOf('@');
-  if (at < 0 || caret - at - 1 > MAX_QUERY) {
+  if (at < 0) {
     return null;
   }
   const query = before.slice(at + 1);
@@ -85,6 +81,26 @@ export function mentionQuery({ text, caret }: Draft): MentionQuery | null {
 /* The @ at the caret opens a mention: it stands at the start of the text or after a space or an opening bracket. */
 function opensMention({ text, caret }: Draft) {
   return caret === 0 || /[\s([{]/.test(text[caret - 1]!);
+}
+
+/*
+ * Where the seat's name written from the caret ends, or -1 where it is not written there: case and accents aside,
+ * and however its accents are composed, so the written name can run longer or shorter than the label.
+ */
+function nameEnd({ text, caret }: Draft, mention: Mention) {
+  const wanted = fold(mention.label);
+  for (let end = caret + 1; end <= text.length; end += 1) {
+    const written = fold(text.slice(caret, end));
+    if (written === wanted) {
+      /* An accent composed after the last letter belongs to the name. */
+      const marks = /^\p{M}*/u.exec(text.slice(end))![0].length;
+      return end + marks;
+    }
+    if (!wanted.startsWith(written)) {
+      return -1;
+    }
+  }
+  return -1;
 }
 
 /* Case and accents aside, so "@pa" finds "Paul" and "@atre" finds "Atréides". */

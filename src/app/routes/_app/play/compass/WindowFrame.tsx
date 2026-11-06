@@ -123,21 +123,39 @@ function useFocusOnRaise(
   flash: number | undefined
 ) {
   const pointer = useRef(false);
+  const releasing = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (front && !pointer.current) {
       focusField(frame.current);
     }
   }, [frame, front, flash]);
+  /* A press still held when the window goes lets go with it. */
+  useEffect(() => () => releasing.current?.(), []);
   const pressed = () => {
+    releasing.current?.();
     pointer.current = true;
-    /* A press the browser takes over, as a touch scroll, ends in a cancel rather than a release. */
+    /*
+     * A press ends in a release, or a cancel where the browser takes it over (a touch scroll).
+     * One released outside the page sends neither: the page losing focus, or the pointer coming back with no button held, ends it then.
+     */
+    const lost = (event: PointerEvent) => {
+      if (event.buttons === 0) {
+        release();
+      }
+    };
     const release = () => {
       pointer.current = false;
+      releasing.current = null;
       window.removeEventListener('pointerup', release, true);
       window.removeEventListener('pointercancel', release, true);
+      window.removeEventListener('pointermove', lost, true);
+      window.removeEventListener('blur', release);
     };
+    releasing.current = release;
     window.addEventListener('pointerup', release, true);
     window.addEventListener('pointercancel', release, true);
+    window.addEventListener('pointermove', lost, true);
+    window.addEventListener('blur', release);
   };
   useEffect(() => {
     const element = frame.current;

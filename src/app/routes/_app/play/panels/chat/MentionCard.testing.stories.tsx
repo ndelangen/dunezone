@@ -28,3 +28,16 @@ export const OpensInfoAndChat = meta.story({
     await expect(args.onChat).toHaveBeenCalledWith(args.seats[0]!.id);
   },
 });
+
+/** A seat's line is a stop for Tab inside its card, named in full however short the card cuts it (its tooltip shows the same words). */
+export const SeatLineShowsInFull = meta.story({
+  args: { seats: [{ ...other(), detail: 'A player whose display name runs on and on well past any sensible length' }] },
+  play: async ({ args }) => {
+    const card = within(document.body);
+    await userEvent.click(await card.findByRole('button', { name: 'Info' }));
+    await userEvent.tab({ shift: true });
+    const line = document.querySelector<HTMLElement>('[data-seat-line]')!;
+    await expect(line).toHaveFocus();
+    await expect(line).toHaveAccessibleName(`${args.seats[0]!.detail} is playing ${args.seats[0]!.label}`);
+  },
+});

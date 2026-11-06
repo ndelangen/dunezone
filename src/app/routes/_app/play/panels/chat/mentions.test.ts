@@ -35,6 +35,11 @@ describe('mentionQuery', () => {
   });
 });
 
+test('a long name stays a name being typed', () => {
+  const long = 'x'.repeat(60);
+  expect(mentionQuery({ text: `@${long}`, caret: 61 })).toEqual({ at: 0, query: long });
+});
+
 describe('matchMentions', () => {
   test("a player's name finds their faction", () => {
     expect(matchMentions(MENTIONS, { at: 0, query: 'sa' }).map((entry) => entry.label)).toEqual(['Harkonnen']);
@@ -86,6 +91,15 @@ describe('splitMentions', () => {
       { text: ', not ' },
       { text: '@Fremen', seats: [named[2], named[3]] },
       { text: '.' },
+    ]);
+  });
+
+  test('a name is found however its accents are composed', () => {
+    const accented = [mention('seat-7', 'Fremé')];
+    const written = '@Fre\u0301me\u0301 hi';
+    expect(splitMentions(written, accented)).toEqual([
+      { text: '@Fre\u0301me\u0301', seats: accented },
+      { text: ' hi' },
     ]);
   });
 

@@ -238,6 +238,8 @@ function useMentionState(draft: string, mentions: readonly Mention[]) {
     focus: setFocused,
     /* An edit that takes away the dismissed @, or changes what comes before it, ends the dismissal: a message sent, an @ deleted and typed again. */
     edited: (next: string) => {
+      /* Any edit ends the stretch where a space would double the completion's: a completion sets it again after its own. */
+      spaceAt.current = null;
       /* A message sent starts the next @ at its first suggestion. */
       if (!next) {
         setActive(null);

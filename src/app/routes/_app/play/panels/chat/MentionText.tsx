@@ -94,9 +94,12 @@ function enterCard(event: KeyboardEvent<HTMLElement>) {
   }
 }
 
+/* What Tab steps through in a card: each seat's line, for its full text, and its buttons. */
+const CARD_STOPS = 'button, [data-seat-line]';
+
 /* Escape, or a Tab past the card's first or last button, hands the focus back to the name that opened it. */
 function leaveCard(event: KeyboardEvent<HTMLDivElement>) {
-  const buttons = [...event.currentTarget.querySelectorAll<HTMLElement>('button')];
+  const buttons = [...event.currentTarget.querySelectorAll<HTMLElement>(CARD_STOPS)];
   const edge = event.shiftKey ? buttons[0] : buttons.at(-1);
   const leaving = event.key === 'Escape' || (event.key === 'Tab' && document.activeElement === edge);
   const trigger = document.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(event.currentTarget.id)}"]`);

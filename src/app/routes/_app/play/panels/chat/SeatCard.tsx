@@ -32,9 +32,14 @@ export function SeatCard({ mention, onInfo, onChat }: SeatCardProps) {
           )}
           <FactionTokenFace token={mention.token} size={FACE} aria-hidden />
         </span>
-        {/* The line in full, for names the card's width cuts short. */}
-        <Tooltip label={seatLine(mention)} openDelay={500} withinPortal>
-          <Text size="sm" truncate="end">
+        {/* The line in full, for names the card's width cuts short: on hover, or on focus from the keyboard. */}
+        <Tooltip
+          label={seatLine(mention)}
+          openDelay={500}
+          events={{ hover: true, focus: true, touch: false }}
+          withinPortal
+        >
+          <Text size="sm" truncate="end" tabIndex={0} aria-label={seatLine(mention)} data-seat-line>
             {mention.own ? (
               'You are playing '
             ) : mention.detail ? (
