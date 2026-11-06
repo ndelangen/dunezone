@@ -15,9 +15,7 @@ export const TextBlock = meta.story({
     textOnChange.mockClear();
     const canvas = within(canvasElement);
     const content = canvas.getByRole('textbox', { name: 'Content' });
-    await expect(canvas.getByRole('group', { name: 'Content' })).toHaveAccessibleDescription(
-      'Write the text shown by this Block.'
-    );
+    await expect(content.closest('[role="group"]')).toHaveAccessibleDescription('Write the text shown by this Block.');
     await userEvent.type(content, ' Stay alert.');
     await expect(textOnChange).toHaveBeenLastCalledWith({
       text: 'Keep one hand on the shield wall. Stay alert.',
