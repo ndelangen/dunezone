@@ -1,15 +1,17 @@
 import { Select, Stack } from '@mantine/core';
 import { TABLE_CONVERSATION, isRecallConversation } from '@shared/play/conversations';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { CompassWindowsContext } from '../../compass/compassWindows';
 import { snapshotFactionToken } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { seatFaction } from '../../multiplayer/tableFactions';
 import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
+import type { Mention } from './mentions';
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
 function senderNames(context: ConversationView['context']): Record<string, string> {
@@ -30,6 +32,38 @@ function senderTokens(
   return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
 }
 
+/**
+ * Who an @ at the table can name: every seat, as its faction with its player beside it and the seat's token.
+ * The viewer's own seat is named in messages but never suggested;
+ * `peers` are the factions the viewer can chat with.
+ */
+export function tableMentions(
+  table: TableProjection | null | undefined,
+  tokens: Readonly<Record<string, FactionToken>>,
+  peers: readonly string[] = []
+): Mention[] {
+  const viewerSeat = table?.viewer.viewerSeat;
+  const players = table?.snapshot.controls?.players ?? [];
+  return (table?.snapshot.roster?.seats ?? []).flatMap((seat) => {
+    const faction = seat.faction;
+    if (!faction) {
+      return [];
+    }
+    const player = players.find((entry) => entry.seat === seat.id);
+    return [
+      {
+        id: seat.id,
+        label: faction.name,
+        detail: player?.name ?? null,
+        avatar: player?.avatar ?? null,
+        token: tokens[faction.id] ?? { id: faction.id, name: faction.name },
+        own: seat.id === viewerSeat,
+        chattable: seat.id !== viewerSeat && peers.includes(faction.id),
+      },
+    ];
+  });
+}
+
 /** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
 export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
   const { conversations: view, table } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
@@ -40,6 +74,18 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
     () => (shared ? senderTokens(view.context, snapshot) : null),
     [shared, view.context, snapshot]
   );
+  const mentions = useMemo(
+    () =>
+      senders
+        ? tableMentions(
+            table,
+            senders,
+            view.context?.peers.map((peer) => peer.id)
+          )
+        : [],
+    [senders, table, view.context]
+  );
+  const windows = useContext(CompassWindowsContext);
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
@@ -63,6 +109,10 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
       cleared={client.conversations.clearedThrough(peerId) > 0}
+      mentions={mentions}
+      /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
+      onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}
+      onMentionChat={peerId === TABLE_CONVERSATION ? windows?.chat : undefined}
     />
   );
 }

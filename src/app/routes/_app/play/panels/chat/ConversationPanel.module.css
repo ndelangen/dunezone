@@ -17,3 +17,9 @@
 .body > form {
   flex-shrink: 0;
 }
+
+/* The writer's token, reachable from the keyboard to open their seat's card. */
+.seatTrigger {
+  display: inline-flex;
+  border-radius: 50%;
+}

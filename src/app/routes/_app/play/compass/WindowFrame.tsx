@@ -2,8 +2,8 @@ import { Tooltip } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { TruncatedText } from '@ui/content/TruncatedText';
 import clsx from 'clsx';
-import { useContext } from 'react';
-import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import { useContext, useEffect, useRef } from 'react';
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, RefObject } from 'react';
 
 import chat from './ChatBar.module.css';
 import { CompassTableContext } from './compassTable';
@@ -11,6 +11,7 @@ import type { CompassPlayer } from './compassTable';
 import { factionSeat, FactionTokens } from './FactionTokens';
 import { PlayerToken } from './PlayerToken';
 import type { Side } from './slotLimits';
+import { WINDOW_FOCUS_ATTRIBUTE } from './windowFocus';
 import { FACTION_INFO, WindowBody, WindowHelp } from './windows';
 import type { TableWindow } from './windows';
 import styles from './Windows.module.css';
@@ -60,8 +61,11 @@ export function WindowFrame({
   onFaction,
   actions,
 }: WindowFrameProps) {
+  const frame = useRef<HTMLDivElement>(null);
+  const pressed = useFocusOnRaise(frame, front, flash);
   return (
     <div
+      ref={frame}
       role="group"
       className={clsx(styles.window, where === 'centre' ? styles.centre : styles.slot)}
       data-side={where}
@@ -74,7 +78,10 @@ export function WindowFrame({
       data-bounce={bounce}
       data-peek={entry.peek || undefined}
       style={style}
-      onPointerDownCapture={onRaise}
+      onPointerDownCapture={() => {
+        pressed();
+        onRaise?.();
+      }}
     >
       {resize && <ResizeEdge resize={resize} />}
       <WindowTitle
@@ -90,6 +97,83 @@ export function WindowFrame({
       <WindowContent entry={entry} seat={seat} onSeat={onSeat} />
     </div>
   );
+}
+
+/* Whatever a click inside a window does for itself, so it keeps the focus the click gave it: a control, or a region the keys scroll, as a chat's history. */
+const OWN_FOCUS =
+  'button, a[href], input, textarea, select, label, [role="button"], [role="slider"], [role="option"], [contenteditable], [tabindex]:not([tabindex="-1"])';
+
+/* The field a window hands its focus to, as a chat does its composer. */
+function focusField(frame: HTMLElement | null) {
+  const target = frame?.querySelector<HTMLElement>(`[${WINDOW_FOCUS_ATTRIBUTE}]`);
+  if (target && !frame!.contains(document.activeElement)) {
+    target.focus({ preventScroll: true });
+  }
+}
+
+/*
+ * A window that opens, or is brought up again, hands the focus to its field, so a chat is ready to type in.
+ * A press inside it raises it too, but the press itself decides: a click on a bare part of the window focuses the field,
+ * while a click on a control, or one that selected text to copy, keeps its own focus.
+ * A window that only comes back, as pinned windows do on a reload, takes nothing.
+ */
+function useFocusOnRaise(
+  frame: RefObject<HTMLDivElement | null>,
+  front: boolean | undefined,
+  flash: number | undefined
+) {
+  const pointer = useRef(false);
+  const releasing = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (front && !pointer.current) {
+      focusField(frame.current);
+    }
+  }, [frame, front, flash]);
+  /* A press still held when the window goes lets go with it. */
+  useEffect(() => () => releasing.current?.(), []);
+  const pressed = () => {
+    releasing.current?.();
+    pointer.current = true;
+    /*
+     * A press ends in a release, or a cancel where the browser takes it over (a touch scroll).
+     * One released outside the page sends neither: the page losing focus, or the pointer coming back with no button held, ends it then.
+     */
+    const lost = (event: PointerEvent) => {
+      if (event.buttons === 0) {
+        release();
+      }
+    };
+    const release = () => {
+      pointer.current = false;
+      releasing.current = null;
+      window.removeEventListener('pointerup', release, true);
+      window.removeEventListener('pointercancel', release, true);
+      window.removeEventListener('pointermove', lost, true);
+      window.removeEventListener('blur', release);
+    };
+    releasing.current = release;
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
+    window.addEventListener('pointermove', lost, true);
+    window.addEventListener('blur', release);
+  };
+  useEffect(() => {
+    const element = frame.current;
+    if (!element) {
+      return;
+    }
+    const click = (event: MouseEvent) => {
+      const target = event.target;
+      const selecting = !(window.getSelection()?.isCollapsed ?? true);
+      if (selecting || (target instanceof Element && target.closest(OWN_FOCUS))) {
+        return;
+      }
+      element.querySelector<HTMLElement>(`[${WINDOW_FOCUS_ATTRIBUTE}]`)?.focus({ preventScroll: true });
+    };
+    element.addEventListener('click', click);
+    return () => element.removeEventListener('click', click);
+  }, [frame]);
+  return pressed;
 }
 
 type WindowTitleProps = Readonly<{

@@ -253,3 +253,8 @@
 .painting canvas {
   cursor: var(--brush-cursor) !important;
 }
+
+/* The scene takes the focus only from script, as a chat's Escape hands the keys back to the table, so it shows no ring. */
+.focusTarget:focus {
+  outline: none;
+}

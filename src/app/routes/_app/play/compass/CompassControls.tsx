@@ -9,6 +9,7 @@ import styles from './CompassControls.module.css';
 import { CompassEpochContext } from './compassEpoch';
 import type { CompassTable } from './compassTable';
 import { CompassTableContext } from './compassTable';
+import { CompassWindowsContext } from './compassWindows';
 import { CompassActiveContext } from './controlsActive';
 import { SIDES } from './slotLimits';
 import { useCompass } from './useCompass';
@@ -16,7 +17,7 @@ import { useOpenWindows } from './useOpenWindows';
 import { RememberedContext } from './useRemembered';
 import { useSlotHeights } from './useSlotHeights';
 import { WindowFrames } from './WindowFrames';
-import { KEYBOARD_SHORTCUTS, useTableWindows } from './windows';
+import { FACTION_INFO, KEYBOARD_SHORTCUTS, useTableWindows } from './windows';
 import type { TableWindow } from './windows';
 
 /*
@@ -163,7 +164,12 @@ function Controls({
     onToggleSheet: toggleSheet,
   });
   return (
-    <>
+    <CompassWindowsContext
+      value={{
+        factionInfo: (seat) => opened.reveal(FACTION_INFO, seat),
+        chat: (seat) => centre(`player:${seat}`),
+      }}
+    >
       <WindowFrames windows={windows} opened={opened} heights={heights} inert={inert} />
       <ChatBar
         inert={inert}
@@ -174,6 +180,6 @@ function Controls({
         onShow={compass.show}
       />
       {open && active && <Compass {...compass.props} />}
-    </>
+    </CompassWindowsContext>
   );
 }
