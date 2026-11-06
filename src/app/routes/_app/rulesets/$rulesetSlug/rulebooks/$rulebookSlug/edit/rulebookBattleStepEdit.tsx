@@ -3,7 +3,7 @@ import type { RulebookBattleSideValue } from '@shared/rulebooks/battleStep';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
-import { ControlBlock } from '@ui/control/ControlBlock';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { lazy, Suspense, useState } from 'react';
@@ -202,10 +202,10 @@ function BattleCardFields({
   const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
   return (
     <>
-      <ControlBlock
-        title="Played cards"
-        description="These appear when the plan is revealed."
-        tool={
+      <ListChapter
+        title={`${label} cards`}
+        help="These appear when the plan is revealed."
+        actions={
           <ListLengthActions
             addLabel={`Add ${label.toLowerCase()} card`}
             removeLabel={`Remove last ${label.toLowerCase()} card`}
@@ -215,42 +215,41 @@ function BattleCardFields({
             onRemove={() => update({ cards: value.cards.slice(0, -1) })}
           />
         }
-        input={
-          <Stack gap="sm">
-            {openPicker === 'card' ? (
-              <Suspense fallback={<Loader size="sm" aria-label="Loading cards" />}>
-                <RulebookSourcePicker
-                  purpose="card"
-                  onPick={(source) => {
-                    if (source.kind === 'asset') {
-                      update({ cards: [...value.cards, source] });
-                    }
-                    setOpenPicker(null);
-                  }}
-                  onCancel={() => setOpenPicker(null)}
-                />
-              </Suspense>
-            ) : null}
-            {value.cards.map((source, index) => (
-              <BattleSourceControl
-                key={index}
-                title={`${label} card ${index + 1}`}
-                card
-                source={source.assetId ? source : undefined}
-                references={references}
-                onChange={(next) =>
-                  update({
-                    cards:
-                      next?.kind === 'asset'
-                        ? value.cards.map((existing, position) => (position === index ? next : existing))
-                        : value.cards.filter((_, position) => position !== index),
-                  })
-                }
+      >
+        <Stack gap="sm">
+          {openPicker === 'card' ? (
+            <Suspense fallback={<Loader size="sm" aria-label="Loading cards" />}>
+              <RulebookSourcePicker
+                purpose="card"
+                onPick={(source) => {
+                  if (source.kind === 'asset') {
+                    update({ cards: [...value.cards, source] });
+                  }
+                  setOpenPicker(null);
+                }}
+                onCancel={() => setOpenPicker(null)}
               />
-            ))}
-          </Stack>
-        }
-      />
+            </Suspense>
+          ) : null}
+          {value.cards.map((source, index) => (
+            <BattleSourceControl
+              key={index}
+              title={`${label} card ${index + 1}`}
+              card
+              source={source.assetId ? source : undefined}
+              references={references}
+              onChange={(next) =>
+                update({
+                  cards:
+                    next?.kind === 'asset'
+                      ? value.cards.map((existing, position) => (position === index ? next : existing))
+                      : value.cards.filter((_, position) => position !== index),
+                })
+              }
+            />
+          ))}
+        </Stack>
+      </ListChapter>
       {!value.revealed ? (
         <BattleSourceControl
           title={`${label} known card`}
@@ -342,10 +341,10 @@ function BattleTroopFields({ label, value, references, onChange }: BattleSideFie
   const update = (fields: Partial<RulebookBattleSideValue>) => onChange({ ...value, ...fields });
   return (
     <>
-      <ControlBlock
-        title="Troops"
-        description="Choose troop faces and the counts visible at this point in the example."
-        tool={
+      <ListChapter
+        title={`${label} troops`}
+        help="Choose troop faces and the counts visible at this point in the example."
+        actions={
           <ListLengthActions
             addLabel={`Add ${label.toLowerCase()} troop group`}
             removeLabel={`Remove last ${label.toLowerCase()} troop group`}
@@ -372,27 +371,26 @@ function BattleTroopFields({ label, value, references, onChange }: BattleSideFie
             onRemove={() => update({ troops: value.troops.slice(0, -1) })}
           />
         }
-        input={
-          <Stack gap="md">
-            {!faction ? <Text size="sm">Choose a faction to add its troops.</Text> : null}
-            {value.troops.map((group, index) => (
-              <BattleTroopRow
-                key={group.id}
-                label={label}
-                group={group}
-                index={index}
-                faction={faction}
-                troopOptions={troopOptions}
-                onChange={(fields) =>
-                  update({
-                    troops: value.troops.map((troop) => (troop.id === group.id ? { ...troop, ...fields } : troop)),
-                  })
-                }
-              />
-            ))}
-          </Stack>
-        }
-      />
+      >
+        <Stack gap="md">
+          {!faction ? <Text size="sm">Choose a faction to add its troops.</Text> : null}
+          {value.troops.map((group, index) => (
+            <BattleTroopRow
+              key={group.id}
+              label={label}
+              group={group}
+              index={index}
+              faction={faction}
+              troopOptions={troopOptions}
+              onChange={(fields) =>
+                update({
+                  troops: value.troops.map((troop) => (troop.id === group.id ? { ...troop, ...fields } : troop)),
+                })
+              }
+            />
+          ))}
+        </Stack>
+      </ListChapter>
     </>
   );
 }
@@ -554,9 +552,9 @@ function BattleDialogueFields({
   onChange: (value: RulebookBlockEditorProps<'battle-step'>['value']['dialogue']) => void;
 }) {
   return (
-    <ControlBlock
+    <ListChapter
       title="Dialogue"
-      tool={
+      actions={
         <ListLengthActions
           addLabel={`${labelPrefix}Add dialogue`}
           addDisabled={(value?.length ?? 0) >= 8}
@@ -566,41 +564,40 @@ function BattleDialogueFields({
           onRemove={() => onChange(value?.slice(0, -1))}
         />
       }
-      input={
-        <Stack gap="sm">
-          {value?.map((line, index) => (
-            <Group key={index} grow align="start">
-              <Select
-                label="Speaker"
-                aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
-                data={[
-                  { value: 'left', label: 'Left faction' },
-                  { value: 'right', label: 'Right faction' },
-                ]}
-                value={line.speaker}
-                onChange={(speaker) => {
-                  if (speaker === 'left' || speaker === 'right') {
-                    onChange(value?.map((entry, position) => (position === index ? { ...entry, speaker } : entry)));
-                  }
-                }}
-              />
-              <Textarea
-                label="Speech"
-                aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
-                minRows={2}
-                value={line.text}
-                onChange={(event) =>
-                  onChange(
-                    value?.map((entry, position) =>
-                      position === index ? { ...entry, text: event.currentTarget.value } : entry
-                    )
-                  )
+    >
+      <Stack gap="sm">
+        {value?.map((line, index) => (
+          <Group key={index} grow align="start">
+            <Select
+              label="Speaker"
+              aria-label={`${labelPrefix}Dialogue ${index + 1} speaker`}
+              data={[
+                { value: 'left', label: 'Left faction' },
+                { value: 'right', label: 'Right faction' },
+              ]}
+              value={line.speaker}
+              onChange={(speaker) => {
+                if (speaker === 'left' || speaker === 'right') {
+                  onChange(value?.map((entry, position) => (position === index ? { ...entry, speaker } : entry)));
                 }
-              />
-            </Group>
-          ))}
-        </Stack>
-      }
-    />
+              }}
+            />
+            <Textarea
+              label="Speech"
+              aria-label={`${labelPrefix}Dialogue ${index + 1} speech`}
+              minRows={2}
+              value={line.text}
+              onChange={(event) =>
+                onChange(
+                  value?.map((entry, position) =>
+                    position === index ? { ...entry, text: event.currentTarget.value } : entry
+                  )
+                )
+              }
+            />
+          </Group>
+        ))}
+      </Stack>
+    </ListChapter>
   );
 }

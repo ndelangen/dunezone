@@ -5,6 +5,7 @@ import { MultiSelect, NumberInput, Select, Stack, TextInput } from '@mantine/cor
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
 import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
+import { ListChapter } from '@ui/block/ListChapter';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -282,105 +283,114 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
           />
         }
       />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
-          <Stack component="ul" gap="md" className={styles.itemList}>
-            {value.itemOrder.map((itemId, index) => {
-              const item = value.itemsById[itemId]!;
-              const label = `Item ${index + 1}`;
-              return (
-                <SortableItem key={itemId} as="li" id={itemId} className={styles.item}>
-                  {({ setActivatorNodeRef, attributes, listeners }) => (
-                    <div className={styles.itemRow}>
-                      <Stack gap="sm" className={styles.itemInput}>
-                        <ControlBlock
-                          title={`${label} name`}
-                          description="Optional bold name before this item."
-                          input={
-                            <TextInput
-                              aria-label={`${label} name`}
-                              value={item.name ?? ''}
-                              onChange={(event) =>
-                                onChange({
-                                  ...value,
-                                  itemsById: {
-                                    ...value.itemsById,
-                                    [itemId]: { ...item, name: event.currentTarget.value || undefined },
-                                  },
-                                })
-                              }
-                            />
-                          }
+      <ListChapter
+        title="Items"
+        actions={
+          <ListLengthActions
+            addLabel="Add item"
+            removeLabel="Remove last item"
+            removeDisabled={value.itemOrder.length === 0}
+            onAdd={() => {
+              const id = createRulebookLocalId(Object.keys(value.itemsById));
+              onChange({
+                ...value,
+                itemOrder: [...value.itemOrder, id],
+                itemsById: { ...value.itemsById, [id]: { id, text: '' } },
+              });
+            }}
+            onRemove={() => {
+              const removed = value.itemOrder.at(-1);
+              onChange({
+                ...value,
+                itemOrder: value.itemOrder.slice(0, -1),
+                itemsById: Object.fromEntries(Object.entries(value.itemsById).filter(([id]) => id !== removed)),
+              });
+            }}
+          />
+        }
+      >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" gap="md" className={styles.itemList}>
+              {value.itemOrder.map((itemId, index) => {
+                const item = value.itemsById[itemId]!;
+                const label = `Item ${index + 1}`;
+                return (
+                  <SortableItem key={itemId} as="li" id={itemId} className={styles.item}>
+                    {({ setActivatorNodeRef, attributes, listeners }) => (
+                      <div className={styles.itemRow}>
+                        <Stack gap="sm" className={styles.itemInput}>
+                          <ControlBlock
+                            title={`${label} name`}
+                            description="Optional bold name before this item."
+                            input={
+                              <TextInput
+                                aria-label={`${label} name`}
+                                value={item.name ?? ''}
+                                onChange={(event) =>
+                                  onChange({
+                                    ...value,
+                                    itemsById: {
+                                      ...value.itemsById,
+                                      [itemId]: { ...item, name: event.currentTarget.value || undefined },
+                                    },
+                                  })
+                                }
+                              />
+                            }
+                          />
+                          <ControlBlock
+                            title={`${label} icon`}
+                            description="Optional symbol in a circular frame beside this item."
+                            input={
+                              <AssetSelect
+                                aria-label={`${label} icon`}
+                                placeholder="No icon"
+                                data={listIconOptions}
+                                getPreviewSrc={(icon) => icon}
+                                glyphPreviews
+                                clearable
+                                value={item.icon ?? null}
+                                onChange={(selected) => {
+                                  const icon = selected === null ? undefined : rulebookListIconSchema.parse(selected);
+                                  onChange({
+                                    ...value,
+                                    itemsById: { ...value.itemsById, [itemId]: { ...item, icon } },
+                                  });
+                                }}
+                              />
+                            }
+                          />
+                          <ControlBlock
+                            title={label}
+                            description="Write one step or point."
+                            input={
+                              <FormattedTextInput
+                                aria-label={label}
+                                minRows={2}
+                                value={item.text}
+                                onChange={(text) =>
+                                  onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, text } } })
+                                }
+                              />
+                            }
+                          />
+                        </Stack>
+                        <SortableReorderHandle
+                          label={`Reorder ${label.toLowerCase()}`}
+                          setActivatorNodeRef={setActivatorNodeRef}
+                          attributes={attributes}
+                          listeners={listeners}
                         />
-                        <ControlBlock
-                          title={`${label} icon`}
-                          description="Optional symbol in a circular frame beside this item."
-                          input={
-                            <AssetSelect
-                              aria-label={`${label} icon`}
-                              placeholder="No icon"
-                              data={listIconOptions}
-                              getPreviewSrc={(icon) => icon}
-                              glyphPreviews
-                              clearable
-                              value={item.icon ?? null}
-                              onChange={(selected) => {
-                                const icon = selected === null ? undefined : rulebookListIconSchema.parse(selected);
-                                onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, icon } } });
-                              }}
-                            />
-                          }
-                        />
-                        <ControlBlock
-                          title={label}
-                          description="Write one step or point."
-                          input={
-                            <FormattedTextInput
-                              aria-label={label}
-                              minRows={2}
-                              value={item.text}
-                              onChange={(text) =>
-                                onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, text } } })
-                              }
-                            />
-                          }
-                        />
-                      </Stack>
-                      <SortableReorderHandle
-                        label={`Reorder ${label.toLowerCase()}`}
-                        setActivatorNodeRef={setActivatorNodeRef}
-                        attributes={attributes}
-                        listeners={listeners}
-                      />
-                    </div>
-                  )}
-                </SortableItem>
-              );
-            })}
-          </Stack>
-        </SortableContext>
-      </DndContext>
-      <ListLengthActions
-        addLabel="Add item"
-        removeLabel="Remove last item"
-        removeDisabled={value.itemOrder.length === 0}
-        onAdd={() => {
-          const id = createRulebookLocalId(Object.keys(value.itemsById));
-          onChange({
-            ...value,
-            itemOrder: [...value.itemOrder, id],
-            itemsById: { ...value.itemsById, [id]: { id, text: '' } },
-          });
-        }}
-        onRemove={() => {
-          const removed = value.itemOrder.at(-1);
-          onChange({
-            ...value,
-            itemOrder: value.itemOrder.slice(0, -1),
-            itemsById: Object.fromEntries(Object.entries(value.itemsById).filter(([id]) => id !== removed)),
-          });
-        }}
-      />
+                      </div>
+                    )}
+                  </SortableItem>
+                );
+              })}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+      </ListChapter>
     </Stack>
   );
 }
