@@ -1,9 +1,6 @@
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
-import { afterAll, beforeAll, describe, expect, test } from 'vite-plus/test';
+import { describe, expect, test } from 'vite-plus/test';
 
 import type { GitHub, Reading } from './deploy-decision';
 import { decide, position } from './deploy-decision';
@@ -36,6 +33,7 @@ function github(request: GitHub['request']): GitHub {
     head: THIS,
     run: THIS_RUN,
     request,
+    retryDelayMs: 0,
   };
 }
 
@@ -141,63 +139,67 @@ describe('a first attempt for a commit every Worker already reports', () => {
 });
 
 /*
- * A throwaway repository holding one commit and its child, so git itself answers which one comes first.
- * Swapping the two ancestry checks in position turns newer into older and back, and fails this test.
+ * GitHub's compare API, answering for a parent and its child the way it does: head is ahead of base when base is in its history, behind when it is the other way round, and 404 for a commit it does not have.
+ * Swapping the two answers in position turns newer into older and back, and fails this test.
  */
+const PARENT = 'b'.repeat(40);
+const CHILD = 'c'.repeat(40);
+const requested: string[] = [];
+const history = github(async (url) => {
+  requested.push(url);
+  const [, base, head] = /\/compare\/(\w+)\.\.\.(\w+)\?/.exec(url) ?? [];
+  const known = [PARENT, CHILD];
+  if (url.includes('/actions/workflows/')) {
+    return Response.json({ total_count: 1, workflow_runs: [asking] });
+  }
+  if (!known.includes(base!) || !known.includes(head!)) {
+    return Response.json({ message: 'Not Found' }, { status: 404 });
+  }
+  const status = base === head ? 'identical' : base === PARENT ? 'ahead' : 'behind';
+  return Response.json({ status, ahead_by: 0, behind_by: 0, commits: [] });
+});
+
 describe('where production sits in git history', () => {
-  let repository = '';
-  let parent = '';
-  let child = '';
-
-  beforeAll(() => {
-    repository = mkdtempSync(join(tmpdir(), 'deploy-decision-'));
-    const git = (args: string[]) =>
-      execFileSync('/usr/bin/git', ['-c', 'commit.gpgSign=false', ...args], {
-        cwd: repository,
-        // mktree reads its entries from stdin, and an empty list is the empty tree.
-        input: '',
-        encoding: 'utf8',
-        env: {
-          ...process.env,
-          GIT_AUTHOR_NAME: 'Deploy decision test',
-          GIT_AUTHOR_EMAIL: 'deploy-decision@example.invalid',
-          GIT_COMMITTER_NAME: 'Deploy decision test',
-          GIT_COMMITTER_EMAIL: 'deploy-decision@example.invalid',
-        },
-      }).trim();
-    git(['init', '--quiet']);
-    const tree = git(['mktree']);
-    parent = git(['commit-tree', tree, '-m', 'parent']);
-    child = git(['commit-tree', tree, '-p', parent, '-m', 'child']);
-  });
-
-  afterAll(() => {
-    rmSync(repository, { recursive: true, force: true });
-  });
-
-  test('reads a child as newer and a parent as older than the commit a run deploys', () => {
-    expect(position(child, child, repository)).toBe('same');
-    expect(position(parent, child, repository)).toBe('newer');
-    expect(position(child, parent, repository)).toBe('older');
+  test('reads a child as newer and a parent as older than the commit a run deploys', async () => {
+    expect(await position(CHILD, CHILD, history)).toBe('same');
+    expect(await position(PARENT, CHILD, history)).toBe('newer');
+    expect(await position(CHILD, PARENT, history)).toBe('older');
   });
 
   test('hands the dev rebuild the older commit when a failed run left the Workers on two earlier ones', async () => {
     const split: Reading[] = [
-      { endpoint: GAME, sha: child, position: 'older' },
-      { endpoint: PUBLISHER, sha: parent, position: 'older' },
+      { endpoint: GAME, sha: CHILD, position: 'older' },
+      { endpoint: PUBLISHER, sha: PARENT, position: 'older' },
     ];
-    expect(await decide(split, 1, listing(), repository)).toMatchObject({ deploy: true, base: parent });
+    expect(await decide(split, 1, history)).toMatchObject({ deploy: true, base: PARENT });
     const unplaced: Reading[] = [split[0], { endpoint: PUBLISHER, sha: '1'.repeat(40), position: 'older' }];
-    expect(await decide(unplaced, 1, listing(), repository)).toMatchObject({ deploy: true, base: '' });
+    expect(await decide(unplaced, 1, history)).toMatchObject({ deploy: true, base: '' });
   });
 
-  test('leaves a commit git does not have unknown', () => {
-    expect(position(child, '1'.repeat(40), repository)).toBe('unknown');
+  test('leaves a commit GitHub does not have, or one on another branch, unknown', async () => {
+    expect(await position(CHILD, '1'.repeat(40), history)).toBe('unknown');
+    const diverged = github(async () => Response.json({ status: 'diverged' }));
+    expect(await position(CHILD, PARENT, diverged)).toBe('unknown');
   });
 
-  test('leaves a short or option-shaped value unknown, even a prefix git could resolve', () => {
-    expect(position(child, parent.slice(0, 12), repository)).toBe('unknown');
-    expect(position(child, '--all', repository)).toBe('unknown');
+  test('asks again after a failed answer, and fails the gate rather than guess when GitHub never answers', async () => {
+    let calls = 0;
+    const flaky = github(async () => {
+      calls += 1;
+      return calls === 1 ? new Response('', { status: 502 }) : Response.json({ status: 'ahead' });
+    });
+    expect(await position(CHILD, PARENT, flaky)).toBe('older');
+    expect(calls).toBe(2);
+    await expect(position(CHILD, PARENT, unreachable)).rejects.toThrow('could not place');
+    const broken = github(async () => new Response('', { status: 503 }));
+    await expect(position(CHILD, PARENT, broken)).rejects.toThrow('HTTP 503');
+  });
+
+  test('never puts a short or path-shaped value in the URL, even a prefix GitHub could resolve', async () => {
+    requested.length = 0;
+    expect(await position(CHILD, PARENT.slice(0, 12), history)).toBe('unknown');
+    expect(await position(CHILD, '../../actions', history)).toBe('unknown');
+    expect(requested).toEqual([]);
   });
 });
 

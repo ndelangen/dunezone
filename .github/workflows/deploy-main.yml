@@ -66,13 +66,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # The decision compares production's commits with this one in main's history, and needs nothing
-      # else from git. fetch-depth: 0 fetched every blob of more than 1,200 branches and once ran out
-      # the job's five minutes (#2610); main's commits alone, with no trees or blobs, take seconds.
-      - name: Fetch main's commit history
-        run: git fetch --no-tags --unshallow --filter=tree:0 origin "+refs/heads/main:refs/remotes/origin/main"
-        timeout-minutes: 2
-
+      # The decision asks GitHub's compare API where production's commits sit against this one, so the
+      # job needs no history: deepening this shallow checkout with a commits-only filter crashed git
+      # itself (#2721), and before that fetch-depth: 0 ran out the job's five minutes (#2610).
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:

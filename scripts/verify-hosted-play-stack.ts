@@ -243,8 +243,11 @@ function backendBinary(): string {
   if (!artifact) {
     throw new Error('This platform needs an explicit --backend-binary.');
   }
-  const url = `https://github.com/get-convex/convex-backend/releases/download/precompiled-2026-10-06-a3538c6/${artifact.filename}`;
-  /* The verified archive is kept across runs, so only a machine's first run downloads it; that one download gets room for a slow link. */
+  const url = `https://github.com/convex/convex-backend/releases/download/precompiled-2026-10-06-a3538c6/${artifact.filename}`;
+  /*
+   * The verified archive is kept across runs, so only a machine's first run downloads it; that one download gets room for a slow link.
+   * GitHub's release asset host answers an occasional error, and curl --retry alone skips a 4xx or a failed connection, so every error gets three more tries; one such answer failed hosted_play (protocol) before any flow on 5 Nov 2026.
+   */
   const archive = cachedBackendArchive({
     directory: backendCacheDirectory(),
     digest: artifact.digest,
@@ -259,7 +262,8 @@ function backendBinary(): string {
           '--max-time',
           '240',
           '--retry',
-          '1',
+          '3',
+          '--retry-all-errors',
           '--output',
           target,
           url,
