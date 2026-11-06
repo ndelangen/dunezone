@@ -7,11 +7,11 @@
 import { createHash } from 'node:crypto';
 
 /** One variant inside a pack. */
-export type PackEntry = { name: string; sha256: string; bytes: number; offset: number };
+type PackEntry = { name: string; sha256: string; bytes: number; offset: number };
 export type Pack = { sha256: string; bytes: number; entries: PackEntry[] };
 export type PackIndex = { schemaVersion: 1; release: string; packs: Pack[] };
 
-export function sha256(bytes: Uint8Array): string {
+function sha256(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 

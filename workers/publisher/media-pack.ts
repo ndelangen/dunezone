@@ -30,7 +30,7 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const RELEASE = /^[0-9a-f]{40}-\d{1,20}$/;
 
 /** Sixteen packs hold about 230 MB today, so each is near 15 MB; the bound keeps one upload well inside the Worker's memory. */
-export const MEDIA_PACK_MAX_BYTES = 32 * 1024 * 1024;
+const MEDIA_PACK_MAX_BYTES = 32 * 1024 * 1024;
 /** About 150 bytes per variant. */
 const MEDIA_PACK_INDEX_MAX_BYTES = 8 * 1024 * 1024;
 /** Readers poll the index once per setup; a minute at the edge is plenty. */
@@ -43,8 +43,8 @@ export type MediaPackEnv = {
   MEDIA_PUBLISH_TOKEN?: string;
 };
 
-export type MediaPackEntry = { name: string; sha256: string; bytes: number; offset: number };
-export type MediaPack = { sha256: string; bytes: number; entries: MediaPackEntry[] };
+type MediaPackEntry = { name: string; sha256: string; bytes: number; offset: number };
+type MediaPack = { sha256: string; bytes: number; entries: MediaPackEntry[] };
 export type MediaPackIndex = { schemaVersion: 1; release: string; packs: MediaPack[] };
 
 export function mediaPackKey(sha256: string): string {
