@@ -5,20 +5,23 @@ import { loadAssetPage } from '@app/db/assets';
 import { pageHead } from '@app/routes/pageTitle';
 
 import { NoEditorYet } from '../../../assetEditorStates';
-import { customCardEditing, stormCardEditing } from '../../../layeredCardEditing';
+import { CardTypeEditPage } from '../../cardSession';
+import {
+  customCardSession,
+  homeworldCardSession,
+  leaderSkillCardSession,
+  leaderTokenSession,
+  nexusCardSession,
+  spiceCardSession,
+  stormCardSession,
+  strongholdCardSession,
+  treacheryCardSession,
+} from '../../cardSessionConfigs';
 import { BoardEditPage } from './boardEdit';
 import { BundleEditPage } from './bundleEdit';
 import { DeckEditPage } from './deckEdit';
-import { HomeworldEditPage } from './homeworldEdit';
-import { LayeredEditPage } from './layeredEdit';
-import { LeaderSkillEditPage } from './leaderSkillEdit';
-import { LeaderTokenEditPage } from './leaderTokenEdit';
-import { NexusEditPage } from './nexusEdit';
 import { RectangleEditPage } from './rectangleEdit';
-import { SpiceEditPage } from './spiceEdit';
-import { StrongholdEditPage } from './strongholdEdit';
 import { TokenEditPage } from './tokenEdit';
-import { TreacheryEditPage } from './treacheryEdit';
 
 /**
  * Editing any Asset, one route for every type.
@@ -43,21 +46,21 @@ function EditAssetPage() {
     case 'board':
       return <BoardEditPage slug={slug} loaderData={loaderData} />;
     case 'card-treachery':
-      return <TreacheryEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={treacheryCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-leaderability':
-      return <LeaderSkillEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={leaderSkillCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-homeworld':
-      return <HomeworldEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={homeworldCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-nexus':
-      return <NexusEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={nexusCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-custom':
-      return <LayeredEditPage config={customCardEditing} slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={customCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-storm':
-      return <LayeredEditPage config={stormCardEditing} slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={stormCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-stronghold':
-      return <StrongholdEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={strongholdCardSession} slug={slug} loaderData={loaderData} />;
     case 'card-spice':
-      return <SpiceEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={spiceCardSession} slug={slug} loaderData={loaderData} />;
     case 'token-disc':
     case 'token-tech':
     case 'token-pointer':
@@ -65,7 +68,7 @@ function EditAssetPage() {
       return <TokenEditPage type={type} slug={slug} loaderData={loaderData} />;
     /* The rectangle is a token by category and its own editor by face: a free composition rather than a symbol in a slot. */
     case 'token-leader':
-      return <LeaderTokenEditPage slug={slug} loaderData={loaderData} />;
+      return <CardTypeEditPage config={leaderTokenSession} slug={slug} loaderData={loaderData} />;
     case 'token-enhance':
       return <RectangleEditPage type={type} slug={slug} loaderData={loaderData} />;
     case 'deck':

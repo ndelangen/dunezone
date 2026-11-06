@@ -1,9 +1,8 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
-import { act } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';

@@ -28,10 +28,7 @@ import {
   AssetEditorViewerPending,
 } from '../../../assetEditorStates';
 
-/*
- * What the card edit pages share: the checks before a session opens, the save, and the page around the workbench.
- * Each page keeps its own authoring state and reducer (D7 on «Work the editors wave»).
- */
+/* What the card edit page is built from: the checks before a session opens, the save, and the page around the workbench; `CardTypeEditPage` holds the session. */
 
 type CardType =
   | 'card-treachery'
@@ -44,6 +41,14 @@ type CardType =
   | 'card-leaderability'
   | 'board'
   | 'token-leader';
+
+/** How the editor pages name an asset of this type in labels and messages. */
+export function assetNoun(type: CardType): 'board' | 'token' | 'card' {
+  if (type === 'board') {
+    return 'board';
+  }
+  return type === 'token-leader' ? 'token' : 'card';
+}
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
@@ -82,7 +87,7 @@ export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
   return <CardEditChecks {...props} data={query.data} />;
 }
 
-/** The custom page owns the live read because its unsaved Token layers determine that read's arguments. */
+/** The checks alone, for a page that owns the live read because its unsaved draft decides that read's arguments. */
 export function CardEditChecks<Draft>({
   type,
   schemaName,
@@ -90,12 +95,7 @@ export function CardEditChecks<Draft>({
   data,
   session,
 }: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
-  let noun = 'card';
-  if (type === 'board') {
-    noun = 'board';
-  } else if (type === 'token-leader') {
-    noun = 'token';
-  }
+  const noun = assetNoun(type);
   if (data === null) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${noun}`}>
@@ -215,7 +215,7 @@ export function CardEditFrame<Draft extends { name: string }>({
 }) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
-  const noun = type === 'token-leader' ? 'token' : 'card';
+  const noun = assetNoun(type);
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
   return (
@@ -225,7 +225,7 @@ export function CardEditFrame<Draft extends { name: string }>({
         <AuthoringToolbar
           scopeKey={authoringAccountKey}
           load={assetLoad({
-            noun: type === 'board' ? 'board' : noun,
+            noun,
             type,
             schema: load.schema,
             presets: load.presets,

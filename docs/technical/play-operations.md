@@ -350,7 +350,7 @@ There is no rollback procedure. Fixes ship as new forward deployments, and the g
 rolled back or redeployed to an older release on its own, because a page and a game Worker from
 different releases can refuse each other's messages (`docs/deployment.md:19-24`). `release_gate`
 stops any run whose commit is older than what production reports
-(`scripts/deploy-decision.ts:39-71`). To undo a change, revert it on `main` and let the deploy run.
+(`decide` in `scripts/deploy-decision.ts`). To undo a change, revert it on `main` and let the deploy run.
 
 ## 5. Known gaps
 

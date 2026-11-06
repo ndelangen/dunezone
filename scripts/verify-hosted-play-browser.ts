@@ -1067,14 +1067,17 @@ async function previousPhaseDisabled(who: HostedPeer) {
   await who.page.getByRole('menuitem', { name: 'Previous phase', exact: true }).waitFor({ state: 'hidden' });
   return disabled;
 }
-/** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
-async function act(who: HostedPeer, name: string) {
+/**
+ * Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held.
+ * `force` skips Playwright's stability wait, for a click with a deadline: that wait needs two animation frames with the same box, and a SwiftShader table under load can leave seconds between frames.
+ */
+async function act(who: HostedPeer, name: string, options: { force?: boolean } = {}) {
   const control = () => (name === 'Previous phase' ? previousPhase(who) : button(who, name));
   await until(async () => (await control()).isEnabled(), `${name} did not become enabled.`, 20_000);
   /* Read after the control is enabled: a commit that enabled it has then reached this view,
      so the next revision is this click's and not that one arriving late. */
   const before = requireView(who).snapshot.revision;
-  await (await control()).click();
+  await (await control()).click({ force: options.force });
   await until(() => requireView(who).snapshot.revision > before, `${name} did not commit.`);
 }
 async function converged(peers: HostedPeer[]) {

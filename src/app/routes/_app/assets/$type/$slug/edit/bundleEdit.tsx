@@ -100,7 +100,7 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored bundle has no room for (D3), and `baseline` is what a reset returns to.
  */
 type BundleState = { data: BundleDraft; memory: BundleMemory; baseline: BundleDraft };
