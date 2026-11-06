@@ -1,11 +1,10 @@
 import { HoverCard } from '@mantine/core';
-import type { ComponentType, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import { splitMentions } from './mentions';
 import type { Mention } from './mentions';
 import styles from './MentionText.module.css';
-import type { SeatCardProps } from './seatCard/SeatCard.types';
-import { SeatCardInline } from './seatCard/SeatCardInline';
+import { SeatCard } from './SeatCard';
 
 export type MentionActions = Readonly<{
   /** Brings up a seat's faction information. */
@@ -43,15 +42,12 @@ export function MentionCard({
   onInfo,
   onChat,
   initiallyOpened = false,
-  card: Card = SeatCardInline,
 }: Readonly<{
   mention: Mention;
   /** What hovering shows the card: a single element. */
   children: ReactElement;
   /** Shows the card from the start rather than on hover. */
   initiallyOpened?: boolean;
-  /** The card's layout, while the options are compared. */
-  card?: ComponentType<SeatCardProps>;
 }> &
   MentionActions) {
   const chat = mention.chattable && onChat;
@@ -66,7 +62,7 @@ export function MentionCard({
     >
       <HoverCard.Target>{children}</HoverCard.Target>
       <HoverCard.Dropdown p={0}>
-        <Card
+        <SeatCard
           mention={mention}
           onInfo={onInfo && (() => onInfo(mention.id))}
           onChat={chat ? () => chat(mention.id) : undefined}
