@@ -3,8 +3,8 @@ import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
 import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -113,7 +113,9 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
     case 'pending':
       return (
         <AssetEditorMessage title={`New ${label} token`} type={type}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -169,7 +171,7 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <SaveErrorAlert subject="token" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
               <Notice tone="caution" title="No token picked" live>
                 Picking a token's back happens on the edit page; save with another back mode first.

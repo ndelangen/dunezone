@@ -2,6 +2,8 @@ import { Box, Image, Stack, Text } from '@mantine/core';
 import { phaseDeclarationSchema, SETUP_PHASE_TARGETS } from '@shared/factions/extraPhases';
 import type { PhaseDeclaration } from '@shared/factions/extraPhases';
 import { composeSetup, composeTurn } from '@shared/play/phases';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { FieldWarning } from '@ui/content/FieldWarning';
 
 import { useAssetResolver } from '@game/assets/assetRenderMode';
 
@@ -107,9 +109,7 @@ function SequenceList({
   };
   return (
     <Stack gap={4}>
-      <Text fw={800} size="xs" tt="uppercase" c="dimmed">
-        {label}
-      </Text>
+      <Eyebrow>{label}</Eyebrow>
       <ol className={styles.list} aria-label={label}>
         {groups.flatMap(({ placed, step }) => [
           ...placed.map(renderRow),
@@ -143,10 +143,9 @@ export function FactionPhaseSequence({ rows, selectedIndex }: { rows: readonly u
           </Text>
         ) : null}
         {omitted.length > 0 ? (
-          <Text size="sm" c="var(--color-caution)">
-            Left out until fixed:{' '}
-            {omitted.map((index) => phaseRowLabel(rows[index] as Partial<PhaseDeclaration>, index)).join(', ')}.
-          </Text>
+          <FieldWarning>
+            {`Left out until fixed: ${omitted.map((index) => phaseRowLabel(rows[index] as Partial<PhaseDeclaration>, index)).join(', ')}.`}
+          </FieldWarning>
         ) : null}
         <SequenceList label="Setup" groups={setupGroups} selectedIndex={selectedIndex} />
         <SequenceList label="Each turn" groups={turnGroups} selectedIndex={selectedIndex} />

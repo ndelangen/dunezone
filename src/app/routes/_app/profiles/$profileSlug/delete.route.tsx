@@ -1,10 +1,11 @@
+/* oxlint-disable-next-line no-restricted-imports -- This page has no header band, so its h1 heads the confirmation pane. */
 import { Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
+import { Section } from '@ui/block/Section';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -81,9 +82,9 @@ function AccountDeletionPage() {
   if (data.kind === 'denied') {
     return (
       <PageMessage title="Delete account" back={backToSettings}>
-        <NotAvailable title="This is not your account">
+        <PageState kind="absent" title="This is not your account">
           You must be signed in to the profile named in this address.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -97,9 +98,9 @@ function AccountDeletionPage() {
             {data.operation?.error ?? 'The operation needs administrative repair before it can continue.'}
           </LoadError>
         ) : (
-          <LoadPending title="Account deletion is in progress">
+          <PageState kind="pending" title="Account deletion is in progress">
             {`Current phase: ${data.operation?.phase ?? 'starting'}. This page updates automatically.`}
-          </LoadPending>
+          </PageState>
         )}
       </PageMessage>
     );
@@ -132,10 +133,7 @@ function AccountDeletionPage() {
               <Text c="dimmed">Review direct ownership before deleting {data.profile.username ?? 'this account'}.</Text>
             </div>
 
-            <Stack gap="xs">
-              <Title order={2} size="h3">
-                Direct ownership
-              </Title>
+            <Section title="Direct ownership">
               {hasOwnership ? (
                 <List>
                   {data.summary.map((entry) => (
@@ -148,12 +146,9 @@ function AccountDeletionPage() {
               ) : (
                 <Text c="dimmed">This account directly owns no Groups, factions, rulesets, or assets.</Text>
               )}
-            </Stack>
+            </Section>
 
-            <Stack gap="sm">
-              <Title order={2} size="h3">
-                Choose the outcome
-              </Title>
+            <Section title="Choose the outcome">
               <Text>
                 Select one active profile to receive every directly owned Group, faction, ruleset, and asset. If you
                 leave the replacement empty, those records will be soft-deleted instead.
@@ -205,7 +200,7 @@ function AccountDeletionPage() {
                   not affected.
                 </Notice>
               )}
-            </Stack>
+            </Section>
 
             {confirm.isError ? (
               <FormError title="Account deletion could not start">

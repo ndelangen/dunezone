@@ -91,7 +91,7 @@ export function TerritoryTintsPanel({
   onRemove,
 }: TerritoryTintsPanelProps) {
   return (
-    <Section hiddenHeading title="Territory tints" description={TINTS_HELP}>
+    <Section hiddenHeading title="Territory tints" help={TINTS_HELP}>
       <Stack gap="xs">
         {rows.map(({ tint, summary, painting, removalAttempt }) => (
           <TintRow

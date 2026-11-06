@@ -1,8 +1,7 @@
 import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
-import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
@@ -33,13 +32,15 @@ import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { detailError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 
 type RosterEntry = GroupDetailPageData['roster'][number];
+
+const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   ssr: true,
@@ -51,7 +52,7 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     }
     return { groupDetail };
   },
-  errorComponent: GroupDetailError,
+  errorComponent: detailError({ noun: 'group', isMissing: isPublicPageNotFound, back: backToProfiles }),
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.groupDetail.group.name ?? 'Group',
@@ -66,25 +67,6 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     }),
   component: GroupDetailPage,
 });
-
-const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
-
-/**
- * The frame for a load that failed, most often a slug naming no group.
- * A failed Convex query throws to this route boundary, so the live-query result has no separate error state.
- */
-function GroupDetailError({ error }: ErrorComponentProps) {
-  if (isPublicPageNotFound(error)) {
-    return (
-      <PageMessage size="compact" title="Group" back={backToProfiles}>
-        <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
-  }
-  return (
-    <RouteLoadError size="compact" title="Group" back={backToProfiles} what="Group could not be loaded" error={error} />
-  );
-}
 
 function GroupDetailPage() {
   const { groupSlug } = Route.useParams();
@@ -254,7 +236,11 @@ function GroupDetailPage() {
         {requestError || deleteGroup.error ? (
           <Stack gap="lg" mb="lg">
             {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
-            {deleteGroup.error ? <FormError title="Delete failed">{deleteGroup.error.message}</FormError> : null}
+            {deleteGroup.error ? (
+              <ActionError subject="Group" verb="delete">
+                {deleteGroup.error.message}
+              </ActionError>
+            ) : null}
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>

@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -106,7 +106,9 @@ export function BundleCreatePage() {
     case 'pending':
       return (
         <AssetEditorMessage title="New bundle" type="bundle">
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -164,7 +166,7 @@ export function BundleCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <SaveErrorAlert subject="bundle" verb="create" error={createAsset.error} />
             <BundleEditor
               nameField={nameField}
               draft={state.data}

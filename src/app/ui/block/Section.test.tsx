@@ -36,11 +36,11 @@ afterEach(() => {
   container.remove();
 });
 
-function render(description?: string) {
+function render(help?: string) {
   act(() =>
     root.render(
       <MantineProvider theme={appContentTheme}>
-        <Section hiddenHeading title="Spice reserve" description={description}>
+        <Section hiddenHeading title="Spice reserve" help={help}>
           <p>Content</p>
         </Section>
       </MantineProvider>

@@ -71,7 +71,8 @@ function ResultSection({
   readiness,
 }: Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode; readiness?: ReactNode }>) {
   return (
-    <Section eyebrow={eyebrow} title={title} description={context} action={action}>
+    <Section eyebrow={eyebrow} title={title} action={action}>
+      {context ? <Text size="sm">{context}</Text> : null}
       {readiness}
     </Section>
   );

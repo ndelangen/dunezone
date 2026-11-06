@@ -1,21 +1,25 @@
 import { Group, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import type { FailedAction } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { z } from 'zod';
 
 import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
 import { mutationErrorMessage } from '@app/db/core/mutationError';
+import { NotFoundState } from '@app/routes/routeStates';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 /**
  * The words `PageMessage` wears on an asset editor route, and the destination its way back points at.
@@ -54,10 +58,12 @@ export function AssetEditorMessage({
 }
 
 /** What an asset editor shows while it learns who the viewer is, so a signed-in owner never sees the sign-in gate first. */
-export function AssetEditorViewerPending({ name, type }: { name: string; type: string }) {
+function AssetEditorViewerPending({ name, type }: { name: string; type: string }) {
   return (
     <AssetEditorMessage title={`Edit ${name}`} type={type}>
-      <LoadPending title="Loading">Checking what you can edit.</LoadPending>
+      <PageState kind="pending" title="Loading">
+        Checking what you can edit.
+      </PageState>
     </AssetEditorMessage>
   );
 }
@@ -85,12 +91,12 @@ export function useAssetDeletion(asset: Pick<NonNullable<AssetPageData>['asset']
 /**
  * An asset whose stored data no longer satisfies its type's schema, reachable whenever a schema tightens ahead of a backfill.
  * The editor cannot open it, but deletion never reads the data, so the owner keeps the one action that still applies rather than needing the database to be rid of it.
- * The message stays the caller's, because each editor names its own schema, and they are not interchangeable: four of the five say "the token schema" or "the deck schema" after their own noun, while the treachery editor says "the treachery card schema" after "card".
+ * The message stays the caller's, because the schema is named more narrowly than the noun: "this card" fails "the spice card schema".
  * The delete affordance is what every drifted asset shares.
  *
- * This is the one state here that is not one of the four bodies, because it ends in an action rather than in words: the heading and sentence are a `NotAvailable`, and the offer to delete sits beside it in the same slot.
+ * This is the one state here that is not one of the four bodies, because it ends in an action rather than in words: the heading and sentence are an absent `PageState`, and the offer to delete sits beside it in the same slot.
  */
-export function DriftedAssetPage({
+function DriftedAssetPage({
   asset,
   noun,
   canDelete,
@@ -107,13 +113,19 @@ export function DriftedAssetPage({
 
   return (
     <AssetEditorMessage title={`Edit ${asset.name}`} type={asset.type}>
-      <NotAvailable title={`This ${noun} cannot be edited`}>{children}</NotAvailable>
+      <PageState kind="absent" title={`This ${noun} cannot be edited`}>
+        {children}
+      </PageState>
       {canDelete ? (
         <>
           <Text size="sm" c="dimmed">
             Deleting it is still open to you. The drifted data blocks the editor, not the delete.
           </Text>
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          {deletion.error ? (
+            <ActionError subject={noun} verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           <Group>
             <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
@@ -131,9 +143,9 @@ export function NoEditorYet({ type }: { type: string }) {
   const label = isAssetType(type) ? ASSET_TYPES[type].label.toLowerCase() : 'assets of this type';
   return (
     <AssetEditorMessage title={isAssetType(type) ? ASSET_TYPES[type].label : 'Assets'} type={type}>
-      <NotAvailable title="No editor yet">
+      <PageState kind="absent" title="No editor yet">
         {`There is no editor for ${label} yet. This type is on the roadmap and cannot hold assets so far.`}
-      </NotAvailable>
+      </PageState>
     </AssetEditorMessage>
   );
 }
@@ -199,7 +211,9 @@ export function useAssetGroupActions({
     accessActions,
     status: groupAccessStatus(assignedGroup?.name ?? null),
     error: setAssetGroup.error ? (
-      <FormError title="Could not change group">{setAssetGroup.error.message}</FormError>
+      <ActionError subject="Group assignment" verb="change">
+        {setAssetGroup.error.message}
+      </ActionError>
     ) : null,
   };
 }
@@ -231,9 +245,106 @@ export function assetNameField({
  * The alert under a failed save, once for every editor organ.
  * It replaced ten hand-written copies of the same Alert, whose only drift risk was exactly the ConvexError unwrap it applies.
  */
-export function SaveErrorAlert({ error }: { error: Error | null }) {
+export function SaveErrorAlert({
+  error,
+  subject,
+  verb = 'save',
+}: {
+  error: Error | null;
+  /** What was being saved, as the title names it: "deck", "preset". */
+  subject: string;
+  verb?: FailedAction;
+}) {
   if (!error) {
     return null;
   }
-  return <FormError title="Could not save">{mutationErrorMessage(error)}</FormError>;
+  return (
+    <ActionError subject={subject} verb={verb}>
+      {mutationErrorMessage(error)}
+    </ActionError>
+  );
+}
+
+/** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the asset to. */
+export type AssetEditAccess = {
+  viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
+  assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
+};
+
+export type AssetEditSessionProps<Draft> = {
+  /** The whole read, for an editor that also needs its members, back or presets. */
+  page: NonNullable<AssetPageData>;
+  asset: NonNullable<AssetPageData>['asset'];
+  initialDraft: Draft;
+  access: AssetEditAccess;
+};
+
+/**
+ * The checks every asset editor runs before its session opens: the asset exists, the viewer is known and may edit it, and its stored data still parses.
+ * The page owns the live read, because a draft's unsaved choices (placed tokens) can decide that read's arguments.
+ */
+export type AssetEditChecksProps<Draft> = {
+  type: string;
+  /** How the messages name the asset: "card", "deck", "token". */
+  noun: string;
+  /** The asset type as a sentence names it, e.g. "spice card". */
+  schemaName: string;
+  schema: z.ZodType<Draft>;
+  data: AssetPageData;
+  session: (props: AssetEditSessionProps<Draft>) => ReactNode;
+};
+
+export function AssetEditChecks<Draft>({ type, noun, schemaName, schema, data, session }: AssetEditChecksProps<Draft>) {
+  if (data === null) {
+    return (
+      <AssetEditorMessage type={type} title={`Edit ${noun}`}>
+        <NotFoundState noun={schemaName} renamed />
+      </AssetEditorMessage>
+    );
+  }
+
+  if (!data.viewerResolved) {
+    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
+  }
+
+  if (data.viewerAccess.viewer.kind === 'anonymous') {
+    return (
+      <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
+        <LoginGate action={`edit ${noun}s`} />
+      </AssetEditorMessage>
+    );
+  }
+
+  if (!data.viewerAccess.capabilities.edit) {
+    return (
+      <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
+        <PageState kind="absent" title={`You cannot edit this ${noun}`}>
+          {data.viewerAccess.assignedGroup
+            ? `Only the ${noun} owner or an active member of its group can edit this ${noun}.`
+            : `Only the ${noun} owner can edit this ${noun}.`}
+        </PageState>
+      </AssetEditorMessage>
+    );
+  }
+
+  const parsed = schema.safeParse(data.asset.data);
+  if (!parsed.success) {
+    return (
+      <DriftedAssetPage asset={data.asset} noun={noun} canDelete={data.viewerAccess.capabilities.delete}>
+        {`This ${noun}'s stored data no longer matches the ${schemaName} schema, so it cannot be edited here.`}
+      </DriftedAssetPage>
+    );
+  }
+
+  /* Keyed on the asset, so moving to another one opens a fresh session rather than carrying this draft over. */
+  return (
+    <BackgroundLibrary key={data.asset.id} presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
+      {session({
+        page: data,
+        asset: data.asset,
+        initialDraft: parsed.data,
+        access: { viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups },
+      })}
+    </BackgroundLibrary>
+  );
 }

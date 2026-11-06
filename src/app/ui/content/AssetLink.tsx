@@ -1,9 +1,7 @@
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
-import styles from './EntityLink.module.css';
-import { TopicIcon } from './TopicIcon';
+import { EntityLink } from './EntityLink';
 
 export interface AssetLinkProps {
   /** The asset's type slug, a route param. Plain string because the page contracts carry it that way. */
@@ -23,8 +21,11 @@ export interface AssetLinkProps {
  * The destination is hardcoded because it is the component's name.
  */
 export const AssetLink = ({ type, slug, name, className, style }: AssetLinkProps) => (
-  <Link to="/assets/$type/$slug" params={{ type, slug }} className={clsx(styles.link, className)} style={style}>
-    <TopicIcon topic="assets" size={18} className={styles.icon} />
-    <span className={styles.name}>{name}</span>
-  </Link>
+  <EntityLink
+    name={name}
+    glyph="assets"
+    className={className}
+    style={style}
+    renderRoot={(props) => <Link to="/assets/$type/$slug" params={{ type, slug }} {...props} />}
+  />
 );

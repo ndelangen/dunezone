@@ -1,7 +1,8 @@
-import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Box, ColorInput, NumberInput, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
 import type { NumberInputProps } from '@mantine/core';
 import { TROOP, TROOP_MODIFIER } from '@shared/assetIds';
 import { completeBattleValues } from '@shared/factions/troopBattle';
+import { FieldWarning } from '@ui/content/FieldWarning';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -191,9 +192,9 @@ function TroopBattleFields({
                     })}
                   </SimpleGrid>
                   {completeBattleValues(battleValues.state.value) === null ? (
-                    <Text id={`${idBase}-battle-warning`} c="var(--color-caution)" size="xs" role="status">
+                    <FieldWarning>
                       Enter both strengths to use this side in battle. Until then a game leaves it out of battle plans.
-                    </Text>
+                    </FieldWarning>
                   ) : null}
                 </Stack>
               )}

@@ -1,7 +1,5 @@
-import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -16,17 +14,9 @@ import { assetLoad } from '@app/pickers/assetLoadSource';
 import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { LoginGate } from '@app/widgets/page-message/LoginGate';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import {
-  AssetEditorMessage,
-  DriftedAssetPage,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  AssetEditorViewerPending,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, SaveErrorAlert, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
+import type { AssetEditAccess, AssetEditChecksProps } from '../../../assetEditorStates';
 
 /* What the card edit page is built from: the checks before a session opens, the save, and the page around the workbench; `CardTypeEditPage` holds the session. */
 
@@ -52,106 +42,20 @@ export function assetNoun(type: CardType): 'board' | 'token' | 'card' {
 
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
-/** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the card to. */
-type CardEditAccess = {
-  viewerAccess: NonNullable<AssetPageData>['viewerAccess'];
-  assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
-};
-
-export type CardEditSessionProps<Draft> = {
-  frontPresets: CardFrontPreset[];
-  asset: CardAsset;
-  initialDraft: Draft;
-  access: CardEditAccess;
-  tokens?: NonNullable<AssetPageData>['cardTokens'];
-  tokensError?: NonNullable<AssetPageData>['cardTokensError'];
-};
-
-/** Opens the session only for a card that exists, a viewer who may edit it, and stored data that still parses. */
-type CardEditGateProps<Draft> = {
+/** A card editor whose read takes nothing from its draft: the read and the checks together. */
+export function CardEditGate<Draft>({
+  slug,
+  loaderData,
+  embeddedTokenIds,
+  ...props
+}: Omit<AssetEditChecksProps<Draft>, 'data' | 'noun' | 'type'> & {
   type: CardType;
-  /** The card type as a sentence names it, e.g. "spice card". */
-  schemaName: string;
-  schema: z.ZodType<Draft>;
   slug: string;
   loaderData: AssetPublicPage;
   embeddedTokenIds?: string[];
-  session: (props: CardEditSessionProps<Draft>) => ReactNode;
-};
-
-export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
-  const query = useAssetPage(props.type, props.slug, {
-    initialData: props.loaderData,
-    embeddedTokenIds: props.embeddedTokenIds,
-  });
-  return <CardEditChecks {...props} data={query.data} />;
-}
-
-/** The checks alone, for a page that owns the live read because its unsaved draft decides that read's arguments. */
-export function CardEditChecks<Draft>({
-  type,
-  schemaName,
-  schema,
-  data,
-  session,
-}: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
-  const noun = assetNoun(type);
-  if (data === null) {
-    return (
-      <AssetEditorMessage type={type} title={`Edit ${noun}`}>
-        <NotAvailable
-          title={`${noun[0].toUpperCase()}${noun.slice(1)} not found`}
-        >{`No ${schemaName} lives at this address.`}</NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerResolved) {
-    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
-  }
-
-  if (data.viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
-        <LoginGate action={`edit ${noun}s`} />
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerAccess.capabilities.edit) {
-    return (
-      <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
-        <NotAvailable title={`You cannot edit this ${noun}`}>
-          {data.viewerAccess.assignedGroup
-            ? `Only the ${noun} owner or an active member of its group can edit this ${noun}.`
-            : `Only the ${noun} owner can edit this ${noun}.`}
-        </NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  const parsed = schema.safeParse(data.asset.data);
-  if (!parsed.success) {
-    return (
-      <DriftedAssetPage asset={data.asset} noun={noun} canDelete={data.viewerAccess.capabilities.delete}>
-        {`This ${noun}'s stored data no longer matches the ${schemaName} schema, so it cannot be edited here.`}
-      </DriftedAssetPage>
-    );
-  }
-
-  /* Keyed on the card, so moving to another card opens a fresh session rather than carrying this draft over. */
-  return (
-    <BackgroundLibrary key={data.asset.id} presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
-      {session({
-        frontPresets: data.cardFrontPresets,
-        asset: data.asset,
-        initialDraft: parsed.data,
-        tokens: data.cardTokens,
-        tokensError: data.cardTokensError,
-        access: { viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups },
-      })}
-    </BackgroundLibrary>
-  );
+}) {
+  const query = useAssetPage(props.type, slug, { initialData: loaderData, embeddedTokenIds });
+  return <AssetEditChecks {...props} noun={assetNoun(props.type)} data={query.data} />;
 }
 
 /** Posts a card's payload, reports the save state, and follows a rename to the card's new URL. */
@@ -196,7 +100,7 @@ export function CardEditFrame<Draft extends { name: string }>({
 }: {
   type: CardType;
   asset: CardAsset;
-  access: CardEditAccess;
+  access: AssetEditAccess;
   headerSlot: ReactNode;
   status: { isDirty: boolean; isNameBlank: boolean; saveState: AuthoringSaveState; invalid?: string };
   onSave: () => void;
@@ -258,8 +162,12 @@ export function CardEditFrame<Draft extends { name: string }>({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={saveError} />
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          <SaveErrorAlert subject={assetNoun(type)} error={saveError} />
+          {deletion.error ? (
+            <ActionError subject={assetNoun(type)} verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {groupActions.error}
           {children}
         </WorkbenchLayout>

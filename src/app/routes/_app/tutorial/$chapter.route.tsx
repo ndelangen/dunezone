@@ -1,6 +1,6 @@
 import { TUTORIAL_PAGES } from '@shared/recordlessPublicPages';
 import { ClientOnly, createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -103,9 +103,9 @@ function ChapterPage() {
   if (!chapter || !script) {
     return (
       <PageMessage size="compact" title="Learn to play">
-        <NotAvailable title="This chapter is not ready yet">
+        <PageState kind="absent" title="This chapter is not ready yet">
           Pick another chapter from the Learn to play page.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }

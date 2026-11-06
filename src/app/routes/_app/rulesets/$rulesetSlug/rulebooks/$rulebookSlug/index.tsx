@@ -1,9 +1,9 @@
-import { Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
@@ -21,7 +21,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
@@ -333,16 +333,15 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
   useLivePageTitle(data?.rulebook.name, 'Rulebook');
   if (!data) {
     return (
-      <PageMessage
+      <RouteNotFound
         title="Rulebook"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
-      >
-        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+        noun="Rulebook"
+      />
     );
   }
   const loadedPublication = initial.published?.href === htmlHref ? initial.published : delivery.published;
@@ -761,7 +760,11 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {remove.error ? <FormError title="Rulebook could not be deleted">{remove.error.message}</FormError> : null}
+            {remove.error ? (
+              <ActionError subject="Rulebook" verb="delete">
+                {remove.error.message}
+              </ActionError>
+            ) : null}
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}
@@ -784,9 +787,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
                         onClick={unpin}
                       />
                     ) : (
-                      <Badge color="gray" variant="light" leftSection={<Pin size={12} aria-hidden />}>
-                        Tracking
-                      </Badge>
+                      <StatusBadge icon={<Pin size={12} aria-hidden />}>Tracking</StatusBadge>
                     )}
                   </Group>
                   <ol className={styles.pageLinks}>

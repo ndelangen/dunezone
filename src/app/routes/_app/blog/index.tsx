@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- Each post title is itself the link to the post, which a Section title cannot be. */
 import { Anchor, Grid, SimpleGrid, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';

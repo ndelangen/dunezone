@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- Log classes are categories with a colour each, not statuses. */
 import { Anchor, Badge, Group, Stack, Text } from '@mantine/core';
 import type { LogClass, LogEntry, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';

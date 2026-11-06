@@ -1,15 +1,5 @@
-import {
-  Avatar,
-  Center,
-  Combobox,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  useCombobox,
-} from '@mantine/core';
+import { Avatar, Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Pending } from '@ui/content/Pending';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, ChevronsDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -42,9 +32,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
         </Text>
       </div>
       {picker.status === 'LoadingFirstPage' ? (
-        <Center py="md">
-          <Loader size="sm" aria-label="Loading profiles" />
-        </Center>
+        <Pending>Loading profiles</Pending>
       ) : picker.data.length === 0 ? (
         <Text size="sm" c="dimmed">
           No other active profiles are available.

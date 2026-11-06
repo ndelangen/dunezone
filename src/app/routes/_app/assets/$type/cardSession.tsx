@@ -12,9 +12,9 @@ import type { StoredShape } from '@app/widgets/authoring/authoringEnvelope';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import type { ValidationHeaderWarning } from '@app/widgets/authoring/ValidationHeader';
 
-import { assetNameField } from '../assetEditorStates';
-import { assetNoun, CardEditChecks, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
-import type { CardEditSessionProps } from './$slug/edit/cardEditPage';
+import { AssetEditChecks, assetNameField } from '../assetEditorStates';
+import type { AssetEditSessionProps } from '../assetEditorStates';
+import { assetNoun, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
 import { openEvent, reduceOpened } from './cardDrafts';
 import type { DraftEvent, DraftState, DraftStatus, MemoryState, RememberEvent } from './cardDrafts';
 import { CardCreateFrame, useCardCreate } from './create/cardCreatePage';
@@ -162,8 +162,9 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
     }
   }
   return (
-    <CardEditChecks
+    <AssetEditChecks
       type={config.type}
+      noun={assetNoun(config.type)}
       schemaName={config.noun}
       schema={stored}
       data={data}
@@ -177,15 +178,13 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
 function CardEditSession<Draft extends { name: string }, Chapter, State extends DraftState<Draft>, Extra>({
   config,
   stored,
-  frontPresets,
+  page,
   asset,
   access,
-  tokens,
-  tokensError,
   state,
   dispatch,
 }: Readonly<
-  CardEditSessionProps<Draft> & {
+  AssetEditSessionProps<Draft> & {
     config: CardSessionConfig<Draft, Chapter, State, Extra>;
     stored: z.ZodType<Draft>;
     state: State;
@@ -193,6 +192,7 @@ function CardEditSession<Draft extends { name: string }, Chapter, State extends 
   }
 >) {
   const saving = useCardSave(config.type, asset);
+  const { cardFrontPresets: frontPresets, cardTokens: tokens, cardTokensError: tokensError } = page;
   const session = useCardSession(config, state, dispatch);
   const { patch, header } = session;
   const status = config.status(state, 'edit');

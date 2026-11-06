@@ -1,5 +1,6 @@
-import { Group, NativeSelect, Popover, Stack, Text } from '@mantine/core';
+import { Group, NativeSelect, Popover, Stack } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { TitledLine } from '@ui/content/TitledLine';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { X } from 'lucide-react';
@@ -62,15 +63,10 @@ function ListedAsset({ reference, entry }: { reference: AssetReference; entry: A
     return <AssetPickerOptionRow entry={entry} />;
   }
   return (
-    <Stack gap={2} miw={0}>
-      <Text size="sm" fw={700} lh={1.25} truncate>
-        {reference.slug}
-      </Text>
-      <Text size="xs" c="dimmed" lh={1.2}>
-        {typeLabel(reference.type)}
-        {entry === null ? ' · No longer in the catalogue' : ''}
-      </Text>
-    </Stack>
+    <TitledLine
+      title={reference.slug}
+      detail={`${typeLabel(reference.type)}${entry === null ? ' · No longer in the catalogue' : ''}`}
+    />
   );
 }
 

@@ -1,10 +1,9 @@
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { ComponentProps, CSSProperties } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
-import styles from './EntityLink.module.css';
+import { EntityLink } from './EntityLink';
 
 type FactionTokenProps = ComponentProps<typeof FactionToken>;
 
@@ -27,10 +26,11 @@ export interface FactionLinkProps {
  * The destination is hardcoded because it is the component's name.
  */
 export const FactionLink = ({ slug, name, emblem, background, className, style }: FactionLinkProps) => (
-  <Link to="/factions/$factionId" params={{ factionId: slug }} className={clsx(styles.link, className)} style={style}>
-    <span className={styles.media} aria-hidden>
-      <FactionToken emblem={emblem} background={background} />
-    </span>
-    <span className={styles.name}>{name}</span>
-  </Link>
+  <EntityLink
+    name={name}
+    disc={<FactionToken emblem={emblem} background={background} />}
+    className={className}
+    style={style}
+    renderRoot={(props) => <Link to="/factions/$factionId" params={{ factionId: slug }} {...props} />}
+  />
 );

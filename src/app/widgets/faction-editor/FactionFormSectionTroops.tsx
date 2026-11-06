@@ -1,6 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import {
-  Badge,
   Box,
   Grid,
   Group,
@@ -14,6 +13,8 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { ListChapter } from '@ui/block/ListChapter';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -103,16 +104,8 @@ function TroopCard({
         <Box>
           <Group gap="xs">
             <Text fw={700}>Troop {index + 1}</Text>
-            {index === 0 ? (
-              <Badge variant="light" color="gray">
-                Artwork used on the alliance card
-              </Badge>
-            ) : null}
-            {hasBack ? (
-              <Badge variant="light" color="selected">
-                Two-sided
-              </Badge>
-            ) : null}
+            {index === 0 ? <StatusBadge>Artwork used on the alliance card</StatusBadge> : null}
+            {hasBack ? <StatusBadge tone="brand">Two-sided</StatusBadge> : null}
           </Group>
           <Text size="xs" c="dimmed">
             {troop.name.trim() || 'Unnamed troop'}
@@ -221,9 +214,7 @@ function TroopCard({
               {({ background, troop: currentTroop }) =>
                 currentTroop ? (
                   <Stack align="center" gap="sm">
-                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-                      Used on: troop tokens
-                    </Text>
+                    <Eyebrow align="center">Used on: troop tokens</Eyebrow>
                     <Group justify="center" gap="md" wrap="wrap">
                       <Stack align="center" gap="md">
                         <Box w={104} aria-label={`Front token preview for troop ${index + 1}`}>

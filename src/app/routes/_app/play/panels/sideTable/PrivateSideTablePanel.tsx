@@ -419,7 +419,7 @@ export function PrivateSideTablePanel({ hand, enabled, onLay, awaiting, onPlace 
   }, []);
 
   return (
-    <Section hiddenHeading title="Private side-table" description={HIDDEN_ZONE_HELP}>
+    <Section hiddenHeading title="Private side-table" help={HIDDEN_ZONE_HELP}>
       <div ref={frame} data-side-table>
         <div
           ref={ref}

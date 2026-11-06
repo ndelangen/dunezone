@@ -143,9 +143,10 @@ function ReportContents({
   };
   return (
     <>
-      <Section title="Captured game" description={`Game ${report.server.gameId}`}>
+      <Section title="Captured game">
         <Text>
-          Captured {report.server.capturedAt}. Server revision {summary(report.server.state.revision)}.
+          Game {report.server.gameId}, captured {report.server.capturedAt}. Server revision{' '}
+          {summary(report.server.state.revision)}.
         </Text>
         <Text size="sm">Code version: {report.server.gitSha || 'unknown'}</Text>
         <Notice tone="caution" title="One captured moment">

@@ -360,7 +360,10 @@ tooltips, holds or menus; it proves its wiring through the child's accessible na
 description. Each visual story changes one thing from its component's baseline, so a story name that
 needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
 a tooltip in any story outside `src/app/ui`. Beside it, `local/form-error` rejects a red Mantine `Alert`
-outside the kit: a failure is a `FormError`.
+outside the kit: a failure is a `FormError`. `local/eyebrow` rejects `tt="uppercase"` on a Mantine
+`Text` outside the kit: a small capitals caption is an `Eyebrow`. Raw `Badge`, `Title` and `Loader`
+are restricted imports outside the kit, in favour of `StatusBadge`, `Section`/`Card`/`PageTitle` and
+`Pending`; a deliberate exception takes a reasoned `oxlint-disable-next-line` comment.
 
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.

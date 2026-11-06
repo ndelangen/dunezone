@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The tutorial waits for this spinner by its label, so it stays a labelled Loader. */
 import { Loader, Stack, Text } from '@mantine/core';
 import { recallConversation } from '@shared/play/conversations';
 import {

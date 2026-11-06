@@ -480,3 +480,46 @@ export const probe = <Alert color="red">Failed</Alert>;
     expect(reports(kit)).toBe(0);
   });
 });
+
+describe('eyebrow', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(eyebrow)').length - 1;
+
+  test('reports an uppercase Mantine Text, however it is spelled', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text, Text as Caption } from '@mantine/core';
+export const probe = [<Text tt="uppercase">Phase</Text>, <Caption tt={'uppercase'}>Seat</Caption>];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(2);
+  });
+
+  test('leaves other transforms, other Texts, stories and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+import { Text as Label } from './label';
+export const probe = [<Text tt="capitalize">Phase</Text>, <Label tt="uppercase">Seat</Label>];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const story = await lintDiagnostics(
+      'probe.stories.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = <Text tt="uppercase">Phase</Text>;
+`,
+      'src/app/routes'
+    );
+    expect(reports(story)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = <Text tt="uppercase">Phase</Text>;
+`,
+      'src/app/ui/content'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});

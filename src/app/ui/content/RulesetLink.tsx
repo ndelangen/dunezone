@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
+import { EntityLink } from './EntityLink';
+import type { EntityLinkProps } from './EntityLink';
 import styles from './EntityLink.module.css';
-import { TopicIcon } from './TopicIcon';
 
 export interface RulesetLinkProps {
   slug: string;
@@ -23,20 +23,19 @@ export interface RulesetLinkProps {
  * A caller whose projection carries no cover gets the shared glyph instead, which is why the cover is optional rather than required.
  * The destination is hardcoded because it is the component's name.
  */
-export const RulesetLink = ({ slug, name, image = null, className, style }: RulesetLinkProps) => (
-  <Link
-    to="/rulesets/$rulesetSlug"
-    params={{ rulesetSlug: slug }}
-    className={clsx(styles.link, className)}
-    style={style}
-  >
-    {image ? (
-      <span className={styles.media}>
-        <img src={image} alt="" className={styles.cover} />
-      </span>
-    ) : (
-      <TopicIcon topic="rulesets" size={18} className={styles.icon} />
-    )}
-    <span className={styles.name}>{name}</span>
-  </Link>
-);
+export const RulesetLink = ({ slug, name, image = null, className, style }: RulesetLinkProps) => {
+  const renderRoot: EntityLinkProps['renderRoot'] = (props) => (
+    <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug: slug }} {...props} />
+  );
+  return image ? (
+    <EntityLink
+      name={name}
+      disc={<img src={image} alt="" className={styles.cover} />}
+      className={className}
+      style={style}
+      renderRoot={renderRoot}
+    />
+  ) : (
+    <EntityLink name={name} glyph="rulesets" className={className} style={style} renderRoot={renderRoot} />
+  );
+};

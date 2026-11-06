@@ -3,9 +3,8 @@ import { Anchor, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/cor
 import { Button } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FactionCard } from '@ui/block/FactionCard';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
@@ -51,7 +50,7 @@ import type { FaqReferencePreview } from '@db/faq';
 import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
@@ -107,16 +106,15 @@ function FaqDetailError({ error }: ErrorComponentProps) {
   const { rulesetSlug } = Route.useParams();
   if (isPublicPageNotFound(error)) {
     return (
-      <PageMessage
+      <RouteNotFound
         title="FAQ"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
-      >
-        <NotAvailable title="Question not found">This FAQ question does not exist in this ruleset.</NotAvailable>
-      </PageMessage>
+        noun="FAQ question"
+      />
     );
   }
   return (
@@ -296,19 +294,16 @@ function FaqDetailPage() {
             />
             <FaqContext faq={faq} />
             <div className={styles.answers}>
-              <Section
-                title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`}
-                id="discussion"
-                description={
-                  hasAcceptedAnswer
+              <Section title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`} id="discussion">
+                <Text size="sm" c="dimmed">
+                  {hasAcceptedAnswer
                     ? 'Accepted answer first. Other answers run from oldest to newest.'
-                    : 'Answers run from oldest to newest.'
-                }
-              >
+                    : 'Answers run from oldest to newest.'}
+                </Text>
                 {faq.setAcceptedAnswer.error || faq.deleteAnswer.error ? (
-                  <FormError title="Could not update the answer">
+                  <ActionError subject="Answer" verb="update">
                     {errorMessage(faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error)}
-                  </FormError>
+                  </ActionError>
                 ) : null}
                 {answers.length ? (
                   <ul className={styles.answerList}>
@@ -359,7 +354,7 @@ function FaqDetailPage() {
               </Section>
             </div>
             <div className={styles.related}>
-              <Section title="Related questions" description="More questions about the same factions and assets.">
+              <Section title="Related questions" help="More questions about the same factions and assets.">
                 <FaqList
                   items={page.relatedQuestions}
                   emptyLabel="No related questions yet."
@@ -420,7 +415,9 @@ function FaqAnswerPost({
                 rows={3}
               />
               {faq.editAnswer.error ? (
-                <FormError title="Answer could not be saved">{faq.editAnswer.error.message}</FormError>
+                <ActionError subject="Answer" verb="save">
+                  {faq.editAnswer.error.message}
+                </ActionError>
               ) : null}
               <FaqEditorActions
                 name="answer"
@@ -655,7 +652,9 @@ function FaqQuestionPost({
               </Text>
             </Group>
             {faq.deleteQuestion.error ? (
-              <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
+              <ActionError subject="Question" verb="delete">
+                {faq.deleteQuestion.error.message}
+              </ActionError>
             ) : null}
             {editing.editingQuestion ? (
               <FaqQuestionEditor faq={faq} editing={editing} editingSession={editingSession} />
@@ -690,7 +689,9 @@ function FaqQuestionEditor({ faq, editing, editingSession }: FaqPostEditing) {
       />
       <FaqTagFieldset value={editing.tagValues} onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)} />
       {faq.editQuestion.error ? (
-        <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
+        <ActionError subject="Question" verb="save">
+          {faq.editQuestion.error.message}
+        </ActionError>
       ) : null}
       <FaqEditorActions
         name="question"
@@ -864,7 +865,9 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
               }}
             />
             {faq.addReference.error ? (
-              <FormError title="Could not add reference">{errorMessage(faq.addReference.error)}</FormError>
+              <ActionError subject="reference" verb="add">
+                {errorMessage(faq.addReference.error)}
+              </ActionError>
             ) : null}
           </Stack>
         ) : null}
@@ -907,8 +910,8 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
 
 function FaqReferenceError({ faq }: { faq: FaqQuestionCommands }) {
   return faq.addReference.error || faq.removeReference.error ? (
-    <FormError title="Could not update references">
+    <ActionError subject="references" verb="update">
       {errorMessage(faq.addReference.error ?? faq.removeReference.error)}
-    </FormError>
+    </ActionError>
   ) : null;
 }

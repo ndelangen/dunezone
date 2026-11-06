@@ -2,9 +2,8 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { Box, Center, Group, Image, Radio, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
@@ -315,7 +314,11 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     );
   };
 
-  const panelError = mutationError ? <FormError title="Profile could not be saved">{mutationError}</FormError> : null;
+  const panelError = mutationError ? (
+    <ActionError subject="Profile" verb="save">
+      {mutationError}
+    </ActionError>
+  ) : null;
 
   const tabs = [
     {
@@ -460,11 +463,15 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <Stack gap="md">
           {panelError}
           {settings === undefined ? (
-            <LoadPending title="Loading sign-in methods">Checking your connected accounts.</LoadPending>
+            <PageState kind="pending" title="Loading sign-in methods">
+              Checking your connected accounts.
+            </PageState>
           ) : settings.account ? (
             <SignInMethods account={settings.account} />
           ) : (
-            <NotAvailable title="Sign-in methods unavailable">Sign in again to manage your account.</NotAvailable>
+            <PageState kind="absent" title="Sign-in methods unavailable">
+              Sign in again to manage your account.
+            </PageState>
           )}
         </Stack>
       ),
@@ -597,7 +604,9 @@ function ProfileSettingsPage() {
           </PageMessage.Back>
         }
       >
-        <NotAvailable title="This is not your profile">You can only edit your own profile.</NotAvailable>
+        <PageState kind="absent" title="This is not your profile">
+          You can only edit your own profile.
+        </PageState>
       </PageMessage>
     );
   }
@@ -676,7 +685,11 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
           Profile merge in progress. Sign-in methods are locked.
         </StatusBadge>
       )}
-      {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
+      {state.error && (
+        <ActionError subject="Sign-in methods" verb="change">
+          {state.error}
+        </ActionError>
+      )}
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(

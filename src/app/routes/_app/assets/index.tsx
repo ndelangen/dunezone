@@ -1,8 +1,10 @@
-import { Badge, Stack, Text, Title, UnstyledButton } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The catalogue's h1 sits under the masthead fan, which takes the header band. */
+import { Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import type { CSSProperties } from 'react';
@@ -233,9 +235,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
       }}
     >
       {planned ? (
-        <Badge size="xs" variant="outline" color="gray">
-          Planned
-        </Badge>
+        <StatusBadge>Planned</StatusBadge>
       ) : (
         <Text size="xs" c="dimmed" ta="center" px={6}>
           none yet

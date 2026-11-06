@@ -3,9 +3,9 @@ import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -142,11 +142,11 @@ function FactionEditPage() {
   if (!viewerAccess.capabilities.edit) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
-        <NotAvailable title="You cannot edit this faction">
+        <PageState kind="absent" title="You cannot edit this faction">
           {faction.group_id
             ? 'Only the faction owner or an active member of its group can edit this faction.'
             : 'Only the faction owner can edit this faction.'}
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -248,7 +248,11 @@ function FactionEditPage() {
                 {routeNotice.message}
               </Notice>
             ) : null}
-            {deleteFaction.error ? <FormError title="Could not delete">{deleteFaction.error.message}</FormError> : null}
+            {deleteFaction.error ? (
+              <ActionError subject="Faction" verb="delete">
+                {deleteFaction.error.message}
+              </ActionError>
+            ) : null}
             <FactionEditor
               nameField={nameField}
               key={faction._id}

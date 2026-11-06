@@ -24,6 +24,8 @@ export interface StatusBadgeProps {
   live?: boolean;
   /** A small mark beside the words, the way the owner badge carries its crown. */
   icon?: ReactNode;
+  /** A count in a small disc, as a tab carries its tally of problems. */
+  circle?: boolean;
   children: ReactNode;
 }
 
@@ -33,7 +35,7 @@ export interface StatusBadgeProps {
  * Callers own the mapping from their own status union to a tone;
  * this component owns the mapping from tone to colour, so "pending" is the same yellow whether it describes a membership request or an asset publication, and no page re-invents that ladder inline.
  */
-export function StatusBadge({ tone = 'neutral', live = false, icon, children }: StatusBadgeProps) {
+export function StatusBadge({ tone = 'neutral', live = false, icon, circle = false, children }: StatusBadgeProps) {
   /* Neutral takes the default variant so its boundary remains visible on dark surfaces. */
   return (
     <Badge
@@ -42,6 +44,7 @@ export function StatusBadge({ tone = 'neutral', live = false, icon, children }: 
         : { variant: 'light' as const, color: TONE_COLOR[tone] })}
       {...(live ? { role: 'status', 'aria-live': 'polite' as const } : {})}
       leftSection={icon}
+      {...(circle ? { circle: true, size: 'sm' } : {})}
     >
       {children}
     </Badge>

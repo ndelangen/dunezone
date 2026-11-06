@@ -1,4 +1,4 @@
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
@@ -17,11 +17,13 @@ export interface RoutePendingProps {
   children: string;
 }
 
-/** A page still waiting for its data: the page frame with a `LoadPending` inside, for a route's `pendingComponent` and for a page whose query has not answered yet. */
+/** A page still waiting for its data: the page frame with a pending `PageState` inside, for a route's `pendingComponent` and for a page whose query has not answered yet. */
 export function RoutePending({ title, size, back, loading, children }: RoutePendingProps) {
   return (
     <PageMessage size={size} title={title} back={back}>
-      <LoadPending title={loading}>{children}</LoadPending>
+      <PageState kind="pending" title={loading}>
+        {children}
+      </PageState>
     </PageMessage>
   );
 }

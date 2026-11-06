@@ -1,7 +1,7 @@
 import { Avatar, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { nameDiscColor } from '@ui/content/nameDisc';
@@ -266,7 +266,9 @@ function EmptyView({ title, children }: Readonly<{ title: string; children: stri
   return (
     <Surface padding="xl">
       <Stack align="center" ta="center">
-        <NotAvailable title={title}>{children}</NotAvailable>
+        <PageState kind="absent" title={title}>
+          {children}
+        </PageState>
       </Stack>
     </Surface>
   );

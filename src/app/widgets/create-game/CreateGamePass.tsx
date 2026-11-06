@@ -9,7 +9,7 @@ import {
   TABLE_SEAT_COUNTS,
   tableSeatAngles,
 } from '@shared/play/tableSettings';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BoardSeats } from '@ui/content/BoardSeats';
 import { CountHeading } from '@ui/content/CountHeading';
@@ -254,7 +254,11 @@ export function CreateGamePass({
                   onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
                   disabled={pending}
                 />
-                {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
+                {shownFailure ? (
+                  <ActionError subject="Game" verb="create">
+                    {shownFailure}
+                  </ActionError>
+                ) : null}
                 <Stack gap="xs">
                   <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
                     Create game

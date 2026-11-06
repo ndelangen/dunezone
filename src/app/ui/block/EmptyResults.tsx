@@ -27,7 +27,7 @@ const CAPPED = 'Only the first matches of this search were checked. Add a word t
  * `PastTheEnd` below is the second case already worded, since every catalogue says it the same way.
  * It paints no pane: inside a `PageMessage` the message brings its own, and a results list puts one `Surface` around it.
  * Centred, because it stands in for a list's contents.
- * `NotAvailable` is its page-level sibling: the page itself has nothing to show (gone, or not the reader's), so it reads as the page's heading and stays at the start.
+ * `PageState` is its page-level sibling: the page itself has nothing to show (gone, or not the reader's), so it reads as the page's heading and stays at the start.
  *
  * It exists because five catalogues each wrote both of these by hand, under four titles, and one of them wrapped its pane in a second.
  */

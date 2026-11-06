@@ -86,7 +86,7 @@ function TintDemo() {
     ...(draft.stickers ? { stamps: [strongholds ? 'city' : 'spice'] } : {}),
   };
   return (
-    <Section title="Build a tint" description="Choose territories, outlines and stickers to see the board change.">
+    <Section title="Build a tint" help="Choose territories, outlines and stickers to see the board change.">
       <Radio.Group
         label="Territories to tint"
         value={draft.territory}

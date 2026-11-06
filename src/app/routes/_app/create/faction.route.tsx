@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
@@ -53,7 +53,9 @@ function FactionTutorialPage() {
         <PageTitle eyebrow="Practice draft" title={TUTORIAL.title} />
       </PageLayout.Header>
       <PageLayout.Content>
-        <LoadPending title="Opening the faction creator">Nothing you make here is saved.</LoadPending>
+        <PageState kind="pending" title="Opening the faction creator">
+          Nothing you make here is saved.
+        </PageState>
       </PageLayout.Content>
     </PageLayout>
   );

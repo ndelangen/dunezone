@@ -133,7 +133,7 @@ function Spectators({ spectators, guests }: Pick<SeatsPanelProps, 'spectators' |
  */
 export function SeatsPanel({ seats, requests, spectators, guests, approve }: SeatsPanelProps) {
   return (
-    <Section hiddenHeading title="Seats & spectators" description={SEATS_HELP}>
+    <Section hiddenHeading title="Seats & spectators" help={SEATS_HELP}>
       <Stack gap="md">
         <Text size="sm" fw={700}>
           {seats}

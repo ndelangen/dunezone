@@ -1,7 +1,6 @@
 import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
@@ -15,7 +14,7 @@ import { ArrowLeft, BookOpen, History } from 'lucide-react';
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
@@ -63,16 +62,15 @@ function RulebookEditionHistoryPage() {
   const { data } = useRulebookEditionHistory({ ...params, initialData });
   if (!data) {
     return (
-      <PageMessage
+      <RouteNotFound
         title="Editions"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
-      >
-        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+        noun="Rulebook"
+      />
     );
   }
   const currentNumber = data.rulebook.current_edition_number;

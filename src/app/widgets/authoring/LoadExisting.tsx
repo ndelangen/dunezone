@@ -1,6 +1,7 @@
-import { Center, Checkbox, Group, Loader, Popover, Stack, Text, Textarea } from '@mantine/core';
+import { Checkbox, Group, Popover, Stack, Text, Textarea } from '@mantine/core';
 import { rawAuthoringError } from '@shared/authoring/raw';
 import { FormError } from '@ui/block/FormError';
+import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Surface } from '@ui/surface/Surface';
@@ -264,11 +265,7 @@ function LoadConfirm<Draft>({
 function ChoiceState<Draft>({ choice, noun, note }: { choice: LoadChoice<Draft>; noun: string; note: string }) {
   switch (choice.kind) {
     case 'pending':
-      return (
-        <Center>
-          <Loader size="sm" aria-label={`Loading the chosen ${noun}`} />
-        </Center>
-      );
+      return <Pending>{`Loading the chosen ${noun}`}</Pending>;
     case 'error':
       return <FormError title={`This ${noun} cannot be loaded`}>{choice.message}</FormError>;
     case 'chosen':

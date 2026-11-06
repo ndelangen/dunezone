@@ -1,7 +1,7 @@
 import { Stack, TextInput } from '@mantine/core';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { helpLines } from '@ui/content/helpLines';
@@ -153,7 +153,9 @@ function CreateRulesetForm() {
               }
             />
             {createRuleset.error ? (
-              <FormError title="Ruleset could not be created">{createRuleset.error.message}</FormError>
+              <ActionError subject="Ruleset" verb="create">
+                {createRuleset.error.message}
+              </ActionError>
             ) : null}
           </Stack>
         </Surface>

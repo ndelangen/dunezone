@@ -1,6 +1,6 @@
 import { Anchor, Group, Select, Stack, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -209,7 +209,11 @@ function MergeProfiles({
             onChange={(source) => onUpdate({ source, review: false, error: null })}
             disabled={state.busy}
           />
-          {state.error && <FormError title="Profiles could not be merged">{state.error}</FormError>}
+          {state.error && (
+            <ActionError subject="Profiles" verb="merge">
+              {state.error}
+            </ActionError>
+          )}
           {state.review && source && target ? (
             <>
               <Text>

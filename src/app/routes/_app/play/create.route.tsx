@@ -1,6 +1,6 @@
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
@@ -53,11 +53,13 @@ function CreateGamePage() {
       return (
         <PageMessage size="compact" title={TITLE} back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
           {unreachable ? (
-            <LoadPending title={SERVER_UNREACHABLE_TITLE}>{SERVER_RETRYING}</LoadPending>
+            <PageState kind="pending" title={SERVER_UNREACHABLE_TITLE}>
+              {SERVER_RETRYING}
+            </PageState>
           ) : (
-            <LoadPending title="Loading rulesets">
+            <PageState kind="pending" title="Loading rulesets">
               The rulesets you can start a game with are still loading.
-            </LoadPending>
+            </PageState>
           )}
         </PageMessage>
       );
