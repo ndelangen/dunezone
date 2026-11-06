@@ -31,8 +31,8 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   const { a, b, observer } = await seated();
   assert.notEqual(requireView(a).viewer.userId, requireView(b).viewer.userId);
   assert.notEqual(a.context.browser(), b.context.browser());
-  async function act(who: HostedPeer, name: string) {
-    await toolkit.act(who, name);
+  async function act(who: HostedPeer, name: string, options?: { force?: boolean }) {
+    await toolkit.act(who, name, options);
     await converged([a, b, observer]);
   }
   await pickCatalogueAsset(a, 'Recovery token');
@@ -198,7 +198,8 @@ export async function verifyBattles(toolkit: HostedToolkit) {
     () => required(requireView(a).snapshot.battle, 'battle').stage === 'countdown',
     'Both Ready did not start countdown.'
   );
-  await act(a, 'Undo Ready');
+  /* The countdown reveals 5 s after the second Ready, so this click cannot wait out a stalled frame (#2731: it waited until the button was gone). */
+  await act(a, 'Undo Ready', { force: true });
   assert.equal(required(required(requireView(a).snapshot.battle, 'battle').sides[1], 'right side').ready, true);
   await act(a, 'Ready for battle');
   await b.page.reload({ waitUntil: 'domcontentloaded' });
@@ -377,7 +378,8 @@ async function verifyReverseBattle({
   await act(a, 'Claim right side');
   await act(b, 'Ready for battle');
   await act(a, 'Ready for battle');
-  await act(b, 'Undo Ready');
+  /* As in the first battle, the click has to land inside the 5 s countdown. */
+  await act(b, 'Undo Ready', { force: true });
   await act(b, 'Ready for battle');
   await a.page.reload({ waitUntil: 'domcontentloaded' });
   await a.page.locator('[data-connection="authorized"]').waitFor();
