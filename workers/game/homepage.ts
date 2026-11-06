@@ -43,7 +43,7 @@ const BOARD_KEY = 'arrakis-board';
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
-/* A failed board read tries again after each of these waits, then waits for the next table or wake. */
+/* A failed board read tries again after each of these waits, then every ten minutes until one succeeds. */
 const BOARD_RETRY_MS = [1000, 5000, 30_000, 120_000, 600_000];
 const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'];
 
@@ -165,7 +165,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   /*
    * Reads the saved Arrakis Official board and puts the table on it. When Convex finds no saved board the table
-   * leaves its board; a failed read keeps the board it had and tries again a few times.
+   * leaves its board; a failed read keeps the board it had and tries again until one succeeds.
    */
   private async loadBoard() {
     clearTimeout(this.boardRetry);
@@ -195,10 +195,8 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       if (read !== this.boardReads) {
         return;
       }
-      const wait = BOARD_RETRY_MS[this.boardFailures++];
-      if (wait !== undefined) {
-        this.boardRetry = setTimeout(() => void this.loadBoard(), wait);
-      }
+      const wait = BOARD_RETRY_MS[Math.min(this.boardFailures++, BOARD_RETRY_MS.length - 1)]!;
+      this.boardRetry = setTimeout(() => void this.loadBoard(), wait);
     }
   }
 
