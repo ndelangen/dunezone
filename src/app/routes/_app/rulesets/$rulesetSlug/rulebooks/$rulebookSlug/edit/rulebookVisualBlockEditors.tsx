@@ -6,8 +6,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Box, NumberInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
-import { Button } from '@mantine/core';
 import type { RulebookContentsDraftV1, RulebookIllustrationSize } from '@shared/rulebooks/contents';
 import { createRulebookLocalId, rulebookIllustrationSizeSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
@@ -27,6 +25,8 @@ const FactionPicker = lazy(() =>
 const RulebookSourcePicker = lazy(() =>
   import('@app/pickers/RulebookSourcePicker').then((module) => ({ default: module.RulebookSourcePicker }))
 );
+
+import { SelectableRow } from '@ui/control/SelectableRow';
 
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import styles from './rulebookVisualBlockEditors.module.css';
@@ -225,17 +225,13 @@ export function IllustratedInventoryEdit({
                     <SortableItem as="li" key={id} id={id}>
                       {({ setActivatorNodeRef, attributes, listeners }) => (
                         <Box className={styles.row}>
-                          <Button
-                            fullWidth
+                          <SelectableRow
                             className={styles.select}
-                            justify="start"
-                            color="selected"
-                            variant={activeId === id ? 'light' : 'subtle'}
-                            aria-pressed={activeId === id}
-                            onClick={() => setSelectedId(id)}
+                            selected={activeId === id}
+                            onSelect={() => setSelectedId(id)}
                           >
                             {label}
-                          </Button>
+                          </SelectableRow>
                           <SortableReorderHandle
                             className={styles.handle}
                             label={`Reorder entry ${index + 1}`}

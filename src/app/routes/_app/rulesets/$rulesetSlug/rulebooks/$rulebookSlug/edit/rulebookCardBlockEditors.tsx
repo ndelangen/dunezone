@@ -6,14 +6,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Box, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
-/* oxlint-disable-next-line no-restricted-imports -- Each entry is a row of a selectable list, not an action. */
-import { Button } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookCardSourceReference } from '@shared/rulebooks/sources';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
+import { SelectableRow } from '@ui/control/SelectableRow';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { lazy, useState } from 'react';
@@ -314,17 +313,13 @@ export function CardGroupEdit({
                   <SortableItem as="li" key={id} id={id}>
                     {({ setActivatorNodeRef, attributes, listeners }) => (
                       <Box className={styles.row}>
-                        <Button
-                          fullWidth
+                        <SelectableRow
                           className={styles.select}
-                          justify="start"
-                          color="selected"
-                          variant={activeId === id ? 'light' : 'subtle'}
-                          aria-pressed={activeId === id}
-                          onClick={() => setSelectedId(id)}
+                          selected={activeId === id}
+                          onSelect={() => setSelectedId(id)}
                         >
                           {index + 1}. {cardLabel(value.itemsById[id]!.source, references)}
-                        </Button>
+                        </SelectableRow>
                         <SortableReorderHandle
                           className={styles.handle}
                           label={`Reorder Card ${index + 1}`}

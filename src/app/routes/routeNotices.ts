@@ -3,7 +3,7 @@ import type { RouteNoticeCode } from '@shared/routeNotices';
 
 export type RouteNotice = {
   code: RouteNoticeCode;
-  color: 'yellow';
+  tone: 'caution';
   title: string;
   message: string;
 };
@@ -11,7 +11,7 @@ export type RouteNotice = {
 const routeNotices: Record<RouteNoticeCode, RouteNotice> = {
   [defaultGroupUnavailableRouteNoticeCode]: {
     code: defaultGroupUnavailableRouteNoticeCode,
-    color: 'yellow',
+    tone: 'caution',
     title: 'Saved without its default Group',
     message: 'The item was saved, but the default Group was no longer available and was not set.',
   },

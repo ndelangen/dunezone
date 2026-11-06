@@ -1,8 +1,9 @@
-import { ActionIcon, Group, Stack, Text, Tooltip } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { MAX_TINTS } from '@shared/play/territoryTints';
 import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Eye, EyeOff, Plus } from 'lucide-react';
 
@@ -104,25 +105,22 @@ export function TerritoryTintsPanel({
             onStamp={(stamp) => onSet(tint.id, stamp)}
             onColor={(color) => onColor(tint.id, color)}
             before={
-              <Tooltip label={tint.hidden ? `Show ${tint.name}` : `Hide ${tint.name}`}>
-                <ActionIcon
-                  variant="subtle"
-                  color="gray"
-                  aria-label={`Show ${tint.name}`}
-                  aria-pressed={!tint.hidden}
-                  disabled={!canEdit}
-                  onClick={() => onSet(tint.id, 'hidden')}
-                >
-                  {tint.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
-                </ActionIcon>
-              </Tooltip>
+              <IconAction
+                label={`Show ${tint.name}`}
+                tooltip={tint.hidden ? undefined : `Hide ${tint.name}`}
+                emphasis="quiet"
+                aria-pressed={!tint.hidden}
+                disabled={!canEdit}
+                onClick={() => onSet(tint.id, 'hidden')}
+                icon={tint.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+              />
             }
             after={
               <ConfirmDeleteAction
                 key={removalAttempt}
                 label={`Remove ${tint.name}`}
                 verb="remove"
-                size="sm"
+                size="md"
                 pending={false}
                 disabled={!canEdit}
                 onConfirm={() => onRemove(tint.id)}

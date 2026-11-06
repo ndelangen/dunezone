@@ -1,5 +1,6 @@
 import { Box, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -244,58 +245,56 @@ export function BundleEditor({
                 icon: <TopicIcon topic="contents" size={21} />,
                 panel: panel(
                   <>
-                    <ControlBlock
+                    <ListChapter
                       title="Contents"
-                      description={
+                      help={
                         'Which community tokens this bundle holds, and how many of each.\nShapes may be mixed freely.'
                       }
-                      tool={tokenPicker}
-                      input={
-                        members.length === 0 ? (
-                          <Text size="sm" c="dimmed">
-                            No tokens yet.
-                          </Text>
-                        ) : (
-                          <Stack gap="xs">
-                            {members.map((member) => (
-                              <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
-                                {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
-                                <Box w={34} miw={34}>
-                                  <AssetFace
-                                    href={member.token.previewHref}
-                                    type={member.token.type}
-                                    data={member.token.data}
-                                    name={member.token.name}
-                                  />
-                                </Box>
-                                <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                                  {member.token.name}
-                                </Text>
-                                <MemberCountInput
-                                  label={`How many ${member.token.name}`}
-                                  min={1}
-                                  max={99}
-                                  disabled={onCountChange === null}
-                                  value={member.count}
-                                  onCommit={(count) => onCountChange?.(member.token.id, count)}
-                                />
-                                {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                                <ConfirmDeleteAction
-                                  label={`Remove ${member.token.name}`}
-                                  verb="remove"
-                                  pending={countPending && removingId === member.token.id}
-                                  disabled={onCountChange === null}
-                                  onConfirm={() => {
-                                    setRemovingId(member.token.id);
-                                    onCountChange?.(member.token.id, 0);
-                                  }}
-                                />
-                              </Group>
-                            ))}
-                          </Stack>
-                        )
+                      actions={tokenPicker}
+                      note={
+                        members.length === 0
+                          ? { title: 'No tokens', text: 'Add the community tokens this bundle holds.' }
+                          : null
                       }
-                    />
+                    >
+                      <Stack gap="xs">
+                        {members.map((member) => (
+                          <Group key={member.token.id} gap="sm" wrap="nowrap" align="center">
+                            {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
+                            <Box w={34} miw={34}>
+                              <AssetFace
+                                href={member.token.previewHref}
+                                type={member.token.type}
+                                data={member.token.data}
+                                name={member.token.name}
+                              />
+                            </Box>
+                            <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                              {member.token.name}
+                            </Text>
+                            <MemberCountInput
+                              label={`How many ${member.token.name}`}
+                              min={1}
+                              max={99}
+                              disabled={onCountChange === null}
+                              value={member.count}
+                              onCommit={(count) => onCountChange?.(member.token.id, count)}
+                            />
+                            {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                            <ConfirmDeleteAction
+                              label={`Remove ${member.token.name}`}
+                              verb="remove"
+                              pending={countPending && removingId === member.token.id}
+                              disabled={onCountChange === null}
+                              onConfirm={() => {
+                                setRemovingId(member.token.id);
+                                onCountChange?.(member.token.id, 0);
+                              }}
+                            />
+                          </Group>
+                        ))}
+                      </Stack>
+                    </ListChapter>
                   </>
                 ),
               },

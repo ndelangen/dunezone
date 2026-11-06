@@ -1,9 +1,10 @@
-import { Alert, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
+import { Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { LoadPending } from '@ui/block/LoadPending';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -199,10 +200,10 @@ function AccountDeletionPage() {
                   </LabeledAction>
                 </Group>
               ) : (
-                <Alert color="orange" title="No replacement selected">
+                <Notice tone="caution" title="No replacement selected">
                   All directly owned records will be soft-deleted. Records you only authored, joined, or may edit are
                   not affected.
-                </Alert>
+                </Notice>
               )}
             </Stack>
 

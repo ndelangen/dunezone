@@ -1,4 +1,5 @@
-import { Alert, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
+import { Notice } from '@ui/block/Notice';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { Replace, X } from 'lucide-react';
@@ -49,7 +50,7 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
         }))}
       />
       {pending ? (
-        <Alert title="Replace the current layers?" color="gray">
+        <Notice title="Replace the current layers?">
           <Stack gap="sm">
             <Text size="sm">
               This preset replaces all decals and text blocks. The name, type, Head background and About stay as they
@@ -69,7 +70,7 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
               </LabeledAction>
             </Group>
           </Stack>
-        </Alert>
+        </Notice>
       ) : null}
     </Stack>
   );

@@ -1,10 +1,11 @@
-import { Alert, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -243,15 +244,9 @@ function FactionEditPage() {
         <PageLayout.Content>
           <Stack gap="sm">
             {routeNotice ? (
-              <Alert
-                color={routeNotice.color}
-                title={routeNotice.title}
-                role="alert"
-                withCloseButton
-                onClose={dismissRouteNotice}
-              >
+              <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
                 {routeNotice.message}
-              </Alert>
+              </Notice>
             ) : null}
             {deleteFaction.error ? <FormError title="Could not delete">{deleteFaction.error.message}</FormError> : null}
             <FactionEditor

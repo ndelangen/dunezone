@@ -1,4 +1,5 @@
-import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
+import { Box, ColorInput, Group, Stack, Text, TextInput } from '@mantine/core';
+import { HelpMark } from '@ui/content/HelpMark';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -41,14 +42,12 @@ export function FactionFormSectionIdentity({
       aria-labelledby={showIntro ? 'faction-identity-heading' : undefined}
     >
       {showIntro ? (
-        <Stack gap="xs">
+        <Group gap={6} wrap="nowrap">
           <Text id="faction-identity-heading" fw={700} size="lg">
             Faction identity
           </Text>
-          <Text c="dimmed" size="sm">
-            These values name the faction and establish the identity reused across its artifacts.
-          </Text>
-        </Stack>
+          <HelpMark text="The name and look reused across all of this faction's artifacts." />
+        </Group>
       ) : null}
 
       <Box className={styles.identityGrid}>

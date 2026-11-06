@@ -1,6 +1,7 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { rulebookBlockKindLabels } from '@shared/rulebooks/contents';
 import type { RulebookBlockKind } from '@shared/rulebooks/contents';
+import { Notice } from '@ui/block/Notice';
 import type { ReactNode } from 'react';
 
 /*
@@ -15,11 +16,11 @@ export function RulebookClippedBlockPanel({
   return (
     <Stack gap="lg">
       {clippedKind ? (
-        <Alert color="yellow" title={`${rulebookBlockKindLabels[clippedKind]} is clipped`}>
+        <Notice tone="caution" title={`${rulebookBlockKindLabels[clippedKind]} is clipped`}>
           <Text size="sm">
             Part of this Block will not be visible in the published Rulebook. Shorten the Block to show all of it.
           </Text>
-        </Alert>
+        </Notice>
       ) : null}
       {children}
     </Stack>

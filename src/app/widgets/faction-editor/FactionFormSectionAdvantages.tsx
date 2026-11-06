@@ -1,5 +1,6 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Box, Group, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Stack, Text, TextInput } from '@mantine/core';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -107,24 +108,22 @@ export function FactionFormSectionAdvantages({
   const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
   return (
-    <Stack component="section" gap="md" aria-labelledby="advantages-heading">
-      <Stack gap="xs">
-        <Text id="advantages-heading" fw={700} size="lg">
-          Faction advantages
-        </Text>
-        <Text c="dimmed" size="sm">
-          Advantages appear in this order in faction rules output. Titles and Karama interactions are optional.
-        </Text>
-      </Stack>
-
-      <form.Field name="rules.advantages" mode="array">
-        {(field) => {
-          const sortablePrefix = 'advantages-';
-          const count = field.state.value.length;
-          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end">
+    <form.Field name="rules.advantages" mode="array">
+      {(field) => {
+        const sortablePrefix = 'advantages-';
+        const count = field.state.value.length;
+        const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
+        return (
+          <ListChapter
+            title="Faction advantages"
+            help={'Advantages appear in this order in the faction rules.\nTitles and Karama interactions are optional.'}
+            note={
+              count === 0
+                ? { title: 'No faction advantages', text: 'This faction currently has no authored special advantages.' }
+                : null
+            }
+            actions={
+              <>
                 <ListLengthActions
                   removeLabel="Remove last faction advantage"
                   addLabel="Add faction advantage"
@@ -145,35 +144,29 @@ export function FactionFormSectionAdvantages({
                     selectIndex(newIndex);
                   }}
                 />
-              </Group>
-
-              {count === 0 ? (
-                <Alert color="gray" variant="light" title="No faction advantages">
-                  This faction currently has no authored special advantages.
-                </Alert>
-              ) : null}
-
-              {count > 0 ? (
-                <>
-                  <FactionCollectionShelf
-                    label="Ordered faction advantages"
-                    sortablePrefix={sortablePrefix}
-                    selectedIndex={safeSelectedIndex}
-                    onSelectedIndexChange={selectIndex}
-                    items={field.state.value.map((advantage, index) => ({
-                      id: `${sortablePrefix}${index}`,
-                      label: advantage.title?.trim() || `Advantage ${index + 1}`,
-                      description: advantage.text.trim() || 'No rule text',
-                    }))}
-                    onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
-                  />
-                  <AdvantageCard form={form} index={safeSelectedIndex} />
-                </>
-              ) : null}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+              </>
+            }
+          >
+            {count > 0 ? (
+              <>
+                <FactionCollectionShelf
+                  label="Ordered faction advantages"
+                  sortablePrefix={sortablePrefix}
+                  selectedIndex={safeSelectedIndex}
+                  onSelectedIndexChange={selectIndex}
+                  items={field.state.value.map((advantage, index) => ({
+                    id: `${sortablePrefix}${index}`,
+                    label: advantage.title?.trim() || `Advantage ${index + 1}`,
+                    description: advantage.text.trim() || 'No rule text',
+                  }))}
+                  onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
+                />
+                <AdvantageCard form={form} index={safeSelectedIndex} />
+              </>
+            ) : null}
+          </ListChapter>
+        );
+      }}
+    </form.Field>
   );
 }

@@ -20,7 +20,7 @@ const meta = preview.meta({
 export const Empty = meta.story({
   play: async ({ canvasElement }) => {
     const canvas = await openExtras(canvasElement);
-    await expect(canvas.getByText('No Extras. The faction brings only its own components.')).toBeVisible();
+    await expect(canvas.getByText('The faction brings only its own components.')).toBeVisible();
     await expect(canvas.getByText("Nothing beyond the faction's own components.")).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Save faction' })).toBeEnabled();
   },

@@ -225,9 +225,9 @@ export const AnchoredPage = meta.story({
     });
 
     storyWindow.location.hash = 'missing-page';
-    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
-      'The linked target does not exist'
-    );
+    await expect(
+      page.findByRole('status', { name: 'Linked target unavailable' }, { timeout: 30_000 })
+    ).resolves.toHaveTextContent('The linked target does not exist');
     storyWindow.history.replaceState(
       storyWindow.history.state,
       '',
@@ -298,9 +298,9 @@ export const EditionChangeDropsAnUnresolvedPin = meta.story({
     ).resolves.toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Choose Edition' }));
     await userEvent.click(await waitForFrame(() => page.getByRole('menuitem', { name: 'Edition 2, Aug 31, 2026' })));
-    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
-      'The linked target does not exist'
-    );
+    await expect(
+      page.findByRole('status', { name: 'Linked target unavailable' }, { timeout: 30_000 })
+    ).resolves.toHaveTextContent('The linked target does not exist');
     await expect(page.findByText('Tracking', {}, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByRole('button', { name: 'Unpin linked target' })).not.toBeInTheDocument();
     await expect(page.queryByText('Select some Rulebook text first.')).not.toBeInTheDocument();
@@ -447,9 +447,9 @@ export const MissingLocator = meta.story({
   args: { path: `${readerPath}?loc=${missingLocator}` },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('alert', {}, { timeout: 30_000 })).resolves.toHaveTextContent(
-      'The linked target does not exist'
-    );
+    await expect(
+      page.findByRole('status', { name: 'Linked target unavailable' }, { timeout: 30_000 })
+    ).resolves.toHaveTextContent('The linked target does not exist');
     await expect(page.getByRole('heading', { name: 'The gathered rules' })).toBeVisible();
   },
 });

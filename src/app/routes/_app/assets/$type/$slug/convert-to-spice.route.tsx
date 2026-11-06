@@ -1,8 +1,9 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { CustomCardAsset, SpiceAsset } from '@shared/assets/schema';
 import { slugify } from '@shared/slugify';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -161,7 +162,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <Alert title="Review the spice card before converting" color="blue">
+          <Notice tone="info" title="Review the spice card before converting">
             <Stack gap="xs">
               <Text size="sm">
                 Conversion replaces the custom layers with the spice draft shown here. It keeps this card's identity,
@@ -171,7 +172,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
               <Text size="sm">Destination: /assets/card-spice/{targetSlug || '…'}</Text>
               <Text size="sm">Loading changes this draft only. Hold the conversion action when it is ready.</Text>
             </Stack>
-          </Alert>
+          </Notice>
           {conversion.error ? (
             <FormError title="Could not convert">{mutationErrorMessage(conversion.error)}</FormError>
           ) : null}
