@@ -36,7 +36,7 @@ import { LoadedTokenDraft, tokenLoad } from '../../loadedDrafts';
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored token has no room for (D3): the face and target kept across mode flips, the declared Custom intents, and whether a save has already complained.
  * `baseline` is what a reset returns to, and rebuilding the whole state on `replace` is what makes a discarded pick actually discarded.
  */
