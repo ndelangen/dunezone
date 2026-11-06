@@ -1,0 +1,39 @@
+/* A seat's card fills the hover card, which keeps no padding of its own, so each layout spaces itself. */
+.card {
+  /* The compass's rule colour; the card opens in a portal, outside the compass that sets it. */
+  --edge: rgb(from var(--ui-highlight) r g b / 0.2);
+  min-width: 0;
+  max-width: 32rem;
+}
+
+.pad {
+  padding: var(--space-sm);
+}
+
+.tight {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* The toolbar under the header: a rule above it, as Faction info's toolbar has. */
+.toolbar {
+  padding: var(--space-xs) var(--space-sm);
+  border-top: 1px solid var(--edge);
+}
+
+/* The actions at the end of the line, set off by a rule. */
+.divided {
+  padding-left: var(--space-xs);
+  border-left: 1px solid var(--edge);
+  align-self: stretch;
+  align-items: center;
+}
+
+/* The player's avatar with the faction's token tucked a little over its right edge. */
+.faces {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.faces > :not(:first-child) {
+  margin-left: -6px;
+}
