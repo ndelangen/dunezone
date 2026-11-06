@@ -1099,6 +1099,8 @@ describe('hosted table interaction', () => {
     renamed.asset = { ...renamed.asset, name: 'Arrakis Revised' };
     socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: renamed } }));
     expect(table(client).snapshot.board?.asset.name).toBe('Arrakis Revised');
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 3 } }));
+    expect(table(client).snapshot.board).toBeUndefined();
   });
 
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {

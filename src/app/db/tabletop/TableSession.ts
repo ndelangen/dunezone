@@ -626,8 +626,10 @@ export class TableSession {
     /*
      * History and reconnect messages decode fresh copies of the same board, which keep the copy already drawn so the scene is not rebuilt.
      * A different board replaces it: the homepage and tutorial follow the saved Arrakis, which can change while they are open.
+     * A history frame without a board keeps the one drawn; a live frame without one removes it, as the table it shows has none.
      */
-    if (!sameBoard(received.board, this.retainedBoard)) {
+    const kept = !received.board ? this.history !== null : sameBoard(received.board, this.retainedBoard);
+    if (!kept) {
       this.retainedBoard = received.board;
     }
     const authoritative = received.board === this.retainedBoard ? received : { ...received, board: this.retainedBoard };
@@ -2018,9 +2020,8 @@ export class TableSession {
 
 /* Copies of one board decode to equal data; each copy is compared with the drawn board once. */
 const drawnEqualTo = new WeakMap<object, object>();
-function sameBoard(received: GameSnapshot['board'], drawn: GameSnapshot['board']) {
-  /* A frame without a board keeps the one drawn. */
-  if (!received || received === drawn) {
+function sameBoard(received: NonNullable<GameSnapshot['board']>, drawn: GameSnapshot['board']) {
+  if (received === drawn) {
     return true;
   }
   if (!drawn) {
