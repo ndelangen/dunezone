@@ -216,6 +216,20 @@ async function publish(call: Call, pack: string | undefined): Promise<Response> 
   return pack ? await storePack(call, pack) : await storeIndex(call);
 }
 
+async function read(call: Call, pack: string | undefined): Promise<Response> {
+  return pack ? await servePack(call, pack) : await serveIndex(call);
+}
+
+async function refuseMethod(): Promise<Response> {
+  return jsonError(METHOD_NOT_ALLOWED);
+}
+
+const METHODS = new Map<string, (call: Call, pack: string | undefined) => Promise<Response>>([
+  ['GET', read],
+  ['HEAD', read],
+  ['PUT', publish],
+]);
+
 /** Answers `/__media/packs`, or returns null for any other path. */
 export async function handleMediaPackRequest(
   request: Request,
@@ -231,8 +245,5 @@ export async function handleMediaPackRequest(
     return jsonError(NOT_FOUND);
   }
   const call = { request, env, serving };
-  if (request.method === 'GET' || request.method === 'HEAD') {
-    return pack ? await servePack(call, pack) : await serveIndex(call);
-  }
-  return request.method === 'PUT' ? await publish(call, pack) : jsonError(METHOD_NOT_ALLOWED);
+  return await (METHODS.get(request.method) ?? refuseMethod)(call, pack);
 }
