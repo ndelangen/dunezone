@@ -86,6 +86,14 @@ describe('the piece keys that act now, as the shortcuts window reads them', () =
     expect([...pieceKeysNow(controls)].toSorted()).toEqual(['draw', 'flip', 'shuffle', 'split', 'turn']);
   });
 
+  test('a viewer who may not handle the table has no live piece keys', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    controls.canHandleTable = false;
+    expect([...pieceKeysNow(controls)]).toEqual([]);
+  });
+
   test('a carry from a deck puts back, flips, turns and takes one more', () => {
     const { controls } = table();
     const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;

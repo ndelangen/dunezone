@@ -72,6 +72,10 @@ function carryKeys(state: Reads['state'], keys: Set<PieceKey>) {
  */
 export function pieceKeysNow(controls: Reads): ReadonlySet<PieceKey> {
   const keys = new Set<PieceKey>();
+  /* An onlooker, or a player once the game is over, may not handle pieces: the session turns every piece key down. */
+  if (!controls.canHandleTable) {
+    return keys;
+  }
   carryKeys(controls.state, keys);
   const pieceId = targetPieceId(controls);
   if (!pieceId) {
