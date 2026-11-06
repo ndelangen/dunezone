@@ -13,8 +13,8 @@ import { useCurrentProfile } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
 import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 
-import { TableWait } from '../play/TableWait';
 import { chapterAt, TUTORIAL_CHAPTERS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 

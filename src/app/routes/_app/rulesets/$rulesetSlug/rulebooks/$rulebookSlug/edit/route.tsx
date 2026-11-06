@@ -147,10 +147,11 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
-import { NotFoundState, RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookBoardMarkupEditing } from '@game/rulebook/RulebookBoardMarkup';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';

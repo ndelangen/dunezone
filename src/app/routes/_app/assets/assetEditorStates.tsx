@@ -13,9 +13,9 @@ import type { z } from 'zod';
 
 import { useDeleteAsset, useSetAssetGroup } from '@app/db/assets';
 import type { AssetPageData } from '@app/db/assets';
-import { NotFoundState } from '@app/routes/routeStates';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 

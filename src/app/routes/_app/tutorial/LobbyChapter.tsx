@@ -2,9 +2,9 @@ import { lazy, Suspense, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { createGameDraftReducer } from '@app/widgets/create-game/CreateGamePass';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { TutorialGuide } from '@app/widgets/tutorial-guide/TutorialGuide';
 
-import { TableWait } from '../play/TableWait';
 import type { TutorialChapter } from './chapters';
 import type { LobbyChapterScript, LobbyState } from './chapterScripts/chapterScript';
 import { FRIEND_ADDRESS, sampleLobby } from './lobby/lobbyGames';

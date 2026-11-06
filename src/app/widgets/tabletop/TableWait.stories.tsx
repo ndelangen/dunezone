@@ -1,0 +1,26 @@
+import { Anchor } from '@mantine/core';
+import preview from '@sb/preview';
+import { expect, within } from 'storybook/test';
+
+import { TableWait } from './TableWait';
+
+const meta = preview.meta({
+  component: TableWait,
+  parameters: { layout: 'fullscreen' },
+  args: { status: 'Joining the table…' },
+});
+
+/** The one frame every table route shows while something is on its way: a status line in the near-black frame. */
+export const Waiting = meta.story({
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('status')).toHaveTextContent('Joining the table…');
+  },
+});
+
+/** The controls that stay reachable while waiting, such as the way back to the lobby. */
+export const WithWayBack = meta.story({
+  args: {
+    status: 'Waiting for the host to admit you.',
+    children: <Anchor href="#lobby">Back to the lobby</Anchor>,
+  },
+});

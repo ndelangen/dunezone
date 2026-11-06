@@ -14,11 +14,11 @@ import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { GameLink } from './GameLink';
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 /*
