@@ -284,8 +284,9 @@ export const BundleAsset = z.strictObject({
 });
 
 /**
- * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
+ * The eight faces the project ships, declared in `src/app/styles/fonts.css`.
  * Rectangle tokens and custom cards let authors pick a face, so their schemas share this list.
+ * Orthodox Herbertarian (a 2009 Dune fan face from Jacurutu.com) has letters and a little punctuation but no digits.
  */
 export const RECTANGLE_TOKEN_FONTS = [
   'C_Copperplate_Gothic',
@@ -295,6 +296,7 @@ export const RECTANGLE_TOKEN_FONTS = [
   'C_Advokat_Modern',
   'C_Candara',
   'C_Trebuchet',
+  'C_Orthodox_Herbertarian',
 ] as const;
 
 const OPACITY = z.number().min(0).max(1);

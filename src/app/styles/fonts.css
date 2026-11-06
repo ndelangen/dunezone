@@ -98,3 +98,13 @@ textarea,
 select {
   font-family: inherit;
 }
+
+@font-face {
+  font-family: "C_Orthodox_Herbertarian";
+  font-display: swap;
+  src:
+    url("/font/orthodox-herbertarian.woff2") format("woff2"),
+    url("/font/orthodox-herbertarian.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}

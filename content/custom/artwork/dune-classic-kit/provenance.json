@@ -674,6 +674,50 @@
       "kitFileSha256": "cb14c26275f875998922e09c1b26208e7e42dc1988c7311895fec0a343ec5f91",
       "source": "sources/star-right.svg",
       "editedBy": "John Flower"
+    },
+    "/vector/decal/atreides-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Atreides Artwork"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--full-scene.svg",
+      "editedBy": "John Flower",
+      "note": "Exported 2026-11-06 with every collection switched on (the .blend hides Leto, Paul, the walls and the books for rendering); the mono partner is flattened and traced with tools/flatten_trace.py at 4000 px."
+    },
+    "/vector/decal/atreides-artwork.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Atreides Artwork"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--full-scene.svg",
+      "editedBy": "John Flower",
+      "note": "Exported 2026-11-06 with every collection switched on (the .blend hides Leto, Paul, the walls and the books for rendering); the mono partner is flattened and traced with tools/flatten_trace.py at 4000 px."
+    },
+    "/vector/emblem/atreides-hawk.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Badges/Atreides Badge.blend",
+      "collections": ["House Atreides Badge - DEA 2"],
+      "kitFileSha256": "b4b93fe4f6cf30a743dbe31e5fb43ddddfa1854ddd95837e8dca2d2ae7ec89c0",
+      "source": "sources/Atreides-Badge--House-Atreides-Badge---DEA-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/ecaz-2022.svg": {
+      "kitFile": "Assets/Factions/House Ecaz/Badges/Ecaz Badge.blend",
+      "collections": ["Ecaz Badge - 2022"],
+      "kitFileSha256": "8165e0d2b583ed41e44448665367ae8fd07a86c69b84aa17f191b13f70ca6a81",
+      "source": "sources/Ecaz-Badge--Ecaz-Badge---2022.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/harkonnen-ox.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Badges/Harkonnen Badge.blend",
+      "collections": ["Harkonnen Badge - DEA 3 - Ox"],
+      "kitFileSha256": "17d2256d46714da67b3e9598f0f18db77c2752e263f04de0fd0e16a34772f1e6",
+      "source": "sources/Harkonnen-Badge--Harkonnen-Badge---DEA-3---Ox.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/choam-disc.svg": {
+      "kitFile": "Assets/Factions/CHOAM/Logos/CHOAM Logo.blend",
+      "collections": ["CHOAM Logo"],
+      "kitFileSha256": "PENDING",
+      "source": "sources/CHOAM-Logo--CHOAM-Logo.svg",
+      "editedBy": "John Flower"
     }
   }
 }
