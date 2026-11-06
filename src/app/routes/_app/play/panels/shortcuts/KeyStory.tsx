@@ -24,12 +24,12 @@ export function KeyStory({
       data-lit={lit || undefined}
     >
       <span className={styles.caps}>
-        <Keys entry={entry} />
+        <Keys entry={entry} wrap />
       </span>
       <span className={styles.text}>
         <span className={styles.action}>
           {entry.action}
-          {entry.word && (
+          {entry.word && entry.word !== entry.action && (
             <span className={styles.word}>
               {' · '}
               <Word entry={entry} />

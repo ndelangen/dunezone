@@ -6,8 +6,8 @@ import type { ReactNode } from 'react';
 import type { ShortcutEntry } from './keyboardShortcuts';
 import styles from './ShortcutKeys.module.css';
 
-/** An entry's keys as caps: "Hold Alt", "1–9", "Q E", or a pointer gesture in words. */
-export function Keys({ entry }: Readonly<{ entry: ShortcutEntry }>) {
+/** An entry's keys as caps: "Hold Alt", "1–9", "Q E", or a pointer gesture in words; with wrap, a long run breaks onto more lines. */
+export function Keys({ entry, wrap = false }: Readonly<{ entry: ShortcutEntry; wrap?: boolean }>) {
   if (entry.pointer) {
     return <span className={styles.pointer}>{entry.keys.join(' ')}</span>;
   }
@@ -19,7 +19,7 @@ export function Keys({ entry }: Readonly<{ entry: ShortcutEntry }>) {
     );
   }
   return (
-    <span className={styles.keys}>
+    <span className={clsx(styles.keys, wrap && styles.wrap)}>
       {entry.press === 'hold' && <span className={styles.hold}>Hold</span>}
       {entry.keys.map((key, index) => (
         <Fragment key={key}>
