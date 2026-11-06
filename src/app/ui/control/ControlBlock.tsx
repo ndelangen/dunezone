@@ -32,7 +32,8 @@ export interface ControlBlockProps {
 /**
  * Frames a form control with a title, an optional (?) help tooltip, optional tools, an optional warning, and group semantics.
  * The help text stays wired to assistive tech through the group's description even though it only paints on hover, focus, or touch.
- * An input given as a function is named by the title and described by the warning;
+ * The group is described by the help and the warning, because Mantine inputs replace an `aria-describedby` handed to them with their own.
+ * An input given as a function is named by the title and, if it keeps the attribute, described by the warning;
  * icon-only tools remain responsible for their own accessible names.
  */
 export function ControlBlock({ title, description, warning, tool, input, inputId }: ControlBlockProps) {
@@ -47,7 +48,12 @@ export function ControlBlock({ title, description, warning, tool, input, inputId
   };
 
   return (
-    <Stack role="group" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} gap={6}>
+    <Stack
+      role="group"
+      aria-labelledby={titleId}
+      aria-describedby={[description ? descriptionId : '', warning ? warningId : ''].join(' ').trim() || undefined}
+      gap={6}
+    >
       <Group gap="sm" justify="space-between" align="center" wrap="nowrap">
         <Group gap={6} wrap="nowrap" flex="1 1 12rem" miw={0}>
           <TruncatedText id={titleId} fw={700} size="sm">

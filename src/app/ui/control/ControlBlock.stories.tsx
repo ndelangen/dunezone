@@ -141,9 +141,9 @@ export const WithWarning = meta.story({
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const input = canvas.getByRole('textbox', { name: 'Leader name' });
-    await expect(input).toHaveAccessibleDescription(
-      'This leader has no name. This is advisory and does not prevent saving.'
+    await expect(canvas.getByRole('textbox', { name: 'Leader name' })).toBeVisible();
+    await expect(canvas.getByRole('group', { name: 'Leader name' })).toHaveAccessibleDescription(
+      'Printed around this leader token. This leader has no name. This is advisory and does not prevent saving.'
     );
     await expect(canvas.getByRole('status')).toHaveTextContent('This leader has no name.');
   },
