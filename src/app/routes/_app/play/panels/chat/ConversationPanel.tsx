@@ -8,6 +8,8 @@ import { History, RotateCcw, Send } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
+import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { CONVERSATION_HELP } from '../../multiplayer/panelGuidance';
 import { useServerNowAs } from '../../multiplayer/useServerNow';
 import styles from './ConversationPanel.module.css';
@@ -30,8 +32,8 @@ export type ConversationPanelProps = Readonly<{
   page: Page | undefined;
   /** The viewer's messages on their way, oldest first. */
   pending: readonly Pending[];
-  /** At the table every faction writes, so each message there also names its writer's faction; null in a chat with one player. */
-  senders: Readonly<Record<string, string>> | null;
+  /** At the table every faction writes, so each message there also shows its writer's faction token and name; null in a chat with one player. */
+  senders: Readonly<Record<string, FactionToken>> | null;
   /** Whether the newest message is unread, so seeing it marks the conversation read. */
   unread: boolean;
   /** Unsent messages by conversation, which outlive the composer. */
@@ -86,7 +88,7 @@ export function ConversationPanel({
               key={message.sequence}
               message={message}
               factionId={factionId}
-              faction={senders?.[message.senderFactionId]}
+              sender={senders?.[message.senderFactionId]}
             />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
@@ -190,14 +192,17 @@ function useArrivalAnnouncement(peerId: string, page: Page | undefined, factionI
   return announcement;
 }
 
+/* The size of a writer's faction token behind their name: about the height of the name's capital letters plus a little. */
+const SENDER_TOKEN_SIZE = 16;
+
 function SavedMessage({
   message,
   factionId,
-  faction,
-}: Readonly<{ message: ConversationMessage; factionId?: string; faction?: string }>) {
+  sender,
+}: Readonly<{ message: ConversationMessage; factionId?: string; sender?: FactionToken }>) {
   return (
     <Stack gap="xs">
-      <SavedMessageHeader message={message} faction={faction} />
+      <SavedMessageHeader message={message} sender={sender} />
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         {message.text}
       </Text>
@@ -321,18 +326,26 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
   };
 }
 
-function SavedMessageHeader({ message, faction }: Readonly<{ message: ConversationMessage; faction?: string }>) {
+/*
+ * The writer's name, then at the table their faction's token and name.
+ * In a narrow window the token and faction name move under the name together, and the time onto its own line, rather than overlap.
+ */
+function SavedMessageHeader({ message, sender }: Readonly<{ message: ConversationMessage; sender?: FactionToken }>) {
   return (
     <Group gap="sm" justify="space-between">
-      <Text size="sm" fw={700}>
-        {message.author}
-        {faction ? (
-          <Text span size="sm" c="dimmed" fw={400}>
-            {' · '}
-            {faction}
-          </Text>
+      <Group gap={6} data-message-sender={sender?.id}>
+        <Text size="sm" fw={700}>
+          {message.author}
+        </Text>
+        {sender ? (
+          <Group gap={6} wrap="nowrap">
+            <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} aria-hidden />
+            <Text span size="sm" c="dimmed">
+              {sender.name}
+            </Text>
+          </Group>
         ) : null}
-      </Text>
+      </Group>
       <MessageTime savedAt={message.savedAt} />
     </Group>
   );
