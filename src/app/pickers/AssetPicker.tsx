@@ -1,4 +1,5 @@
-import { Center, Combobox, Group, Loader, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Pending } from '@ui/content/Pending';
 import { matchAsset, searchTerms } from '@ui/control/assetSearch';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { X } from 'lucide-react';
@@ -112,9 +113,7 @@ export function AssetPicker({
   return (
     <Stack gap="md">
       {catalogue.isPending ? (
-        <Center py="md">
-          <Loader size="sm" aria-label={copy.searchLabel} />
-        </Center>
+        <Pending>{copy.searchLabel}</Pending>
       ) : availableRows.length === 0 ? (
         <Text size="sm" c="dimmed">
           {copy.emptyMessage}

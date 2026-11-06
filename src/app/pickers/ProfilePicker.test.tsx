@@ -79,7 +79,7 @@ describe('ProfilePicker', () => {
         <ProfilePicker onPick={vi.fn()} onCancel={onCancel} />
       </MantineProvider>
     );
-    expect(view.getByLabelText('Loading profiles')).not.toBeNull();
+    expect(view.getByRole('status').textContent).toBe('Loading profiles');
     fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });

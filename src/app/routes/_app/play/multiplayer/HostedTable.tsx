@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The reconnect pill on the dark table carries its own tooltip and colour. */
 import { Anchor, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
@@ -138,7 +139,7 @@ function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
       hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow="Hosted fixture"
       title="Hosted connection"
-      description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
+      help={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
     >
       <Stack gap="sm">
         {error && <FormError title="From the table">{error}</FormError>}
@@ -263,7 +264,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={phaseHelp(table)}
+      help={phaseHelp(table)}
     >
       {!table.snapshot.stage && <Text size="sm">{PHASE_PREVIOUS}</Text>}
     </Section>

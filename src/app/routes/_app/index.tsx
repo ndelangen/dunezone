@@ -210,7 +210,7 @@ function AssetInvitation() {
       className={styles.editorialCopy}
       title="One card can change the game"
       eyebrow="Cards, decks & tokens"
-      description="Make the small pieces that bring a big idea to the table."
+      help="Make the small pieces that bring a big idea to the table."
     >
       <Text>
         Design a deck, write a treachery card or give a new rule a token of its own. Preview your pieces as you build.

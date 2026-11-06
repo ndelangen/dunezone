@@ -1,9 +1,10 @@
-import { Accordion, Group, Loader, NumberInput, Select, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core';
+import { Accordion, Group, NumberInput, Select, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core';
 import type { RulebookBattleSideValue } from '@shared/rulebooks/battleStep';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
 import { ListChapter } from '@ui/block/ListChapter';
+import { Pending } from '@ui/content/Pending';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { lazy, Suspense, useState } from 'react';
@@ -218,7 +219,7 @@ function BattleCardFields({
       >
         <Stack gap="sm">
           {openPicker === 'card' ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading cards" />}>
+            <Suspense fallback={<Pending>Loading cards</Pending>}>
               <RulebookSourcePicker
                 purpose="card"
                 onPick={(source) => {

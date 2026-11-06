@@ -150,7 +150,7 @@ function GlobalFaqPage() {
           ) : (
             <Section
               title="How the FAQ works"
-              description="Ask about a ruleset, let the table weigh in, and mark the reply that settled it."
+              help="Ask about a ruleset, let the table weigh in, and mark the reply that settled it."
             >
               <FaqWalkthrough
                 asker="Chani"

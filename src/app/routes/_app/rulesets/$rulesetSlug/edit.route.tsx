@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Group, Popover, Radio, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Group, Popover, Radio, Stack, Text, TextInput } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import {
@@ -19,8 +19,8 @@ import type { BattleDialing } from '@shared/rulesets/battleDialing';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { FactionLink } from '@ui/content/FactionLink';
@@ -75,6 +75,7 @@ import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteNotFound } from '@app/routes/routeStates';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -388,8 +389,16 @@ function RulesetEditor({
                 }
               />
 
-              {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
-              {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
+              {rehostFailure ? (
+                <ActionError subject="Cover" verb="store">
+                  {rehostFailure}
+                </ActionError>
+              ) : null}
+              {mutationError ? (
+                <ActionError subject="Ruleset" verb="save">
+                  {mutationError}
+                </ActionError>
+              ) : null}
             </Stack>
           </Surface>
           <RulesetRulebooks
@@ -443,13 +452,12 @@ function RulesetEditPage() {
      They were two identical blocks before, which is how they stayed identical. */
   if (loaderData.notFound || !page?.ruleset) {
     return (
-      <PageMessage
+      <RouteNotFound
         size="compact"
         title="Edit ruleset"
         back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
-      >
-        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+        noun="ruleset"
+      />
     );
   }
 
@@ -484,11 +492,11 @@ function RulesetEditPage() {
   if (!viewerAccess.capabilities.edit) {
     return (
       <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
-        <NotAvailable title="You cannot edit this ruleset">
+        <PageState kind="absent" title="You cannot edit this ruleset">
           {r.group_id
             ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
             : 'Only the ruleset owner can edit this ruleset.'}
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -726,7 +734,11 @@ function RulesetFactions({
     <Section id="factions" title="Factions" icon={<Layers3 size={20} aria-hidden />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? <FormError title="Factions could not be updated">{error.message}</FormError> : null}
+          {error ? (
+            <ActionError subject="Factions" verb="update">
+              {error.message}
+            </ActionError>
+          ) : null}
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
               {ordered === undefined ? 'Loading factions…' : 'Drag a faction to change its place.'}
@@ -893,7 +905,11 @@ function RulesetRulebooks({
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? <FormError title="Rulebooks could not be updated">{error.message}</FormError> : null}
+          {error ? (
+            <ActionError subject="Rulebooks" verb="update">
+              {error.message}
+            </ActionError>
+          ) : null}
           {rulebooks.length === 0 ? <Text c="dimmed">No Rulebooks yet.</Text> : null}
           <Stack component="ol" aria-label="Rulebooks" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
             {rulebooks.map((book, index) => (
@@ -979,18 +995,20 @@ function RulesetAssetSlots({
   const [openSlot, setOpenSlot] = useState<RulesetAssetSlot | null>(null);
 
   return (
-    <Stack gap="lg">
-      <Stack gap={2}>
-        <Title order={2} size="h4">
-          Board, decks and bundles
-        </Title>
-        <Text size="sm" c="dimmed">
-          What this ruleset puts on the table. Choose a board to make it available for Play. Any deck may fill any deck
-          slot.
-        </Text>
-      </Stack>
-      {setSlot.error ? <FormError title="Slot could not be filled">{setSlot.error.message}</FormError> : null}
-      {clearSlot.error ? <FormError title="Slot could not be cleared">{clearSlot.error.message}</FormError> : null}
+    <Section
+      title="Board, decks and bundles"
+      help="What this ruleset puts on the table. Choose a board to make it available for Play. Any deck may fill any deck slot."
+    >
+      {setSlot.error ? (
+        <ActionError subject="Slot" verb="fill">
+          {setSlot.error.message}
+        </ActionError>
+      ) : null}
+      {clearSlot.error ? (
+        <ActionError subject="Slot" verb="clear">
+          {clearSlot.error.message}
+        </ActionError>
+      ) : null}
       {RULESET_ASSET_SLOT_ORDER.map((slot) => {
         const rule = RULESET_ASSET_SLOTS[slot];
         const held = slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);
@@ -1068,6 +1086,6 @@ function RulesetAssetSlots({
           </Stack>
         );
       })}
-    </Stack>
+    </Section>
   );
 }

@@ -1,8 +1,9 @@
-import { Combobox, ScrollArea, Stack, Text } from '@mantine/core';
+import { Combobox, ScrollArea, Text } from '@mantine/core';
 import { ASSET_TYPES, assetTypeNoun } from '@shared/assets/types';
 import type { SpawnType } from '@shared/play/captureTypes';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnableAsset, SpawnSelection } from '@shared/play/inventory';
+import { TitledLine } from '@ui/content/TitledLine';
 
 /**
  * What the picker offers, in words: a deck, bundle or token by default, or the types a shelf narrowed it to.
@@ -22,14 +23,10 @@ export function spawnTypeWords(types: readonly SpawnType[]): Readonly<{ one: str
 
 function SpawnAssetOptionRow({ entry }: { entry: SpawnableAsset }) {
   return (
-    <Stack gap={2} miw={0}>
-      <Text size="sm" fw={700} lh={1.25}>
-        {entry.name}
-      </Text>
-      <Text size="xs" c="dimmed" lh={1.2}>
-        {ASSET_TYPES[entry.type].shortLabel} · {entry.owner ?? 'Unknown owner'}
-      </Text>
-    </Stack>
+    <TitledLine
+      title={entry.name}
+      detail={`${ASSET_TYPES[entry.type].shortLabel} · ${entry.owner ?? 'Unknown owner'}`}
+    />
   );
 }
 

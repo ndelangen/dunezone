@@ -172,10 +172,11 @@ function ImportExportPage() {
           <Text>Loading your account...</Text>
         ) : (
           <Stack gap="xl">
-            <Section
-              title="Destination"
-              description={`Signed in as ${viewer.profile.username ?? 'your account'}. Your usual editing and group permissions apply.`}
-            >
+            <Section title="Destination">
+              <Text size="sm">
+                Signed in as {viewer.profile.username ?? 'your account'}. Your usual editing and group permissions
+                apply.
+              </Text>
               <Surface>
                 <Group grow align="start">
                   <TextInput
@@ -198,7 +199,7 @@ function ImportExportPage() {
             {state.error && <FormError title="Could not finish">{state.error}</FormError>}
             <Section
               title="Import a package"
-              description="Choose a JSON file or paste its contents. Preview checks the format, destination and proposed changes."
+              help="Choose a JSON file or paste its contents. Preview checks the format, destination and proposed changes."
             >
               <Surface>
                 <Stack gap="md">
@@ -253,10 +254,11 @@ function ImportExportPage() {
               </Surface>
             </Section>
             {state.preview && (
-              <Section
-                title="Review the import"
-                description={`${state.preview.entries.length} items for ${state.preview.rulesetName}, assigned to ${state.preview.groupName}. New records belong to your signed-in account.`}
-              >
+              <Section title="Review the import">
+                <Text size="sm">
+                  {state.preview.entries.length} items for {state.preview.rulesetName}, assigned to{' '}
+                  {state.preview.groupName}. New records belong to your signed-in account.
+                </Text>
                 <Surface>
                   <Stack gap="md">
                     <Table>
@@ -330,7 +332,7 @@ function ImportExportPage() {
             )}
             <Section
               title="Export a record"
-              description="Export a saved Rulebook draft, faction or asset for review and editing. The download lists any references that need binding before use elsewhere."
+              help="Export a saved Rulebook draft, faction or asset for review and editing. The download lists any references that need binding before use elsewhere."
             >
               <Surface>
                 <Stack gap="md">

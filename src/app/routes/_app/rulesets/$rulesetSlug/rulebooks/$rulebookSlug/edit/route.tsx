@@ -77,10 +77,10 @@ import {
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -148,7 +148,7 @@ import {
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { NotFoundState, RouteLoadError } from '@app/routes/routeStates';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -2607,7 +2607,7 @@ function RulebookDifferenceReview({
   return (
     <Section
       title="Review differences"
-      description="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
+      help="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
       action={
         <LabeledAction icon={<ArrowLeft size={16} />} onClick={onClose}>
           Back to editing
@@ -2800,7 +2800,11 @@ function RulebookRename({
         onChange={(event) => setName(event.currentTarget.value)}
         description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
       />
-      {rename.error ? <FormError title="Rulebook could not be renamed">{rename.error.message}</FormError> : null}
+      {rename.error ? (
+        <ActionError subject="Rulebook" verb="rename">
+          {rename.error.message}
+        </ActionError>
+      ) : null}
       <Group gap="xs">
         <LabeledAction
           type="submit"
@@ -3454,7 +3458,9 @@ function RulebookEditorSession({
             <FormError title="That change was not made">{result.operationError}</FormError>
           ) : null}
           {publishMutation.error ? (
-            <FormError title="Edition could not be published">{publishMutation.error.message}</FormError>
+            <ActionError subject="Edition" verb="publish">
+              {publishMutation.error.message}
+            </ActionError>
           ) : null}
           {view.notice === 'stale' ? (
             <Notice tone="caution" live>
@@ -3536,15 +3542,17 @@ function RulebookEditorPage() {
       }
     >
       {data === undefined ? (
-        <LoadPending title="Loading Rulebook">Loading the saved draft and your editing access.</LoadPending>
+        <PageState kind="pending" title="Loading Rulebook">
+          Loading the saved draft and your editing access.
+        </PageState>
       ) : data === null ? (
-        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
+        <NotFoundState noun="Rulebook" />
       ) : data.kind === 'sign-in-required' ? (
         <LoginGate action="edit this Rulebook" />
       ) : (
-        <NotAvailable title="You cannot edit this Rulebook">
+        <PageState kind="absent" title="You cannot edit this Rulebook">
           Only the Ruleset owner or an active member of its Group can edit this Rulebook.
-        </NotAvailable>
+        </PageState>
       )}
     </PageMessage>
   );

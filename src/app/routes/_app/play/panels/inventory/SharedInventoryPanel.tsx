@@ -49,7 +49,7 @@ function AddToShelf({ inventory, row }: Readonly<{ inventory: SharedInventory; r
 export function SharedInventoryPanel({ inventory, picker, requests }: SharedInventoryViewProps) {
   const { catalogue, gather, draw, observing } = inventory;
   return (
-    <Section hiddenHeading title="Shared table inventory" description={SHARED_INVENTORY_HELP}>
+    <Section hiddenHeading title="Shared table inventory" help={SHARED_INVENTORY_HELP}>
       <Stack gap="md">
         {requests && <div className={styles.requests}>{requests}</div>}
         {gather && !observing && (
@@ -65,7 +65,7 @@ export function SharedInventoryPanel({ inventory, picker, requests }: SharedInve
         {inventory.rows.map((row) => (
           <section key={row.key} aria-label={row.label} className={styles.shelf}>
             <Group justify="space-between" wrap="nowrap" mb={4}>
-              <Text size="xs" fw={700} tt="uppercase" className={styles.rowLabel}>
+              <Text size="xs" fw={700} className={styles.rowLabel}>
                 {row.label} {row.count > 0 && <span className={styles.count}>{row.count}</span>}
               </Text>
               <Group gap="xs" wrap="nowrap">

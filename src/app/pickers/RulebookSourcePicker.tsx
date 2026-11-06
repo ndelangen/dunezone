@@ -1,6 +1,7 @@
-import { Box, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
+import { Box, Group, Select, Stack, Text } from '@mantine/core';
 import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
+import { Pending } from '@ui/content/Pending';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TokenImage } from '@ui/content/TokenImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
@@ -41,11 +42,7 @@ function FactionMemberChoices({
 }) {
   const result = useRulebookFactionMembers(factionId);
   if (result.isPending) {
-    return (
-      <Center>
-        <Loader size="sm" aria-label="Loading leaders" />
-      </Center>
-    );
+    return <Pending>Loading leaders</Pending>;
   }
   if (!result.data) {
     return <Text size="sm">This faction is unavailable.</Text>;
@@ -98,11 +95,7 @@ function FactionTroopChoices({
 }) {
   const result = useRulebookFactionTroops(factionId);
   if (result.isPending) {
-    return (
-      <Center>
-        <Loader size="sm" aria-label="Loading troops" />
-      </Center>
-    );
+    return <Pending>Loading troops</Pending>;
   }
   if (!result.data) {
     return <Text size="sm">This faction is unavailable.</Text>;

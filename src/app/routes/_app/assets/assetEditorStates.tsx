@@ -1,9 +1,8 @@
 import { Group, Text, TextInput } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
@@ -57,7 +56,9 @@ export function AssetEditorMessage({
 export function AssetEditorViewerPending({ name, type }: { name: string; type: string }) {
   return (
     <AssetEditorMessage title={`Edit ${name}`} type={type}>
-      <LoadPending title="Loading">Checking what you can edit.</LoadPending>
+      <PageState kind="pending" title="Loading">
+        Checking what you can edit.
+      </PageState>
     </AssetEditorMessage>
   );
 }
@@ -88,7 +89,7 @@ export function useAssetDeletion(asset: Pick<NonNullable<AssetPageData>['asset']
  * The message stays the caller's, because each editor names its own schema, and they are not interchangeable: four of the five say "the token schema" or "the deck schema" after their own noun, while the treachery editor says "the treachery card schema" after "card".
  * The delete affordance is what every drifted asset shares.
  *
- * This is the one state here that is not one of the four bodies, because it ends in an action rather than in words: the heading and sentence are a `NotAvailable`, and the offer to delete sits beside it in the same slot.
+ * This is the one state here that is not one of the four bodies, because it ends in an action rather than in words: the heading and sentence are an absent `PageState`, and the offer to delete sits beside it in the same slot.
  */
 export function DriftedAssetPage({
   asset,
@@ -107,13 +108,19 @@ export function DriftedAssetPage({
 
   return (
     <AssetEditorMessage title={`Edit ${asset.name}`} type={asset.type}>
-      <NotAvailable title={`This ${noun} cannot be edited`}>{children}</NotAvailable>
+      <PageState kind="absent" title={`This ${noun} cannot be edited`}>
+        {children}
+      </PageState>
       {canDelete ? (
         <>
           <Text size="sm" c="dimmed">
             Deleting it is still open to you. The drifted data blocks the editor, not the delete.
           </Text>
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          {deletion.error ? (
+            <ActionError subject={noun} verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           <Group>
             <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
@@ -131,9 +138,9 @@ export function NoEditorYet({ type }: { type: string }) {
   const label = isAssetType(type) ? ASSET_TYPES[type].label.toLowerCase() : 'assets of this type';
   return (
     <AssetEditorMessage title={isAssetType(type) ? ASSET_TYPES[type].label : 'Assets'} type={type}>
-      <NotAvailable title="No editor yet">
+      <PageState kind="absent" title="No editor yet">
         {`There is no editor for ${label} yet. This type is on the roadmap and cannot hold assets so far.`}
-      </NotAvailable>
+      </PageState>
     </AssetEditorMessage>
   );
 }
@@ -199,7 +206,9 @@ export function useAssetGroupActions({
     accessActions,
     status: groupAccessStatus(assignedGroup?.name ?? null),
     error: setAssetGroup.error ? (
-      <FormError title="Could not change group">{setAssetGroup.error.message}</FormError>
+      <ActionError subject="Group assignment" verb="change">
+        {setAssetGroup.error.message}
+      </ActionError>
     ) : null,
   };
 }
@@ -231,9 +240,22 @@ export function assetNameField({
  * The alert under a failed save, once for every editor organ.
  * It replaced ten hand-written copies of the same Alert, whose only drift risk was exactly the ConvexError unwrap it applies.
  */
-export function SaveErrorAlert({ error }: { error: Error | null }) {
+export function SaveErrorAlert({
+  error,
+  subject,
+  verb = 'save',
+}: {
+  error: Error | null;
+  /** What was being saved, as the title names it: "deck", "preset". */
+  subject: string;
+  verb?: 'save' | 'create';
+}) {
   if (!error) {
     return null;
   }
-  return <FormError title="Could not save">{mutationErrorMessage(error)}</FormError>;
+  return (
+    <ActionError subject={subject} verb={verb}>
+      {mutationErrorMessage(error)}
+    </ActionError>
+  );
 }

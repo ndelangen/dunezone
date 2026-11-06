@@ -764,6 +764,64 @@ const formErrorRule: Rule = {
   },
 };
 
+const EYEBROW_RULE_NAME = 'eyebrow';
+
+/**
+ * Keeps every small capitals caption on the kit's Eyebrow, which owns its size, weight, spacing and tone.
+ * Hand-made `tt="uppercase"` captions had drifted to four weights and three letter spacings.
+ * Printed sheet typography sets its capitals in its own CSS module instead.
+ */
+const eyebrowRule: Rule = {
+  meta: {
+    name: EYEBROW_RULE_NAME,
+    messages: {
+      eyebrow: 'An uppercase caption is an Eyebrow. Use Eyebrow from @ui/content/Eyebrow.',
+    },
+  },
+  create(context) {
+    /* The local names bound to Mantine's Text. */
+    const texts = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === 'ImportSpecifier' &&
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name === 'Text'
+          ) {
+            texts.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'tt') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement' || element.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (!texts.has(element.name.name)) {
+          return;
+        }
+        const value = node.value;
+        const literal =
+          value?.type === 'Literal'
+            ? value.value
+            : value?.type === 'JSXExpressionContainer' && value.expression.type === 'Literal'
+              ? value.expression.value
+              : undefined;
+        if (literal === 'uppercase') {
+          context.report({ node: element, messageId: 'eyebrow' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -778,5 +836,6 @@ export default {
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
     [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
     [FORM_ERROR_RULE_NAME]: formErrorRule,
+    [EYEBROW_RULE_NAME]: eyebrowRule,
   },
 };

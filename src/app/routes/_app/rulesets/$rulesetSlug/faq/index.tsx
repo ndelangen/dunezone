@@ -1,4 +1,4 @@
-import { Select, Text } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE, parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import type { FaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
@@ -22,6 +22,7 @@ import type { RulesetFaqArgs, RulesetFaqPageData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { NotFoundState } from '@app/routes/routeStates';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -339,7 +340,7 @@ function RulesetFaqNotFound({ data }: NotFoundRouteProps) {
   return (
     <PageMessage title="Community FAQ">
       {pageCount == null ? (
-        <Text c="dimmed">This ruleset does not exist or was deleted.</Text>
+        <NotFoundState noun="ruleset" />
       ) : (
         <PastTheEnd pageCount={pageCount} noun="questions" pageLinkProps={(page) => faqPageLink(rulesetSlug, page)} />
       )}

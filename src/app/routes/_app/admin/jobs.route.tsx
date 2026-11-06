@@ -1,7 +1,8 @@
-import { Anchor, Badge, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -94,9 +95,9 @@ function PublicationJobsDashboard() {
               </Group>
 
               {pickupMutation.isError ? (
-                <FormError title="Could not update publisher pickup">
+                <ActionError subject="publisher pickup" verb="update">
                   {pickupMutation.error?.message || 'Try again in a moment.'}
-                </FormError>
+                </ActionError>
               ) : null}
 
               <Group gap="xl" align="flex-start" wrap="wrap">
@@ -104,15 +105,11 @@ function PublicationJobsDashboard() {
                 <Count label="In progress" value={result.counts.inProgress} tone="progress" />
                 <Count label="Error" value={result.counts.error} tone="negative" />
                 <div>
-                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                    Renderer revisions
-                  </Text>
+                  <Eyebrow>Renderer revisions</Eyebrow>
                   <Group gap="xs" mt={4}>
                     {result.settings
                       ? Object.entries(result.settings.rendererRevisions).map(([type, revision]) => (
-                          <Badge variant="light" key={type}>
-                            {formatAssetType(type)} · {revision}
-                          </Badge>
+                          <StatusBadge key={type}>{`${formatAssetType(type)} · ${revision}`}</StatusBadge>
                         ))
                       : 'Not initialized'}
                   </Group>
@@ -234,17 +231,12 @@ function PublicationJobsDashboard() {
 }
 
 /* The same three meanings the job badges carry, at the tally's own size. */
-const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
 
-function Count({ label, value, tone }: { label: string; value: number; tone: keyof typeof COUNT_TONE_COLOR }) {
+function Count({ label, value, tone }: { label: string; value: number; tone: 'pending' | 'progress' | 'negative' }) {
   return (
     <div>
-      <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-        {label}
-      </Text>
-      <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
-        {value.toLocaleString()}
-      </Badge>
+      <Eyebrow>{label}</Eyebrow>
+      <StatusBadge tone={tone}>{value.toLocaleString()}</StatusBadge>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The ruleset filter is a row of pressable count chips, not statuses. */
 import { Badge, Group, InputBase, Popover, RangeSlider, Select, Stack, Text } from '@mantine/core';
 import {
   complexityRangeSearchValue,
@@ -13,6 +14,8 @@ import { FactionCatalogueSpotlight } from '@ui/block/FactionCatalogueSpotlight';
 import { PageTitle } from '@ui/block/PageTitle';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
 import { formatStableDate } from '@ui/content/dates';
+import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
 import { catalogueCountLabel } from '@ui/control/CataloguePager';
 import { IconAction } from '@ui/control/IconAction';
@@ -352,9 +355,7 @@ function CatalogueRefine({
           <Stack gap="md">
             <OwnerFilter member={member} onClear={() => onSearchChange({ owner: undefined })} />
             <Stack gap="xs">
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Ruleset
-              </Text>
+              <Eyebrow>Ruleset</Eyebrow>
               <Group gap={6} role="group" aria-label="Filter factions by ruleset">
                 {rulesetOptions.map((option) => {
                   const selected = (search.ruleset ?? 'all') === option.value;
@@ -386,9 +387,7 @@ function CatalogueRefine({
             </Stack>
 
             <Stack gap="xs">
-              <Text size="xs" fw={700} tt="uppercase" c="dimmed">
-                Complexity range
-              </Text>
+              <Eyebrow>Complexity range</Eyebrow>
               <ComplexityRangeSlider
                 value={search.complexity}
                 onCommit={(value) => onSearchChange({ complexity: complexityRangeSearchValue(value) })}
@@ -459,14 +458,10 @@ function OwnerFilter({
           Member
         </Text>
       ) : (
-        <Text id={labelId} size="xs" fw={700} tt="uppercase" c="dimmed">
-          Member
-        </Text>
+        <Eyebrow id={labelId}>Member</Eyebrow>
       )}
       <Group gap="xs">
-        <Badge variant="filled" color="selected">
-          By {member.name}
-        </Badge>
+        <StatusBadge tone="brand">{`By ${member.name}`}</StatusBadge>
         <LabeledAction size="compact-xs" icon={<UsersRound size={14} />} onClick={onClear}>
           Show every member's factions
         </LabeledAction>

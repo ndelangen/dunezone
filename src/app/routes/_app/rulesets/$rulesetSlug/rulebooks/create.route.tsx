@@ -10,8 +10,8 @@ import {
 import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -25,7 +25,7 @@ import { useId, useReducer } from 'react';
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
@@ -355,7 +355,11 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       <Text size="sm" c="dimmed">
         Creates a saved draft and matching Edition 1. The new Rulebook opens with no local changes.
       </Text>
-      {create.error ? <FormError title="Rulebook could not be created">{create.error.message}</FormError> : null}
+      {create.error ? (
+        <ActionError subject="Rulebook" verb="create">
+          {create.error.message}
+        </ActionError>
+      ) : null}
       <Group gap="sm">
         <LabeledAction
           type="submit"
@@ -391,11 +395,7 @@ function CreateRulebookPage() {
     </PageMessage.Back>
   );
   if (!page) {
-    return (
-      <PageMessage title="Create Rulebook" back={back}>
-        <NotAvailable title="Ruleset not found">This Ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
+    return <RouteNotFound title="Create Rulebook" back={back} noun="Ruleset" />;
   }
   if (!page.viewerAccess.capabilities.edit) {
     return (
@@ -403,9 +403,9 @@ function CreateRulebookPage() {
         {page.viewerAccess.viewer.kind === 'anonymous' ? (
           <LoginGate action="create a Rulebook" />
         ) : (
-          <NotAvailable title="Rulebook creation is unavailable">
+          <PageState kind="absent" title="Rulebook creation is unavailable">
             Only the Ruleset owner and active Group members may create Rulebooks.
-          </NotAvailable>
+          </PageState>
         )}
       </PageMessage>
     );

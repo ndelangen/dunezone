@@ -107,6 +107,7 @@
 }
 
 .rowLabel {
+  text-transform: uppercase;
   color: var(--ink-dim);
   letter-spacing: 0.06em;
 }

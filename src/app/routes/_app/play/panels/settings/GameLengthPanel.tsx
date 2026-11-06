@@ -39,13 +39,13 @@ export function GameLengthPanel({ lastTurn, disabled, observing, onLastTurn }: G
   }, [lastTurn]);
   if (observing) {
     return (
-      <Section hiddenHeading title="Game length" description={GAME_LENGTH_HELP}>
+      <Section hiddenHeading title="Game length" help={GAME_LENGTH_HELP}>
         <Text size="sm">Last turn: {lastTurn}</Text>
       </Section>
     );
   }
   return (
-    <Section hiddenHeading title="Game length" description={GAME_LENGTH_HELP}>
+    <Section hiddenHeading title="Game length" help={GAME_LENGTH_HELP}>
       <NumberInput
         label="Last turn"
         min={MIN_LAST_TURN}

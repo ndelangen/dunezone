@@ -1,8 +1,7 @@
 import { Group, Popover } from '@mantine/core';
 import { RectangleTokenAsset } from '@shared/assets/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
@@ -20,7 +19,6 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import {
   RectangleTokenEditor,
   RectangleProof,
@@ -33,18 +31,10 @@ import type {
   RectangleDraft,
   RectangleMemory,
 } from '@app/widgets/token-editor/RectangleTokenEditor';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import {
-  AssetEditorMessage,
-  DriftedAssetPage,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-  AssetEditorViewerPending,
-} from '../../../assetEditorStates';
+import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 import { LoadedRectangleDraft, tokenLoad } from '../../../loadedDrafts';
+import { AssetEditChecks } from './cardEditPage';
 import { referencedRectangleBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
 
@@ -59,63 +49,25 @@ export function RectangleEditPage({
 }) {
   const query = useAssetPage(type, slug, { initialData: loaderData });
   const data = query.data;
-  const label = 'rectangle';
-
-  if (data === null) {
-    return (
-      <AssetEditorMessage title="Edit token" type={type}>
-        <NotAvailable title="Token not found">{`No ${label} token lives at this address.`}</NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerResolved) {
-    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
-  }
-
-  if (data.viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <LoginGate action="edit tokens" />
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerAccess.capabilities.edit) {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <NotAvailable title="You cannot edit this token">
-          {data.viewerAccess.assignedGroup
-            ? 'Only the token owner or an active member of its group can edit this token.'
-            : 'Only the token owner can edit this token.'}
-        </NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  const parsed = RectangleTokenAsset.safeParse(data.asset.data);
-  if (!parsed.success) {
-    return (
-      <DriftedAssetPage asset={data.asset} noun="token" canDelete={data.viewerAccess.capabilities.delete}>
-        {`This token's stored data no longer matches the token schema, so it cannot be edited here.`}
-      </DriftedAssetPage>
-    );
-  }
-
-  const initialBack = parsed.data.back;
 
   return (
-    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
-      <RectangleEditSession
-        key={data.asset.id}
-        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-        type={type}
-        asset={data.asset}
-        backToken={data.backToken}
-        danglingBack={data.resolvedBack?.mode === 'dangling'}
-        initialDraft={{ ...parsed.data, back: initialBack }}
-      />
-    </BackgroundLibrary>
+    <AssetEditChecks
+      type={type}
+      noun="token"
+      schemaName="rectangle token"
+      schema={RectangleTokenAsset}
+      data={data}
+      session={({ page, asset, access, initialDraft }) => (
+        <RectangleEditSession
+          access={access}
+          type={type}
+          asset={asset}
+          backToken={page.backToken}
+          danglingBack={page.resolvedBack?.mode === 'dangling'}
+          initialDraft={initialDraft}
+        />
+      )}
+    />
   );
 }
 
@@ -285,8 +237,12 @@ function RectangleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          <SaveErrorAlert subject="token" error={updateAsset.error} />
+          {deletion.error ? (
+            <ActionError subject="Token" verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
             <Notice tone="caution" title="No token picked" live>

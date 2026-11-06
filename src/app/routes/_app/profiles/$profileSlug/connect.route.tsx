@@ -2,7 +2,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -65,9 +65,9 @@ function ConnectAccount({ token }: { token: string }) {
   if (!connection) {
     return (
       <PageMessage title="Connect sign-in method">
-        <NotAvailable title="Connection unavailable">
+        <PageState kind="absent" title="Connection unavailable">
           This connection expired or the sign-in did not finish. Start again from your profile.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }

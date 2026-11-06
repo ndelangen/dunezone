@@ -1,4 +1,4 @@
-import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -10,12 +10,9 @@ function isBlank(value: string | undefined) {
   return value == null || value.trim().length === 0;
 }
 
-function Advisory({ children, id }: { children: string; id: string }) {
-  return (
-    <Text id={id} c="var(--color-caution)" size="xs" role="status">
-      {children} This is advisory and does not prevent saving.
-    </Text>
-  );
+/** An empty rule is allowed, so the field says so rather than blocking the save. */
+function advisory(blank: boolean, text: string) {
+  return blank ? `${text} This is advisory and does not prevent saving.` : undefined;
 }
 
 function SetupFields({ form }: { form: FactionFormApi }) {
@@ -25,59 +22,47 @@ function SetupFields({ form }: { form: FactionFormApi }) {
         <Stack gap="md">
           <form.Field name="rules.startText">
             {(field) => {
-              const warningId = 'rules-start-warning';
               return (
-                <Stack gap="md">
-                  <ControlBlock
-                    title="Starting instructions"
-                    description={
-                      'Setup instructions shown in the faction rules.\nLeave out the spice amount; it is printed already.'
-                    }
-                    input={
-                      <FormattedTextInput
-                        id="rules-start"
-                        aria-label="Starting instructions"
-                        minRows={4}
-                        profile="marks-only"
-                        value={field.state.value}
-                        aria-describedby={isBlank(field.state.value) ? warningId : undefined}
-                        onBlur={field.handleBlur}
-                        onChange={field.handleChange}
-                      />
-                    }
-                  />
-                  {isBlank(field.state.value) ? (
-                    <Advisory id={warningId}>Starting instructions are empty.</Advisory>
-                  ) : null}
-                </Stack>
+                <ControlBlock
+                  title="Starting instructions"
+                  inputId="rules-start"
+                  warning={advisory(isBlank(field.state.value), 'Starting instructions are empty.')}
+                  description={
+                    'Setup instructions shown in the faction rules.\nLeave out the spice amount; it is printed already.'
+                  }
+                  input={(control) => (
+                    <FormattedTextInput
+                      {...control}
+                      minRows={4}
+                      profile="marks-only"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                    />
+                  )}
+                />
               );
             }}
           </form.Field>
 
           <form.Field name="rules.revivalText">
             {(field) => {
-              const warningId = 'rules-revival-warning';
               return (
-                <Stack gap="md">
-                  <ControlBlock
-                    title="Revival instructions"
-                    input={
-                      <FormattedTextInput
-                        id="rules-revival"
-                        aria-label="Revival instructions"
-                        minRows={3}
-                        profile="marks-only"
-                        value={field.state.value}
-                        aria-describedby={isBlank(field.state.value) ? warningId : undefined}
-                        onBlur={field.handleBlur}
-                        onChange={field.handleChange}
-                      />
-                    }
-                  />
-                  {isBlank(field.state.value) ? (
-                    <Advisory id={warningId}>Revival instructions are empty.</Advisory>
-                  ) : null}
-                </Stack>
+                <ControlBlock
+                  title="Revival instructions"
+                  inputId="rules-revival"
+                  warning={advisory(isBlank(field.state.value), 'Revival instructions are empty.')}
+                  input={(control) => (
+                    <FormattedTextInput
+                      {...control}
+                      minRows={3}
+                      profile="marks-only"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                    />
+                  )}
+                />
               );
             }}
           </form.Field>
@@ -153,22 +138,21 @@ function FateFields({ form }: { form: FactionFormApi }) {
             </form.Field>
             <form.Field name="rules.fate.text">
               {(field) => {
-                const warningId = 'rules-fate-text-warning';
                 return (
-                  <Stack gap="md">
-                    <FormattedTextInput
-                      id="rules-fate-text"
-                      label="Rule text"
-                      minRows={3}
-                      value={field.state.value}
-                      aria-describedby={isBlank(field.state.value) ? warningId : undefined}
-                      onBlur={field.handleBlur}
-                      onChange={field.handleChange}
-                    />
-                    {isBlank(field.state.value) ? (
-                      <Advisory id={warningId}>{`${label} text is empty.`}</Advisory>
-                    ) : null}
-                  </Stack>
+                  <ControlBlock
+                    title="Rule text"
+                    inputId="rules-fate-text"
+                    warning={advisory(isBlank(field.state.value), `${label} text is empty.`)}
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={3}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>

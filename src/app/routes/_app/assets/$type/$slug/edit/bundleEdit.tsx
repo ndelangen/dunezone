@@ -2,8 +2,7 @@ import { Popover } from '@mantine/core';
 import { BundleAsset } from '@shared/assets/schema';
 import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { AddAction } from '@ui/control/ListLengthActions';
@@ -22,19 +21,10 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/widgets/bundle-editor/BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
-import { LoginGate } from '@app/widgets/page-message/LoginGate';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
-import {
-  AssetEditorMessage,
-  DriftedAssetPage,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-  AssetEditorViewerPending,
-} from '../../../assetEditorStates';
+import { SaveErrorAlert, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
+import { AssetEditChecks } from './cardEditPage';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
 const TOKEN_TYPES = ASSET_TYPE_KEYS.filter(holdsBundleMembership);
@@ -43,57 +33,17 @@ export function BundleEditPage({ slug, loaderData }: { slug: string; loaderData:
   const query = useAssetPage('bundle', slug, { initialData: loaderData });
   const data = query.data;
 
-  if (data === null) {
-    return (
-      <AssetEditorMessage title="Edit bundle" type="bundle">
-        <NotAvailable title="Bundle not found">No bundle lives at this address.</NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerResolved) {
-    return <AssetEditorViewerPending name={data.asset.name} type="bundle" />;
-  }
-
-  if (data.viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
-        <LoginGate action="edit bundles" />
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerAccess.capabilities.edit) {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type="bundle">
-        <NotAvailable title="You cannot edit this bundle">
-          {data.viewerAccess.assignedGroup
-            ? 'Only the bundle owner or an active member of its group can edit this bundle.'
-            : 'Only the bundle owner can edit this bundle.'}
-        </NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  const parsed = BundleAsset.safeParse(data.asset.data);
-  if (!parsed.success) {
-    return (
-      <DriftedAssetPage asset={data.asset} noun="bundle" canDelete={data.viewerAccess.capabilities.delete}>
-        {`This bundle's stored data no longer matches the bundle schema, so it cannot be edited here.`}
-      </DriftedAssetPage>
-    );
-  }
-
   return (
-    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
-      <BundleEditSession
-        key={data.asset.id}
-        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-        asset={data.asset}
-        members={data.members}
-        initialDraft={parsed.data}
-      />
-    </BackgroundLibrary>
+    <AssetEditChecks
+      type="bundle"
+      noun="bundle"
+      schemaName="bundle"
+      schema={BundleAsset}
+      data={data}
+      session={({ page, asset, access, initialDraft }) => (
+        <BundleEditSession access={access} asset={asset} members={page.members} initialDraft={initialDraft} />
+      )}
+    />
   );
 }
 
@@ -236,11 +186,17 @@ function BundleEditSession({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          <SaveErrorAlert subject="bundle" error={updateAsset.error} />
+          {deletion.error ? (
+            <ActionError subject="Bundle" verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {groupActions.error}
           {setCount.error ? (
-            <FormError title="Could not change the contents">{mutationErrorMessage(setCount.error)}</FormError>
+            <ActionError subject="bundle contents" verb="change">
+              {mutationErrorMessage(setCount.error)}
+            </ActionError>
           ) : null}
           <BundleEditor
             nameField={nameField}

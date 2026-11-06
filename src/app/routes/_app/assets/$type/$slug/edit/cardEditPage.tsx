@@ -1,7 +1,7 @@
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -14,6 +14,7 @@ import { useAssetPage, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import type { LoadPreset } from '@app/pickers/assetLoadSource';
+import { NotFoundState } from '@app/routes/routeStates';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -58,7 +59,9 @@ type CardEditAccess = {
   assignableGroups: NonNullable<AssetPageData>['assignableGroups'];
 };
 
-export type CardEditSessionProps<Draft> = {
+export type AssetEditSessionProps<Draft> = {
+  /** The whole read, for an editor that also needs its members, back or presets. */
+  page: NonNullable<AssetPageData>;
   frontPresets: CardFrontPreset[];
   asset: CardAsset;
   initialDraft: Draft;
@@ -67,41 +70,42 @@ export type CardEditSessionProps<Draft> = {
   tokensError?: NonNullable<AssetPageData>['cardTokensError'];
 };
 
-/** Opens the session only for a card that exists, a viewer who may edit it, and stored data that still parses. */
-type CardEditGateProps<Draft> = {
-  type: CardType;
-  /** The card type as a sentence names it, e.g. "spice card". */
+/**
+ * The checks every asset editor runs before its session opens: the asset exists, the viewer is known and may edit it, and its stored data still parses.
+ * The page owns the live read, because a draft's unsaved choices (placed tokens) can decide that read's arguments.
+ */
+type AssetEditChecksProps<Draft> = {
+  type: string;
+  /** How the messages name the asset: "card", "deck", "token". */
+  noun: string;
+  /** The asset type as a sentence names it, e.g. "spice card". */
   schemaName: string;
   schema: z.ZodType<Draft>;
+  data: AssetPageData;
+  session: (props: AssetEditSessionProps<Draft>) => ReactNode;
+};
+
+/** A card editor whose read takes nothing from its draft: the read and the checks together. */
+export function CardEditGate<Draft>({
+  slug,
+  loaderData,
+  embeddedTokenIds,
+  ...props
+}: Omit<AssetEditChecksProps<Draft>, 'data' | 'noun' | 'type'> & {
+  type: CardType;
   slug: string;
   loaderData: AssetPublicPage;
   embeddedTokenIds?: string[];
-  session: (props: CardEditSessionProps<Draft>) => ReactNode;
-};
-
-export function CardEditGate<Draft>(props: CardEditGateProps<Draft>) {
-  const query = useAssetPage(props.type, props.slug, {
-    initialData: props.loaderData,
-    embeddedTokenIds: props.embeddedTokenIds,
-  });
-  return <CardEditChecks {...props} data={query.data} />;
+}) {
+  const query = useAssetPage(props.type, slug, { initialData: loaderData, embeddedTokenIds });
+  return <AssetEditChecks {...props} noun={assetNoun(props.type)} data={query.data} />;
 }
 
-/** The checks alone, for a page that owns the live read because its unsaved draft decides that read's arguments. */
-export function CardEditChecks<Draft>({
-  type,
-  schemaName,
-  schema,
-  data,
-  session,
-}: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
-  const noun = assetNoun(type);
+export function AssetEditChecks<Draft>({ type, noun, schemaName, schema, data, session }: AssetEditChecksProps<Draft>) {
   if (data === null) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${noun}`}>
-        <NotAvailable
-          title={`${noun[0].toUpperCase()}${noun.slice(1)} not found`}
-        >{`No ${schemaName} lives at this address.`}</NotAvailable>
+        <NotFoundState noun={schemaName} renamed />
       </AssetEditorMessage>
     );
   }
@@ -121,11 +125,11 @@ export function CardEditChecks<Draft>({
   if (!data.viewerAccess.capabilities.edit) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${data.asset.name}`}>
-        <NotAvailable title={`You cannot edit this ${noun}`}>
+        <PageState kind="absent" title={`You cannot edit this ${noun}`}>
           {data.viewerAccess.assignedGroup
             ? `Only the ${noun} owner or an active member of its group can edit this ${noun}.`
             : `Only the ${noun} owner can edit this ${noun}.`}
-        </NotAvailable>
+        </PageState>
       </AssetEditorMessage>
     );
   }
@@ -139,10 +143,11 @@ export function CardEditChecks<Draft>({
     );
   }
 
-  /* Keyed on the card, so moving to another card opens a fresh session rather than carrying this draft over. */
+  /* Keyed on the asset, so moving to another one opens a fresh session rather than carrying this draft over. */
   return (
     <BackgroundLibrary key={data.asset.id} presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
       {session({
+        page: data,
         frontPresets: data.cardFrontPresets,
         asset: data.asset,
         initialDraft: parsed.data,
@@ -258,8 +263,12 @@ export function CardEditFrame<Draft extends { name: string }>({
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={saveError} />
-          {deletion.error ? <FormError title="Could not delete">{deletion.error.message}</FormError> : null}
+          <SaveErrorAlert subject={assetNoun(type)} error={saveError} />
+          {deletion.error ? (
+            <ActionError subject={assetNoun(type)} verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          ) : null}
           {groupActions.error}
           {children}
         </WorkbenchLayout>

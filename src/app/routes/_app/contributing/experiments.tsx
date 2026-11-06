@@ -485,10 +485,11 @@ function MigrationLab() {
 function LayoutLab() {
   const [width, setWidth] = useState(600);
   return (
-    <Section
-      title="Resize the container"
-      description="Move the slider to change the available width. The layout switches to three columns at a container width of 30rem."
-    >
+    <Section title="Resize the container">
+      <Text size="sm">
+        Move the slider to change the available width. The layout switches to three columns at a container width of
+        30rem.
+      </Text>
       <Text size="sm">Requested container width: {width}px, limited by the available space.</Text>
       <Slider thumbLabel="Container width" min={240} max={800} step={20} value={width} onChange={setWidth} />
       <div className={styles.resizeHost} style={{ width }}>

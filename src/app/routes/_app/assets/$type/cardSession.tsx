@@ -13,8 +13,8 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import type { ValidationHeaderWarning } from '@app/widgets/authoring/ValidationHeader';
 
 import { assetNameField } from '../assetEditorStates';
-import { assetNoun, CardEditChecks, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
-import type { CardEditSessionProps } from './$slug/edit/cardEditPage';
+import { assetNoun, AssetEditChecks, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
+import type { AssetEditSessionProps } from './$slug/edit/cardEditPage';
 import { openEvent, reduceOpened } from './cardDrafts';
 import type { DraftEvent, DraftState, DraftStatus, MemoryState, RememberEvent } from './cardDrafts';
 import { CardCreateFrame, useCardCreate } from './create/cardCreatePage';
@@ -162,8 +162,9 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
     }
   }
   return (
-    <CardEditChecks
+    <AssetEditChecks
       type={config.type}
+      noun={assetNoun(config.type)}
       schemaName={config.noun}
       schema={stored}
       data={data}
@@ -185,7 +186,7 @@ function CardEditSession<Draft extends { name: string }, Chapter, State extends 
   state,
   dispatch,
 }: Readonly<
-  CardEditSessionProps<Draft> & {
+  AssetEditSessionProps<Draft> & {
     config: CardSessionConfig<Draft, Chapter, State, Extra>;
     stored: z.ZodType<Draft>;
     state: State;

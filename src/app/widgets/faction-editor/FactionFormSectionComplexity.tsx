@@ -1,18 +1,16 @@
-import { Badge, Group, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Group, Slider, Stack, Switch, Text } from '@mantine/core';
 import type { FactionInput } from '@shared/factions/schema';
 import { complexityEditorPresentation, complexityOutOfTen } from '@ui/content/complexity';
 import { complexityTierSliderMarks } from '@ui/content/ComplexityGlyph';
+import { FieldWarning } from '@ui/content/FieldWarning';
+import { StatusBadge } from '@ui/content/StatusBadge';
 
 import type { FactionFormApi } from './factionFormTypes';
 
 const TIER_SLIDER_MARKS = complexityTierSliderMarks();
 
 function Advisory({ children }: { children: string }) {
-  return (
-    <Text c="var(--color-caution)" size="xs" role="status">
-      {children} This is advisory and does not prevent saving.
-    </Text>
-  );
+  return <FieldWarning>{`${children} This is advisory and does not prevent saving.`}</FieldWarning>;
 }
 
 function complexityModeDescription({
@@ -71,9 +69,7 @@ export function FactionFormSectionComplexity({
                       How hard this faction is to play, shown in the catalogue and on the faction page. Leave it on
                       automatic to follow your rules text, or set it yourself — you know your table best.
                     </Text>
-                    <Badge variant="light" color={active ? 'selected' : 'gray'} size="sm">
-                      {active ? 'Manual' : 'Auto'}
-                    </Badge>
+                    <StatusBadge tone={active ? 'brand' : 'neutral'}>{active ? 'Manual' : 'Auto'}</StatusBadge>
                   </Group>
 
                   <Slider

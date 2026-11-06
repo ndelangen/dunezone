@@ -2,8 +2,8 @@ import { Stack, TextInput } from '@mantine/core';
 import { groupInputSchema } from '@shared/groups/validation';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -15,7 +15,7 @@ import { useRef, useState } from 'react';
 import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/groups';
 import type { GroupEntry } from '@db/groups';
 import { pageHead } from '@app/routes/pageTitle';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -125,7 +125,11 @@ function GroupEditor({ initial }: { initial: GroupEntry }) {
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
-            {mutationError ? <FormError title="Group could not be saved">{mutationError}</FormError> : null}
+            {mutationError ? (
+              <ActionError subject="Group" verb="save">
+                {mutationError}
+              </ActionError>
+            ) : null}
           </Stack>
         </Surface>
       </PageLayout.Content>
@@ -166,9 +170,11 @@ function GroupEditPage() {
   const editPage = groupData.data;
   if (!editPage) {
     return (
-      <PageMessage title="Edit group" back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}>
-        <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+      <RouteNotFound
+        title="Edit group"
+        back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+        noun="group"
+      />
     );
   }
 
@@ -202,7 +208,9 @@ function GroupEditPage() {
   if (!viewerAccess.capabilities.rename) {
     return (
       <PageMessage title={`Edit ${group.name}`} back={guardBack}>
-        <NotAvailable title="You cannot edit this group">Only the owner can edit the group settings.</NotAvailable>
+        <PageState kind="absent" title="You cannot edit this group">
+          Only the owner can edit the group settings.
+        </PageState>
       </PageMessage>
     );
   }

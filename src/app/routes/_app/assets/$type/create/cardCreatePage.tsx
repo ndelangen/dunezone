@@ -1,7 +1,7 @@
 import type { CardFrontPreset } from '@shared/assets/cardFrontPresets';
 import type { SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -106,7 +106,9 @@ export function CardCreateFrame<Draft extends { name: string }>({
     case 'pending':
       return (
         <AssetEditorMessage title={title} type={type}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -122,7 +124,9 @@ export function CardCreateFrame<Draft extends { name: string }>({
   if (loadingPresets) {
     return (
       <AssetEditorMessage title={title} type={type}>
-        <LoadPending title="Loading presets">Loading the current design standards.</LoadPending>
+        <PageState kind="pending" title="Loading presets">
+          Loading the current design standards.
+        </PageState>
       </AssetEditorMessage>
     );
   }
@@ -156,7 +160,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={saveError} />
+            <SaveErrorAlert subject={assetNoun(type)} verb="create" error={saveError} />
             {children}
           </WorkbenchLayout>
         </PageLayout.Content>

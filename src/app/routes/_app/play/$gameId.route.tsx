@@ -1,7 +1,7 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
 import { Stack } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -188,7 +188,9 @@ function UnavailableTable({ title, children, exit }: Readonly<{ title: string; c
         status={
           <Stack gap="lg" align="center">
             <Orbit size={64} strokeWidth={1} aria-hidden style={{ color: 'var(--color-muted)' }} />
-            <NotAvailable title={title}>{children}</NotAvailable>
+            <PageState kind="absent" title={title}>
+              {children}
+            </PageState>
           </Stack>
         }
       >

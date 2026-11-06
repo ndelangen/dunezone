@@ -225,13 +225,13 @@ export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
     await userEvent.clear(name);
     await userEvent.type(name, '!!!');
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
-    await expect(page.findByText('Could not save', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Deck could not be saved', {}, { timeout: 30_000 })).resolves.toBeVisible();
 
     await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.queryByText('Could not save')).toBeNull();
+    await expect(page.queryByText('Deck could not be saved')).toBeNull();
   },
 });
 

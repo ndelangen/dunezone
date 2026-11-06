@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The review plane's heading sits in a row with its close action and replaces the page while open. */
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
 import { Notice } from '@ui/block/Notice';

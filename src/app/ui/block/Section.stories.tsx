@@ -36,7 +36,7 @@ export const Default = meta.story({});
 export const Full = meta.story({
   args: {
     eyebrow: 'From the catalogue',
-    description: 'Every faction published against this ruleset.',
+    help: 'Every faction published against this ruleset.',
     action: (
       <Anchor href="#" fw={700}>
         See every faction <ArrowRight size={15} aria-hidden />
@@ -72,7 +72,7 @@ export const LongTitleWraps = meta.story({
 export const ExpertControls = meta.story({
   args: {
     title: 'Spice reserve',
-    description: 'Only you see this balance. Withdraw spice onto the table.',
+    help: 'Only you see this balance. Withdraw spice onto the table.',
     hiddenHeading: true,
   },
   play: async ({ canvasElement }) => {
@@ -93,7 +93,7 @@ export const Centered = meta.story({
     alignment: 'center',
     eyebrow: 'Rulesets & Rulebooks',
     title: 'Your rules. Always within reach.',
-    description: 'Read online or download a PDF for your table.',
+    help: 'Read online or download a PDF for your table.',
     icon: undefined,
   },
 });

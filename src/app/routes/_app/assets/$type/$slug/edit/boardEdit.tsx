@@ -3,7 +3,7 @@ import { derive } from '@shared/boards/geometry';
 import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -22,8 +22,8 @@ import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 
 import { useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
-import { CardEditChecks } from './cardEditPage';
-import type { CardEditSessionProps } from './cardEditPage';
+import { AssetEditChecks } from './cardEditPage';
+import type { AssetEditSessionProps } from './cardEditPage';
 
 type Draft = Omit<BoardAssetData, 'name'> & { name: string };
 type State = { draft: Draft; baseline: Draft; editor: BoardEditorState };
@@ -57,8 +57,9 @@ function reduce(state: State, event: Event): State {
 export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('board', slug, { initialData: loaderData });
   return (
-    <CardEditChecks
+    <AssetEditChecks
       type="board"
+      noun="board"
       schemaName="board"
       schema={BoardAsset}
       data={query.data}
@@ -70,7 +71,7 @@ export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: 
     />
   );
 }
-function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<BoardAssetData>) {
+function BoardSession({ asset, initialDraft, access }: AssetEditSessionProps<BoardAssetData>) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const saving = useUpdateAsset();
@@ -181,8 +182,16 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && <FormError title="Could not save">{saving.error.message}</FormError>}
-          {deletion.error && <FormError title="Could not delete">{deletion.error.message}</FormError>}
+          {saving.error && (
+            <ActionError subject="Board" verb="save">
+              {saving.error.message}
+            </ActionError>
+          )}
+          {deletion.error && (
+            <ActionError subject="Board" verb="delete">
+              {deletion.error.message}
+            </ActionError>
+          )}
           {group.error}
           <BoardEditor
             state={state.editor}

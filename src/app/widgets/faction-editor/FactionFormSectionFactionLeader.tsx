@@ -1,5 +1,6 @@
-import { Box, Grid, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Grid, Stack, TextInput } from '@mantine/core';
 import { LEADERS } from '@shared/assetIds';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -28,27 +29,24 @@ export function FactionFormSectionFactionLeader({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Faction leader name"
-                      description="Printed around the faction leader portrait on the Faction shield."
-                      input={
-                        <TextInput
-                          id="faction-leader-name"
-                          aria-label="Faction leader name"
-                          value={field.state.value}
-                          aria-describedby={blank ? 'faction-leader-name-warning' : undefined}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => field.handleChange(event.currentTarget.value)}
-                        />
-                      }
-                    />
-                    {blank ? (
-                      <Text id="faction-leader-name-warning" c="var(--color-caution)" size="xs" role="status">
-                        The faction leader name is empty. This is advisory and does not prevent saving.
-                      </Text>
-                    ) : null}
-                  </Stack>
+                  <ControlBlock
+                    title="Faction leader name"
+                    description="Printed around the faction leader portrait on the Faction shield."
+                    inputId="faction-leader-name"
+                    warning={
+                      blank
+                        ? 'The faction leader name is empty. This is advisory and does not prevent saving.'
+                        : undefined
+                    }
+                    input={(control) => (
+                      <TextInput
+                        {...control}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.currentTarget.value)}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>
@@ -90,9 +88,7 @@ export function FactionFormSectionFactionLeader({
             >
               {({ background, factionLeader, emblem }) => (
                 <Stack align="center" gap="sm">
-                  <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-                    Used on: Faction shield
-                  </Text>
+                  <Eyebrow align="center">Used on: Faction shield</Eyebrow>
                   <Box w={148} aria-label="Faction leader token preview">
                     <LeaderToken
                       background={background}

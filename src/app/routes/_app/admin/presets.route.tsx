@@ -165,7 +165,7 @@ function InitializePresets() {
         >
           Import DB designs and recapture
         </LabeledAction>
-        <SaveErrorAlert error={initialize.error} />
+        <SaveErrorAlert subject="design library" error={initialize.error} />
       </Stack>
     </PageMessage>
   );
@@ -501,7 +501,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
             value={state.search}
             onChange={(event) => dispatch({ kind: 'search', value: event.currentTarget.value })}
           />
-          <SaveErrorAlert error={saveFamily.error ?? saveDiscovery.error} />
+          <SaveErrorAlert subject="preset" error={saveFamily.error ?? saveDiscovery.error} />
           {saveFamily.data !== undefined || saveDiscovery.data !== undefined ? (
             <Text role="status">Preset saved. Linked artwork updates as captures finish.</Text>
           ) : null}

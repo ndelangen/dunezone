@@ -1,4 +1,4 @@
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useState } from 'react';
@@ -50,9 +50,9 @@ export default function FactionChapter({
         <PageTitle eyebrow="Practice copy" title={title} />
       </PageLayout.Header>
       <PageLayout.Content>
-        <LoadPending title="Opening a practice copy of Dune Zone">
+        <PageState kind="pending" title="Opening a practice copy of Dune Zone">
           It runs in your browser, so nothing you make here is saved to the site.
-        </LoadPending>
+        </PageState>
       </PageLayout.Content>
     </PageLayout>
   );

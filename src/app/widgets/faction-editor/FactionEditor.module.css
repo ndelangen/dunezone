@@ -229,6 +229,12 @@
   }
 }
 
+/* Printed faction sheet typography: its headings and labels are set in capitals, like the sheet itself. */
+.proofHeading,
+.sheetCaps {
+  text-transform: uppercase;
+}
+
 /*
  * Below 38rem, the 23rem form beside the 15rem column, the column is narrower than 15rem, down to
  * the 7rem thumbnail, so the rules excerpts and the phase card take a smaller inset and smaller

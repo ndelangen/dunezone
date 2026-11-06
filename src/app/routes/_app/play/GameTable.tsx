@@ -237,7 +237,7 @@ function StormControls({ hiddenHeading = false }: { hiddenHeading?: boolean }) {
       hiddenHeading={hiddenHeading}
       eyebrow="Debug"
       title="Storm sector"
-      description="Advance the highlighted sector counter-clockwise around Arrakis."
+      help="Advance the highlighted sector counter-clockwise around Arrakis."
     >
       <Group gap="sm">
         <LabeledAction
@@ -491,7 +491,7 @@ function SpiceBankControls() {
   return (
     <Section
       title="Spice Bank"
-      description="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
+      help="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
     >
       <Group gap="xs" role="group" aria-label="Spawn spice">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
