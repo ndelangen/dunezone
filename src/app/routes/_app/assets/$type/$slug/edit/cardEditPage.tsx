@@ -42,6 +42,14 @@ type CardType =
   | 'board'
   | 'token-leader';
 
+/** How the editor pages name an asset of this type in labels and messages. */
+export function assetNoun(type: CardType): 'board' | 'token' | 'card' {
+  if (type === 'board') {
+    return 'board';
+  }
+  return type === 'token-leader' ? 'token' : 'card';
+}
+
 type CardAsset = NonNullable<AssetPageData>['asset'];
 
 /** What the editor toolbar needs to know about the viewer: what they may do, and which Groups they could hand the card to. */
@@ -87,12 +95,7 @@ export function CardEditChecks<Draft>({
   data,
   session,
 }: Omit<CardEditGateProps<Draft>, 'slug' | 'loaderData' | 'embeddedTokenIds'> & { data: AssetPageData }) {
-  let noun = 'card';
-  if (type === 'board') {
-    noun = 'board';
-  } else if (type === 'token-leader') {
-    noun = 'token';
-  }
+  const noun = assetNoun(type);
   if (data === null) {
     return (
       <AssetEditorMessage type={type} title={`Edit ${noun}`}>
@@ -212,7 +215,7 @@ export function CardEditFrame<Draft extends { name: string }>({
 }) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
-  const noun = type === 'token-leader' ? 'token' : 'card';
+  const noun = assetNoun(type);
   const deletion = useAssetDeletion(asset);
   const groupActions = useAssetGroupActions({ asset, access });
   return (
@@ -222,7 +225,7 @@ export function CardEditFrame<Draft extends { name: string }>({
         <AuthoringToolbar
           scopeKey={authoringAccountKey}
           load={assetLoad({
-            noun: type === 'board' ? 'board' : noun,
+            noun,
             type,
             schema: load.schema,
             presets: load.presets,

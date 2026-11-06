@@ -77,6 +77,7 @@ import { layeredCardTokenPicker } from '../layeredCardTokenPicker';
 import { SpiceBoardRead, spiceBoardSelect } from '../spiceCardBoard';
 import { memoryDraftSession, plainDraftSession } from './cardDrafts';
 import type { DraftState, MemoryState, RememberEvent } from './cardDrafts';
+import { cardEditorProps, memoryEditorProps } from './cardSession';
 import type { CardSessionConfig } from './cardSession';
 
 /* What each card type's edit and create pages are made of; `CardTypeEditPage` and `CardTypeCreatePage` do the rest. */
@@ -94,53 +95,39 @@ export const treacheryCardSession: CardSessionConfig<
 > = {
   type: 'card-treachery',
   noun: 'treachery card',
-  schema: TreacheryAsset,
+  input: TreacheryAsset,
   initialDraft: INITIAL_TREACHERY_DRAFT,
   firstChapter: 'head',
   ...treacheryDrafts,
   warnings: treacheryDraftWarnings,
-  renderEditor: ({ state, dispatch, frontStyle, nameField, patch, chapter, onChapterChange, onSettle }) => (
-    <TreacheryCardEditor
-      frontStyle={frontStyle}
-      nameField={nameField}
-      draft={state.data}
-      patch={patch}
-      memory={state.memory}
-      remember={(update) => dispatch({ kind: 'remember', update })}
-      chapter={chapter}
-      onChapterChange={onChapterChange}
-      onSettle={onSettle}
-    />
-  ),
+  renderEditor: (slot) => <TreacheryCardEditor {...cardEditorProps(slot)} {...memoryEditorProps(slot)} />,
 };
 
 /* A spice card has no background composer, so there is no session memory beside the draft. */
 export const spiceCardSession: CardSessionConfig<SpiceDraft, SpiceChapter, DraftState<SpiceDraft>> = {
   type: 'card-spice',
   noun: 'spice card',
-  schema: SpiceAsset,
+  input: SpiceAsset,
   initialDraft: INITIAL_SPICE_DRAFT,
   firstChapter: 'identity',
   ...plainDraftSession<SpiceDraft>(SpiceAsset),
   warnings: spiceDraftWarnings,
-  renderEditor: ({ state, nameField, patch, chapter, onChapterChange, onSettle }) => (
-    <SpiceBoardRead
-      draft={state.data}
-      render={(boardRead) => (
-        <SpiceCardEditor
-          nameField={nameField}
-          draft={state.data}
-          patch={patch}
-          chapter={chapter}
-          onChapterChange={onChapterChange}
-          onSettle={onSettle}
-          boardRead={boardRead}
-          boardSelect={spiceBoardSelect}
-          tokenPicker={layeredCardTokenPicker}
-        />
-      )}
-    />
-  ),
+  renderEditor: (slot) => {
+    const { frontStyle: _noFront, ...editor } = cardEditorProps(slot);
+    return (
+      <SpiceBoardRead
+        draft={editor.draft}
+        render={(boardRead) => (
+          <SpiceCardEditor
+            {...editor}
+            boardRead={boardRead}
+            boardSelect={spiceBoardSelect}
+            tokenPicker={layeredCardTokenPicker}
+          />
+        )}
+      />
+    );
+  },
 };
 
 /** A leader skill session also knows whether the abilities currently overflow the card, which the editor measures. */
@@ -160,8 +147,8 @@ export const leaderSkillCardSession: CardSessionConfig<
 > = {
   type: 'card-leaderability',
   noun: 'leader skill card',
-  schema: LeaderSkillAssetInput,
-  storedSchema: LeaderSkillAsset,
+  input: LeaderSkillAssetInput,
+  stored: LeaderSkillAsset,
   initialDraft: INITIAL_LEADER_SKILL_DRAFT,
   firstChapter: 'head',
   open: (data, baseline) => ({ ...leaderSkillDrafts.open(data, baseline), overflow: false }),
@@ -179,18 +166,11 @@ export const leaderSkillCardSession: CardSessionConfig<
       : status;
   },
   warnings: leaderSkillDraftWarnings,
-  renderEditor: ({ state, dispatch, frontStyle, nameField, patch, chapter, onChapterChange, onSettle }) => (
+  renderEditor: (slot) => (
     <LeaderSkillCardEditor
-      frontStyle={frontStyle}
-      nameField={nameField}
-      draft={state.data}
-      patch={patch}
-      memory={state.memory}
-      remember={(update) => dispatch({ kind: 'remember', update })}
-      chapter={chapter}
-      onChapterChange={onChapterChange}
-      onSettle={onSettle}
-      onOverflow={(overflow) => dispatch({ kind: 'overflow', overflow })}
+      {...cardEditorProps(slot)}
+      {...memoryEditorProps(slot)}
+      onOverflow={(overflow) => slot.dispatch({ kind: 'overflow', overflow })}
     />
   ),
 };
@@ -198,22 +178,12 @@ export const leaderSkillCardSession: CardSessionConfig<
 export const homeworldCardSession: CardSessionConfig<HomeworldDraft, HomeworldChapter, DraftState<HomeworldDraft>> = {
   type: 'card-homeworld',
   noun: 'homeworld card',
-  schema: HomeworldCardAssetInput,
+  input: HomeworldCardAssetInput,
   initialDraft: EMPTY_HOMEWORLD_CARD,
   firstChapter: 'head',
   ...plainDraftSession<HomeworldDraft>(HomeworldCardAssetInput),
   warnings: homeworldDraftWarnings,
-  renderEditor: ({ state, frontStyle, nameField, patch, chapter, onChapterChange, onSettle }) => (
-    <HomeworldCardEditor
-      frontStyle={frontStyle}
-      nameField={nameField}
-      draft={state.data}
-      patch={patch}
-      chapter={chapter}
-      onChapterChange={onChapterChange}
-      onSettle={onSettle}
-    />
-  ),
+  renderEditor: (slot) => <HomeworldCardEditor {...cardEditorProps(slot)} />,
 };
 
 const nexusDrafts = memoryDraftSession<NexusDraft, NexusMemory>(NexusCardAssetInput, () => INITIAL_NEXUS_MEMORY);
@@ -226,7 +196,7 @@ export const nexusCardSession: CardSessionConfig<
 > = {
   type: 'card-nexus',
   noun: 'nexus card',
-  schema: NexusCardAssetInput,
+  input: NexusCardAssetInput,
   initialDraft: INITIAL_NEXUS_DRAFT,
   firstChapter: 'head',
   ...nexusDrafts,
@@ -238,19 +208,7 @@ export const nexusCardSession: CardSessionConfig<
       : status;
   },
   warnings: nexusDraftWarnings,
-  renderEditor: ({ state, dispatch, ...editor }) => (
-    <NexusCardEditor
-      frontStyle={editor.frontStyle}
-      nameField={editor.nameField}
-      patch={editor.patch}
-      chapter={editor.chapter}
-      onChapterChange={editor.onChapterChange}
-      onSettle={editor.onSettle}
-      draft={state.data}
-      memory={state.memory}
-      remember={(update) => dispatch({ kind: 'remember', update })}
-    />
-  ),
+  renderEditor: (slot) => <NexusCardEditor {...cardEditorProps(slot)} {...memoryEditorProps(slot)} />,
 };
 
 export const strongholdCardSession: CardSessionConfig<
@@ -260,22 +218,12 @@ export const strongholdCardSession: CardSessionConfig<
 > = {
   type: 'card-stronghold',
   noun: 'stronghold card',
-  schema: StrongholdCardAssetInput,
+  input: StrongholdCardAssetInput,
   initialDraft: INITIAL_STRONGHOLD_DRAFT,
   firstChapter: 'head',
   ...plainDraftSession<StrongholdDraft>(StrongholdCardAssetInput),
   warnings: strongholdDraftWarnings,
-  renderEditor: ({ state, frontStyle, nameField, patch, chapter, onChapterChange, onSettle }) => (
-    <StrongholdCardEditor
-      frontStyle={frontStyle}
-      nameField={nameField}
-      draft={state.data}
-      patch={patch}
-      chapter={chapter}
-      onChapterChange={onChapterChange}
-      onSettle={onSettle}
-    />
-  ),
+  renderEditor: (slot) => <StrongholdCardEditor {...cardEditorProps(slot)} />,
 };
 
 export const leaderTokenSession: CardSessionConfig<
@@ -286,7 +234,7 @@ export const leaderTokenSession: CardSessionConfig<
 > = {
   type: 'token-leader',
   noun: 'leader token',
-  schema: LeaderTokenAssetInput,
+  input: LeaderTokenAssetInput,
   initialDraft: EMPTY_LEADER_TOKEN,
   firstChapter: 'identity',
   loadPresets: [{ label: 'Duke Prad Vidal', name: DUKE_PRAD_VIDAL_TOKEN.name, data: DUKE_PRAD_VIDAL_TOKEN }],
@@ -296,18 +244,11 @@ export const leaderTokenSession: CardSessionConfig<
     refusedStrength: null,
   })),
   warnings: leaderTokenDraftWarnings,
-  renderEditor: ({ state, dispatch, nameField, patch, chapter, onChapterChange, onSettle }) => (
-    <LeaderTokenEditor
-      nameField={nameField}
-      draft={state.data}
-      patch={patch}
-      memory={state.memory}
-      remember={(update) => dispatch({ kind: 'remember', update })}
-      chapter={chapter}
-      onChapterChange={onChapterChange}
-      onSettle={onSettle}
-    />
-  ),
+  /* A leader token has no card front, so its editor takes everything but the front style. */
+  renderEditor: (slot) => {
+    const { frontStyle: _noFront, ...editor } = cardEditorProps(slot);
+    return <LeaderTokenEditor {...editor} {...memoryEditorProps(slot)} />;
+  },
 };
 
 type LayeredCardDraft = Pick<z.infer<typeof CustomCardAsset>, 'name' | 'about' | 'layers'>;
@@ -316,8 +257,8 @@ type LayeredCardDraft = Pick<z.infer<typeof CustomCardAsset>, 'name' | 'about' |
 function layeredCardSession<Draft extends LayeredCardDraft>(layered: {
   type: 'card-custom' | 'card-storm';
   noun: string;
-  schema: z.ZodType<Draft> & StoredShape;
-  storedSchema: z.ZodType<Draft>;
+  input: z.ZodType<Draft> & StoredShape;
+  stored: z.ZodType<Draft>;
   initialDraft: Draft;
   warnings: (draft: Draft) => { source: string; missing: string; chapter: CustomCardChapter }[];
   Editor: ComponentType<
@@ -336,21 +277,14 @@ function layeredCardSession<Draft extends LayeredCardDraft>(layered: {
       [...new Set(draft.layers.flatMap((layer) => (layer.kind === 'token' ? [layer.asset_id] : [])))].sort(
         compareCodeUnits
       ),
-    ...memoryDraftSession<Draft, CustomCardMemory>(card.schema, () => INITIAL_CUSTOM_CARD_MEMORY),
-    renderEditor: ({ state, dispatch, tokens, tokensError, ...editor }) => (
+    ...memoryDraftSession<Draft, CustomCardMemory>(card.input, () => INITIAL_CUSTOM_CARD_MEMORY),
+    renderEditor: (slot) => (
       <Editor
-        frontStyle={editor.frontStyle}
-        tokens={tokens}
-        tokensError={tokensError ?? null}
+        {...cardEditorProps(slot)}
+        {...memoryEditorProps(slot)}
+        tokens={slot.tokens}
+        tokensError={slot.tokensError ?? null}
         tokenPicker={layeredCardTokenPicker}
-        nameField={editor.nameField}
-        draft={state.data}
-        patch={editor.patch}
-        memory={state.memory}
-        remember={(update) => dispatch({ kind: 'remember', update })}
-        chapter={editor.chapter}
-        onChapterChange={editor.onChapterChange}
-        onSettle={editor.onSettle}
       />
     ),
   };
@@ -359,8 +293,8 @@ function layeredCardSession<Draft extends LayeredCardDraft>(layered: {
 export const customCardSession = layeredCardSession({
   type: 'card-custom',
   noun: 'custom card',
-  schema: CustomCardAssetInput,
-  storedSchema: CustomCardAsset,
+  input: CustomCardAssetInput,
+  stored: CustomCardAsset,
   initialDraft: INITIAL_CUSTOM_CARD_DRAFT,
   warnings: customCardDraftWarnings,
   Editor: CustomCardEditor,
@@ -369,8 +303,8 @@ export const customCardSession = layeredCardSession({
 export const stormCardSession = layeredCardSession({
   type: 'card-storm',
   noun: 'storm card',
-  schema: StormCardAssetInput,
-  storedSchema: StormCardAsset,
+  input: StormCardAssetInput,
+  stored: StormCardAsset,
   initialDraft: INITIAL_STORM_CARD_DRAFT,
   warnings: () => [],
   Editor: StormCardEditor,

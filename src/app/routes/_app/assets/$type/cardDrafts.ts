@@ -87,3 +87,26 @@ export function memoryDraftSession<Draft extends { name: string }, Memory>(
     status: (state: MemoryState<Draft, Memory>) => draftStatus(schema, state),
   };
 }
+
+const OPEN = Symbol('open');
+
+/** The edit page's own event, tagged so it can never collide with an event a card type adds. */
+type OpenEvent<State> = { [OPEN]: State };
+
+export function openEvent<State>(state: State): OpenEvent<State> {
+  return { [OPEN]: state };
+}
+
+/** The edit page's reducer: empty until the stored card is first read, then the type's own; a second open changes nothing. */
+export function reduceOpened<State, Event>(reduce: (state: State, event: Event) => State) {
+  return (state: State | null, event: Event | OpenEvent<State>): State | null => {
+    if (isOpenEvent(event)) {
+      return state ?? event[OPEN];
+    }
+    return state ? reduce(state, event) : null;
+  };
+}
+
+function isOpenEvent<State>(event: unknown): event is OpenEvent<State> {
+  return typeof event === 'object' && event !== null && OPEN in event;
+}

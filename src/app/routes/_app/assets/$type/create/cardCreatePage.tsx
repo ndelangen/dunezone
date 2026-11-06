@@ -17,6 +17,7 @@ import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
+import { assetNoun } from '../$slug/edit/cardEditPage';
 import { AssetEditorMessage, SaveErrorAlert } from '../../assetEditorStates';
 
 /* What the card create page is built from: the save and the page around the workbench; `CardTypeCreatePage` holds the session. */
@@ -99,7 +100,7 @@ export function CardCreateFrame<Draft extends { name: string }>({
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const viewer = useSessionViewer();
-  const noun = type === 'token-leader' ? 'token' : 'card';
+  const noun = assetNoun(type);
 
   switch (viewer.kind) {
     case 'pending':

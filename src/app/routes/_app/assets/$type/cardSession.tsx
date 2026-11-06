@@ -13,9 +13,10 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import type { ValidationHeaderWarning } from '@app/widgets/authoring/ValidationHeader';
 
 import { assetNameField } from '../assetEditorStates';
-import { CardEditChecks, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
+import { assetNoun, CardEditChecks, CardEditFrame, useCardSave } from './$slug/edit/cardEditPage';
 import type { CardEditSessionProps } from './$slug/edit/cardEditPage';
-import type { DraftEvent, DraftState, DraftStatus } from './cardDrafts';
+import { openEvent, reduceOpened } from './cardDrafts';
+import type { DraftEvent, DraftState, DraftStatus, MemoryState, RememberEvent } from './cardDrafts';
 import { CardCreateFrame, useCardCreate } from './create/cardCreatePage';
 
 /*
@@ -43,6 +44,31 @@ type CardEditorSlot<Draft, Chapter, State, Event> = {
   tokensError: string | null | undefined;
 };
 
+/** The props every card editor takes from its slot. */
+export function cardEditorProps<Draft, Chapter, State extends DraftState<Draft>, Event>(
+  slot: CardEditorSlot<Draft, Chapter, State, Event>
+) {
+  return {
+    frontStyle: slot.frontStyle,
+    nameField: slot.nameField,
+    draft: slot.state.data,
+    patch: slot.patch,
+    chapter: slot.chapter,
+    onChapterChange: slot.onChapterChange,
+    onSettle: slot.onSettle,
+  };
+}
+
+/** The props an editor with session memory takes from its slot. */
+export function memoryEditorProps<Draft, Memory, Chapter, Event>(
+  slot: CardEditorSlot<Draft, Chapter, MemoryState<Draft, Memory>, Event | RememberEvent<Memory>>
+) {
+  return {
+    memory: slot.state.memory,
+    remember: (update: Partial<Memory>) => slot.dispatch({ kind: 'remember', update }),
+  };
+}
+
 export interface CardSessionConfig<
   Draft extends { name: string },
   Chapter,
@@ -52,10 +78,10 @@ export interface CardSessionConfig<
   type: CardSessionType;
   /** How the pages name this type, e.g. "nexus card"; the create page is titled "New nexus card". */
   noun: string;
-  /** What a save posts, and what the create page loads. */
-  schema: z.ZodType<Draft> & StoredShape;
-  /** What a stored card must still match to open in the editor, when that is stricter or looser than `schema`. */
-  storedSchema?: z.ZodType<Draft>;
+  /** What a save posts, and what the create page's Load accepts; its keys decide which draft fields are posted. */
+  input: z.ZodType<Draft> & StoredShape;
+  /** What a stored card must still match to open in the editor, and what the edit page's Load accepts; defaults to `input`. */
+  stored?: z.ZodType<Draft>;
   /** A new card's draft, before the type's standard front is applied. */
   initialDraft: Draft;
   /** The chapter a session opens on, and returns to after a load. */
@@ -87,19 +113,6 @@ function useCardSession<Draft extends { name: string }, Chapter, State extends D
   return { chapter, setChapter, patch, header };
 }
 
-type OpenEvent<State> = { kind: 'open'; state: State };
-
-/** The edit page's reducer: empty until the stored card is first read, then the type's own. */
-function reduceOpened<State, Event>(reduce: (state: State, event: Event) => State) {
-  return (state: State | null, event: Event | OpenEvent<State>): State | null => {
-    const opening = event as Partial<OpenEvent<State>>;
-    if (opening.kind === 'open' && opening.state) {
-      return state ?? opening.state;
-    }
-    return state ? reduce(state, event as Event) : null;
-  };
-}
-
 /** A card type's edit page. Mounted by the generic `$type/$slug/edit` route. */
 export function CardTypeEditPage<
   Draft extends { name: string },
@@ -113,7 +126,10 @@ export function CardTypeEditPage<
     loaderData: AssetPublicPage;
   }>
 ) {
-  /* Keyed on the card rather than its address, so a rename keeps the session while moving to another card opens a fresh one. */
+  /*
+   * Keyed on the card rather than its address, so a rename keeps the session while moving to another card opens a fresh one.
+   * Without a loaded card there is no session to keep, so the address is key enough.
+   */
   return <CardEditSessionGate key={`${props.config.type}/${props.loaderData?.asset.id ?? props.slug}`} {...props} />;
 }
 
@@ -127,12 +143,13 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
   slug,
   loaderData,
 }: Readonly<{ config: CardSessionConfig<Draft, Chapter, State, Extra>; slug: string; loaderData: AssetPublicPage }>) {
-  const storedSchema = config.storedSchema ?? config.schema;
+  const stored = config.stored ?? config.input;
   const opening = (data: unknown) => {
-    const parsed = storedSchema.safeParse(data);
+    const parsed = stored.safeParse(data);
     return parsed.success ? config.open(parsed.data, parsed.data) : null;
   };
-  const [state, dispatch] = useReducer(reduceOpened(config.reduce), undefined, () => opening(loaderData?.asset.data));
+  const [reduce] = useState(() => reduceOpened(config.reduce));
+  const [state, dispatch] = useReducer(reduce, undefined, () => opening(loaderData?.asset.data));
   const query = useAssetPage(config.type, slug, {
     initialData: loaderData,
     embeddedTokenIds: state && config.tokenIds ? config.tokenIds(state.data) : undefined,
@@ -141,17 +158,17 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
   if (!state && data) {
     const opened = opening(data.asset.data);
     if (opened) {
-      dispatch({ kind: 'open', state: opened });
+      dispatch(openEvent(opened));
     }
   }
   return (
     <CardEditChecks
       type={config.type}
       schemaName={config.noun}
-      schema={storedSchema}
+      schema={stored}
       data={data}
       session={(props) =>
-        state ? <CardEditSession config={config} {...props} state={state} dispatch={dispatch} /> : null
+        state ? <CardEditSession config={config} stored={stored} {...props} state={state} dispatch={dispatch} /> : null
       }
     />
   );
@@ -159,6 +176,7 @@ function CardEditSessionGate<Draft extends { name: string }, Chapter, State exte
 
 function CardEditSession<Draft extends { name: string }, Chapter, State extends DraftState<Draft>, Extra>({
   config,
+  stored,
   frontPresets,
   asset,
   access,
@@ -169,6 +187,7 @@ function CardEditSession<Draft extends { name: string }, Chapter, State extends 
 }: Readonly<
   CardEditSessionProps<Draft> & {
     config: CardSessionConfig<Draft, Chapter, State, Extra>;
+    stored: z.ZodType<Draft>;
     state: State;
     dispatch: (event: DraftEvent<Draft> | Extra) => void;
   }
@@ -196,7 +215,8 @@ function CardEditSession<Draft extends { name: string }, Chapter, State extends 
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       load={{
-        schema: config.storedSchema ?? config.schema,
+        /* Loading on the edit page reads like opening: a card must match what this page can open. */
+        schema: stored,
         presets: config.loadPresets,
         header,
         dispatch,
@@ -210,7 +230,7 @@ function CardEditSession<Draft extends { name: string }, Chapter, State extends 
           name: state.data.name,
           onName: (name) => patch({ name } as Partial<Draft>),
           canRename: access.viewerAccess.capabilities.rename,
-          noun: config.type === 'token-leader' ? 'token' : 'card',
+          noun: assetNoun(config.type),
         }),
         state,
         dispatch,
@@ -233,12 +253,10 @@ export function CardTypeCreatePage<
   Extra = never,
 >({ config }: Readonly<{ config: CardSessionConfig<Draft, Chapter, State, Extra> }>) {
   const saving = useCardCreate(config.type);
-  const [state, dispatch] = useReducer(config.reduce, undefined, () =>
-    config.open(
-      newCardWithStandards(config.type, config.initialDraft),
-      newCardWithStandards(config.type, config.initialDraft)
-    )
-  );
+  const [state, dispatch] = useReducer(config.reduce, undefined, () => {
+    const opening = newCardWithStandards(config.type, config.initialDraft);
+    return config.open(opening, opening);
+  });
   const session = useCardSession(config, state, dispatch);
   const { patch, header } = session;
   /* The design standards, plus the faces of any tokens the draft places; they stay visible while a changed placement loads. */
@@ -262,7 +280,7 @@ export function CardTypeCreatePage<
       onSave={save}
       onReset={header.releasing(() => dispatch({ kind: 'replace', data: state.baseline }))}
       load={{
-        schema: config.schema,
+        schema: config.input,
         presets: config.loadPresets,
         onLoaded: header.releasing((data: Draft) => {
           dispatch({ kind: 'replace', data });

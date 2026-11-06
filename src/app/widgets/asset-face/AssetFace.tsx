@@ -169,13 +169,16 @@ export function AssetPile({
   faces,
   style,
   place,
+  decorative,
 }: Readonly<{
   faces: readonly AssetFaceMember[];
   style?: CSSProperties;
   place: (index: number, count: number) => CSSProperties;
+  /** Hides the pile from assistive technology when it only decorates the page. */
+  decorative?: boolean;
 }>) {
   return (
-    <div style={style}>
+    <div style={style} aria-hidden={decorative || undefined}>
       {faces.map((face, index) => (
         /* A deck pile repeats its top card, so the id alone is not unique. */
         <div key={`${face.id}:${index}`} style={place(index, faces.length)}>

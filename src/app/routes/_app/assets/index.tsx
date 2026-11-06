@@ -67,23 +67,22 @@ const PILE_GROUPS = PILE_ROWS.map(({ label, categories }) => ({
 function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   return (
     <Stack gap={4} align="center">
-      <div aria-hidden>
-        <AssetPile
-          faces={cards.slice(0, 5)}
-          style={{ position: 'relative', height: 230, width: 540 }}
-          place={(i, count) => {
-            const off = i - (count - 1) / 2;
-            return {
-              position: 'absolute',
-              width: MASTHEAD_CARD,
-              left: `calc(50% - 70px + ${off * 90 + (JITTER_LEFT[i] ?? 0)}px)`,
-              top: 28 + Math.abs(off) * 16 + (JITTER_TOP[i] ?? 0),
-              transform: `rotate(${off * 8 + (JITTER_ROT[i] ?? 0)}deg)`,
-              transformOrigin: '50% 130%',
-            };
-          }}
-        />
-      </div>
+      <AssetPile
+        decorative
+        faces={cards.slice(0, 5)}
+        style={{ position: 'relative', height: 230, width: 540 }}
+        place={(i, count) => {
+          const off = i - (count - 1) / 2;
+          return {
+            position: 'absolute',
+            width: MASTHEAD_CARD,
+            left: `calc(50% - 70px + ${off * 90 + (JITTER_LEFT[i] ?? 0)}px)`,
+            top: 28 + Math.abs(off) * 16 + (JITTER_TOP[i] ?? 0),
+            transform: `rotate(${off * 8 + (JITTER_ROT[i] ?? 0)}deg)`,
+            transformOrigin: '50% 130%',
+          };
+        }}
+      />
     </Stack>
   );
 }
