@@ -14,6 +14,7 @@ import { executeItemList } from './executor';
 import { imagesJpegEncoder } from './image-encode';
 import { handleMediaVariantRequest } from './media';
 import { handleLegacyMediaRequest, mediaFetcher } from './media-legacy';
+import { handleMediaPackRequest } from './media-pack';
 import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
@@ -155,6 +156,10 @@ const publisherWorker = {
     const mediaRelease = await handleMediaReleaseRequest(request, env);
     if (mediaRelease) {
       return mediaRelease;
+    }
+    const mediaPack = await handleMediaPackRequest(request, env, { ctx });
+    if (mediaPack) {
+      return mediaPack;
     }
     const mediaSource = await handleMediaSourceRequest(request, env);
     if (mediaSource) {

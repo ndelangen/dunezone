@@ -183,7 +183,9 @@ const [sources, variants, ledger, pulls] = await Promise.all([
   listBucket({ bucket: RELEASE_BUCKET }),
   openPullRequests(),
 ]);
-const recordKeys = ledger.map((object) => object.key).filter((key) => key.endsWith('.json'));
+const recordKeys = ledger
+  .map((object) => object.key)
+  .filter((key) => key.startsWith('releases/') && key.endsWith('.json'));
 const [releases, pullLocks] = await Promise.all([
   Promise.all(recordKeys.map(readRelease)),
   Promise.all(pulls.map(pullRequestLock)),

@@ -713,7 +713,9 @@ git (#1888): `media/raster.lock.json` records each by SHA-256, and R2 holds the 
 `/__media/src/<sha256>`. Every encoded variant is content-addressed as
 `<src20>.<recipe10>.<ext>` in the variant store: `.cache/media/local` on CI, and one store per
 machine (`~/.cache/dunezone/media/v`, or `MEDIA_STORE_DIR`) everywhere else, so every worktree on a
-machine shares what any of them fetched (`scripts/lib/media-store.ts`).
+machine shares what any of them fetched (`scripts/lib/media-store.ts`). A store that is missing many
+variants fills from the deploy's variant packs first, which takes about 17 requests (see
+`workers/publisher/README.md`).
 
 CI restores that store from the Actions cache (`media-variants-<encoder>-*`), keyed on the lock, the
 rules, the generator, `scripts/media-variants.ts` and the versions sharp reports; vectors and the
