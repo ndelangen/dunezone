@@ -54,7 +54,7 @@ export const ProfileLink = ({
   density,
   presentation,
 }: ProfileLinkProps) => {
-  const link = (
+  return (
     <EntityLink
       name={name ?? ''}
       /* Decorative: the name is beside it, or `title` names the link, so announcing the picture too made a link read as "CE Central". */
@@ -67,8 +67,11 @@ export const ProfileLink = ({
       presentation={presentation}
       className={className}
       style={style}
-      renderRoot={(props) => <Link to="/profiles/$profileSlug" params={{ profileSlug: slug }} {...props} />}
+      renderRoot={(props) => {
+        const link = <Link to="/profiles/$profileSlug" params={{ profileSlug: slug }} {...props} />;
+        /* The tooltip wraps the link itself, which is what takes its hover handlers and ref. */
+        return title ? <Tooltip label={title}>{link}</Tooltip> : link;
+      }}
     />
   );
-  return title ? <Tooltip label={title}>{link}</Tooltip> : link;
 };
