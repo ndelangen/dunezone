@@ -84,8 +84,7 @@ import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -2146,7 +2145,7 @@ function RulebookWorkspace({
           {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
         </RulebookMarkupUiProvider>
         <Group justify="flex-end">
-          <ConfirmDeleteAction
+          <HoldAction
             key={active.blockId}
             label="Delete Block"
             size="sm"
@@ -2277,7 +2276,7 @@ function RulebookWorkspace({
                     );
                   })}
                   <NestedTabs.Tools>
-                    <ConfirmDeleteAction
+                    <HoldAction
                       key={page.id}
                       label="Delete Page"
                       size="sm"
@@ -3411,7 +3410,7 @@ function RulebookEditorSession({
                     </Toolbar.Cluster>
                     <Toolbar.Cluster kind="commit">
                       {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-                      <ConfirmPublishAction
+                      <HoldAction verb="publish"
                         label={`Publish Edition ${nextEditionNumber}`}
                         pending={publishMutation.isPending}
                         disabledReason={publishBlocker}

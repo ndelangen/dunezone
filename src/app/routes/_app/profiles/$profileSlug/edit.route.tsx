@@ -6,7 +6,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -714,7 +714,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
                   {status}
                 </StatusBadge>
                 {method.connected ? (
-                  <ConfirmDeleteAction
+                  <HoldAction
                     label={`Disconnect ${name}`}
                     verb="remove"
                     size="lg"
@@ -748,7 +748,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         input={
           <Group justify="space-between">
             <Text size="sm">Ends every session, including this one.</Text>
-            <ConfirmDeleteAction
+            <HoldAction
               label="Sign out on all devices"
               verb="sign out"
               size="lg"

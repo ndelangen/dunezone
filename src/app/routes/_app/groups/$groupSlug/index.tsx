@@ -11,7 +11,7 @@ import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
@@ -222,7 +222,7 @@ function GroupDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {capabilities?.delete ? (
-                <ConfirmDeleteAction
+                <HoldAction
                   label="Delete group"
                   pending={deleteGroup.isPending}
                   onConfirm={handleDeleteGroup}
@@ -464,7 +464,7 @@ function MemberRow({
           />
         )}
         {entry.capabilities.remove && onRemove && (
-          <ConfirmDeleteAction
+          <HoldAction
             label="Remove member"
             verb="remove"
             size="md"

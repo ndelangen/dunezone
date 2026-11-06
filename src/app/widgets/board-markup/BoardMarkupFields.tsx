@@ -9,7 +9,7 @@ import type { TintStamp } from '@shared/boards/tints';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { helpLines } from '@ui/content/helpLines';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
@@ -113,7 +113,7 @@ function MarkupTintRow({
       }
       onColor={(color) => onChange((current) => ({ ...current, color }))}
       after={
-        <ConfirmDeleteAction
+        <HoldAction
           label={`Remove ${tint.name}`}
           verb="remove"
           size="sm"
@@ -332,7 +332,7 @@ function TokenRow({
             </Text>
           </Group>
         </UnstyledButton>
-        <ConfirmDeleteAction
+        <HoldAction
           label={`Remove ${name}`}
           verb="remove"
           size="sm"

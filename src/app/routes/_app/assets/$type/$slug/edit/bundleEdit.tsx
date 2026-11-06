@@ -4,7 +4,7 @@ import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -184,7 +184,7 @@ function BundleEditSession({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />

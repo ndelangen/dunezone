@@ -79,7 +79,7 @@ components; a wrapper that only renames or lightly forwards a Mantine component 
 - **One Convex page query per route**, plus `useCurrentProfile` when the UI is auth-aware. Derive
   inside that query and pass data down; a widget never adds a subscription.
 - **Actions and icons.** One primary per toolbar; every icon-only action carries a label; a delete
-  goes through `ConfirmDeleteAction` or `ConfirmDeleteButton`; a recurring topic renders through
+  goes through `HoldAction`; a recurring topic renders through
   `TopicIcon`; a tab icon is single-colour and never a preview; a published image arrives through
   `PublishedImage`.
 - **Stylesheets have one owner.** Exactly one TSX file imports each `.module.css`, there is no

@@ -16,7 +16,7 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -559,7 +559,7 @@ function FaqPostActions({
         {onDelete ? (
           <>
             {onEdit || onUnmark ? <Menu.Divider /> : null}
-            <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
+            <HoldAction shape="menu-item" label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
           </>
         ) : null}
       </Menu.Dropdown>

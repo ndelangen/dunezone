@@ -28,7 +28,7 @@ import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -951,7 +951,7 @@ function RulesetRulebooks({
                     icon={<ArrowDown size={16} aria-hidden />}
                   />
                   {canDelete ? (
-                    <ConfirmDeleteAction
+                    <HoldAction
                       label={`Delete ${book.name}`}
                       size="sm"
                       pending={remove.isPending}

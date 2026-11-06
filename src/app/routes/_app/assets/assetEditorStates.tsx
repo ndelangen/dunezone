@@ -5,7 +5,7 @@ import { ActionError } from '@ui/block/ActionError';
 import type { FailedAction } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import type { StatusInfoItem } from '@ui/control/StatusInfo';
 import { UserRoundMinus, UsersRound } from 'lucide-react';
@@ -127,7 +127,7 @@ function DriftedAssetPage({
             </ActionError>
           ) : null}
           <Group>
-            <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
+            <HoldAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
           </Group>
         </>
       ) : null}

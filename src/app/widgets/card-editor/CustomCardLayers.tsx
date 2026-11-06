@@ -3,7 +3,7 @@ import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FO
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { ListChapter } from '@ui/block/ListChapter';
 import { helpLines } from '@ui/content/helpLines';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -425,7 +425,7 @@ export function CustomCardLayerPanel({
             onChapterChange(`layer:${duplicate.layerId}`);
           }}
         />
-        <ConfirmDeleteAction
+        <HoldAction
           label="Remove layer"
           verb="remove"
           size="md"

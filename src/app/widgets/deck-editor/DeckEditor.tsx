@@ -5,7 +5,7 @@ import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import type { CardBack as CardBackSchema, DeckAsset } from '@shared/assets/schema';
 import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
@@ -374,7 +374,7 @@ export function DeckEditor({
                               onCommit={(count) => onCountChange?.(member.card.id, count)}
                             />
                             {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                            <ConfirmDeleteAction
+                            <HoldAction
                               label={`Remove ${member.card.name}`}
                               verb="remove"
                               pending={countPending && removingId === member.card.id}

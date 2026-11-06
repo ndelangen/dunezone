@@ -27,8 +27,7 @@ import { errorMessage } from '@ui/content/errorMessage';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -779,7 +778,10 @@ function LoadedAssetDetail({
                 />
               ) : null}
               {page.canConvertToCustom ? (
-                <ConfirmConvertAction
+                <HoldAction
+                  verb="convert"
+                  label="Convert to custom card"
+                  hint="Hold to convert to a custom card. Keeps its decks and owner. This cannot be reversed."
                   pending={conversion.isPending}
                   disabled={pending}
                   onConfirm={() =>
@@ -797,7 +799,7 @@ function LoadedAssetDetail({
                 />
               ) : null}
               {capabilities.delete ? (
-                <ConfirmDeleteAction
+                <HoldAction
                   label={`Delete ${asset.name}`}
                   pending={deletion.pending}
                   onConfirm={deletion.confirm}

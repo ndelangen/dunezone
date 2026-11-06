@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { appContentTheme } from '@ui/theme';
 import { afterEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { ConfirmDeleteAction } from './ConfirmDeleteAction';
+import { HoldAction } from './HoldAction';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -23,12 +23,12 @@ afterEach(cleanup);
 function renderAction(onConfirm: () => void, pending = false) {
   return render(
     <MantineProvider theme={appContentTheme} forceColorScheme="light">
-      <ConfirmDeleteAction label="Delete card" pending={pending} onConfirm={onConfirm} />
+      <HoldAction label="Delete card" pending={pending} onConfirm={onConfirm} />
     </MantineProvider>
   );
 }
 
-describe('ConfirmDeleteAction', () => {
+describe('HoldAction', () => {
   test('a five second hold fires the deletion exactly once', () => {
     vi.useFakeTimers();
     const onConfirm = vi.fn();
