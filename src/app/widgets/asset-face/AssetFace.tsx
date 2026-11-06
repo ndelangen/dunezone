@@ -18,7 +18,7 @@ import { tokenOutline, tokenShapeAspect, tokenShapeOfType } from '@shared/assets
 import type { TokenShape } from '@shared/assets/tokenOutline';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { z } from 'zod';
 
 import type { AssetListEntry } from '@app/db/assets';
@@ -158,6 +158,35 @@ export function assetFaceAspect(type: string, memberCount = 0): number {
 }
 
 /**
+ * Faces drawn on top of one another: a fan, a stack, or members leaning out of a box.
+ *
+ * Every pile on the site draws through this, so a pile is one idea with many geometries rather than five hand-built components.
+ * The pile owns the markup: a box, one wrapper per face, and the face.
+ * The caller owns the geometry, because each pile's look is art direction and stays its own.
+ * `place` positions face `index` of `count`, and later faces draw on top of earlier ones.
+ */
+export function AssetPile({
+  faces,
+  style,
+  place,
+}: Readonly<{
+  faces: readonly AssetFaceMember[];
+  style?: CSSProperties;
+  place: (index: number, count: number) => CSSProperties;
+}>) {
+  return (
+    <div style={style}>
+      {faces.map((face, index) => (
+        /* A deck pile repeats its top card, so the id alone is not unique. */
+        <div key={`${face.id}:${index}`} style={place(index, faces.length)}>
+          <AssetFace type={face.type} data={face.data} name={face.name} href={face.previewHref} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * A container's first few members, rising from behind its front edge.
  *
  * They are the caller's to supply, since only a caller holding those rows has them, which is why `BundleContainer` draws none.
@@ -165,29 +194,24 @@ export function assetFaceAspect(type: string, memberCount = 0): number {
  */
 function PeekingMembers({ members }: { members: AssetFaceMember[] }) {
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}>
-      {members.slice(0, PEEKING_LIMIT).map((member, index) => {
+    <AssetPile
+      faces={members.slice(0, PEEKING_LIMIT)}
+      style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'start center' }}
+      place={(index) => {
         const placement = MEMBER_PEEK[index] ?? MEMBER_PEEK[1]!;
-        return (
-          <div
-            key={member.id}
-            style={{
-              gridArea: '1 / 1',
-              /*
-               * Every one of these was already a fraction of the container's width, so each is now that
-               * same fraction of `100cqw`, which `BundleBlock` declares. The rise reads as a share of the
-               * block rather than of the member because a `translate` percentage resolves against the
-               * element's own box, and a member's height varies with its type while the ratio does not.
-               */
-              width: `calc(100cqw * ${MEMBER_WIDTH_RATIO})`,
-              transform: `translate(calc(100cqw * ${placement.left}), calc(100cqw * ${-MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO})) rotate(${placement.rotation}deg)`,
-            }}
-          >
-            <AssetFace type={member.type} data={member.data} name={member.name} href={member.previewHref} />
-          </div>
-        );
-      })}
-    </div>
+        return {
+          gridArea: '1 / 1',
+          /*
+           * Every one of these was already a fraction of the container's width, so each is now that
+           * same fraction of `100cqw`, which `BundleBlock` declares. The rise reads as a share of the
+           * block rather than of the member because a `translate` percentage resolves against the
+           * element's own box, and a member's height varies with its type while the ratio does not.
+           */
+          width: `calc(100cqw * ${MEMBER_WIDTH_RATIO})`,
+          transform: `translate(calc(100cqw * ${placement.left}), calc(100cqw * ${-MEMBER_WIDTH_RATIO * MEMBER_RISE_RATIO})) rotate(${placement.rotation}deg)`,
+        };
+      }}
+    />
   );
 }
 
