@@ -42,12 +42,12 @@ describe('matchMentions', () => {
     expect(matchMentions(MENTIONS, 'a').map((entry) => entry.id)).toEqual(['seat-3', 'seat-1']);
   });
 
-  test('case and accents do not matter, and each faction shows once', () => {
-    expect(matchMentions(MENTIONS, 'FRÉ').map((entry) => entry.id)).toEqual(['seat-3']);
+  test('case and accents do not matter, and two seats sharing a faction name both show', () => {
+    expect(matchMentions(MENTIONS, 'FRÉ').map((entry) => entry.id)).toEqual(['seat-3', 'seat-4']);
   });
 
   test('an empty query suggests everyone; one that matches nobody suggests nothing', () => {
-    expect(matchMentions(MENTIONS, '')).toHaveLength(3);
+    expect(matchMentions(MENTIONS, '')).toHaveLength(4);
     expect(matchMentions(MENTIONS, 'zz')).toEqual([]);
   });
 });

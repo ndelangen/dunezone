@@ -99,9 +99,9 @@ export function WindowFrame({
   );
 }
 
-/* Whatever a click inside a window does for itself, so it keeps the focus the click gave it. */
+/* Whatever a click inside a window does for itself, so it keeps the focus the click gave it: a control, or a region the keys scroll, as a chat's history. */
 const OWN_FOCUS =
-  'button, a[href], input, textarea, select, label, [role="button"], [role="slider"], [role="option"], [contenteditable]';
+  'button, a[href], input, textarea, select, label, [role="button"], [role="slider"], [role="option"], [contenteditable], [tabindex]:not([tabindex="-1"])';
 
 /* The field a window hands its focus to, as a chat does its composer. */
 function focusField(frame: HTMLElement | null) {
@@ -130,7 +130,14 @@ function useFocusOnRaise(
   }, [frame, front, flash]);
   const pressed = () => {
     pointer.current = true;
-    window.addEventListener('pointerup', () => (pointer.current = false), { once: true, capture: true });
+    /* A press the browser takes over, as a touch scroll, ends in a cancel rather than a release. */
+    const release = () => {
+      pointer.current = false;
+      window.removeEventListener('pointerup', release, true);
+      window.removeEventListener('pointercancel', release, true);
+    };
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
   };
   useEffect(() => {
     const element = frame.current;

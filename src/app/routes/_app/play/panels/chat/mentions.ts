@@ -98,23 +98,14 @@ function fold(text: string) {
 
 /**
  * The suggestions for what follows an @: those whose faction or player name, or any word of either, starts with it.
- * A name starting with it comes first;
- * each faction shows once.
+ * A name starting with it comes first.
+ * Every seat shows, even two whose factions share a name: their players tell them apart.
  */
 export function matchMentions(mentions: readonly Mention[], query: string): Mention[] {
   const wanted = fold(query);
-  const seen = new Set<string>();
-  const unique = mentions.filter((mention) => {
-    const key = fold(mention.label);
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
   const names = (mention: Mention) => [mention.label, mention.detail ?? ''].map(fold);
-  const starts = unique.filter((mention) => names(mention).some((name) => name.startsWith(wanted)));
-  const words = unique.filter(
+  const starts = mentions.filter((mention) => names(mention).some((name) => name.startsWith(wanted)));
+  const words = mentions.filter(
     (mention) =>
       !starts.includes(mention) &&
       names(mention)
