@@ -1,5 +1,6 @@
 import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
+import { NameDisc } from '@ui/content/NameDisc';
 import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
@@ -77,13 +78,7 @@ export const ProfileLink = ({
         The mark is decorative in both branches. The name is already beside it, or `title` carries it,
         so announcing the picture or the initials too made a link read as "CE Central".
       */}
-      {image ? (
-        <img src={image} alt="" className={styles.avatar} />
-      ) : (
-        <span className={styles.avatarPlaceholder} aria-hidden>
-          {name?.slice(0, 2).toUpperCase()}
-        </span>
-      )}
+      <NameDisc name={name ?? ''} src={image} size="var(--profile-link-avatar-size)" />
       {afterAvatar}
     </Link>
   );

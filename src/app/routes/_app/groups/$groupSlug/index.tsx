@@ -7,6 +7,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -422,7 +423,7 @@ function MemberRow({
         ) : (
           /* No slug means no profile to link to, so the avatar has no anchor to live inside. */
           <>
-            <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
+            <NameDisc src={entry.user.avatar_url} name={entry.user.username ?? '?'} size={26} />
             <Text size="sm">{entry.user.username ?? entry.user.id}</Text>
           </>
         )}

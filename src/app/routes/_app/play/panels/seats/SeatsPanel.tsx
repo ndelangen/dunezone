@@ -1,7 +1,8 @@
-import { Avatar, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { IconAction } from '@ui/control/IconAction';
 import { Armchair } from 'lucide-react';
@@ -56,9 +57,7 @@ function Spectator({ spectator }: Readonly<{ spectator: SpectatorRow }>) {
   }
   return (
     <Group gap="xs" wrap="nowrap">
-      <Avatar src={spectator.avatar} size={AVATAR} radius="50%" alt="">
-        {spectator.name.slice(0, 1)}
-      </Avatar>
+      <NameDisc src={spectator.avatar} name={spectator.name} size={AVATAR} />
       <Text size="sm">{spectator.own ? `${spectator.name} (you)` : spectator.name}</Text>
     </Group>
   );

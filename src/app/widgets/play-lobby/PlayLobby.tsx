@@ -4,6 +4,7 @@ import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases'
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
+import { NameDisc } from '@ui/content/NameDisc';
 import { nameDiscColor } from '@ui/content/nameDisc';
 import { SeatedTable } from '@ui/content/SeatedTable';
 import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
@@ -220,13 +221,7 @@ function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
           <Avatar.Group spacing={10} aria-label={`Players at ${entry.name}`}>
             {entry.players.slice(0, 6).map((player) => (
               <Tooltip key={player.displayName} label={player.displayName} withArrow>
-                <Avatar
-                  src={player.avatarUrl}
-                  name={player.displayName}
-                  alt={player.displayName}
-                  size="sm"
-                  radius="xl"
-                />
+                <NameDisc src={player.avatarUrl} name={player.displayName} label={player.displayName} size={26} />
               </Tooltip>
             ))}
             {entry.players.length > 6 && (

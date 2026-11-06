@@ -1,6 +1,7 @@
-import { Avatar, Group, Tooltip } from '@mantine/core';
+import { Group, Tooltip } from '@mantine/core';
 import { factionTokenOf } from '@shared/play/factionToken';
 import { playUiColors } from '@shared/uiPalette';
+import { NameDisc } from '@ui/content/NameDisc';
 import type { AriaRole, CSSProperties, Ref } from 'react';
 
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
@@ -43,9 +44,6 @@ export function snapshotFactionToken(
   };
 }
 
-/* An initial reads at about two fifths of the token, but never smaller than this, so a small token's initial stays legible. */
-const MIN_INITIAL_SIZE = 9;
-
 /**
  * A faction's token, ringed in its colour, or its initial where it has no face.
  * Any further props, a tooltip's handlers and ref among them, reach the token itself.
@@ -53,8 +51,7 @@ const MIN_INITIAL_SIZE = 9;
 export function FactionTokenFace({
   token,
   size,
-  style,
-  ref,
+  'aria-label': label,
   ...rest
 }: Readonly<{
   token: FactionToken;
@@ -68,18 +65,14 @@ export function FactionTokenFace({
   'aria-hidden'?: boolean;
 }>) {
   return (
-    <Avatar
+    <NameDisc
       {...rest}
-      ref={ref}
+      label={label}
+      name={token.name}
       src={token.src}
       size={size}
-      radius="50%"
-      alt=""
-      styles={{ placeholder: { fontSize: Math.max(size / 2.5, MIN_INITIAL_SIZE) } }}
-      style={{ border: `1px solid ${token.color ?? playUiColors.annotationGold}`, ...style }}
-    >
-      {token.name.slice(0, 1)}
-    </Avatar>
+      ring={token.color ?? playUiColors.annotationGold}
+    />
   );
 }
 
