@@ -6,6 +6,8 @@ import { AiLadder } from './aiart/AiLadder';
 import { CreditSample } from './aiart/CreditSample';
 import { HiversRow } from './aiart/HiversRow';
 
+const ALOEWING = 'https://www.youtube.com/@aloewing';
+
 const THALER =
   'https://ipwatchdog.com/2025/03/24/d-c-circuit-upholds-human-authorship-requirement-thaler-v-perlmutter/';
 
@@ -106,9 +108,12 @@ function WhatSection() {
         edition announcement, matched to the other Atreides leaders. It&rsquo;s still based on GF9&rsquo;s picture.
       </Paragraph>
       <Paragraph>
-        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens by Roxsy-Variant, who
-        drew them. Together we brought those drawings into the GF9 look. The designs are Roxsy-Variant&rsquo;s, and so
-        is the copyright.
+        <strong>New subjects.</strong> The Hivers are a homebrew faction of insect-like aliens created by Roxsy-Variant
+        and drawn by their friend{' '}
+        <Anchor href={ALOEWING} target="_blank" rel="noreferrer">
+          AloeWing
+        </Anchor>
+        . Together we brought those drawings into the GF9 look, and we have permission to use them as open source.
       </Paragraph>
       <Paragraph>
         <strong>New marks.</strong> Emblems and decals for homebrew factions, designed here and traced into clean vector
@@ -230,8 +235,8 @@ function ArtistsSection() {
   return (
     <Section title="Artists, you're invited">
       <Paragraph>
-        The Hivers show how I&rsquo;d like this to work. Roxsy-Variant made them, together we made them fit the Dune
-        look, and Roxsy-Variant still holds the copyright.
+        The Hivers show how I&rsquo;d like this to work. Roxsy-Variant created them, AloeWing drew them, and together we
+        made them fit the Dune look. The art is still AloeWing&rsquo;s, and we have permission to use it as open source.
       </Paragraph>
       <Paragraph>
         If you draw, that&rsquo;s an open invitation. I&rsquo;ll add your artwork to Dune Zone with your name on it. If
@@ -241,7 +246,7 @@ function ArtistsSection() {
         One last thing. Whatever you think of AI, the person using it to build something is still a person. Let&rsquo;s
         be kind to each other about it, even when we don&rsquo;t agree.
       </Paragraph>
-      <WideFigure caption="The Hivers, designed and drawn by Roxsy-Variant, brought into the GF9 look.">
+      <WideFigure caption="The Hivers, created by Roxsy-Variant and drawn by AloeWing, brought into the GF9 look.">
         <HiversRow />
       </WideFigure>
     </Section>
