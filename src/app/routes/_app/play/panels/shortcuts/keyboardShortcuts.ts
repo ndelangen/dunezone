@@ -1,5 +1,6 @@
 import { PAN_LETTERS, TABLE_KEYS } from '../../../../../widgets/tabletop/TableKeyboard';
 import { SHORTCUTS } from '../../compass/shortcuts';
+import type { Command } from '../../compass/shortcuts';
 import { PIN_KEYS } from '../../compass/useOpenWindows';
 import { TABLE_LABEL_OPTIONS } from '../../tableLabels';
 
@@ -11,8 +12,10 @@ import { TABLE_LABEL_OPTIONS } from '../../tableLabels';
 /** What a key is for: the window colours and groups the keys by it. */
 export type ShortcutGroupId = 'windows' | 'view' | 'pieces' | 'bidding';
 
-/** What the window can tell holds right now, so those keys come first: a piece under the pointer or carried, and the Bidding phase. */
-export type Now = 'piece' | 'carrying' | 'bidding';
+/**
+ * What the window can tell holds right now, so those keys come first: a resting piece under the pointer or selected, a carried piece, and each bidding command the table offers this moment, read from the same checks the compass runs.
+ */
+export type Now = 'piece' | 'carrying' | Command;
 
 /**
  * When a key answers: anywhere over the table, while something the window can see holds, or in a moment it only names: the pointer over the Spice Bank, or placing spice taken from the reserve with the keyboard.
@@ -32,13 +35,16 @@ export type ShortcutEntry = Readonly<{
   short: string;
   /** What the key does, as short as the compass would say it. */
   action: string;
+  /** For a run of digits, what one digit does, said with its number: "Take 10 spice" for 0. */
+  actionFor?: (count: number) => string;
   /** More on what the key does, for the list and the tooltip. */
   detail?: string;
   /** The word whose letter the key is, so it can be shown lit: "Hand" for H. */
   word?: string;
   /** Why the key sits where it does, when no word carries its letter. */
   hook?: string;
-  when: Situation;
+  /** When the key does this; a key that does it in several moments lists each. */
+  when: Situation | readonly Situation[];
 }>;
 
 export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; short: string }>[] = [
@@ -49,11 +55,14 @@ export const GROUPS: readonly Readonly<{ id: ShortcutGroupId; title: string; sho
 ];
 
 /** The label of each situation. */
-export const SITUATION_LABEL: Readonly<Record<Situation, string>> = {
+const SITUATION_LABEL: Readonly<Record<Situation, string>> = {
   table: 'Anywhere over the table',
   piece: 'Pointer over a piece',
   carrying: 'Carrying a piece',
-  bidding: 'Bidding',
+  raise: 'Your turn to bid',
+  lower: 'After you raise',
+  pass: 'Bidding, while you are in',
+  faceUp: 'Sitting the bidding out',
   spice: 'Over the Spice Bank',
   placing: 'Placing spice from your reserve',
 };
@@ -209,7 +218,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(TABLE_KEYS.flip)],
     action: 'Flip it',
     word: 'Flip',
-    when: 'piece',
+    when: ['piece', 'carrying'],
   },
   {
     id: 'turn',
@@ -218,25 +227,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(TABLE_KEYS.turnLeft), cap(TABLE_KEYS.turnRight)],
     action: 'Turn it left or right',
     hook: 'Q and E sit left and right of W.',
-    when: 'piece',
-  },
-  {
-    id: 'stack',
-    short: 'Stack',
-    group: 'pieces',
-    keys: [cap(TABLE_KEYS.stack)],
-    action: 'Stack the pieces there',
-    word: 'Gather',
-    when: 'piece',
-  },
-  {
-    id: 'lock',
-    short: 'Lock',
-    group: 'pieces',
-    keys: [cap(TABLE_KEYS.lock)],
-    action: 'Lock or unlock it',
-    word: 'Lock',
-    when: 'piece',
+    when: ['piece', 'carrying'],
   },
   {
     id: 'take',
@@ -264,7 +255,8 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: ['1', '9'],
     press: 'range',
     action: 'Split that many into a pile',
-    detail: 'Hold the digit a second. 0 for ten.',
+    actionFor: (count) => `Split ${count} into a pile`,
+    detail: 'Hold the digit a second.',
     when: 'piece',
   },
   {
@@ -291,7 +283,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: ['1', '9'],
     press: 'range',
     action: 'Take that much spice',
-    detail: '0 for ten.',
+    actionFor: (count) => `Take ${count} spice`,
     when: 'spice',
   },
   {
@@ -310,7 +302,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(SHORTCUTS.raise)],
     action: 'Raise your bid by one',
     hook: 'I and O side by side: I goes up first.',
-    when: 'bidding',
+    when: 'raise',
   },
   {
     id: 'lower',
@@ -319,7 +311,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     keys: [cap(SHORTCUTS.lower)],
     action: 'Take back your last raise',
     hook: 'O, beside I, undoes it.',
-    when: 'bidding',
+    when: 'lower',
   },
   {
     id: 'pass',
@@ -329,7 +321,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     action: 'Pass',
     detail: 'Between your turns, sit the bidding out.',
     word: 'Pass',
-    when: 'bidding',
+    when: 'pass',
   },
   {
     id: 'rejoin',
@@ -339,7 +331,7 @@ export const SHORTCUT_ENTRIES: readonly ShortcutEntry[] = [
     action: 'Rejoin the bidding',
     word: 'Up',
     hook: 'Your token face up again.',
-    when: 'bidding',
+    when: 'faceUp',
   },
 ];
 
@@ -349,6 +341,16 @@ export function capsOf(entry: ShortcutEntry): readonly string[] {
     return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
   }
   return entry.keys;
+}
+
+/** How many a digit cap stands for: 0 is ten. */
+function countOf(key: string) {
+  return key === '0' ? 10 : Number(key);
+}
+
+/** What an entry does when this cap is pressed: a digit says its own number. */
+export function actionOf(entry: ShortcutEntry, key: string) {
+  return entry.actionFor && /^\d$/.test(key) ? entry.actionFor(countOf(key)) : entry.action;
 }
 
 /** The cap any key is drawn as, in the catalogue's spelling: Escape is Esc, an arrow its arrow, a letter upper case. */
@@ -384,9 +386,36 @@ export function entriesForCap(key: string): readonly ShortcutEntry[] {
   return BY_CAP.get(key) ?? [];
 }
 
+/* Every moment an entry answers in. */
+function situationsOf(entry: ShortcutEntry): readonly Situation[] {
+  return typeof entry.when === 'string' ? [entry.when] : entry.when;
+}
+
 /** Whether an entry belongs to a situation that holds right now, rather than to the table at large. */
 export function isNow(entry: ShortcutEntry, now: readonly Now[]) {
-  return (now as readonly Situation[]).includes(entry.when);
+  return situationsOf(entry).some((situation) => (now as readonly Situation[]).includes(situation));
+}
+
+/** When an entry answers, in words: "Pointer over a piece or Carrying a piece". */
+export function whenLabel(entry: ShortcutEntry) {
+  return situationsOf(entry)
+    .map((situation) => SITUATION_LABEL[situation])
+    .join(' or ');
+}
+
+/* The moments as the window's heading names them: the bidding commands read as the phase they belong to. */
+const MOMENT_LABEL: Readonly<Record<Now, string>> = {
+  piece: SITUATION_LABEL.piece,
+  carrying: SITUATION_LABEL.carrying,
+  raise: 'Bidding',
+  lower: 'Bidding',
+  pass: 'Bidding',
+  faceUp: SITUATION_LABEL.faceUp,
+};
+
+/** What holds right now in words, for the window's heading: "Carrying a piece, Bidding". */
+export function momentLabel(now: readonly Now[]) {
+  return [...new Set(now.map((each) => MOMENT_LABEL[each]))].join(', ') || 'At the table';
 }
 
 /**

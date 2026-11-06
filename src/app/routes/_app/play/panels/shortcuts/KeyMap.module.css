@@ -53,10 +53,6 @@
 }
 
 /* A key that does nothing now steps back. */
-.key[data-state="later"] {
-  opacity: 0.35;
-}
-
 .key[data-focus] {
   outline: 2px solid var(--group, var(--color-text));
   outline-offset: 1px;

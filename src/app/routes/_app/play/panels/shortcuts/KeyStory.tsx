@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 
-import { SITUATION_LABEL, isNow } from './keyboardShortcuts';
+import { isNow, whenLabel } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyStory.module.css';
 import { Keys, Word, tinted } from './ShortcutKeys';
@@ -36,10 +36,14 @@ export function KeyStory({
             </span>
           )}
         </span>
-        {entry.detail && <span className={styles.detail}>{entry.detail}</span>}
+        {(entry.detail || entry.press === 'range') && (
+          <span className={styles.detail}>
+            {[entry.detail, entry.press === 'range' && '0 for ten.'].filter(Boolean).join(' ')}
+          </span>
+        )}
         {entry.hook && <span className={styles.hook}>{entry.hook}</span>}
       </span>
-      <span className={styles.when}>{isNow(entry, now) ? 'Now' : SITUATION_LABEL[entry.when]}</span>
+      <span className={styles.when}>{isNow(entry, now) ? 'Now' : whenLabel(entry)}</span>
     </li>
   );
 }

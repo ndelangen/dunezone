@@ -55,6 +55,17 @@
   }
 }
 
+/* In a narrow pinned slot the situation goes beneath the action, so the action keeps the width. */
+@container shortcuts (max-width: 24rem) {
+  .story {
+    grid-template-columns: 4.6rem 1fr;
+  }
+
+  .when {
+    grid-column: 2;
+  }
+}
+
 html[data-motion="reduce"] .story {
   animation: none;
 }

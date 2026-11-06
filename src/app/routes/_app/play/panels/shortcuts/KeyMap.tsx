@@ -2,7 +2,7 @@ import { Tooltip } from '@mantine/core';
 import { Kbd } from '@ui/content/Kbd';
 import clsx from 'clsx';
 
-import { SITUATION_LABEL, entriesForCap, isNow, meaningNow } from './keyboardShortcuts';
+import { actionOf, entriesForCap, isNow, meaningNow, whenLabel } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyMap.module.css';
 import { PressFlash, tinted } from './ShortcutKeys';
@@ -49,8 +49,8 @@ function KeyTip({ keyName, now }: Readonly<{ keyName: string; now: readonly Now[
         .toSorted((a, b) => Number(isNow(b, now)) - Number(isNow(a, now)))
         .map((entry) => (
           <span key={entry.id} className={clsx(styles.tipLine, tinted)} data-group={entry.group}>
-            <b className={styles.tipAction}>{entry.action}</b>
-            <span className={styles.tipWhen}>{isNow(entry, now) ? 'Now' : SITUATION_LABEL[entry.when]}</span>
+            <b className={styles.tipAction}>{actionOf(entry, keyName)}</b>
+            <span className={styles.tipWhen}>{isNow(entry, now) ? 'Now' : whenLabel(entry)}</span>
             {(entry.hook ?? entry.detail) && <span className={styles.tipHook}>{entry.hook ?? entry.detail}</span>}
           </span>
         ))}
@@ -73,7 +73,14 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
   const shown = meaning ?? all[0]!;
   const state = !meaning ? 'later' : isNow(meaning, now) ? 'now' : 'any';
   return (
-    <Tooltip label={<KeyTip keyName={keyName} now={now} />} multiline maw={260} withArrow openDelay={120}>
+    <Tooltip
+      label={<KeyTip keyName={keyName} now={now} />}
+      multiline
+      maw={260}
+      withArrow
+      openDelay={120}
+      events={{ hover: true, focus: true, touch: false }}
+    >
       <button
         type="button"
         className={clsx(styles.key, tinted)}
@@ -81,7 +88,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
         data-group={shown.group}
         data-state={state}
         data-focus={focus === keyName || undefined}
-        aria-label={`${keyName}: ${all.map((entry) => entry.action).join(', ')}`}
+        aria-label={`${keyName}: ${all.map((entry) => actionOf(entry, keyName)).join(', ')}`}
         onMouseEnter={() => onFocus(keyName)}
         onFocus={() => onFocus(keyName)}
         onClick={() => onFocus(keyName)}
@@ -100,7 +107,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
 
 /**
  * The keyboard drawn as the table uses it: every key in its group's colour with its word for what it does right now.
- * Keys that only work now glow, keys that do nothing now fade, and each key's tooltip tells all it does and how to remember it.
+ * Keys that only work now glow, every other key keeps its group's colour, and each key's tooltip tells all it does and how to remember it.
  */
 export function KeyMap(props: KeyMapProps) {
   return (

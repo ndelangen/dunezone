@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
-import { GROUPS, SHORTCUT_ENTRIES, SITUATION_LABEL, capsOf, isNow } from './keyboardShortcuts';
+import { GROUPS, SHORTCUT_ENTRIES, capsOf, isNow, momentLabel } from './keyboardShortcuts';
 import type { Now, ShortcutEntry } from './keyboardShortcuts';
 import styles from './KeyboardShortcutsPanel.module.css';
 import { Caption, KeyMap } from './KeyMap';
@@ -74,9 +74,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
   return (
     <div className={styles.root}>
       <section aria-label="Right now">
-        <p className={styles.eyebrow}>
-          Right now · {now.length ? now.map((each) => SITUATION_LABEL[each]).join(', ') : 'At the table'}
-        </p>
+        <p className={styles.eyebrow}>Right now · {momentLabel(now)}</p>
         <div className={styles.rowFrame}>
           <ul className={styles.row} ref={row}>
             {current.map((entry, index) => (

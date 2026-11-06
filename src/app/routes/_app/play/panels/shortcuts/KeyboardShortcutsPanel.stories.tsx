@@ -35,7 +35,7 @@ export const OverAPiece = meta.story({
 });
 
 /** In the Bidding phase: raise, take back, pass and rejoin lead the row. */
-export const Bidding = meta.story({ args: { now: ['bidding'] } });
+export const Bidding = meta.story({ args: { now: ['raise', 'lower', 'pass'] } });
 
 /** Pressing a key while the window is open lights its cap and its rows. */
 export const PressingAKey = meta.story({

@@ -35,9 +35,7 @@ function table() {
     rotateSelected: vi.fn(),
     spawnSpice: vi.fn(),
     splitSelected: vi.fn(),
-    stackSelected: vi.fn(),
     takeAdditionalFromTarget: vi.fn(),
-    toggleLockSelected: vi.fn(),
   };
   unbinds.push(keyboard.bind({ events: window, read: () => controls }));
   return { keyboard, controls, unbind: unbinds.at(-1)! };
@@ -248,17 +246,6 @@ describe('held keys', () => {
     key('keyup', { key: 'e', code: 'KeyE' });
     expect(controls.finishRotation).toHaveBeenCalledTimes(1);
   });
-
-  test.each([
-    ['L', 'l', 'toggleLockSelected'],
-    ['G', 'g', 'stackSelected'],
-  ] as const)('a held %s acts once', (_name, press, control) => {
-    const { controls } = table();
-    key('keydown', { key: press });
-    key('keydown', { key: press, repeat: true });
-    key('keydown', { key: press, repeat: true });
-    expect(controls[control]).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe('focus elsewhere on the page', () => {
@@ -278,14 +265,12 @@ describe('focus elsewhere on the page', () => {
     const { controls } = table();
     const target = focusable(html);
 
-    for (const press of ['f', 'l', 'g', 'q', 'e', '2']) {
+    for (const press of ['f', 'q', 'e', '2']) {
       key('keydown', { key: press }, target);
     }
     vi.advanceTimersByTime(1000);
 
     expect(controls.flipSelected).not.toHaveBeenCalled();
-    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
-    expect(controls.stackSelected).not.toHaveBeenCalled();
     expect(controls.rotateSelected).not.toHaveBeenCalled();
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
@@ -385,7 +370,7 @@ describe('number-key stack draws', () => {
 });
 
 describe('a carried piece', () => {
-  test('F turns it over in hand once per press, and lock, stack and draw keys leave it alone', () => {
+  test('F turns it over in hand once per press, and the draw keys leave it alone', () => {
     const { controls } = table();
     const draftMove = draftForGesture(
       controls.state.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!,
@@ -395,14 +380,10 @@ describe('a carried piece', () => {
 
     key('keydown', { key: 'f', code: 'KeyF' });
     key('keydown', { key: 'f', code: 'KeyF', repeat: true });
-    key('keydown', { key: 'l', code: 'KeyL' });
-    key('keydown', { key: 'g', code: 'KeyG' });
     key('keydown', { key: '2', code: 'Digit2' });
     vi.advanceTimersByTime(1000);
 
     expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
-    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
-    expect(controls.stackSelected).not.toHaveBeenCalled();
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
 });

@@ -18,10 +18,8 @@ type Controls = Pick<
   | 'rotateSelected'
   | 'spawnSpice'
   | 'splitSelected'
-  | 'stackSelected'
   | 'state'
   | 'takeAdditionalFromTarget'
-  | 'toggleLockSelected'
 >;
 type Binding = {
   events: Pick<Window, 'addEventListener' | 'removeEventListener'>;
@@ -45,8 +43,6 @@ export const TABLE_KEYS = {
   flip: 'f',
   turnLeft: 'q',
   turnRight: 'e',
-  stack: 'g',
-  lock: 'l',
   take: 't',
   shuffle: 'r',
 } as const;
@@ -448,12 +444,6 @@ export class TableKeyboard {
         }
         return;
       }
-      case TABLE_KEYS.lock:
-        pressOnce(event, () => controls.toggleLockSelected(pieceId));
-        return;
-      case TABLE_KEYS.stack:
-        pressOnce(event, () => controls.stackSelected(pieceId));
-        return;
     }
     const digit = digitOf(event);
     if (digit !== null) {

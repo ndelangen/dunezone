@@ -49,8 +49,9 @@ export function usePressedKey(onPress?: (key: string) => void): Pressed {
       run(key);
       setPressed((last) => ({ key, count: (last?.count ?? 0) + 1 }));
     };
-    window.addEventListener('keydown', listener);
-    return () => window.removeEventListener('keydown', listener);
+    /* Capture, as the table stops some keys it answers, such as the arrows over it, before they bubble. */
+    window.addEventListener('keydown', listener, true);
+    return () => window.removeEventListener('keydown', listener, true);
   }, []);
   return pressed;
 }

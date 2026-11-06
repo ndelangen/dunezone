@@ -3,7 +3,7 @@ import { expect, test } from 'vite-plus/test';
 import { PAN_LETTERS, TABLE_KEYS } from '../../../../../widgets/tabletop/TableKeyboard';
 import { SHORTCUTS } from '../../compass/shortcuts';
 import { PIN_KEYS } from '../../compass/useOpenWindows';
-import { SHORTCUT_ENTRIES, capOfEvent, capsOf, entriesForCap, meaningNow } from './keyboardShortcuts';
+import { SHORTCUT_ENTRIES, actionOf, capOfEvent, capsOf, entriesForCap, meaningNow } from './keyboardShortcuts';
 
 const cap = (letter: string) => letter.toUpperCase();
 
@@ -26,8 +26,6 @@ test('each lettered key stands for what it does, and for nothing else', () => {
     [TABLE_KEYS.flip, 'Flip it'],
     [TABLE_KEYS.turnLeft, 'Turn it left or right'],
     [TABLE_KEYS.turnRight, 'Turn it left or right'],
-    [TABLE_KEYS.stack, 'Stack the pieces there'],
-    [TABLE_KEYS.lock, 'Lock or unlock it'],
     [TABLE_KEYS.take, 'Draw from the deck'],
     [TABLE_KEYS.shuffle, 'Shuffle the deck'],
     ...PAN_LETTERS.map((letter): [string, string] => [letter, 'Slide the view']),
@@ -50,7 +48,16 @@ test('a key shows what it does in the moment that holds, and what it does anywhe
   expect(meaningNow(flip, [])?.action).toBe('Ally chat');
   expect(meaningNow(flip, ['piece'])?.action).toBe('Flip it');
   expect(meaningNow(cap(SHORTCUTS.raise), [])).toBeNull();
-  expect(meaningNow(cap(SHORTCUTS.raise), ['bidding'])?.action).toBe('Raise your bid by one');
+  expect(meaningNow(cap(SHORTCUTS.raise), ['raise'])?.action).toBe('Raise your bid by one');
+  expect(meaningNow(flip, ['carrying'])?.action).toBe('Flip it');
+  expect(meaningNow(cap(SHORTCUTS.faceUp), ['pass'])?.action).toBe('Look straight down, and back');
+  expect(meaningNow(cap(SHORTCUTS.faceUp), ['faceUp'])?.action).toBe('Rejoin the bidding');
+});
+
+test('a digit says what it does with its own number', () => {
+  const spice = SHORTCUT_ENTRIES.find((entry) => entry.id === 'spice-take')!;
+  expect(actionOf(spice, '0')).toBe('Take 10 spice');
+  expect(actionOf(spice, '3')).toBe('Take 3 spice');
 });
 
 test('a pressed key is read in the spelling its cap shows', () => {

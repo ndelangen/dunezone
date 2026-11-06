@@ -280,7 +280,7 @@ function mergeAffordance(piece: TablePiece): Affordance {
     id: 'merge',
     commandType: 'stack.merge',
     label: piece.kind === 'card' ? 'Make deck' : 'Make stack',
-    description: 'Drop this object onto a compatible object, or press G while they overlap.',
+    description: 'Drop this object onto a compatible object.',
   };
 }
 
