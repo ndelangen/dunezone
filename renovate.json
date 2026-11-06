@@ -79,8 +79,8 @@
         "@convex-dev/aggregate",
         "@convex-dev/migrations",
         "@convex-dev/rate-limiter",
-        "ghcr.io/get-convex/convex-backend",
-        "ghcr.io/get-convex/convex-dashboard"
+        "ghcr.io/convex/convex-backend",
+        "ghcr.io/convex/convex-dashboard"
       ],
       "groupName": "Convex runtime",
       "groupSlug": "convex-runtime"

@@ -12,6 +12,21 @@ import { dragTo } from './sortable.stories.fixture';
 
 const meta = testingPreview.meta({ ...handAndSpiceMeta, title: 'Play/Spice' });
 
+/**
+ * Waits for the play camera and the hidden placement preview it measures.
+ * A keyboard pickup is ignored until the preview has a size, which arrives a render after the camera mounts (a CI run that pressed Enter in between saw no placement).
+ */
+async function waitForSpicePreview(document: Document) {
+  await waitForPlayCamera(document);
+  await waitForFrame(async () => {
+    const preview = document.querySelector('dialog[aria-label="Place spice on the table"]');
+    await expect(preview).not.toBeNull();
+    const bounds = preview!.getBoundingClientRect();
+    await expect(bounds.width).toBeGreaterThan(0);
+    await expect(bounds.height).toBeGreaterThan(0);
+  });
+}
+
 /** A withdrawal goes to the table as a command, the room's new balance shows, and an observer's table has no reserve. */
 export const SpiceReserveRoundTrip = meta.story({
   beforeEach: install(() =>
@@ -80,7 +95,7 @@ export const SpiceKeyboardPlacement = meta.story({
     };
     await waitForFrame(assertTableIsClear);
     await openTab(page, 'Spice');
-    await waitForPlayCamera(canvasElement.ownerDocument);
+    await waitForSpicePreview(canvasElement.ownerDocument);
     const token = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     token.focus();
     await userEvent.keyboard('{Enter}');
@@ -144,7 +159,7 @@ export const SpicePlacementLeavesFocusAlone = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice');
-    await waitForPlayCamera(canvasElement.ownerDocument);
+    await waitForSpicePreview(canvasElement.ownerDocument);
     const token = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     const amount = page.getByRole('textbox', { name: 'Spice to withdraw' });
     token.focus();
@@ -189,7 +204,7 @@ export const SpicePlacementClearsHandWindow = meta.story({
     await openTab(page, 'Spice');
     const frame = finishTransitions(page.getByRole('group', { name: 'Hand & spice' }));
     await expect(frame).toHaveAttribute('data-side', 'centre');
-    await waitForPlayCamera(document);
+    await waitForSpicePreview(document);
     const token = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     token.focus();
     await userEvent.keyboard('{Enter}');
@@ -249,15 +264,7 @@ export const SpicePlacementHelpKeepsPlacement = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Spice');
     finishTransitions(page.getByRole('group', { name: 'Hand & spice' }));
-    await waitForPlayCamera(canvasElement.ownerDocument);
-    /* Pickup needs the hidden preview dimensions, which arrive after the camera mounts. */
-    await waitForFrame(async () => {
-      const preview = canvasElement.ownerDocument.querySelector('dialog[aria-label="Place spice on the table"]');
-      await expect(preview).not.toBeNull();
-      const bounds = preview!.getBoundingClientRect();
-      await expect(bounds.width).toBeGreaterThan(0);
-      await expect(bounds.height).toBeGreaterThan(0);
-    });
+    await waitForSpicePreview(canvasElement.ownerDocument);
     const source = page.getByRole('button', { name: 'Drag 1 spice to the table' });
     source.focus();
     await expect(source).toHaveFocus();
