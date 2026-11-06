@@ -78,7 +78,8 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
     mention.completed(mention.query, next.caret);
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mention.keyDown(event, complete)) {
+    /* While a character is being composed, its keys (Escape drops the candidates) are the input method's. */
+    if (composing(event) || mention.keyDown(event, complete)) {
       return;
     }
     if (event.key === 'Escape') {
