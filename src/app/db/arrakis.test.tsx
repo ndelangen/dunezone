@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({ live: undefined as unknown, query: vi.fn() }))
 vi.mock('@app/db/core/live', () => ({ useLiveQuery: () => mocks.live }));
 vi.mock('@db/core', () => ({ db: { query: mocks.query } }));
 
-import { ArrakisBoardSeedProvider, loadArrakisBoard, useArrakisBoard } from './arrakis';
+import { ARRAKIS_SSR_WAIT_MS, ArrakisBoardSeedProvider, loadArrakisBoard, useArrakisBoard } from './arrakis';
 import type { ArrakisBoardSeed } from './arrakis';
 
 const answer = {
@@ -46,6 +46,19 @@ describe('the loader that embeds the saved Arrakis board', () => {
     vi.stubEnv('SSR', true);
     mocks.query.mockRejectedValue(new Error('offline'));
     await expect(loadArrakisBoard()).resolves.toBeUndefined();
+  });
+
+  test('stops waiting after a short while, so a slow server does not hold up the page', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.stubEnv('SSR', true);
+      mocks.query.mockReturnValue(new Promise(() => undefined));
+      const loading = loadArrakisBoard();
+      await vi.advanceTimersByTimeAsync(ARRAKIS_SSR_WAIT_MS);
+      await expect(loading).resolves.toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('never holds up a navigation in the browser', async () => {

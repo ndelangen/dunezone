@@ -70,6 +70,31 @@ describe('The saved Arrakis board', () => {
   });
 });
 
+describe('The saved Arrakis board while it republishes', () => {
+  test('keeps its published face and its own board data while a new capture is queued or has failed', async () => {
+    const f = await rulebookFixture();
+    const id = await insertArrakis(f);
+    await publish(f, id);
+    await f.t.run((ctx) =>
+      ctx.db.insert('publication_jobs', {
+        asset_type: 'board',
+        asset_id: id,
+        asset_data: { name: 'Arrakis Official', about: '', board: arrakisBoardCapture.definition },
+        status: 'error',
+        attempt_counter: 3,
+        created_at: 2,
+        updated_at: 2,
+      } as never)
+    );
+    expect(await f.t.query(api.arrakis.board, {})).toMatchObject({
+      assetId: id,
+      geometry,
+      board: arrakisBoardCapture.definition,
+    });
+    expect(await f.t.query(api.arrakis.face, {})).toMatchObject({ assetId: id, geometry });
+  });
+});
+
 describe('The saved Arrakis face, kept for bundles from before the board query', () => {
   test('answers only the live board’s id, published image and territories', async () => {
     const f = await rulebookFixture();

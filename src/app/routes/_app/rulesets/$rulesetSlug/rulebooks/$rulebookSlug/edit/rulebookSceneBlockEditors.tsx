@@ -7,7 +7,7 @@ import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PickerField } from '@ui/control/PickerField';
 import { createContext, lazy, useContext } from 'react';
 
-import { useArrakisBoard } from '@app/db/arrakis';
+import { useArrakisFace } from '@app/db/arrakis';
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
 import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
@@ -61,7 +61,7 @@ function BoardChoice({
 
 /** A new scene's board: the saved Arrakis, or none while it loads or the site has none published, so the author picks one. */
 export function useNewSceneBoardId() {
-  return useArrakisBoard()?.assetId ?? '';
+  return useArrakisFace()?.assetId ?? '';
 }
 
 /** An empty scene on a board. */

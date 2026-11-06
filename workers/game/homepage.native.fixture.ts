@@ -15,8 +15,8 @@ export class HomepageRoom extends ProductionHomepageRoom {
       return new Response(null, { status: 204 });
     }
     if (url.pathname === '/native-test/saved-board') {
-      const saved = await this.ctx.storage.get<{ board?: { asset?: { name?: string } } }>('table');
-      return Response.json({ name: saved?.board?.asset?.name ?? null });
+      const board = await this.ctx.storage.get<{ asset?: { name?: string } }>('arrakis-board');
+      return Response.json({ name: board?.asset?.name ?? null });
     }
     if (url.pathname === '/native-test/clock') {
       fixedNow = url.searchParams.has('now') ? Number(url.searchParams.get('now')) : undefined;

@@ -111,7 +111,6 @@ export default function ConnectedTable({
     () => session.getTable()?.state.stormSectorIndex,
     () => undefined
   );
-  /* The saved Arrakis is drawn while the table connects; the table then plays on the board it sends. */
   const arrakis = useArrakisBoard();
   const stage = snapshot?.stage;
   const seatCount = snapshot?.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT;
@@ -150,7 +149,8 @@ export default function ConnectedTable({
             <PreviewCameraCrop viewport={viewport} />
             <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
             <TabletopBoard
-              board={snapshot?.board ?? arrakis?.capture}
+              /* The saved Arrakis is drawn only while the table connects; then the table's own board, so what is drawn is what pieces land on. */
+              board={snapshot ? snapshot.board : arrakis?.capture}
               stage={stage}
               mapVisible={mapVisible}
               seatCount={seatCount}

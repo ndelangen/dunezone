@@ -37,7 +37,9 @@ type Connection = {
   controlTokens: number;
   controlUpdatedAt: number;
 };
-type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string; board?: BoardCapture };
+type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string };
+/* The saved Arrakis is kept under its own key, so a move does not rewrite it with the table. */
+const BOARD_KEY = 'arrakis-board';
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
@@ -71,7 +73,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         const saved = await ctx.storage.get<Saved>('table');
         const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
         this.resetAt = saved?.resetAt ?? 0;
-        const board = boardCaptureSchema.safeParse(saved?.board);
+        const board = boardCaptureSchema.safeParse(await ctx.storage.get(BOARD_KEY));
         this.board = board.success ? board.data : undefined;
         const snapshot = parsed?.success
           ? parsed.data
@@ -79,18 +81,9 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         if (parsed?.success && saved?.epoch) {
           this.epoch = saved.epoch;
         } else if (saved && this.resetAt > Date.now()) {
-          await ctx.storage.put<Saved>('table', {
-            resetAt: this.resetAt,
-            snapshot,
-            epoch: this.epoch,
-            board: this.board,
-          });
+          await ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot, epoch: this.epoch });
         }
         this.room = this.tableRoom(snapshot);
-        /* A table that has never read the board waits for it once, so its first frame shows the board; later resets refresh it in the background. */
-        if (!this.board) {
-          await this.loadBoard();
-        }
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
           connection.authenticating = false;
@@ -101,6 +94,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         await this.diagnostics.run('refresh', () => this.refresh());
         /* Hibernation keeps the table's generation; the full frame retires activity lost while idle. */
         this.broadcast();
+        /* A table that has never read the board reads it without holding up the visitors; it joins the table when it arrives. */
+        if (!this.board) {
+          void this.loadBoard();
+        }
       })
     );
   }
@@ -175,10 +172,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
           return;
         }
         this.board = board;
-        const saved = await this.ctx.storage.get<Saved>('table');
-        if (saved) {
-          await this.ctx.storage.put<Saved>('table', { ...saved, board });
-        }
+        await this.ctx.storage.put(BOARD_KEY, board);
         this.broadcast();
       })
       .catch(() => undefined);
@@ -252,7 +246,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         ? now + HOMEPAGE_RESET_MS
         : (Math.floor(now / HOMEPAGE_RESET_MS) + 1) * HOMEPAGE_RESET_MS;
       const epoch = crypto.randomUUID();
-      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch, board: this.board });
+      await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch });
       this.resetAt = resetAt;
       this.epoch = epoch;
       this.room = this.tableRoom(snapshot);
@@ -476,12 +470,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       message.type === 'drop'
         ? this.room.drop(viewer, message.carryId, message)
         : this.room.command(viewer, message.action, message.expectedRevision);
-    await this.ctx.storage.put<Saved>('table', {
-      resetAt: this.resetAt,
-      snapshot: next,
-      epoch: this.epoch,
-      board: this.board,
-    });
+    await this.ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot: next, epoch: this.epoch });
     this.room.accept(next, message.type === 'drop' ? message.carryId : undefined);
     this.broadcast({ socket, commandId: message.commandId });
   }

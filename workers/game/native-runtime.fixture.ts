@@ -41,6 +41,7 @@ import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
 import type { RoomView } from '../../src/shared/play/updates.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
+import arrakisOfficialGeometry from '../../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import type { StoredSnapshot, storedSnapshotSchema } from './state';
 
 export type NativeMessage = ServerMessage & Partial<ServerClock>;
@@ -334,8 +335,8 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       record.release({
         assetId: arrakisBoardCapture.asset.id,
         name: arrakisBoardCapture.asset.name,
-        type: 'board',
-        imageUrl: null,
+        imageUrl: '/published/boards/arrakis-board/board.jpg',
+        geometry: arrakisOfficialGeometry,
         board: arrakisBoardCapture.definition,
       });
       break;

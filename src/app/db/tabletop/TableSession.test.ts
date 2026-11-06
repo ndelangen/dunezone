@@ -1092,6 +1092,15 @@ describe('hosted table interaction', () => {
     expect(table(client).snapshot.board).toBe(board);
   });
 
+  test('a changed board replaces the drawn one, so the table draws the territories its commands use', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const renamed = structuredClone(arrakisBoardCapture);
+    renamed.asset = { ...renamed.asset, name: 'Arrakis Revised' };
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: renamed } }));
+    expect(table(client).snapshot.board?.asset.name).toBe('Arrakis Revised');
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);

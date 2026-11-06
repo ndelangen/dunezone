@@ -35,11 +35,26 @@ export async function loadArrakisBoard(): Promise<ArrakisBoardSeed | undefined> 
   if (!import.meta.env.SSR) {
     return undefined;
   }
+  /* A slow answer holds up the whole page's HTML, so after a short wait the page loads it live instead. */
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(resolve, ARRAKIS_SSR_WAIT_MS, undefined);
+  });
   try {
-    return await db.query(api.arrakis.board, {});
+    return await Promise.race([db.query(api.arrakis.board, {}), timeout]);
   } catch {
     return undefined;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+/** How long a server-rendered page waits for the saved Arrakis before it leaves the board to the live query. */
+export const ARRAKIS_SSR_WAIT_MS = 1500;
+
+/** The saved Arrakis board's id and published face only, for pages that do not draw its territories. */
+export function useArrakisFace() {
+  return useLiveQuery(api.arrakis.face, {});
 }
 
 const SeedContext = createContext<ArrakisBoardSeed | undefined>(undefined);

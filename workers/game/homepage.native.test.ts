@@ -83,11 +83,15 @@ describe('the public homepage table', () => {
     expect((await syncView(nextWake)).epoch).toBe(replaced.epoch);
   });
 
-  it('keeps the saved Arrakis it read through a move, so a restart does not depend on reading it again', async () => {
+  it('plays on the saved Arrakis it reads, and keeps it through moves and restarts', async () => {
     const member = await visitor(true);
+    await member.message('view', (view) => view.snapshot.board?.asset.name === 'Arrakis Official');
     await command(member, { kind: 'rotate', pieceId: 'treachery-card-loose', direction: 1 });
     const saved = await runtime.fetch('/native-test/saved-board');
     expect(await saved.json()).toEqual({ name: 'Arrakis Official' });
+    await runtime.restart();
+    const resumed = await visitor();
+    expect((await syncView(resumed)).snapshot.board?.asset.name).toBe('Arrakis Official');
   });
 
   it('grants the first pickup after hibernation without a preliminary resync', async () => {
@@ -348,6 +352,13 @@ describe('the public homepage table', () => {
   it('keeps anonymous downgrades quiet and limits full-table requests separately from motion', async () => {
     const guest = await visitor();
     const observer = await visitor();
+    /* The table's first read of the saved Arrakis reaches each visitor as one more full view; the limit counts the views after it. */
+    await guest.message('view', (view) => view.snapshot.board !== undefined);
+    await observer.message('view', (view) => view.snapshot.board !== undefined);
+    const views = () =>
+      guest.messages.filter((message): message is Extract<NativeMessage, { type: 'view' }> => message.type === 'view')
+        .length;
+    const before = views() - 1;
     const received = observer.messages.length;
     for (let n = 0; n < 60; n++) {
       guest.send({ type: 'anonymous' });
@@ -359,10 +370,7 @@ describe('the public homepage table', () => {
     }
     await eventually(() => guest.closed, 'control flood closed');
     expect(guest.closeCode).toBe(1008);
-    expect(
-      guest.messages.filter((message): message is Extract<NativeMessage, { type: 'view' }> => message.type === 'view')
-        .length
-    ).toBeLessThanOrEqual(9);
+    expect(views() - before).toBeLessThanOrEqual(9);
   });
 
   it('resets the prepared table hourly and rejects a gesture from the previous hour', async () => {
