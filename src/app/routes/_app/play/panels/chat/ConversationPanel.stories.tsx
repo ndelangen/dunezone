@@ -54,7 +54,7 @@ export const SuggestsMentions = meta.story({
   },
 });
 
-/** A message that names a seat after an @ underlines it; hovering it shows the seat's card (see Mention card). */
+/** A message that names a seat after an @ underlines it; hovering it, or a writer's token, shows the seat's card (see Mention card). */
 export const NamesASeat = meta.story({
   args: tableChatNamingArgs(),
   parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },

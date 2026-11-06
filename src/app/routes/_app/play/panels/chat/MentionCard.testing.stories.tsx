@@ -9,7 +9,13 @@ const other = () => tableChatArgs().mentions!.find((mention) => !mention.own && 
 const meta = testingPreview.meta({
   title: 'Play/Panels/Chat/Mention card',
   component: MentionCard,
-  args: { mention: other(), written: `@${other().label}`, initiallyOpened: true, onInfo: fn(), onChat: fn() },
+  args: {
+    mention: other(),
+    children: <span>{`@${other().label}`}</span>,
+    initiallyOpened: true,
+    onInfo: fn(),
+    onChat: fn(),
+  },
 });
 
 /** Info brings up the seat's faction information; Chat opens the chat with its player. */

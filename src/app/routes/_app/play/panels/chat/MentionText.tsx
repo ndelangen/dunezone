@@ -2,6 +2,7 @@ import { Avatar, Group, HoverCard, Stack, Text } from '@mantine/core';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { MessagesSquare } from 'lucide-react';
+import type { ReactElement } from 'react';
 
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
 import { splitMentions } from './mentions';
@@ -29,24 +30,28 @@ export function MentionText({
   }
   return splitMentions(text, mentions).map((segment, index) =>
     segment.mention ? (
-      <MentionCard key={index} mention={segment.mention} written={segment.text} {...actions} />
+      <MentionCard key={index} mention={segment.mention} {...actions}>
+        <span className={styles.mention} data-mention={segment.mention.id}>
+          {segment.text}
+        </span>
+      </MentionCard>
     ) : (
       segment.text
     )
   );
 }
 
-/** A named seat, underlined: hovering it shows the seat's player and faction, with the way to its faction information and its chat. */
+/** A seat's card, shown hovering what names it (an @ in a message, a writer's token): its player and faction, with the way to its faction information and its chat. */
 export function MentionCard({
   mention,
-  written,
+  children,
   onInfo,
   onChat,
   initiallyOpened = false,
 }: Readonly<{
   mention: Mention;
-  /** The mention as the message wrote it, @ included. */
-  written: string;
+  /** What hovering shows the card: a single element. */
+  children: ReactElement;
   /** Shows the card from the start rather than on hover. */
   initiallyOpened?: boolean;
 }> &
@@ -61,11 +66,7 @@ export function MentionCard({
       shadow="md"
       initiallyOpened={initiallyOpened}
     >
-      <HoverCard.Target>
-        <span className={styles.mention} data-mention={mention.id}>
-          {written}
-        </span>
-      </HoverCard.Target>
+      <HoverCard.Target>{children}</HoverCard.Target>
       <HoverCard.Dropdown>
         <Stack gap="xs">
           {mention.detail && (

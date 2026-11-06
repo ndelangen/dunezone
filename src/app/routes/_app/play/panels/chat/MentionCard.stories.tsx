@@ -13,7 +13,7 @@ const meta = preview.meta({
   component: MentionCard,
   args: {
     mention: other(),
-    written: `@${other().label}`,
+    children: <span>{`@${other().label}`}</span>,
     initiallyOpened: true,
     onInfo: fn(),
     onChat: fn(),

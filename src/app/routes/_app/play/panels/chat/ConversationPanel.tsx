@@ -15,7 +15,7 @@ import { useServerNowAs } from '../../multiplayer/useServerNow';
 import { ChatComposer } from './ChatComposer';
 import styles from './ConversationPanel.module.css';
 import type { Mention } from './mentions';
-import { MentionText } from './MentionText';
+import { MentionCard, MentionText } from './MentionText';
 import type { MentionActions } from './MentionText';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
@@ -221,7 +221,12 @@ function SavedMessage({
 }: Readonly<{ message: ConversationMessage; factionId?: string; sender?: FactionToken; named: Named }>) {
   return (
     <Stack gap="xs">
-      <SavedMessageHeader message={message} sender={sender} />
+      <SavedMessageHeader
+        message={message}
+        sender={sender}
+        seat={named.mentions.find((mention) => mention.token.id === message.senderFactionId)}
+        actions={named}
+      />
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
         <MentionText text={message.text} {...named} />
       </Text>
@@ -300,10 +305,18 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
 }
 
 /*
- * The writer's name, then at the table their faction's token and name.
+ * The writer's name, then at the table their faction's token and name; hovering the token shows their seat's card, as an @ naming it does.
  * In a narrow window the token and faction name move under the name together, and the time onto its own line, rather than overlap.
  */
-function SavedMessageHeader({ message, sender }: Readonly<{ message: ConversationMessage; sender?: FactionToken }>) {
+function SavedMessageHeader({
+  message,
+  sender,
+  seat,
+  actions,
+}: Readonly<{ message: ConversationMessage; sender?: FactionToken; seat?: Mention; actions: MentionActions }>) {
+  const token = sender && (
+    <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} aria-hidden />
+  );
   return (
     <Group gap="sm" justify="space-between">
       <Group gap={6} data-message-sender={sender?.id}>
@@ -312,7 +325,13 @@ function SavedMessageHeader({ message, sender }: Readonly<{ message: Conversatio
         </Text>
         {sender ? (
           <Group gap={6} wrap="nowrap">
-            <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} aria-hidden />
+            {seat && token ? (
+              <MentionCard mention={seat} {...actions}>
+                {token}
+              </MentionCard>
+            ) : (
+              token
+            )}
             <Text span size="sm" c="dimmed">
               {sender.name}
             </Text>
