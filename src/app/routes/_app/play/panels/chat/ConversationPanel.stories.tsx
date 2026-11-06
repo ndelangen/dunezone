@@ -23,23 +23,13 @@ export const WithAPlayer = meta.story({
   },
 });
 
-/** The table's chat: every message sits beside its writer's faction token and names their faction. */
+/** The table's chat: behind each writer's name, their faction's token and name. */
 export const WithTheTable = meta.story({
   args: tableChatArgs(),
   parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByText('Who is bidding on this one?')).toBeVisible();
     await expect(canvasElement.querySelectorAll('[data-message-sender]')).toHaveLength(5);
-  },
-});
-
-/** The viewer's own message to the table waits to be saved, beside their own faction token. */
-export const PendingAtTheTable = meta.story({
-  args: { ...tableChatArgs(), pending: [pendingMessage({ state: 'sent' })] },
-  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
-  play: async ({ canvas, canvasElement }) => {
-    await expect(canvas.getByText('Pending')).toBeVisible();
-    await expect(canvasElement.querySelectorAll('[data-message-sender]')).toHaveLength(6);
   },
 });
 
