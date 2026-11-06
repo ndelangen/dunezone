@@ -3,8 +3,10 @@ import { Stack, Text, VisuallyHidden } from '@mantine/core';
 import { Button } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -37,9 +39,30 @@ export type CatalogueRow = Readonly<{ part: string; tiles: readonly CatalogueTil
 
 export type CatalogueTrack = 'play' | 'create';
 
-const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] }[] = [
-  { id: 'play', label: 'Playing Dune', to: '/tutorial' },
-  { id: 'create', label: 'Creating content', to: '/create' },
+const TRACKS: readonly {
+  id: CatalogueTrack;
+  label: string;
+  to: LinkProps['to'];
+  title: string;
+  subtitle: string;
+  lede: string;
+}[] = [
+  {
+    id: 'play',
+    label: 'Playing Dune',
+    to: '/tutorial',
+    title: 'Learn to play',
+    subtitle: 'How Dune Zone Play works',
+    lede: 'Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with.',
+  },
+  {
+    id: 'create',
+    label: 'Creating content',
+    to: '/create',
+    title: 'Learn to create',
+    subtitle: 'How to make your own Dune content',
+    lede: 'Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make.',
+  },
 ];
 
 /*
@@ -93,7 +116,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
 }
 
 /* The page toolbar's two buttons, each the route of its catalogue (Norbert, 2026-11-01). */
-export function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
+function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   return (
     <Toolbar>
       <Toolbar.Left label="Tutorials">
@@ -112,7 +135,7 @@ export function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
 }
 
 /* The tiles, one row per part; the first row's pictures load at once. */
-export function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
   return (
     <Stack gap="xl">
       {rows.map((row, index) => (
@@ -125,5 +148,28 @@ export function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] 
         </Section>
       ))}
     </Stack>
+  );
+}
+
+/**
+ * A tutorial catalogue page, whole: its title band, the toolbar that moves between the two tracks, and the tiles in rows by part.
+ * The two tracks are one page with different words and tiles, so the route names its track and hands over its rows.
+ */
+export function TutorialCatalogue({ track, rows }: Readonly<{ track: CatalogueTrack; rows: readonly CatalogueRow[] }>) {
+  const words = TRACKS.find((option) => option.id === track)!;
+  return (
+    <PageLayout>
+      <PageLayout.Header size="hero">
+        <Stack gap="md" miw={0} align="center" ta="center">
+          <PageTitle title={words.title} subtitle={words.subtitle} lede={words.lede} />
+        </Stack>
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <TutorialTracks track={track} />
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <TutorialRows rows={rows} />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }
