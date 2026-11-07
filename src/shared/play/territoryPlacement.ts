@@ -131,7 +131,10 @@ function partLayout(
     movesOver &&
     packsInTerritory(candidate) &&
     !onAnyPlate(others, candidate.position) &&
-    territoryContains(part, [candidate.position[0], candidate.position[2]]);
+    territoryContains(part, [candidate.position[0], candidate.position[2]]) &&
+    /* A stack the whole territory took across a line, too big for this sector, holds still rather than be squeezed into it. */
+    (part === territory ||
+      restsInside(part, [candidate.position[0], candidate.position[2]], footprintReach(candidate)));
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
   /* A plate such as the HMS is in the way by its outline, so no stack is shifted onto it without riding it. */
   const obstacles = relevant.filter((candidate) => !inside(candidate)).map(obstacle);

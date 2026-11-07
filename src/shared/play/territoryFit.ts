@@ -150,13 +150,16 @@ function sharedWithTriangle(a: Plane, b: Plane, radius: number): number {
 
 const ringDepths = new WeakMap<readonly (readonly Plane[])[], number[]>();
 
-/* How many of the other rings enclose each ring: an odd number makes it a hole. */
+/*
+ * How many of the other rings enclose each ring: an odd number makes it a hole.
+ * A ring counts as inside another when most of its corners are, so a hole that touches the outline at a corner or two is still a hole.
+ */
 function depthsOf(rings: readonly (readonly Plane[])[]): number[] {
   let depths = ringDepths.get(rings);
   if (!depths) {
-    depths = rings.map(
-      (ring, i) => rings.filter((other, j) => j !== i && ring[0] && insideRings([other], ring[0])).length
-    );
+    const encloses = (other: readonly Plane[], ring: readonly Plane[]) =>
+      ring.filter((corner) => insideRings([other], corner)).length * 2 > ring.length;
+    depths = rings.map((ring, i) => rings.filter((other, j) => j !== i && encloses(other, ring)).length);
     ringDepths.set(rings, depths);
   }
   return depths;

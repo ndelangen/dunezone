@@ -319,6 +319,31 @@ describe('stacks dropped across a sector line', () => {
     expect(shareOutside(part!, point, 0.175)).toBeCloseTo(0.447, 2);
   });
 
+  test('let a troop in beside a leader the whole territory took across a line', () => {
+    const leader: TablePiece = {
+      ...troop('leader', 'atreides', [-0.18037, 0, -1.16891]),
+      stackKey: 'leader:atreides',
+    };
+    const leaderLanding = territoryLanding({ board: arrakisBoardCapture.definition }, leader, leader.position, []);
+    const placed = { ...leader, position: leaderLanding ? leaderLanding.position : leader.position };
+    const spot: Vector3Tuple = [-0.36037, 0, -2.08891];
+    const state = tableWith(placed, troop('mover', 'harkonnen', SHELF));
+    expect(dropAt(state, 'mover', spot)).not.toBeNull();
+  });
+
+  test('read the Habbanya ridge flat the same wherever its hole ring starts', () => {
+    const flat = territoryNamed('Habbanya ridge flat');
+    const shifted = { ...flat, rings: flat.rings.map((ring, i) => (i === 0 ? ring : [...ring.slice(1), ring[0]!])) };
+    for (let x = -4; x < 0; x += 0.1) {
+      for (let z = 0; z < 4; z += 0.1) {
+        const point: [number, number] = [x, z];
+        const share = (territory: TableTerritory) =>
+          shareOutside(restingParts(territory, point, 0.175)[0]!, point, 0.175);
+        expect(share(shifted)).toBeCloseTo(share(flat), 6);
+      }
+    }
+  });
+
   test('the polar sink lies in no sector, so a stack rests where it was let go', () => {
     const spot: Vector3Tuple = [0.05, 0, 0.001];
     const state = tableWith(troop('mover', 'atreides', SHELF));
