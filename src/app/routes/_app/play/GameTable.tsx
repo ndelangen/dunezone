@@ -94,6 +94,8 @@ export type TablePanel = Readonly<{
 
 type GameTableProps = {
   onSceneReady?: (() => void) | undefined;
+  /** The controls the waiting frame keeps reachable until the table opens, as the frames before it did (the way back to the lobby). */
+  waitControls?: ReactNode;
   sceneContent?: ReactNode;
   /** A territory the scene content lights on the board, such as the one under a carried battle marker. */
   highlightTerritory?: string | null;
@@ -690,6 +692,7 @@ function useTableViewController(
 
 export function GameTable({
   onSceneReady,
+  waitControls,
   sceneContent,
   highlightTerritory,
   readOnly = false,
@@ -810,7 +813,7 @@ export function GameTable({
           >
             {arrival === 'open' ? null : (
               <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
-                <TableWait status="Opening the table..." />
+                <TableWait status="Opening the table...">{waitControls}</TableWait>
               </div>
             )}
             <div

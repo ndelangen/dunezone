@@ -658,7 +658,9 @@ function ConnectedTable({
   gameId,
   diagnostics,
   reportsEnabled,
+  exitControl,
 }: Readonly<{
+  exitControl: ReactNode;
   client: TableSession;
   table: TableProjection;
   error: string | null;
@@ -695,6 +697,7 @@ function ConnectedTable({
             <GameTable
               readOnly={readOnly}
               onSceneReady={onReady}
+              waitControls={exitControl}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
@@ -817,6 +820,7 @@ export default function HostedTable({
         table={view.table}
         error={view.error}
         connection={view.status}
+        exitControl={exitControl}
       />
     </ServerClockContext.Provider>
   );
