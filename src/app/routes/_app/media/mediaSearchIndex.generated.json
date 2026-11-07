@@ -5218,6 +5218,16 @@
     "tags": ["portrait", "man", "soldier", "armour", "illustration"],
     "subjects": ["people"]
   },
+  "/image/leader/gary/marked-leader.png": {
+    "description": "Marked Leader. Bearded man with short brown hair and a black marking over one eye and three bars above the other brow. Heavy brown, plum and gray armour.",
+    "tags": ["portrait", "man", "beard", "face paint", "armour", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/resolute-officer.png": {
+    "description": "Resolute Officer. Woman with voluminous curly brown hair, looking resolutely aside. Gray chest armour with blue shoulder plates.",
+    "tags": ["portrait", "woman", "officer", "curly hair", "armour", "illustration"],
+    "subjects": ["people"]
+  },
   "/image/leader/gary/blonde-officer.png": {
     "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
     "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],

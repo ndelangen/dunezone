@@ -4598,9 +4598,27 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gary/marked-leader.png": {
+    "sha256": "c7931a9894f5c17832332ab9912a94df9565d6b66134d2c8f9a8c6dd98962a47",
+    "bytes": 467493,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
   "/image/leader/gary/paired-officers.png": {
     "sha256": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0",
     "bytes": 526971,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/resolute-officer.png": {
+    "sha256": "ca745b4f5cb421762885056025f771211c1d8515c7e206ff50bd92154a31da2a",
+    "bytes": 541950,
     "width": 640,
     "height": 640,
     "format": "png",

@@ -1,7 +1,7 @@
 {
   "artist": "Gary [MCDM]",
   "permission": "Gary gave permission to add these portraits to Dune Zone on Discord on 7 November 2026 (\"ye you can throw them on there, more stuff for the community the better\"). Norbert relayed it and asked for them to be added.",
-  "originals": "Gary's portraits are his own AI-generated characters.",
+  "originals": "Gary's portraits are his own AI-generated characters, except marked-leader and resolute-officer, which he based on characters from Dune: Awakening (Funcom). Norbert chose to include both on 7 November 2026.",
   "generation": "Built-in imagegen style transfer of Gary's transparent originals, with three original GF9 leader portraits as style references, asking for the loose pen lines and colour washes of the GF9 leaders.",
   "backgroundRgb": [205, 186, 120],
   "sourceSize": [1254, 1254],
@@ -29,9 +29,19 @@
       "gamePngSha256": "fe0a87944c5eb6f5aa7f3a828060a695983df184d9e3bc96ca281f8c190ae0cf"
     },
     {
+      "asset": "/image/leader/gary/marked-leader.png",
+      "generatedSourceSha256": "7d23585ecec63e6b98fc779484fa9f22194fdc50426918a6db69db8dc66b6039",
+      "gamePngSha256": "c7931a9894f5c17832332ab9912a94df9565d6b66134d2c8f9a8c6dd98962a47"
+    },
+    {
       "asset": "/image/leader/gary/paired-officers.png",
       "generatedSourceSha256": "2c3b9319d3b839a18e56e2b2d33ddace40eef006ec9efba4a243f84ddec333bd",
       "gamePngSha256": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0"
+    },
+    {
+      "asset": "/image/leader/gary/resolute-officer.png",
+      "generatedSourceSha256": "f6469867b60cfb1df176cdde914068f95f26de39ac8f51eb7021bb6c4d012325",
+      "gamePngSha256": "ca745b4f5cb421762885056025f771211c1d8515c7e206ff50bd92154a31da2a"
     },
     {
       "asset": "/image/leader/gary/scarred-commander.png",
@@ -60,8 +70,22 @@
     }
   ],
   "factions": {
-    "Mikarrol": ["blonde-officer", "crimson-masked-figure", "haughty-nobleman", "scarred-commander", "stoic-officer"],
-    "Lindaren": ["helmeted-soldier", "paired-officers", "skeptical-officer", "veteran-officer", "warrior"]
+    "Mikarrol": [
+      "blonde-officer",
+      "crimson-masked-figure",
+      "haughty-nobleman",
+      "marked-leader",
+      "scarred-commander",
+      "stoic-officer"
+    ],
+    "Lindaren": [
+      "helmeted-soldier",
+      "paired-officers",
+      "resolute-officer",
+      "skeptical-officer",
+      "veteran-officer",
+      "warrior"
+    ]
   },
   "corrections": {
     "skeptical-officer": "A localized imagegen edit removed a duplicated pupil in her right eye; everything else is unchanged."

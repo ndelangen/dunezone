@@ -652,7 +652,9 @@
         "crimson-masked-figure.png",
         "haughty-nobleman.png",
         "helmeted-soldier.png",
+        "marked-leader.png",
         "paired-officers.png",
+        "resolute-officer.png",
         "scarred-commander.png",
         "skeptical-officer.png",
         "stoic-officer.png",
@@ -2341,6 +2343,8 @@
     "gf9-logo": { "/web/rulesets/": ["gf9-logo.png"] }
   },
   "details": {
+    "/image/leader/gary/marked-leader.png": "Gary based the original on a character from Dune: Awakening (Funcom).",
+    "/image/leader/gary/resolute-officer.png": "Gary based the original on a character from Dune: Awakening (Funcom).",
     "/image/planet/familiar-worlds/alderaan.png": "Reference: Star Wars.",
     "/image/planet/familiar-worlds/argus.png": "Reference: Warcraft.",
     "/image/planet/familiar-worlds/callisto.png": "Reference image: NASA/JPL/DLR.",
