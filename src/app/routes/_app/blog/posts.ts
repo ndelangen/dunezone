@@ -31,17 +31,17 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
-  'editable-dune-board-arrakis': {
-    slug: 'editable-dune-board-arrakis',
-    title: 'One editable Dune board for the whole site: how Arrakis became a map you can redraw',
+  'dune-board-editor': {
+    slug: 'dune-board-editor',
+    title: 'Introducing the Dune board editor: draw your own Arrakis, or a whole new map',
     date: '2026-11-09',
     author: 'Central419',
     summary:
-      'Spice cards, Rulebooks, the glossary and the game table each kept their own copy of Arrakis. Now they all draw one saved board, made in the dune.zone board editor.',
+      'The Dune board on dune.zone used to be hardcoded. Now there is a board editor, Arrakis is a saved board made with it, and your homebrew can draw any map it likes.',
     cover: {
-      key: '/web/blog/editable-dune-board-arrakis/homepage-table.jpg',
-      alt: "The homepage game table on dune.zone: the Arrakis board with troops, faction tokens and another player's hand",
-      aspect: 606 / 2048,
+      key: '/web/blog/dune-board-editor/board-editor.jpg',
+      alt: 'The dune.zone board editor with Arrakis loaded, every shared line shown with its points',
+      aspect: 1627 / 2048,
     },
   },
   'dune-homebrew-art-ai-and-credits': {
