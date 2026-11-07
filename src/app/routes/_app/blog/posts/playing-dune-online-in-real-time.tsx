@@ -20,7 +20,7 @@ export default function Post() {
       <Paragraph>Here is what happens in between.</Paragraph>
       <Figure
         imageKey="/web/blog/building-a-dune-sandbox/game-table.jpg"
-        alt="The dune.zone game table during the spice blow: the Dune board with troops, faction shields and the treachery deck"
+        alt="The dune.zone game table during Spice Blow: the Dune board with troops, faction shields and the treachery deck"
         aspect={1019 / 2048}
         caption="The dune.zone game table. Everything on it moves in real time."
       />
@@ -62,7 +62,7 @@ function HandsSection() {
     <Section title="The hands you see moving">
       <Paragraph>
         Every player&rsquo;s pointer shows up on the table as a hand in their colour, with their picture below it. You
-        can see someone hovering over the Treachery deck, or pointing at the territory they&rsquo;re about to ship into.
+        can see someone hovering over the treachery deck, or pointing at the territory they&rsquo;re about to ship into.
       </Paragraph>
       <Paragraph>
         Your browser sends where your pointer is on the table, at most twenty times a second. The room gathers what
@@ -140,14 +140,14 @@ function SecretsSection() {
   return (
     <Section title="How your cards stay yours">
       <Paragraph>
-        Dune is a game of secrets. Traitors, Treachery cards, battle plans, the spice behind your shield. The easiest
-        way to build a game table would be to send everyone the whole table and simply not draw the parts they
+        Dune is a game of secrets. Traitor cards, treachery cards, battle plans, the spice behind your shield. The
+        easiest way to build a game table would be to send everyone the whole table and simply not draw the parts they
         shouldn&rsquo;t see. But then anyone who opens their browser&rsquo;s developer tools could read your hand.
       </Paragraph>
       <Paragraph>
         So the room never sends a secret to someone who isn&rsquo;t allowed to see it. Before anything leaves, it makes
         a separate copy of the table for each seat. Your copy has your cards with their faces. The copies for everyone
-        else say how many Treachery cards you hold, because the rules make that public, and nothing more. A face-down
+        else say how many treachery cards you hold, because the rules make that public, and nothing more. A face-down
         card travels as its back only. Spectators get the public table and nothing else.
       </Paragraph>
       <WideFigure caption="One table in the room, three different copies on the way out. Switch seats to compare.">
