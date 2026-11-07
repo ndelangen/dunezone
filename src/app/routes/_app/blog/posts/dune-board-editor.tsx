@@ -92,28 +92,39 @@ function NamesSection() {
 
 function ArrakisSection() {
   return (
-    <Section title="Arrakis is a board like any other">
+    <Section title="One board, everywhere">
       <Paragraph>
         Arrakis Official is drawn in the same editor: 42 territories, with the enclosed strongholds, the Polar Sink and
-        the curved borders of the printed map. Spice cards, Rulebook illustrations, the game table, the homepage, the
-        glossary and the tutorials all draw this one board now. Save a change to it, and every Spice card on it is drawn
-        again.
+        the curved borders of the printed map. Every place on dune.zone that shows Arrakis now draws this one saved
+        board.
       </Paragraph>
+      <Figure
+        imageKey="/web/blog/dune-board-editor/spice-cards.jpg"
+        alt="Twelve Spice cards from dune.zone, each with a small Arrakis map and its territory lit: The Great Flat, Hagga Basin, Gaia Kulon, Cielago West and more"
+        aspect={924 / 2048}
+        caption="Spice cards light their territories on it. Save a change to the board, and every card on it is drawn again."
+      />
       <FigureRow
         figures={[
           {
-            imageKey: '/web/blog/dune-board-editor/old-arrakis-map.jpg',
-            alt: 'The old hardcoded Arrakis map: sand and rock territories, strongholds and dashed sector lines',
-            aspect: 1,
-            caption: 'Before: the hardcoded Arrakis map.',
+            imageKey: '/web/blog/dune-board-editor/rulebook-route.jpg',
+            alt: 'A page of the Dune core rules on dune.zone, Check the whole route: two maps of the saved board with a blocked route through the storm and a detour through the Polar Sink',
+            aspect: 1190 / 1600,
+            caption: 'Rulebooks draw routes and markers on it.',
           },
           {
-            imageKey: '/web/blog/dune-board-editor/arrakis-official.jpg',
-            alt: 'The published Arrakis Official board: sand and rock territories, five strongholds with city and sietch decals, and the white Polar Sink in the middle',
-            aspect: 1,
-            caption: 'After: Arrakis Official, published from the board editor.',
+            imageKey: '/web/blog/dune-board-editor/tutorial-table.jpg',
+            alt: 'A dune.zone tutorial chapter, What goes where: the practice table on the saved Arrakis board with faction tokens, troops and the storm',
+            aspect: 1440 / 2048,
+            caption: 'The tutorials teach on it.',
           },
         ]}
+      />
+      <Figure
+        imageKey="/web/blog/dune-board-editor/glossary-board.jpg"
+        alt="The board section of the dune.zone glossary: entries for territory, sector and stronghold beside the Arrakis map, with one stronghold lit in red"
+        aspect={853 / 2048}
+        caption="The glossary explains territories, sectors and strongholds on it."
       />
     </Section>
   );
