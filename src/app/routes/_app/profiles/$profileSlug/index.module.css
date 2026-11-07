@@ -42,6 +42,8 @@
   }
 
   .avatar {
+    /* Mantine's disc holds a minimum width of its own size, so the narrow portrait sets both. */
+    min-width: 56px;
     width: 56px;
     height: 56px;
   }

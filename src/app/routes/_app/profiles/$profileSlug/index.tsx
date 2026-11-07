@@ -308,13 +308,7 @@ function ProfileDetailPage() {
         <PageIdentity
           title={page.profile.username ?? 'Unknown'}
           media={
-            <NameDisc
-              name={page.profile.username ?? '?'}
-              src={bandAvatarUrl}
-              label={page.profile.username ?? 'Avatar'}
-              size="fill"
-              className={styles.avatar}
-            />
+            <NameDisc name={page.profile.username ?? '?'} src={bandAvatarUrl} size="fill" className={styles.avatar} />
           }
           breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           standing={isSelf ? { tone: 'brand', label: 'You' } : null}

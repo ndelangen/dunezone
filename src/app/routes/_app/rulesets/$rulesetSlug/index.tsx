@@ -18,7 +18,7 @@ import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
-import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
+import { NameDisc } from '@ui/content/NameDisc';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -526,16 +526,7 @@ function RulesetDetailPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={r.name}
-          media={
-            <NameDisc
-              name={r.name}
-              src={r.coverThumbUrl}
-              label={`Cover for ${r.name}`}
-              color={nameDiscColor(r.name)}
-              shape="tile"
-              size="fill"
-            />
-          }
+          media={<NameDisc name={r.name} src={r.coverThumbUrl} shape="tile" size="fill" />}
           breadcrumb={<Breadcrumb to="/rulesets">Rulesets</Breadcrumb>}
           maintainers={{
             owner: page.owner

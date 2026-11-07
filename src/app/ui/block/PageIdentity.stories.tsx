@@ -1,9 +1,10 @@
-import { Avatar, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import preview from '@sb/preview';
 import { CheckCircle2, CircleHelp, Layers3 } from 'lucide-react';
 import { expect, within } from 'storybook/test';
 
 import { Breadcrumb } from '../content/Breadcrumb';
+import { NameDisc } from '../content/NameDisc';
 import { PageLayout } from '../layout/PageLayout';
 import { PageIdentity } from './PageIdentity';
 import type { PageIdentityProps } from './PageIdentity';
@@ -30,7 +31,7 @@ const meta = preview.meta({
   render: (args: PageIdentityProps) => <InHeader {...args} />,
   args: {
     title: 'ClassicRules',
-    media: <Avatar name="ClassicRules" radius="md" size="100%" color="dune" />,
+    media: <NameDisc name="ClassicRules" shape="tile" size="fill" />,
     breadcrumb: <Breadcrumb to="/rulesets">Rulesets</Breadcrumb>,
     children: <Text size="sm">Maintained by the Arrakeen Rules Council</Text>,
   },
