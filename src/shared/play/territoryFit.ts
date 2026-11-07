@@ -139,9 +139,9 @@ function sharedWithTriangle(a: Plane, b: Plane, radius: number): number {
     const q: Plane = [a[0] + dx * stops[i]!, a[1] + dz * stops[i]!];
     const cross = p[0] * q[1] - p[1] * q[0];
     const mid: Plane = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-    /* Inside the circle the piece of side bounds a triangle; outside, the circle's arc bounds a slice. */
+    /* Inside the circle the piece of side bounds a triangle; outside, or only touching it, the circle's arc bounds a slice. */
     area +=
-      mid[0] * mid[0] + mid[1] * mid[1] <= radius * radius
+      mid[0] * mid[0] + mid[1] * mid[1] < radius * radius * (1 - 1e-9)
         ? cross / 2
         : (radius * radius * Math.atan2(cross, p[0] * q[0] + p[1] * q[1])) / 2;
   }
@@ -561,6 +561,11 @@ function partsOf(territory: TableTerritory): (TableTerritory | undefined)[] {
 
 const holds = new WeakMap<TableTerritory, Map<number, boolean>>();
 
+/* Whether a stack with a footprint of `radius` could rest at `at` in an empty part, as the packing's own check would take it. */
+function holdsAt(part: TableTerritory, at: Plane, radius: number): boolean {
+  return fitsInside(part, at, borderReach(radius) + GAP / 2) && restsInside(part, at, radius);
+}
+
 /* Whether an empty part has room anywhere for a stack with a footprint of `radius`. */
 function canHold(part: TableTerritory, radius: number): boolean {
   let byRadius = holds.get(part);
@@ -572,7 +577,7 @@ function canHold(part: TableTerritory, radius: number): boolean {
   if (!byRadius.has(key)) {
     byRadius.set(
       key,
-      spotsWithRoom(part, borderReach(radius) + GAP / 2).some((spot) => restsInside(part, spot, radius))
+      spotsWithRoom(part, borderReach(radius) + GAP / 2).some((spot) => holdsAt(part, spot, radius))
     );
   }
   return byRadius.get(key)!;
@@ -590,7 +595,8 @@ export function restingParts(territory: TableTerritory, at: Plane, radius: numbe
   }
   const parts = partsOf(territory);
   const home = parts[tableSectorAt(at)];
-  if (home && canHold(home, radius)) {
+  /* A drop point the stack already rests at proves the sector has room, wherever the sampled spots fall. */
+  if (home && (holdsAt(home, at, radius) || canHold(home, radius))) {
     return [home];
   }
   const roomy = parts

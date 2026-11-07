@@ -344,6 +344,55 @@ describe('stacks dropped across a sector line', () => {
     }
   });
 
+  test('count a side that only touches a footprint as outside it', () => {
+    const square = {
+      rings: [
+        [
+          [-1, -1],
+          [1, -1],
+          [1, 1],
+          [-1, 1],
+        ] as [number, number][],
+      ],
+    };
+    /* The top side touches the circle at its middle and nowhere else. */
+    expect(shareOutside(square, [0, 1.175], 0.175)).toBeCloseTo(1, 6);
+  });
+
+  test('measure a Meridian troop by the arc where a side only touches it', () => {
+    const point: [number, number] = [-0.5208375976749681, 3.1751132841840155];
+    const [part] = restingParts(territoryNamed('Meridian'), point, 0.175);
+    expect(shareOutside(part!, point, 0.175)).toBeGreaterThan(0.3);
+  });
+
+  test('keep a troop in a narrow pocket of its sector when it rests there, though no sampled spot does', () => {
+    const h = 0.1287;
+    /* A pocket in sector 0, joined by a thin corridor to a roomier stretch in sector 1. */
+    const pocket: TableTerritory = {
+      id: 'pocket',
+      name: 'Pocket',
+      sectored: true,
+      rings: [
+        [
+          [2 - h, 0.36 - h],
+          [2 + h, 0.36 - h],
+          [2 + h, 0.36 + h],
+          [2.03, 0.36 + h],
+          [2.03, 1],
+          [2.4, 1],
+          [2.4, 1.4],
+          [1.8, 1.4],
+          [1.8, 1],
+          [2, 1],
+          [2, 0.36 + h],
+          [2 - h, 0.36 + h],
+        ],
+      ],
+    };
+    const [part] = restingParts(pocket, [2, 0.36], 0.175);
+    expect(part!.id).toBe('pocket@0');
+  });
+
   test('the polar sink lies in no sector, so a stack rests where it was let go', () => {
     const spot: Vector3Tuple = [0.05, 0, 0.001];
     const state = tableWith(troop('mover', 'atreides', SHELF));
