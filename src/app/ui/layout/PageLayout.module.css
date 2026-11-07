@@ -24,7 +24,7 @@
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
-   The band's only Mantine anchors are its way back and its breadcrumb. */
+   The band's Mantine anchor is an error frame's way back (PageMessage's Back link); the breadcrumb wears its own treatment and opts out. */
 .headerContent :where(:global(.mantine-Anchor-root)) {
   font-weight: 700;
   text-decoration: underline;
@@ -54,11 +54,8 @@
   min-width: 0;
 }
 
-/*
- * A toolbar whose every action was conditional and none applied to this reader (a visitor on a profile, say) is an
- * empty bar; the way back is the breadcrumb above the title, so the band has nothing to offer and steps aside.
- */
-.toolbar:not(:has(a, button, input, select, textarea)) {
+/* The Toolbar draws nothing when no action applies to this reader (a visitor on a profile, say), so its slot steps aside too. */
+.toolbar:empty {
   display: none;
 }
 

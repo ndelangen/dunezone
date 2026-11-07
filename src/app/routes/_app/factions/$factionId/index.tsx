@@ -19,6 +19,7 @@ import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -352,9 +353,7 @@ function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['a
           ))}
         </SimpleGrid>
       ) : (
-        <Surface padding="lg">
-          <Text c="dimmed">No faction advantages have been added yet.</Text>
-        </Surface>
+        <EmptyNote>No faction advantages have been added yet.</EmptyNote>
       )}
     </Section>
   );
@@ -634,9 +633,7 @@ function FactionDetailContent({
                           ))}
                         </Group>
                       ) : (
-                        <Text size="sm" c="dimmed">
-                          None specified.
-                        </Text>
+                        <EmptyNote>None specified.</EmptyNote>
                       )}
                     </Section>
                     <Divider />
@@ -695,11 +692,11 @@ function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
         {rulesets.length === 0 ? (
           <EmptyNote>Not in a ruleset yet.</EmptyNote>
         ) : (
-          <Stack gap="xs" align="flex-start">
+          <EntityLinkList>
             {rulesets.map((ruleset) => (
               <RulesetLink key={ruleset.id} slug={ruleset.slug} name={ruleset.name} />
             ))}
-          </Stack>
+          </EntityLinkList>
         )}
       </Card>
     </>

@@ -75,9 +75,7 @@ function RulesetRulebooks({
   return (
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       {rulebooks.length === 0 ? (
-        <Surface padding="lg">
-          <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
-        </Surface>
+        <EmptyNote>{canEdit ? 'No Rulebooks yet. Add one from the toolbar.' : 'No Rulebooks yet.'}</EmptyNote>
       ) : (
         <Box className={styles.rulebooks} role="list" aria-label="Rulebooks">
           {rulebooks.map((rulebook) => {

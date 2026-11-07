@@ -112,7 +112,7 @@ type Slot = { children: ReactNode; label?: string };
 
 /* An edge with nothing in it is not announced: a named group that holds nothing is noise. */
 function slotProps({ label, children }: Slot) {
-  return label && Children.count(children) > 0 ? { role: 'group', 'aria-label': label } : {};
+  return label && countActions(children) > 0 ? { role: 'group', 'aria-label': label } : {};
 }
 
 type ClusterRun = { kind: ToolbarClusterKind; children: ReactNode; size: number };
@@ -310,6 +310,11 @@ const ToolbarBase = ({ className, children }: ToolbarProps) => {
   /* The menu stands where the folded runs stood: before the commit run, or last when there is none. */
   const commit = shown.at(-1)?.kind === 'commit' ? shown.at(-1) : undefined;
   const before = commit ? shown.slice(0, -1) : shown;
+
+  /* A toolbar whose every action was conditional and none applied to this reader is not drawn: an empty pane is noise. */
+  if (countActions(left.children) === 0 && countActions(center.children) === 0 && runs.length === 0) {
+    return null;
+  }
 
   return (
     <Surface padding="sm">

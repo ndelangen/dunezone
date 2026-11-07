@@ -536,9 +536,7 @@ function PendingRequestsPanel({
 
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
-    <Text size="sm" c="dimmed">
-      No factions in this group yet.
-    </Text>
+    <EmptyNote>No factions in this group yet.</EmptyNote>
   ) : (
     <Stack gap="xs" align="flex-start">
       {factions.map((faction) => (
@@ -556,9 +554,7 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
 
 function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
   return rulesets.length === 0 ? (
-    <Text size="sm" c="dimmed">
-      No rulesets in this group yet.
-    </Text>
+    <EmptyNote>No rulesets in this group yet.</EmptyNote>
   ) : (
     <Stack gap="xs" align="flex-start">
       {rulesets.map((ruleset) => (

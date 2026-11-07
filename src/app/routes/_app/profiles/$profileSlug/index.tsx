@@ -13,6 +13,7 @@ import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Card } from '@ui/surface/Card';
@@ -353,11 +354,11 @@ function ProfileDetailPage() {
                 {page.groupSummaries.length === 0 ? (
                   <EmptyNote>Not a member of any groups.</EmptyNote>
                 ) : (
-                  <Stack gap="xs" align="flex-start">
+                  <EntityLinkList>
                     {page.groupSummaries.map((group) => (
                       <GroupLink key={group.id} slug={group.slug} name={group.name} />
                     ))}
-                  </Stack>
+                  </EntityLinkList>
                 )}
               </Card>
             </Stack>

@@ -33,6 +33,7 @@ import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
@@ -200,7 +201,7 @@ function ContainerSection({
       {containers.length === 0 ? (
         <EmptyNote>{empty}</EmptyNote>
       ) : (
-        <Stack gap="xs" align="flex-start">
+        <EntityLinkList>
           {containers.map((container) => (
             <AssetLink
               key={container.id}
@@ -209,7 +210,7 @@ function ContainerSection({
               name={container.count > 1 ? `${container.name} ×${container.count}` : container.name}
             />
           ))}
-        </Stack>
+        </EntityLinkList>
       )}
     </Section>
   );
@@ -457,11 +458,11 @@ function ShippedByCard({ rulesets }: { rulesets: AssetPage['linkingRulesets'] })
   }
   return (
     <Card title="Shipped by" icon={<TopicIcon topic="rulesets" size={18} />}>
-      <Stack gap="xs" align="flex-start">
+      <EntityLinkList>
         {rulesets.map((ruleset) => (
           <RulesetLink key={ruleset.id} slug={ruleset.slug} name={`${ruleset.name} · ${slotLabel(ruleset.slot)}`} />
         ))}
-      </Stack>
+      </EntityLinkList>
     </Card>
   );
 }
