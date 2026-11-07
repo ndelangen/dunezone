@@ -10,6 +10,7 @@ import type { FamilyPreset, DiscoveryPreset } from '@shared/backgrounds/families
 import { resolveBackgroundValues, customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds/schema';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -53,8 +54,6 @@ import { tokenFaceProps } from '@game/assets/token/tokenFace';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { Background } from '@game/assets/utils/Background';
 import { backgroundPresets } from '@game/data/backgrounds';
-
-import { SaveErrorAlert } from '../assets/assetEditorStates';
 
 export const Route = createFileRoute('/_app/admin/presets')({
   head: () => pageHead('Presets'),
@@ -166,7 +165,7 @@ function InitializePresets() {
         >
           Import DB designs and recapture
         </LabeledAction>
-        <SaveErrorAlert subject="designs" verb="import" error={initialize.error} />
+        <ActionError subject="designs" verb="import" error={initialize.error} />
       </Stack>
     </PageMessage>
   );
@@ -503,7 +502,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
       <PageLayout.Header>
         <PageTitle
           title="Presets"
-          subtitle="Keep related designs together. Shared backgrounds keep their linked uses in sync."
+          lede="Keep related designs together. Shared backgrounds keep their linked uses in sync."
         />
       </PageLayout.Header>
       <PageLayout.Toolbar>
@@ -522,7 +521,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
               />
             )}
           />
-          <SaveErrorAlert subject="preset" error={saveFamily.error ?? saveDiscovery.error} />
+          <ActionError verb="save" subject="preset" error={saveFamily.error ?? saveDiscovery.error} />
           {saveFamily.data !== undefined || saveDiscovery.data !== undefined ? (
             <Text role="status">Preset saved. Linked artwork updates as captures finish.</Text>
           ) : null}

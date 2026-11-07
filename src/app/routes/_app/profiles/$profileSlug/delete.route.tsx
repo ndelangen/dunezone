@@ -6,7 +6,7 @@ import { LoadError } from '@ui/block/LoadError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
-import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -217,7 +217,8 @@ function AccountDeletionPage() {
               }
             />
             {/* The checkbox states what will happen; the hold is the commitment. The heaviest delete in the application wears the same five seconds as every other (Norbert, 2026-08-21). */}
-            <ConfirmDeleteButton
+            <HoldAction
+              shape="button"
               label={replacement ? 'Transfer ownership and delete account' : 'Delete account'}
               disabled={!acknowledged}
               pending={confirm.isPending}

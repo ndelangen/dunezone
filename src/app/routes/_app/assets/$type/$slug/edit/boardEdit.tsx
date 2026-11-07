@@ -4,8 +4,8 @@ import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -175,23 +175,15 @@ function BoardSession({ asset, initialDraft, access }: AssetEditSessionProps<Boa
           statuses={[group.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && (
-            <ActionError subject="Board" verb="save">
-              {saving.error.message}
-            </ActionError>
-          )}
-          {deletion.error && (
-            <ActionError subject="Board" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          )}
+          <ActionError subject="Board" verb="save" error={saving.error} />
+          <ActionError subject="Board" verb="delete" error={deletion.error} />
           {group.error}
           <BoardEditor
             state={state.editor}

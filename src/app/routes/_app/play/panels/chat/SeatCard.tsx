@@ -1,4 +1,5 @@
-import { Avatar, Group, Text, Tooltip } from '@mantine/core';
+import { Group, Text, Tooltip } from '@mantine/core';
+import { NameDisc } from '@ui/content/NameDisc';
 import { IconAction } from '@ui/control/IconAction';
 import { Info, MessagesSquare } from 'lucide-react';
 
@@ -25,11 +26,7 @@ export function SeatCard({ mention, onInfo, onChat }: SeatCardProps) {
     <Group gap="sm" wrap="nowrap" className={styles.card}>
       <Group gap={6} wrap="nowrap" className={styles.who}>
         <span className={styles.faces}>
-          {mention.detail && (
-            <Avatar src={mention.avatar} size={FACE} radius="50%" alt="">
-              {mention.detail.slice(0, 1)}
-            </Avatar>
-          )}
+          {mention.detail && <NameDisc src={mention.avatar} name={mention.detail} size={FACE} />}
           <FactionTokenFace token={mention.token} size={FACE} aria-hidden />
         </span>
         {/* The line in full, for names the card's width cuts short: on hover, or on focus from the keyboard. */}

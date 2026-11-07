@@ -24,9 +24,9 @@ import type { RulesetFaqArgs, RulesetFaqPageData } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { NotFoundState } from '@app/routes/routeStates';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';

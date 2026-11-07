@@ -256,11 +256,7 @@ export function CreateGamePass({
                   onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
                   disabled={pending}
                 />
-                {shownFailure ? (
-                  <ActionError subject="Game" verb="create">
-                    {shownFailure}
-                  </ActionError>
-                ) : null}
+                <ActionError subject="Game" verb="create" error={shownFailure} />
                 <Stack gap="xs">
                   <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
                     Create game

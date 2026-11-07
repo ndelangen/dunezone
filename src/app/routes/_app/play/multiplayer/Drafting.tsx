@@ -1,5 +1,6 @@
+/* oxlint-disable-next-line no-restricted-imports -- A seat request is a ghost disc with no person in it yet. */
+import { Avatar } from '@mantine/core';
 import {
-  Avatar,
   CloseButton,
   Group,
   Indicator,
@@ -27,6 +28,7 @@ import type { PublicControls } from '@shared/play/inventory';
 import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
@@ -170,16 +172,13 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
       title={name}
       style={
         {
-          '--profile-link-avatar-size': `${size}rem`,
-          '--profile-link-initials-size': `${size * 0.4}rem`,
+          '--entity-link-media-size': `${size}rem`,
         } as CSSProperties
       }
     />
   ) : (
     <Tooltip label={name}>
-      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name}>
-        {player.name.slice(0, 1)}
-      </Avatar>
+      <NameDisc src={player.avatar} name={player.name} size={`${size}rem`} label={name} />
     </Tooltip>
   );
   return (

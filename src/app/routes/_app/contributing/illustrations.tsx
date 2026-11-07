@@ -2,8 +2,8 @@ import { Anchor, Code, Group, SimpleGrid, Stack, Text, TextInput } from '@mantin
 import { slugify } from '@shared/slugify';
 import { CodeExample } from '@ui/content/CodeExample';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
@@ -306,7 +306,7 @@ export function DeleteExample() {
             </LabeledAction>
           </>
         ) : (
-          <ConfirmDeleteButton label="Delete sample" pending={false} onConfirm={() => setDeleted(true)} />
+          <HoldAction shape="button" label="Delete sample" pending={false} onConfirm={() => setDeleted(true)} />
         )}
       </Group>
       <Text role="status" size="sm" c="dimmed">
@@ -317,7 +317,7 @@ export function DeleteExample() {
       <CodeExample
         label="The caller handles the confirmed action · TSX"
         code={
-          '<ConfirmDeleteButton\n  label="Delete sample"\n  pending={false}\n  onConfirm={() => setDeleted(true)}\n/>'
+          '<HoldAction shape="button"\n  label="Delete sample"\n  pending={false}\n  onConfirm={() => setDeleted(true)}\n/>'
         }
       />
     </Stack>

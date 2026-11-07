@@ -26,6 +26,8 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { TableWait } from '@app/widgets/tabletop/TableWait';
+
 import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
 import {
   PHASE_DISC_COLOR,
@@ -60,7 +62,6 @@ import { CompassTableContext } from './compass/compassTable';
 import { MentatRecallBackdrop } from './multiplayer/MentatRecall';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
-import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;

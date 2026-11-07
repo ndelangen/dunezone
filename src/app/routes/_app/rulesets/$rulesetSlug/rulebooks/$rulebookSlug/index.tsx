@@ -9,7 +9,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
@@ -731,7 +731,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
             />
             {data.canDelete ? (
               <Toolbar.Cluster kind="discard">
-                <ConfirmDeleteAction
+                <HoldAction
                   label="Delete Rulebook"
                   pending={remove.isPending}
                   onConfirm={() =>
@@ -760,11 +760,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {remove.error ? (
-              <ActionError subject="Rulebook" verb="delete">
-                {remove.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Rulebook" verb="delete" error={remove.error} />
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}

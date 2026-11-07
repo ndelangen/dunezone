@@ -109,3 +109,12 @@
     width: 1rem;
   }
 }
+
+/* The one sentence under the name: what the page is for. Same size and measure on every page that has one. */
+.lede {
+  margin: 0;
+  max-width: 36rem;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.5;
+  text-wrap: pretty;
+}

@@ -1,8 +1,8 @@
-import { Avatar } from '@mantine/core';
 import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat } from '@shared/play/schema';
+import { NameDisc } from '@ui/content/NameDisc';
 import type { ReactNode } from 'react';
 import { useEffect, useSyncExternalStore } from 'react';
 
@@ -70,9 +70,7 @@ function headerModel(
     token: faction ? (
       <FactionTokenFace token={factionToken(table, faction.id, names, standInToken(table, player))} size={44} />
     ) : (
-      <Avatar src={standInToken(table, player)} size={44} radius="50%" alt="">
-        {player.name.slice(0, 1)}
-      </Avatar>
+      <NameDisc src={standInToken(table, player)} name={player.name} size={44} />
     ),
     name: player.name,
     seatId: player.seat,

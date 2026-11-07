@@ -21,6 +21,7 @@ import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
@@ -55,7 +56,6 @@ import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSi
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
-import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';

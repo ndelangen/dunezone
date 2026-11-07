@@ -1,11 +1,12 @@
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { LoadError } from '@ui/block/LoadError';
-import { PageState } from '@ui/block/PageState';
 import { errorMessage } from '@ui/content/errorMessage';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
 import { isStaleClientData } from '@app/db/core/clientBoundary';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
+import type { NotFoundStateProps } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { useLivePageTitle } from './publicPage';
@@ -26,6 +27,11 @@ export interface RouteLoadErrorProps extends RouteStateFrame {
   error: unknown;
 }
 
+/*
+ * Route glue rather than a widget: these read the loader's error (whether the client is stale) and the tab title, which a widget may not.
+ * The words for a missing thing are the widget's `NotFoundState`, which a page that draws its own frame uses directly.
+ */
+
 /**
  * A route's `errorComponent` when all it has to say is that its data did not load.
  *
@@ -44,22 +50,6 @@ export function RouteLoadError({ title, size, back, what, error }: RouteLoadErro
 }
 
 const capitalised = (noun: string) => `${noun[0]?.toUpperCase() ?? ''}${noun.slice(1)}`;
-
-export interface NotFoundStateProps {
-  /** What is missing, as the page names it: "ruleset", "FAQ question", "deck". */
-  noun: string;
-  /** The address is a slug that a rename replaces, so an old link may have moved. */
-  renamed?: boolean;
-}
-
-/** The one wording for a thing that is not there, for a page that draws its own frame (the asset editors). */
-export function NotFoundState({ noun, renamed = false }: NotFoundStateProps) {
-  return (
-    <PageState kind="absent" title={`${capitalised(noun)} not found`}>
-      {`This ${noun} does not exist or was deleted.${renamed ? ' Its address may have changed after a rename.' : ''}`}
-    </PageState>
-  );
-}
 
 export interface RouteNotFoundProps extends RouteStateFrame, NotFoundStateProps {}
 

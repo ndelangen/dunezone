@@ -101,6 +101,11 @@
               },
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["Title"],
                 "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
               },
@@ -304,6 +309,11 @@
               },
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["Title"],
                 "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
               },
@@ -381,6 +391,11 @@
                 "group": ["@mantine/core"],
                 "importNames": ["Badge"],
                 "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
               },
               {
                 "group": ["@mantine/core"],

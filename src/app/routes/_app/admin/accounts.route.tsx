@@ -83,7 +83,7 @@ function AccountManagement() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Accounts" subtitle="Combine profiles and keep their sign-in methods, content and access." />
+        <PageTitle title="Accounts" lede="Combine profiles and keep their sign-in methods, content and access." />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
@@ -220,11 +220,7 @@ function MergeProfiles({
               />
             )}
           />
-          {state.error && (
-            <ActionError subject="Profiles" verb="merge">
-              {state.error}
-            </ActionError>
-          )}
+          <ActionError subject="Profiles" verb="merge" error={state.error} />
           {state.review && source && target ? (
             <>
               <Text>

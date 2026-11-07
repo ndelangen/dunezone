@@ -2,7 +2,7 @@ import { Group, Stack, Text } from '@mantine/core';
 import { MAX_TINTS } from '@shared/play/territoryTints';
 import type { TerritoryTint, TerritoryTintAction } from '@shared/play/territoryTints';
 import { Section } from '@ui/block/Section';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Eye, EyeOff, Plus } from 'lucide-react';
@@ -116,7 +116,7 @@ export function TerritoryTintsPanel({
               />
             }
             after={
-              <ConfirmDeleteAction
+              <HoldAction
                 key={removalAttempt}
                 label={`Remove ${tint.name}`}
                 verb="remove"

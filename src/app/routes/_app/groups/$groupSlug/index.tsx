@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The group's page mark is a rounded square filling its header slot, not a name disc. */
 import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
@@ -7,11 +8,12 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { FactionLink } from '@ui/content/FactionLink';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
@@ -222,11 +224,7 @@ function GroupDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {capabilities?.delete ? (
-                <ConfirmDeleteAction
-                  label="Delete group"
-                  pending={deleteGroup.isPending}
-                  onConfirm={handleDeleteGroup}
-                />
+                <HoldAction label="Delete group" pending={deleteGroup.isPending} onConfirm={handleDeleteGroup} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -236,11 +234,7 @@ function GroupDetailPage() {
         {requestError || deleteGroup.error ? (
           <Stack gap="lg" mb="lg">
             {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
-            {deleteGroup.error ? (
-              <ActionError subject="Group" verb="delete">
-                {deleteGroup.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Group" verb="delete" error={deleteGroup.error} />
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>
@@ -430,7 +424,7 @@ function MemberRow({
         ) : (
           /* No slug means no profile to link to, so the avatar has no anchor to live inside. */
           <>
-            <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
+            <NameDisc src={entry.user.avatar_url} name={entry.user.username ?? '?'} size={26} />
             <Text size="sm">{entry.user.username ?? entry.user.id}</Text>
           </>
         )}
@@ -464,7 +458,7 @@ function MemberRow({
           />
         )}
         {entry.capabilities.remove && onRemove && (
-          <ConfirmDeleteAction
+          <HoldAction
             label="Remove member"
             verb="remove"
             size="md"

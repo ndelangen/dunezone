@@ -5,7 +5,7 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
-import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -15,7 +15,6 @@ import { useReducer, useState } from 'react';
 
 import { loadAssetPage, useConvertCustomToSpice } from '@app/db/assets';
 import { useAuthoringAccountKey } from '@app/db/authoring';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
@@ -148,8 +147,10 @@ function ConversionSession({ asset, initialDraft, access }: AssetEditSessionProp
                     onClick={header.releasing(() => dispatch({ kind: 'reset' }))}
                     icon={<RotateCcw size={17} aria-hidden />}
                   />
-                  <ConfirmConvertAction
-                    target="spice card"
+                  <HoldAction
+                    verb="convert"
+                    label="Convert to spice card"
+                    hint="Hold to convert to a spice card. Keeps its decks and owner. This cannot be reversed."
                     pending={conversion.isPending}
                     disabled={blocked}
                     onConfirm={convert}
@@ -173,11 +174,7 @@ function ConversionSession({ asset, initialDraft, access }: AssetEditSessionProp
               <Text size="sm">Loading changes this draft only. Hold the conversion action when it is ready.</Text>
             </Stack>
           </Notice>
-          {conversion.error ? (
-            <ActionError subject="Card" verb="convert">
-              {mutationErrorMessage(conversion.error)}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Card" verb="convert" error={conversion.error} />
           <SpiceBoardRead
             draft={state.draft}
             render={(boardRead) => (

@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 
 import { EntityLink } from './EntityLink';
-import { nameDiscColor } from './nameDisc';
+import { nameDiscColor } from './NameDisc';
 
 export interface GroupLinkProps {
   slug: string;

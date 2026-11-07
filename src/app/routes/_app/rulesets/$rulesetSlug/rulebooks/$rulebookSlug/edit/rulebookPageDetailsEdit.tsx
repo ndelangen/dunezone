@@ -35,8 +35,8 @@ import type {
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
 import { AssetSelect } from '@ui/control/AssetSelect';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { ChevronDown, ChevronRight, Link2, Minus } from 'lucide-react';
@@ -505,7 +505,7 @@ function BlockRegionSummary({
             aria-controls={contentId}
             onClick={() => onToggle(region.key, !region.collapsed)}
           />
-          <ConfirmDeleteAction
+          <HoldAction
             key={region.blocks.at(-1)?.id ?? 'empty'}
             label={`Remove last Block from ${region.label}`}
             icon={<Minus size={15} aria-hidden />}

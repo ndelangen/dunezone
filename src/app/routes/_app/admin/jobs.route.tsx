@@ -65,10 +65,10 @@ function PublicationJobsDashboard() {
       <PageLayout.Header size="compact">
         <Stack align="center" gap="xs">
           <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
-          <PageTitle title="Publication jobs" />
-          <Text ta="center" maw={680}>
-            Inspect the durable work queue and control whether the next scheduled run may pick up pending work.
-          </Text>
+          <PageTitle
+            title="Publication jobs"
+            lede="Inspect the durable work queue and control whether the next scheduled run may pick up pending work."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
@@ -95,11 +95,7 @@ function PublicationJobsDashboard() {
                 />
               </Group>
 
-              {pickupMutation.isError ? (
-                <ActionError subject="publisher pickup" verb="update">
-                  {pickupMutation.error?.message || 'Try again in a moment.'}
-                </ActionError>
-              ) : null}
+              <ActionError subject="publisher pickup" verb="update" error={pickupMutation.error} />
 
               <Group gap="xl" align="flex-start" wrap="wrap">
                 <Count label="Pending" value={result.counts.pending} tone="pending" />

@@ -27,8 +27,7 @@ import { errorMessage } from '@ui/content/errorMessage';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -57,8 +56,8 @@ import type { AssetPageData } from '@app/db/assets';
 import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
-import { NotFoundState } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
@@ -779,7 +778,10 @@ function LoadedAssetDetail({
                 />
               ) : null}
               {page.canConvertToCustom ? (
-                <ConfirmConvertAction
+                <HoldAction
+                  verb="convert"
+                  label="Convert to custom card"
+                  hint="Hold to convert to a custom card. Keeps its decks and owner. This cannot be reversed."
                   pending={conversion.isPending}
                   disabled={pending}
                   onConfirm={() =>
@@ -797,11 +799,7 @@ function LoadedAssetDetail({
                 />
               ) : null}
               {capabilities.delete ? (
-                <ConfirmDeleteAction
-                  label={`Delete ${asset.name}`}
-                  pending={deletion.pending}
-                  onConfirm={deletion.confirm}
-                />
+                <HoldAction label={`Delete ${asset.name}`} pending={deletion.pending} onConfirm={deletion.confirm} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -811,16 +809,8 @@ function LoadedAssetDetail({
       <PageLayout.Content>
         <Stack gap="xl">
           {groupActions.error}
-          {conversion.error ? (
-            <ActionError subject="Card" verb="convert">
-              {conversion.error.message}
-            </ActionError>
-          ) : null}
-          {deletion.error ? (
-            <ActionError subject="Asset" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Card" verb="convert" error={conversion.error} />
+          <ActionError subject="Asset" verb="delete" error={deletion.error} />
           {/* The reading matter leads and the render stands in a rail beside it, the edit pages' arrangement (Norbert, 2026-08-21).
           A container's rail slims to a band: its matter is the member grid, and the preview keeps the rail company with Shipped by (Norbert, 2026-08-22). */}
           <AsymmetricSplitLayout rail={container ? 'slim' : 'reading'}>

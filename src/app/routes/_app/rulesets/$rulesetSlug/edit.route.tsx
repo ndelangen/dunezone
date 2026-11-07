@@ -28,9 +28,9 @@ import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
@@ -389,16 +389,8 @@ function RulesetEditor({
                 }
               />
 
-              {rehostFailure ? (
-                <ActionError subject="Cover" verb="store">
-                  {rehostFailure}
-                </ActionError>
-              ) : null}
-              {mutationError ? (
-                <ActionError subject="Ruleset" verb="save">
-                  {mutationError}
-                </ActionError>
-              ) : null}
+              <ActionError subject="Cover" verb="store" error={rehostFailure} />
+              <ActionError subject="Ruleset" verb="save" error={mutationError} />
             </Stack>
           </Surface>
           <RulesetRulebooks
@@ -734,11 +726,7 @@ function RulesetFactions({
     <Section id="factions" title="Factions" icon={<Layers3 size={20} aria-hidden />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? (
-            <ActionError subject="Factions" verb="update">
-              {error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Factions" verb="update" error={error} />
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
               {ordered === undefined ? 'Loading factions…' : 'Drag a faction to change its place.'}
@@ -905,11 +893,7 @@ function RulesetRulebooks({
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? (
-            <ActionError subject="Rulebooks" verb="update">
-              {error.message}
-            </ActionError>
-          ) : null}
+          <ActionError subject="Rulebooks" verb="update" error={error} />
           {rulebooks.length === 0 ? <Text c="dimmed">No Rulebooks yet.</Text> : null}
           <Stack component="ol" aria-label="Rulebooks" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
             {rulebooks.map((book, index) => (
@@ -951,7 +935,7 @@ function RulesetRulebooks({
                     icon={<ArrowDown size={16} aria-hidden />}
                   />
                   {canDelete ? (
-                    <ConfirmDeleteAction
+                    <HoldAction
                       label={`Delete ${book.name}`}
                       size="sm"
                       pending={remove.isPending}
@@ -1001,16 +985,8 @@ function RulesetAssetSlots({
         'What this ruleset puts on the table.\nChoose a board to make it available for Play. Any deck may fill any deck slot.'
       }
     >
-      {setSlot.error ? (
-        <ActionError subject="Slot" verb="fill">
-          {setSlot.error.message}
-        </ActionError>
-      ) : null}
-      {clearSlot.error ? (
-        <ActionError subject="Slot" verb="clear">
-          {clearSlot.error.message}
-        </ActionError>
-      ) : null}
+      <ActionError subject="Slot" verb="fill" error={setSlot.error} />
+      <ActionError subject="Slot" verb="clear" error={clearSlot.error} />
       {RULESET_ASSET_SLOT_ORDER.map((slot) => {
         const rule = RULESET_ASSET_SLOTS[slot];
         const held = slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);

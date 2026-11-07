@@ -1,4 +1,5 @@
-import { Avatar, Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { NameDisc } from '@ui/content/NameDisc';
 import { Pending } from '@ui/content/Pending';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -73,7 +74,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
                     active={profile.userId === selectedUserId}
                   >
                     <Group wrap="nowrap">
-                      <Avatar src={profile.avatarUrl} name={profile.username} size="sm" />
+                      <NameDisc src={profile.avatarUrl} name={profile.username ?? ''} size={26} />
                       <div>
                         <Text size="sm" fw={700}>
                           {profile.username}

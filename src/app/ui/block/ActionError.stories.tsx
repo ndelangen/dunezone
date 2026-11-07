@@ -9,7 +9,7 @@ const meta = preview.meta({
   args: {
     subject: 'Rulebook',
     verb: 'delete' as const,
-    children: 'Only the ruleset owner can delete this Rulebook.',
+    error: 'Only the ruleset owner can delete this Rulebook.',
   },
 });
 
@@ -22,5 +22,29 @@ export const Delete = meta.story({
 
 /** A lower-case subject is capitalised at the start of the title. */
 export const Save = meta.story({
-  args: { subject: 'deck', verb: 'save' as const, children: 'The server did not answer. Try again.' },
+  args: { subject: 'deck', verb: 'save' as const, error: new Error('The server did not answer. Try again.') },
+});
+
+/** A server refusal is shown in the server's own words, not the transport's wrapping around them. */
+export const ServerRefusal = meta.story({
+  args: {
+    subject: 'Group',
+    verb: 'save' as const,
+    error: Object.assign(new Error('[Request ID: 1] Server Error Uncaught ConvexError: That name is taken.'), {
+      data: 'That name is taken.',
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const alert = within(canvasElement).getByRole('alert');
+    await expect(alert).toHaveTextContent('That name is taken.');
+    await expect(alert).not.toHaveTextContent('Request ID');
+  },
+});
+
+/** No error, no alert: callers pass their mutation's error as it stands. */
+export const NoError = meta.story({
+  args: { error: null },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('alert')).toBeNull();
+  },
 });

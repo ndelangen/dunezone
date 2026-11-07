@@ -3,8 +3,10 @@ import { Stack, Text, VisuallyHidden } from '@mantine/core';
 import { Button } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkProps } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -93,7 +95,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
 }
 
 /* The page toolbar's two buttons, each the route of its catalogue (Norbert, 2026-11-01). */
-export function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
+function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   return (
     <Toolbar>
       <Toolbar.Left label="Tutorials">
@@ -112,7 +114,7 @@ export function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
 }
 
 /* The tiles, one row per part; the first row's pictures load at once. */
-export function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
   return (
     <Stack gap="xl">
       {rows.map((row, index) => (
@@ -125,5 +127,40 @@ export function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] 
         </Section>
       ))}
     </Stack>
+  );
+}
+
+/**
+ * A tutorial catalogue page, whole: its title band, the toolbar that moves between the two tracks, and the tiles in rows by part.
+ * The two tracks are one page with different words and tiles, so the route hands over its words, its track and its rows.
+ */
+export function TutorialCatalogue({
+  track,
+  title,
+  subtitle,
+  lede,
+  rows,
+}: Readonly<{
+  track: CatalogueTrack;
+  /** The page's name, its framed subtitle and its one-sentence purpose, as `PageTitle` takes them. */
+  title: string;
+  subtitle: string;
+  lede: string;
+  rows: readonly CatalogueRow[];
+}>) {
+  return (
+    <PageLayout>
+      <PageLayout.Header size="hero">
+        <Stack gap="md" miw={0} align="center" ta="center">
+          <PageTitle title={title} subtitle={subtitle} lede={lede} />
+        </Stack>
+      </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <TutorialTracks track={track} />
+      </PageLayout.Toolbar>
+      <PageLayout.Content>
+        <TutorialRows rows={rows} />
+      </PageLayout.Content>
+    </PageLayout>
   );
 }

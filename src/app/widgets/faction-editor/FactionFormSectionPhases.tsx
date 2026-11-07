@@ -10,17 +10,14 @@ import {
 } from '@shared/factions/extraPhases';
 import type { PhaseDeclaration, PhaseTarget } from '@shared/factions/extraPhases';
 import { TABLE_PHASES } from '@shared/play/phases';
-import { ListChapter } from '@ui/block/ListChapter';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { useState } from 'react';
 
-import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { assetOptionToPreviewSrc, phaseSymbolOptions } from './factionFormAssetUtils';
 import { defaultPhaseDeclaration } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { FactionListSection, useListSelection } from './FactionListSection';
 
 const symbolSelectOptions = stockAssetOptions(phaseSymbolOptions);
 
@@ -255,75 +252,41 @@ export function FactionFormSectionPhases({
   selectedIndex?: number;
   onSelectedIndexChange?: (index: number) => void;
 }) {
-  const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
-  const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
   return (
     <form.Field name="extraPhases" mode="array">
       {(field) => {
         const phases = field.state.value ?? [];
-        const count = phases.length;
-        const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-        const sortablePrefix = 'phases-';
         return (
-          <ListChapter
+          <FactionListSection
             title="Faction phases"
             help={`Phases this faction adds to the game.\nBefore a setup step: runs once. Before a turn phase: runs every turn.\nSame step: by priority, then storm order, then this list's order.\nPriority ${DEFAULT_PHASE_PRIORITY} is the default.`}
             note={
-              count === 0
+              phases.length === 0
                 ? {
                     title: 'No faction phases',
                     text: 'This faction adds no phases. The game runs the standard setup and turn.',
                   }
                 : null
             }
-            actions={
-              <>
-                <ListLengthActions
-                  removeLabel="Remove last faction phase"
-                  addLabel="Add faction phase"
-                  removeDisabled={count === 0}
-                  onRemove={() => {
-                    const lastIndex = count - 1;
-                    if (lastIndex < 0) {
-                      return;
-                    }
-                    if (currentSelectedIndex >= lastIndex) {
-                      selectIndex(Math.max(0, lastIndex - 1));
-                    }
-                    field.removeValue(lastIndex);
-                  }}
-                  onAdd={() => {
-                    field.pushValue(defaultPhaseDeclaration());
-                    selectIndex(count);
-                  }}
-                />
-              </>
-            }
+            noun="faction phase"
+            sortablePrefix="phases-"
+            values={phases}
+            describe={(declaration, index) => ({
+              label: phaseRowLabel(declaration, index),
+              description:
+                Object.keys(phaseDeclarationProblems(declaration)).length > 0
+                  ? 'Needs attention'
+                  : `Before ${phaseTargetLabel(declaration.before)}, priority ${declaration.priority}`,
+            })}
+            selected={selected}
+            onSelect={select}
+            onAdd={() => field.pushValue(defaultPhaseDeclaration())}
+            onRemoveLast={() => field.removeValue(phases.length - 1)}
+            onMove={(from, to) => field.handleChange(arrayMove(phases, from, to))}
           >
-            {count > 0 ? (
-              <>
-                <FactionCollectionShelf
-                  label="Ordered faction phases"
-                  sortablePrefix={sortablePrefix}
-                  selectedIndex={safeSelectedIndex}
-                  onSelectedIndexChange={selectIndex}
-                  items={phases.map((declaration, index) => {
-                    const invalid = Object.keys(phaseDeclarationProblems(declaration)).length > 0;
-                    return {
-                      id: `${sortablePrefix}${index}`,
-                      label: phaseRowLabel(declaration, index),
-                      description: invalid
-                        ? 'Needs attention'
-                        : `Before ${phaseTargetLabel(declaration.before)}, priority ${declaration.priority}`,
-                    };
-                  })}
-                  onMove={(from, to) => field.handleChange(arrayMove(phases, from, to))}
-                />
-                <PhaseCard form={form} index={safeSelectedIndex} />
-              </>
-            ) : null}
-          </ListChapter>
+            {(index) => <PhaseCard form={form} index={index} />}
+          </FactionListSection>
         );
       }}
     </form.Field>

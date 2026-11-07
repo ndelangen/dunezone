@@ -4,7 +4,7 @@ import { ASSET_TYPE_KEYS, holdsBundleMembership } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -13,7 +13,6 @@ import { useReducer, useState } from 'react';
 import { useAuthoringAccountKey } from '@db/authoring';
 import { useAssetPage, useSetMemberCount, useUpdateAsset } from '@app/db/assets';
 import type { AssetPageData, AssetPublicPage } from '@app/db/assets';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
@@ -23,13 +22,7 @@ import { bundleDraftWarnings, BundleEditor, INITIAL_BUNDLE_MEMORY } from '@app/w
 import type { BundleChapter, BundleDraft, BundleMemory } from '@app/widgets/bundle-editor/BundleEditor';
 import { BundleAsset as BundleAssetSchema } from '@game/data/objects';
 
-import {
-  AssetEditChecks,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 
 /** Every token type a bundle may hold. A bundle mixes shapes freely, which is the point of it. */
 const TOKEN_TYPES = ASSET_TYPE_KEYS.filter(holdsBundleMembership);
@@ -184,25 +177,17 @@ function BundleEditSession({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete bundle" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject="bundle" error={updateAsset.error} />
-          {deletion.error ? (
-            <ActionError subject="Bundle" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject="bundle" error={updateAsset.error} />
+          <ActionError subject="Bundle" verb="delete" error={deletion.error} />
           {groupActions.error}
-          {setCount.error ? (
-            <ActionError subject="bundle contents" verb="change">
-              {mutationErrorMessage(setCount.error)}
-            </ActionError>
-          ) : null}
+          <ActionError subject="bundle contents" verb="change" error={setCount.error} />
           <BundleEditor
             nameField={nameField}
             draft={state.data}

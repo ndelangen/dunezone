@@ -161,10 +161,7 @@ function ImportExportPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <PageTitle
-          title="Import and export"
-          subtitle="Move authored content as JSON, with a preview before you write."
-        />
+        <PageTitle title="Import and export" lede="Move authored content as JSON, with a preview before you write." />
       </PageLayout.Header>
       <PageLayout.Content>
         {viewer.kind === 'signed-out' ? (

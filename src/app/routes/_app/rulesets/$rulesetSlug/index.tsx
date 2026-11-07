@@ -1,4 +1,5 @@
 /* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
+/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
 import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
@@ -19,7 +20,7 @@ import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
@@ -647,11 +648,7 @@ function RulesetDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {actionVisibility.canDelete ? (
-                <ConfirmDeleteAction
-                  label="Delete ruleset"
-                  pending={deleteRuleset.isPending}
-                  onConfirm={handleDelete}
-                />
+                <HoldAction label="Delete ruleset" pending={deleteRuleset.isPending} onConfirm={handleDelete} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -666,11 +663,7 @@ function RulesetDetailPage() {
                   {routeNotice.message}
                 </Notice>
               ) : null}
-              {mutationError ? (
-                <ActionError subject="The change" verb="save">
-                  {mutationError}
-                </ActionError>
-              ) : null}
+              <ActionError subject="The change" verb="save" error={mutationError} />
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">

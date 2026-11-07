@@ -24,10 +24,11 @@ function PrivacyPage() {
       <PageLayout.Header>
         <SimpleGrid cols={{ base: 1, sm: 2 }} maw="58rem" spacing="xl" w="100%">
           <Stack gap="sm" justify="center">
-            <PageTitle eyebrow="Public and private" title="Privacy" />
-            <Text size="lg">
-              Signing in creates a public profile. Anything you publish can be seen and shared by anyone.
-            </Text>
+            <PageTitle
+              eyebrow="Public and private"
+              title="Privacy"
+              lede="Signing in creates a public profile. Anything you publish can be seen and shared by anyone."
+            />
           </Stack>
           <Card padding="lg" title="Two firm promises">
             <Stack gap="sm">

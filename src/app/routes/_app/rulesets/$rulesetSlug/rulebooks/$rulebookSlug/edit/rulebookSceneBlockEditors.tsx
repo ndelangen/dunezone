@@ -10,7 +10,7 @@ import { createContext, lazy, useContext } from 'react';
 import { useArrakisFace } from '@app/db/arrakis';
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
-import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
+import { BattleSourceControl, BattleStepEdit, TroopChoice } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import { RulebookBoardMarkupFields, useRulebookMarkupUi } from './rulebookBoardMarkup';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
@@ -122,13 +122,6 @@ function TroopFields({
   onChange: (fields: Partial<typeof value>) => void;
 }) {
   const troops = value.factionId ? (references.factionsById[value.factionId]?.troops ?? []) : [];
-  const selected = troops.find((troop) => troop.troopId === value.troopId);
-  const options = troops.flatMap((troop) =>
-    troop.troopId ? [{ value: troop.troopId, label: troop.name || 'Unnamed troop' }] : []
-  );
-  if (value.troopId && !options.some((option) => option.value === value.troopId)) {
-    options.push({ value: value.troopId, label: 'Unavailable troop' });
-  }
   return (
     <Stack gap="sm">
       <FactionControl
@@ -138,38 +131,14 @@ function TroopFields({
         onChange={(factionId) => onChange({ factionId, troopId: undefined, face: 'front' })}
       />
       <Group grow align="start">
-        <ControlBlock
-          title="Troop"
-          input={
-            <Select
-              aria-label={`${label} troop`}
-              placeholder="Choose troop"
-              data={options}
-              value={value.troopId ?? null}
-              clearable
-              onChange={(troopId) => onChange({ troopId: troopId ?? undefined, face: 'front' })}
-            />
-          }
-        />
-        <ControlBlock
-          title="Face"
-          input={
-            <Select
-              aria-label={`${label} face`}
-              value={value.face}
-              data={[
-                { value: 'front', label: selected?.name || 'Front' },
-                ...(selected?.back || value.face === 'back'
-                  ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
-                  : []),
-              ]}
-              onChange={(face) => {
-                if (face === 'front' || face === 'back') {
-                  onChange({ face });
-                }
-              }}
-            />
-          }
+        <TroopChoice
+          troops={troops}
+          troopId={value.troopId}
+          face={value.face}
+          troopLabel={`${label} troop`}
+          faceLabel={`${label} face`}
+          clearable
+          onChange={onChange}
         />
         <ControlBlock
           title="Count"

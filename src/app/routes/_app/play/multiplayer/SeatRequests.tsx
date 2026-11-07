@@ -7,7 +7,7 @@ import { rosterSeat } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Armchair, ChevronLeft, ChevronRight, Radio, Settings, X } from 'lucide-react';
@@ -462,10 +462,11 @@ export function GameMenu({
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
         {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
         {!isSpectator(table) && (
-          <ConfirmDeleteMenuItem
+          <HoldAction
+            shape="menu-item"
             key={table.viewer.viewerSeat}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
-            holdingVerb="Leaving"
+            verb="leave"
             closeMenuOnClick={false}
             disabled={!seated || seatLocked(table)}
             onConfirm={() => client.command({ kind: 'seat-depart' })}

@@ -32,8 +32,8 @@ import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
@@ -644,7 +644,7 @@ export function BoardEditor({
             {pointRemovalReason(state.board, state.activeNode) && (
               <Text size="xs">{pointRemovalReason(state.board, state.activeNode)}</Text>
             )}
-            <ConfirmDeleteAction
+            <HoldAction
               label="Remove selected point"
               pending={false}
               disabled={Boolean(pointRemovalReason(state.board, state.activeNode))}
@@ -680,7 +680,7 @@ export function BoardEditor({
                 }
               />
             ))}
-            <ConfirmDeleteAction
+            <HoldAction
               label="Delete shared edge"
               pending={false}
               disabled={edge.id.startsWith('rim') || edge.fixed}

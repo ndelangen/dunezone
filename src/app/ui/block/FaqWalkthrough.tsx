@@ -1,4 +1,5 @@
-import { Avatar, Button, Group, Stack, Text } from '@mantine/core';
+import { Button, Group, Stack, Text } from '@mantine/core';
+import { NameDisc } from '@ui/content/NameDisc';
 import { BadgeCheck, EllipsisVertical, MousePointer2, Pause, Play } from 'lucide-react';
 import { useLayoutEffect, useId, useRef, useState } from 'react';
 
@@ -184,9 +185,7 @@ function ExampleAuthor({ name, image, label }: Readonly<{ name: string; image?: 
     <Stack gap="xs" className={styles.author}>
       {label ? <Eyebrow>{label}</Eyebrow> : null}
       <div className={styles.identity}>
-        <Avatar src={image} alt="" size={56} radius="50%">
-          {name.slice(0, 2).toUpperCase()}
-        </Avatar>
+        <NameDisc name={name} src={image} size={56} />
         <Text fw={600}>{name}</Text>
       </div>
     </Stack>

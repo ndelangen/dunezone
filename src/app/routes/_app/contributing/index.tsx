@@ -115,8 +115,10 @@ function ContributingPage() {
     <PageLayout>
       <PageLayout.Header>
         <Stack gap="sm">
-          <PageTitle title="Contributing" />
-          <Text size="lg">A guide to the code, deployment, technical names and design decisions.</Text>
+          <PageTitle
+            title="Contributing"
+            lede="A guide to the code, deployment, technical names and design decisions."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>

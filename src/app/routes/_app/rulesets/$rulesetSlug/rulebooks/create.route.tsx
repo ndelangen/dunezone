@@ -370,11 +370,7 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       <Text size="sm" c="dimmed">
         Creates a saved draft and matching Edition 1. The new Rulebook opens with no local changes.
       </Text>
-      {create.error ? (
-        <ActionError subject="Rulebook" verb="create">
-          {create.error.message}
-        </ActionError>
-      ) : null}
+      <ActionError subject="Rulebook" verb="create" error={create.error} />
       <Group gap="sm">
         <LabeledAction
           type="submit"

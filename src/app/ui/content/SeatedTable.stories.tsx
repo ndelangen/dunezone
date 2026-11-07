@@ -7,7 +7,7 @@ import { expect, within } from 'storybook/test';
 
 import { Token } from '@game/assets/faction/token/Token';
 
-import { nameDiscColor } from './nameDisc';
+import { nameDiscColor } from './NameDisc';
 import { SeatedTable } from './SeatedTable';
 import type { TableSeat } from './SeatedTable';
 

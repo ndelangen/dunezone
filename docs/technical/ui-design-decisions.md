@@ -220,8 +220,8 @@ room: the faction editor's workbench asks `faction-review-stage`, the review's s
 editor, and its sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a
 component that asks `page-frame` shows its widest layout there.
 
-A faction list is sized by its column count, not by its card width. `FactionList` declares
-`faction-list` and takes its count from its own width: two columns below 30rem, three from 30rem,
+A faction list is sized by its column count, not by its card width. `TileGrid` with the `card`
+size declares `tile-grid` and takes its count from its own width: two columns below 30rem, three from 30rem,
 and from 48rem as many as fit at 11.5rem or wider, which keeps a card around 200px. A card fills its
 column and sets no width, and below the same 11.5rem of its own width it takes the compact caption.
 
@@ -485,12 +485,11 @@ Enter. A question-and-answer confirm asked for a second decision; the hold asks 
 intent, which is one interaction and cannot be clicked through on autopilot. On success the page
 navigates to the deleted thing's parent, since its own address just died.
 
-*Convention. The kit carries it in three shapes, sharing one hold:
-[`ConfirmDeleteAction`](../../src/app/ui/control/ConfirmDeleteAction.tsx) for the icon triggers and
-[`ConfirmDeleteButton`](../../src/app/ui/control/ConfirmDeleteButton.tsx) for the full-width one on
-the account-deletion page, and
-[`ConfirmDeleteMenuItem`](../../src/app/ui/control/ConfirmDeleteMenuItem.tsx) for a delete inside a
-menu, such as deleting a piece from a Play table. Every delete goes through one of them. The Play compass's
+*Convention. The kit carries it as one component,
+[`HoldAction`](../../src/app/ui/control/HoldAction.tsx), with a verb (delete, remove, convert,
+publish, leave, and so on) and a shape: an icon trigger in toolbars, a full-width button on the
+account-deletion page, or a menu item, such as deleting a piece from a Play table. Every held action
+goes through it; a new verb is one more entry in its word table. The Play compass's
 "Clear all chats" suggestion holds the same five seconds through the compass's own keys, since its search field
 keeps focus ([`useHeldSuggestion`](../../src/app/routes/_app/play/compass/useHeldSuggestion.ts)). One `window.confirm` survives, at
 the asset move on the group page, which is not a delete and is pending its own treatment.*

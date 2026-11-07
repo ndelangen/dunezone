@@ -1,7 +1,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import type { ReactNode } from 'react';
@@ -15,7 +15,7 @@ import type { LoadPreset } from '@app/pickers/assetLoadSource';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import type { EditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 
-import { AssetEditChecks, SaveErrorAlert, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
 import type { AssetEditAccess, AssetEditChecksProps } from '../../../assetEditorStates';
 
 /* What the card edit page is built from: the checks before a session opens, the save, and the page around the workbench; `CardTypeEditPage` holds the session. */
@@ -155,19 +155,15 @@ export function CardEditFrame<Draft extends { name: string }>({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label={`Delete ${noun}`} pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject={assetNoun(type)} error={saveError} />
-          {deletion.error ? (
-            <ActionError subject={assetNoun(type)} verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject={assetNoun(type)} error={saveError} />
+          <ActionError subject={assetNoun(type)} verb="delete" error={deletion.error} />
           {groupActions.error}
           {children}
         </WorkbenchLayout>

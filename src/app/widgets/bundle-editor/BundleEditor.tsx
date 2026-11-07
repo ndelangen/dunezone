@@ -2,8 +2,8 @@ import { Box, Group, Select, Stack, Text, TextInput } from '@mantine/core';
 import type { BundleAsset } from '@shared/assets/schema';
 import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -281,7 +281,7 @@ export function BundleEditor({
                               onCommit={(count) => onCountChange?.(member.token.id, count)}
                             />
                             {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                            <ConfirmDeleteAction
+                            <HoldAction
                               label={`Remove ${member.token.name}`}
                               verb="remove"
                               pending={countPending && removingId === member.token.id}

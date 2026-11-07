@@ -7,7 +7,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -24,13 +24,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
 
-import {
-  AssetEditChecks,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 import { LoadedTokenDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedTokenBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
@@ -224,19 +218,15 @@ function TokenEditSession({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert subject="token" error={updateAsset.error} />
-          {deletion.error ? (
-            <ActionError subject="Token" verb="delete">
-              {deletion.error.message}
-            </ActionError>
-          ) : null}
+          <ActionError verb="save" subject="token" error={updateAsset.error} />
+          <ActionError subject="Token" verb="delete" error={deletion.error} />
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
             <Notice tone="caution" title="No token picked" live>

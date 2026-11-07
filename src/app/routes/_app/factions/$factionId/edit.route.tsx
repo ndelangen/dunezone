@@ -6,7 +6,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
@@ -230,7 +230,7 @@ function FactionEditPage() {
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
               canDelete ? (
-                <ConfirmDeleteAction
+                <HoldAction
                   label="Delete faction"
                   pending={deleteFaction.isPending}
                   onConfirm={() =>
@@ -248,11 +248,7 @@ function FactionEditPage() {
                 {routeNotice.message}
               </Notice>
             ) : null}
-            {deleteFaction.error ? (
-              <ActionError subject="Faction" verb="delete">
-                {deleteFaction.error.message}
-              </ActionError>
-            ) : null}
+            <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
             <FactionEditor
               nameField={nameField}
               key={faction._id}
