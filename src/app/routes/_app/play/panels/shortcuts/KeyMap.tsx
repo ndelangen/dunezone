@@ -33,6 +33,15 @@ export function Caption({ entry, keyName }: Readonly<{ entry: ShortcutEntry; key
   );
 }
 
+/* A key's cap; a word on a one-width key (Esc, Tab, Ctrl, Alt) shrinks to fit when the keyboard is pinned narrow, while Space and Shift have room. */
+function Cap({ keyName, width }: Readonly<{ keyName: string; width: number }>) {
+  return (
+    <span className={styles.letter} data-word={(keyName.length > 1 && width < 2) || undefined}>
+      {keyName}
+    </span>
+  );
+}
+
 type KeyMapProps = Readonly<{
   /** What holds at the table: each key shows what it does now, and keys that only work now glow. */
   now: readonly Now[];
@@ -66,11 +75,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
   if (all.length === 0) {
     return (
       <span className={styles.key} style={{ flexGrow: width }} data-blank={!keyName || undefined} aria-hidden>
-        {keyName && (
-          <span className={styles.letter} data-word={keyName.length > 1 || undefined}>
-            {keyName}
-          </span>
-        )}
+        {keyName && <Cap keyName={keyName} width={width} />}
       </span>
     );
   }
@@ -99,9 +104,7 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
         onClick={() => onFocus(keyName)}
       >
         <PressFlash pressed={pressed} keys={[keyName]}>
-          <span className={styles.letter} data-word={keyName.length > 1 || undefined}>
-            {keyName}
-          </span>
+          <Cap keyName={keyName} width={width} />
         </PressFlash>
         {/* Keyed by the meaning, so a key that changes meaning fades its new word in. */}
         <span key={shown.id} className={styles.caption}>
