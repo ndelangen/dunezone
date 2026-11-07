@@ -235,4 +235,11 @@ const learned = [
   'The gear menu holds the settings and Copy game link',
 ];
 
-export const welcome: ChapterScript = { slug: 'welcome', checkpoint: 'turn-1-storm', tasks, learned };
+/* Welcome shows the table before any troops: the board, the faction tokens and the trackers (Norbert, 2026-11-07). */
+export const welcome: ChapterScript = {
+  slug: 'welcome',
+  checkpoint: 'turn-1-storm',
+  withoutTroops: true,
+  tasks,
+  learned,
+};

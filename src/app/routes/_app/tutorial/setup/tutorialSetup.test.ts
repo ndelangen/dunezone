@@ -1,3 +1,4 @@
+import { isTroopStack } from '@shared/play/troop';
 import { TUTORIAL_CHECKPOINTS, TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import { describe, expect, test } from 'vite-plus/test';
 
@@ -21,6 +22,22 @@ describe('the tutorial setup', () => {
       expect(snapshot.table.pieces.length).toBeGreaterThan(0);
     }
     table.dispose();
+  });
+
+  test('takes only the troop stacks off a chapter without troops', () => {
+    const recorded = setup as unknown as TutorialSetup;
+    const full = startAt(recorded, 'turn-1-storm', 'https://dune.zone').stored;
+    const bare = startAt(recorded, 'turn-1-storm', 'https://dune.zone', { withoutTroops: true }).stored;
+    const others = full.table.pieces.filter((piece) => !isTroopStack(piece));
+    expect(full.table.pieces.length).toBeGreaterThan(others.length);
+    expect(bare.table.pieces).toEqual(others);
+    expect(Object.keys(bare.versions).sort()).toEqual(others.map((piece) => piece.id).sort());
+  });
+
+  test('refuses a chapter without troops before the deal', () => {
+    expect(() =>
+      startAt(setup as unknown as TutorialSetup, 'drafting', 'https://dune.zone', { withoutTroops: true })
+    ).toThrow(/before the deal/);
   });
 
   test('shows only the site’s own published images', () => {
