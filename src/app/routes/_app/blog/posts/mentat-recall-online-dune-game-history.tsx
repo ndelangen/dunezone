@@ -1,6 +1,7 @@
 import { Section } from '@ui/block/Section';
 
-import { Figure, FigureRow, Lead, Paragraph, PostLink } from '../postContent';
+import { Figure, FigureRow, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
+import { TutorialEmbed } from '../TutorialEmbed';
 
 const FOLDER = '/web/blog/mentat-recall-online-dune-game-history';
 
@@ -19,12 +20,12 @@ export default function Post() {
       <Paragraph>
         Mentat recall is how dune.zone handles both: the whole table looks back together, or nobody does.
       </Paragraph>
-      <Figure
-        imageKey={`${FOLDER}/recall-table.jpg`}
-        alt="The dune.zone game table during a Mentat recall: the board in cool blue tones with a faint diagonal Mentat recall pattern, two players' pointers on the board and the Shared history slider at the bottom"
-        aspect={1280 / 2048}
-        caption="A table in Mentat recall. The board is frozen at an earlier checkpoint, and everyone sees the same one."
-      />
+      <WideFigure caption="The tutorial's practice table, live, in Mentat recall. Drag the Shared history slider to move through two turns of its game.">
+        <TutorialEmbed
+          src="/tutorial/mentat-recall?step=9"
+          title="The Mentat recall chapter of the dune.zone tutorial, at its Shared history task"
+        />
+      </WideFigure>
       <NotesSection />
       <AskSection />
       <FreezeSection />
