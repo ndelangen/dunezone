@@ -118,3 +118,9 @@
   line-height: 1.5;
   text-wrap: pretty;
 }
+
+/* On a hero band the lede sits straight on the artwork, so it takes the inverse ink and a soft shadow, like the name above it. */
+:global([data-page-layout-header-size="hero"]) .lede {
+  color: var(--color-inverse);
+  text-shadow: 0 2px 16px rgb(from var(--color-shadow) r g b / 65%);
+}

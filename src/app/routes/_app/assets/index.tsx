@@ -309,6 +309,7 @@ function AssetsLandingPage() {
       <PageLayout.Content>
         {/* No width cap: the sections span the content column, so their edges align with the masthead band. */}
         <Stack gap="md">
+          {/* Not a PageTitle: the band here is the card fan, and it is absent while there are no treachery cards, so the name sits on the paper under it. */}
           <Stack gap={2} align="center">
             <Eyebrow>Community assets</Eyebrow>
             <Title order={1}>Assets</Title>

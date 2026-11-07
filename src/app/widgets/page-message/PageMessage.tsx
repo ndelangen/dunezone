@@ -2,12 +2,13 @@ import { Stack } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { LinkComponentProps, RegisteredRouter } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import clsx from 'clsx';
-import { ArrowLeft, House } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 
 type BackProps<
@@ -49,7 +50,10 @@ function Back<
 /** The way home, for a page with no nearer place to go back to: one glyph and one wording wherever it is offered. */
 function Home(): ReactElement {
   return (
-    <LabeledAction icon={<House size={16} />} renderRoot={(rootProps) => <Link {...rootProps} to="/" />}>
+    <LabeledAction
+      icon={<TopicIcon topic="home" size={16} />}
+      renderRoot={(rootProps) => <Link {...rootProps} to="/" />}
+    >
       Go home
     </LabeledAction>
   );

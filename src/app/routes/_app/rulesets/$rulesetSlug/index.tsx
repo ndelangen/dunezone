@@ -32,7 +32,6 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   CheckCircle2,
-  CircleHelp,
   EllipsisVertical,
   FileDown,
   FileText,
@@ -286,7 +285,7 @@ function RulesetFaqPreview({
   return (
     <Section
       id="faq"
-      icon={<CircleHelp size={20} aria-hidden />}
+      icon={<TopicIcon topic="faq" size={20} />}
       title="Community FAQ"
       help="Browse community questions and accepted answers."
     >
@@ -494,7 +493,7 @@ function RulesetDetailPage() {
     },
     {
       key: 'questions',
-      icon: <CircleHelp size={17} aria-hidden />,
+      icon: <TopicIcon topic="faq" size={17} />,
       value: faqCount,
       label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
     },

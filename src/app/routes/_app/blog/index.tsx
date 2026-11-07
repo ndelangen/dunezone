@@ -30,7 +30,7 @@ function BlogPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <div className={`${styles.hero} ${styles.title}`}>
+        <div className={styles.hero}>
           <PageTitle
             eyebrow="Developer blog"
             title="Building Dune Zone"
