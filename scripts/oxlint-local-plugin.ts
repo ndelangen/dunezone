@@ -771,7 +771,7 @@ const formErrorRule: Rule = {
 const EMPTY_NOTE_RULE_NAME = 'empty-note';
 
 /* An absence said as one line: it opens with "No", "None", "Nothing" or "Nobody", or says something has no part yet. */
-const EMPTY_LINE = /^(?:No|None|Nothing|Nobody)\b|\bno\b.*\byet\.$/i;
+const EMPTY_LINE = /^(?:No|None|Nothing|Nobody)\b|\bno\b.*\byet\.?$/i;
 
 /**
  * Keeps every "nothing here yet" line on the kit's EmptyNote, which owns its size and ink.
@@ -814,8 +814,10 @@ const emptyNoteRule: Rule = {
             attribute.type === 'JSXAttribute' &&
             attribute.name.type === 'JSXIdentifier' &&
             attribute.name.name === 'c' &&
-            attribute.value?.type === 'Literal' &&
-            attribute.value.value === 'dimmed'
+            ((attribute.value?.type === 'Literal' && attribute.value.value === 'dimmed') ||
+              (attribute.value?.type === 'JSXExpressionContainer' &&
+                attribute.value.expression.type === 'Literal' &&
+                attribute.value.expression.value === 'dimmed'))
         );
         if (!dimmed) {
           return;
