@@ -39,7 +39,11 @@ export async function handleBundleAssetRequest(
     void response.body?.cancel().catch(() => undefined);
     return new Response(null, {
       status: 304,
-      headers: { ETag: etag, 'Cache-Control': IMMUTABLE_BUNDLE_CACHE_CONTROL },
+      headers: {
+        ETag: etag,
+        'Cache-Control': IMMUTABLE_BUNDLE_CACHE_CONTROL,
+        ...(response.headers.has('Vary') ? { Vary: response.headers.get('Vary')! } : {}),
+      },
     });
   }
   const delivered = new Response(response.body, response);
