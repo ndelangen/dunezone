@@ -25,10 +25,10 @@ import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
 import { useEffect, useId } from 'react';
 import type { Dispatch, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
 import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
+import { DepartureCover } from '@app/shell/DepartureCover';
 import { beginDeparture, endDeparture, leaveDeparture } from '@app/shell/voyage';
 
 import styles from './CreateGamePass.module.css';
@@ -274,9 +274,7 @@ export function CreateGamePass({
           </TicketLayout.Stub>
         </TicketLayout>
       </form>
-      {departing
-        ? createPortal(<div className={styles.departure} data-voyage="departing" aria-hidden />, document.body)
-        : null}
+      {departing ? <DepartureCover /> : null}
     </>
   );
 }

@@ -11,12 +11,3 @@
   --board-seats-ground: var(--ticket-ground);
   --board-seats-accent: var(--ticket-accent);
 }
-
-/* While the game is created the page departs for its table: the shell fades the page away and raises the planet
-   (AppRoot and AppBackground read `data-voyage`). This element only marks the departure and keeps the fading page from
-   taking clicks. */
-.departure {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-}

@@ -18,6 +18,7 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { loadHostedTable } from './hostedTableChunk';
+import { DEPARTURE_MS } from './TableDepartureLink';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -26,8 +27,6 @@ export const Route = createFileRoute('/_app/play/create')({
 });
 
 const TITLE = 'Create a game';
-/* As long as the page's fade on departure takes (AppRoot's stylesheet); the planet keeps rising into the game page. */
-const DEPARTURE_MS = 700;
 
 const REFUSALS = {
   not_authorized: 'Your account cannot create a game while signed out, suspended or deleted.',

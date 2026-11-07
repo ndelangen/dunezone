@@ -11,6 +11,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { hasLobbyGames, PlayLobbyGames, PlayLobbyHeader, PlayLobbyToolbar } from '@app/widgets/play-lobby/PlayLobby';
 import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
+import { TableDepartureLink } from './TableDepartureLink';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 /*
@@ -25,9 +26,8 @@ export const Route = createFileRoute('/_app/play/')({
 
 const createLink = (rootProps: object) => <Link {...rootProps} to="/play/create" />;
 const tutorialLink = (rootProps: object) => <Link {...rootProps} to="/tutorial" />;
-const gameLink = (address: string) => (rootProps: object) => (
-  <Link {...rootProps} to="/play/$gameId" params={{ gameId: address }} />
-);
+/* Opening a game departs for its table as creating one does: the lobby fades while the planet rises into the table's frame. */
+const gameLink = (address: string) => (rootProps: object) => <TableDepartureLink {...rootProps} gameId={address} />;
 
 function PlayLobbyPage() {
   const { data: lobby } = useLobbyGames();

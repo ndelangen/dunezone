@@ -10,6 +10,7 @@ import { StorybookPage } from '../../storybook';
 import { pageStoryMeta } from '../../storybookConfig';
 import { chooseRuleset, creatable } from './create.route.stories.fixture';
 import { drafting, install, session } from './game.stories.fixture';
+import { signedIn } from './index.stories.fixture';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { productTransport } from './product.stories.fixture';
 
@@ -74,6 +75,27 @@ export const CreateToSeating = meta.story({
     /* A real table takes a few seconds to prepare. */
     await pause(3000);
     await provision();
+    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"]')).not.toBeNull(), {
+      timeout: 60_000,
+    });
+  },
+});
+
+/**
+ * Joining a game already under way: the player opens a table with a free seat from the lobby.
+ * The lobby departs as the create page does, the planet rises into the table's frame, and the table opens out of it onto the seats.
+ */
+export const LobbyToSeating = meta.story({
+  args: { path: '/play' },
+  parameters: signedIn,
+  beforeEach: () => {
+    history = createMemoryHistory({ initialEntries: ['/play'] });
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const open = await page.findByRole('link', { name: 'Open Gom Jabbar party' }, { timeout: 30_000 });
+    await pause(1500);
+    await userEvent.click(open);
     await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"]')).not.toBeNull(), {
       timeout: 60_000,
     });
