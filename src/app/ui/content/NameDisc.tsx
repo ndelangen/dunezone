@@ -40,7 +40,8 @@ export function NameDisc({ name, src, size, ring, label, style, ref, ...rest }: 
       src={src || null}
       size={length}
       radius="50%"
-      alt=""
+      /* The image is decorative, but Mantine copies `alt` onto the initial's placeholder as a title, so only an image gets one. */
+      alt={src ? '' : undefined}
       styles={{ placeholder: { fontSize: `max(${MIN_INITIAL_PX}px, calc(${length} * 0.4))`, fontWeight: 600 } }}
       style={{ ...(ring ? { border: `1px solid ${ring}` } : null), flexShrink: 0, ...style }}
     >

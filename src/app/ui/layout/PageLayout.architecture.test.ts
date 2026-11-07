@@ -31,10 +31,14 @@ function mountsPageLayout(source: string): boolean {
 function delegatesToPageLayout(path: string, source: string): boolean {
   const directory = dirname(path);
   return (
-    [...source.matchAll(/import\s+\{([^}]+)\}\s+from\s+'(\.[^']+)'/g)]
+    [...source.matchAll(/import\s+\{([^}]+)\}\s+from\s+'(\.[^']+|@app\/[^']+)'/g)]
       .flatMap((match) => {
         const names = (match[1] ?? '').split(',').map((name) => name.replace(/\s+as\s+\w+/, '').trim());
-        const base = resolve(directory, match[2] ?? '');
+        const specifier = match[2] ?? '';
+        /* A shared widget is imported by its `@app/` alias rather than a relative path. */
+        const base = specifier.startsWith('@app/')
+          ? resolve(appDirectory, specifier.slice('@app/'.length))
+          : resolve(directory, specifier);
         return [`${base}.tsx`, `${base}/index.tsx`].map((candidate) => ({ candidate, names }));
       })
       .filter(({ candidate }) => existsSync(candidate))
