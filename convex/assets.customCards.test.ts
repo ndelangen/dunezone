@@ -100,3 +100,35 @@ test('custom card composition limits reject oversized saves without changing the
   }
   expect((await assetPageAs(t, { type: 'card-custom', slug: created.slug }))?.asset.data).toEqual(publishingCustomCard);
 });
+
+test('a deck refuses a new kind of card past the 500 every reader shows', async () => {
+  const t = applicationTest();
+  const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Creator' }));
+  const owner = t.withIdentity({ subject: ownerId });
+  const card = await owner.mutation(api.assets.create, { type: 'card-custom', data: publishingCustomCard });
+  const deck = await owner.mutation(api.assets.create, {
+    type: 'deck',
+    data: { name: 'Full deck', about: '', cardback: publishingCustomDeckCardback },
+  });
+  await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: card.id, count: 1 });
+  /* The other 499 rows only need to exist: the cap counts rows, not what they point at. */
+  await t.run(async (ctx) => {
+    for (let index = 0; index < 499; index += 1) {
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: deck.id,
+        to_asset_id: deck.id,
+        kind: 'deck-card',
+        count: 1,
+      });
+    }
+  });
+  const another = await owner.mutation(api.assets.create, {
+    type: 'card-custom',
+    data: { ...publishingCustomCard, name: 'One too many' },
+  });
+  await expect(
+    owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: another.id, count: 1 })
+  ).rejects.toThrow('at most 500');
+  /* Changing a card it already holds still works. */
+  await owner.mutation(api.assets.setMemberCount, { container_id: deck.id, member_id: card.id, count: 2 });
+});
