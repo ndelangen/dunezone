@@ -113,7 +113,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <CallToAction size="sm" tone="artwork" direction="down" href="#play-preview">
+            <CallToAction tone="artwork" direction="down" href="#play-preview">
               Take a sneak peek
             </CallToAction>
             <LabeledAction

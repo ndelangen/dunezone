@@ -162,3 +162,30 @@ describe("PublishedImage as a page's main image", () => {
     container.remove();
   });
 });
+
+describe('PublishedImage asks for a copy sized to its tile', () => {
+  const card = '/published/cards/j57c8t9m2q4w6e8r0y2u4i6o8p0a2s4d/card.jpg?v=1';
+
+  function renderAtWidth(width: number, src = card) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width, height: width })
+    );
+    vi.stubGlobal('devicePixelRatio', 2);
+    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} />);
+    return container.querySelector('img')?.getAttribute('src');
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  test('a 60px tile on a 2x screen draws the 160px copy', () => {
+    expect(renderAtWidth(60)).toBe(`${card}&w=160`);
+  });
+
+  test('a tile wider than every copy draws the capture itself', () => {
+    expect(renderAtWidth(400)).toBe(card);
+  });
+
+  test('a source that is not a publication is drawn as given', () => {
+    expect(renderAtWidth(60, '/published/atreides.png')).toBe('/published/atreides.png');
+  });
+});

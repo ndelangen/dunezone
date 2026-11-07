@@ -70,6 +70,7 @@ function Cluster({ children }: ToolbarClusterProps) {
  *
  * Every page toolbar reads the same way (Norbert, 2026-09-29).
  * `Left` is where you go: Back to the page above first, then the switch between reading and editing this thing (Edit on a detail page), and nothing else.
+ * A detail page whose `PageIdentity` carries a breadcrumb leaves Back out: the breadcrumb above the title is the way up, and a second arrow below it repeated it (Norbert, 2026-11-07).
  * `Center` holds the controls that shape what the page lists, as one `SearchRefine`, or an editor's one live indicator, and is empty otherwise.
  * `Right` is what you can do here, handed over as `Toolbar.Cluster`s: the kit stands them in the order `ToolbarClusterKind` states with a wider gap between them, so a page cannot put delete before create.
  * One thin divider stands before the commit run alone, since keeping the work is the one step apart from the rest.
@@ -111,7 +112,7 @@ type Slot = { children: ReactNode; label?: string };
 
 /* An edge with nothing in it is not announced: a named group that holds nothing is noise. */
 function slotProps({ label, children }: Slot) {
-  return label && Children.count(children) > 0 ? { role: 'group', 'aria-label': label } : {};
+  return label && countActions(children) > 0 ? { role: 'group', 'aria-label': label } : {};
 }
 
 type ClusterRun = { kind: ToolbarClusterKind; children: ReactNode; size: number };
@@ -309,6 +310,11 @@ const ToolbarBase = ({ className, children }: ToolbarProps) => {
   /* The menu stands where the folded runs stood: before the commit run, or last when there is none. */
   const commit = shown.at(-1)?.kind === 'commit' ? shown.at(-1) : undefined;
   const before = commit ? shown.slice(0, -1) : shown;
+
+  /* A toolbar whose every action was conditional and none applied to this reader is not drawn: an empty pane is noise. */
+  if (countActions(left.children) === 0 && countActions(center.children) === 0 && runs.length === 0) {
+    return null;
+  }
 
   return (
     <Surface padding="sm">

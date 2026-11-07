@@ -5,21 +5,20 @@ import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
-import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
-  ArrowLeft,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -96,13 +95,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
 function ProfileFactions({ page }: { page: ProfilePageData }) {
   const { factionCount } = page;
   if (factionCount === 0) {
-    return (
-      <Surface padding="lg">
-        <Text size="sm" c="dimmed">
-          No factions created yet.
-        </Text>
-      </Surface>
-    );
+    return <EmptyNote>No factions created yet.</EmptyNote>;
   }
   return (
     <Stack gap="md">
@@ -197,25 +190,15 @@ function ProfileSidebar({ page, isSelf }: { page: ProfilePageData; isSelf: boole
             </Group>
           </Card>
         ) : null}
-        <Card icon={<Link2 size={20} aria-hidden />} title="About">
-          <ProposedContent label="Proposed profile fields">
-            <Text size="sm" c="dimmed">
-              A short bio and a small set of relevant external links could live here.
-            </Text>
-          </ProposedContent>
-        </Card>
-
         <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
           {page.groupSummaries.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              Not a member of any groups.
-            </Text>
+            <EmptyNote>Not a member of any groups.</EmptyNote>
           ) : (
-            <Stack gap="xs" align="flex-start">
+            <EntityLinkList>
               {page.groupSummaries.map((group) => (
                 <GroupLink key={group.id} slug={group.slug} name={group.name} />
               ))}
-            </Stack>
+            </EntityLinkList>
           )}
         </Card>
       </Stack>
@@ -292,14 +275,6 @@ function ProfileDetailPage() {
   const toolbar = (
     <Toolbar>
       <Toolbar.Left label="Navigation">
-        <IconAction
-          label="Back to profiles"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-          icon={<ArrowLeft size={17} aria-hidden />}
-        />
         {isSelf ? (
           <IconAction
             label="Edit profile"
@@ -374,16 +349,6 @@ function ProfileDetailPage() {
           <Stack gap="md" className={styles.mainColumn}>
             <Section icon={<Shield size={20} aria-hidden />} title="Factions created">
               <ProfileFactions page={page} />
-            </Section>
-
-            <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
-              <Surface padding="lg">
-                <ProposedContent label="Proposed content · page query required">
-                  <Text size="sm" c="dimmed">
-                    Rulesets owned or maintained by this contributor would appear here.
-                  </Text>
-                </ProposedContent>
-              </Surface>
             </Section>
 
             <ProfileFaqActivity
