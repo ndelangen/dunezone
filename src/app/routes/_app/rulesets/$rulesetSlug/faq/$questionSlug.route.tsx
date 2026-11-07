@@ -802,13 +802,21 @@ function FaqReferenceTile({ reference, action }: { reference: FaqReferencePrevie
   );
 }
 
+function hasMoreReferences(faq: FaqQuestionCommands) {
+  return faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore';
+}
+
+/* A reader who cannot add references meets the section only once there is one, or a later page may hold one
+   (a page whose targets were all deleted comes back empty); a maintainer keeps it for its Add action. */
+function showsReferencesSection(faq: FaqQuestionCommands) {
+  return faq.canManageReferences || faq.references.length > 0 || hasMoreReferences(faq);
+}
+
 function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
-  const hasMore = faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore';
-  /* A reader who cannot add references meets the section only once there is one, or a later page may hold one
-     (a page whose targets were all deleted comes back empty); a maintainer keeps it for its Add action. */
-  if (faq.references.length === 0 && !hasMore && !faq.canManageReferences) {
+  if (!showsReferencesSection(faq)) {
     return null;
   }
+  const hasMore = hasMoreReferences(faq);
   return (
     <Section title="Relates to" action={faq.canManageReferences ? <FaqReferenceAdd faq={faq} /> : undefined}>
       <Stack gap="md">
