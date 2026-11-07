@@ -1,4 +1,3 @@
-/// <reference types="vite/client" />
 /* @vitest-environment edge-runtime */
 import { expect, test } from 'vite-plus/test';
 
@@ -43,6 +42,7 @@ test('a dry run reports the shield wording and the Fate heading and writes nothi
   ]);
   const data = (await t.run((ctx) => ctx.db.get('factions', faction)))!.data;
   expect(data.rules.fate.label).toBeUndefined();
+  expect(data.rules.advantages[0].text).toBe('Spice in front of your Player Shield is yours to give.');
 });
 
 test('a run writes the changes once and leaves names alone', async () => {
