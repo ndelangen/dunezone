@@ -78,7 +78,13 @@ export function keepsInsideTerritory(
 ) {
   return (at: Readonly<Vector3Tuple>) => {
     const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
-    return !territory || onAnyPlate(others, at) || restsInside(territory, [at[0], at[2]], footprintReach(piece));
+    if (!territory || onAnyPlate(others, at)) {
+      return true;
+    }
+    /* In the sector it lands in, as a drop there would rest it. */
+    const point: [number, number] = [at[0], at[2]];
+    const radius = footprintReach(piece);
+    return restingParts(territory, point, radius).some((part) => restsInside(part, point, radius));
   };
 }
 
@@ -119,7 +125,10 @@ function partLayout(
   const { piece, at, others } = drop;
   const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
+  /* Across a whole territory the sector lines divide, the stacks already there hold still, so none is moved into another sector. */
+  const movesOver = part !== territory || !territory.sectored;
   const inside = (candidate: TablePiece) =>
+    movesOver &&
     packsInTerritory(candidate) &&
     !onAnyPlate(others, candidate.position) &&
     territoryContains(part, [candidate.position[0], candidate.position[2]]);
@@ -160,11 +169,11 @@ export function territoryLanding(
     return undefined;
   }
   /*
-   * It rests in the sector it was let go in, clear of the sector lines; held where it was let go it may still step in from the border, and failing that it gives way to the others too.
-   * A sector part with no room hands it on to the territory's next sector.
+   * It rests in the sector it was let go in, so a full sector refuses it rather than move it into another.
+   * Held where it was let go it may still step in from the border, and failing that it gives way to the others too.
    */
-  for (const [index, part] of restingParts(territory, [at[0], at[2]]).entries()) {
-    const layout = (index === 0 && partLayout(territory, part, drop, true)) || partLayout(territory, part, drop, false);
+  for (const part of restingParts(territory, [at[0], at[2]], footprintReach(piece))) {
+    const layout = partLayout(territory, part, drop, true) ?? partLayout(territory, part, drop, false);
     if (layout) {
       return layout;
     }

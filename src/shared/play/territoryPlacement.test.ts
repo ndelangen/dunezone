@@ -5,6 +5,7 @@ import { freshTableState } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { restingPositionAt } from './tableGeometry';
 import { footprintReach, piecesOverlapAt } from './tablePhysics';
+import { TABLE_SECTOR_COUNT } from './tableSettings';
 import {
   applyDraftToState,
   draftForGesture,
@@ -13,10 +14,10 @@ import {
   settleCarryAtPosition,
 } from './tableState';
 import {
-  borderReach,
   restsInside,
   innermostPoint,
   restingParts,
+  shareOutside,
   tableSectorAt,
   tableTerritories,
   territoryContains,
@@ -200,64 +201,95 @@ describe('stacks dropped into a territory', () => {
   });
 });
 
-/* How far a stack's centre stands inside the nearer of its sector's two lines, beyond the 30% of it that may hang over, and the sector it is in. */
-function sectorClearance(piece: TablePiece) {
-  const [x, , z] = piece.position;
-  const sector = tableSectorAt([x, z]);
-  const angle = (Math.PI * 2) / 18;
-  const lines = [sector * angle, (sector + 1) * angle];
-  const toLine = (line: number) => Math.abs(Math.cos(line) * z - Math.sin(line) * x);
-  return { sector, clear: Math.min(...lines.map(toLine)) - borderReach(footprintReach(piece)) };
+/* The sector a stack's centre is in, and whether it rests in that sector's part of its territory, no more than 30% of it outside. */
+function inOneSector(piece: TablePiece, name: string) {
+  const point: [number, number] = [piece.position[0], piece.position[2]];
+  const radius = footprintReach(piece);
+  const [part] = restingParts(territoryNamed(name), point, radius);
+  return { sector: tableSectorAt(point), rests: restsInside(part!, point, radius) };
 }
 
 describe('stacks dropped across a sector line', () => {
   /* The line at 160° runs through the Habbanya erg, between sectors 7 and 8; a nudge either way picks the side. */
-  const line = (8 * Math.PI * 2) / 18;
+  const line = (8 * Math.PI * 2) / TABLE_SECTOR_COUNT;
   const across = (r: number, side: number): Vector3Tuple => [
     r * Math.cos(line) - Math.sin(line) * side,
     0,
     r * Math.sin(line) + Math.cos(line) * side,
   ];
   const onTheLine = across(2.75, 0.001);
+  const erg = 'Habbanya erg';
 
   test('step into the sector they were let go in, no more than 30% of them over the line', () => {
     const state = tableWith(troop('mover', 'atreides', SHELF));
     const moved = at(dropAt(state, 'mover', onTheLine)!, 'mover');
-    const { sector, clear } = sectorClearance(moved);
-    expect(sector).toBe(8);
-    expect(clear).toBeGreaterThanOrEqual(0);
-    expect(insideTerritory(territoryNamed('Habbanya erg'), moved)).toBe(true);
+    expect(inOneSector(moved, erg)).toEqual({ sector: 8, rests: true });
     expect(Math.hypot(moved.position[0] - onTheLine[0], moved.position[2] - onTheLine[2])).toBeLessThan(0.3);
   });
 
   test('let go just over the line, rest in the other sector', () => {
     const state = tableWith(troop('mover', 'atreides', SHELF));
     const moved = at(dropAt(state, 'mover', across(2.75, -0.001))!, 'mover');
-    expect(sectorClearance(moved).sector).toBe(7);
-    expect(sectorClearance(moved).clear).toBeGreaterThanOrEqual(0);
+    expect(inOneSector(moved, erg)).toEqual({ sector: 7, rests: true });
   });
 
   test('already standing clear in a sector, stay where they were let go', () => {
-    const [x, z] = innermostPoint(restingParts(territoryNamed('Habbanya erg'), [onTheLine[0], onTheLine[2]])[0]!);
+    const radius = footprintReach(troopBase);
+    const [x, z] = innermostPoint(restingParts(territoryNamed(erg), [onTheLine[0], onTheLine[2]], radius)[0]!);
     const spot: Vector3Tuple = [x, 0, z];
     const state = tableWith(troop('mover', 'atreides', SHELF));
     const moved = at(dropAt(state, 'mover', spot)!, 'mover');
     expect(Math.hypot(moved.position[0] - spot[0], moved.position[2] - spot[2])).toBeLessThan(1e-6);
   });
 
-  test('the stacks already in a sector make room there, none more than 30% over the line', () => {
-    let state = tableWith(
-      troop('first', 'atreides', SHELF),
-      troop('second', 'harkonnen', SHELF),
-      troop('third', 'fremen', SHELF)
-    );
-    for (const id of ['first', 'second', 'third']) {
-      state = dropAt(state, id, onTheLine)!;
+  test('fill their sector and are then refused, never moved into the next sector', () => {
+    const many = Array.from({ length: 12 }, (_, index) => troop(`f${index}`, `faction-${index}`, SHELF));
+    let state = tableWith(...many);
+    let refused = false;
+    for (const piece of many) {
+      const next = dropAt(state, piece.id, onTheLine);
+      if (!next) {
+        refused = true;
+        break;
+      }
+      state = next;
     }
-    for (const id of ['first', 'second', 'third']) {
-      const { sector, clear } = sectorClearance(at(state, id));
-      expect(sector).toBe(8);
-      expect(clear).toBeGreaterThanOrEqual(0);
+    expect(refused).toBe(true);
+    const dropped = state.pieces.filter((piece) =>
+      territoryContains(territoryNamed(erg), [piece.position[0], piece.position[2]])
+    );
+    expect(dropped.length).toBeGreaterThan(1);
+    for (const piece of dropped) {
+      expect(inOneSector(piece, erg)).toEqual({ sector: 8, rests: true });
+    }
+  });
+
+  test('never hang more than 30% out of a territory at a corner', () => {
+    /* Two borders of The greater flat meet here, and a check against each edge alone left over half a troop outside. */
+    const corner: Vector3Tuple = [-1.2874, 0, 0.00851];
+    const state = tableWith(troop('mover', 'atreides', SHELF));
+    const moved = at(dropAt(state, 'mover', corner)!, 'mover');
+    const point: [number, number] = [moved.position[0], moved.position[2]];
+    expect(shareOutside(territoryNamed('The greater flat'), point, footprintReach(moved))).toBeLessThanOrEqual(0.3);
+  });
+
+  test('in a territory too narrow for one sector, leave the stacks already there in their sectors', () => {
+    const territory = territoryNamed('False wall east');
+    const [x, z] = innermostPoint(territory);
+    const many = Array.from({ length: 8 }, (_, index) => troop(`f${index}`, `faction-${index}`, SHELF));
+    let state = tableWith(...many);
+    for (const piece of many) {
+      const before = new Map(
+        state.pieces.map((candidate) => [candidate.id, tableSectorAt([candidate.position[0], candidate.position[2]])])
+      );
+      const next = dropAt(state, piece.id, [x, 0, z]);
+      if (!next) {
+        break;
+      }
+      for (const moved of next.pieces.filter((candidate) => candidate.id !== piece.id)) {
+        expect(tableSectorAt([moved.position[0], moved.position[2]])).toBe(before.get(moved.id));
+      }
+      state = next;
     }
   });
 

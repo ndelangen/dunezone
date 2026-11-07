@@ -5,8 +5,16 @@ import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
+import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { restsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
+import {
+  innermostPoint,
+  restingParts,
+  restsInside,
+  tableSectorAt,
+  tableTerritories,
+  territoryShapeAt,
+} from '@shared/play/territoryFit';
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
@@ -466,7 +474,7 @@ const SECTOR_LINE_DROPS = [
 
 /* A point on a sector line, a hair to the clockwise or counterclockwise side of it. */
 function onSectorLine({ line, out }: { line: number; out: number }, side: number): [number, number, number] {
-  const angle = (line * Math.PI * 2) / 18;
+  const angle = (line * Math.PI * 2) / TABLE_SECTOR_COUNT;
   return [out * Math.cos(angle) - Math.sin(angle) * side, 0.4, out * Math.sin(angle) + Math.cos(angle) * side];
 }
 
@@ -482,6 +490,7 @@ export const TroopsSitInOneSector = meta.story({
   play: async ({ canvasElement }) => {
     await sandboxReady(within(canvasElement.ownerDocument.body));
     const table = sandbox.table!;
+    const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
     const factions = shown()
       .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
       .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
@@ -503,6 +512,24 @@ export const TroopsSitInOneSector = meta.story({
         orientation: 0,
       });
       await expect(table.refusal).toBeUndefined();
+    }
+    /* Each troop let go on a line rests in the sector on the side it was let go, no more than 30% of it outside that sector's part of its territory. */
+    const board = arrakisBoardCapture.definition;
+    for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
+      const [x, , z] = onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001);
+      const sector = tableSectorAt([x, z]);
+      const placed = shown().table.pieces.filter(
+        (candidate) =>
+          !before.has(candidate.id) &&
+          packsInTerritory(candidate) &&
+          Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.5
+      );
+      await expect(placed).toHaveLength(1);
+      const point: [number, number] = [placed[0]!.position[0], placed[0]!.position[2]];
+      const radius = footprintReach(placed[0]!);
+      const territory = territoryShapeAt(board, [x, z])!;
+      await expect(tableSectorAt(point)).toBe(sector);
+      await expect(restingParts(territory, point, radius).some((part) => restsInside(part, point, radius))).toBe(true);
     }
   },
 });
