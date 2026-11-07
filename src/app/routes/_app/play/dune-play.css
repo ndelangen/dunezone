@@ -27,10 +27,10 @@
   text-rendering: optimizeLegibility;
 }
 
-/* The stage under the shell: a one-cell grid that stacks the waiting frame (its ground, its pool of
-   light, its status line) under the shell until the renderer is ready. The shell stays closed until
-   then and opens through an iris from the same point (#1270), so the table is there to be seen when
-   the circle opens. */
+/* The stage under the shell: a one-cell grid that stacks the waiting frame under the shell until the renderer is ready.
+   It paints no ground while it waits, so the app's stars and its planet show through the waiting frame (TableWait).
+   The shell stays closed until then, and opens out of the planet: an iris that starts at the planet's own disc and
+   widens to the window, while the planet swells away behind it (AppBackground reads the stage's data-voyage). */
 .dune-play-stage {
   position: relative;
   display: grid;
@@ -38,7 +38,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-ground);
+  background: transparent;
 }
 
 .dune-play-stage > * {
@@ -46,20 +46,26 @@
   min-height: 0;
 }
 
+/* The waiting frame fades as the table opens over it. */
+.dune-play-wait[data-leaving] {
+  opacity: 0;
+  transition: opacity 700ms ease-out;
+}
+
 .dune-play-stage:not([data-scene-ready="true"]) .dune-play-shell {
-  clip-path: circle(0% at 50% 46%);
+  clip-path: circle(0% at 50% var(--voyage-planet-y));
 }
 
 .dune-play-stage[data-scene-ready="true"] .dune-play-shell {
-  animation: dune-play-enter 1000ms cubic-bezier(0.4, 0, 0.2, 1);
+  animation: dune-play-enter 1100ms cubic-bezier(0.55, 0, 0.25, 1);
 }
 
 @keyframes dune-play-enter {
   from {
-    clip-path: circle(0% at 50% 46%);
+    clip-path: circle(calc(var(--voyage-planet-size) / 2) at 50% var(--voyage-planet-y));
   }
   to {
-    clip-path: circle(125% at 50% 46%);
+    clip-path: circle(150vmax at 50% var(--voyage-planet-y));
   }
 }
 

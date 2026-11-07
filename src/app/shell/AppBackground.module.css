@@ -71,6 +71,38 @@
   width: var(--planet-diameter);
   aspect-ratio: 1;
   transform: translateX(-50%);
+  /* The way back down waits a moment, so a page swap between two waits never starts the planet home. */
+  transition:
+    top 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
+    width 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
+    transform 1.1s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 1.1s ease;
+}
+
+/*
+ * On the way to a table (a departing page, a table's waiting frame, an opened table: anything marked `data-voyage`), the planet
+ * rises from the foot of the page to the centre and shrinks to a world the table's moons can circle.
+ */
+:global(:root:has([data-voyage])) .planetFrame {
+  top: calc(var(--voyage-planet-y) - var(--voyage-planet-size) / 2);
+  width: var(--voyage-planet-size);
+  transition-delay: 0s;
+}
+
+/* Once the table opens out of it, the planet swells and fades behind the opening, as if the view dived into it. */
+:global(:root:has([data-voyage="arrived"])) .planetFrame {
+  transform: translateX(-50%) scale(1.8);
+  opacity: 0;
+}
+
+html[data-motion="reduce"] .planetFrame {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .planetFrame {
+    transition: none;
+  }
 }
 
 .planetDisc {

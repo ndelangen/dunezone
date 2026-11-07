@@ -125,7 +125,7 @@ export type CreateGameRequest = Parameters<ReturnType<typeof useCreateGame>['mut
 /**
  * The create page's pass: the game's name, ruleset, seats and last turn, and the button that creates it.
  * The page owns the draft, since its one query carries the chosen ruleset, and it creates the game and opens it;
- * the pass says what it is doing through `pending`, `departing` and `notice`, and fades to the table's ground while it departs.
+ * the pass says what it is doing through `pending`, `departing` and `notice`, and departs while the game is created: the page fades away and the app's planet rises to where the table's loading frame circles it.
  */
 export function CreateGamePass({
   rulesets,
@@ -270,7 +270,9 @@ export function CreateGamePass({
           </TicketLayout.Stub>
         </TicketLayout>
       </form>
-      {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
+      {departing
+        ? createPortal(<div className={styles.departure} data-voyage="departing" aria-hidden />, document.body)
+        : null}
     </>
   );
 }

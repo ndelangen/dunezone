@@ -605,6 +605,25 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
+/* How long the table takes to open out of the planet; the waiting frame and the planet stay up behind it until then. */
+const TABLE_ARRIVAL_MS = 1200;
+
+/**
+ * The table's arrival: waiting until the scene is ready, then opening out of the planet, then open.
+ * While it opens, the stage marks the voyage as arrived, so the shell's planet swells away behind the opening table.
+ */
+function useTableArrival(sceneReady: boolean): 'waiting' | 'opening' | 'open' {
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    if (!sceneReady) {
+      return;
+    }
+    const timer = setTimeout(() => setOpened(true), TABLE_ARRIVAL_MS);
+    return () => clearTimeout(timer);
+  }, [sceneReady]);
+  return !sceneReady ? 'waiting' : opened ? 'open' : 'opening';
+}
+
 function useTableViewController(
   activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
   word: StageFrame['word'],
@@ -707,6 +726,7 @@ export function GameTable({
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
   const controller = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
   const { viewPhase, viewState, dispatchView, cameraView, sceneEvents } = controller;
+  const arrival = useTableArrival(viewState.sceneReady);
   const overlaysInert = viewState.interactionActive || gestureActive;
 
   const scene = (
@@ -783,8 +803,16 @@ export function GameTable({
       <TableLabelsContext value={tableLabels}>
         <DarkSchemeIsland>
           {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
-          <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
-            {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
+          <div
+            className="dune-play-stage"
+            data-scene-ready={viewState.sceneReady}
+            data-voyage={arrival === 'opening' ? 'arrived' : undefined}
+          >
+            {arrival === 'open' ? null : (
+              <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
+                <TableWait status="Opening the table..." />
+              </div>
+            )}
             <div
               className="dune-play-shell"
               {...darkSchemeIslandAttributes}

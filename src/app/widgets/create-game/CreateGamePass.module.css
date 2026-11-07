@@ -12,32 +12,11 @@
   --board-seats-accent: var(--ticket-accent);
 }
 
-/* Leaving for the table: the page fades to the ground the table's loading frame paints, with the same pool of light, so the game page opens out of it without a flash. */
+/* While the game is created the page departs for its table: the shell fades the page away and raises the planet
+   (AppRoot and AppBackground read `data-voyage`). This element only marks the departure and keeps the fading page from
+   taking clicks. */
 .departure {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background:
-    radial-gradient(38% 34% at 50% 46%, color-mix(in srgb, var(--color-brand) 14%, transparent), transparent 70%),
-    var(--color-ground);
-  animation: create-departure 0.7s ease-in forwards;
-}
-
-@keyframes create-departure {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-html[data-motion="reduce"] .departure {
-  animation: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .departure {
-    animation: none;
-  }
 }

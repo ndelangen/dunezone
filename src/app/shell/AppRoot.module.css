@@ -88,6 +88,34 @@ html:has(.container [data-page-layout-height="fullscreen"]) {
   visibility: hidden;
 }
 
+/* A table's waiting frame is see-through: the planet and stars it circles stay up until the table has opened over them. */
+.container:has([data-page-layout-height="fullscreen"]):has([data-voyage]) > [data-app-background] {
+  visibility: visible;
+}
+
+/* A page departing for a table fades away and leaves the stars and the rising planet (CreateGamePass marks the departure). */
+.main,
+.footer {
+  transition: opacity 0.7s ease-in;
+}
+
+:global(:root:has([data-voyage="departing"])) .main,
+:global(:root:has([data-voyage="departing"])) .footer {
+  opacity: 0;
+}
+
+html[data-motion="reduce"] .main,
+html[data-motion="reduce"] .footer {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .main,
+  html:not([data-motion="ok"]) .footer {
+    transition: none;
+  }
+}
+
 .container:has([data-page-layout-height="fullscreen"]) {
   width: 100%;
   max-width: none;

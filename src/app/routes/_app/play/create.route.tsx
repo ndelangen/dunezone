@@ -25,7 +25,7 @@ export const Route = createFileRoute('/_app/play/create')({
 });
 
 const TITLE = 'Create a game';
-/* As long as the fade to the table's ground in the pass's stylesheet takes. */
+/* As long as the page's fade on departure takes (AppRoot's stylesheet); the planet keeps rising into the game page. */
 const DEPARTURE_MS = 700;
 
 const REFUSALS = {
@@ -80,7 +80,7 @@ function CreateGamePage() {
 
 type CreateGame = ReturnType<typeof useCreateGame>;
 
-/* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
+/* Pressing Create game fades the page away while the planet rises; the game opens once the fade is complete, and a refusal lifts it again. */
 function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraftEvent>) {
   const navigate = useNavigate();
   const [departing, setDeparting] = useState(false);

@@ -157,7 +157,7 @@ export const ReleasesItsRendererOnRemount = meta.story({
   },
 });
 
-/* The frame a table route shows while a view is still on its way: the status line on the dark ground, the pool of light breathing behind it. */
+/* The frame a table route shows while a view is still on its way: the status line under the app's risen planet, with its moons circling. */
 export const Connecting = meta.story({
   globals: { motion: 'on' },
   beforeEach: install(() => productTransport('seat-2', initialSnapshot(), { holdView: true })),
@@ -170,7 +170,8 @@ export const Connecting = meta.story({
     await expect(frame).toHaveAttribute('data-connection', 'connecting');
     await expect(page.getByRole('link', { name: 'Lobby' })).toBeVisible();
     const view = canvasElement.ownerDocument.defaultView!;
-    await expect(view.getComputedStyle(frame!, '::before').animationName).toMatch(/breathe/);
+    await expect(frame).toHaveAttribute('data-voyage', 'waiting');
+    await expect(view.getComputedStyle(frame!.querySelector('[data-orbit]')!).animationName).toMatch(/orbit/);
     await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
   },
 });
