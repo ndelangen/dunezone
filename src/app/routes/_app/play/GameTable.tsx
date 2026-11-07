@@ -614,16 +614,37 @@ const TABLE_ARRIVAL_MS = 1600;
  * The table's arrival: waiting until the scene is ready, then opening out of the planet, then open.
  * While it opens, the stage marks the voyage as arrived, so the shell's planet swells away behind the opening table.
  */
-function useTableArrival(sceneReady: boolean): 'waiting' | 'opening' | 'open' {
-  const [opened, setOpened] = useState(false);
+function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening' | 'open' {
+  const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
   useEffect(() => {
     if (!sceneReady) {
       return;
     }
-    const timer = setTimeout(() => setOpened(true), TABLE_ARRIVAL_MS);
-    return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    /* The iris starts once the page has finished the work the ready scene set off, so its first frames are not the ones a long task drops. */
+    const idle = requestIdleCallbackOr(() => {
+      setPhase('opening');
+      timer = setTimeout(() => setPhase('open'), TABLE_ARRIVAL_MS);
+    }, ARRIVAL_IDLE_WAIT_MS);
+    return () => {
+      idle();
+      clearTimeout(timer);
+    };
   }, [sceneReady]);
-  return !sceneReady ? 'waiting' : opened ? 'open' : 'opening';
+  return sceneReady ? phase : 'waiting';
+}
+
+/* The longest the iris waits for an idle moment after the scene is ready. */
+const ARRIVAL_IDLE_WAIT_MS = 300;
+
+/* Runs `run` in the browser's next idle period, or after `timeout` at the latest; returns a cancel. */
+function requestIdleCallbackOr(run: () => void, timeout: number) {
+  if (typeof requestIdleCallback === 'function') {
+    const handle = requestIdleCallback(run, { timeout });
+    return () => cancelIdleCallback(handle);
+  }
+  const handle = setTimeout(run, 0);
+  return () => clearTimeout(handle);
 }
 
 function useTableViewController(

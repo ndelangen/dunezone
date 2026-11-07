@@ -16,7 +16,7 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
-import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useContext, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
@@ -791,9 +791,17 @@ export default function HostedTable({
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
   usePreloadedCardFaces(view.table?.snapshot.cardFaces);
-  if (!view.table) {
+  /*
+   * The table's first render is the page's largest: it is deferred, so React renders it in slices that yield to the browser,
+   * and the waiting frame keeps its motion while the table is built behind it. Later views render as they arrive.
+   */
+  const tableBuilt = useDeferredValue(Boolean(view.table));
+  if (!view.table || !tableBuilt) {
     return (
-      <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
+      <TableWait
+        status={view.error ?? (view.table ? 'Opening the table...' : 'Connecting to the hosted table...')}
+        connection={view.status}
+      >
         {view.status === 'denied' && (
           <Anchor
             renderRoot={(props) => (

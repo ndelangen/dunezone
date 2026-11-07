@@ -76,10 +76,11 @@
   animation: table-wait-status 600ms ease-out;
 }
 
+/* Opacity and transform only, so a line still eases in while the page underneath is busy mounting the table. */
 @keyframes table-wait-status {
   from {
     opacity: 0;
-    letter-spacing: 0.32em;
+    transform: translateY(0.4rem);
   }
 }
 

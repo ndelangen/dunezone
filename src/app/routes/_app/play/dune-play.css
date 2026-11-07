@@ -52,11 +52,11 @@
   transition: opacity 700ms ease-out;
 }
 
-.dune-play-stage:not([data-scene-ready="true"]) .dune-play-shell {
+.dune-play-stage:not([data-arrival="opening"], [data-arrival="open"]) .dune-play-shell {
   clip-path: circle(0% at 50% var(--voyage-planet-y));
 }
 
-.dune-play-stage[data-scene-ready="true"] .dune-play-shell {
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
   animation: dune-play-enter 1500ms ease-in-out;
 }
 
@@ -73,7 +73,7 @@
   initial-value: 0px;
 }
 
-.dune-play-stage[data-scene-ready="true"] .dune-play-shell {
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
   --dune-play-iris: 150vmax;
 
   clip-path: none;
@@ -103,7 +103,7 @@
   }
 }
 
-.dune-play-stage[data-scene-ready="true"] .dune-play-shell > * {
+.dune-play-stage[data-arrival="opening"] .dune-play-shell > * {
   animation: dune-play-enter-contents 1500ms ease-in-out;
 }
 

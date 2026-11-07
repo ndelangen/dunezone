@@ -62,7 +62,7 @@
 }
 
 .planetFrame {
-  --planet-diameter: max(140vw, 140vh);
+  --planet-diameter: var(--app-planet-diameter);
 
   /* Measured against the same largest window, so the planet holds still while the toolbar comes and goes. */
   top: calc(100vh - var(--planet-diameter) * 0.2);
@@ -71,11 +71,14 @@
   width: var(--planet-diameter);
   aspect-ratio: 1;
   transform: translateX(-50%);
-  /* The way back down waits a moment, so a page swap between two waits never starts the planet home. */
+  /*
+   * The rise is a transform only, so the compositor runs it while the page underneath is still mounting the table.
+   * The way back down waits a moment, so a page swap between two waits never starts the planet home.
+   */
   transition:
-    top 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
-    width 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
+    transform 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
     opacity 0.6s ease;
+  will-change: transform;
 }
 
 /*
@@ -83,8 +86,9 @@
  * rises from the foot of the page to the centre and shrinks to a world the table's moons can circle.
  */
 :global(:root:has([data-voyage])) .planetFrame {
-  top: calc(var(--voyage-planet-y) - var(--voyage-planet-size) / 2);
-  width: var(--voyage-planet-size);
+  /* From its centre at the foot of the window (its top plus half its width) to the resting place, at the resting scale. */
+  transform: translate(-50%, calc(var(--voyage-planet-y) - 100lvh - var(--planet-diameter) * 0.3))
+    scale(var(--voyage-planet-scale));
   transition-delay: 0s;
 }
 
