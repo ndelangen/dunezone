@@ -555,7 +555,8 @@ export async function loadViewerMembership(ctx: QueryCtx, groupId: Id<'groups'> 
     liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null)?._id ?? null,
     viewerId
   );
-  return !membership || membership.status === 'removed' ? 'none' : membership.status;
+  /* An invitation is the viewer's own business, carried by `members.viewerInvitations`; on the wire this stays the three states every bundle knows. */
+  return !membership || membership.status === 'removed' || membership.status === 'invited' ? 'none' : membership.status;
 }
 
 /**
@@ -604,6 +605,7 @@ export type GroupRosterMember = {
  * The Group page's owner and roster, the same for every viewer.
  * Members are read to a bounded 500, and soft-deleted or inactive profiles never reach the roster;
  * a dangling membership cannot become a visible member (ADR-0003).
+ * An invited person is not on it either: they have not agreed to be named with this Group, so only its active members see the invitation (`members.groupInvitations`).
  */
 export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
   const members = await ctx.db
@@ -632,7 +634,7 @@ export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
   }
 
   const roster: GroupRosterMember[] = members.flatMap((membership) => {
-    if (membership.status === 'removed') {
+    if (membership.status === 'removed' || membership.status === 'invited') {
       return [];
     }
     const profile = profileByUserId.get(membership.user_id);

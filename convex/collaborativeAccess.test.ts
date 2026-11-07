@@ -799,7 +799,13 @@ describe('collaborative access moderation commands', () => {
       groupId: ids.groupId,
       userId: ids.assetOwnerId,
     });
-    expect(added).toMatchObject({ status: 'active' });
+    expect(added).toMatchObject({ status: 'invited' });
+    await expect(
+      assetOwner.mutation(api.factions.setGroup, { id: ids.factionId, group_id: ids.groupId })
+    ).rejects.toThrow('Not authorized for group');
+    await expect(assetOwner.mutation(api.members.acceptInvite, { group_id: ids.groupId })).resolves.toMatchObject({
+      status: 'active',
+    });
     const profileless = await t.run(async (ctx) => await ctx.db.insert('users', { account_state: 'active' }));
     await expect(member.mutation(api.members.addMember, { groupId: ids.groupId, userId: profileless })).rejects.toThrow(
       'User not found'

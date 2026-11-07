@@ -241,7 +241,8 @@ async function moveMemberships(ctx: MutationCtx, operation: Doc<'account_merge_o
     .query('group_members')
     .withIndex('by_user', (q) => q.eq('user_id', source))
     .take(BATCH);
-  const rank = { removed: 0, pending: 1, active: 2 };
+  /* A request and an invitation are each one side's consent, so neither outranks the other. */
+  const rank = { removed: 0, pending: 1, invited: 1, active: 2 };
   for (const row of rows) {
     const existing = await ctx.db
       .query('group_members')

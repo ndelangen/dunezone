@@ -4,9 +4,11 @@ import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
+import { FormError } from '@ui/block/FormError';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { formatStableDate } from '@ui/content/dates';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -20,18 +22,23 @@ import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  Check,
   CheckCircle2,
   CircleHelp,
   Link2,
   LogOut,
+  MailPlus,
   MessageCircleReply,
   Pencil,
   Shield,
   UserPlus,
   UsersRound,
+  X,
 } from 'lucide-react';
+import { useState } from 'react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
+import { useGroupMembershipWorkflow, useViewerInvitations } from '@db/members';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
@@ -178,6 +185,72 @@ function ProfileFaqActivity({
       </Section>
     );
   });
+}
+
+/**
+ * The Groups that have asked the viewer in, each with its two answers, on the viewer's own profile alone.
+ * Its own component so the query mounts only for the person it answers;
+ * it is private to them, which is why the public page carries no invitations of its own.
+ */
+function ProfileInvitations() {
+  const invitations = useViewerInvitations();
+  const workflow = useGroupMembershipWorkflow();
+  const [answering, setAnswering] = useState<string | null>(null);
+  const busy = workflow.accept.isPending || workflow.decline.isPending;
+  /* Which invitation is being answered, so only its own buttons read as busy; cleared during render when the round trip ends. */
+  if (!busy && answering !== null) {
+    setAnswering(null);
+  }
+  const answer = (groupId: string, command: typeof workflow.accept) => {
+    setAnswering(groupId);
+    void command.run(groupId).catch(() => undefined);
+  };
+  const rows = invitations.data ?? [];
+  const error = workflow.accept.error ?? workflow.decline.error;
+  if (rows.length === 0 && !error) {
+    return null;
+  }
+  return (
+    <Card icon={<MailPlus size={20} aria-hidden />} title="Invitations">
+      <Stack gap="sm">
+        {error ? <FormError title="Could not answer the invitation">{error.message}</FormError> : null}
+        {rows.map((invitation) => (
+          <Group key={invitation.membershipId} justify="space-between" wrap="wrap" gap="sm">
+            <Stack gap={2} miw={0}>
+              <GroupLink slug={invitation.group.slug} name={invitation.group.name} />
+              <Text size="xs" c="dimmed">
+                {invitation.invitedBy?.username
+                  ? `Invited by ${invitation.invitedBy.username}, ${formatStableDate(invitation.invitedAt)}`
+                  : `Invited ${formatStableDate(invitation.invitedAt)}`}
+              </Text>
+            </Stack>
+            <Group gap={4} wrap="nowrap">
+              <IconAction
+                label={`Accept invitation to ${invitation.group.name}`}
+                tooltip="Accept"
+                intent="positive"
+                emphasis="standard"
+                loading={answering === invitation.group.id && workflow.accept.isPending}
+                disabled={busy}
+                onClick={() => answer(invitation.group.id, workflow.accept)}
+                icon={<Check size={15} aria-hidden />}
+              />
+              <IconAction
+                label={`Decline invitation to ${invitation.group.name}`}
+                tooltip="Decline"
+                intent="negative"
+                emphasis="standard"
+                loading={answering === invitation.group.id && workflow.decline.isPending}
+                disabled={busy}
+                onClick={() => answer(invitation.group.id, workflow.decline)}
+                icon={<X size={15} aria-hidden />}
+              />
+            </Group>
+          </Group>
+        ))}
+      </Stack>
+    </Card>
+  );
 }
 
 function ProfileDetailPage() {
@@ -365,6 +438,7 @@ function ProfileDetailPage() {
 
           <aside className={styles.sidebar} aria-label="Profile details">
             <Stack gap="sm">
+              {isSelf ? <ProfileInvitations /> : null}
               {page.profile.bgg_profile_url ? (
                 <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
                   <Group gap="sm">

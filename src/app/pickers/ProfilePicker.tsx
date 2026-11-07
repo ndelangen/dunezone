@@ -1,5 +1,4 @@
 import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
-import { NameDisc } from '@ui/content/NameDisc';
 import { Pending } from '@ui/content/Pending';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -9,12 +8,17 @@ import { useMemo, useState } from 'react';
 import { useReplacementProfiles } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
 
+import { ProfileOptionContent } from './ProfilePicker.parts';
+
 export interface ProfilePickerProps {
   onPick: (profile: ReplacementProfile) => void;
   onCancel: () => void;
 }
 
-/** A lazy domain Picker: it reads only the active-profile projection and reports a selected profile. */
+/**
+ * A lazy domain Picker: it reads only the replacement-owner projection, the people who share a Group with the viewer, and reports a selected profile.
+ * Only a co-member may take over the viewer's content (Norbert, 2026-11-07), so the copy says who is on offer rather than letting an empty list read as "nobody exists".
+ */
 export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
   const combobox = useCombobox();
   const [search, setSearch] = useState('');
@@ -30,14 +34,14 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
       <div>
         <Text fw={700}>Choose the new owner</Text>
         <Text size="sm" c="dimmed">
-          Any other active profile can receive all direct ownership.
+          Only people who share a group with you can receive your direct ownership.
         </Text>
       </div>
       {picker.status === 'LoadingFirstPage' ? (
         <Pending>Loading profiles</Pending>
       ) : picker.data.length === 0 ? (
         <Text size="sm" c="dimmed">
-          No other active profiles are available.
+          Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.
         </Text>
       ) : (
         <Combobox
@@ -73,17 +77,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
                     value={profile.userId}
                     active={profile.userId === selectedUserId}
                   >
-                    <Group wrap="nowrap">
-                      <NameDisc src={profile.avatarUrl} name={profile.username ?? ''} size={26} />
-                      <div>
-                        <Text size="sm" fw={700}>
-                          {profile.username}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          /profiles/{profile.slug}
-                        </Text>
-                      </div>
-                    </Group>
+                    <ProfileOptionContent profile={profile} />
                   </Combobox.Option>
                 ))
               )}

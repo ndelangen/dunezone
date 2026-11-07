@@ -24,7 +24,7 @@ export const groupMemberValidator = docValidator('group_members');
 
 export const membershipCommandAcknowledgementValidator = v.object({
   membershipId: v.id('group_members'),
-  status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed')),
+  status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed'), v.literal('invited')),
 });
 
 const profileValidator = docValidator('profiles');
@@ -77,6 +77,31 @@ const profileSummaryValidator = v.object({
 
 /** The Profile summary chip (see CONTEXT.md); derive from this, never restate. */
 export type ProfileSummary = Infer<typeof profileSummaryValidator>;
+
+/** One invitation as the Group's active members see it: who was invited, by whom, and when. */
+export const groupInvitationValidator = v.object({
+  membershipId: v.id('group_members'),
+  user: profileSummaryValidator,
+  invitedBy: v.union(profileSummaryValidator, v.null()),
+  invitedAt: v.string(),
+});
+
+/** One invitation as the invited person sees it: the Group that asked, who asked, and when. */
+export const viewerInvitationValidator = v.object({
+  membershipId: v.id('group_members'),
+  group: assignedGroupSummaryValidator,
+  invitedBy: v.union(profileSummaryValidator, v.null()),
+  invitedAt: v.string(),
+});
+
+/** A profile an active member may invite into a Group, or that may take over a deleting account's ownership: enough to pick it. */
+export const pickableProfileValidator = v.object({
+  profileId: v.id('profiles'),
+  userId: v.id('users'),
+  slug: v.string(),
+  username: v.string(),
+  avatarUrl: v.union(v.string(), v.null()),
+});
 
 const groupViewerAccessValidator = v.object({
   kind: v.literal('group'),

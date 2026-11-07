@@ -12,7 +12,20 @@ import * as rulesetsApi from './rulesets';
 describe('collaborative-access caller contract', () => {
   test('the narrowed Convex registry exposes only canonical collaborative-access transport', () => {
     expect(Object.keys(membersApi).sort()).toEqual(
-      ['addMember', 'approveRequest', 'rejectRequest', 'removeMember', 'request'].sort()
+      [
+        'acceptInvite',
+        'addMember',
+        'approveRequest',
+        'declineInvite',
+        'groupInvitations',
+        'inviteCandidates',
+        'leave',
+        'rejectRequest',
+        'removeMember',
+        'request',
+        'viewerInvitations',
+        'withdrawRequest',
+      ].sort()
     );
     expect(groupsApi).not.toHaveProperty('getBySlug');
     expect(rulesetsApi).not.toHaveProperty('canEdit');
