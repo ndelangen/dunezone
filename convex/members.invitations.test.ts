@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 // @vitest-environment edge-runtime
 
-import { describe, expect, test } from 'vite-plus/test';
+import { describe, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
 import type { Id } from './_generated/dataModel';
@@ -260,5 +260,69 @@ describe('Group invitations', () => {
     await expect(
       asBystander.query(api.members.inviteCandidates, { groupId, search: '', paginationOpts })
     ).resolves.toMatchObject({ page: [], isDone: true });
+  });
+
+  test('the Group page finds its own invitation however many others the viewer holds', async () => {
+    const { t, groupId, owner, guest, asOwner, asGuest } = await invitationFixture();
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 201; index += 1) {
+        const otherId = await ctx.db.insert('groups', {
+          name: `Crowd ${index}`,
+          slug: `crowd-${index}`,
+          created_at: now,
+          created_by: owner.userId,
+          is_deleted: false,
+        });
+        await ctx.db.insert('group_members', {
+          group_id: otherId,
+          user_id: guest.userId,
+          status: 'invited',
+          requested_at: now,
+          approved_at: null,
+          approved_by: owner.userId,
+        });
+      }
+    });
+    await asOwner.mutation(api.members.addMember, { groupId, userId: guest.userId });
+
+    await expect(asGuest.query(api.members.viewerInvitationForGroup, { groupId })).resolves.toMatchObject({
+      group: { id: groupId },
+    });
+    await expect(asOwner.query(api.members.viewerInvitationForGroup, { groupId })).resolves.toBeNull();
+  });
+
+  test("deleting a Group withdraws its invitations, in batches past one transaction's worth", async () => {
+    vi.useFakeTimers();
+    try {
+      const { t, groupId, owner, guest, asOwner, asGuest } = await invitationFixture();
+      await asOwner.mutation(api.members.addMember, { groupId, userId: guest.userId });
+      await t.run(async (ctx) => {
+        for (let index = 0; index < 250; index += 1) {
+          const userId = await ctx.db.insert('users', { name: `invitee-${index}` });
+          await ctx.db.insert('group_members', {
+            group_id: groupId,
+            user_id: userId,
+            status: 'invited',
+            requested_at: now,
+            approved_at: null,
+            approved_by: owner.userId,
+          });
+        }
+      });
+
+      await asOwner.mutation(api.groups.softDelete, { id: groupId });
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+      const open = await t.run(async (ctx) =>
+        ctx.db
+          .query('group_members')
+          .withIndex('by_group_status', (q) => q.eq('group_id', groupId).eq('status', 'invited'))
+          .collect()
+      );
+      expect(open).toHaveLength(0);
+      await expect(asGuest.query(api.members.viewerInvitations, {})).resolves.toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

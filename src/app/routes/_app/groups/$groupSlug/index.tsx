@@ -42,7 +42,7 @@ import { useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
 import type { GroupDetailPageData, MembershipState } from '@db/groups';
-import { useGroupInvitations, useGroupMembershipWorkflow, useViewerInvitations } from '@db/members';
+import { useGroupInvitations, useGroupMembershipWorkflow, useViewerInvitationForGroup } from '@db/members';
 import type { GroupInvitation, ViewerInvitation } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
@@ -108,23 +108,21 @@ function GroupDetail() {
   return <GroupDetailPage page={page} />;
 }
 
-/** The invitation this Group holds for the viewer: undefined until both the viewer and their invitations have arrived. */
+/** The invitation this Group holds for the viewer: undefined until both the viewer and their invitation have arrived. */
 function invitationFor(
   page: GroupDetailPageData,
   membershipStatus: string,
-  invitations: ViewerInvitation[] | undefined
+  read: { data: ViewerInvitation | null | undefined; isPending: boolean }
 ): ViewerInvitation | null | undefined {
-  if (!page.viewerResolved || invitations === undefined) {
+  if (!page.viewerResolved || read.isPending) {
     return undefined;
   }
-  return membershipStatus === 'none'
-    ? (invitations.find((invitation) => invitation.group.id === page.group._id) ?? null)
-    : null;
+  return membershipStatus === 'none' ? (read.data ?? null) : null;
 }
 
 /**
  * The page itself, one component however the viewer resolves, so the shared page is never torn down and rebuilt when the viewer arrives.
- * The viewer's own invitations are read for everyone: a signed-out viewer is answered with an empty list and no read.
+ * The viewer's own invitation is read for everyone: a signed-out viewer is answered with null and no read.
  */
 function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
   const { groupSlug } = Route.useParams();
@@ -134,7 +132,7 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
   const setFactionGroup = useSetFactionGroup();
   const setRulesetGroup = useSetRulesetGroup();
   const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
-  const viewerInvitations = useViewerInvitations();
+  const viewerInvitationRead = useViewerInvitationForGroup(page.group._id);
 
   const group = page.group;
   const groupId = group._id;
@@ -149,7 +147,7 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
    * On the wire an invited viewer reads as `none`; the invitation itself says otherwise.
    * Undefined while the viewer or their invitations are on their way, so the toolbar offers nothing the answer may take back.
    */
-  const viewerInvitation = invitationFor(page, membershipStatus, viewerInvitations.data);
+  const viewerInvitation = invitationFor(page, membershipStatus, viewerInvitationRead);
   const factions = page.factions;
   const rulesets = page.rulesets;
   const roster = page.roster;

@@ -163,5 +163,13 @@ describe('account deletion replacement owners', () => {
       search: 'stranger',
     });
     expect(missing.page).toEqual([]);
+
+    /* A database cursor from before the list paged by offset is refused with the reset signal `usePaginatedQuery` restarts on. */
+    await expect(
+      asSource.query(api.accountDeletion.listReplacementProfiles, {
+        paginationOpts: { cursor: 'eyJsZWdhY3kiOnRydWV9', numItems: 20 },
+        search: '',
+      })
+    ).rejects.toMatchObject({ data: { paginationError: 'InvalidCursor' } });
   });
 });

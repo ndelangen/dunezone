@@ -75,18 +75,66 @@ export async function loadViewerInvitations(ctx: QueryCtx): Promise<ViewerInvita
   const summaryOf = profileSummaryReader(ctx);
   const invitations: ViewerInvitation[] = [];
   for (const row of rows) {
-    const group = liveGroupOrNull(await ctx.db.get('groups', row.group_id));
-    if (!group) {
-      continue;
+    const invitation = await viewerInvitationOf(ctx, row, summaryOf);
+    if (invitation) {
+      invitations.push(invitation);
     }
-    invitations.push({
-      membershipId: row._id,
-      group: { id: group._id, name: group.name, slug: group.slug },
-      invitedBy: row.approved_by ? await summaryOf(row.approved_by) : null,
-      invitedAt: row.requested_at,
-    });
   }
   return invitations;
+}
+
+/**
+ * The viewer's invitation to one Group, or null, read by its own row rather than from the capped list, so however many other invitations the viewer holds, the Group page can always offer to accept this one.
+ */
+export async function loadViewerInvitationForGroup(
+  ctx: QueryCtx,
+  groupId: Id<'groups'>
+): Promise<ViewerInvitation | null> {
+  const viewerId = await optionalActiveUserId(ctx);
+  if (!viewerId) {
+    return null;
+  }
+  const row = await ctx.db
+    .query('group_members')
+    .withIndex('by_group_user', (q) => q.eq('group_id', groupId).eq('user_id', viewerId))
+    .unique();
+  return row?.status === 'invited' ? await viewerInvitationOf(ctx, row, profileSummaryReader(ctx)) : null;
+}
+
+async function viewerInvitationOf(
+  ctx: QueryCtx,
+  row: Doc<'group_members'>,
+  summaryOf: ReturnType<typeof profileSummaryReader>
+): Promise<ViewerInvitation | null> {
+  const group = liveGroupOrNull(await ctx.db.get('groups', row.group_id));
+  if (!group) {
+    return null;
+  }
+  return {
+    membershipId: row._id,
+    group: { id: group._id, name: group.name, slug: group.slug },
+    invitedBy: row.approved_by ? await summaryOf(row.approved_by) : null,
+    invitedAt: row.requested_at,
+  };
+}
+
+/** How many invitations one transaction retires when their Group is deleted; the rest follow in scheduled batches. */
+export const INVITATION_RETIRE_BATCH = 200;
+
+/**
+ * Withdraws a deleted Group's open invitations, one batch at a time;
+ * true while more remain.
+ * Left in place they would fill the invitee's capped list with invitations nobody can answer, since every answer refuses a deleted Group.
+ */
+export async function retireGroupInvitations(ctx: MutationCtx, groupId: Id<'groups'>) {
+  const rows = await ctx.db
+    .query('group_members')
+    .withIndex('by_group_status', (q) => q.eq('group_id', groupId).eq('status', 'invited'))
+    .take(INVITATION_RETIRE_BATCH + 1);
+  for (const row of rows.slice(0, INVITATION_RETIRE_BATCH)) {
+    await ctx.db.patch(row._id, { status: 'removed', approved_by: null, approved_at: null });
+  }
+  return rows.length > INVITATION_RETIRE_BATCH;
 }
 
 /**

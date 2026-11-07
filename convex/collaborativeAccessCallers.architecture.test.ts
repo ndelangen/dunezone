@@ -23,6 +23,7 @@ describe('collaborative-access caller contract', () => {
         'rejectRequest',
         'removeMember',
         'request',
+        'viewerInvitationForGroup',
         'viewerInvitations',
         'withdrawRequest',
       ].sort()

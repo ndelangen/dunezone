@@ -22,6 +22,7 @@ const VIEWER_QUERIES: Record<string, string> = {
   'groups:viewerMembership': "The viewer's membership of one Group: the viewer half of a page's capabilities.",
   'members:groupInvitations': "A Group's open invitations, shown to its active members alone.",
   'members:inviteCandidates': 'The people an active member of the Group may invite into it.',
+  'members:viewerInvitationForGroup': "The viewer's own invitation to one Group.",
   'members:viewerInvitations': 'The invitations waiting on the viewer: their own.',
   'playDirectory:listGames': 'Marks the games the viewer is seated in.',
   'playGames:creatable': 'Rulesets the viewer may start a game with.',

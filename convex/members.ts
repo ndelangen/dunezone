@@ -16,6 +16,7 @@ import {
 import { clearDefaultGroupForRemovedMembership } from './lib/defaultGroupPreference';
 import {
   loadGroupInvitations,
+  loadViewerInvitationForGroup,
   loadViewerInvitations,
   pickableProfile,
   pickableProfileForUser,
@@ -307,6 +308,13 @@ export const viewerInvitations = viewerQuery({
   args: {},
   returns: v.array(viewerInvitationValidator),
   handler: async (ctx) => await loadViewerInvitations(ctx),
+});
+
+/** The viewer's invitation to one Group, or null: what the Group page offers to accept, found by its own row. */
+export const viewerInvitationForGroup = viewerQuery({
+  args: { groupId: v.id('groups') },
+  returns: v.union(viewerInvitationValidator, v.null()),
+  handler: async (ctx, args) => await loadViewerInvitationForGroup(ctx, args.groupId),
 });
 
 /** The invitations a Group has open. Only its active members see them; everyone else gets an empty list, since the invited have not agreed to be named with the Group. */

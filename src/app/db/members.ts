@@ -138,6 +138,11 @@ export function useGroupMembershipWorkflow() {
 }
 
 /** The invitations waiting on the viewer. Mount it only for a signed-in viewer who may hold one, since it answers nobody else. */
+/** The viewer's invitation to one Group, or null; read by its own row, so the Group page never loses it behind the capped list. */
+export function useViewerInvitationForGroup(groupId: string) {
+  return toLiveQueryResult(useLiveQuery(api.members.viewerInvitationForGroup, { groupId: groupId as Id<'groups'> }));
+}
+
 export function useViewerInvitations() {
   return toLiveQueryResult(useLiveQuery(api.members.viewerInvitations, {}));
 }

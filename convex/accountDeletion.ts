@@ -1,5 +1,5 @@
 import { paginationOptsValidator, paginationResultValidator } from 'convex/server';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -243,9 +243,12 @@ export const listReplacementProfiles = viewerQuery({
   handler: async (ctx, args) => {
     const sourceUserId = await requireAuthUserId(ctx);
     const profiles = await coMemberProfiles(ctx, sourceUserId, slugify(args.search));
-    /* Anything but a plain offset, such as a database cursor from a picker opened before this paged by offset, starts again from the top. */
+    /* Anything but a plain offset, such as a database cursor from a picker opened before this paged by offset, is refused as the hook's own reset signal, so the picker starts over rather than repeating its first page. */
     const cursor = args.paginationOpts.cursor ?? '0';
-    const offset = /^\d+$/.test(cursor) ? Number(cursor) : 0;
+    if (!/^\d+$/.test(cursor)) {
+      throw new ConvexError({ isConvexSystemError: true, paginationError: 'InvalidCursor' });
+    }
+    const offset = Number(cursor);
     const size = Math.max(1, Math.floor(args.paginationOpts.numItems));
     const page = profiles.slice(offset, offset + size);
     const end = offset + page.length;
