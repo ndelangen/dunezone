@@ -1,3 +1,5 @@
+import { isFactionToken } from '@shared/play/factionToken';
+import { isTroopStack } from '@shared/play/troop';
 import { TUTORIAL_CHECKPOINTS, TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import { describe, expect, test } from 'vite-plus/test';
 
@@ -21,6 +23,18 @@ describe('the tutorial setup', () => {
       expect(snapshot.table.pieces.length).toBeGreaterThan(0);
     }
     table.dispose();
+  });
+
+  test('opens a chapter without troops with only the table’s other pieces', () => {
+    const recorded = setup as unknown as TutorialSetup;
+    const full = new LocalTable(startAt(recorded, 'turn-1-storm', 'https://dune.zone'));
+    const bare = new LocalTable(startAt(recorded, 'turn-1-storm', 'https://dune.zone', { withoutTroops: true }));
+    const troops = (table: LocalTable) => table.frame().snapshot.table.pieces.filter(isTroopStack);
+    expect(troops(full).length).toBeGreaterThan(0);
+    expect(troops(bare)).toEqual([]);
+    expect(bare.frame().snapshot.table.pieces.some(isFactionToken)).toBe(true);
+    full.dispose();
+    bare.dispose();
   });
 
   test('shows only the site’s own published images', () => {

@@ -2,6 +2,7 @@ import type { PublicFaction } from '@shared/play/capture';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
+import { isTroopStack } from '@shared/play/troop';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
@@ -70,7 +71,7 @@ export function startAt(
   setup: TutorialSetup,
   checkpoint: TutorialCheckpoint,
   origin: string,
-  chapter: Pick<ChapterScript, 'playAs' | 'hand' | 'watch'> = {}
+  chapter: Pick<ChapterScript, 'playAs' | 'hand' | 'watch' | 'withoutTroops'> = {}
 ): TableStart {
   const point = setup.checkpoints[checkpoint];
   const stored = storedAt(setup, checkpoint, origin);
@@ -83,6 +84,9 @@ export function startAt(
       ...(stored.factionInventories[faction] ?? []),
       ...withOrigin(chapter.hand, origin).map((piece) => ({ ...piece, owner: faction })),
     ];
+  }
+  if (chapter.withoutTroops) {
+    stored.table.pieces = stored.table.pieces.filter((piece) => !isTroopStack(piece));
   }
   return {
     stored,

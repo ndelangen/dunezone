@@ -37,6 +37,8 @@ export type ChapterScript = Readonly<{
   playAs?: string;
   /** Whether the learner opens the table as a spectator, watching rather than seated. */
   watch?: boolean;
+  /** Whether the table opens with no troops on it, so a chapter about the table itself shows only the board, tokens and decks. */
+  withoutTroops?: boolean;
   /** Pieces the learner holds in this chapter besides what the setup dealt, with their images under `{{origin}}` as the setup names them. */
   hand?: readonly StoredPiece[];
   /** What the other players do as the table opens, before the learner sees it, such as moving the game on to the chapter's phase. */
