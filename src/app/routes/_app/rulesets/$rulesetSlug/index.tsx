@@ -1,6 +1,5 @@
 /* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
-/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
-import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -19,6 +18,7 @@ import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -527,14 +527,13 @@ function RulesetDetailPage() {
         <PageIdentity
           title={r.name}
           media={
-            <Avatar
-              src={r.coverThumbUrl}
-              alt={`Cover for ${r.name}`}
+            <NameDisc
               name={r.name}
-              radius="md"
-              size="100%"
-              color="dune"
-              className={styles.coverAvatar}
+              src={r.coverThumbUrl}
+              label={`Cover for ${r.name}`}
+              color={nameDiscColor(r.name)}
+              shape="tile"
+              size="fill"
             />
           }
           breadcrumb={<Breadcrumb to="/rulesets">Rulesets</Breadcrumb>}
