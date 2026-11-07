@@ -803,8 +803,10 @@ function FaqReferenceTile({ reference, action }: { reference: FaqReferencePrevie
 }
 
 function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
-  /* A reader who cannot add references meets the section only once there is one; a maintainer keeps it for its Add action. */
-  if (faq.references.length === 0 && !faq.canManageReferences) {
+  const hasMore = faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore';
+  /* A reader who cannot add references meets the section only once there is one, or a later page may hold one
+     (a page whose targets were all deleted comes back empty); a maintainer keeps it for its Add action. */
+  if (faq.references.length === 0 && !hasMore && !faq.canManageReferences) {
     return null;
   }
   return (
@@ -812,7 +814,7 @@ function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
       <Stack gap="md">
         <FaqReferenceError faq={faq} />
         <FaqReferenceList faq={faq} />
-        {faq.referencesStatus === 'CanLoadMore' || faq.referencesStatus === 'LoadingMore' ? (
+        {hasMore ? (
           <LoadMoreButton loading={faq.referencesStatus === 'LoadingMore'} onLoadMore={faq.loadMoreReferences} />
         ) : null}
       </Stack>
