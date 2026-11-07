@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import type { CSSProperties, ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -11,7 +11,16 @@ import styles from './TableWait.module.css';
  * Every wait mounts its own frame (the access answer, the table chunk, the connection, the renderer), so the moons key their
  * orbits to the page's clock rather than to their own mount: the next frame picks the motion up where the last one left it.
  */
-const pageClock = () => (typeof performance === 'undefined' ? 0 : -Math.round(performance.now()));
+const now = () => (typeof performance === 'undefined' ? 0 : performance.now());
+const pageClock = () => -Math.round(now());
+
+/*
+ * The frames the waits mount one after another read as one: a frame that follows another (still mounted, or gone within a moment)
+ * carries on rather than arriving, so its moons do not fade in again and a status line it repeats does not ease in again.
+ */
+const CARRY_ON_MS = 1500;
+const frames = { mounted: 0, leftAt: Number.NEGATIVE_INFINITY, status: null as string | null };
+const followsAnotherFrame = () => frames.mounted > 0 || now() - frames.leftAt < CARRY_ON_MS;
 
 /**
  * The one frame a table route shows while anything is still on its way: the access answer, the table chunk, the connection, the admission.
@@ -28,6 +37,18 @@ export function TableWait({
 }: Readonly<{ status: ReactNode; connection?: string; children?: ReactNode }>) {
   const motion = useMotionAllowed();
   const [clock] = useState(pageClock);
+  const [carriesOn] = useState(followsAnotherFrame);
+  const [repeated] = useState(() => carriesOn && typeof status === 'string' && status === frames.status);
+  useEffect(() => {
+    frames.mounted += 1;
+    return () => {
+      frames.mounted -= 1;
+      frames.leftAt = now();
+    };
+  }, []);
+  useEffect(() => {
+    frames.status = typeof status === 'string' ? status : null;
+  }, [status]);
   return (
     <DarkSchemeIsland>
       <div
@@ -36,6 +57,7 @@ export function TableWait({
         data-voyage="waiting"
         data-connection={connection}
         data-still={!motion || undefined}
+        data-carries-on={carriesOn || undefined}
         style={{ '--wait-clock': `${clock}ms` } as CSSProperties}
       >
         <div className={styles.orrery} aria-hidden>
@@ -51,11 +73,12 @@ export function TableWait({
           key={typeof status === 'string' ? status : 'notice'}
           role="status"
           className={typeof status === 'string' ? styles.status : styles.notice}
+          data-repeated={repeated || undefined}
         >
           {status}
         </Text>
         {children && (
-          <Group justify="center" gap="sm">
+          <Group justify="center" gap="sm" className={styles.controls}>
             {children}
           </Group>
         )}

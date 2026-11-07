@@ -606,7 +606,7 @@ function measureHeader(node: HTMLElement | null) {
 }
 
 /* How long the table takes to open out of the planet; the waiting frame and the planet stay up behind it until then. */
-const TABLE_ARRIVAL_MS = 1200;
+const TABLE_ARRIVAL_MS = 1600;
 
 /**
  * The table's arrival: waiting until the scene is ready, then opening out of the planet, then open.

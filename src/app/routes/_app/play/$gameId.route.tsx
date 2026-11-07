@@ -248,7 +248,7 @@ function TablePage({
   game,
   exit,
 }: Readonly<{ game: Omit<KnownGame, 'status' | 'gameId'> & { gameId: string }; exit: ReactNode }>) {
-  const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
+  const loading = <TableWait status="Opening the table...">{exit}</TableWait>;
   return (
     <TableFrame title={game.name}>
       <ClientOnly fallback={loading}>

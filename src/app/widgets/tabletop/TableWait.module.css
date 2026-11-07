@@ -50,6 +50,24 @@
   box-shadow: 0 1px 4px rgb(from var(--color-shadow) r g b / 60%);
 }
 
+/* A frame that follows another keeps the line it repeats as it was, and its moons where they were (TableWait). */
+.status[data-repeated],
+.loading[data-carries-on] .orrery,
+.loading[data-carries-on] .controls {
+  animation: none;
+}
+
+/* The controls come in with the first line, not before it. */
+.controls {
+  animation: table-wait-controls 600ms ease-out backwards;
+}
+
+@keyframes table-wait-controls {
+  from {
+    opacity: 0;
+  }
+}
+
 /* A notice that is more than a line (the table could not be prepared) keeps its own layout. */
 .notice {
   max-width: 38rem;
