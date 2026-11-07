@@ -528,12 +528,20 @@ function sectorPart(territory: TableTerritory, index: number): TableTerritory | 
   /* Signed distances from the two lines, positive on the sector's side. */
   const afterFrom = ([x, z]: Plane) => Math.cos(from) * z - Math.sin(from) * x;
   const beforeTo = ([x, z]: Plane) => Math.sin(to) * x - Math.cos(to) * z;
-  const rings = territory.rings
-    .map((ring) => clipRing(clipRing(ring, afterFrom), beforeTo))
-    .filter((ring) => ring.length >= 3 && ringArea(ring) > 1e-6);
-  return rings.length > 0
-    ? { id: `${territory.id}@${index}`, name: territory.name, rings, sectored: false }
-    : undefined;
+  /* Each piece keeps its ring's depth from the whole outline: a clipped hole can touch the outer ring on the line, and would read as land if counted afresh. */
+  const depths = depthsOf(territory.rings);
+  const pieces = territory.rings
+    .map((ring, ringIndex) => ({ ring: clipRing(clipRing(ring, afterFrom), beforeTo), depth: depths[ringIndex]! }))
+    .filter(({ ring }) => ring.length >= 3 && ringArea(ring) > 1e-6);
+  if (pieces.length === 0) {
+    return undefined;
+  }
+  const rings = pieces.map(({ ring }) => ring);
+  ringDepths.set(
+    rings,
+    pieces.map(({ depth }) => depth)
+  );
+  return { id: `${territory.id}@${index}`, name: territory.name, rings, sectored: false };
 }
 
 const sectorParts = new WeakMap<TableTerritory, (TableTerritory | undefined)[]>();

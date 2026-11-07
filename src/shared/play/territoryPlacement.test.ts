@@ -293,6 +293,32 @@ describe('stacks dropped across a sector line', () => {
     }
   });
 
+  test('count a hole a sector line cuts through as a hole, though it touches the outline there', () => {
+    /* Clipped to sector 0, the hole's first corner lands on the outer ring's edge along the line. */
+    const square: TableTerritory = {
+      id: 'square',
+      name: 'Square',
+      sectored: true,
+      rings: [
+        [
+          [1, -1],
+          [3.2, -1],
+          [3.2, 1.8],
+          [1, 1.8],
+        ],
+        [
+          [2, 1.4],
+          [2, 0.4],
+          [3, 0.4],
+          [3, 1.4],
+        ],
+      ],
+    };
+    const point: [number, number] = [1.92, 0.62];
+    const [part] = restingParts(square, point, 0.175);
+    expect(shareOutside(part!, point, 0.175)).toBeCloseTo(0.447, 2);
+  });
+
   test('the polar sink lies in no sector, so a stack rests where it was let go', () => {
     const spot: Vector3Tuple = [0.05, 0, 0.001];
     const state = tableWith(troop('mover', 'atreides', SHELF));
