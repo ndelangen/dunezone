@@ -291,6 +291,54 @@ describe('account deletion', () => {
     });
   });
 
+  test("deleting an owner without a replacement withdraws their Groups' invitations, but never a restored Group's", async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'invite-source');
+    const rows = await seedOwnedRows(t, source.userId, 'invite');
+    const inviteeIds = await t.run(async (ctx) => {
+      const ids: Id<'users'>[] = [];
+      for (let index = 0; index < 201; index += 1) {
+        const userId = await ctx.db.insert('users', { name: `invitee-${index}` });
+        await ctx.db.insert('group_members', {
+          group_id: rows.groupId,
+          user_id: userId,
+          status: 'invited',
+          requested_at: now,
+          approved_at: null,
+          approved_by: source.userId,
+        });
+        ids.push(userId);
+      }
+      return ids;
+    });
+    const openInvitations = () =>
+      t.run(async (ctx) =>
+        ctx.db
+          .query('group_members')
+          .withIndex('by_group_status', (q) => q.eq('group_id', rows.groupId).eq('status', 'invited'))
+          .collect()
+      );
+
+    await t
+      .withIdentity({ subject: source.subject })
+      .mutation(api.accountDeletion.confirm, { replacementUserId: null });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect((await t.run((ctx) => ctx.db.get('groups', rows.groupId)))?.is_deleted).toBe(true);
+    expect(await openInvitations()).toHaveLength(0);
+
+    /* A run that arrives after the Group was brought back leaves its invitations alone. */
+    await t.run(async (ctx) => {
+      await ctx.db.patch(rows.groupId, { is_deleted: false });
+      const row = await ctx.db
+        .query('group_members')
+        .withIndex('by_group_user', (q) => q.eq('group_id', rows.groupId).eq('user_id', inviteeIds[0]))
+        .unique();
+      await ctx.db.patch(row!._id, { status: 'invited', approved_by: source.userId });
+    });
+    await t.mutation(internal.groups.retireDeletedGroupInvitations, { groupId: rows.groupId });
+    expect(await openInvitations()).toHaveLength(1);
+  });
+
   test('refuses to restore an account whose login has moved to a new account', async () => {
     const t = setup();
     const source = await seedAccount(t, 'gone-source');

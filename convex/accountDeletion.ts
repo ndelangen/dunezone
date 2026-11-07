@@ -502,6 +502,8 @@ async function applyGroup(ctx: MutationCtx, operation: Doc<'account_deletion_ope
     await ctx.db.patch(group._id, { created_by: replacement });
   } else if (!group.is_deleted) {
     await ctx.db.patch(group._id, { is_deleted: true });
+    /* Its invitations are retired as `groups.softDelete` retires them, in their own bounded runs so a batch of Groups stays within this transaction's budget. */
+    await ctx.scheduler.runAfter(0, internal.groups.retireDeletedGroupInvitations, { groupId: group._id });
   }
 }
 

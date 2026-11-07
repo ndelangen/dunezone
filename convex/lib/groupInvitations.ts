@@ -127,6 +127,11 @@ export const INVITATION_RETIRE_BATCH = 200;
  * Left in place they would fill the invitee's capped list with invitations nobody can answer, since every answer refuses a deleted Group.
  */
 export async function retireGroupInvitations(ctx: MutationCtx, groupId: Id<'groups'>) {
+  /* A Group brought back before a scheduled run, as restoring a deleted account does, keeps the invitations it still has. */
+  const group = await ctx.db.get('groups', groupId);
+  if (!group?.is_deleted) {
+    return false;
+  }
   const rows = await ctx.db
     .query('group_members')
     .withIndex('by_group_status', (q) => q.eq('group_id', groupId).eq('status', 'invited'))
