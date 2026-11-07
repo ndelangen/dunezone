@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { CENTER, RADIUS, derive } from './geometry';
+import { CENTER, RADIUS, derivedBoard } from './geometry';
 import type { Board, Face, Point } from './geometry';
 import type { BoardTint } from './markup';
 import { propertyId } from './schema';
@@ -40,14 +40,14 @@ export const tintDrawingSchema = z.strictObject({
 });
 export type TintDrawing = z.infer<typeof tintDrawingSchema>;
 
-/* Deriving a board's faces takes tens of milliseconds and editors redraw on every token drag step, so faces are kept per board object. */
+/* Editors redraw on every token drag step, so each board object keeps its territories under their IDs. */
 const territoryCache = new WeakMap<Board, BoardTerritory[]>();
 
 /** A saved board's territories under the IDs tints name them by. */
 export function boardTerritoryList(board: Board): BoardTerritory[] {
   let territories = territoryCache.get(board);
   if (!territories) {
-    territories = derive(board).faces.map((face) => ({ id: propertyId(board.properties[face.key]), face }));
+    territories = derivedBoard(board).faces.map((face) => ({ id: propertyId(board.properties[face.key]), face }));
     territoryCache.set(board, territories);
   }
   return territories;
