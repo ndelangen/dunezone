@@ -405,14 +405,25 @@
     ]
   },
   {
-    "label": "Custom portraits / Gary's leaders",
-    "keywords": "Gary MCDM community officer nobleman commander purple gold crimson masked goggles scar face marking",
+    "label": "Custom portraits / Mikarrol",
+    "keywords": "Mikarrol Gary MCDM community officer nobleman commander purple gold crimson masked goggles scar",
     "assets": [
       "/image/leader/gary/blonde-officer.png",
       "/image/leader/gary/crimson-masked-figure.png",
       "/image/leader/gary/haughty-nobleman.png",
       "/image/leader/gary/scarred-commander.png",
       "/image/leader/gary/stoic-officer.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / Lindaren",
+    "keywords": "Lindaren Gary MCDM community officer soldier royal blue gold uniform gray armour helmet visor",
+    "assets": [
+      "/image/leader/gary/helmeted-soldier.png",
+      "/image/leader/gary/paired-officers.png",
+      "/image/leader/gary/skeptical-officer.png",
+      "/image/leader/gary/veteran-officer.png",
+      "/image/leader/gary/warrior.png"
     ]
   },
   {

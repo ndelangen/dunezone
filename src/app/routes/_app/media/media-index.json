@@ -7442,6 +7442,41 @@
     "credit": "gf9-ilya-portrait",
     "sourceHash": "ac3d511288cc50771d8c4fff89d75c7eacee892f8b2ef70e95ec927ebc68d4bf"
   },
+  "/image/leader/gary/helmeted-soldier.png": {
+    "description": "Helmeted Soldier. Fully helmeted figure with a dark opaque visor and a round ear piece. Gray angular helmet and chest plates with blue shoulder armour.",
+    "tags": ["portrait", "helmet", "visor", "soldier", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "fe0a87944c5eb6f5aa7f3a828060a695983df184d9e3bc96ca281f8c190ae0cf"
+  },
+  "/image/leader/gary/paired-officers.png": {
+    "description": "Paired Officers. Two men back to back in blue uniforms with gold trim. An older man with a topknot, hair stick, moustache and goatee, and a younger clean-shaven man with shoulder-length brown hair.",
+    "tags": ["portrait", "two people", "men", "officer", "topknot", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0"
+  },
+  "/image/leader/gary/skeptical-officer.png": {
+    "description": "Skeptical Officer. Woman with a brown updo, hair stick and a beauty mark, looking sideways. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "woman", "officer", "updo", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "78c9013a1ed9cea6f7c32b45e6e81a0e957c88ab77a8f4425bde6663a4474bc2"
+  },
+  "/image/leader/gary/veteran-officer.png": {
+    "description": "Veteran Officer. Older man with long swept-back brown hair streaked with white and a gray beard, looking aside. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "man", "officer", "gray hair", "beard", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "ac5e811a9853af3055fc7a1d5f996f8520b62b782b47b2e9cb2351a8a8d00dcc"
+  },
+  "/image/leader/gary/warrior.png": {
+    "description": "Warrior. Young man with short dark brown hair and a stern sideways look. Gray segmented chest armour, blue collar and blue shoulder plates.",
+    "tags": ["portrait", "man", "soldier", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "4000639bf121315af12c559f3eb63ed6900fed43785bf5d7dd0fa9c40feba384"
+  },
   "/image/leader/gary/blonde-officer.png": {
     "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
     "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],

@@ -24,14 +24,46 @@
       "gamePngSha256": "9d1c52a23fcd0b1489d2f3cfc52edc7b7274517a6866be763c0bc5e6f9abcbbe"
     },
     {
+      "asset": "/image/leader/gary/helmeted-soldier.png",
+      "generatedSourceSha256": "2407e66dca6f99e99498ba639769715b6e911de647f4c52267d1e7d33bbe30a4",
+      "gamePngSha256": "fe0a87944c5eb6f5aa7f3a828060a695983df184d9e3bc96ca281f8c190ae0cf"
+    },
+    {
+      "asset": "/image/leader/gary/paired-officers.png",
+      "generatedSourceSha256": "2c3b9319d3b839a18e56e2b2d33ddace40eef006ec9efba4a243f84ddec333bd",
+      "gamePngSha256": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0"
+    },
+    {
       "asset": "/image/leader/gary/scarred-commander.png",
       "generatedSourceSha256": "c431e568ddffd9b707caa01643bf61f27ec2207812e7111162b520256ad6bda2",
       "gamePngSha256": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e"
     },
     {
+      "asset": "/image/leader/gary/skeptical-officer.png",
+      "generatedSourceSha256": "3ac5f32997c1aa3b99dd44f81080c6eb6efad80ce07488e6d250a83d49979c25",
+      "gamePngSha256": "78c9013a1ed9cea6f7c32b45e6e81a0e957c88ab77a8f4425bde6663a4474bc2"
+    },
+    {
       "asset": "/image/leader/gary/stoic-officer.png",
       "generatedSourceSha256": "530d06df3a79671f94a82ad83fd286d2f2cc9db0d5ab84fe5098f959fae2c074",
       "gamePngSha256": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17"
+    },
+    {
+      "asset": "/image/leader/gary/veteran-officer.png",
+      "generatedSourceSha256": "ca1d1af3714fcdb0f3b71502bfd044c7a1dd6e968a49d7c3fed9ca57ace0df84",
+      "gamePngSha256": "ac5e811a9853af3055fc7a1d5f996f8520b62b782b47b2e9cb2351a8a8d00dcc"
+    },
+    {
+      "asset": "/image/leader/gary/warrior.png",
+      "generatedSourceSha256": "9e5ab54073a464f7bc8da3558138162157beb3bae559b23fc8ee74b446d25976",
+      "gamePngSha256": "4000639bf121315af12c559f3eb63ed6900fed43785bf5d7dd0fa9c40feba384"
     }
-  ]
+  ],
+  "factions": {
+    "Mikarrol": ["blonde-officer", "crimson-masked-figure", "haughty-nobleman", "scarred-commander", "stoic-officer"],
+    "Lindaren": ["helmeted-soldier", "paired-officers", "skeptical-officer", "veteran-officer", "warrior"]
+  },
+  "corrections": {
+    "skeptical-officer": "A localized imagegen edit removed a duplicated pupil in her right eye; everything else is unchanged."
+  }
 }

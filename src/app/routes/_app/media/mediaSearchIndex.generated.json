@@ -5193,6 +5193,31 @@
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"]
   },
+  "/image/leader/gary/helmeted-soldier.png": {
+    "description": "Helmeted Soldier. Fully helmeted figure with a dark opaque visor and a round ear piece. Gray angular helmet and chest plates with blue shoulder armour.",
+    "tags": ["portrait", "helmet", "visor", "soldier", "armour", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/paired-officers.png": {
+    "description": "Paired Officers. Two men back to back in blue uniforms with gold trim. An older man with a topknot, hair stick, moustache and goatee, and a younger clean-shaven man with shoulder-length brown hair.",
+    "tags": ["portrait", "two people", "men", "officer", "topknot", "uniform", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/skeptical-officer.png": {
+    "description": "Skeptical Officer. Woman with a brown updo, hair stick and a beauty mark, looking sideways. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "woman", "officer", "updo", "uniform", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/veteran-officer.png": {
+    "description": "Veteran Officer. Older man with long swept-back brown hair streaked with white and a gray beard, looking aside. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "man", "officer", "gray hair", "beard", "uniform", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/warrior.png": {
+    "description": "Warrior. Young man with short dark brown hair and a stern sideways look. Gray segmented chest armour, blue collar and blue shoulder plates.",
+    "tags": ["portrait", "man", "soldier", "armour", "illustration"],
+    "subjects": ["people"]
+  },
   "/image/leader/gary/blonde-officer.png": {
     "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
     "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],

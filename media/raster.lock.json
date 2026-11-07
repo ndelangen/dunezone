@@ -4589,6 +4589,24 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gary/helmeted-soldier.png": {
+    "sha256": "fe0a87944c5eb6f5aa7f3a828060a695983df184d9e3bc96ca281f8c190ae0cf",
+    "bytes": 416907,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/paired-officers.png": {
+    "sha256": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0",
+    "bytes": 526971,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
   "/image/leader/gary/scarred-commander.png": {
     "sha256": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e",
     "bytes": 445826,
@@ -4598,9 +4616,36 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gary/skeptical-officer.png": {
+    "sha256": "78c9013a1ed9cea6f7c32b45e6e81a0e957c88ab77a8f4425bde6663a4474bc2",
+    "bytes": 384203,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
   "/image/leader/gary/stoic-officer.png": {
     "sha256": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17",
     "bytes": 426601,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/veteran-officer.png": {
+    "sha256": "ac5e811a9853af3055fc7a1d5f996f8520b62b782b47b2e9cb2351a8a8d00dcc",
+    "bytes": 483118,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/warrior.png": {
+    "sha256": "4000639bf121315af12c559f3eb63ed6900fed43785bf5d7dd0fa9c40feba384",
+    "bytes": 448775,
     "width": 640,
     "height": 640,
     "format": "png",
