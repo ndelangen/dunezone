@@ -110,7 +110,7 @@ const BORDER_REACH = 0.32;
 const MOST_OUTSIDE = 0.3;
 
 /** How far inside a border the packing steps the centre of a footprint of `radius`. */
-export function borderReach(radius: number): number {
+function borderReach(radius: number): number {
   return radius * BORDER_REACH;
 }
 
@@ -182,7 +182,7 @@ export function restsInside(territory: TableTerritory, at: Plane, radius: number
 }
 
 /** Whether a round footprint lies wholly inside the territory, clear of its border. */
-export function fitsInside(territory: TableTerritory, at: Plane, radius: number): boolean {
+function fitsInside(territory: TableTerritory, at: Plane, radius: number): boolean {
   return territoryContains(territory, at) && nearestBorder(territory, at).distance >= radius;
 }
 
