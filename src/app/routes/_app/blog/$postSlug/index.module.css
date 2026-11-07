@@ -9,13 +9,6 @@
   margin-inline: auto;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: var(--space-xs);
-}
-
 /* A section's name wraps into even lines rather than leaving one word on the last. */
 .article :is(h2, h3) {
   text-wrap: balance;

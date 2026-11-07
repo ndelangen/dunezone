@@ -189,7 +189,11 @@ export const SignedOut = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('link', { name: 'Sign in to answer' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Log in to answer this question.', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/auth/login')
+    );
     await expect(page.queryByRole('button', { name: /^Actions for / })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Accept answer' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Add references' })).toBeNull();

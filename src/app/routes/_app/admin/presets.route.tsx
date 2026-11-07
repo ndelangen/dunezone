@@ -1,4 +1,4 @@
-import { Anchor, Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Stack, Text, TextInput } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { publishingSpiceCard } from '@shared/assets/fixtures/publishingSpiceCard';
 import { GF9_LEADER_SKILLS } from '@shared/assets/gf9LeaderSkills';
@@ -9,10 +9,11 @@ import { standardStormCard } from '@shared/assets/standardStormDeck';
 import type { FamilyPreset, DiscoveryPreset } from '@shared/backgrounds/families';
 import { resolveBackgroundValues, customBackground, linkedBackground } from '@shared/backgrounds/schema';
 import type { BackgroundData, SharedBackgroundPreset } from '@shared/backgrounds/schema';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -501,13 +502,11 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
     <PageLayout>
       <PageLayout.Header>
         <PageTitle
+          breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
           title="Presets"
           lede="Keep related designs together. Shared backgrounds keep their linked uses in sync."
         />
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
           <ControlBlock

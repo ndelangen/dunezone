@@ -1,8 +1,8 @@
-import { Anchor, Stack, Text } from '@mantine/core';
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { Stack } from '@mantine/core';
+import { createFileRoute, notFound } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ArrowLeft } from 'lucide-react';
 import { createElement, Suspense } from 'react';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -73,18 +73,14 @@ function BlogPostPage() {
     <PageLayout>
       <PageLayout.Header size="compact">
         <Stack gap="xs" align="center">
+          {/* The way up stands above the byline, where every other page below a list carries it; the byline sits between it and the title, so it stands in the stack rather than in PageTitle's breadcrumb slot. */}
+          <Breadcrumb to="/blog">Blog</Breadcrumb>
           <AuthorByline date={meta.date} author={author} tone="inverse" />
           <PageTitle title={meta.title} />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
         <article className={styles.article}>
-          <Anchor component={Link} to="/blog" className={styles.back}>
-            <ArrowLeft aria-hidden size={16} />
-            <Text span inherit>
-              All posts
-            </Text>
-          </Anchor>
           <Suspense>{createElement(blogPostBody(meta.slug))}</Suspense>
         </article>
       </PageLayout.Content>
