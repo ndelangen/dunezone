@@ -9,6 +9,7 @@ import { Section } from '@ui/block/Section';
 import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { GroupLink } from '@ui/content/GroupLink';
+import { NameDisc } from '@ui/content/NameDisc';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
@@ -214,11 +215,6 @@ function ProfileDetailPage() {
 
   const isSelf = currentProfile.data?._id === page.profile._id;
   const bandAvatarUrl = profileAvatarUrl(page.profile);
-  const initials =
-    page.profile.username
-      ?.slice(0, 2)
-      .toUpperCase()
-      .replace(/[^A-Z]/g, '') || '?';
 
   const handleSignOut = async () => {
     forgetStoredPlayTables();
@@ -312,11 +308,7 @@ function ProfileDetailPage() {
         <PageIdentity
           title={page.profile.username ?? 'Unknown'}
           media={
-            bandAvatarUrl ? (
-              <img src={bandAvatarUrl} alt={page.profile.username ?? 'Avatar'} className={styles.avatar} />
-            ) : (
-              <span className={styles.avatarPlaceholder}>{initials}</span>
-            )
+            <NameDisc name={page.profile.username ?? '?'} src={bandAvatarUrl} size="fill" className={styles.avatar} />
           }
           breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           standing={isSelf ? { tone: 'brand', label: 'You' } : null}

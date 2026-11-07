@@ -27,9 +27,8 @@ export function Eyebrow({ children, tone = 'muted', align = 'start', id }: Eyebr
     <Text
       id={id}
       component="p"
-      className={clsx(styles.eyebrow, tone === 'inverse' && styles.inverse)}
+      className={clsx(styles.eyebrow, styles[tone])}
       ta={align === 'center' ? 'center' : undefined}
-      c={tone === 'accent' ? 'var(--color-link)' : tone === 'muted' ? 'dimmed' : undefined}
     >
       {children}
     </Text>
