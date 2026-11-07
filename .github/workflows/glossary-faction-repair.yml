@@ -1,0 +1,48 @@
+name: Glossary faction repair
+
+# One-off production data repair for the six stock factions (thread "Check blog posts against glossary",
+# approved by Norbert 2026-11-07). Run with dry_run first, compare, then without. Remove with the mutation.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report the changes without writing them
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glossary-faction-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Run glossaryFactionRepair:run
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+          CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args="{\"factionSlugs\":[\"house-atreides\",\"house-harkonnen\",\"emperor\",\"spacing-guild\",\"fremen\",\"bene-gesserit\"],\"dryRun\":${DRY_RUN}}"
+          bunx convex run glossaryFactionRepair:run "$args" | tee repair-result.json
+          {
+            echo '```json'
+            cat repair-result.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: glossary-faction-repair-${{ inputs.dry_run && 'dry-run' || 'applied' }}
+          path: repair-result.json
