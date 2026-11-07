@@ -1,8 +1,6 @@
 import { Section } from '@ui/block/Section';
 
-import { BulletList, Figure, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
-import { ArrakisCopies } from './board/ArrakisCopies';
-import { SharedLines } from './board/SharedLines';
+import { BulletList, Figure, FigureRow, Lead, Paragraph, PostLink } from '../postContent';
 
 export default function Post() {
   return (
@@ -57,9 +55,22 @@ function CopiesSection() {
         Copies like these also meant a board could only ever be Arrakis. dune.zone is built for homebrew, and a homebrew
         map had nowhere to go.
       </Paragraph>
-      <WideFigure caption="Before, each part of the site kept its own Arrakis. Now one saved board feeds them all.">
-        <ArrakisCopies />
-      </WideFigure>
+      <FigureRow
+        figures={[
+          {
+            imageKey: '/web/blog/editable-dune-board-arrakis/old-arrakis-map.jpg',
+            alt: 'The old Arrakis map SVG that Spice cards drew: sand and rock territories, strongholds and dashed sector lines',
+            aspect: 1,
+            caption: 'Before: the Arrakis SVG the Spice cards drew, one of the copies.',
+          },
+          {
+            imageKey: '/web/blog/editable-dune-board-arrakis/arrakis-official.jpg',
+            alt: 'The published Arrakis Official board: sand and rock territories, five strongholds with city and sietch decals, and the white Polar Sink in the middle',
+            aspect: 1,
+            caption: 'After: Arrakis Official, published from the board editor.',
+          },
+        ]}
+      />
     </Section>
   );
 }
@@ -83,10 +94,10 @@ function EditorSection() {
         version of it.
       </Paragraph>
       <Figure
-        imageKey="/web/blog/editable-dune-board-arrakis/arrakis-official.jpg"
-        alt="The published Arrakis Official board: sand and rock territories, five strongholds with city and sietch decals, and the white Polar Sink in the middle"
-        aspect={1}
-        caption="Arrakis Official as the site publishes it. The picture is made from the saved lines, not drawn by hand."
+        imageKey="/web/blog/editable-dune-board-arrakis/board-editor.jpg"
+        alt="The dune.zone board editor with Arrakis loaded: every shared line shown with its points, the 18 storm sectors as dashed guides, and Arrakeen selected in the territory panel"
+        aspect={1627 / 2048}
+        caption="Arrakis in the board editor. Every dot is a point on a shared line, and the panel is editing Arrakeen."
       />
     </Section>
   );
@@ -120,9 +131,25 @@ function NamesSection() {
         The renaming rule is deliberate. A board and the cards that use it can belong to different people, and editing
         your board should never quietly change someone else&rsquo;s card.
       </Paragraph>
-      <WideFigure caption="Step through a cut, a merge and a rename, and watch what the Spice card lights.">
-        <SharedLines />
-      </WideFigure>
+      <Paragraph>Here is what that looks like in the editor, on Hagga basin.</Paragraph>
+      <Figure
+        imageKey="/web/blog/editable-dune-board-arrakis/cut-unfinished.jpg"
+        alt="The board editor with Hagga basin selected: a new line runs from its left border and stops halfway, and Hagga basin is still one territory"
+        aspect={1034 / 2048}
+        caption="An unfinished cut. The line is there, but Hagga basin is still one territory."
+      />
+      <Figure
+        imageKey="/web/blog/editable-dune-board-arrakis/cut-split.jpg"
+        alt="The board editor after the cut reaches the other border: the lower half is selected and named Hagga basin 2"
+        aspect={1034 / 2048}
+        caption="The cut reaches the other border. The top half keeps Hagga basin, and the lower half becomes Hagga basin 2."
+      />
+      <Figure
+        imageKey="/web/blog/editable-dune-board-arrakis/cut-merged.jpg"
+        alt="The board editor after the new line is removed: Hagga basin is one territory again"
+        aspect={1034 / 2048}
+        caption="Remove the line, and it is one Hagga basin again. Hagga basin 2 is gone."
+      />
     </Section>
   );
 }
@@ -216,10 +243,10 @@ function GamesSection() {
         its territories on your own Spice cards and in your Rulebooks.
       </Paragraph>
       <Figure
-        imageKey="/web/blog/editable-dune-board-arrakis/board-editor.jpg"
-        alt="The dune.zone board editor with Arrakis loaded: every shared line shown with its points, the 18 storm sectors as dashed guides, and Arrakeen selected in the territory panel"
-        aspect={1627 / 2048}
-        caption="Arrakis in the board editor. Every dot is a point on a shared line, and the panel is editing Arrakeen."
+        imageKey="/web/blog/editable-dune-board-arrakis/tutorial-table.jpg"
+        alt="A dune.zone tutorial chapter, What goes where: the practice table on the saved Arrakis board with faction tokens, troops and the storm"
+        aspect={1440 / 2048}
+        caption="A tutorial table, on the same saved Arrakis board."
       />
     </Section>
   );

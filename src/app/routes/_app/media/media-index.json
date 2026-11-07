@@ -14579,5 +14579,40 @@
     "subjects": ["places"],
     "credit": "blog-picture",
     "sourceHash": "cbbaf02c612514162172b990793ae9e7e94be76445be93420bc6117f28d57174"
+  },
+  "/web/blog/editable-dune-board-arrakis/old-arrakis-map.jpg": {
+    "description": "The old Arrakis map SVG that dune.zone Spice cards drew before the saved board: sand and rock territories, strongholds and dashed sector lines.",
+    "tags": ["dune.zone", "Arrakis", "map", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "7b339a9e1eb174dce5d32587087c065a95d15451ac8b0ff9b79a700ad511183a"
+  },
+  "/web/blog/editable-dune-board-arrakis/cut-unfinished.jpg": {
+    "description": "The dune.zone board editor with Hagga basin selected and an unfinished cut that stops halfway across it.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "a450a4870f9a536ffb1f9eca00ff20f19c9e0a75d5b84cde360a1107f3bc54f1"
+  },
+  "/web/blog/editable-dune-board-arrakis/cut-split.jpg": {
+    "description": "The dune.zone board editor after a cut splits Hagga basin: the lower half is selected and named Hagga basin 2.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "51e9ad75155436c9aed06353288a9f87ee11d3a5f33d2c3f5be7c110a61c03ab"
+  },
+  "/web/blog/editable-dune-board-arrakis/cut-merged.jpg": {
+    "description": "The dune.zone board editor after the cut is removed: Hagga basin is one territory again.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "f7fbaac93a7de1b172fc94e71d8b39722b3cd9edd3b96b54c6d68b9c041a80e3"
+  },
+  "/web/blog/editable-dune-board-arrakis/tutorial-table.jpg": {
+    "description": "A dune.zone tutorial chapter with the practice table on the saved Arrakis board, faction tokens, troops and the storm.",
+    "tags": ["dune.zone", "tutorial", "game table", "Arrakis", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "fc555dbb81bdc093c1edcc8b7c4a7b1797b73d2fadb4ea8a6cbfd528328c8f38"
   }
 }
