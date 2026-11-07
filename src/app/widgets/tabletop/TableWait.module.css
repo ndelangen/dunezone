@@ -48,9 +48,8 @@
   box-shadow: 0 1px 4px rgb(from var(--color-shadow) r g b / 60%);
 }
 
-/* A frame that follows another keeps the line it repeats as it was, and its moons where they were (TableWait). */
+/* A frame that follows another keeps the line it repeats as it was (its moons keep the first frame's entrance: TableWait). */
 .status[data-repeated],
-.loading[data-carries-on] .orrery,
 .loading[data-carries-on] .controls {
   animation: none;
 }

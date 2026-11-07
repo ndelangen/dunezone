@@ -15,11 +15,25 @@ import styles from './TableWait.module.css';
  */
 const now = () => (typeof performance === 'undefined' ? 0 : performance.now());
 const ORBITING = /table-wait-(orbit|moon)/;
+const ARRIVING = /table-wait-arrive/;
 
-function keepOrbitsOnPageClock(frame: HTMLElement | null) {
+/*
+ * The moons' entrance runs on the same timeline: a frame that carries on from another keeps the first frame's entrance where
+ * it is, finished or still fading in, rather than restarting it or cutting it short.
+ */
+function keepOrbitsOnPageClock(frame: HTMLElement | null, carriesOn: boolean) {
+  const timeline = document.timeline.currentTime;
+  if (!carriesOn && typeof timeline === 'number') {
+    frames.arrivedAt = timeline;
+  }
   for (const animation of frame?.getAnimations({ subtree: true }) ?? []) {
-    if (animation instanceof CSSAnimation && ORBITING.test(animation.animationName)) {
+    if (!(animation instanceof CSSAnimation)) {
+      continue;
+    }
+    if (ORBITING.test(animation.animationName)) {
       animation.startTime = 0;
+    } else if (ARRIVING.test(animation.animationName)) {
+      animation.startTime = frames.arrivedAt;
     }
   }
 }
@@ -29,7 +43,7 @@ function keepOrbitsOnPageClock(frame: HTMLElement | null) {
  * carries on rather than arriving, so its moons do not fade in again and a status line it repeats does not ease in again.
  */
 const CARRY_ON_MS = 1500;
-const frames = { mounted: 0, leftAt: Number.NEGATIVE_INFINITY, status: null as string | null };
+const frames = { mounted: 0, leftAt: Number.NEGATIVE_INFINITY, arrivedAt: 0, status: null as string | null };
 const followsAnotherFrame = () => frames.mounted > 0 || now() - frames.leftAt < CARRY_ON_MS;
 
 /**
@@ -61,7 +75,7 @@ export function TableWait({
     }
   }, [carriesOn]);
   /* Before the frame's first paint, so its moons never show a frame away from the shared orbit. */
-  useLayoutEffect(() => keepOrbitsOnPageClock(frame.current), [motion]);
+  useLayoutEffect(() => keepOrbitsOnPageClock(frame.current, carriesOn), [motion, carriesOn]);
   useEffect(() => {
     frames.mounted += 1;
     return () => {

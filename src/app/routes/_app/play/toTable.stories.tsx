@@ -94,6 +94,8 @@ export const LobbyToSeating = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const open = await page.findByRole('link', { name: 'Open Gom Jabbar party' }, { timeout: 30_000 });
+    /* The player reaches the link a moment before they press it, which starts loading the table. */
+    open.focus();
     await pause(1500);
     await userEvent.click(open);
     await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"]')).not.toBeNull(), {

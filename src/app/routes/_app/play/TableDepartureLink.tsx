@@ -6,6 +6,8 @@ import { DepartureCover } from '@app/shell/DepartureCover';
 import { beginDeparture, leaveDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
 
+import { loadHostedTable } from './hostedTableChunk';
+
 /* As long as the page's fade on departure takes (AppRoot's stylesheet); the planet keeps rising into the game page. */
 export const DEPARTURE_MS = 700;
 
@@ -22,6 +24,10 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
    * The departure takes the click before the link does: once it is prevented, the link leaves the navigation to the departure's own timer.
    * It listens in the capture phase so a link that owns its click handler (Storybook's router mock) still departs.
    */
+  /* The table loads as the pointer reaches the link, so its first evaluation lands before the departure, not during the planet's rise. */
+  const preload = () => {
+    loadHostedTable().catch(() => {});
+  };
   const depart = (event: MouseEvent<HTMLAnchorElement>) => {
     if (
       event.defaultPrevented ||
@@ -41,7 +47,14 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
   };
   return (
     <>
-      <Link {...rootProps} to="/play/$gameId" params={{ gameId }} onClickCapture={depart} />
+      <Link
+        {...rootProps}
+        to="/play/$gameId"
+        params={{ gameId }}
+        onClickCapture={depart}
+        onPointerEnter={preload}
+        onFocus={preload}
+      />
       {departing ? <DepartureCover /> : null}
     </>
   );
