@@ -17,7 +17,7 @@ const meta = testingPreview.meta({
 });
 
 /**
- * Pulses every five seconds.
+ * Pulses every five seconds, the first four seconds in, and is still between pulses.
  * It stops entirely under `prefers-reduced-motion`, so Chromatic, which captures with reduced motion, would show the Start story again;
  * this file runs the play in CI only.
  * Reserve it for a page whose whole purpose is this one action.
@@ -27,6 +27,10 @@ export const Attention = meta.story({
   args: { attention: true },
   play: async ({ canvasElement }) => {
     const action = within(canvasElement).getByRole('link', { name: 'Create your own faction' });
+    /* Nothing runs while it waits for its pulse. */
+    await expect(action.getAnimations()).toEqual([]);
+    /* The pulse's timing is unit tested on fake timers (`CallToAction.test.tsx`); here the stylesheet turns the marker into the animation. */
+    action.dataset.pulse = '';
     await expect(getComputedStyle(action).animationName).toMatch(/attention/);
   },
 });
