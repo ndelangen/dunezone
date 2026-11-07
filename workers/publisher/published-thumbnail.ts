@@ -131,6 +131,26 @@ async function freshThumbnail(
   return resized;
 }
 
+/** The resize's bytes, kept at the edge or made now; null when the resize fails. */
+async function thumbnailBytes(
+  source: Response,
+  target: { url: URL; width: number; sourceTag: string },
+  ctx: Pick<ExecutionContext, 'waitUntil'>,
+  dependencies: ThumbnailDependencies
+): Promise<ArrayBuffer | null> {
+  const cache = dependencies.cache ?? caches.default;
+  const cacheKey = thumbnailCacheKey(target.url, target.width, target.sourceTag);
+  const kept = await cache.match(cacheKey).catch(() => undefined);
+  if (kept) {
+    return keptThumbnail(source, kept);
+  }
+  return freshThumbnail(
+    source,
+    { width: target.width, path: target.url.pathname, images: dependencies.images },
+    (resized) => ctx.waitUntil(cache.put(cacheKey, resized).catch(() => undefined))
+  );
+}
+
 /**
  * A published image resized to one of the listed widths, for `?w=` on its public URL;
  * null for any other request.
@@ -154,15 +174,9 @@ export async function handlePublishedThumbnailRequest(
   if (!source || sourceTag === null) {
     return source;
   }
-  const cache = dependencies.cache ?? caches.default;
-  const cacheKey = thumbnailCacheKey(url, width, sourceTag);
-  const kept = await cache.match(cacheKey).catch(() => undefined);
-  const thumbnail = kept
-    ? await keptThumbnail(source, kept)
-    : await freshThumbnail(source, { width, path: url.pathname, images: dependencies.images }, (resized) =>
-        ctx.waitUntil(cache.put(cacheKey, resized).catch(() => undefined))
-      );
-  return thumbnail
-    ? deliver(request, thumbnail, thumbnailHeaders(source, width, sourceTag))
-    : deliver(request, await source.arrayBuffer(), new Headers(source.headers));
+  const thumbnail = await thumbnailBytes(source, { url, width, sourceTag }, ctx, dependencies);
+  if (!thumbnail) {
+    return deliver(request, await source.arrayBuffer(), new Headers(source.headers));
+  }
+  return deliver(request, thumbnail, thumbnailHeaders(source, width, sourceTag));
 }
