@@ -357,6 +357,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'spice-dialing',
+    term: 'Spice dialing',
+    topic: 'battle',
+    explanation:
+      'The advanced battle rule in which a faction pays spice to support its dialed troops. Under it a supported troop counts at full strength and an unsupported one at half.',
+    reason:
+      'The name of the rule, as the battle rules picker shows it beside basic, KISS and GF9 2.0. Supported is the word for a troop under this rule.',
+    source: 'house',
+    avoid: [],
+  },
+  {
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
@@ -679,11 +690,12 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'fate',
     term: 'Fate',
+    searchTerms: ['fate card'],
     topic: 'factions',
     explanation:
-      'The name a faction may give its special Karama power section on its sheet, in place of Faction Special Karama. The rule is still used by playing a Karama card.',
+      'A one-time card a faction holds, and the rule printed for it in the Fate section of its faction sheet. Playing the fate card uses that rule, once per game.',
     reason:
-      'Dune Zone’s faction editor and sheets offer Fate as the section’s other name. Saying so here lets readers take the two names as one thing.',
+      'A Dune Zone faction can give its once-per-game rule a fate card of its own instead of tying it to a Karama card, as the special Karama power does. The faction editor offers Fate as that section’s name.',
     source: 'house',
     avoid: [],
   },
@@ -725,6 +737,23 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
         forms: ['heroes'],
         exceptions: [/cheap\s+hero(?:es)?/i],
         fixes: { hero: 'faction leader', heroes: 'faction leaders' },
+      },
+    ],
+  },
+  {
+    id: 'faction-shield',
+    term: 'Faction shield',
+    topic: 'factions',
+    explanation:
+      'The folding screen each faction stands up in front of its seat. It shows the faction leader and keeps the faction’s spice out of sight.',
+    reason:
+      'Named for the faction it belongs to, like the faction leader and faction token it shows. The rulebook calls it a player shield.',
+    source: 'house',
+    avoid: [
+      {
+        word: 'player shield',
+        forms: ['player shields'],
+        fixes: { 'player shield': 'faction shield', 'player shields': 'faction shields' },
       },
     ],
   },
