@@ -23,7 +23,7 @@ import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
-import { SignInAgainAction } from '@app/widgets/page-message/SignInAgainAction';
+import { SignInAgainAction } from './SignInAgainAction';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets', asset: 'Assets' } as const;
 

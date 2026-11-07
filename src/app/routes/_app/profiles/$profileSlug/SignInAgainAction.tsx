@@ -14,7 +14,7 @@ export interface SignInAgainActionProps {
  *
  * Changing sign-in methods and deleting the account are refused when the session signed in too long ago (`needsRecentSignIn` in `@db/accounts`), so the failure that carries this action is one the reader resolves on the spot.
  * The caller hands the page to return to, since only the page knows which of its tabs or states the reader was in.
- * A widget because two routes install the identical thing under their error.
+ * It lives beside the two profile routes that install it, since it routes, which a widget may not.
  */
 export function SignInAgainAction({ returnTo }: SignInAgainActionProps) {
   /* The group keeps the action at its own width under the words, as `FormError` shows its actions. */

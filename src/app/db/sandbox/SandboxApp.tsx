@@ -56,7 +56,7 @@ function holdPreloads(router: AnyRouter): () => void {
 
 async function seededBackend(database: DatabaseDefinition) {
   const backend = new ConvexStorybookWorkerClient();
-  await backend.reset(database.create());
+  await backend.reset(database.create(), database.elapsedMs);
   return backend;
 }
 

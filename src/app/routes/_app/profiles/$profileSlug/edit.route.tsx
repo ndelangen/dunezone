@@ -33,7 +33,7 @@ import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
-import { SignInAgainAction } from '@app/widgets/page-message/SignInAgainAction';
+import { SignInAgainAction } from './SignInAgainAction';
 
 const PROFILE_TABS = ['profile', 'defaults', 'appearance', 'sign-in', 'account'] as const;
 type ProfileTab = (typeof PROFILE_TABS)[number];
