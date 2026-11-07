@@ -1,4 +1,5 @@
 /* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
+/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
 import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';

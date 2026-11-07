@@ -79,7 +79,7 @@ function GameDebugger() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Game debugger" subtitle="Inspect a reported game and the browser that reported it." />
+        <PageTitle title="Game debugger" lede="Inspect a reported game and the browser that reported it." />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>

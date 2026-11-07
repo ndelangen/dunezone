@@ -7,11 +7,10 @@ import { loadGroupEditBySlug, useGroupEditBySlug, useUpdateGroup } from '@db/gro
 import type { GroupEntry } from '@db/groups';
 import { pageHead } from '@app/routes/pageTitle';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
+import { GroupForm } from '@app/widgets/group-form/GroupForm';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
-
-import { GroupForm } from '../GroupForm';
 
 /** The edit page for one group, mounted with `key={group.slug}` so a rename remounts it and resets the field. */
 function GroupEditor({ initial }: { initial: GroupEntry }) {

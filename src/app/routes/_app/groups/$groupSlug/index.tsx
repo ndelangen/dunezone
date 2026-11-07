@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The group's page mark is a rounded square filling its header slot, not a name disc. */
 import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';

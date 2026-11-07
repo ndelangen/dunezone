@@ -21,21 +21,13 @@ const leaderImageOptions = stockAssetOptions(LEADERS.options);
 type LeaderImage = Faction['factionLeader']['image'];
 
 /** The fields on the left and, from the small step, the token they make on the right. */
-export function LeaderRow({
-  showPreview,
-  fields,
-  preview,
-}: {
-  showPreview: boolean;
-  fields: ReactNode;
-  preview: ReactNode;
-}) {
+export function LeaderRow({ fields, preview }: { fields: ReactNode; preview?: ReactNode }) {
   return (
     <Grid gap="xl" align="center">
-      <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
+      <Grid.Col span={{ base: 12, sm: preview ? 8 : 12 }}>
         <Stack gap="md">{fields}</Stack>
       </Grid.Col>
-      {showPreview ? (
+      {preview ? (
         <Grid.Col span={4} visibleFrom="sm">
           {preview}
         </Grid.Col>

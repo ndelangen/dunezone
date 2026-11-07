@@ -13,7 +13,6 @@ export function FactionFormSectionFactionLeader({
   return (
     <Stack component="section" gap="md" aria-label="Faction leader">
       <LeaderRow
-        showPreview={showPreview}
         fields={
           <>
             <form.Field name="factionLeader.name">
@@ -42,26 +41,28 @@ export function FactionFormSectionFactionLeader({
           </>
         }
         preview={
-          <form.Subscribe
-            selector={(state) => ({
-              background: state.values.background,
-              factionLeader: state.values.factionLeader,
-              emblem: state.values.emblem,
-            })}
-          >
-            {({ background, factionLeader, emblem }) => (
-              <LeaderTokenPreview
-                caption="Used on: Faction shield"
-                width={148}
-                label="Faction leader token preview"
-                background={background}
-                image={factionLeader.image}
-                emblem={emblem}
-                name={factionLeader.name}
-                strength={undefined}
-              />
-            )}
-          </form.Subscribe>
+          showPreview ? (
+            <form.Subscribe
+              selector={(state) => ({
+                background: state.values.background,
+                factionLeader: state.values.factionLeader,
+                emblem: state.values.emblem,
+              })}
+            >
+              {({ background, factionLeader, emblem }) => (
+                <LeaderTokenPreview
+                  caption="Used on: Faction shield"
+                  width={148}
+                  label="Faction leader token preview"
+                  background={background}
+                  image={factionLeader.image}
+                  emblem={emblem}
+                  name={factionLeader.name}
+                  strength={undefined}
+                />
+              )}
+            </form.Subscribe>
+          ) : null
         }
       />
     </Stack>

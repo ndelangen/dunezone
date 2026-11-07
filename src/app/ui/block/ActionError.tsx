@@ -53,10 +53,11 @@ export interface ActionErrorProps extends Pick<FormErrorProps, 'action'> {
 /** The reason under the title. Read structurally, because the kit must not import Convex to recognise its error. */
 function reason(error: Error | string): string {
   if (typeof error === 'string') {
-    return error;
+    return error.trim() || 'Try again in a moment.';
   }
   const data: unknown = (error as { data?: unknown }).data;
-  return typeof data === 'string' ? data : error.message;
+  const words = typeof data === 'string' ? data : error.message;
+  return words.trim() || 'Try again in a moment.';
 }
 
 /**

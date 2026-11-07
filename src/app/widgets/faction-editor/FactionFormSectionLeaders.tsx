@@ -45,7 +45,6 @@ function SupportingLeaderCard({
   return (
     <Stack gap="md">
       <LeaderRow
-        showPreview={showPreview}
         fields={
           <>
             <form.Field name={`leaders[${index}].name`}>
@@ -101,28 +100,30 @@ function SupportingLeaderCard({
           </>
         }
         preview={
-          <form.Subscribe
-            selector={(state) => ({
-              background: state.values.background,
-              leader: state.values.leaders[index],
-              emblem: state.values.emblem,
-            })}
-          >
-            {({ background, leader: currentLeader, emblem }) =>
-              currentLeader ? (
-                <LeaderTokenPreview
-                  caption="Used as: leader token"
-                  width={132}
-                  label={`Token preview for supporting leader ${index + 1}`}
-                  background={background}
-                  image={currentLeader.image}
-                  emblem={emblem}
-                  name={currentLeader.name}
-                  strength={currentLeader.strength}
-                />
-              ) : null
-            }
-          </form.Subscribe>
+          showPreview ? (
+            <form.Subscribe
+              selector={(state) => ({
+                background: state.values.background,
+                leader: state.values.leaders[index],
+                emblem: state.values.emblem,
+              })}
+            >
+              {({ background, leader: currentLeader, emblem }) =>
+                currentLeader ? (
+                  <LeaderTokenPreview
+                    caption="Used as: leader token"
+                    width={132}
+                    label={`Token preview for supporting leader ${index + 1}`}
+                    background={background}
+                    image={currentLeader.image}
+                    emblem={emblem}
+                    name={currentLeader.name}
+                    strength={currentLeader.strength}
+                  />
+                ) : null
+              }
+            </form.Subscribe>
+          ) : null
         }
       />
     </Stack>

@@ -39,30 +39,9 @@ export type CatalogueRow = Readonly<{ part: string; tiles: readonly CatalogueTil
 
 export type CatalogueTrack = 'play' | 'create';
 
-const TRACKS: readonly {
-  id: CatalogueTrack;
-  label: string;
-  to: LinkProps['to'];
-  title: string;
-  subtitle: string;
-  lede: string;
-}[] = [
-  {
-    id: 'play',
-    label: 'Playing Dune',
-    to: '/tutorial',
-    title: 'Learn to play',
-    subtitle: 'How Dune Zone Play works',
-    lede: 'Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with.',
-  },
-  {
-    id: 'create',
-    label: 'Creating content',
-    to: '/create',
-    title: 'Learn to create',
-    subtitle: 'How to make your own Dune content',
-    lede: 'Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make.',
-  },
+const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] }[] = [
+  { id: 'play', label: 'Playing Dune', to: '/tutorial' },
+  { id: 'create', label: 'Creating content', to: '/create' },
 ];
 
 /*
@@ -153,15 +132,27 @@ function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
 
 /**
  * A tutorial catalogue page, whole: its title band, the toolbar that moves between the two tracks, and the tiles in rows by part.
- * The two tracks are one page with different words and tiles, so the route names its track and hands over its rows.
+ * The two tracks are one page with different words and tiles, so the route hands over its words, its track and its rows.
  */
-export function TutorialCatalogue({ track, rows }: Readonly<{ track: CatalogueTrack; rows: readonly CatalogueRow[] }>) {
-  const words = TRACKS.find((option) => option.id === track)!;
+export function TutorialCatalogue({
+  track,
+  title,
+  subtitle,
+  lede,
+  rows,
+}: Readonly<{
+  track: CatalogueTrack;
+  /** The page's name, its framed subtitle and its one-sentence purpose, as `PageTitle` takes them. */
+  title: string;
+  subtitle: string;
+  lede: string;
+  rows: readonly CatalogueRow[];
+}>) {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
         <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title={words.title} subtitle={words.subtitle} lede={words.lede} />
+          <PageTitle title={title} subtitle={subtitle} lede={lede} />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>

@@ -1,5 +1,6 @@
+/* oxlint-disable-next-line no-restricted-imports -- A seat request is a ghost disc with no person in it yet. */
+import { Avatar } from '@mantine/core';
 import {
-  Avatar,
   CloseButton,
   Group,
   Indicator,

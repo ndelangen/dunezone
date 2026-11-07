@@ -35,8 +35,8 @@ import type {
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
 import { AssetSelect } from '@ui/control/AssetSelect';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { ChevronDown, ChevronRight, Link2, Minus } from 'lucide-react';

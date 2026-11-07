@@ -31,5 +31,13 @@ const ROWS: readonly CatalogueRow[] = CREATOR_PARTS.map((part) => ({
 }));
 
 function CreatorTutorials() {
-  return <TutorialCatalogue track="create" rows={ROWS} />;
+  return (
+    <TutorialCatalogue
+      track="create"
+      title="Learn to create"
+      subtitle="How to make your own Dune content"
+      lede="Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make."
+      rows={ROWS}
+    />
+  );
 }

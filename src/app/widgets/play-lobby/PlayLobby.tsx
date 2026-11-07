@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- Avatar.Group stacks the lobby's NameDiscs, and its "+N" overflow disc is a count, not a name. */
 import { Avatar, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';

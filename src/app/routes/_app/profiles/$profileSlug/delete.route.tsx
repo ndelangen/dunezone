@@ -217,7 +217,8 @@ function AccountDeletionPage() {
               }
             />
             {/* The checkbox states what will happen; the hold is the commitment. The heaviest delete in the application wears the same five seconds as every other (Norbert, 2026-08-21). */}
-            <HoldAction shape="button"
+            <HoldAction
+              shape="button"
               label={replacement ? 'Transfer ownership and delete account' : 'Delete account'}
               disabled={!acknowledged}
               pending={confirm.isPending}

@@ -2,6 +2,7 @@ import { Button, Menu, Text, Tooltip } from '@mantine/core';
 import { BookUp2, Replace, Trash2 } from 'lucide-react';
 import type { PointerEvent, ReactNode } from 'react';
 
+import { INTENT_COLOR } from './actionIntent';
 import { IconAction } from './IconAction';
 import { useHoldToConfirm } from './useHoldToConfirm';
 
@@ -23,8 +24,12 @@ const WORDS: Record<HoldVerb, { noun: string; doing: string }> = {
 };
 
 function defaultGlyph(verb: HoldVerb) {
-  if (verb === 'convert') return <Replace size={17} aria-hidden />;
-  if (verb === 'publish') return <BookUp2 size={17} aria-hidden />;
+  if (verb === 'convert') {
+    return <Replace size={17} aria-hidden />;
+  }
+  if (verb === 'publish') {
+    return <BookUp2 size={17} aria-hidden />;
+  }
   return <Trash2 size={17} aria-hidden />;
 }
 
@@ -63,10 +68,13 @@ export interface HoldActionProps {
 /**
  * Does something for good, if you mean it for five seconds.
  *
- * `useHoldToConfirm` owns the hold; this owns how each shape wears it.
+ * `useHoldToConfirm` owns the hold;
+ * this owns how each shape wears it.
  * Hovering says "hold to delete", pressing counts down ("deletion in 4.." in the hover text and the glyph, or in the button's or item's own words), and releasing early cancels with nothing fired.
- * Space and Enter hold too. A plain click does nothing, which is the point.
- * Publishing wears its own colour so it never reads as a second Save; every other verb is red.
+ * Space and Enter hold too.
+ * A plain click does nothing, which is the point.
+ * Publishing wears its own colour so it never reads as a second Save;
+ * every other verb is red.
  * See docs/technical/ui-design-decisions.md, "Destructive actions are held, not asked twice".
  */
 export function HoldAction({
@@ -90,11 +98,14 @@ export function HoldAction({
   const atRest = hint ?? `hold to ${verb}`;
   /* A hold already fired keeps its spinner until the page settles, whatever the page now says about the hold. */
   const busy = pending || submitted;
+  const publish = verb === 'publish';
+  /* Publishing is violet so it never reads as a second Save; every other verb is a loss, so red. */
+  const color = publish ? INTENT_COLOR.publish : INTENT_COLOR.negative;
 
   if (shape === 'menu-item') {
     return (
       <Menu.Item
-        color="red"
+        color={color}
         closeMenuOnClick={closeMenuOnClick}
         disabled={blocked || pending}
         {...handlers}
@@ -119,14 +130,13 @@ export function HoldAction({
   if (shape === 'button') {
     return (
       <Tooltip label={holding ? countdown : (disabledReason ?? atRest)} opened={holding ? true : undefined}>
-        <Button color="red" variant="light" disabled={blocked} loading={busy} {...handlers}>
+        <Button color={color} variant="light" disabled={blocked} loading={busy} {...handlers}>
           {holding ? countdown : label}
         </Button>
       </Tooltip>
     );
   }
 
-  const publish = verb === 'publish';
   const glyph = icon ?? defaultGlyph(verb);
   if (disabledReason != null && !busy) {
     return (

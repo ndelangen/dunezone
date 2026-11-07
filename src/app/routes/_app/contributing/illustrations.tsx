@@ -2,8 +2,8 @@ import { Anchor, Code, Group, SimpleGrid, Stack, Text, TextInput } from '@mantin
 import { slugify } from '@shared/slugify';
 import { CodeExample } from '@ui/content/CodeExample';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';

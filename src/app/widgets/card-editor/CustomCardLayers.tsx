@@ -3,9 +3,9 @@ import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FO
 import type { CustomCardTokens } from '@shared/assets/schema';
 import { ListChapter } from '@ui/block/ListChapter';
 import { helpLines } from '@ui/content/helpLines';
-import { HoldAction } from '@ui/control/HoldAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { RangeField } from '@ui/control/RangeField';

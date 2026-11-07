@@ -3,11 +3,10 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useCreateGroup } from '@db/groups';
 import { useSessionViewer } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
+import { GroupForm } from '@app/widgets/group-form/GroupForm';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
-
-import { GroupForm } from './GroupForm';
 
 export const Route = createFileRoute('/_app/groups/create')({
   head: () => pageHead('Start group'),

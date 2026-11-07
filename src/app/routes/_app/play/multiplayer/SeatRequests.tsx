@@ -462,7 +462,8 @@ export function GameMenu({
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
         {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
         {!isSpectator(table) && (
-          <HoldAction shape="menu-item"
+          <HoldAction
+            shape="menu-item"
             key={table.viewer.viewerSeat}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
             verb="leave"

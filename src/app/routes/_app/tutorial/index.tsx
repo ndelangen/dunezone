@@ -32,5 +32,13 @@ const ROWS: readonly CatalogueRow[] = TUTORIAL_PARTS.map((part) => ({
 }));
 
 function PlayTutorials() {
-  return <TutorialCatalogue track="play" rows={ROWS} />;
+  return (
+    <TutorialCatalogue
+      track="play"
+      title="Learn to play"
+      subtitle="How Dune Zone Play works"
+      lede="Pick what you want to learn, or follow the chapters in order. Every chapter is a table you can play with."
+      rows={ROWS}
+    />
+  );
 }

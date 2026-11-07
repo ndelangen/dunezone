@@ -502,7 +502,7 @@ function PresetEditor({ library }: Readonly<{ library: NonNullable<ReturnType<ty
       <PageLayout.Header>
         <PageTitle
           title="Presets"
-          subtitle="Keep related designs together. Shared backgrounds keep their linked uses in sync."
+          lede="Keep related designs together. Shared backgrounds keep their linked uses in sync."
         />
       </PageLayout.Header>
       <PageLayout.Toolbar>
