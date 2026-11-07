@@ -11890,6 +11890,55 @@
     "credit": "blog-picture",
     "sourceHash": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8"
   },
+  "/web/blog/mentat-recall-online-dune-game-history/recall-table.jpg": {
+    "description": "The dune.zone game table during a Mentat recall, the board frozen in cool blue tones with the Shared history slider.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "online play", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "0cf5d2a28f74a244cd066d5aaab03440d25ce41c09dc3fd8f5046fd789064e43"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/live-table.jpg": {
+    "description": "The dune.zone game table during Shipment and Movement in its normal warm sand colours.",
+    "tags": ["dune.zone", "game table", "Shipment and Movement", "online play", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "277684bbebdaabd6fb686a78c1ecaee703d19ed0fd2946793a517c4d2f8ab9a5"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/ask.jpg": {
+    "description": "The table controls on the dune.zone game table with Mentat recall found under History.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "controls", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "b0adccce49e888e1a2b3203755043573a4ebcf23548728e89ece97394d48f064"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/vote.jpg": {
+    "description": "The game header asking the table to agree to a Mentat recall of Turn 1, Bidding, with Agree and Decline buttons.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "vote", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "06ab2554a5c9390e0a817b285ab6fdf04c54d2126d03ec8c95274fa9f8b47a42"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/recalled-hand.jpg": {
+    "description": "The recalled hand panel during a Mentat recall, showing spice, leaders, an alliance card and traitor cards.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "hand", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "592dc8789f76fa3d790b6d5c07c0d83b5ef4adfeecd7c0f4bcf98efc3e9a0929"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/recall-chat.jpg": {
+    "description": "The Recall chat panel during a Mentat recall on the dune.zone game table.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "chat", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "6847acecfb286b28b6557ac65277a7f193d1bd9084143b457e7673e1169c074e"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/after-the-game.jpg": {
+    "description": "A finished game on the dune.zone game table with the result panel and the Mentat recall window offering Recall together.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "result", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "92e62ae084ac78503e9d049c4018ec4f80d070d3aec3ed5cdca2988d5ff94bb4"
+  },
   "/web/blog/playing-dune-online-in-real-time/table-in-play.jpg": {
     "description": "A six-player game on the dune.zone game table in Shipment and Movement, with troops in the strongholds, spice on the board and the treachery decks.",
     "tags": ["dune.zone", "game table", "online play", "blog"],
