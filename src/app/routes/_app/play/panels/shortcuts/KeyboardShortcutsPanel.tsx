@@ -47,7 +47,7 @@ function NowTile({
 }
 
 /* Which ends of the row have more tiles past them, kept up to date as it scrolls, resizes or its tiles change. */
-function useOverflow(row: RefObject<HTMLUListElement | null>, tiles: number) {
+function useOverflow(row: RefObject<HTMLUListElement | null>, tiles: string) {
   const [more, setMore] = useState({ before: false, after: false });
   useEffect(() => {
     const element = row.current;
@@ -92,7 +92,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
     (entry) => !capsOf(entry).some((cap) => taken.has(cap))
   );
   const row = useRef<HTMLUListElement>(null);
-  const more = useOverflow(row, current.length);
+  const more = useOverflow(row, [...current, ...panels].map((entry) => entry.id).join(' '));
   const motion = useMotionAllowed();
   const page = (direction: 1 | -1) =>
     row.current?.scrollBy({
