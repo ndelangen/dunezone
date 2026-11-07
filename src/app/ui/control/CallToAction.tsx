@@ -65,13 +65,16 @@ function useAttentionPulse(on: boolean) {
         return undefined;
       }
       const settle = () => element.removeAttribute('data-pulse');
-      let timer = setTimeout(function pulse() {
-        element.setAttribute('data-pulse', '');
-        timer = setTimeout(pulse, PULSE_EVERY_MS);
+      const pulse = () => element.setAttribute('data-pulse', '');
+      let every: ReturnType<typeof setInterval> | undefined;
+      const first = setTimeout(() => {
+        pulse();
+        every = setInterval(pulse, PULSE_EVERY_MS);
       }, FIRST_PULSE_MS);
       element.addEventListener('animationend', settle);
       return () => {
-        clearTimeout(timer);
+        clearTimeout(first);
+        clearInterval(every);
         element.removeEventListener('animationend', settle);
         settle();
       };
