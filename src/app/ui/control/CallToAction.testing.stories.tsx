@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { Link } from '@tanstack/react-router';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { CallToAction } from './CallToAction';
 
@@ -29,10 +29,9 @@ export const Attention = meta.story({
     const action = within(canvasElement).getByRole('link', { name: 'Create your own faction' });
     /* Nothing runs while it waits for its pulse. */
     await expect(action.getAnimations()).toEqual([]);
-    await waitFor(() => expect(getComputedStyle(action).animationName).toMatch(/attention/), { timeout: 6000 });
-    /* A pulse ends on its own and leaves the button still again. */
-    await waitFor(() => expect(action).not.toHaveAttribute('data-pulse'), { timeout: 3000 });
-    await expect(action.getAnimations()).toEqual([]);
+    /* The pulse's timing is unit tested on fake timers (`CallToAction.test.tsx`); here the stylesheet turns the marker into the animation. */
+    action.dataset.pulse = '';
+    await expect(getComputedStyle(action).animationName).toMatch(/attention/);
   },
 });
 

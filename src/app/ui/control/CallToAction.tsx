@@ -64,8 +64,15 @@ function useAttentionPulse(on: boolean) {
       if (!on || !element) {
         return undefined;
       }
-      const settle = () => element.removeAttribute('data-pulse');
-      const pulse = () => element.setAttribute('data-pulse', '');
+      /* Only the button's own pulse ends it; a child's animation, such as the spinner's, bubbles the same event. */
+      const settle = (event?: AnimationEvent) => {
+        if (!event || event.target === element) {
+          delete element.dataset.pulse;
+        }
+      };
+      const pulse = () => {
+        element.dataset.pulse = '';
+      };
       let every: ReturnType<typeof setInterval> | undefined;
       const first = setTimeout(() => {
         pulse();
