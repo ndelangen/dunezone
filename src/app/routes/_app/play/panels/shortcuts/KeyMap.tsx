@@ -18,7 +18,9 @@ const ROWS: readonly (readonly (string | readonly [string, number])[])[] = [
 
 /** The word on a key, its own letter lit when the word has it: "Hand" on H, with the H lit. */
 export function Caption({ entry, keyName }: Readonly<{ entry: ShortcutEntry; keyName: string }>) {
-  const at = keyName.length === 1 ? entry.short.toLowerCase().indexOf(keyName.toLowerCase()) : -1;
+  /* Only a key chosen for its word, or with a hook to remember it by, lights a letter: A slides the view, so "Pan" keeps its a plain. */
+  const remembered = entry.word !== undefined || entry.hook !== undefined;
+  const at = remembered && keyName.length === 1 ? entry.short.toLowerCase().indexOf(keyName.toLowerCase()) : -1;
   if (at < 0) {
     return <>{entry.short}</>;
   }
@@ -64,7 +66,11 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
   if (all.length === 0) {
     return (
       <span className={styles.key} style={{ flexGrow: width }} data-blank={!keyName || undefined} aria-hidden>
-        {keyName && <span className={styles.letter}>{keyName}</span>}
+        {keyName && (
+          <span className={styles.letter} data-word={keyName.length > 1 || undefined}>
+            {keyName}
+          </span>
+        )}
       </span>
     );
   }
@@ -93,7 +99,9 @@ function Key({ keyName, width, ...props }: KeyMapProps & Readonly<{ keyName: str
         onClick={() => onFocus(keyName)}
       >
         <PressFlash pressed={pressed} keys={[keyName]}>
-          <span className={styles.letter}>{keyName}</span>
+          <span className={styles.letter} data-word={keyName.length > 1 || undefined}>
+            {keyName}
+          </span>
         </PressFlash>
         {/* Keyed by the meaning, so a key that changes meaning fades its new word in. */}
         <span key={shown.id} className={styles.caption}>

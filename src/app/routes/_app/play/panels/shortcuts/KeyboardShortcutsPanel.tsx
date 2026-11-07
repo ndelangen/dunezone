@@ -92,7 +92,7 @@ export function KeyboardShortcutsPanel({ now = [] }: Readonly<{ now?: readonly N
     (entry) => !capsOf(entry).some((cap) => taken.has(cap))
   );
   const row = useRef<HTMLUListElement>(null);
-  const more = useOverflow(row, current.length);
+  const more = useOverflow(row, current.length + panels.length);
   const motion = useMotionAllowed();
   const page = (direction: 1 | -1) =>
     row.current?.scrollBy({

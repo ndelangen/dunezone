@@ -140,7 +140,8 @@ export function ChatComposer({ drafts, draftKey, submit, mentions }: ChatCompose
             minRows={2}
             maxRows={5}
             rightSection={<ComposerSubmit disabled={!draft.trim()} />}
-            rightSectionWidth={68}
+            /* Wide enough for the whole Send button and a little room before the field's edge. */
+            rightSectionWidth={84}
             rightSectionPointerEvents="auto"
           />
         </Combobox.Target>
