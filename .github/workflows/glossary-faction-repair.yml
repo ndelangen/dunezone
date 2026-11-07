@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           args="{\"factionSlugs\":[\"house-atreides\",\"house-harkonnen\",\"emperor\",\"spacing-guild\",\"fremen\",\"bene-gesserit\"],\"dryRun\":${DRY_RUN}}"
-          bunx convex run glossaryFactionRepair:run "$args" | tee repair-result.json
+          ./node_modules/.bin/convex run glossaryFactionRepair:run "$args" | tee repair-result.json
           {
             echo '```json'
             cat repair-result.json
