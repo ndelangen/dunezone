@@ -23,6 +23,7 @@ import { treacheryToCustomCard } from '../src/shared/assets/treacheryToCustomCar
 import { ASSET_TYPE_KEYS, holdsBundleMembership } from '../src/shared/assets/types';
 import { parseAssetDataForWrite, parseNexusCardInput } from '../src/shared/assets/validation';
 import { backgroundPresetSchema } from '../src/shared/backgrounds/schema';
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { HistoricalBoardDefinition } from '../src/shared/boards/schema';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
@@ -523,6 +524,14 @@ async function allocateAssetSlug(ctx: MutationCtx, type: string, base: string, o
   if (!base) {
     throw new ConvexError('An asset name is required; it determines the asset URL');
   }
+  /*
+   * The saved Arrakis board is found by its address (`convex/arrakis.ts`), so a rename keeps it:
+   * a freed address would hide the board from the homepage, tutorials, glossary and new Rulebook scenes,
+   * and the next board anyone names "Arrakis Official" would take its place there.
+   */
+  if (own?.type === 'board' && own.slug === ARRAKIS_BOARD_SLUG) {
+    return own.slug;
+  }
   /* Preserve its existing address even when the unsuffixed address has become free. */
   if (own && slugify(nameOf(own)) === base) {
     return own.slug;
@@ -952,6 +961,14 @@ export const setMemberCount = mutation({
     } else if (existing) {
       await ctx.db.patch(existing._id, { count: args.count });
     } else {
+      /* Every reader stops at this many members (`membersOf`, copies, imports), so a container never grows past it. */
+      const held = await ctx.db
+        .query('asset_relations')
+        .withIndex('by_from_kind', (q) => q.eq('from_asset_id', args.container_id).eq('kind', rules.kind))
+        .take(DECK_CARD_LIMIT);
+      if (held.length >= DECK_CARD_LIMIT) {
+        throw new ConvexError(`A ${container.type} holds at most ${DECK_CARD_LIMIT} different ${rules.noun}.`);
+      }
       await ctx.db.insert('asset_relations', {
         from_asset_id: args.container_id,
         to_asset_id: args.member_id,

@@ -2,6 +2,7 @@
 /* @vitest-environment edge-runtime */
 import { describe, expect, test } from 'vite-plus/test';
 
+import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { arrakisBoard, blankBoard } from '../src/shared/boards/geometry';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
@@ -39,6 +40,28 @@ describe('authored board Assets', () => {
     expect((await assetPageAs(owner, { type: 'board', slug: cloned.slug }))?.asset.data).toMatchObject({
       board,
     });
+  });
+  test('a renamed saved Arrakis keeps its address, so nobody else can take it', async () => {
+    const t = applicationTest();
+    const ownerId = await t.run((ctx) => ctx.db.insert('users', { name: 'Board owner' }));
+    const otherId = await t.run((ctx) => ctx.db.insert('users', { name: 'Someone else' }));
+    const owner = t.withIdentity({ subject: ownerId });
+    const board = arrakisBoard();
+    const official = await owner.mutation(api.assets.create, {
+      type: 'board',
+      data: { name: 'Arrakis Official', about: '', board },
+    });
+    expect(official.slug).toBe(ARRAKIS_BOARD_SLUG);
+    await owner.mutation(api.assets.update, {
+      id: official.id,
+      data: { name: 'Arrakis Official Board', about: '', board },
+    });
+    expect((await t.run((ctx) => ctx.db.get(official.id)))?.slug).toBe(ARRAKIS_BOARD_SLUG);
+    const impostor = await t.withIdentity({ subject: otherId }).mutation(api.assets.create, {
+      type: 'board',
+      data: { name: 'Arrakis Official', about: '', board },
+    });
+    expect(impostor.slug).not.toBe(ARRAKIS_BOARD_SLUG);
   });
   test('refuses invalid board payloads and unauthorized writes', async () => {
     const t = applicationTest();

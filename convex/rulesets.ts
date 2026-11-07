@@ -1,5 +1,5 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
-import { v } from 'convex/values';
+import { ConvexError, v } from 'convex/values';
 
 import { RULESET_ASSET_SLOTS } from '../src/shared/rulesets/assetSlots';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
@@ -61,6 +61,12 @@ async function getRulesetById(ctx: QueryCtx | MutationCtx, id: Id<'rulesets'>) {
  * An explicit `image_cover` also clears the stored `cover`: this legacy channel is how a pre-rehost bundle expresses a cover intent, and `rulesetCovers.rehost` is the only writer that sets `cover`.
  * The shape is inferred rather than restated, so adding a field here cannot drift from the type that describes it.
  */
+/**
+ * The legacy `image_cover` argument may only clear a cover or echo the stored one back.
+ * A new cover enters through `rulesetCovers.rehost`, which copies it to our own storage, so readers never contact a host an author chose.
+ */
+const LEGACY_COVER_REFUSED = 'Choose a cover with the cover picker; a cover address cannot be saved directly.';
+
 function rulesetUpdatePatch(fields: {
   name: string;
   slug: string;
@@ -306,6 +312,9 @@ export const create = mutation({
     const userId = await requireAuthUserId(ctx);
     const input = parseRulesetInput(args);
     const normalizedName = input.name;
+    if (args.image_cover !== null) {
+      throw new ConvexError(LEGACY_COVER_REFUSED);
+    }
 
     const groupAssignment = await resolveGroupAssignmentForCreation(ctx, userId, args.group_id);
 
@@ -325,7 +334,7 @@ export const create = mutation({
       slug,
       owner_id: userId,
       group_id: groupAssignment.group_id,
-      image_cover: args.image_cover,
+      image_cover: null,
       cover: null,
       created_at: now,
       updated_at: now,
@@ -366,8 +375,13 @@ export const update = mutation({
      * A pre-rehost bundle echoes the dual-written delivery URL back on every save.
      * That echo is not a new cover intent, so it must not clear the stored cover and lose its provenance.
      */
-    const imageCoverIntent =
-      typeof args.image_cover === 'string' && args.image_cover === ruleset.cover?.url ? undefined : args.image_cover;
+    const echoed =
+      typeof args.image_cover === 'string' &&
+      (args.image_cover === ruleset.cover?.url || args.image_cover === ruleset.image_cover);
+    if (typeof args.image_cover === 'string' && !echoed) {
+      throw new ConvexError(LEGACY_COVER_REFUSED);
+    }
+    const imageCoverIntent = echoed ? undefined : args.image_cover;
     const slug = await resolveUniqueRulesetSlug(ctx, normalizedName, ruleset);
     if (slug !== ruleset.slug) {
       await recordFormerSlug(ctx, { kind: 'ruleset', scope: '', slug: ruleset.slug, record_id: ruleset._id });
