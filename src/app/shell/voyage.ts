@@ -28,3 +28,17 @@ export function endDeparture() {
     delete document.documentElement.dataset.voyage;
   }
 }
+
+/*
+ * A table reached without a departure (a direct link, a reload) shows the planet already at rest in the centre, fading in
+ * rather than rising: the frame mounts with the planet's transition off, and the transition comes back once the fade is done.
+ */
+const DIRECT_ARRIVAL_MS = 800;
+
+export function arriveDirectly() {
+  const root = document.documentElement;
+  root.dataset.voyageArrival = 'direct';
+  window.setTimeout(() => {
+    delete root.dataset.voyageArrival;
+  }, DIRECT_ARRIVAL_MS);
+}

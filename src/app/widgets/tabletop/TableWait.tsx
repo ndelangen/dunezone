@@ -3,7 +3,7 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSc
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useState } from 'react';
 
-import { endDeparture } from '@app/shell/voyage';
+import { arriveDirectly, endDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import styles from './TableWait.module.css';
@@ -40,8 +40,17 @@ export function TableWait({
   const [clock] = useState(pageClock);
   const [carriesOn] = useState(followsAnotherFrame);
   const [repeated] = useState(() => carriesOn && typeof status === 'string' && status === frames.status);
-  /* The frame carries the voyage from here on, so the departing page's document mark can go. */
-  useLayoutEffect(endDeparture, []);
+  /*
+   * The frame carries the voyage from here on, so the departing page's document mark can go.
+   * A first frame that nothing departed into (a direct link, a reload) puts the planet in the centre at once rather than raising it.
+   */
+  useLayoutEffect(() => {
+    const departed = document.documentElement.dataset.voyage === 'departing';
+    endDeparture();
+    if (!departed && !carriesOn) {
+      arriveDirectly();
+    }
+  }, [carriesOn]);
   useEffect(() => {
     frames.mounted += 1;
     return () => {

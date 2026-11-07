@@ -99,6 +99,19 @@
   transition-delay: 0.45s;
 }
 
+/* A table reached directly shows the planet already at rest and fades it in (voyage.ts marks the arrival for the fade's length).
+   Only its opacity changes, so the fade stays with reduced motion too. */
+:global(:root[data-voyage-arrival="direct"]) .planetFrame {
+  transition: none;
+  animation: planet-fade-in 0.8s ease both;
+}
+
+@keyframes planet-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 html[data-motion="reduce"] .planetFrame {
   transition: none;
 }
