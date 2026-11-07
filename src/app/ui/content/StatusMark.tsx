@@ -1,6 +1,6 @@
-import { Box, Stack, Tooltip } from '@mantine/core';
+import { Box, Tooltip } from '@mantine/core';
 import clsx from 'clsx';
-import { createContext, useContext, useId } from 'react';
+import { useId } from 'react';
 import type { ReactNode } from 'react';
 
 import styles from './StatusMark.module.css';
@@ -10,8 +10,6 @@ import styles from './StatusMark.module.css';
  * The words come from the variant language: `caution` warns without failing, as unsaved work does.
  */
 type StatusMarkTone = 'neutral' | 'positive' | 'negative' | 'caution' | 'pending' | 'progress';
-
-const InsideStatusMarkList = createContext(false);
 
 export interface StatusMarkProps {
   /** The reader-facing meaning; the glyph's colour follows from it, never the other way round. */
@@ -32,23 +30,9 @@ export interface StatusMarkProps {
  *
  * Callers own the glyph, the tone and the full wording.
  * This owns keeping the words reachable: the glyph is a tab stop named with them, and its tooltip shows them on hover, focus and touch.
- * Inside a `StatusMarkList` the same mark states its words beside its glyph instead, so one set of marks can fill a bar and the tooltip that stands in for it.
  */
 export function StatusMark({ tone = 'neutral', icon, label, tooltip }: StatusMarkProps) {
-  const listed = useContext(InsideStatusMarkList);
   const descriptionId = useId();
-
-  /* A list is read inside a tooltip, whose own ink the glyph keeps: the tone colours are set for the page, not for the tooltip's pane. */
-  if (listed) {
-    return (
-      <span className={styles.row}>
-        <span aria-hidden className={styles.glyph}>
-          {icon}
-        </span>
-        <span>{label}</span>
-      </span>
-    );
-  }
 
   return (
     <>
@@ -79,19 +63,5 @@ export function StatusMark({ tone = 'neutral', icon, label, tooltip }: StatusMar
         </Box>
       </Tooltip>
     </>
-  );
-}
-
-/**
- * States every `StatusMark` inside it as its glyph and its words, one per row.
- *
- * Callers own which marks it holds.
- * This owns the one place several statuses are read at once, such as the tooltip of a mark that stands in for all of them.
- */
-export function StatusMarkList({ children }: { children: ReactNode }) {
-  return (
-    <InsideStatusMarkList.Provider value>
-      <Stack gap="xs">{children}</Stack>
-    </InsideStatusMarkList.Provider>
   );
 }

@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vite-plus/test';
 
-import { BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
+import { BLOG_POST_PAGES, LISTED_BLOG_POST_PAGES } from '../../src/shared/blogPostSlugs';
 import { TUTORIAL_PAGES, MEDIA_PUBLIC_PAGES, RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
 import type { PublicCache } from './public-cache';
 import { handlePublicDiscovery } from './public-discovery';
@@ -47,8 +47,17 @@ test('the index and landing sitemap enumerate supported canonical paths without 
   expect(landing).toContain('<loc>https://dune.zone/faq</loc>');
   expect(landing).toContain('<loc>https://dune.zone/profiles</loc>');
   expect(landing).toContain('<loc>https://dune.zone/assets/token-disc</loc>');
-  for (const page of [...RECORDLESS_PUBLIC_PAGES, ...TUTORIAL_PAGES, ...BLOG_POST_PAGES, ...MEDIA_PUBLIC_PAGES]) {
+  for (const page of [
+    ...RECORDLESS_PUBLIC_PAGES,
+    ...TUTORIAL_PAGES,
+    ...LISTED_BLOG_POST_PAGES,
+    ...MEDIA_PUBLIC_PAGES,
+  ]) {
     expect(landing).toContain(`<loc>https://dune.zone${page}</loc>`);
+  }
+  /* An unlisted post is reachable by its link only. */
+  for (const page of BLOG_POST_PAGES.filter((page) => !LISTED_BLOG_POST_PAGES.includes(page))) {
+    expect(landing).not.toContain(`<loc>https://dune.zone${page}</loc>`);
   }
   expect(landing).not.toContain('/assets/rulesets');
   expect(landing).not.toContain('/contributing/glossary');

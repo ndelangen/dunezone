@@ -77,7 +77,7 @@ export async function listOrderedRulesetFactions(ctx: QueryCtx, rulesetId: Id<'r
         _id: faction._id,
         slug: faction.slug,
         name: faction.data.name,
-        logo: faction.data.logo,
+        emblem: faction.data.emblem,
         background: faction.data.background,
       })),
     /* Never past the limit, which `addFaction` holds rulesets to, so Load more cannot stall on the same page. */

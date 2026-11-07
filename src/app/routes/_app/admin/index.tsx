@@ -16,7 +16,7 @@ function AdminIndex() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Admin tools" subtitle="Find the tool for the job and what it changes." />
+        <PageTitle title="Admin tools" lede="Find the tool for the job and what it changes." />
       </PageLayout.Header>
       <PageLayout.Content>
         <Surface padding="lg">

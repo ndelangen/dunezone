@@ -2,13 +2,12 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { Box, Center, Group, Image, Radio, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/profiles/validation';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -32,6 +31,7 @@ import type { MotionPreference } from '@app/styles/motion';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
 
@@ -314,7 +314,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
     );
   };
 
-  const panelError = mutationError ? <FormError title="Profile could not be saved">{mutationError}</FormError> : null;
+  const panelError = <ActionError subject="Profile" verb="save" error={mutationError} />;
 
   const tabs = [
     {
@@ -378,10 +378,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             description={
               'A public link; ownership is not verified, so it cannot sign you in.\nClear it and save to remove it.'
             }
-            input={
+            input={(fieldProps) => (
               <TextInput
+                {...fieldProps}
                 ref={bggProfileUrlRef}
-                aria-label="BoardGameGeek profile URL"
                 type="url"
                 value={bggProfileUrl}
                 onChange={(event) => dispatch({ kind: 'patch', update: { bggProfileUrl: event.target.value } })}
@@ -389,7 +389,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 autoComplete="off"
                 maxLength={500}
               />
-            }
+            )}
           />
           <AvatarPreview avatarUrl={avatarUrl} username={username} />
         </Stack>
@@ -407,13 +407,10 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
             description={
               'New rulesets and factions start in this Group.\nYou can change an item’s Group after its first save.'
             }
-            input={
+            input={(fieldProps) => (
               <Select
+                {...fieldProps}
                 ref={defaultGroupRef}
-                aria-label="Default Group"
-                /* Not yet loaded is not the same as "you are in no Groups", and an enabled control
-                   offering only "No default Group" says the second. The derivation above gates on
-                   the same distinction; this is the other half of it. */
                 disabled={defaultGroupOptions === undefined}
                 value={defaultGroupId ?? ''}
                 onChange={(value) =>
@@ -425,7 +422,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
                 ]}
                 clearable
               />
-            }
+            )}
           />
         </Stack>
       ),
@@ -459,11 +456,15 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
         <Stack gap="md">
           {panelError}
           {settings === undefined ? (
-            <LoadPending title="Loading sign-in methods">Checking your connected accounts.</LoadPending>
+            <PageState kind="pending" title="Loading sign-in methods">
+              Checking your connected accounts.
+            </PageState>
           ) : settings.account ? (
             <SignInMethods account={settings.account} />
           ) : (
-            <NotAvailable title="Sign-in methods unavailable">Sign in again to manage your account.</NotAvailable>
+            <PageState kind="absent" title="Sign-in methods unavailable">
+              Sign in again to manage your account.
+            </PageState>
           )}
         </Stack>
       ),
@@ -563,12 +564,13 @@ function ProfileSettingsPage() {
   switch (viewer.kind) {
     case 'pending':
       return (
-        <PageMessage
+        <RoutePending
           title="Profile settings"
           back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+          loading="Loading your profile"
         >
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
-        </PageMessage>
+          Checking whether you are signed in.
+        </RoutePending>
       );
     case 'signed-out':
       return (
@@ -595,7 +597,9 @@ function ProfileSettingsPage() {
           </PageMessage.Back>
         }
       >
-        <NotAvailable title="This is not your profile">You can only edit your own profile.</NotAvailable>
+        <PageState kind="absent" title="This is not your profile">
+          You can only edit your own profile.
+        </PageState>
       </PageMessage>
     );
   }
@@ -674,7 +678,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
           Profile merge in progress. Sign-in methods are locked.
         </StatusBadge>
       )}
-      {state.error && <FormError title="Sign-in methods could not be changed">{state.error}</FormError>}
+      <ActionError subject="Sign-in methods" verb="change" error={state.error} />
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(
@@ -702,7 +706,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
                   {status}
                 </StatusBadge>
                 {method.connected ? (
-                  <ConfirmDeleteAction
+                  <HoldAction
                     label={`Disconnect ${name}`}
                     verb="remove"
                     size="lg"
@@ -736,7 +740,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
         input={
           <Group justify="space-between">
             <Text size="sm">Ends every session, including this one.</Text>
-            <ConfirmDeleteAction
+            <HoldAction
               label="Sign out on all devices"
               verb="sign out"
               size="lg"

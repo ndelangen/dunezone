@@ -234,7 +234,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/image/*',
         '/web',
         '/web/*',
-        '/vector/emblem/*',
+        '/vector/logo/*',
         '/__play',
         '/__play/*',
         '/sitemap*',
@@ -265,6 +265,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/tutorial/*',
         '/media',
         '/media/*',
+        '/public/*',
       ],
     },
     'Static Assets routing'

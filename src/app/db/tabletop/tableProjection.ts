@@ -25,8 +25,9 @@ export type TableProjection = {
   /*
    * The live table review, read from the live table even while a checkpoint shows; absent where a game cannot review.
    * `seat` is the viewer's own live seat when they hold one, since a shown checkpoint watches the table as an observer.
+   * `finished` marks a finished game, whose recall starts without a vote and can show any checkpoint.
    */
-  review?: { current: TableReview | null; checkpoints: ReviewCheckpoint[]; seat: string | null };
+  review?: { current: TableReview | null; checkpoints: ReviewCheckpoint[]; seat: string | null; finished: boolean };
   canInteract: boolean;
   /* Whether the viewer may handle the table's pieces: acting, at a stage whose table can change. A finished game, or one still drafting or trading, keeps its table as it is. */
   canHandleTable: boolean;
@@ -52,9 +53,18 @@ export type TableProjection = {
     draw(pieceId: string, recipient?: string): void;
     shuffle(pieceId: string): void;
   };
-  /* Taking a card, token or stack out of the game for good; present only while this viewer can act. */
+  /* Placing a revealed spice card's spice in its territory (#2678); present only while this viewer can act. */
+  spiceBlowControls?: {
+    /** What the card on top of this piece would place and where, or null when it shows no spice card or its territory has no room. */
+    placement(pieceId: string): { amount: number; name: string } | null;
+    place(pieceId: string): void;
+    /** The Spice blow command: every revealed spice card on the table places its spice once. */
+    placeAll(): void;
+  };
+  /* Taking a card, token or stack out of the game, and bringing it back from the game log face down; present only while this viewer can act. */
   deleteControls?: {
     remove(pieceId: string): void;
+    restore(deletionId: string): void;
   };
   /* Taking a loose card or a battle leader off the table into this viewer's hand; present only while this viewer can act. */
   handControls?: {
@@ -187,7 +197,14 @@ function sameMembers<T>(a: ReadonlySet<T> | ReadonlyMap<T, unknown>, b: Readonly
 
 /* The controls a panel offers only while present, so only their presence counts for a panel's render. */
 const PIECE_ID_SETS = ['remoteCarriedIds', 'plateRiders', 'reservedPieceIds'] as const;
-const PANEL_CONTROLS = ['spiceReserveControls', 'deckControls', 'deleteControls', 'peekControls', 'closePeek'] as const;
+const PANEL_CONTROLS = [
+  'spiceReserveControls',
+  'spiceBlowControls',
+  'deckControls',
+  'deleteControls',
+  'peekControls',
+  'closePeek',
+] as const;
 
 function samePlayback(previous: TableProjection['playback'], next: TableProjection['playback']) {
   if (!previous || !next) {

@@ -2,6 +2,7 @@ import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import { LEADER_SKILL_HEAD, LEADER_SKILL_SYMBOL } from '@shared/assets/gf9LeaderSkills';
 import type { LeaderSkillCard as LeaderSkillSchema } from '@shared/assets/schema';
 import { VECTOR_CROPS } from '@shared/media/vectorCrops.generated';
+import { canonicalVectorArtwork } from '@shared/vectorRules';
 import { useEffect, useId, useRef } from 'react';
 import type { z } from 'zod';
 
@@ -69,7 +70,7 @@ export function LeaderSkillCard({
             <g transform="translate(-83 -260)">
               {artworkDecals.map((decal, index) => {
                 /* Raster images retain their intrinsic ratio inside the existing centred square slot. */
-                const [x, y, width, height] = vectorCrops[decal.id] ?? [50, 50, 100, 100];
+                const [x, y, width, height] = vectorCrops[canonicalVectorArtwork(decal.id)] ?? [50, 50, 100, 100];
                 const size = Math.min(680 / width, 384 / height) * 100;
                 return (
                   <FrontDecals

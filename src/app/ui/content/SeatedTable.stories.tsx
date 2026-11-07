@@ -7,7 +7,7 @@ import { expect, within } from 'storybook/test';
 
 import { Token } from '@game/assets/faction/token/Token';
 
-import { nameDiscColor } from './nameDisc';
+import { nameDiscColor } from './NameDisc';
 import { SeatedTable } from './SeatedTable';
 import type { TableSeat } from './SeatedTable';
 
@@ -58,7 +58,7 @@ export const FactionToken = meta.story({
     seats: [
       seat('Krell', '#4b4c0d', {
         label: 'Krell, Atreides',
-        token: <Token logo={assetPublishingFaction.logo} background={assetPublishingFaction.background} />,
+        token: <Token emblem={assetPublishingFaction.emblem} background={assetPublishingFaction.background} />,
       }),
       null,
     ],

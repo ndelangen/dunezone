@@ -56,7 +56,7 @@ describe('downloaded Rulebook images', () => {
           factionId,
           name: 'Atreides',
           color: '#4b4c0d',
-          emblemUrl: assetPublishingFaction.logo,
+          emblemUrl: assetPublishingFaction.emblem,
           sheet: rulebookFactionSheetSchema.parse(assetPublishingFaction),
         },
       }
@@ -178,13 +178,13 @@ describe('downloaded Rulebook images', () => {
           factionId: 'left',
           name: 'CHOAM',
           color: '#123456',
-          token: { logo: '/vector/logo/choam.svg', background: assetPublishingFaction.background },
+          token: { emblem: '/vector/emblem/choam.svg', background: assetPublishingFaction.background },
         },
         right: {
           factionId: 'right',
           name: 'Richese',
           color: '#654321',
-          token: { logo: '/vector/logo/richese.svg', background: assetPublishingFaction.background },
+          token: { emblem: '/vector/emblem/richese.svg', background: assetPublishingFaction.background },
         },
       }
     );
@@ -217,7 +217,7 @@ describe('downloaded Rulebook images', () => {
     expect(document).toEqual(before);
   });
 
-  test('cover images and the logo load from absolute addresses in downloaded HTML', () => {
+  test('cover images and the emblem load from absolute addresses in downloaded HTML', () => {
     const image = {
       sourceUrl: 'https://example.com/arrakis.png?signature=private-cover-secret',
       url: `https://dune.zone/user-images/${'a'.repeat(64)}.jpg`,
@@ -395,7 +395,7 @@ describe('downloaded Rulebook images', () => {
                     factionId,
                     name: 'Atreides',
                     color: '#334455',
-                    emblemUrl: '/vector/logo/atreides.svg',
+                    emblemUrl: '/vector/emblem/atreides.svg',
                     tokenImageUrl: publishedHref('faction-token', factionId, 'token-one'),
                     ruler: member,
                     leaders: [member],
@@ -413,7 +413,7 @@ describe('downloaded Rulebook images', () => {
     expect(serialized).toContain(`https://dune.zone${cardHref}`);
     expect(serialized).toContain('https://dune.zone/page/map.svg');
     expect(serialized).toContain(`https://dune.zone${resolveAsset('/image/leader/official/jessica.png', 'large')}`);
-    expect(serialized).toContain('https://dune.zone/vector/logo/atreides.svg');
+    expect(serialized).toContain('https://dune.zone/vector/emblem/atreides.svg');
     expect(serialized).toContain(`https://dune.zone${publishedHref('faction-token', factionId, 'token-one')}`);
     expect(serialized).not.toContain('"imageUrl":"/');
     expect(result.pagesById.guide.anchor).toBe('guide');
@@ -533,15 +533,25 @@ test('illustrated scenes freeze nested board, movement and comparison images', (
   value.pageOrder.push('SCEN');
   const projected = projectRulebookRenderDocument(
     value,
-    { card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' } },
+    {
+      card: { assetId: 'card', type: 'card-treachery', name: 'Card', imageUrl: '/published/card.jpg?v=frozen' },
+      arrakis: {
+        assetId: 'arrakis',
+        type: 'board',
+        name: 'Arrakis Official',
+        imageUrl: '/published/boards/arrakis/board.jpg?v=frozen',
+        geometry: { width: 1948, height: 1948, parts: [] },
+        publicationRevision: 'frozen',
+      },
+    },
     { size: 'square', design: 'illustrated' }
   );
   const before = structuredClone(projected);
   const exported = rulebookRenderDocumentV1Schema.parse(rulebookHtmlImages(projected, 'https://dune.zone'));
   expect(exported.pagesById.SCEN!.regions[0]!.blocks).toMatchObject([
-    { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+    { board: { imageUrl: 'https://dune.zone/published/boards/arrakis/board.jpg?v=frozen' } },
     {
-      board: { board: { imageUrl: expect.stringMatching(/^https:\/\/dune.zone\/page\/arrakis-/) } },
+      board: { board: { imageUrl: 'https://dune.zone/published/boards/arrakis/board.jpg?v=frozen' } },
       left: { pieces: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }] },
       notes: [{ source: { imageUrl: 'https://dune.zone/published/card.jpg?v=frozen' } }],
     },

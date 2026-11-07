@@ -11,6 +11,5 @@ export const publishingSpiceCard: z.infer<typeof SpiceAsset> = {
   about: 'Six spice appear in Arsunt when this card is revealed.',
   subName: 'Spice blow',
   icon: 'spice',
-  highlights: ['arsunt'],
   amount: 6,
 };

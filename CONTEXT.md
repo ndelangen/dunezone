@@ -180,7 +180,7 @@ The reverse face every token has. It is either authored as part of the token its
 The shared back face of a deck, never a standalone Asset. Every deck has exactly one: its own composition, a link to a Cardback preset, or a reference to another deck's back. A custom composition publishes with its deck; a linked back uses its source's publication. Member cards publish their own front faces.
 
 **Cardback preset**:
-A shared Cardback definition edited by Administrators at `/assets/__presets`. Treachery, Spice, Traitor, Alliance, Prediction and Storm each own one published back image. A deck stores its chosen preset key explicitly and follows that preset's successful publications. Existing custom backs stay custom even when their appearance matches a preset. Play's generated Traitor and Alliance supplies read the shared backs through catalogue capture.
+A shared Cardback definition edited by Administrators at `/admin/presets`. Treachery, Spice, Traitor, Alliance, Prediction and Storm each own one published back image. A deck stores its chosen preset key explicitly and follows that preset's successful publications. Existing custom backs stay custom even when their appearance matches a preset. Play's generated Traitor and Alliance supplies read the shared backs through catalogue capture.
 
 **Bundle**:
 An Asset type inside the tokens category that holds tokens of any shape, with a count for each. It is the one Asset type that publishes nothing at all: its members publish their own faces, and a bundle has no image of its own to publish. Membership lives in `asset_relations` rather than inside the bundle's `data`, so adding a token or changing a count writes a row at once rather than waiting for a save. A member's count is the same word, and the same meaning, as a deck's copies of a card; the vocabulary does not fork, so there is no bundle-specific counting word beside Troop count.
@@ -210,7 +210,7 @@ An ephemeral, self-contained request for the Publisher to regenerate one asset. 
 At most one pending successor exists for an asset, so rapid saves coalesce into one later capture.
 A reported capture failure immediately increments the job's attempt counter and returns it to pending. If an in-progress job expires without reporting a result, recovery does the same. On the tenth failed attempt, the job enters error instead of returning to pending.
 When a save coalesces into an existing pending job, it resets the attempt counter because the next capture will use new source data.
-When an asset with an error job is saved, that terminal job is deleted and the save creates a fresh pending job with no attempts. `/__jobs` represents current operational work, not job history.
+When an asset with an error job is saved, that terminal job is deleted and the save creates a fresh pending job with no attempts. `/admin/jobs` represents current operational work, not job history.
 Soft-deleting a faction has no Publication-job semantics: it does not delete, cancel, replace, or otherwise change its jobs, and capture proceeds normally.
 _Avoid_: Asset generation, desired Renderer version
 
@@ -229,7 +229,7 @@ The one-time clean break from the legacy publication model to the current model.
 _Avoid_: Publication compatibility window, legacy publication fallback
 
 **Publisher kill switch**:
-A global boolean control read when a cron invocation begins. When off, that invocation does not pick up pending Publication jobs, but it still performs expired-job recovery. Toggling it has no effect on a cron invocation or capture already in progress and does not delete, reset, or otherwise mutate any job. Its current state and toggle are available on `/__jobs` only to Administrators. Deployments preserve its current value rather than temporarily changing it.
+A global boolean control read when a cron invocation begins. When off, that invocation does not pick up pending Publication jobs, but it still performs expired-job recovery. Toggling it has no effect on a cron invocation or capture already in progress and does not delete, reset, or otherwise mutate any job. Its current state and toggle are available on `/admin/jobs` only to Administrators. Deployments preserve its current value rather than temporarily changing it.
 _Avoid_: Paused rollout, paused job
 
 **Publisher recovery**:
@@ -237,10 +237,10 @@ The forward-only response to a defective Publisher deployment: turn off job pick
 _Avoid_: Worker rollback, Renderer rollback, rollback rollout
 
 **Administrator**:
-An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/__jobs`, the route renders a visible refusal ("You cannot view publication jobs") instead of redirecting or exposing job data.
+An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/admin/jobs`, the route renders a visible refusal ("You cannot view publication jobs") instead of redirecting or exposing job data.
 
 **Publisher operational evidence**:
-The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/__jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.
+The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/admin/jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.
 
 **Player**:
 A human participant who holds a seat at a Play table. First-release seats are human-controlled; bot advice and seat control are deferred.

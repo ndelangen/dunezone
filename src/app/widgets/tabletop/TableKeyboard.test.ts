@@ -4,7 +4,7 @@ import { draftForGesture } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { PointerSession } from './PointerSession';
-import { TableKeyboard } from './TableKeyboard';
+import { pieceKeysNow, TableKeyboard } from './TableKeyboard';
 
 const unbinds: (() => void)[] = [];
 
@@ -32,12 +32,11 @@ function table() {
     flipSelected: vi.fn(),
     /* The cursor is over the table unless a test moves it off. */
     ping: vi.fn(() => true),
+    reservedPieceIds: new Set<string>(),
     rotateSelected: vi.fn(),
     spawnSpice: vi.fn(),
     splitSelected: vi.fn(),
-    stackSelected: vi.fn(),
     takeAdditionalFromTarget: vi.fn(),
-    toggleLockSelected: vi.fn(),
   };
   unbinds.push(keyboard.bind({ events: window, read: () => controls }));
   return { keyboard, controls, unbind: unbinds.at(-1)! };
@@ -76,6 +75,85 @@ test('Escape cancels a number-key split before its hold finishes', () => {
   expect(cancelDraft).toHaveBeenCalledOnce();
   vi.advanceTimersByTime(500);
   expect(controls.splitSelected).not.toHaveBeenCalled();
+});
+
+describe('the piece keys that act now, as the shortcuts window reads them', () => {
+  test('a hovered deck draws and shuffles; a selected one only flips, turns and splits', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.state = { ...controls.state, selectedPieceId: 'treachery-deck' };
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['flip', 'split', 'turn']);
+    controls.hoveredPieceId = 'treachery-deck';
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['draw', 'flip', 'shuffle', 'split', 'turn']);
+  });
+
+  test('a locked piece answers no piece key, and a single card does not split', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    controls.hoveredPieceId = deck.id;
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) => (piece.id === deck.id ? { ...piece, locked: true } : piece)),
+    };
+    expect([...pieceKeysNow(controls)]).toEqual([]);
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) =>
+        piece.id === deck.id ? { ...deck, items: deck.items.slice(0, 1) } : piece
+      ),
+    };
+    expect([...pieceKeysNow(controls)]).not.toContain('split');
+    expect([...pieceKeysNow(controls)]).toContain('flip');
+  });
+
+  test('a locked deck or one in an inventory neither draws nor shuffles, as the room turns both down', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    for (const change of [{ locked: true }, { inventory: 'shared' as const }]) {
+      controls.state = {
+        ...controls.state,
+        pieces: controls.state.pieces.map((piece) => (piece.id === 'treachery-deck' ? { ...piece, ...change } : piece)),
+      };
+      expect([...pieceKeysNow(controls)]).not.toContain('shuffle');
+      expect([...pieceKeysNow(controls)]).not.toContain('draw');
+    }
+  });
+
+  test('a carried piece that cannot turn over, such as a marker, offers no flip', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    const marker = { ...deck, kind: 'marker' as const };
+    controls.state = {
+      ...controls.state,
+      pieces: controls.state.pieces.map((piece) => (piece.id === deck.id ? marker : piece)),
+      draftMove: draftForGesture(marker, 'top'),
+    };
+    expect([...pieceKeysNow(controls)]).not.toContain('flip');
+  });
+
+  test('a piece another player holds answers no piece key', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    controls.reservedPieceIds = new Set(['treachery-deck']);
+    expect([...pieceKeysNow(controls)]).toEqual([]);
+  });
+
+  test('a viewer who may not handle the table has no live piece keys', () => {
+    const { controls } = table();
+    controls.deckControls = { draw: vi.fn(), shuffle: vi.fn(), recipients: [] };
+    controls.hoveredPieceId = 'treachery-deck';
+    controls.canHandleTable = false;
+    expect([...pieceKeysNow(controls)]).toEqual([]);
+  });
+
+  test('a carry from a deck puts back, flips, turns and takes one more', () => {
+    const { controls } = table();
+    const deck = controls.state.pieces.find((piece) => piece.id === 'treachery-deck')!;
+    controls.state = { ...controls.state, draftMove: draftForGesture(deck, 'top') };
+    expect([...pieceKeysNow(controls)].toSorted()).toEqual(['flip', 'putBack', 'takeMore', 'turn']);
+  });
 });
 
 test('T draws once from the hovered deck and 0 splits ten pieces', () => {
@@ -248,17 +326,6 @@ describe('held keys', () => {
     key('keyup', { key: 'e', code: 'KeyE' });
     expect(controls.finishRotation).toHaveBeenCalledTimes(1);
   });
-
-  test.each([
-    ['L', 'l', 'toggleLockSelected'],
-    ['G', 'g', 'stackSelected'],
-  ] as const)('a held %s acts once', (_name, press, control) => {
-    const { controls } = table();
-    key('keydown', { key: press });
-    key('keydown', { key: press, repeat: true });
-    key('keydown', { key: press, repeat: true });
-    expect(controls[control]).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe('focus elsewhere on the page', () => {
@@ -278,14 +345,12 @@ describe('focus elsewhere on the page', () => {
     const { controls } = table();
     const target = focusable(html);
 
-    for (const press of ['f', 'l', 'g', 'q', 'e', '2']) {
+    for (const press of ['f', 'q', 'e', '2']) {
       key('keydown', { key: press }, target);
     }
     vi.advanceTimersByTime(1000);
 
     expect(controls.flipSelected).not.toHaveBeenCalled();
-    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
-    expect(controls.stackSelected).not.toHaveBeenCalled();
     expect(controls.rotateSelected).not.toHaveBeenCalled();
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
@@ -385,7 +450,7 @@ describe('number-key stack draws', () => {
 });
 
 describe('a carried piece', () => {
-  test('F turns it over in hand once per press, and lock, stack and draw keys leave it alone', () => {
+  test('F turns it over in hand once per press, and the draw keys leave it alone', () => {
     const { controls } = table();
     const draftMove = draftForGesture(
       controls.state.pieces.find((piece) => piece.id === 'harkonnen-force-stack')!,
@@ -395,14 +460,10 @@ describe('a carried piece', () => {
 
     key('keydown', { key: 'f', code: 'KeyF' });
     key('keydown', { key: 'f', code: 'KeyF', repeat: true });
-    key('keydown', { key: 'l', code: 'KeyL' });
-    key('keydown', { key: 'g', code: 'KeyG' });
     key('keydown', { key: '2', code: 'Digit2' });
     vi.advanceTimersByTime(1000);
 
     expect(controls.flipSelected.mock.calls).toEqual([['harkonnen-force-stack']]);
-    expect(controls.toggleLockSelected).not.toHaveBeenCalled();
-    expect(controls.stackSelected).not.toHaveBeenCalled();
     expect(controls.splitSelected).not.toHaveBeenCalled();
   });
 });
@@ -453,7 +514,7 @@ describe('the cursor over the table', () => {
     expect(keyboard.panDirection()).toEqual([0, 0]);
   });
 
-  test('keeps the arrows from a focused control even without a close look to slide', () => {
+  test('keeps the arrows from a focused control even without a camera to slide', () => {
     const { keyboard } = table();
     keyboard.hoverTable(true);
     const { tab, moved } = focusedTabList();
@@ -469,6 +530,25 @@ describe('the cursor over the table', () => {
     expect(moved).not.toHaveBeenCalled();
     expect(arrow.defaultPrevented).toBe(true);
     expect(keyboard.panDirection()).toEqual([0, 0]);
+  });
+
+  test('leaves the pan letters to a focused control off the table, and slides with them over it', () => {
+    const { keyboard } = table();
+    keyboard.setPanAvailable(true);
+    const { tab } = focusedTabList();
+    const letter = () => new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'd', code: 'KeyD' });
+
+    const offTable = letter();
+    tab.dispatchEvent(offTable);
+    expect(offTable.defaultPrevented).toBe(false);
+    expect(keyboard.panDirection()).toEqual([0, 0]);
+
+    keyboard.hoverTable(true);
+    const overTable = letter();
+    tab.dispatchEvent(overTable);
+    expect(overTable.defaultPrevented).toBe(true);
+    expect(keyboard.panDirection()).toEqual([1, 0]);
+    key('keyup', { key: 'd', code: 'KeyD' }, tab);
   });
 
   test('answers the piece shortcuts over a focused button', () => {
@@ -726,4 +806,18 @@ describe('Tab pings', () => {
     expect(tab('keydown', {}, button).defaultPrevented).toBe(true);
     expect(controls.ping).toHaveBeenCalledTimes(1);
   });
+});
+
+test('F on a piece that cannot turn over is left for the window it opens', () => {
+  const { controls } = table();
+  controls.state = {
+    ...controls.state,
+    pieces: controls.state.pieces.map((piece) =>
+      piece.id === controls.state.selectedPieceId ? { ...piece, locked: true } : piece
+    ),
+  };
+  const event = new KeyboardEvent('keydown', { key: 'f', bubbles: true, cancelable: true });
+  window.dispatchEvent(event);
+  expect(event.defaultPrevented).toBe(false);
+  expect(controls.flipSelected).not.toHaveBeenCalled();
 });

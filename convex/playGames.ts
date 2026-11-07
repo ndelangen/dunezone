@@ -28,7 +28,6 @@ import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from '.
 import { createPendingGame } from './lib/playProvisioningSchedule';
 import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/playRateLimits';
 import { atPlaySeatLimit } from './lib/playSeats';
-import type { BoardReadCache } from './lib/rulesetBoard';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 import { rulesetFactionLinksByCreation } from './lib/rulesetFactionLinks';
 
@@ -219,9 +218,8 @@ export const creatable = viewerQuery({
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(RULESET_CHOICE_LIMIT);
     const rulesets = [];
-    const boards: BoardReadCache = new Map();
     for (const row of rows) {
-      const selectable = await rulesetHasBoard(ctx, row._id, boards);
+      const selectable = await rulesetHasBoard(ctx, row._id);
       rulesets.push({
         id: row._id,
         slug: row.slug,

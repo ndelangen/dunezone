@@ -25,8 +25,9 @@ const ICON_PLACEMENT = {
  * Empty is legal forever.
  * Do not "fix" this inconsistency: the two floors describe two different situations.
  *
- * The key is required rather than optional, backfilled by `assets_about_v1`.
- * `assets.data` is `v.any()`, so no Convex validator gates this: the migration is the only thing that makes it true.
+ * The key is required rather than optional;
+ * every stored Asset carries it.
+ * `assets.data` is `v.any()`, so no Convex validator gates this.
  */
 const About = z.string().trim();
 const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
@@ -35,7 +36,7 @@ const FormattedAbout = z.string().trim().pipe(proseFormattedTextSchema);
 export const LeaderTokenAsset = FactionInputObject.shape.leaders.element.omit({ memberId: true }).extend({
   about: About,
   background: Background,
-  logo: FactionInputObject.shape.logo,
+  emblem: FactionInputObject.shape.emblem,
 });
 export const LeaderTokenAssetInput = LeaderTokenAsset.extend({ about: FormattedAbout });
 
@@ -86,64 +87,6 @@ export const Spice = z.strictObject({
     z.enum(['spice-mine', 'spice'] as const),
     ALL.refine((image) => image.startsWith('/vector/') && image.endsWith('.svg'), { message: 'Pick a vector icon.' }),
   ]),
-  highlights: z.array(
-    z.enum([
-      //sand
-      'imperial-basin',
-      'bight-of-the-cliff',
-      'habbanya-ridge-flat',
-      'arsunt',
-      'cielago-depression',
-      'hagga-basin',
-      'cielago-east',
-      'rock-outcroppings',
-      'habbanya-erg',
-      'funeral-plain',
-      'wind-pass-north',
-      'cielago-west',
-      'meridian',
-      'cielago-south',
-      'cielago-north',
-      'harg-pass',
-      'wind-pass',
-      'the-minor-erg',
-      'south-mesa',
-      'the-great-flat',
-      'gara-kulon',
-      'hole-in-the-rock',
-      'basin',
-      'tsimpo',
-      'old-gap',
-      'broken-land',
-      'the-greater-flat',
-      'red-chasm',
-      'sihaya-ridge',
-
-      //rock
-      'false-wall-west',
-      'false-wall-south',
-      'shield-wall',
-      'false-wall-east',
-      'pasty-mesa',
-      'rim-wall-west',
-      'plastic-basin',
-
-      //stronghold
-      'arrakeen',
-      'carthag',
-      'tueks',
-      'tabr',
-      'habbanya',
-
-      //special
-      'polar',
-
-      //category
-      'rock',
-      'strongholds',
-      'sand',
-    ] as const)
-  ),
   overlays: z
     .array(
       z.strictObject({
@@ -240,7 +183,7 @@ export const TokenFace = FactionSide.extend({
  * Three modes, decided on «The stored shape of three back modes, and the migration»:
  * `custom` carries an authored face, `same` repeats the front, `reference` names another token whose authored back this one wears.
  * The target rides the data and is written at save, so the stored row is the single owner of its back;
- * the `token-back` relation rows this replaced were dropped by `asset_relations_token_back_drop_v1`.
+ * it replaced the `token-back` relation rows, which are gone.
  */
 function tokenBackUnion<TFace extends z.ZodType>(face: TFace) {
   return z.discriminatedUnion('mode', [
@@ -341,8 +284,9 @@ export const BundleAsset = z.strictObject({
 });
 
 /**
- * The seven faces the project ships, declared in `src/app/styles/fonts.css`.
+ * The eight faces the project ships, declared in `src/app/styles/fonts.css`.
  * Rectangle tokens and custom cards let authors pick a face, so their schemas share this list.
+ * Orthodox Herbertarian (a 2009 Dune fan face from Jacurutu.com) has letters and a little punctuation but no digits.
  */
 export const RECTANGLE_TOKEN_FONTS = [
   'C_Copperplate_Gothic',
@@ -352,6 +296,7 @@ export const RECTANGLE_TOKEN_FONTS = [
   'C_Advokat_Modern',
   'C_Candara',
   'C_Trebuchet',
+  'C_Orthodox_Herbertarian',
 ] as const;
 
 const OPACITY = z.number().min(0).max(1);

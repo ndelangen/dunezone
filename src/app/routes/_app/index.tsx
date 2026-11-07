@@ -1,4 +1,4 @@
-import { Anchor, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
@@ -6,10 +6,12 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PublishedImage } from '@ui/content/PublishedImage';
+import { CallToAction } from '@ui/control/CallToAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Hand } from 'lucide-react';
+import { Compass, GraduationCap, Hand, PenLine, Plus, UsersRound } from 'lucide-react';
 import {
   lazy,
   Suspense,
@@ -23,6 +25,7 @@ import {
 } from 'react';
 import type { CSSProperties, RefObject } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@db/arrakis';
 import { useSessionViewer } from '@db/profiles';
 import type { SessionViewer } from '@db/profiles';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -44,24 +47,36 @@ export const Route = createFileRoute('/_app/')({
    * The SPA shell every browser-only path is served from is prerendered at `/`, and it runs every matched head but no
    * loader below the root. So the homepage's identity comes from its loader, like every other public page's: the shell
    * then carries none, rather than telling crawlers that /glossary, /privacy and every unknown path are the homepage.
+   * The saved Arrakis rides in the same HTML, so the sneak peek's table draws it without waiting for a query.
    */
-  loader: () => ({
-    name: 'Dune board game factions and rulebooks',
-    pathname: '/',
-    description:
-      "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
-    image: '/web/homepage-social-play-large.jpg',
-    entity: { type: 'site' } as const,
-    imageDetails: {
-      alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
-      type: 'image/jpeg',
-      width: 1200,
-      height: 630,
+  loader: async () => ({
+    arrakis: await loadArrakisBoard(),
+    page: {
+      name: 'Dune board game factions and rulebooks',
+      pathname: '/',
+      description:
+        "Custom factions, faction sheets and Rulebooks for the Dune board game, Avalon Hill's 1979 classic reissued by Gale Force Nine. Create and share your own factions, cards, tokens and boards.",
+      image: '/web/homepage-social-play-large.jpg',
+      entity: { type: 'site' } as const,
+      imageDetails: {
+        alt: 'Dune Play is coming soon, with a preview of the board, Rulebook pages and homebrew leader portraits.',
+        type: 'image/jpeg',
+        width: 1200,
+        height: 630,
+      },
     },
   }),
-  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData) : {}),
-  component: IndexPage,
+  head: ({ loaderData }) => (loaderData ? publicPageHead(loaderData.page) : {}),
+  component: SeededIndexPage,
 });
+
+function SeededIndexPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <IndexPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 function IndexPage() {
   const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
@@ -98,12 +113,15 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <Button color="cta" variant="artwork" component="a" href="#play-preview">
+            <CallToAction size="sm" tone="artwork" direction="down" href="#play-preview">
               Take a sneak peek
-            </Button>
-            <Button variant="default" renderRoot={(props) => <Link {...props} to="/tutorial" />}>
+            </CallToAction>
+            <LabeledAction
+              icon={<GraduationCap size={16} />}
+              renderRoot={(props) => <Link {...props} to="/tutorial" />}
+            >
               Tutorials
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       </PageLayout.Header>
@@ -201,23 +219,23 @@ const showcaseCards = (
 
 function AssetInvitation() {
   return (
-    <Section
-      className={styles.editorialCopy}
-      title="One card can change the game"
-      eyebrow="Cards, decks & tokens"
-      description="Make the small pieces that bring a big idea to the table."
-    >
+    <Section className={styles.editorialCopy} title="One card can change the game" eyebrow="Cards, decks & tokens">
+      <Text size="sm" c="dimmed">
+        Make the small pieces that bring a big idea to the table.
+      </Text>
       <Text>
         Design a deck, write a treachery card or give a new rule a token of its own. Preview your pieces as you build.
       </Text>
       <Group>
-        <Button renderRoot={(props) => <Link {...props} to="/assets" />}>Browse Assets</Button>
-        <Button
-          variant="subtle"
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/assets" />}>
+          Browse Assets
+        </CallToAction>
+        <LabeledAction
+          icon={<Plus size={16} />}
           renderRoot={(props) => <Link {...props} to="/assets/$type/create" params={{ type: 'card-treachery' }} />}
         >
           Create a card
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -271,10 +289,12 @@ function OnlineRulebooks() {
       </Text>
       <Text>Find a Ruleset you love, or build one with your own rulings, factions and illustrated Rulebook.</Text>
       <Group justify="center">
-        <Button renderRoot={(props) => <Link {...props} to="/rulesets" />}>Read the Rulesets</Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+          Read the Rulesets
+        </CallToAction>
+        <LabeledAction icon={<PenLine size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets/create" />}>
           Write your own
-        </Button>
+        </LabeledAction>
       </Group>
       <Text size="sm">
         Try{' '}
@@ -416,10 +436,12 @@ function PortraitCopy() {
         is ready for your homebrew.
       </Text>
       <Group justify="center">
-        <Button renderRoot={(props) => <Link {...props} to="/media" />}>Meet the whole cast</Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions/create" />}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/media" />}>
+          Meet the whole cast
+        </CallToAction>
+        <LabeledAction icon={<Plus size={16} />} renderRoot={(props) => <Link {...props} to="/factions/create" />}>
           Create a faction
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -432,9 +454,11 @@ function VectorCopy() {
         Blade dancers, gene-forged brutes and water keepers. Pick the troops that belong in your world.
       </Text>
       <Text>Combine the artwork with your faction's colours to make tokens of your own.</Text>
-      <Button className={styles.centerAction} w="fit-content" renderRoot={(props) => <Link {...props} to="/media" />}>
-        Explore the vector library
-      </Button>
+      <Group className={styles.centerAction}>
+        <CallToAction size="sm" direction="forward" renderRoot={(props) => <Link {...props} to="/media" />}>
+          Explore the vector library
+        </CallToAction>
+      </Group>
     </Section>
   );
 }
@@ -488,13 +512,15 @@ function AllianceInvitation() {
       </Text>
       <Text>Pool your ideas, debate the details, and make something worth bringing to the table.</Text>
       <Group>
-        <Button renderRoot={(props) => <Link {...props} to="/groups/create" />}>Form an alliance</Button>
-        <Button
-          variant="subtle"
+        <CallToAction size="sm" renderRoot={(props) => <Link {...props} to="/groups/create" />}>
+          Form an alliance
+        </CallToAction>
+        <LabeledAction
+          icon={<UsersRound size={16} />}
           renderRoot={(props) => <Link {...props} to="/groups/$groupSlug" params={{ groupSlug: 'dreamers' }} />}
         >
           Meet the dreamers
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -508,7 +534,7 @@ function GroupAllianceCard() {
         {visible && (
           <AllianceCard
             background={backgroundPresets.atreides}
-            logo="/vector/generic/alliance.svg"
+            emblem="/vector/generic/alliance.svg"
             title="Your Group"
             troop="/vector/troop/banner-marshal.svg"
             decals={[]}
@@ -549,7 +575,7 @@ function OrkLeaders() {
             {visible && (
               <LeaderToken
                 {...leader}
-                logo="/vector/generic/axes.svg"
+                emblem="/vector/generic/axes.svg"
                 background={{
                   colors: ['#52a32b', '#52a32b'],
                   definition: 0.5,
@@ -577,14 +603,16 @@ function CommunityCopy() {
         A community faction in progress, maintained by BigDave.
       </Text>
       <Group>
-        <Button
+        <CallToAction
+          size="sm"
+          direction="forward"
           renderRoot={(props) => <Link {...props} to="/factions/$factionId" params={{ factionId: 'space-orks' }} />}
         >
           Meet the Space Orks
-        </Button>
-        <Button variant="subtle" renderRoot={(props) => <Link {...props} to="/factions" />}>
+        </CallToAction>
+        <LabeledAction icon={<Compass size={16} />} renderRoot={(props) => <Link {...props} to="/factions" />}>
           Explore more factions
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );

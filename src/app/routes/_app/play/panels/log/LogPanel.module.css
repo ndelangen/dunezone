@@ -16,3 +16,6 @@
 .entry > :first-child {
   justify-self: start;
 }
+.restore {
+  margin-block: calc(var(--space-xs) / 2);
+}

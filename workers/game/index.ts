@@ -49,7 +49,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { SPECTATOR_COLOR } from './actors';
+import { SPECTATOR_COLOR, STORED_DISPLAY_NAME_LENGTH } from './actors';
+import type { PassProfile } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
@@ -83,9 +84,11 @@ type Connection = {
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
   viewer?: Viewer;
-  /* The player's public avatar and profile slug as their admission carried them; the actor directory keeps them. */
-  avatarUrl?: string | null;
-  profileSlug?: string | null;
+  /*
+   * The player's name, avatar and profile slug as their pass carried them, with when that pass was issued; the actor directory keeps them.
+   * They stay apart from the viewer, which the room reconciles from the directory, so a paused tab's renewal still carries its rename to the directory when it resumes.
+   */
+  profile?: PassProfile;
   /* Whether the player already held the most seats one player may when this connection was admitted. */
   seatLimitReached?: boolean;
   /* The seat pass this connection entered with, or its latest renewal. */
@@ -177,6 +180,17 @@ const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try a
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
 const carryHistoryKey = (connectionId: string) => `carry-history:${connectionId}`;
+
+/** The profile a seat pass carries for its player, with when Convex issued the pass. */
+function passProfile(pass: SeatPassPayload): PassProfile {
+  return {
+    userId: pass.actorId,
+    displayName: pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
+    avatarUrl: pass.avatarUrl,
+    profileSlug: pass.profileSlug,
+    issuedAt: pass.issuedAt,
+  };
+}
 /* Set while the room is quiet with its sweep stopped, the only state it hibernates in; a restart without it lost work in flight. */
 const QUIET_KEY = 'quiet';
 /* The summary interval a quiet room has not written yet, kept until it wakes. */
@@ -213,6 +227,12 @@ type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidati
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
   message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+type ConversationRequest = Extract<
+  ClientMessage,
+  { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
+>;
+const isConversationRequest = (message: ClientMessage): message is ConversationRequest =>
+  message.type.startsWith('conversation-');
 
 function messageId(message: ClientMessage): string {
   if ('commandId' in message) {
@@ -666,7 +686,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     bugReportIdSchema.parse(requestId);
     this.session.recordBugReport(requestId, actorId, displayName);
-    this.announceBugReportLog();
+    this.announceGameLog();
     return JSON.stringify({
       server: bugReportExport(this.session, {
         gameId: this.metadata.gameId,
@@ -686,10 +706,11 @@ export class GameRoom extends DurableObject<GameEnv> {
       throw new Error('Invalid report issue.');
     }
     this.session.recordBugReport(requestId, actorId, displayName, issueUrl);
-    this.announceBugReportLog();
+    this.announceGameLog();
   }
 
-  private announceBugReportLog() {
+  /** The newest page of the Game log to every connection, after an entry no table command brought. */
+  private announceGameLog() {
     for (const [socket] of this.connections) {
       this.send(socket, {
         type: 'log-history',
@@ -1130,15 +1151,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     const { pass } = checked;
+    connection.profile = passProfile(pass);
     connection.viewer = {
       connectionId: connection.connectionId,
       userId: pass.actorId,
       viewerSeat: SPECTATOR_SEAT,
-      displayName: pass.displayName.slice(0, 160),
+      displayName: connection.profile.displayName,
       color: SPECTATOR_COLOR,
     };
-    connection.avatarUrl = pass.avatarUrl;
-    connection.profileSlug = pass.profileSlug;
     connection.sessionId = pass.sessionId;
     connection.pass = heldPass(pass);
     /* Unknown reads as at the limit, so a seat request waits for the answer rather than slipping past it. */
@@ -1168,9 +1188,21 @@ export class GameRoom extends DurableObject<GameEnv> {
       socket.close(SEAT_CHANGED_CLOSE_CODE, 'Seat changed.');
       return;
     }
-    connection.pass = heldPass(checked.pass);
-    connection.sessionId = checked.pass.sessionId;
+    this.holdRenewedPass(connection, checked.pass);
+  }
+
+  /** The connection holds the renewed pass and the profile it carries, and every view shows the player as that profile has them. */
+  private holdRenewedPass(connection: Connection, pass: SeatPassPayload) {
+    connection.pass = heldPass(pass);
+    connection.sessionId = pass.sessionId;
+    connection.profile = passProfile(pass);
+    connection.viewer!.displayName = connection.profile.displayName;
+    /* A rename reaches a page that stays connected through its next pass, not only through a reconnection; a paused tab's reaches the directory as it resumes. */
+    const renamed = connection.announced === 'authorized' && this.session.renewProfile(connection.profile);
     this.authorizationChanged();
+    if (renamed) {
+      this.refreshViews();
+    }
   }
 
   /* Asked once per admission; a failed read retries a few times and otherwise keeps the connection at the limit. */
@@ -1307,16 +1339,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** An authorized connection not yet announced as such takes its seat; one the room can no longer seat is denied. */
   private announceAuthorized(socket: WebSocket, connection: Connection) {
     try {
-      connection.viewer = this.session.viewer(
-        connection.connectionId,
-        connection.viewer!.userId,
-        connection.viewer!.displayName,
-        {
-          seatNewcomers: !this.metadata?.game,
-          avatarUrl: connection.avatarUrl,
-          profileSlug: connection.profileSlug,
-        }
-      );
+      connection.viewer = this.session.viewer(connection.connectionId, connection.profile!, {
+        seatNewcomers: !this.metadata?.game,
+      });
     } catch {
       this.deny(socket, false);
       return 'activity';
@@ -1644,14 +1669,13 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.sendPage(socket, message);
       return;
     }
+    if (isConversationRequest(message)) {
+      this.handleConversation(socket, connection.viewer!, message);
+      return;
+    }
     switch (message.type) {
       case 'sync':
         this.sendView(socket, connection);
-        return;
-      case 'conversation-history':
-      case 'conversation-send':
-      case 'conversation-read':
-        this.handleConversation(socket, connection.viewer!, message);
         return;
       case 'history':
         this.sendHistory(socket, message.step, message.requestId);
@@ -1667,30 +1691,49 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.publishActivity(socket, connection, message);
     }
   }
-  private handleConversation(
+  private handleConversation(socket: WebSocket, viewer: Viewer, request: ConversationRequest) {
+    switch (request.type) {
+      case 'conversation-history':
+        this.send(socket, this.session.conversationPage(viewer, request));
+        return;
+      case 'conversation-read':
+        this.sendConversationReads(this.session.markConversationRead(viewer, request));
+        return;
+      case 'conversation-clear':
+        this.clearConversation(viewer, request);
+        return;
+      case 'conversation-send':
+        this.saveConversationMessage(socket, viewer, request);
+    }
+  }
+
+  /* The faction's other connections drop the cleared messages when their summaries arrive; everyone reads the clear in the log. */
+  private clearConversation(viewer: Viewer, request: Extract<ConversationRequest, { type: 'conversation-clear' }>) {
+    const { faction, logged } = this.session.clearConversation(viewer, request);
+    this.sendConversationReads(faction);
+    if (logged) {
+      this.announceGameLog();
+    }
+  }
+
+  private saveConversationMessage(
     socket: WebSocket,
     viewer: Viewer,
-    request: Extract<ClientMessage, { type: 'conversation-history' | 'conversation-send' | 'conversation-read' }>
+    request: Extract<ConversationRequest, { type: 'conversation-send' }>
   ) {
-    if (request.type === 'conversation-history') {
-      this.send(socket, this.session.conversationPage(viewer, request));
-    } else if (request.type === 'conversation-read') {
-      this.sendConversationReads(this.session.markConversationRead(viewer, request));
-    } else {
-      const saved = this.session.sendConversation(viewer, request);
-      if (saved.inserted) {
-        this.publishConversationMessage(request, saved.message);
-        this.directory.soon();
-      } else {
-        /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
-        this.send(socket, {
-          type: 'conversation-message',
-          factionId: request.factionId,
-          peerId: request.peerId,
-          message: saved.message,
-        });
-      }
+    const saved = this.session.sendConversation(viewer, request);
+    if (saved.inserted) {
+      this.publishConversationMessage(request, saved.message);
+      this.directory.soon();
+      return;
     }
+    /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
+    this.send(socket, {
+      type: 'conversation-message',
+      factionId: request.factionId,
+      peerId: request.peerId,
+      message: saved.message,
+    });
   }
 
   private sendConversationReads(faction: string) {

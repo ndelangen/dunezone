@@ -1,5 +1,7 @@
 import { expect, test } from 'vite-plus/test';
 
+import { readCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { commandsOf } from './shortcuts';
 import { candidatesOf, fuzzy, rankSuggestions } from './suggestions';
 
@@ -171,6 +173,18 @@ test('the search switches this viewer’s board skin and planet shading, ranked 
   expect(rankSuggestions(all, 'treachery')[0]?.label).toBe('Board skin: Treachery Online');
 });
 
+test('the search turns the camera following phases on or off, matching each side by its own words', () => {
+  const all = candidatesOf([], actions(null));
+  expect(rankSuggestions(all, 'camera follows').map((entry) => entry.label)).toEqual(
+    expect.arrayContaining(['Camera follows phase: on', 'Camera follows phase: off'])
+  );
+  expect(rankSuggestions(all, 'keep my view')[0]?.label).toBe('Camera follows phase: off');
+  for (const side of ['on', 'off'] as const) {
+    all.find((entry) => entry.key === `look:camera-follows-phase:${side}`)!.run();
+    expect(readCameraFollowsPhase()).toBe(side === 'on');
+  }
+});
+
 const player = (seat: string, name: string, factionName: string | null, own = false) => ({
   seat,
   name,
@@ -217,4 +231,37 @@ test('"atreides" finds the Atreides faction information ahead of the chat with i
   const suggested = rankSuggestions(all, '').map((entry) => entry.label);
   expect(suggested).toContain('Paul');
   expect(suggested).not.toContain('Atreides');
+});
+
+test('"clear" finds Clear all chats only while a chat has messages to clear, and never suggests it unasked', () => {
+  let cleared = 0;
+  const all = candidatesOf([], { ...actions(null), clearChats: () => cleared++ });
+  const found = rankSuggestions(all, 'clear');
+  expect(found[0]).toMatchObject({
+    label: 'Clear all chats',
+    hint: 'Hold to clear; others keep theirs',
+    held: 'Clearing',
+  });
+  found[0]!.run();
+  expect(cleared).toBe(1);
+  /* It sits below every window and command, so it surfaces only once typed for. */
+  expect(found[0]!).toMatchObject({ key: 'cmd:clear-chats' });
+  expect(all.find((entry) => entry.key === 'cmd:clear-chats')!.weight).toBeLessThan(0);
+  expect(rankSuggestions(all, '').map((entry) => entry.key)).not.toContain('cmd:clear-chats');
+  expect(candidatesOf([], { ...actions(null), clearChats: null }).map((entry) => entry.label)).not.toContain(
+    'Clear all chats'
+  );
+});
+
+test('the keyboard shortcuts cheat sheet is found by its name and by its keywords, with ? beside it', () => {
+  const sheet = {
+    ...PANEL_WINDOWS.shortcuts,
+    group: PANEL_WINDOWS.shortcuts.label,
+    content: null,
+    layout: 'stack' as const,
+  };
+  const all = candidatesOf([sheet], { ...actions(null), shortcuts: { [sheet.key]: '?' } });
+  for (const query of ['keyboard', 'shortcuts', 'help', 'cheat sheet', 'hotkeys']) {
+    expect(rankSuggestions(all, query)[0]).toMatchObject({ label: 'Keyboard shortcuts', shortcut: '?' });
+  }
 });

@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Group, Radio, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Radio, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
 import { rulebookNameKey, rulebookNameSchema } from '@shared/rulebooks/metadata';
 import type { RulebookRenderPageV1 } from '@shared/rulebooks/renderDocument';
 import {
@@ -10,24 +10,25 @@ import {
 import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rulebooks/settings';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
-import { errorMessage } from '@ui/content/errorMessage';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Plus, X } from 'lucide-react';
 import { useId, useReducer } from 'react';
 
 import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } from '@db/rulebooks';
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
 
 import styles from './create.module.css';
@@ -35,9 +36,9 @@ import styles from './create.module.css';
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/create')({
   loader: async ({ params }) => ({ page: await loadRulebookCreationPage(params.rulesetSlug) }),
   pendingComponent: () => (
-    <PageMessage title="Create Rulebook">
-      <LoadPending title="Loading Ruleset">Checking access and saved Rulebooks.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Create Rulebook" loading="Loading Ruleset">
+      Checking access and saved Rulebooks.
+    </RoutePending>
   ),
   errorComponent: CreateRulebookError,
   head: () => pageHead('Create rulebook'),
@@ -46,11 +47,12 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/crea
 
 function CreateRulebookError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Create Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Create Rulebook"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="Ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -256,6 +258,10 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       : clone
         ? { size: clone.draft_settings.size, design: draft.cloneDesign ?? clone.draft_settings.design }
         : undefined;
+  const missing = {
+    starter: 'Give the Rulebook a name and a size first.',
+    clone: clone ? 'Give the Rulebook a name first.' : 'Choose a Rulebook to copy first.',
+  }[draft.source];
   return (
     <Stack
       component="form"
@@ -274,68 +280,83 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
         });
       }}
     >
-      <TextInput
-        label="Rulebook name"
-        name="name"
-        required
-        value={draft.name}
-        disabled={create.isPending}
-        error={nameError}
-        onChange={(event) => send({ kind: 'name', value: event.currentTarget.value })}
-      />
-      <Radio.Group
-        label="Start from"
-        value={draft.source}
-        onChange={(value) => {
-          if (value === 'starter' || value === 'clone') {
-            send({ kind: 'source', value });
-          }
-        }}
-      >
-        <Stack gap="sm">
-          <Radio
-            value="starter"
-            label="Starter template"
-            description="Begin with the application layouts and sample structured Blocks."
+      <ControlBlock
+        title="Rulebook name"
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            name="name"
+            required
+            value={draft.name}
             disabled={create.isPending}
+            error={nameError}
+            onChange={(event) => send({ kind: 'name', value: event.currentTarget.value })}
           />
-          <Radio
-            value="clone"
-            label="Saved Rulebook"
-            description="Copy a Rulebook from this Ruleset. Unsaved edits and Edition history are not copied."
-            disabled={create.isPending || page.rulebooks.length === 0}
-          />
-        </Stack>
-      </Radio.Group>
+        )}
+      />
+      <ControlBlock
+        title="Start from"
+        input={
+          <Radio.Group
+            label={<VisuallyHidden>Start from</VisuallyHidden>}
+            value={draft.source}
+            onChange={(value) => {
+              if (value === 'starter' || value === 'clone') {
+                send({ kind: 'source', value });
+              }
+            }}
+          >
+            <Stack gap="sm">
+              <Radio
+                value="starter"
+                label="Starter template"
+                description="Begin with the application layouts and sample structured Blocks."
+                disabled={create.isPending}
+              />
+              <Radio
+                value="clone"
+                label="Saved Rulebook"
+                description="Copy a Rulebook from this Ruleset. Unsaved edits and Edition history are not copied."
+                disabled={create.isPending || page.rulebooks.length === 0}
+              />
+            </Stack>
+          </Radio.Group>
+        }
+      />
       {draft.source === 'clone' ? (
-        <Select
-          label="Rulebook to copy"
-          placeholder="Choose a saved Rulebook"
-          required
-          searchable
-          value={draft.cloneId}
-          onChange={(value) => send({ kind: 'clone', value })}
-          disabled={create.isPending}
-          data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
-          renderOption={({ option }) => {
-            const rulebook = page.rulebooks.find((book) => book._id === option.value);
-            return (
-              <Group gap="sm" wrap="nowrap">
-                <Box w={32} miw={32} aria-hidden>
-                  <RulebookPreview
-                    name={option.label}
-                    size={rulebook?.settings.size}
-                    imageUrl={rulebook?.first_page_image_url}
-                    status={rulebook?.first_page_capture_status}
-                    nameOnHover
-                  />
-                </Box>
-                <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
-                  {option.label}
-                </Text>
-              </Group>
-            );
-          }}
+        <ControlBlock
+          title="Rulebook to copy"
+          input={(fieldProps) => (
+            <Select
+              {...fieldProps}
+              placeholder="Choose a saved Rulebook"
+              required
+              searchable
+              value={draft.cloneId}
+              onChange={(value) => send({ kind: 'clone', value })}
+              disabled={create.isPending}
+              data={page.rulebooks.map((book) => ({ value: book._id, label: book.name }))}
+              renderOption={({ option }) => {
+                const rulebook = page.rulebooks.find((book) => book._id === option.value);
+                return (
+                  <Group gap="sm" wrap="nowrap">
+                    <Box w={32} miw={32} aria-hidden>
+                      <RulebookPreview
+                        name={option.label}
+                        size={rulebook?.settings.size}
+                        imageUrl={rulebook?.first_page_image_url}
+                        status={rulebook?.first_page_capture_status}
+                        nameOnHover
+                      />
+                    </Box>
+                    <Text size="sm" style={{ overflowWrap: 'anywhere' }}>
+                      {option.label}
+                    </Text>
+                  </Group>
+                );
+              }}
+            />
+          )}
         />
       ) : null}
       {settings ? (
@@ -349,24 +370,27 @@ function CreateRulebookForm({ page }: { page: RulebookCreationPageData }) {
       <Text size="sm" c="dimmed">
         Creates a saved draft and matching Edition 1. The new Rulebook opens with no local changes.
       </Text>
-      {create.error ? (
-        <Alert color="red" title="Rulebook could not be created">
-          {create.error.message}
-        </Alert>
-      ) : null}
+      <ActionError subject="Rulebook" verb="create" error={create.error} />
       <Group gap="sm">
-        <Button type="submit" color="confirm" disabled={!input} loading={create.isPending}>
+        <LabeledAction
+          type="submit"
+          intent="positive"
+          emphasis="strong"
+          icon={<Plus size={16} />}
+          busy={create.isPending}
+          disabledReason={input ? undefined : missing}
+        >
           Create Rulebook
-        </Button>
-        <Button
-          variant="default"
-          disabled={create.isPending}
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={create.isPending ? 'Wait for the Rulebook to be created.' : undefined}
           renderRoot={(props) => (
             <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
           )}
         >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -382,11 +406,7 @@ function CreateRulebookPage() {
     </PageMessage.Back>
   );
   if (!page) {
-    return (
-      <PageMessage title="Create Rulebook" back={back}>
-        <NotAvailable title="Ruleset not found">This Ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
+    return <RouteNotFound title="Create Rulebook" back={back} noun="Ruleset" />;
   }
   if (!page.viewerAccess.capabilities.edit) {
     return (
@@ -394,9 +414,9 @@ function CreateRulebookPage() {
         {page.viewerAccess.viewer.kind === 'anonymous' ? (
           <LoginGate action="create a Rulebook" />
         ) : (
-          <NotAvailable title="Rulebook creation is unavailable">
+          <PageState kind="absent" title="Rulebook creation is unavailable">
             Only the Ruleset owner and active Group members may create Rulebooks.
-          </NotAvailable>
+          </PageState>
         )}
       </PageMessage>
     );

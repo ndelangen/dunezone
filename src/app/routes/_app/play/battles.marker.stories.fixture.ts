@@ -3,11 +3,12 @@ import { expect, within } from 'storybook/test';
 
 import { mapViewPoint, settled, waitForPlayCamera } from './mapView.stories.fixture';
 
-/** Carries the battle marker to the given board point and checks the resulting command. */
+/** Carries the battle marker to the given board point and checks the resulting command; with `hold`, keeps it carried there and checks that instead. */
 export async function dragBattleMarker(
   document: Document,
   point: readonly [number, number, number],
-  placed: () => void | Promise<void>
+  placed: () => void | Promise<void>,
+  { hold = false }: { hold?: boolean } = {}
 ) {
   const page = within(document.body);
   await waitForPlayCamera(document);
@@ -45,6 +46,8 @@ export async function dragBattleMarker(
   );
   await settled(() => expect(scene.style.cursor).toBe('grabbing'));
   view.dispatchEvent(new PointerEvent('pointermove', { ...pointer, buttons: 1 }));
-  view.dispatchEvent(new PointerEvent('pointerup', { ...pointer, buttons: 0 }));
+  if (!hold) {
+    view.dispatchEvent(new PointerEvent('pointerup', { ...pointer, buttons: 0 }));
+  }
   await settled(placed);
 }

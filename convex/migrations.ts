@@ -1,44 +1,17 @@
 import { Migrations } from '@convex-dev/migrations';
 import type { FunctionReference } from 'convex/server';
 import { v } from 'convex/values';
-import { z } from 'zod';
 
-import { DeckAsset, RectangleTokenAsset, TokenAsset } from '../src/shared/assets/schema';
-import { factionExtrasSchema, isLegacyFactionExtra } from '../src/shared/factions/extras';
-import {
-  assertUniqueFactionMemberIds,
-  ensureFactionMemberIds,
-  FactionMemberIdSchema,
-  factionMembersHaveIds,
-} from '../src/shared/factions/memberIdentity';
-import {
-  assertUniqueFactionTroopIds,
-  ensureFactionTroopIds,
-  factionTroopsHaveIds,
-  FactionTroopIdSchema,
-} from '../src/shared/factions/troopIdentity';
-import { DEFAULT_FAQ_TAG } from '../src/shared/faq/tags';
-import { normalizeFormattedText } from '../src/shared/formattedText';
 import { components, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
+import { ARRAKIS_MIGRATION_IDS } from './arrakisMigrations';
 import { CATALOGUE_MIGRATION_IDS } from './catalogueMigrations';
+import { EMBLEM_MIGRATION_IDS } from './emblemMigrations';
 import { adminQuery, internalMutation, mutation } from './functions';
-import { LEGACY_DATA_MIGRATION_IDS } from './legacyDataMigrations';
-import { accountStateOf } from './lib/accountLifecycle';
-import { hasAuthoredBack, TOKEN_ASSET_TYPES, tokenBackOf } from './lib/assetBacks';
-import { scheduleSessionExpiry } from './lib/authSessionLifecycle';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
-import {
-  allocateNextFaqItemSlug,
-  missingSlug,
-  resolveUniqueGroupSlug,
-  resolveUniqueRulesetSlug,
-  troopHasLegacySupportNames,
-  troopWithSupportNames,
-} from './lib/migrationHelpers';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -64,7 +37,6 @@ import {
   reconcileRulesetStatistics,
 } from './lib/statistics';
 import { nowIso } from './lib/utils';
-import { retireHostedFixture } from './playDeletion';
 import { PUBLICATION_MIGRATION_IDS } from './publicationMigrations';
 import schema from './schema';
 import type { MutationCtx } from './types';
@@ -82,26 +54,12 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   catalogue_entries_faq_verify_v1: internal.migrations.catalogue_entries_faq_verify_v1,
   ...CATALOGUE_MIGRATION_IDS,
   ...PUBLICATION_MIGRATION_IDS,
-  ...LEGACY_DATA_MIGRATION_IDS,
-  ruleset_factions_position_v1: internal.migrations.ruleset_factions_position_v1,
+  ...EMBLEM_MIGRATION_IDS,
+  ...ARRAKIS_MIGRATION_IDS,
   catalogue_entries_prune_v1: internal.migrations.catalogue_entries_prune_v1,
   catalogue_entries_verify_v1: internal.migrations.catalogue_entries_verify_v1,
   catalogue_entries_verify_v2: internal.migrations.catalogue_entries_verify_v2,
-  faction_member_ids_v1: internal.migrations.faction_member_ids_v1,
-  faction_member_ids_verify_v1: internal.migrations.faction_member_ids_verify_v1,
-  groups_slug_v1: internal.migrations.groups_slug_v1,
-  rulesets_slug_v1: internal.migrations.rulesets_slug_v1,
-  rulesets_description_v1: internal.migrations.rulesets_description_v1,
-  rulesets_about_v1: internal.migrations.rulesets_about_v1,
-  rulesets_about_verify_v1: internal.migrations.rulesets_about_verify_v1,
-  rulesets_description_retire_v1: internal.migrations.rulesets_description_retire_v1,
-  rulesets_description_retire_verify_v1: internal.migrations.rulesets_description_retire_verify_v1,
-  faq_item_slug_v1: internal.migrations.faq_item_slug_v1,
-  faq_item_tags_v1: internal.migrations.faq_item_tags_v1,
   profiles_from_users_v1: internal.migrations.profiles_from_users_v1,
-  faction_slug_reservations_v1: internal.migrations.faction_slug_reservations_v1,
-  faction_slug_reservations_verify_v1: internal.migrations.faction_slug_reservations_verify_v1,
-  rulesets_remove_homepage_counts_v1: internal.migrations.rulesets_remove_homepage_counts_v1,
   statistics_profiles_v1: internal.migrations.statistics_profiles_v1,
   statistics_factions_v1: internal.migrations.statistics_factions_v1,
   statistics_rulesets_v1: internal.migrations.statistics_rulesets_v1,
@@ -114,38 +72,9 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   profile_activity_factions_v1: internal.migrations.profile_activity_factions_v1,
   profile_activity_questions_v1: internal.migrations.profile_activity_questions_v1,
   profile_activity_answers_v1: internal.migrations.profile_activity_answers_v1,
-  faction_decal_retune_v1: internal.migrations.faction_decal_retune_v1,
-  groups_soft_delete_backfill_v1: internal.migrations.groups_soft_delete_backfill_v1,
-  groups_soft_delete_verify_v1: internal.migrations.groups_soft_delete_verify_v1,
-  faction_complexity_grouped_v1: internal.migrations.faction_complexity_grouped_v1,
-  faction_complexity_grouped_verify_v1: internal.migrations.faction_complexity_grouped_verify_v1,
-  faction_inline_formatted_text_v1: internal.migrations.faction_inline_formatted_text_v1,
-  faction_inline_formatted_text_verify_v1: internal.migrations.faction_inline_formatted_text_verify_v1,
-  assets_about_v1: internal.migrations.assets_about_v1,
-  assets_about_verify_v1: internal.migrations.assets_about_verify_v1,
-  account_lifecycle_profiles_v1: internal.migrations.account_lifecycle_profiles_v1,
-  account_lifecycle_verify_v1: internal.migrations.account_lifecycle_verify_v1,
-  assets_back_modes_v1: internal.migrations.assets_back_modes_v1,
-  asset_relations_token_back_drop_v1: internal.migrations.asset_relations_token_back_drop_v1,
-  assets_back_modes_verify_v1: internal.migrations.assets_back_modes_verify_v1,
-  assets_deck_cardback_wrap_v1: internal.migrations.assets_deck_cardback_wrap_v1,
-  assets_deck_cardback_wrap_verify_v1: internal.migrations.assets_deck_cardback_wrap_verify_v1,
   rulebook_edition_artifacts_v1: internal.migrations.rulebook_edition_artifacts_v1,
-  rulebook_edition_contents_v1: internal.migrations.rulebook_edition_contents_v1,
-  rulebook_edition_contents_verify_v1: internal.migrations.rulebook_edition_contents_verify_v1,
   rulebook_contents_hash_drafts_v1: internal.migrations.rulebook_contents_hash_drafts_v1,
   rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
-  faction_extras_references_v1: internal.migrations.faction_extras_references_v1,
-  faction_extras_references_verify_v1: internal.migrations.faction_extras_references_verify_v1,
-  faction_troop_ids_v1: internal.migrations.faction_troop_ids_v1,
-  faction_troop_ids_verify_v1: internal.migrations.faction_troop_ids_verify_v1,
-  faction_troop_support_names_v1: internal.migrations.faction_troop_support_names_v1,
-  faction_troop_support_names_verify_v1: internal.migrations.faction_troop_support_names_verify_v1,
-  faction_faction_leader_key_v1: internal.migrations.faction_faction_leader_key_v1,
-  faction_faction_leader_key_verify_v1: internal.migrations.faction_faction_leader_key_verify_v1,
-  play_hosted_fixture_retire_v1: internal.migrations.play_hosted_fixture_retire_v1,
-  account_connections_expire_v1: internal.migrations.account_connections_expire_v1,
-  auth_session_expiry_jobs_v1: internal.migrations.auth_session_expiry_jobs_v1,
   board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
   faction_cards_v1: internal.migrations.faction_cards_v1,
 };
@@ -167,147 +96,15 @@ function migrationRefsFor(ids: string[]): MigrationRef[] {
   });
 }
 
+/* Without ids, every listed migration: the component still holds states for ids pruned from the manifest, which are history only. */
+function listedRefs(ids: string[] | undefined): MigrationRef[] {
+  return migrationRefsFor(ids ?? Object.keys(MIGRATION_IDS));
+}
+
 function toMigrationId(name: string): string {
   const parts = name.split(':');
   return parts[parts.length - 1] ?? name;
 }
-
-/* Legacy factions can contain retired assets and fields unrelated to member identity.
-   Validate only the roster this migration changes, preserving every other field. */
-const migrationFactionMemberSchema = z.looseObject({ memberId: FactionMemberIdSchema.optional() });
-const migrationFactionRosterSchema = z.looseObject({
-  factionLeader: migrationFactionMemberSchema.optional(),
-  /* The glossary term is "Faction leader"; rows saved before `faction_faction_leader_key_v1` hold the Faction leader as `hero`. */
-  hero: migrationFactionMemberSchema.optional(),
-  leaders: z.array(migrationFactionMemberSchema),
-});
-
-/** The roster as `factionLeader ?? hero`, which is how the member migrations read a row from before or after `faction_faction_leader_key_v1`. */
-function migrationRosterOf(data: z.infer<typeof migrationFactionRosterSchema>) {
-  const factionLeader = data.factionLeader ?? data.hero;
-  if (!factionLeader) {
-    throw new Error('Faction leader is missing.');
-  }
-  return { factionLeader, leaders: data.leaders };
-}
-
-/** Adds member identities without changing authored fields, the stored Faction leader key or the faction's edit timestamp. */
-export const faction_member_ids_v1 = migrations.define({
-  table: 'factions',
-  migrateOne: async (ctx, row) => {
-    const data = migrationFactionRosterSchema.parse(row.data);
-    const roster = migrationRosterOf(data);
-    const identified = ensureFactionMemberIds(roster);
-    if (factionMembersHaveIds(roster)) {
-      return;
-    }
-    await ctx.db.patch('factions', row._id, {
-      data: {
-        ...data,
-        ...(data.factionLeader === undefined ? {} : { factionLeader: identified.factionLeader }),
-        ...(data.hero === undefined ? {} : { hero: identified.factionLeader }),
-        leaders: identified.leaders,
-      },
-    });
-  },
-});
-
-/** Every stored faction, including deleted sources, must pass before member selection is exposed. */
-export const faction_member_ids_verify_v1 = migrations.define({
-  table: 'factions',
-  migrateOne: async (_ctx, row) => {
-    const parsed = migrationFactionRosterSchema.safeParse(row.data);
-    const roster =
-      parsed.success && (parsed.data.factionLeader ?? parsed.data.hero) ? migrationRosterOf(parsed.data) : null;
-    if (!roster || !factionMembersHaveIds(roster)) {
-      throw new Error(`Faction ${row._id} has missing or duplicate member identities.`);
-    }
-    assertUniqueFactionMemberIds(roster);
-  },
-});
-
-export const groups_slug_v1 = migrations.define({
-  table: 'groups',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) {
-      return;
-    }
-    const slug = await resolveUniqueGroupSlug(ctx, row.name, row._id);
-    return { slug };
-  },
-});
-
-export const rulesets_slug_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) {
-      return;
-    }
-    const slug = await resolveUniqueRulesetSlug(ctx, row.name, row._id);
-    return { slug };
-  },
-});
-
-/** Retains the completed `description` backfill identity; the narrowed schema now enforces what it filled in. */
-export const rulesets_description_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed About backfill identity; the required field now enforces what it filled in. */
-export const rulesets_about_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed About verification identity; the required field now enforces its invariant. */
-export const rulesets_about_verify_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed Ruleset prose retirement identity through the schema-narrowing release. */
-export const rulesets_description_retire_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed retirement verification identity; the narrowed schema now enforces it. */
-export const rulesets_description_retire_verify_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-export const faq_item_slug_v1 = migrations.define({
-  table: 'faq_items',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (!missingSlug((row as { slug?: unknown }).slug)) {
-      return;
-    }
-    const slug = await allocateNextFaqItemSlug(ctx, row.ruleset_id);
-    return { slug };
-  },
-});
-
-export const faq_item_tags_v1 = migrations.define({
-  table: 'faq_items',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const tags = (row as { tags?: unknown }).tags;
-    if (Array.isArray(tags) && tags.length > 0) {
-      return;
-    }
-    return { tags: [DEFAULT_FAQ_TAG] };
-  },
-});
 
 /** Ensures each auth `users` row has a `profiles` row (idempotent; skips when profile exists). */
 export const profiles_from_users_v1 = migrations.define({
@@ -323,79 +120,6 @@ export const profiles_from_users_v1 = migrations.define({
     }
     await ensureProfileForUser(ctx, user._id, profileSourcesFromUserDoc(user));
   },
-});
-
-async function archivedFactionSlug(ctx: MutationCtx, slug: string, factionId: Id<'factions'>) {
-  const base = `${slug}-archived-${factionId}`;
-  let candidate = base;
-  let suffix = 1;
-  while (true) {
-    const existing = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', candidate))
-      .unique();
-    if (!existing || existing._id === factionId) {
-      return candidate;
-    }
-    suffix += 1;
-    candidate = `${base}-${suffix}`;
-  }
-}
-
-/**
- * Repairs historical slug reuse while preserving the active faction's public URL.
- * Future writes reserve slugs globally, including those on soft-deleted rows.
- */
-export const faction_slug_reservations_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    const matches = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .take(2);
-    if (matches.length <= 1) {
-      return;
-    }
-
-    const active = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .filter((q) => q.eq(q.field('is_deleted'), false))
-      .take(2);
-    if (active.length > 1) {
-      throw new Error(`Cannot repair slug ${faction.slug}: multiple active factions`);
-    }
-
-    const keeper = active[0] ?? matches[0];
-    if (keeper?._id === faction._id) {
-      return;
-    }
-
-    return { slug: await archivedFactionSlug(ctx, faction.slug, faction._id) };
-  },
-});
-
-/** Successful completion proves faction slugs are globally unique. */
-export const faction_slug_reservations_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 25,
-  migrateOne: async (ctx, faction) => {
-    const matches = await ctx.db
-      .query('factions')
-      .withIndex('by_slug', (q) => q.eq('slug', faction.slug))
-      .take(2);
-    if (matches.length > 1) {
-      throw new Error(`Duplicate faction slug remains: ${faction.slug}`);
-    }
-  },
-});
-
-/** Retains the completed cleanup migration identity through the schema-narrowing release. */
-export const rulesets_remove_homepage_counts_v1 = migrations.define({
-  table: 'rulesets',
-  batchSize: 50,
-  migrateOne: async () => undefined,
 });
 
 /** Populates reusable Profile discovery while live profile writes maintain it automatically. */
@@ -506,348 +230,12 @@ export const profile_activity_answers_v1 = migrations.define({
   },
 });
 
-/**
- * Retains the completed vector-train decal retune identity (wayfinder #307).
- * Its body multiplied each stored decal scale by a frozen factor, which is right once and wrong on every later pass.
- * Production finished it, and a loaded snapshot carries no migration state, so each load would have scaled production's retuned decals a second time.
- */
-export const faction_decal_retune_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed grouped-complexity backfill identity after contract narrowing. */
-export const faction_complexity_grouped_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed grouped-complexity verification identity after contract narrowing. */
-export const faction_complexity_grouped_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-function normalizedMarksOnlyValue(value: unknown, field: string): string {
-  if (typeof value !== 'string') {
-    throw new Error(`${field} is not a string`);
-  }
-  const current = normalizeFormattedText(value, 'marks-only');
-  if (current.ok) {
-    return current.value;
-  }
-  const joined = value.replace(/[ \t]*\r?\n[ \t]*/gu, ' ');
-  const normalized = normalizeFormattedText(joined, 'marks-only');
-  if (!normalized.ok) {
-    throw new Error(`${field} cannot be normalized as marks-only formatted text`);
-  }
-  return normalized.value;
-}
-
-/** Joins legacy layout line breaks in faction setup and revival before those fields become marks-only. */
-export const faction_inline_formatted_text_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as {
-      rules?: { startText?: unknown; revivalText?: unknown };
-    } | null;
-    if (!data?.rules) {
-      throw new Error(`Faction ${row._id} has no rules`);
-    }
-    const startText = normalizedMarksOnlyValue(data.rules.startText, `Faction ${row._id} setup`);
-    const revivalText = normalizedMarksOnlyValue(data.rules.revivalText, `Faction ${row._id} revival`);
-    if (startText === data.rules.startText && revivalText === data.rules.revivalText) {
-      return;
-    }
-    return {
-      data: { ...data, rules: { ...data.rules, startText, revivalText } },
-    };
-  },
-});
-
-/** Proves every stored faction setup and revival value fits the marks-only profile. */
-export const faction_inline_formatted_text_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as {
-      rules?: { startText?: unknown; revivalText?: unknown };
-    } | null;
-    if (!data?.rules) {
-      throw new Error(`Faction ${row._id} has no rules`);
-    }
-    for (const [field, value] of [
-      ['setup', data.rules.startText],
-      ['revival', data.rules.revivalText],
-    ] as const) {
-      if (typeof value !== 'string' || !normalizeFormattedText(value, 'marks-only').ok) {
-        throw new Error(`Faction ${row._id} ${field} is not marks-only formatted text`);
-      }
-    }
-  },
-});
-
-/** Retains the completed Group lifecycle backfill identity through the schema-narrowing release. */
-export const groups_soft_delete_backfill_v1 = migrations.define({
-  table: 'groups',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/** Retains the completed lifecycle verification identity; the narrowed schema now enforces it. */
-export const groups_soft_delete_verify_v1 = migrations.define({
-  table: 'groups',
-  batchSize: 50,
-  migrateOne: async () => undefined,
-});
-
-/**
- * Puts the About key on every Asset that predates it (wayfinder #521).
- *
- * `assets.data` is `v.any()`, so no Convex validator gates this and `migrations:narrow-check` cannot see it: this migration is the only thing that makes the key true, and `assets_about_verify_v1` is the only thing that proves it.
- * Narrowing ahead of both is a silent break, because every strict read of a row without the key fails: the edit organs route to the schema-drift dead end, and `readJobForRender` throws on a stale publication job.
- *
- * Empty, never generated prose.
- * An asset with nothing to explain is the normal case.
- */
-export const assets_about_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = (row as { data?: unknown }).data;
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-      return;
-    }
-    const record = data as Record<string, unknown>;
-    if (typeof record.about === 'string') {
-      return;
-    }
-    return { data: { ...record, about: '' } };
-  },
-});
-
-/**
- * Proves the backfill left nothing behind, which is what makes narrowing the Zod schemas safe.
- * A row whose `data` is not a plain object is outside both halves of the pair: the backfill skips it rather than fabricating content, so the proof tolerates it for the same reason, or one hand-written row would deadlock the pair with the widen offering no remediation.
- * Such a row is the schema-drift dead end already, and every strict read treats it as one;
- * About is not what is wrong with it.
- */
-export const assets_about_verify_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = (row as { data?: unknown }).data;
-    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
-      return;
-    }
-    const about = (data as Record<string, unknown>).about;
-    if (typeof about !== 'string') {
-      throw new Error(`Asset ${row._id} still has no About`);
-    }
-  },
-});
-
-/** Backfills the compatible account lifecycle projection and mirrors it to existing auth users. */
-export const account_lifecycle_profiles_v1 = migrations.define({
-  table: 'profiles',
-  batchSize: 50,
-  migrateOne: async (ctx, profile) => {
-    const user = await ctx.db.get('users', profile.user_id);
-    if (!user) {
-      throw new Error(`Profile ${profile._id} references missing user ${profile.user_id}`);
-    }
-    const profileState = profile.account_state;
-    const userState = user.account_state;
-    if (profileState && userState && profileState !== userState) {
-      throw new Error(`Lifecycle mismatch for profile ${profile._id} and user ${user._id}`);
-    }
-    const accountState = profileState ?? userState ?? 'active';
-    if (!userState) {
-      await ctx.db.patch(user._id, { account_state: accountState });
-    }
-    return profileState ? undefined : { account_state: accountState };
-  },
-});
-
-/** Proves every auth user has one lifecycle-consistent profile before narrowing. */
-export const account_lifecycle_verify_v1 = migrations.define({
-  table: 'users',
-  batchSize: 50,
-  migrateOne: async (ctx, user) => {
-    const profiles = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', user._id))
-      .take(2);
-    if (profiles.length !== 1) {
-      throw new Error(`User ${user._id} has ${profiles.length} profiles; expected exactly one`);
-    }
-    const profile = profiles[0];
-    if (!profile?.account_state) {
-      throw new Error(`Profile ${profile?._id ?? 'unknown'} has no account lifecycle state`);
-    }
-    if (profile.account_state !== accountStateOf(user)) {
-      throw new Error(`Lifecycle mismatch for profile ${profile._id} and user ${user._id}`);
-    }
-  },
-});
-
-/**
- * Moves every token's back reference into its data («The stored shape of three back modes»).
- *
- * A reference whose relation row names a target the new rules honor gains that target's id in `data.back`;
- * a reference the rules cannot honor (missing row, deleted target, wrong type, or a target whose own back is not authored) rewrites to `same`, the migration policy Norbert set for both invalid classes.
- * Custom rows pass untouched, so only reference rows are rewritten.
- */
-export const assets_back_modes_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (!TOKEN_ASSET_TYPES.has(row.type)) {
-      return;
-    }
-    const back = tokenBackOf(row.data);
-    if (back?.mode !== 'reference' || typeof back.asset_id === 'string') {
-      return;
-    }
-    const relation = await ctx.db
-      .query('asset_relations')
-      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', 'token-back'))
-      .first();
-    const target = relation ? await ctx.db.get('assets', relation.to_asset_id) : null;
-    const honored = target !== null && !target.is_deleted && target.type === row.type && hasAuthoredBack(target);
-    const data = row.data as Record<string, unknown>;
-    return {
-      data: {
-        ...data,
-        back: honored ? { mode: 'reference', asset_id: relation!.to_asset_id } : { mode: 'same' },
-      },
-    };
-  },
-});
-
-/** Drops the `token-back` relation rows whose targets `assets_back_modes_v1` moved into the data. */
-export const asset_relations_token_back_drop_v1 = migrations.define({
-  table: 'asset_relations',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (row.kind !== 'token-back') {
-      return;
-    }
-    await ctx.db.delete(row._id);
-  },
-});
-
-/**
- * The modes a token back can wear, read off the back unions of both token schemas.
- * Every snapshot load replays the verify below over today's tokens, so a list written into the verify would refuse a mode added after it shipped.
- */
-const TOKEN_BACK_MODES: ReadonlySet<unknown> = new Set(
-  [TokenAsset, RectangleTokenAsset].flatMap((schema) =>
-    schema.shape.back.options.map((member) => member.shape.mode.value)
-  )
-);
-
-/**
- * Proves the move left nothing behind: every token back wears a mode the token schemas accept, every reference carries its target in data, and no `token-back` relation row remains.
- * Passing is what makes requiring `asset_id` on the reference member safe in a later release.
- */
-export const assets_back_modes_verify_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (ctx, row) => {
-    if (!TOKEN_ASSET_TYPES.has(row.type)) {
-      return;
-    }
-    const back = tokenBackOf(row.data);
-    if (!back || !TOKEN_BACK_MODES.has(back.mode)) {
-      throw new Error(`Token ${row._id} has no recognisable back mode`);
-    }
-    if (back.mode === 'reference' && typeof back.asset_id !== 'string') {
-      throw new Error(`Token ${row._id} still references through a relation row`);
-    }
-    const relation = await ctx.db
-      .query('asset_relations')
-      .withIndex('by_from_kind', (q) => q.eq('from_asset_id', row._id).eq('kind', 'token-back'))
-      .first();
-    if (relation) {
-      throw new Error(`Token ${row._id} still has a token-back relation row`);
-    }
-  },
-});
-
-/**
- * Wraps every bare deck cardback into the tagged custom member («The stored shape of three back modes», the wrap deferred out of slice 1).
- * Reference cardbacks and already-wrapped rows pass untouched, so the rewrite reaches exactly the pre-wrap authored rows.
- */
-export const assets_deck_cardback_wrap_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.type !== 'deck') {
-      return;
-    }
-    const data = row.data as { cardback?: Record<string, unknown> } | null;
-    const cardback = data?.cardback;
-    if (typeof cardback !== 'object' || cardback === null || 'mode' in cardback) {
-      return;
-    }
-    return { data: { ...data, cardback: { mode: 'custom', ...cardback } } };
-  },
-});
-
-/**
- * The modes a tagged deck cardback can wear, read off the schema's own union.
- * A loaded snapshot carries no migration state, so every load replays the verify below over today's decks, and a list written into the verify would refuse a mode added after it shipped.
- */
-const TAGGED_DECK_CARDBACK_MODES: ReadonlySet<unknown> = new Set(
-  DeckAsset.shape.cardback.options.flatMap((member) => ('mode' in member.shape ? [member.shape.mode.value] : []))
-);
-
-/** Proves every deck cardback wears a mode, which is what makes removing the bare transitional member safe later. */
-export const assets_deck_cardback_wrap_verify_v1 = migrations.define({
-  table: 'assets',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.type !== 'deck') {
-      return;
-    }
-    const cardback = (row.data as { cardback?: { mode?: unknown } } | null)?.cardback;
-    if (!TAGGED_DECK_CARDBACK_MODES.has(cardback?.mode)) {
-      throw new Error(`Deck ${row._id} still has an untagged cardback`);
-    }
-  },
-});
-
 /** Reserves permanent HTML and PDF identities for every Edition that predates publication workflows. */
 export const rulebook_edition_artifacts_v1 = migrations.define({
   table: 'rulebook_editions',
   batchSize: 50,
   migrateOne: async (ctx, edition) => {
     await ensureRulebookEditionArtifacts(ctx, edition);
-  },
-});
-
-/**
- * Moved historical inline Contents into the one-to-one Contents table and cleared the metadata row.
- * Production has run it, and the schema no longer has an inline field to move, so its body is a no-op.
- * Its id stays so the narrow guard can require it and every snapshot load can replay it.
- */
-export const rulebook_edition_contents_v1 = migrations.define({
-  table: 'rulebook_editions',
-  batchSize: 50,
-  migrateOne: async () => {},
-});
-
-/** Proves every Edition has its one Contents row; the schema itself now rules out inline Contents. */
-export const rulebook_edition_contents_verify_v1 = migrations.define({
-  table: 'rulebook_editions',
-  batchSize: 4,
-  migrateOne: async (ctx, edition) => {
-    await contentsForRulebookEdition(ctx, edition);
   },
 });
 
@@ -965,33 +353,6 @@ export const accountLifecycleIndexAudit = internalQuery({
 
 export const run = migrations.runner();
 
-export const runDeployMigrations = migrations.runner([
-  internal.migrations.faction_member_ids_v1,
-  internal.migrations.faction_member_ids_verify_v1,
-  internal.migrations.groups_slug_v1,
-  internal.migrations.rulesets_slug_v1,
-  internal.migrations.faq_item_slug_v1,
-  internal.migrations.faq_item_tags_v1,
-  internal.migrations.profiles_from_users_v1,
-  internal.migrations.faction_slug_reservations_v1,
-  internal.migrations.faction_slug_reservations_verify_v1,
-  internal.migrations.rulesets_remove_homepage_counts_v1,
-  internal.migrations.statistics_profiles_v1,
-  internal.migrations.statistics_factions_v1,
-  internal.migrations.statistics_rulesets_v1,
-  internal.migrations.statistics_questions_v1,
-  internal.migrations.statistics_answers_v1,
-  internal.migrations.profile_discovery_profiles_v1,
-  internal.migrations.faction_decal_retune_v1,
-  internal.migrations.groups_soft_delete_backfill_v1,
-  internal.migrations.groups_soft_delete_verify_v1,
-  internal.migrations.account_lifecycle_profiles_v1,
-  internal.migrations.account_lifecycle_verify_v1,
-  internal.migrations.rulebook_edition_artifacts_v1,
-  internal.migrations.rulebook_edition_contents_v1,
-  internal.migrations.rulebook_edition_contents_verify_v1,
-]);
-
 export const runRequired = internalMutation({
   args: { ids: v.array(v.string()) },
   handler: async (ctx, args) => {
@@ -1006,15 +367,19 @@ export const getStatus = internalQuery({
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    return await migrations.getStatus(ctx, { migrations: refs, limit: 100 });
+    return await migrations.getStatus(ctx, { migrations: listedRefs(args.ids) });
   },
 });
+
+/** Recorded runs of listed migrations; rows for pruned ids stay in the table as history. */
+function listedRuns(rows: Doc<'migration_runs'>[]) {
+  return rows.filter((row) => row.migration_id in MIGRATION_IDS);
+}
 
 export const listRunSnapshots = internalQuery({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query('migration_runs').order('desc').take(100);
+    return listedRuns(await ctx.db.query('migration_runs').order('desc').take(200));
   },
 });
 
@@ -1024,22 +389,14 @@ export const adminDashboard = adminQuery({
     ids: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const refs = args.ids ? migrationRefsFor(args.ids) : undefined;
-    const statuses = await migrations.getStatus(ctx, {
-      migrations: refs,
-      limit: 100,
-    });
-    const snapshots = await ctx.db.query('migration_runs').order('desc').take(100);
+    const statuses = await migrations.getStatus(ctx, { migrations: listedRefs(args.ids) });
+    const snapshots = listedRuns(await ctx.db.query('migration_runs').order('desc').take(200));
     return { statuses, snapshots };
   },
 });
 
 async function syncMigrationRunSnapshots(ctx: MutationCtx, ids?: string[]) {
-  const refs = ids ? migrationRefsFor(ids) : undefined;
-  const statuses = await migrations.getStatus(ctx, {
-    migrations: refs,
-    limit: 100,
-  });
+  const statuses = await migrations.getStatus(ctx, { migrations: listedRefs(ids) });
   const updatedAt = nowIso();
   for (const status of statuses) {
     const migrationId = toMigrationId(status.name);
@@ -1143,172 +500,6 @@ export const assertReadyForNarrow = internalQuery({
         };
       }),
     };
-  },
-});
-
-/** Drops the retired TTS link lists from faction `extras` (#1226); catalogue references stay, and an emptied list is removed. */
-export const faction_extras_references_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as { extras?: unknown } | null;
-    if (!data || !Array.isArray(data.extras) || !data.extras.some(isLegacyFactionExtra)) {
-      return;
-    }
-    const { extras, ...rest } = data;
-    const references = (extras as unknown[]).filter((entry) => !isLegacyFactionExtra(entry));
-    return { data: references.length === 0 ? rest : { ...rest, extras: references } };
-  },
-});
-
-/** Proves every faction's `extras` is absent or a list of catalogue references, so the tolerant read can go later. */
-export const faction_extras_references_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const extras = (row.data as { extras?: unknown } | null)?.extras;
-    if (extras !== undefined && !factionExtrasSchema.safeParse(extras).success) {
-      throw new Error(`Faction ${row._id} still has Extras that are not catalogue references`);
-    }
-  },
-});
-
-/* Like the member migration, validate only the troops this migration changes and keep every other field as stored. */
-const migrationFactionTroopsSchema = z.looseObject({
-  troops: z.array(z.looseObject({ troopId: FactionTroopIdSchema.optional() })),
-});
-
-/**
- * Adds troop identities (#1227) without changing authored fields or the faction's edit timestamp.
- * Listed in migration-guards.json one release after the schema widened (#1482): deploy migrates before the game and publisher Workers ship, so every reader had to accept `troopId` first.
- */
-export const faction_troop_ids_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) =>
-    namingFaction(row._id, () => {
-      const data = migrationFactionTroopsSchema.parse(row.data);
-      return factionTroopsHaveIds(data) ? undefined : { data: ensureFactionTroopIds(data) };
-    }),
-});
-
-/** Every stored faction, including deleted sources, must carry unique troop identities before the optional field narrows. */
-export const faction_troop_ids_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const parsed = migrationFactionTroopsSchema.safeParse(row.data);
-    if (!parsed.success || !factionTroopsHaveIds(parsed.data)) {
-      throw new Error(`Faction ${row._id} has missing troop identities.`);
-    }
-    namingFaction(row._id, () => assertUniqueFactionTroopIds(parsed.data));
-  },
-});
-
-/**
- * Renames each troop face's `fundedStrength` and `fundingCost` to `supportedStrength` and `supportCost`, without changing the faction's edit timestamp.
- * Troops paid for with spice in battle are supported, not funded.
- * A value already under the new name wins, so a replay changes nothing.
- * Listed in migration-guards.json one release after the widened read, as `faction_troop_ids_v1` was (#1482).
- * Narrowing, which drops the legacy names from the live faction schema, is a later release gated on this and its verify.
- */
-export const faction_troop_support_names_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = row.data as { troops?: unknown } | null;
-    if (!data || !Array.isArray(data.troops) || !data.troops.some(troopHasLegacySupportNames)) {
-      return;
-    }
-    return { data: { ...data, troops: data.troops.map(troopWithSupportNames) } };
-  },
-});
-
-/** Every stored faction, including deleted sources, must carry only the supported names before the schema narrows. */
-export const faction_troop_support_names_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const troops = (row.data as { troops?: unknown } | null)?.troops;
-    if (Array.isArray(troops) && troops.some(troopHasLegacySupportNames)) {
-      throw new Error(`Faction ${row._id} still has troop faces with funded names.`);
-    }
-  },
-});
-
-/* The glossary term is "Faction leader".
-   Validate only the two keys this migration reads and keep every other field as stored. */
-const migrationFactionLeaderKeySchema = z.looseObject({
-  factionLeader: z.unknown().optional(),
-  hero: z.unknown().optional(),
-});
-
-/**
- * Copies the Faction leader from the old `hero` key to `factionLeader`, without changing authored fields or the faction's edit timestamp.
- * The old key stays on the row;
- * `faction_hero_key_drop_v1` drops it.
- */
-export const faction_faction_leader_key_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const data = migrationFactionLeaderKeySchema.parse(row.data);
-    return data.factionLeader !== undefined || data.hero === undefined
-      ? undefined
-      : { data: { ...data, factionLeader: data.hero } };
-  },
-});
-
-/** Every stored faction, including deleted sources, must carry `factionLeader` before the narrowing drops `hero`. */
-export const faction_faction_leader_key_verify_v1 = migrations.define({
-  table: 'factions',
-  batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    const parsed = migrationFactionLeaderKeySchema.safeParse(row.data);
-    if (!parsed.success || parsed.data.factionLeader === undefined) {
-      throw new Error(`Faction ${row._id} has no \`factionLeader\`.`);
-    }
-  },
-});
-
-/** A deploy that stops on one faction names the row, so the failure can be found. */
-function namingFaction<T>(factionId: string, run: () => T): T {
-  try {
-    return run();
-  } catch (error) {
-    throw new Error(`Faction ${factionId}: ${error instanceof Error ? error.message : String(error)}`, {
-      cause: error,
-    });
-  }
-}
-
-/**
- * Retires the hosted fixture (#1535): its room deletes what it stored, then the account deletions routed to it settle.
- * Listed in migration-guards.json once the game Worker that answers a retirement has shipped (#1544).
- */
-export const play_hosted_fixture_retire_v1 = migrations.define({
-  table: 'play_games',
-  migrateOne: async (ctx, game) => {
-    await retireHostedFixture(ctx, game);
-  },
-});
-
-/** Previously accepted connection credentials may have outlived their scheduled expiry. */
-export const account_connections_expire_v1 = migrations.define({
-  table: 'account_connections',
-  batchSize: 50,
-  migrateOne: (_ctx, row) =>
-    Promise.resolve(
-      row.state !== 'expired' && row.expires_at <= Date.now() ? { state: 'expired' as const } : undefined
-    ),
-});
-
-/** Existing sessions receive the same deadline cleanup as new sign-ins. */
-export const auth_session_expiry_jobs_v1 = migrations.define({
-  table: 'authSessions',
-  batchSize: 50,
-  migrateOne: async (ctx, session) => {
-    await scheduleSessionExpiry(ctx, session);
   },
 });
 
@@ -1435,26 +626,11 @@ export const catalogue_entries_faq_verify_v1 = migrations.define({
   },
 });
 
-/** Gives every existing ruleset link a place in its ruleset's order: its creation time, which keeps the order links were made in and sorts before any later append. Rerunning it writes nothing. */
-export const ruleset_factions_position_v1 = migrations.define({
-  table: 'ruleset_factions',
-  migrateOne: async (ctx, link) => {
-    /* Every link carries a position once the schema requires it, so this only matters to a manifest replay; the cast reads past the narrowed type. */
-    if ((link as Partial<typeof link>).position === undefined) {
-      await ctx.db.patch('ruleset_factions', link._id, { position: link._creationTime });
-    }
-  },
-});
-
-/** Existing boards gain the listing fields new asset writes already carry; rerunning it writes nothing. */
+/** Gave existing boards the listing fields; `board_readiness_v1` writes the same full row on replay, so this body is a no-op and the id stays for `board_readiness_listing_narrow`. */
 export const board_readiness_listing_v1 = migrations.define({
   table: 'assets',
-  batchSize: 10,
-  migrateOne: async (ctx, asset) => {
-    if (asset.type === 'board') {
-      await syncBoardReadiness(ctx, asset._id, asset);
-    }
-  },
+  batchSize: 100,
+  migrateOne: async () => {},
 });
 
 /** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */

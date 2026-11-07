@@ -1,0 +1,723 @@
+{
+  "version": 1,
+  "sourceDescription": "Blender files from a fan rework kit of the Dune (Gale Force Nine) components that the user supplied on 2026-11-05 (folder \"Dune (1)\", Assets/Graphics/Treachery Graphics). The kit redraws the treachery card art as Blender bezier curves and grease pencil strokes. Its file names and export script identify John Flower as the maker of the redraw (\"Ilya Derivative by John Flower\"); the card art itself is Ilya Baranovsky's, published by Gale Force Nine. The kit states no license; per the user, Gale Force Nine is the rights holder. The .blend files are not committed (the kit states no license); each asset records the sha256 of its .blend so a later re-export can be matched. tools/ holds the export and trace scripts.",
+  "preparation": "Blender 5.2 (bpy) reads the card's asset collection, follows collection instances into the linked kit files (the Atomic Explosion and Shield collections) and turns text into curves; curves, grease pencil fills and grease pencil strokes are written in draw order as a coloured SVG (sources/), with tools/blend_to_svg.py. tools/flatten_trace.py does the flattening and trace. Lasgun: the Lasgun Explanation row only, with the hidden Shield disc drawn as a dashed ring to match the card. Flattening: paint darker than 50 percent luminance becomes ink and lighter paint becomes paper; the result is rendered anti-aliased at 4000 px on the long side, thresholded at 50 percent and traced with Potrace (potracer port of Potrace 1.16), turdsize 16, alphamax 1, opticurve on, opttolerance 0.2. Dune Zone normalization and stamp.",
+  "approval": {
+    "date": "2026-11-05",
+    "scope": "The user asked to proceed with swapping in the clear wins from the kit.",
+    "evidence": "proceed"
+  },
+  "assets": {
+    "/vector/decal/lasgun-extra.svg": {
+      "source": "sources/lasgun-treachery-graphic.svg",
+      "kitFile": "Assets/Graphics/Treachery Graphics/Lasgun Treachery Graphic.blend",
+      "collections": ["Lasgun Explanation"],
+      "kitFileSha256": "f1673bc25004d57f654165dbb273d17cdb0c0ba2c8ac0f826da0bbe48070d8c8",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/family-atomics.svg": {
+      "source": "sources/family-atomics.svg",
+      "kitFile": "Assets/Graphics/Treachery Graphics/Family Atomics.blend",
+      "collections": ["Family Atomics"],
+      "kitFileSha256": "14bc82da7160c3a62e46d6e2ebb4722f6de48876878fa1d0296c231cf916c894",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/amal.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Amal.blend",
+      "collections": ["Amal"],
+      "kitFileSha256": "ae13cdd4e010f6261d905531df3eafd281dcfd8573ef2cdca603c915248799b8",
+      "source": "sources/Amal--Amal.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/artillery-strike-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Artillery Strike.blend",
+      "collections": ["Artillery Strike"],
+      "kitFileSha256": "a02418d43d477adeb15204944cc52efdc81c1c21ec704d05ddda2d963d26a972",
+      "source": "sources/Artillery-Strike--Artillery-Strike.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/atomic-explosion.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Atomic Explosion.blend",
+      "collections": ["Atomic Explosion"],
+      "kitFileSha256": "dc602e54bacbc4b44c2e1cb51fb0534389eb3c0840ce7bfcd0e6a8edfa2ca1a7",
+      "source": "sources/Atomic-Explosion--Atomic-Explosion.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/bene-gesserit-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/Bene Gesserit/Artwork/Bene Gesserit Artwork - DEA.svg",
+      "kitFileSha256": "3bd1b167f16f098ba68462b4cb3dfc5330c9d95827cddbae39416fede95db508",
+      "source": "sources/Bene-Gesserit-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/bene-gesserit-artwork.svg": {
+      "kitFile": "Assets/Factions/Bene Gesserit/Artwork/Bene Gesserit Artwork - DEA.svg",
+      "kitFileSha256": "3bd1b167f16f098ba68462b4cb3dfc5330c9d95827cddbae39416fede95db508",
+      "source": "sources/Bene-Gesserit-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/building-1.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Building 1"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Building-1.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/building-2.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Building 2"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Building-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/carryalls-plus-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Supplementary Graphics/Carryall Graphic.blend",
+      "collections": ["Carryall Graphic"],
+      "kitFileSha256": "36c8ae96e748dd7d211bee5666cebccc023c16f13285f9ee2ed79fdd04f4a7c8",
+      "source": "sources/Carryall-Graphic--Carryall-Graphic.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/carryalls.svg": {
+      "kitFile": "Assets/Graphics/Supplementary Graphics/Carryall Graphic.blend",
+      "collections": ["Carryall"],
+      "kitFileSha256": "36c8ae96e748dd7d211bee5666cebccc023c16f13285f9ee2ed79fdd04f4a7c8",
+      "source": "sources/Carryall-Graphic--Carryall.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/chair.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Chair"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Chair.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/chaumurky.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Chaumurky.blend",
+      "collections": ["Chaumurky"],
+      "kitFileSha256": "8db166099ec2cb3e4e8031b8f20277dcc3c2bc1707768c4d5f40793dbbc5fb17",
+      "source": "sources/Chaumurky--Chaumurky.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/cheap-hero.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Cheap Hero.blend",
+      "collections": ["Cheap Hero"],
+      "kitFileSha256": "4b038d43f7308ca764b644538bda4af8104e1d4ff67317794da86b4a4b400e84",
+      "source": "sources/Cheap-Hero--Cheap-Hero.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/cheap-heroine.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Cheap Heroine.blend",
+      "collections": ["Cheap Heroine"],
+      "kitFileSha256": "44b3dc7959f17371b2e04e8cd531e32fc010950dfc19fc4043423fa646c76591",
+      "source": "sources/Cheap-Heroine--Cheap-Heroine.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/cone-of-silence.svg": {
+      "kitFile": "Assets/Graphics/Supplementary Graphics/Cone of Silence.blend",
+      "collections": ["Cone of Silence"],
+      "kitFileSha256": "28ed20bf01ba83439c2fb987e50d88e622d83e20d23e929c85ae0f111741ed86",
+      "source": "sources/Cone-of-Silence--Cone-of-Silence.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/duke-leto-atreides-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Duke Leto Atreides"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Duke-Leto-Atreides.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/duke-leto-atreides.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Duke Leto Atreides"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Duke-Leto-Atreides.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/dune-2019-logo.svg": {
+      "kitFile": "Assets/Logo/Dune (2019) Logo.svg",
+      "kitFileSha256": "8135bea7729ef6d53d6089b98d12e082f5330117a5034cd33d9009dca09af4b3",
+      "source": "sources/Dune-(2019)-Logo.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/fremen-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/Fremen/Artwork/Fremen Artwork - DEA.svg",
+      "kitFileSha256": "a363dd661d39fc77e93a021b2d709c302c4ce9494f4cac7cbd28418d7872a29f",
+      "source": "sources/Fremen-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/fremen-artwork.svg": {
+      "kitFile": "Assets/Factions/Fremen/Artwork/Fremen Artwork - DEA.svg",
+      "kitFileSha256": "a363dd661d39fc77e93a021b2d709c302c4ce9494f4cac7cbd28418d7872a29f",
+      "source": "sources/Fremen-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/fremen-badge-2021.svg": {
+      "kitFile": "Assets/Factions/Fremen/Badges/Fremen Badge.blend",
+      "collections": ["Fremen Badge - 2021"],
+      "kitFileSha256": "cf47b5a818335e910fe267fb52bb39ee19ab46d9bbc573e7c314246ed400e516",
+      "source": "sources/Fremen-Badge--Fremen-Badge---2021.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/gamond.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Trip to Gamont.blend",
+      "collections": ["Trip to Gamont"],
+      "kitFileSha256": "227e974d4df7668c7b5dd499b7a2265b2562f091e7fdab8c99c23f9618a2c14a",
+      "source": "sources/Trip-to-Gamont--Trip-to-Gamont.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/harass-withdraw-kit-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Harass & Withdraw.blend",
+      "collections": ["Harass & Withdraw"],
+      "kitFileSha256": "12ff0dc63f9fb179996fe2863436d50a35e2a2df4ea6cd0eeedebd7928bfe206",
+      "source": "sources/Harass-&-Withdraw--Harass-&-Withdraw.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/harass-withdraw-kit.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Harass & Withdraw.blend",
+      "collections": ["Harass & Withdraw"],
+      "kitFileSha256": "12ff0dc63f9fb179996fe2863436d50a35e2a2df4ea6cd0eeedebd7928bfe206",
+      "source": "sources/Harass-&-Withdraw--Harass-&-Withdraw.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/harass-withdraw.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Harass & Withdraw.svg",
+      "kitFileSha256": "79250504372fa27274ddffe7806e20257885c4c24170e217e6bf10417a78abf9",
+      "source": "sources/Harass-&-Withdraw.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/harkonnen-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Artwork/Harkonnen Artwork - DEA.svg",
+      "kitFileSha256": "971b0399675b00270bc1f709bb6546d3c610661707edd0713dfc32201a715921",
+      "source": "sources/Harkonnen-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/harkonnen-artwork.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Artwork/Harkonnen Artwork - DEA.svg",
+      "kitFileSha256": "971b0399675b00270bc1f709bb6546d3c610661707edd0713dfc32201a715921",
+      "source": "sources/Harkonnen-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/harvester-alt-plus-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Harvester.blend",
+      "collections": ["Harvester"],
+      "kitFileSha256": "d43a6ab1386f549a0c3bc7695fa2abc434c687be2df6bf97c3ee7fa05f8b3bbe",
+      "source": "sources/Harvester--Harvester.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/hidden-mobile-stronghold.svg": {
+      "kitFile": "Assets/Factions/Ixians/Hidden Mobile Stronghold/Hidden Mobile Stronghold Icon.blend",
+      "collections": ["Hidden Mobile Stronghold Icon"],
+      "kitFileSha256": "994225fcacf427f960a8578cb030f0371677a87fb6a9eb85ff0530d2c630eb39",
+      "source": "sources/Hidden-Mobile-Stronghold-Icon--Hidden-Mobile-Stronghold-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/house-atreides-badge.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Badges/Atreides Badge.blend",
+      "collections": ["House Atreides Badge - Dune Map 3"],
+      "kitFileSha256": "b4b93fe4f6cf30a743dbe31e5fb43ddddfa1854ddd95837e8dca2d2ae7ec89c0",
+      "source": "sources/Atreides-Badge--House-Atreides-Badge---Dune-Map-3.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/house-corrino-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Corrino/Artwork/House Corrino Artwork - DEA.svg",
+      "kitFileSha256": "eb5a60acc648477d942cab75f53a5f07658e99097ed9aea23a28a72090fd676d",
+      "source": "sources/House-Corrino-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/house-corrino-artwork.svg": {
+      "kitFile": "Assets/Factions/House Corrino/Artwork/House Corrino Artwork - DEA.svg",
+      "kitFileSha256": "eb5a60acc648477d942cab75f53a5f07658e99097ed9aea23a28a72090fd676d",
+      "source": "sources/House-Corrino-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/house-corrino-badge-2019.svg": {
+      "kitFile": "Assets/Factions/House Corrino/Badges/House Corrino Badge.blend",
+      "collections": ["House Corrino Badge - DEA 2"],
+      "kitFileSha256": "149b5f7c820105b9c473d0e2a600ccc3882780a32317cc3b6b7411f68446034e",
+      "source": "sources/House-Corrino-Badge--House-Corrino-Badge---DEA-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/la-la-la.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/La, La, La.blend",
+      "collections": ["La, La, La"],
+      "kitFileSha256": "bd49aa7697b61b5ce75c26013afff23b596d7c5d659d5cc37b99a6ccff407774",
+      "source": "sources/La,-La,-La--La,-La,-La.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/lasgun-treachery-graphic.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Lasgun Treachery Graphic.blend",
+      "collections": ["Lasgun Treachery Graphic"],
+      "kitFileSha256": "f1673bc25004d57f654165dbb273d17cdb0c0ba2c8ac0f826da0bbe48070d8c8",
+      "source": "sources/Lasgun-Treachery-Graphic--Lasgun-Treachery-Graphic.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/mirror-weapon-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Mirror Weapon.blend",
+      "collections": ["Mirror Weapon"],
+      "kitFileSha256": "e4f6e98166e9f25fd1dd64c5cba24ec840e4b80fded578488576f855d1724380",
+      "source": "sources/Mirror-Weapon--Mirror-Weapon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/ornithopter-kit-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Ornithopter"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Ornithopter.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/ornithopter-kit.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Ornithopter"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Ornithopter.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/palm-tree-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Palm Tree"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Palm-Tree.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/palm-tree.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Palm Tree"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Palm-Tree.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/paul-atreides-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Paul Atreides"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Paul-Atreides.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/paul-atreides.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Paul Atreides"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Paul-Atreides.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/poison-blade.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Poison Blade.blend",
+      "collections": ["Poison Blade"],
+      "kitFileSha256": "00e50e56721409ec1cb3d6a58227c5b33de2832a2064d7c58be02482fab5fd6b",
+      "source": "sources/Poison-Blade--Poison-Blade.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/recruit-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Recruits.blend",
+      "collections": ["Recruits"],
+      "kitFileSha256": "62413fc2d2db014295f18af18959a36aa6e7b661079a53c2abf32e0eb7fa10bb",
+      "source": "sources/Recruits--Recruits.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/residual-poison.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Residual Poison.blend",
+      "collections": ["Residual Poison"],
+      "kitFileSha256": "7ed659af18b2872288870e9f5848bd6073331a411d35a7dec2e7721faaa3534a",
+      "source": "sources/Residual-Poison--Residual-Poison.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/sandtrout-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Spice Blow Graphics/sandtrout.svg",
+      "kitFileSha256": "33ca9776001f68fd2667c10de13f93287eff3dfbbc65bb756ee53359c51d93b5",
+      "source": "sources/sandtrout.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/shield-kit.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Shield.blend",
+      "collections": ["Shield"],
+      "kitFileSha256": "de9358da85288256f448f694e977cb0b78043c8340de70cabd5bc091cc330f77",
+      "source": "sources/Shield--Shield.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/snooper.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Snooper.blend",
+      "collections": ["Snooper"],
+      "kitFileSha256": "ffb1ed5e6fcf77fe53b8a11ebbe4860e5f9390a73f08fb803909f9c78dc789ea",
+      "source": "sources/Snooper--Snooper.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/spacing-guild-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/Spacing Guild/Artwork/Spacing Guild Artwork - DEA.svg",
+      "kitFileSha256": "a53f22622ae87e51927f0a80a74759efd96be5005df614f904fa377c6eef1c8d",
+      "source": "sources/Spacing-Guild-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/spacing-guild-artwork.svg": {
+      "kitFile": "Assets/Factions/Spacing Guild/Artwork/Spacing Guild Artwork - DEA.svg",
+      "kitFileSha256": "a53f22622ae87e51927f0a80a74759efd96be5005df614f904fa377c6eef1c8d",
+      "source": "sources/Spacing-Guild-Artwork---DEA.svg",
+      "editedBy": "John Flower",
+      "note": "Inkscape file marked \"DEA\" in the kit; the kit does not say what DEA stands for."
+    },
+    "/vector/decal/stone-burner-alt-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Stone Burner.blend",
+      "collections": ["Stone Burner"],
+      "kitFileSha256": "6dba63a900dd7b471b65713cfb70fe94dc8be3522481ec67e207319328567e49",
+      "source": "sources/Stone-Burner--Stone-Burner.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/storm-alt-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Storm Graphics/Storm 2.svg",
+      "kitFileSha256": "39446a5a95b91a3261ecea93356b5f08291f6acfd4899aefa271f3dad8cd955a",
+      "source": "sources/Storm-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/storm-alt.svg": {
+      "kitFile": "Assets/Graphics/Storm Graphics/Storm 2.svg",
+      "kitFileSha256": "39446a5a95b91a3261ecea93356b5f08291f6acfd4899aefa271f3dad8cd955a",
+      "source": "sources/Storm-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/storm-multicolor.svg": {
+      "kitFile": "Assets/Graphics/Storm Graphics/storm-multicolor.svg",
+      "kitFileSha256": "35959b21e226eb2e3d5d1cc2a977eb4908a437b0baff666337bde675b464746e",
+      "source": "sources/storm-multicolor.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/typewriter-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Typewriter"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Typewriter.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/typewriter.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Typewriter"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--Typewriter.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/weather-control.svg": {
+      "kitFile": "Assets/Graphics/Treachery Graphics/Control Weather.blend",
+      "collections": ["Control Weather"],
+      "kitFileSha256": "b3707a17a471591757c0c6e627f04819470d0ffed65bdd839ce46fc33bd552bf",
+      "source": "sources/Control-Weather--Control-Weather.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/ecaz.svg": {
+      "kitFile": "Assets/Factions/House Ecaz/Badges/Ecaz Badge.blend",
+      "collections": ["Ecaz Badge - 2019"],
+      "kitFileSha256": "8165e0d2b583ed41e44448665367ae8fd07a86c69b84aa17f191b13f70ca6a81",
+      "source": "sources/Ecaz-Badge--Ecaz-Badge---2019.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/guild.svg": {
+      "kitFile": "Assets/Factions/Spacing Guild/Logos/Spacing Guild Logo.blend",
+      "collections": ["Spacing Guild Logo - DEA 2"],
+      "kitFileSha256": "98576c4e3debf29834e6da553e3cd17b3f796a5e23368dcdf28d1af57a5979d9",
+      "source": "sources/Spacing-Guild-Logo--Spacing-Guild-Logo---DEA-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/harkonnen.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Badges/Harkonnen Badge.blend",
+      "collections": ["Harkonnen Badge - 2019 - Griffin"],
+      "kitFileSha256": "17d2256d46714da67b3e9598f0f18db77c2752e263f04de0fd0e16a34772f1e6",
+      "source": "sources/Harkonnen-Badge--Harkonnen-Badge---2019---Griffin.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/moritani.svg": {
+      "kitFile": "Assets/Factions/House Moritani/Badges/House Moritani Badge.blend",
+      "collections": ["House Moritani Badge"],
+      "kitFileSha256": "6fcd1bf3d798b649134d32faea951a1b5ae635aba501d26b2eb8d550673ea317",
+      "source": "sources/House-Moritani-Badge--House-Moritani-Badge.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/richese.svg": {
+      "kitFile": "Assets/Factions/House Richese/Badges/House Richese Badge.blend",
+      "collections": ["House Richese Badge"],
+      "kitFileSha256": "d554fadcdc69361e158794a7b614409ccd6352acdca6efabad26d606f73e6ec3",
+      "source": "sources/House-Richese-Badge--House-Richese-Badge.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/battle-phase.svg": {
+      "kitFile": "Assets/Icons/Phase Icons/Battle Phase Icon.blend",
+      "collections": ["Battle Phase Icon"],
+      "kitFileSha256": "5a840fa1cc836da6842b45c2238a6bbddb66bbab97bced6484810c9355886464",
+      "source": "sources/Battle-Phase-Icon--Battle-Phase-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/bidding-phase.svg": {
+      "kitFile": "Assets/Icons/Phase Icons/Bidding Phase Icon.blend",
+      "collections": ["Bidding Phase Icon"],
+      "kitFileSha256": "b55add7fb88c6f70f3d5876d3e03bc84fd99f0190057b7157e1419ca2b703476",
+      "source": "sources/Bidding-Phase-Icon--Bidding-Phase-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/city.svg": {
+      "kitFile": "Assets/Icons/City Icon.blend",
+      "collections": ["City Icon"],
+      "kitFileSha256": "f66cf913f5f58f33a4771eef32829a39a58e5bbc2deef4bc74766b42ef16299a",
+      "source": "sources/City-Icon--City-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/collection_standalone.svg": {
+      "kitFile": "Assets/Icons/Spice Container Icon v1.blend",
+      "collections": ["Spice Container Icon v1"],
+      "kitFileSha256": "03ee952ba9e082ad49198624f68fa98db9ca51fa9c7fec60dd129c5db1c2d097",
+      "source": "sources/Spice-Container-Icon-v1--Spice-Container-Icon-v1.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/fremen-devotee.svg": {
+      "kitFile": "Assets/Icons/Fremen Devotee Icon.blend",
+      "collections": ["Fremen Devotee"],
+      "kitFileSha256": "f093e109bae246931d1c6959c69134392ac5f7b90344c35b7e78737138562c69",
+      "source": "sources/Fremen-Devotee-Icon--Fremen-Devotee.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/hammer.svg": {
+      "kitFile": "Assets/Icons/Hammer Icon.blend",
+      "collections": ["Hammer Icon"],
+      "kitFileSha256": "d08ccf5394bc0bd3c68e587e2d78563ede94272157299129304fefcc7d35cee7",
+      "source": "sources/Hammer-Icon--Hammer-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/hand-receiving.svg": {
+      "kitFile": "Assets/Icons/Hand Receiving Icon.blend",
+      "collections": ["Hand Receiving Icon"],
+      "kitFileSha256": "642cb8a8c9b84063664093232df43c2b0ac6561ab377ff6c5de95bc01304673d",
+      "source": "sources/Hand-Receiving-Icon--Hand-Receiving-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/karama-alt.svg": {
+      "kitFile": "Assets/Graphics/Supplementary Graphics/Karama.blend",
+      "collections": ["Karama"],
+      "kitFileSha256": "6730eacd53ed076f8fe7669c52da45981cb05f0d59ba49bb197e4974840d4126",
+      "source": "sources/Karama--Karama.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/keyhole.svg": {
+      "kitFile": "Assets/Icons/Treachery Card Icons/Shield Icon.blend",
+      "collections": ["Shield Icon"],
+      "kitFileSha256": "0c409b0515ea80602b614b0c5f92e1e5adc6dc695cb0aa938cd9c514ea6b3731",
+      "source": "sources/Shield-Icon--Shield-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/kwisatz.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Icons/Kwisatz Haderach Icon.svg",
+      "kitFileSha256": "3d429ae987e04829c570842775c3ec571f53dc0b8f4943fe5421da64562dd608",
+      "source": "sources/Kwisatz-Haderach-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/lasgun-blast.svg": {
+      "kitFile": "Assets/Icons/Lasgun Blast Icon.blend",
+      "collections": ["Lasgun Blast Icon"],
+      "kitFileSha256": "41fb378390914975693a0e1ad5078aa89dc793d7f7b745ca1f92a43037ecccab",
+      "source": "sources/Lasgun-Blast-Icon--Lasgun-Blast-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/lasgun.svg": {
+      "kitFile": "Assets/Icons/Lasgun Icon.blend",
+      "collections": ["Lasgun Icon"],
+      "kitFileSha256": "513470d1dda673fd3d0e5f3feeb95090df4e25eb183253bd4bcb58bbbb2b2299",
+      "source": "sources/Lasgun-Icon--Lasgun-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/shai-hulud-alt.svg": {
+      "kitFile": "Assets/Graphics/Spice Blow Graphics/Shai-Hulud from Ilya77.svg",
+      "kitFileSha256": "b08cbd7575b3f4306eae91fb4ae0da1f1e1c0c53fa5645653de83343b792a75f",
+      "source": "sources/Shai-Hulud-from-Ilya77.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/shield.svg": {
+      "kitFile": "Assets/Icons/Treachery Card Icons/Projectile Defence Icon.blend",
+      "collections": ["Projectile Defence Icon"],
+      "kitFileSha256": "94303fbb6f0cdeb7bdf4ac8e341434a476b067cf1c2224eae1712f95ef06d0c4",
+      "source": "sources/Projectile-Defence-Icon--Projectile-Defence-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/shipping-and-movement-phase.svg": {
+      "kitFile": "Assets/Icons/Phase Icons/Shipping and Movement Phase Icon.blend",
+      "collections": ["Shipping and Movement Phase Icon"],
+      "kitFileSha256": "54c96c6a7a4940292f738a086806c35840e5b76b90499c9240f8f3bfa7081ac2",
+      "source": "sources/Shipping-and-Movement-Phase-Icon--Shipping-and-Movement-Phase-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/snooper.svg": {
+      "kitFile": "Assets/Icons/Treachery Card Icons/Poison Defence Icon.blend",
+      "collections": ["Poison Defence Icon"],
+      "kitFileSha256": "930945ae309ab1b45c2c9849dce2fee814723776750740aba3e34cd8c9945308",
+      "source": "sources/Poison-Defence-Icon--Poison-Defence-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/spice-blow_standalone.svg": {
+      "kitFile": "Assets/Icons/Phase Icons/Spice Blow Phase Icon v2.blend",
+      "collections": ["Spice Blow Phase Icon"],
+      "kitFileSha256": "575d8ac29e766c6313ef52fcc936d8a603bd662fd93c19f8e065bdffc43e7319",
+      "source": "sources/Spice-Blow-Phase-Icon-v2--Spice-Blow-Phase-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/spice-harvest-phase-v2.svg": {
+      "kitFile": "Assets/Icons/Phase Icons/Spice Harvest Phase Icon v2.blend",
+      "collections": ["Spice Harvest Phase Icon v2"],
+      "kitFileSha256": "e508de2cd6ac6126e50961ec021dcbef251e66bde0499c29e87d05f8d24ca431",
+      "source": "sources/Spice-Harvest-Phase-Icon-v2--Spice-Harvest-Phase-Icon-v2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/treachery-alt.svg": {
+      "kitFile": "Assets/Icons/Treachery Card Icons/Treachery Icon.blend",
+      "collections": ["Treachery Icon"],
+      "kitFileSha256": "a881a26f9d91c860d083053f9830d955e2abfedce1c8cac19e344adae43ca7c5",
+      "source": "sources/Treachery-Icon--Treachery-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/worthless.svg": {
+      "kitFile": "Assets/Icons/Treachery Card Icons/Worthless Icon.blend",
+      "collections": ["Worthless Icon"],
+      "kitFileSha256": "0008f0d61a6193f32be2539d9ada07e11bca183a74002f84dd135d6bafdb1b81",
+      "source": "sources/Worthless-Icon--Worthless-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/atreides.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Forces/Atreides Force Icon.blend",
+      "collections": ["Atreides Force Icon"],
+      "kitFileSha256": "ea2c5f2d275d3ecca73e1c8a7d69e1b1f4fa5fb1749f2c219a5e050b167aea61",
+      "source": "sources/Atreides-Force-Icon--Atreides-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/bene-gesserit.svg": {
+      "kitFile": "Assets/Factions/Bene Gesserit/Forces/Bene Gesserit Force Icon.blend",
+      "collections": ["Bene Gesserit Force Icon"],
+      "kitFileSha256": "9ab6c05f021a41ea6098723d5d00521e1a84bc1f91805f25bc92ffc62ab1ddf3",
+      "source": "sources/Bene-Gesserit-Force-Icon--Bene-Gesserit-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/bene-tleilaxu.svg": {
+      "kitFile": "Assets/Factions/Bene Tleilaxu/Forces/Bene Tleilaxu Force Icon.blend",
+      "collections": ["Bene Tleilaxu Force Icon"],
+      "kitFileSha256": "bc860fcbc680f2d43865275314c3c2e53f880e52739d24c3d22f1b41cde35bd6",
+      "source": "sources/Bene-Tleilaxu-Force-Icon--Bene-Tleilaxu-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/emperor.svg": {
+      "kitFile": "Assets/Factions/House Corrino/Forces/House Corrino Force Icon.blend",
+      "collections": ["House Corrino Force Icon"],
+      "kitFileSha256": "64c8771e7de4262c8179422076315a77548b93f5e92fd724db29d9a2c9ca1a09",
+      "source": "sources/House-Corrino-Force-Icon--House-Corrino-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/fremen.svg": {
+      "kitFile": "Assets/Factions/Fremen/Forces/Fremen Force Icon.blend",
+      "collections": ["Fedaykin Force Icon"],
+      "kitFileSha256": "f080f9922f2d885d1436334cab4fb48b2f9f040ca27973ef8de0bb33661e219d",
+      "source": "sources/Fremen-Force-Icon--Fedaykin-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/guild.svg": {
+      "kitFile": "Assets/Factions/Spacing Guild/Forces/Guild Force Icon.blend",
+      "collections": ["Guild Force Icon"],
+      "kitFileSha256": "f5d3f4554eeb157b79fbc62d9fdd126765dee11c91b96e7810fa61cf9b51409c",
+      "source": "sources/Guild-Force-Icon--Guild-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/harkonnen.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Forces/Harkonnen Force Icon.blend",
+      "collections": ["Harkonnen Force Icon"],
+      "kitFileSha256": "6cbd76f878097a9391af45c65b3fa31565fec48fd619739dec371a1b11f0f2cd",
+      "source": "sources/Harkonnen-Force-Icon--Harkonnen-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/ixian.svg": {
+      "kitFile": "Assets/Factions/Ixians/Forces/Ixian Force Icon.blend",
+      "collections": ["Suboid Force Icon"],
+      "kitFileSha256": "b9ddf9dd5d0bd14aa1aea25793723c1c210992c5cac380a20ac45ee62ef8eac0",
+      "source": "sources/Ixian-Force-Icon--Suboid-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/moritani.svg": {
+      "kitFile": "Assets/Factions/House Moritani/Forces/House Moritani Force Icon.blend",
+      "collections": ["House Moritani Force Icon"],
+      "kitFileSha256": "a45904d5328c687d75f4acda65b0de22e7dd8d15786be91d6516be3091fb3bb0",
+      "source": "sources/House-Moritani-Force-Icon--House-Moritani-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop/richese.svg": {
+      "kitFile": "Assets/Factions/House Richese/Forces/Richese Force Icon.blend",
+      "collections": ["Richese Force Icon"],
+      "kitFileSha256": "0fa49d855492d3f514de920ba7eb0cddfec1d1a9cec54b45c6daa9f56698068f",
+      "source": "sources/Richese-Force-Icon--Richese-Force-Icon.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop_modifier/star-left-red.svg": {
+      "kitFile": "Assets/Icons/Troop Modifiers/star-left-red.svg",
+      "kitFileSha256": "e72a4c4a05efb29e536404e740db74c33841a9e554551e4e8ad19503418a1666",
+      "source": "sources/star-left-red.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop_modifier/star-left.svg": {
+      "kitFile": "Assets/Icons/Troop Modifiers/star-left-red.svg",
+      "kitFileSha256": "e72a4c4a05efb29e536404e740db74c33841a9e554551e4e8ad19503418a1666",
+      "source": "sources/star-left-red.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop_modifier/star-right-red.svg": {
+      "kitFile": "Assets/Icons/Troop Modifiers/star-right.svg",
+      "kitFileSha256": "cb14c26275f875998922e09c1b26208e7e42dc1988c7311895fec0a343ec5f91",
+      "source": "sources/star-right.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/troop_modifier/star-right.svg": {
+      "kitFile": "Assets/Icons/Troop Modifiers/star-right.svg",
+      "kitFileSha256": "cb14c26275f875998922e09c1b26208e7e42dc1988c7311895fec0a343ec5f91",
+      "source": "sources/star-right.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/decal/atreides-artwork-multicolor.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Atreides Artwork"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--full-scene.svg",
+      "editedBy": "John Flower",
+      "note": "Exported 2026-11-06 with every collection switched on (the .blend hides Leto, Paul, the walls and the books for rendering), then clipped to the camera frame."
+    },
+    "/vector/decal/atreides-artwork.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Artwork/Atreides Artwork.blend",
+      "collections": ["Atreides Artwork"],
+      "kitFileSha256": "b461ec9668f1f24dc8a4545b74f61c37f25ac0e489872064ce6e44230c2c51a5",
+      "source": "sources/Atreides-Artwork--full-scene.svg",
+      "editedBy": "John Flower",
+      "note": "Flattened from the multicolour export and traced with tools/flatten_trace.py at 4000 px."
+    },
+    "/vector/emblem/atreides-hawk.svg": {
+      "kitFile": "Assets/Factions/House Atreides/Badges/Atreides Badge.blend",
+      "collections": ["House Atreides Badge - DEA 2"],
+      "kitFileSha256": "b4b93fe4f6cf30a743dbe31e5fb43ddddfa1854ddd95837e8dca2d2ae7ec89c0",
+      "source": "sources/Atreides-Badge--House-Atreides-Badge---DEA-2.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/ecaz-2022.svg": {
+      "kitFile": "Assets/Factions/House Ecaz/Badges/Ecaz Badge.blend",
+      "collections": ["Ecaz Badge - 2022"],
+      "kitFileSha256": "8165e0d2b583ed41e44448665367ae8fd07a86c69b84aa17f191b13f70ca6a81",
+      "source": "sources/Ecaz-Badge--Ecaz-Badge---2022.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/emblem/harkonnen-ox.svg": {
+      "kitFile": "Assets/Factions/House Harkonnen/Badges/Harkonnen Badge.blend",
+      "collections": ["Harkonnen Badge - DEA 3 - Ox"],
+      "kitFileSha256": "17d2256d46714da67b3e9598f0f18db77c2752e263f04de0fd0e16a34772f1e6",
+      "source": "sources/Harkonnen-Badge--Harkonnen-Badge---DEA-3---Ox.svg",
+      "editedBy": "John Flower"
+    },
+    "/vector/icon/choam-disc.svg": {
+      "kitFile": "Assets/Factions/CHOAM/Logos/CHOAM Logo.blend",
+      "collections": ["CHOAM Logo"],
+      "kitFileSha256": "64bd1723dab5aaaa676870dee27c643e73a21a44ff3008421b47e980e704663f",
+      "source": "sources/CHOAM-Logo--CHOAM-Logo.svg",
+      "editedBy": "John Flower"
+    }
+  }
+}

@@ -218,6 +218,43 @@ export function useProbe() {
   });
 });
 
+/* Above the kit a worded action is LabeledAction; the ban is repeated in the widget override, which replaces the src-wide one. */
+describe('raw Mantine Button above the kit', { timeout: TEST_BUDGET_MS }, () => {
+  const source = "import { Button } from '@mantine/core';\nexport const probe = Button;\n";
+
+  /* One lint run per test, so each spawn budget sits inside its own test budget. */
+  test.each([PLAY_FIXTURE_ROOT, 'src/app/widgets/probe', 'src/app/pickers', 'src/shared/probe'])(
+    'bites in %s',
+    async (root) => {
+      expect(await lintDiagnostics('probe.tsx', source, root)).toContain(
+        "'Button' import from '@mantine/core' is restricted"
+      );
+    }
+  );
+
+  test('bans a raw Alert outside the kit too', async () => {
+    const alert = "import { Alert } from '@mantine/core';\nexport const probe = Alert;\n";
+    expect(await lintDiagnostics('probe.tsx', alert, 'src/app/widgets/probe')).toContain(
+      "'Alert' import from '@mantine/core' is restricted"
+    );
+  });
+
+  test('bans a raw ActionIcon, so a glyph action always carries its name and tooltip', async () => {
+    const icon = "import { ActionIcon } from '@mantine/core';\nexport const probe = ActionIcon;\n";
+    expect(await lintDiagnostics('probe.tsx', icon, 'src/app/routes/probe')).toContain(
+      "'ActionIcon' import from '@mantine/core' is restricted"
+    );
+  });
+
+  test('leaves the kit alone', async () => {
+    expect(await lintDiagnostics('probe.tsx', source, 'src/app/ui/control')).not.toContain('Button');
+  });
+
+  test('leaves stories alone', async () => {
+    expect(await lintDiagnostics('probe.stories.tsx', source, 'src/app/widgets/probe')).not.toContain('Button');
+  });
+});
+
 describe('prefer-block-comments', { timeout: TEST_BUDGET_MS }, () => {
   /* The rule once stripped any trailing star as if it were part of a `**\/` closer, so a glob at the end of a comment was reported on every run and its fix ate the glob a star at a time. */
   test('leaves a comment that ends in a glob alone', async () => {
@@ -274,7 +311,7 @@ export const probe = [
   <Timeline.Item title="Turn 2" />,
   <Card title="Members" />,
   <iframe title="Video" src="about:blank" />,
-  <svg><title>Logo</title></svg>,
+  <svg><title>Emblem</title></svg>,
 ];
 `
     );
@@ -403,5 +440,133 @@ export const Help = {
 `
     );
     expect(reports(output)).toBe(0);
+  });
+});
+
+describe('form-error', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(form-error)').length - 1;
+
+  test('reports a red Mantine Alert outside the kit, however its colour is spelled', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert, Alert as Callout } from '@mantine/core';
+export const probe = [
+  <Alert color="red" title="Could not save">Try again</Alert>,
+  <Callout color={'red.6'}>Try again</Callout>,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(2);
+  });
+
+  test('leaves other colours, other Alerts and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+import { Alert as Banner } from './banner';
+export const probe = [<Alert color="yellow">Heads up</Alert>, <Banner color="red" />, <Alert color={tone} />];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Alert } from '@mantine/core';
+export const probe = <Alert color="red">Failed</Alert>;
+`,
+      'src/app/ui/block'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});
+
+describe('eyebrow', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(eyebrow)').length - 1;
+
+  test('reports an uppercase Mantine Text, however it is spelled', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text, Text as Caption } from '@mantine/core';
+export const probe = [<Text tt="uppercase">Phase</Text>, <Caption tt={'uppercase'}>Seat</Caption>];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(2);
+  });
+
+  test('leaves other transforms, other Texts, stories and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+import { Text as Label } from './label';
+export const probe = [<Text tt="capitalize">Phase</Text>, <Label tt="uppercase">Seat</Label>];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const story = await lintDiagnostics(
+      'probe.stories.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = <Text tt="uppercase">Phase</Text>;
+`,
+      'src/app/routes'
+    );
+    expect(reports(story)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = <Text tt="uppercase">Phase</Text>;
+`,
+      'src/app/ui/content'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});
+
+describe('control-block-label', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(control-block-label)').length - 1;
+
+  test('reports a caption on a Mantine field or a visible group label', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Radio, TextInput as Field } from '@mantine/core';
+export const probe = [
+  <Field label="Name" />,
+  <Field description="Shown on the sheet" />,
+  <Radio.Group label="Start from" />,
+  <Radio.Group label={<VisuallyHidden>Lookalike</VisuallyHidden>} />,
+];
+function VisuallyHidden({ children }: { children: string }) {
+  return <b>{children}</b>;
+}
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(4);
+  });
+
+  test('leaves a hidden group name, Slider, option labels and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Checkbox, Radio, Slider, Switch, VisuallyHidden as Hidden } from '@mantine/core';
+export const probe = [
+  <Radio.Group label={<Hidden>Side</Hidden>} />,
+  <Slider label={(value) => value} />,
+  <Checkbox label="Show grid" />,
+  <Switch label="Invert" />,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { TextInput } from '@mantine/core';
+export const probe = <TextInput label="Name" />;
+`,
+      'src/app/ui/control'
+    );
+    expect(reports(kit)).toBe(0);
   });
 });

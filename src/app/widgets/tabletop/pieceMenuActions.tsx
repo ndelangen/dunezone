@@ -14,7 +14,7 @@ import type { TabletopContextValue } from './TabletopContext';
 
 export type MenuControls = Pick<
   TabletopContextValue,
-  'deckControls' | 'spiceReserveControls' | 'peekControls' | 'deleteControls' | 'handControls'
+  'deckControls' | 'spiceReserveControls' | 'spiceBlowControls' | 'peekControls' | 'deleteControls' | 'handControls'
 >;
 
 type MenuOptions = Readonly<{
@@ -67,16 +67,41 @@ function spiceActions(
   ];
 }
 
-/* A deck's draw, deal and shuffle after its peek; the ring stays open so a deck can be dealt from again. */
+/*
+ * A revealed spice card's spice, set down in the territory it names (#2678).
+ * It takes the peek's place on the ring, since a face-up spice card has nothing hidden to peek at, and closes the ring.
+ */
+function spiceBlowAction(
+  piece: TablePiece,
+  spiceBlowControls: NonNullable<MenuControls['spiceBlowControls']>,
+  onClose: () => void
+): RadialAction | null {
+  const placement = spiceBlowControls.placement(piece.id);
+  if (!placement) {
+    return null;
+  }
+  return {
+    key: 'spice-blow',
+    label: `Place ${placement.amount} spice on ${placement.name}`,
+    icon: 'place',
+    disabled: piece.locked,
+    onSelect: () => {
+      spiceBlowControls.place(piece.id);
+      onClose();
+    },
+  };
+}
+
+/* A deck's draw, deal and shuffle after its peek, or a revealed spice card's placing; the ring stays open so a deck can be dealt from again. */
 function deckActions(
   piece: TablePiece,
   deckControls: MenuControls['deckControls'],
-  peek: RadialAction
+  first: readonly RadialAction[]
 ): RadialAction[] {
   const count = piece.items.length;
   const available = !!deckControls && !piece.locked && !piece.inventory && count > 0;
   return [
-    peek,
+    ...first,
     {
       key: 'draw',
       label: 'Draw a card',
@@ -96,7 +121,7 @@ function deckActions(
         label: `Deal 1 to ${faction.name}`,
         name: faction.name,
         face: faction.artwork ? (
-          <FactionToken logo={faction.artwork.logo} background={faction.artwork.background} />
+          <FactionToken emblem={faction.artwork.emblem} background={faction.artwork.background} />
         ) : (
           faction.name.slice(0, 2)
         ),
@@ -160,7 +185,11 @@ function ownActions(piece: TablePiece, controls: MenuControls, onClose: () => vo
   }
   const peek = peekAction(piece, controls.peekControls, onClose);
   if (piece.kind === 'card') {
-    return deckActions(piece, controls.deckControls, peek);
+    const blow = controls.spiceBlowControls && spiceBlowAction(piece, controls.spiceBlowControls, onClose);
+    /* A spice card topping a pile keeps the pile's peek beside its placing; a lone card has nothing hidden to peek at. */
+    const pile = piece.items.length > 1;
+    const first = blow ? [blow, ...(pile ? [peek] : [])] : [peek];
+    return deckActions(piece, controls.deckControls, first);
   }
   return peekableToken(piece) ? [peek] : [];
 }

@@ -9,14 +9,14 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { tableOverlayRects } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install, lastCommand, session } from './game.stories.fixture';
-import { mapViewPoint, openTab, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
+import { mapViewPoint, tablePage, waitForPlayCamera, openPieceMenu } from './playing.stories.fixture';
 import {
   factions,
   playingSnapshot,
   productTransport,
   playingSnapshot as initialSnapshot,
 } from './product.stories.fixture';
-import { factionOf, finishedSnapshot } from './results.stories.fixture';
+import { reviewableSnapshot, reviewCheckpoints, reviewOf, reviewTransport } from './review.stories.fixture';
 import { openTableSettings } from './table.stories.fixture';
 
 const meta = testingPreview.meta({
@@ -342,21 +342,21 @@ export const WheelTakesACloseLook = meta.story({
       return placement;
     };
 
-    await expect(turnWheel(300, true)).toBe(false);
-    await expect(turnWheel(300)).toBe(true);
+    await expect(turnWheel(-300, true)).toBe(false);
+    await expect(turnWheel(-300)).toBe(true);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(approved));
     const closer = deckPlacement();
-    turnWheel(300);
+    turnWheel(-300);
     await waitForFrame(() => expect(deckPlacement()).not.toBe(closer));
 
     /* Backing out ends at the view's own pose, and holds there however far the wheel turns. */
     for (let turn = 0; turn < 4; turn++) {
-      turnWheel(-600);
+      turnWheel(600);
     }
     try {
       /* The glide needs frames to finish even when the runner draws them late (#1900). */
       await waitForFrame(() => expectPlacementNear(recordReturn(), approved));
-      turnWheel(-600);
+      turnWheel(600);
       await new Promise((resolve) => setTimeout(resolve, 100));
       await expectPlacementNear(recordReturn(), approved);
     } catch (error) {
@@ -525,25 +525,22 @@ export const DeckShortcutsEndOffTheTable = meta.story({
 });
 
 /**
- * A canvas leave ends the disc's hover while the viewer cannot act, too: another player continues the finished game during this replay.
- * The pointer moves over the disc during playback and leaves the canvas, so after Return to live the number keys send nothing until the pointer is back on the disc.
+ * A canvas leave ends the disc's hover while the viewer cannot act, too: the table recalls a checkpoint together.
+ * The pointer moves over the disc during the recall and leaves the canvas, so after Return to the game the number keys send nothing until the pointer is back on the disc.
  */
 /* Cursors that offer nothing: unset, the default, and the 'auto' the camera controls set when they connect. */
 const UNOFFERED_CURSORS = ['', 'default', 'auto'];
 
 export const SpiceDiscForgetsAPlaybackHover = meta.story({
-  beforeEach: install(() => productTransport('seat-2', finishedSnapshot('seat-2'))),
+  beforeEach: install(() =>
+    reviewTransport(
+      'seat-2',
+      reviewOf(reviewableSnapshot(), reviewCheckpoints()[0]!, 'seat-1', ['seat-3', 'seat-4', 'seat-5'])
+    )
+  ),
   play: async ({ canvasElement }) => {
-    const finished = finishedSnapshot('seat-2');
-    const { page, document } = await tablePage(
-      canvasElement,
-      `${factionOf(finished, 0).name} and ${factionOf(finished, 2).name} won as an alliance`
-    );
-    await openTab(page, 'Replay');
-    await userEvent.click(await page.findByRole('button', { name: 'Replay from start' }));
-    session.transport.deliver({ type: 'history', step: 0, lastStep: 1, snapshot: playingSnapshot() });
-    await expect(await page.findByRole('button', { name: 'Earlier phase' })).toBeVisible();
-    session.transport.deliver(session.transport.view({ ...playingSnapshot(), revision: 100 }));
+    const { page, document } = await tablePage(canvasElement, 'Mentat recall');
+    const resume = await page.findByRole('button', { name: 'Return to the game' }, { timeout: 30_000 });
 
     const slot = spiceBankSlot();
     const [clientX, clientY] = mapViewPoint(document, [slot.position[0], TRACKER_DISC_TOP_Y + 0.015, slot.position[2]]);
@@ -554,11 +551,15 @@ export const SpiceDiscForgetsAPlaybackHover = meta.story({
     await waitFor(() => expect(UNOFFERED_CURSORS, 'playback disables the disc').toContain(scene.style.cursor));
     leaveTheCanvas(page, scene, pointer);
 
-    await userEvent.click(page.getByRole('button', { name: 'Return to live' }));
-    await waitFor(() => expect(page.queryByRole('button', { name: 'Earlier phase' })).toBeNull());
+    await userEvent.click(resume);
+    await waitFor(() => expect(page.queryByRole('button', { name: 'Return to the game' })).toBeNull(), {
+      timeout: 30_000,
+    });
     await userEvent.keyboard('3');
-    await expect(UNOFFERED_CURSORS, 'returning to live retains no earlier hover').toContain(scene.style.cursor);
-    await expect(session.transport.messages.some((message) => message.type === 'command')).toBe(false);
+    await expect(UNOFFERED_CURSORS, 'returning to the game retains no earlier hover').toContain(scene.style.cursor);
+    const spawned = () =>
+      session.transport.messages.some((message) => message.type === 'command' && message.action.kind === 'spice-spawn');
+    await expect(spawned()).toBe(false);
 
     /* Move onto the returning disc on each poll while its 3D target settles; the live table's panels may move the canvas, so the point is mapped again. */
     await waitFor(

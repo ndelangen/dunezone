@@ -35,8 +35,8 @@ import type {
   RulebookPageDraft,
 } from '@shared/rulebooks/contents';
 import { AssetSelect } from '@ui/control/AssetSelect';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { ChevronDown, ChevronRight, Link2, Minus } from 'lucide-react';
@@ -505,7 +505,7 @@ function BlockRegionSummary({
             aria-controls={contentId}
             onClick={() => onToggle(region.key, !region.collapsed)}
           />
-          <ConfirmDeleteAction
+          <HoldAction
             key={region.blocks.at(-1)?.id ?? 'empty'}
             label={`Remove last Block from ${region.label}`}
             icon={<Minus size={15} aria-hidden />}
@@ -773,36 +773,36 @@ export function PageDetailsEdit({
         <ControlBlock
           title="Anchor"
           description="Set the stable public anchor used in links to this Page."
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Anchor"
+              {...fieldProps}
               leftSection={<Link2 size={16} aria-hidden />}
               leftSectionPointerEvents="none"
               value={value.anchor}
               error={diagnostics?.anchor}
               onChange={(event) => onChange({ ...value, anchor: event.currentTarget.value })}
             />
-          }
+          )}
         />
         <ControlBlock
           title="Title"
           description="Name this Page in the editor and Rulebook."
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Title"
+              {...fieldProps}
               value={value.title}
               error={diagnostics?.title}
               onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
             />
-          }
+          )}
         />
         {!coverControls && (
           <ControlBlock
             title="Title icon"
             description="Use the same symbol as the board or faction. The printed title frames it in a circle."
-            input={
+            input={(fieldProps) => (
               <AssetSelect
-                aria-label="Title icon"
+                {...fieldProps}
                 placeholder="No icon"
                 data={headingIconOptions}
                 getPreviewSrc={(icon) => icon}
@@ -816,7 +816,7 @@ export function PageDetailsEdit({
                   })
                 }
               />
-            }
+            )}
           />
         )}
         <ControlBlock

@@ -1,16 +1,15 @@
-import { Alert, Badge, Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Group, Menu, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { projectRulebookRenderDocument } from '@shared/rulebooks/projectRenderDocument';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
-import { errorMessage } from '@ui/content/errorMessage';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
@@ -20,10 +19,11 @@ import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RulebookDocumentRenderer } from '@game/rulebook/RulebookRenderer';
 
 import { FactionHeadingHints } from './FactionHeadingHints';
@@ -99,9 +99,9 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
     });
   },
   pendingComponent: () => (
-    <PageMessage title="Rulebook">
-      <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Rulebook" loading="Loading Rulebook">
+      Loading the selected Edition.
+    </RoutePending>
   ),
   errorComponent: RulebookReaderError,
   component: RulebookReaderPage,
@@ -110,18 +110,16 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/rulebooks/$rul
 function RulebookReaderError({ error }: ErrorComponentProps) {
   const { rulesetSlug } = Route.useParams();
   return (
-    <PageMessage
+    <RouteLoadError
       title="Rulebook"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="Rulebook could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -238,23 +236,23 @@ function ReaderStatus({
 }>) {
   if (locatorStatus === 'invalid') {
     return (
-      <Alert color="red" title="Selected-text link rejected" role="alert">
+      <FormError title="Selected-text link rejected">
         The link contains an invalid or oversized locator. Its decoded value was not rendered or used as a selector.
-      </Alert>
+      </FormError>
     );
   }
   if (targetMissing) {
     return (
-      <Alert color="yellow" title="Linked target unavailable" role="alert">
+      <Notice tone="caution" title="Linked target unavailable" live>
         The linked target does not exist in this Edition. The Rulebook starts at its first Page.
-      </Alert>
+      </Notice>
     );
   }
   if (locatorStatus === 'stale') {
     return (
-      <Alert color="yellow" title="Selected words changed" role="status">
+      <Notice tone="caution" title="Selected words changed" live>
         The words changed, but the stable Page or Block link still identifies the intended part of the Rulebook.
-      </Alert>
+      </Notice>
     );
   }
   return null;
@@ -335,25 +333,24 @@ function RulebookReaderDelivery({ initial }: { initial: Awaited<ReturnType<typeo
   useLivePageTitle(data?.rulebook.name, 'Rulebook');
   if (!data) {
     return (
-      <PageMessage
+      <RouteNotFound
         title="Rulebook"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
-      >
-        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+        noun="Rulebook"
+      />
     );
   }
   const loadedPublication = initial.published?.href === htmlHref ? initial.published : delivery.published;
   const published = data.body.kind === 'html' && loadedPublication?.href === data.body.href ? loadedPublication : null;
   if (data.body.kind === 'html' && !published) {
     return (
-      <PageMessage title={data.rulebook.name}>
-        <LoadPending title="Loading Rulebook">Loading the selected Edition.</LoadPending>
-      </PageMessage>
+      <RoutePending title={data.rulebook.name} loading="Loading Rulebook">
+        Loading the selected Edition.
+      </RoutePending>
     );
   }
   return <RulebookReader data={data} published={published} />;
@@ -734,7 +731,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
             />
             {data.canDelete ? (
               <Toolbar.Cluster kind="discard">
-                <ConfirmDeleteAction
+                <HoldAction
                   label="Delete Rulebook"
                   pending={remove.isPending}
                   onConfirm={() =>
@@ -763,11 +760,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
           </VisuallyHidden>
           <Stack gap="sm" className={styles.statuses}>
             <ReaderStatus locatorStatus={locatorStatus} targetMissing={targetMissing} />
-            {remove.error ? (
-              <Alert color="red" title="Rulebook could not be deleted" role="alert">
-                {remove.error.message}
-              </Alert>
-            ) : null}
+            <ActionError subject="Rulebook" verb="delete" error={remove.error} />
             {view.selectionMessage ? (
               <Text size="sm" aria-hidden="true">
                 {view.selectionMessage}
@@ -790,9 +783,7 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
                         onClick={unpin}
                       />
                     ) : (
-                      <Badge color="gray" variant="light" leftSection={<Pin size={12} aria-hidden />}>
-                        Tracking
-                      </Badge>
+                      <StatusBadge icon={<Pin size={12} aria-hidden />}>Tracking</StatusBadge>
                     )}
                   </Group>
                   <ol className={styles.pageLinks}>

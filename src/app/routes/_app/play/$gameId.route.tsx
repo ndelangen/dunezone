@@ -1,10 +1,11 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
-import { Button, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Orbit } from 'lucide-react';
+import { ArrowLeft, Orbit } from 'lucide-react';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
@@ -13,11 +14,11 @@ import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { GameLink } from './GameLink';
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
-import { TableWait } from './TableWait';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 /*
@@ -134,9 +135,9 @@ function GameAccessPage() {
     });
   }, [authorized, address, navigate, runtime]);
   const exit = (
-    <Button component={Link} to="/play" variant="default" aria-label="Back to lobby">
+    <LabeledAction icon={<ArrowLeft size={16} />} renderRoot={(props) => <Link {...props} to="/play" />}>
       Lobby
-    </Button>
+    </LabeledAction>
   );
   switch (data?.status) {
     case undefined:
@@ -187,7 +188,9 @@ function UnavailableTable({ title, children, exit }: Readonly<{ title: string; c
         status={
           <Stack gap="lg" align="center">
             <Orbit size={64} strokeWidth={1} aria-hidden style={{ color: 'var(--color-muted)' }} />
-            <NotAvailable title={title}>{children}</NotAvailable>
+            <PageState kind="absent" title={title}>
+              {children}
+            </PageState>
           </Stack>
         }
       >

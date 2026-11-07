@@ -1,6 +1,9 @@
-import { Button, Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
+import { Group, MultiSelect, Radio, Select, Stack, Text, VisuallyHidden } from '@mantine/core';
 import type { GameResultKind } from '@shared/play/result';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Eye, Trophy, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { factionOption } from '../../multiplayer/factionOption';
@@ -69,7 +72,8 @@ function ResultSection({
   readiness,
 }: Readonly<{ eyebrow: string; title: string; context?: string; action?: ReactNode; readiness?: ReactNode }>) {
   return (
-    <Section eyebrow={eyebrow} title={title} description={context} action={action}>
+    <Section eyebrow={eyebrow} title={title} action={action}>
+      {context ? <Text size="sm">{context}</Text> : null}
       {readiness}
     </Section>
   );
@@ -77,9 +81,13 @@ function ResultSection({
 
 function RevealButton({ disabled, onReveal }: Pick<ResultPanelProps, 'disabled' | 'onReveal'>) {
   return (
-    <Button variant="default" disabled={disabled} onClick={onReveal}>
+    <LabeledAction
+      icon={<Eye size={16} />}
+      disabledReason={disabled ? 'The table is unavailable.' : undefined}
+      onClick={onReveal}
+    >
       Reveal prediction
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -113,33 +121,52 @@ function DeclareBar({
             </Group>
           </Radio.Group>
           {choice.kind === 'faction' && (
-            <Select
-              label="Winning faction"
-              data={options}
-              renderOption={({ option }) => factionOption(options, option.value)}
-              value={choice.faction}
-              onChange={(faction) => onChange({ faction })}
-              disabled={disabled}
+            <ControlBlock
+              title="Winning faction"
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  data={options}
+                  renderOption={({ option }) => factionOption(options, option.value)}
+                  value={choice.faction}
+                  onChange={(faction) => onChange({ faction })}
+                  disabled={disabled}
+                />
+              )}
             />
           )}
           {choice.kind === 'alliance' && (
-            <MultiSelect
-              label="Winning alliance"
-              data={options}
-              renderOption={({ option }) => factionOption(options, option.value)}
-              value={choice.alliance}
-              onChange={(alliance) => onChange({ alliance })}
-              disabled={disabled}
+            <ControlBlock
+              title="Winning alliance"
+              input={(fieldProps) => (
+                <MultiSelect
+                  {...fieldProps}
+                  data={options}
+                  renderOption={({ option }) => factionOption(options, option.value)}
+                  value={choice.alliance}
+                  onChange={(alliance) => onChange({ alliance })}
+                  disabled={disabled}
+                />
+              )}
             />
           )}
           <Group gap="xs" justify="flex-end">
             {prediction === 'button' && <RevealButton disabled={disabled} onReveal={onReveal} />}
-            <Button variant="default" disabled={disabled} onClick={onStop}>
+            <LabeledAction
+              icon={<X size={16} />}
+              disabledReason={disabled ? 'The table is unavailable.' : undefined}
+              onClick={onStop}
+            >
               Stop
-            </Button>
-            <Button disabled={disabled || !valid} onClick={() => valid && onDeclare()}>
+            </LabeledAction>
+            <LabeledAction
+              emphasis="strong"
+              icon={<Trophy size={16} />}
+              disabledReason={disabled ? 'The table is unavailable.' : valid ? undefined : 'Choose the winner first.'}
+              onClick={() => valid && onDeclare()}
+            >
               Declare
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       }

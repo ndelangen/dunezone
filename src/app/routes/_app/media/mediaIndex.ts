@@ -26,9 +26,9 @@ const galleries = [
     ],
   },
   {
-    kind: 'logo',
+    kind: 'emblem',
     title: 'Emblems',
-    samples: ['/vector/logo/atreides.svg', '/vector/logo/ecaz.svg', '/vector/logo/ixian.svg'],
+    samples: ['/vector/emblem/atreides.svg', '/vector/emblem/ecaz.svg', '/vector/emblem/ixian.svg'],
   },
   {
     kind: 'troop',
@@ -43,7 +43,11 @@ const galleries = [
   {
     kind: 'generic',
     title: 'Symbols',
-    samples: ['/vector/generic/stormworld.svg', '/vector/generic/8point.svg', '/vector/generic/arrowbox.svg'],
+    samples: [
+      '/vector/generic/stormworld.svg',
+      '/vector/generic/eight-pointed-burst.svg',
+      '/vector/generic/sith-empire-hexagon.svg',
+    ],
   },
   {
     kind: 'icon',

@@ -1,6 +1,6 @@
 import { Text } from '@mantine/core';
 
-/** The drop shadow under white text on header artwork; `ProfileLink.module.css` repeats it for an inverse name. */
+/** The drop shadow under white text on header artwork; `EntityLink.module.css` repeats it for an inverse name. */
 const INVERSE_TEXT_SHADOW = '0 2px 8px rgb(from var(--color-shadow) r g b / 85%)';
 
 export interface EyebrowProps {
@@ -10,6 +10,8 @@ export interface EyebrowProps {
    * `accent` ties the label to the brand, `muted` lets it recede behind the content it names, and `inverse` is pure white with a drop shadow, the one treatment for text over header artwork, so it stays legible on light and dark patches alike.
    */
   tone?: 'muted' | 'accent' | 'inverse';
+  /** `center` for a caption over a centred preview, such as a token or card tile. */
+  align?: 'start' | 'center';
   id?: string;
 }
 
@@ -20,7 +22,7 @@ export interface EyebrowProps {
  * this component owns the single small-caps, letter-spaced treatment every such label shares.
  * Without it a section kicker, a field caption and a placeholder marker each grow their own near-identical uppercase style.
  */
-export function Eyebrow({ children, tone = 'muted', id }: EyebrowProps) {
+export function Eyebrow({ children, tone = 'muted', align = 'start', id }: EyebrowProps) {
   return (
     <Text
       id={id}
@@ -30,6 +32,7 @@ export function Eyebrow({ children, tone = 'muted', id }: EyebrowProps) {
       tt="uppercase"
       lts="0.14em"
       lh={1.4}
+      ta={align === 'center' ? 'center' : undefined}
       c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? 'var(--color-inverse)' : 'dimmed'}
       style={tone === 'inverse' ? { textShadow: INVERSE_TEXT_SHADOW } : undefined}
     >

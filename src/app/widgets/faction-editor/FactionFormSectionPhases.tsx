@@ -1,17 +1,5 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import {
-  Alert,
-  Group,
-  Input,
-  NumberInput,
-  Select,
-  SimpleGrid,
-  Stack,
-  Switch,
-  Text,
-  Textarea,
-  TextInput,
-} from '@mantine/core';
+import { Input, NumberInput, Select, SimpleGrid, Stack, Switch, Text, Textarea, TextInput } from '@mantine/core';
 import {
   DEFAULT_PHASE_PRIORITY,
   PHASE_TYPE_LABELS,
@@ -25,13 +13,11 @@ import { TABLE_PHASES } from '@shared/play/phases';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { useState } from 'react';
 
-import { FactionCollectionShelf } from './FactionCollectionShelf';
 import { assetOptionToPreviewSrc, phaseSymbolOptions } from './factionFormAssetUtils';
 import { defaultPhaseDeclaration } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { FactionListSection, useListSelection } from './FactionListSection';
 
 const symbolSelectOptions = stockAssetOptions(phaseSymbolOptions);
 
@@ -89,19 +75,24 @@ function PhasePlacementFields({
 
         <form.Field name={`extraPhases[${index}].before`}>
           {(field) => (
-            <Select
-              id={`phase-${index}-placement`}
-              label="Placement"
-              required
-              allowDeselect={false}
-              data={placementOptions}
-              value={field.state.value ?? null}
-              error={problems.before}
-              onChange={(value) => {
-                if (value) {
-                  field.handleChange(value as PhaseTarget);
-                }
-              }}
+            <ControlBlock
+              title="Placement"
+              inputId={`phase-${index}-placement`}
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  required
+                  allowDeselect={false}
+                  data={placementOptions}
+                  value={field.state.value ?? null}
+                  error={problems.before}
+                  onChange={(value) => {
+                    if (value) {
+                      field.handleChange(value as PhaseTarget);
+                    }
+                  }}
+                />
+              )}
             />
           )}
         </form.Field>
@@ -125,35 +116,44 @@ function PhaseBehaviourFields({
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
         <form.Field name={`extraPhases[${index}].type`}>
           {(field) => (
-            <Select
-              id={`phase-${index}-type`}
-              label="Type"
+            <ControlBlock
+              title="Type"
               description="Prediction uses the built-in prediction controls and goes before a setup step."
-              allowDeselect={false}
-              data={typeOptions}
-              value={field.state.value ?? null}
-              error={problems.type}
-              onChange={(value) => {
-                if (value) {
-                  field.handleChange(value as PhaseDeclaration['type']);
-                }
-              }}
+              inputId={`phase-${index}-type`}
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  allowDeselect={false}
+                  data={typeOptions}
+                  value={field.state.value ?? null}
+                  error={problems.type}
+                  onChange={(value) => {
+                    if (value) {
+                      field.handleChange(value as PhaseDeclaration['type']);
+                    }
+                  }}
+                />
+              )}
             />
           )}
         </form.Field>
 
         <form.Field name={`extraPhases[${index}].priority`}>
           {(field) => (
-            <NumberInput
-              id={`phase-${index}-priority`}
-              label="Priority"
+            <ControlBlock
+              title="Priority"
               description="Lower runs first among phases before the same step."
-              allowDecimal
-              value={field.state.value ?? ''}
-              error={problems.priority}
-              onBlur={field.handleBlur}
-              /* An empty or fractional entry is kept as typed, so the row names the problem rather than hiding it. */
-              onChange={(value) => field.handleChange(value as number)}
+              inputId={`phase-${index}-priority`}
+              input={(fieldProps) => (
+                <NumberInput
+                  {...fieldProps}
+                  allowDecimal
+                  value={field.state.value ?? ''}
+                  error={problems.priority}
+                  onBlur={field.handleBlur}
+                  onChange={(value) => field.handleChange(value as number)}
+                />
+              )}
             />
           )}
         </form.Field>
@@ -166,14 +166,14 @@ function PhaseBehaviourFields({
             description={
               'Next waits until every player is ready, like Mentat Pause.\nA prediction phase waits on its lock instead.'
             }
-            input={
+            inputId={`phase-${index}-ready`}
+            input={(fieldProps) => (
               <Switch
-                id={`phase-${index}-ready`}
-                aria-label="Everyone must be ready"
+                {...fieldProps}
                 checked={field.state.value ?? false}
                 onChange={(event) => field.handleChange(event.currentTarget.checked)}
               />
-            }
+            )}
           />
         )}
       </form.Field>
@@ -195,15 +195,20 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
 
             <form.Field name={`extraPhases[${index}].title`}>
               {(field) => (
-                <TextInput
-                  id={`phase-${index}-title`}
-                  label="Title"
+                <ControlBlock
+                  title="Title"
                   description="Shown to players in the phase header and on the tracker."
-                  required
-                  value={field.state.value ?? ''}
-                  error={problems.title}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value)}
+                  inputId={`phase-${index}-title`}
+                  input={(fieldProps) => (
+                    <TextInput
+                      {...fieldProps}
+                      required
+                      value={field.state.value ?? ''}
+                      error={problems.title}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value)}
+                    />
+                  )}
                 />
               )}
             </form.Field>
@@ -212,15 +217,20 @@ function PhaseCard({ form, index }: { form: FactionFormApi; index: number }) {
 
             <form.Field name={`extraPhases[${index}].instructions`}>
               {(field) => (
-                <Textarea
-                  id={`phase-${index}-instructions`}
-                  label="Instructions"
+                <ControlBlock
+                  title="Instructions"
                   description="What players do during this phase. Optional."
-                  minRows={3}
-                  value={field.state.value ?? ''}
-                  error={problems.instructions}
-                  onBlur={field.handleBlur}
-                  onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                  inputId={`phase-${index}-instructions`}
+                  input={(fieldProps) => (
+                    <Textarea
+                      {...fieldProps}
+                      minRows={3}
+                      value={field.state.value ?? ''}
+                      error={problems.instructions}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.currentTarget.value || undefined)}
+                    />
+                  )}
                 />
               )}
             </form.Field>
@@ -242,82 +252,43 @@ export function FactionFormSectionPhases({
   selectedIndex?: number;
   onSelectedIndexChange?: (index: number) => void;
 }) {
-  const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
-  const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  const [selected, select] = useListSelection(selectedIndex, onSelectedIndexChange);
   return (
-    <Stack component="section" gap="md" aria-labelledby="phases-heading">
-      <Stack gap="xs">
-        <Text id="phases-heading" fw={700} size="lg">
-          Faction phases
-        </Text>
-        <Text c="dimmed" size="sm">
-          Phases this faction adds to the game. A phase before a setup step runs once; a phase before a turn phase runs
-          every turn. Phases before the same step run by priority, then in storm order between factions, then in this
-          list&apos;s order. Priority {DEFAULT_PHASE_PRIORITY} is the default.
-        </Text>
-      </Stack>
-
-      <form.Field name="extraPhases" mode="array">
-        {(field) => {
-          const phases = field.state.value ?? [];
-          const count = phases.length;
-          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-          const sortablePrefix = 'phases-';
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end">
-                <ListLengthActions
-                  removeLabel="Remove last faction phase"
-                  addLabel="Add faction phase"
-                  removeDisabled={count === 0}
-                  onRemove={() => {
-                    const lastIndex = count - 1;
-                    if (lastIndex < 0) {
-                      return;
-                    }
-                    if (currentSelectedIndex >= lastIndex) {
-                      selectIndex(Math.max(0, lastIndex - 1));
-                    }
-                    field.removeValue(lastIndex);
-                  }}
-                  onAdd={() => {
-                    field.pushValue(defaultPhaseDeclaration());
-                    selectIndex(count);
-                  }}
-                />
-              </Group>
-
-              {count === 0 ? (
-                <Alert color="gray" variant="light" title="No faction phases">
-                  This faction adds no phases. The game runs the standard setup and turn.
-                </Alert>
-              ) : (
-                <>
-                  <FactionCollectionShelf
-                    label="Ordered faction phases"
-                    sortablePrefix={sortablePrefix}
-                    selectedIndex={safeSelectedIndex}
-                    onSelectedIndexChange={selectIndex}
-                    items={phases.map((declaration, index) => {
-                      const invalid = Object.keys(phaseDeclarationProblems(declaration)).length > 0;
-                      return {
-                        id: `${sortablePrefix}${index}`,
-                        label: phaseRowLabel(declaration, index),
-                        description: invalid
-                          ? 'Needs attention'
-                          : `Before ${phaseTargetLabel(declaration.before)}, priority ${declaration.priority}`,
-                      };
-                    })}
-                    onMove={(from, to) => field.handleChange(arrayMove(phases, from, to))}
-                  />
-                  <PhaseCard form={form} index={safeSelectedIndex} />
-                </>
-              )}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+    <form.Field name="extraPhases" mode="array">
+      {(field) => {
+        const phases = field.state.value ?? [];
+        return (
+          <FactionListSection
+            title="Faction phases"
+            help={`Phases this faction adds to the game.\nBefore a setup step: runs once. Before a turn phase: runs every turn.\nSame step: by priority, then storm order, then this list's order.\nPriority ${DEFAULT_PHASE_PRIORITY} is the default.`}
+            note={
+              phases.length === 0
+                ? {
+                    title: 'No faction phases',
+                    text: 'This faction adds no phases. The game runs the standard setup and turn.',
+                  }
+                : null
+            }
+            noun="faction phase"
+            sortablePrefix="phases-"
+            values={phases}
+            describe={(declaration, index) => ({
+              label: phaseRowLabel(declaration, index),
+              description:
+                Object.keys(phaseDeclarationProblems(declaration)).length > 0
+                  ? 'Needs attention'
+                  : `Before ${phaseTargetLabel(declaration.before)}, priority ${declaration.priority}`,
+            })}
+            selected={selected}
+            onSelect={select}
+            onAdd={() => field.pushValue(defaultPhaseDeclaration())}
+            onRemoveLast={() => field.removeValue(phases.length - 1)}
+            onMove={(from, to) => field.handleChange(arrayMove(phases, from, to))}
+          >
+            {(index) => <PhaseCard form={form} index={index} />}
+          </FactionListSection>
+        );
+      }}
+    </form.Field>
   );
 }

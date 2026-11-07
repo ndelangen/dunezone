@@ -85,6 +85,9 @@ export const COMPONENT_GEOMETRY_PROTOCOL = {
   partSelector: '[data-component-part]',
 } as const;
 
+/** The board geometry part that carries the storm sector lines; it is artwork guidance, not a territory. */
+export const SECTORS_PART_KEY = 'sectors';
+
 /** Named parts only exist when the renderer measures visible content for this publication. */
 export const COMPONENT_PART_LABELS: Record<string, string> = {
   portrait: 'Portrait',

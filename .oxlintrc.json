@@ -62,6 +62,82 @@
     },
     {
       /*
+       * Above the kit, a worded action is `LabeledAction`, `CallToAction` or `IconAction`, never Mantine's raw `Button` (Norbert, 2026-11-05).
+       * The same patterns as the doorway rule above, plus `Button`: a later override replaces the rule's options rather than adding to them.
+       * Stories and their fixtures stay free to stage the raw control.
+       * A file with a real exception (a shaped game control, a split button) disables the rule on that one import and says why; the disable covers the file, so the reason must cover every Button in it.
+       * Selectable list rows use the kit's `SelectableRow`; `ActionIcon` and `Alert` are banned the same way, for `IconAction` and `Notice`.
+       * `Badge`, `Title` and `Loader` follow (2026-11-06): `StatusBadge`, the titled blocks, and `Pending`.
+       */
+      "files": ["src/**"],
+      "excludeFiles": [
+        "src/app/db/**",
+        "src/app/ui/**",
+        "src/**/*.stories.tsx",
+        "src/**/*.stories.fixture.tsx",
+        "src/**/*.test.tsx",
+        "src/**/*.spec.ts",
+        "src/**/*.spec.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Button", "ActionIcon"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["SegmentedControl"],
+                "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
+              },
+              {
+                "group": ["@mantine/core/**/SegmentedControl", "@mantine/core/**/SegmentedControl/**"],
+                "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
+              },
+              {
+                "group": ["markdown-to-jsx", "markdown-to-jsx/**"],
+                "message": "Formatted text is the only rich text. Parse stored prose with `src/shared/formattedText` and render its blocks."
+              },
+              {
+                "group": ["convex", "convex/*", "**/convex/**", "../**/convex/**"],
+                "message": "Only `src/app/db` may import Convex. Re-export the shape you need from the domain module that owns it (`@db/factions`, `@db/groups`) and import it from there."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      /*
        * Hover labels are the kit's Mantine `Tooltip`, never the browser's native one (Norbert, 2026-10-26).
        * The rule reads a `title` attribute on an element, or on a Mantine or router component that passes it through.
        * The same guard covers application source and its Storybook previews.
@@ -82,6 +158,24 @@
       "files": ["src/**/*.stories.tsx"],
       "excludeFiles": ["src/app/ui/**"],
       "rules": { "local/story-owns-its-states": "error" }
+    },
+    {
+      /* A failure is the kit FormError, so every one is titled and announced the same way; the kit itself paints it. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**"],
+      "rules": { "local/form-error": "error" }
+    },
+    {
+      /* A small capitals caption is the kit Eyebrow; stories may still stage the raw text. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx"],
+      "rules": { "local/eyebrow": "error" }
+    },
+    {
+      /* A field is captioned by the kit ControlBlock; stories may still stage the raw input. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx", "src/**/*.test.tsx"],
+      "rules": { "local/control-block-label": "error" }
     },
     {
       /* Tooltip copy stays within 100 characters per line in app source (Norbert, 2026-10-27). */
@@ -200,6 +294,36 @@
             "patterns": [
               {
                 "group": ["@mantine/core"],
+                "importNames": ["Button", "ActionIcon"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
+              },
+              {
+                "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],
                 "message": "SegmentedControl is retired. Use tabs for editor sections and Radio or Select for choices."
               },
@@ -253,6 +377,36 @@
           "error",
           {
             "patterns": [
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Button", "ActionIcon"],
+                "message": "Use LabeledAction (worded), IconAction (glyph) or CallToAction (the page's journey) from src/app/ui/control."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Alert"],
+                "message": "Use Notice (something to know) or FormError (an attempt that failed) from src/app/ui/block."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Badge"],
+                "message": "Use StatusBadge from src/app/ui/content: the caller names a tone, the kit picks the colour."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Avatar"],
+                "message": "Use NameDisc from src/app/ui/content: a person, faction or group as a round picture, or its initial."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Title"],
+                "message": "A heading belongs to the region it names: use Section, Card or PageTitle from the kit, so the level follows the nesting. A heading no region owns (a popover, editorial art) takes a reasoned oxlint-disable-next-line comment."
+              },
+              {
+                "group": ["@mantine/core"],
+                "importNames": ["Loader"],
+                "message": "Use Pending from src/app/ui/content (a spinner with its words), or the pending PageState for a whole page."
+              },
               {
                 "group": ["@mantine/core"],
                 "importNames": ["SegmentedControl"],

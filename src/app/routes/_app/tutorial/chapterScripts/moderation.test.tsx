@@ -78,7 +78,6 @@ test('the first step waits for the Harkonnen player’s information, not another
           <FactionInfoPanel
             error={null}
             vote={null}
-            requests={null}
             trade={null}
             details={undefined}
             onBallot={vi.fn()}

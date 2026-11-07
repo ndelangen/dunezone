@@ -9,7 +9,8 @@ import type { CompassTable } from './compassTable';
  */
 
 export type Command = 'pass' | 'raise' | 'lower' | 'faceUp';
-export type Shortcut = TileSpot | Command;
+/* ? shows or hides the keyboard shortcuts cheat sheet. */
+export type Shortcut = TileSpot | Command | 'help';
 
 export const SHORTCUTS: Readonly<Record<Shortcut, string>> = {
   hand: 'H',
@@ -21,6 +22,7 @@ export const SHORTCUTS: Readonly<Record<Shortcut, string>> = {
   raise: 'I',
   lower: 'O',
   faceUp: 'U',
+  help: '?',
 };
 
 const BY_LETTER = new Map(Object.entries(SHORTCUTS).map(([shortcut, letter]) => [letter, shortcut as Shortcut]));
@@ -87,7 +89,7 @@ function shortcutOf(event: KeyboardEvent): Shortcut | undefined {
 
 /*
  * The letters, heard after the table's own keys: a letter the table took for a piece under the cursor, such as F to
- * flip it or G to stack it, stays the piece's. The table binds its keys in a layout effect, before this effect runs.
+ * flip it, stays the piece's. The table binds its keys in a layout effect, before this effect runs.
  * A letter is claimed only when it did something, so one with nothing to do here still reaches the table.
  */
 export function useShortcutKeys(enabled: boolean, onShortcut: (shortcut: Shortcut) => boolean) {

@@ -5,7 +5,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, TextInput } from '@mantine/core';
 import { COMPONENT_PART_LABELS } from '@shared/asset-publishing/componentGeometry';
 import {
   projectRulebookAssetExplainerAnnotations,
@@ -13,9 +13,12 @@ import {
 } from '@shared/rulebooks/assetExplainerAnnotations';
 import { createRulebookLocalId, rulebookAssetExplainerColorSchema } from '@shared/rulebooks/contents';
 import { projectRulebookSource } from '@shared/rulebooks/projectRenderDocument';
+import { rulebookSourceTakesSectorLines } from '@shared/rulebooks/sources';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { SelectableRow } from '@ui/control/SelectableRow';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { useState } from 'react';
@@ -56,24 +59,30 @@ export function AssetExplainerEdit({
       <RulebookSourceControl
         source={value.source}
         references={references}
-        onChange={(source) => onChange({ ...value, source })}
+        onChange={(source) =>
+          onChange({
+            ...value,
+            source,
+            sectorLines: rulebookSourceTakesSectorLines(source) ? value.sectorLines : undefined,
+          })
+        }
       />
       <ControlBlock
         title="Caption"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Caption"
+            {...fieldProps}
             value={value.caption}
             onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Marker labels"
         description="Automatic numbers follow entry order. Custom labels stay with their entries when reordered."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Marker labels"
+            {...fieldProps}
             value={value.numbering}
             data={[
               { value: 'automatic', label: 'Automatic numbers (1, 2, 3)' },
@@ -85,14 +94,14 @@ export function AssetExplainerEdit({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Automatic colors"
         description="Colors follow entry order. Turn off to choose each marker's color. Your manual choices are kept."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Automatic colors"
+            {...fieldProps}
             checked={value.colorMode === 'automatic'}
             onChange={(event) => {
               const automatic = event.currentTarget.checked;
@@ -110,12 +119,25 @@ export function AssetExplainerEdit({
               onChange({ ...value, colorMode: automatic ? 'automatic' : 'manual', itemsById });
             }}
           />
-        }
+        )}
       />
-      <ControlBlock
+      {rulebookSourceTakesSectorLines(value.source) ? (
+        <ControlBlock
+          title="Sector lines"
+          description="Draws the storm sector lines faintly over the map. Off by default."
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={value.sectorLines ?? false}
+              onChange={(event) => onChange({ ...value, sectorLines: event.currentTarget.checked || undefined })}
+            />
+          )}
+        />
+      ) : null}
+      <ListChapter
         title="Explanations"
-        description="Drag an entry to reorder it. Its target, custom label, manual color and explanation move together."
-        tool={
+        help="Drag an entry to reorder it. Its target, custom label, manual color and explanation move together."
+        actions={
           <ListLengthActions
             addLabel="Add explanation"
             removeLabel="Remove last explanation"
@@ -156,58 +178,53 @@ export function AssetExplainerEdit({
             }}
           />
         }
-        input={
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={({ active, over }) => {
-              if (!over) {
-                return;
-              }
-              const from = value.itemOrder.indexOf(String(active.id));
-              const to = value.itemOrder.indexOf(String(over.id));
-              if (from >= 0 && to >= 0 && from !== to) {
-                setSelectedId(activeId ?? null);
-                onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
-              }
-            }}
-          >
-            <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
-              <Stack component="ul" className={styles.entries} gap="xs">
-                {projection.entries.map((entry, index) => (
-                  <SortableItem as="li" key={entry.id} id={entry.id}>
-                    {({ setActivatorNodeRef, attributes, listeners }) => (
-                      <Box className={styles.row}>
-                        <Button
-                          fullWidth
-                          className={styles.select}
-                          justify="start"
-                          color="selected"
-                          variant={activeId === entry.id ? 'light' : 'subtle'}
-                          aria-pressed={activeId === entry.id}
-                          onClick={() => setSelectedId(entry.id)}
-                        >
-                          {entry.label ? `${entry.label}. ` : ''}
-                          {entry.title}
-                          {entry.status !== 'ready' && entry.status !== 'unselected' ? ' (unavailable)' : ''}
-                        </Button>
-                        <SortableReorderHandle
-                          emphasis="silent"
-                          className={styles.handle}
-                          label={`Reorder explanation ${index + 1}`}
-                          setActivatorNodeRef={setActivatorNodeRef}
-                          attributes={attributes}
-                          listeners={listeners}
-                        />
-                      </Box>
-                    )}
-                  </SortableItem>
-                ))}
-              </Stack>
-            </SortableContext>
-          </DndContext>
-        }
-      />
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={({ active, over }) => {
+            if (!over) {
+              return;
+            }
+            const from = value.itemOrder.indexOf(String(active.id));
+            const to = value.itemOrder.indexOf(String(over.id));
+            if (from >= 0 && to >= 0 && from !== to) {
+              setSelectedId(activeId ?? null);
+              onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
+            }
+          }}
+        >
+          <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" className={styles.entries} gap="xs">
+              {projection.entries.map((entry, index) => (
+                <SortableItem as="li" key={entry.id} id={entry.id}>
+                  {({ setActivatorNodeRef, attributes, listeners }) => (
+                    <Box className={styles.row}>
+                      <SelectableRow
+                        className={styles.select}
+                        selected={activeId === entry.id}
+                        onSelect={() => setSelectedId(entry.id)}
+                      >
+                        {entry.label ? `${entry.label}. ` : ''}
+                        {entry.title}
+                        {entry.status !== 'ready' && entry.status !== 'unselected' ? ' (unavailable)' : ''}
+                      </SelectableRow>
+                      <SortableReorderHandle
+                        emphasis="silent"
+                        className={styles.handle}
+                        label={`Reorder explanation ${index + 1}`}
+                        setActivatorNodeRef={setActivatorNodeRef}
+                        attributes={attributes}
+                        listeners={listeners}
+                      />
+                    </Box>
+                  )}
+                </SortableItem>
+              ))}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+      </ListChapter>
       {item && selected ? (
         <Stack gap="md">
           <ControlBlock
@@ -219,22 +236,22 @@ export function AssetExplainerEdit({
                     <ControlBlock
                       title="Marker label"
                       description="Number, letter or symbol."
-                      input={
+                      input={(fieldProps) => (
                         <TextInput
-                          aria-label="Marker label"
+                          {...fieldProps}
                           maxLength={32}
                           value={item.label}
                           onChange={(event) => updateItem({ label: event.currentTarget.value })}
                         />
-                      }
+                      )}
                     />
                   ) : null}
                   <ControlBlock
                     title="Target type"
                     description="Choose a named part or set a position on this source."
-                    input={
+                    input={(fieldProps) => (
                       <Select
-                        aria-label="Target type"
+                        {...fieldProps}
                         value={item.target.kind}
                         data={[
                           { value: 'named', label: 'Named part' },
@@ -252,16 +269,16 @@ export function AssetExplainerEdit({
                           }
                         }}
                       />
-                    }
+                    )}
                   />
                 </Group>
                 {value.colorMode === 'manual' ? (
                   <ControlBlock
                     title="Marker color"
                     description="Used for the marker, connector, highlight and explanation."
-                    input={
+                    input={(fieldProps) => (
                       <ColorInput
-                        aria-label="Marker color"
+                        {...fieldProps}
                         format="hex"
                         swatches={[...RULEBOOK_ANNOTATION_COLORS]}
                         value={item.color ?? selected.color}
@@ -272,15 +289,15 @@ export function AssetExplainerEdit({
                             : undefined
                         }
                       />
-                    }
+                    )}
                   />
                 ) : null}
                 {item.target.kind === 'named' ? (
                   <ControlBlock
                     title={value.source?.kind === 'board' ? 'Territory or region' : 'Part of the component'}
-                    input={
+                    input={(fieldProps) => (
                       <Select
-                        aria-label={value.source?.kind === 'board' ? 'Territory or region' : 'Part of the component'}
+                        {...fieldProps}
                         searchable
                         clearable
                         placeholder={
@@ -288,21 +305,21 @@ export function AssetExplainerEdit({
                             ? `${selected.title} (previous source)`
                             : 'Choose a part'
                         }
-                        value={selected.status === 'source-replaced' ? null : item.target.key || null}
+                        value={selected.status === 'source-replaced' ? null : namedKey || null}
                         data={[
                           ...parts.map((part) => ({
                             value: part.key,
                             label: part.label ?? COMPONENT_PART_LABELS[part.key] ?? part.key,
                           })),
-                          ...(item.target.key && !parts.some((part) => part.key === namedKey)
-                            ? [{ value: item.target.key, label: `${selected.title} (unavailable)` }]
+                          ...(namedKey && !parts.some((part) => part.key === namedKey)
+                            ? [{ value: namedKey, label: `${selected.title} (unavailable)` }]
                             : []),
                         ]}
                         onChange={(key) =>
                           updateItem({ target: { kind: 'named', key: key ?? '', source: value.source } })
                         }
                       />
-                    }
+                    )}
                   />
                 ) : (
                   <Stack gap="md">
@@ -363,14 +380,14 @@ export function AssetExplainerEdit({
                 )}
                 <ControlBlock
                   title="Explanation"
-                  input={
+                  input={(fieldProps) => (
                     <FormattedTextInput
-                      aria-label="Explanation"
+                      {...fieldProps}
                       minRows={3}
                       value={item.text}
                       onChange={(text) => updateItem({ text })}
                     />
-                  }
+                  )}
                 />
               </Stack>
             }

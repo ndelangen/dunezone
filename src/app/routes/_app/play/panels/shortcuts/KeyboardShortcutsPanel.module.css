@@ -1,0 +1,169 @@
+/* The keyboard shortcuts panel: right now in a row, the whole keyboard, then every key by group. */
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  container: shortcuts / inline-size;
+}
+
+/* The row of what matters now: one line of tiles that scrolls sideways, never wraps. */
+.row {
+  display: flex;
+  gap: var(--space-xs);
+  margin: var(--space-xs) 0 0;
+  padding: 0 0 var(--space-xs);
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.tile {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: calc(var(--space-xs) * 0.3);
+  width: 7.5rem;
+  padding: var(--space-xs) calc(var(--space-xs) * 1.2);
+  border: 1px solid var(--group-edge);
+  border-radius: 0.5rem;
+  background: var(--group-fill);
+  scroll-snap-align: start;
+  animation: pop 220ms ease-out backwards;
+}
+
+/* A key of this moment wears the same lit fill and full edge as its key on the keyboard below. */
+.tile[data-now] {
+  border-color: var(--group);
+  background: var(--group-fill-now);
+}
+
+.big {
+  font-size: 1.3rem;
+}
+
+.word {
+  color: var(--color-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.action {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+/* Between the keys for this moment and the panel keys that hold at every moment. */
+.divider {
+  flex: none;
+  width: 1px;
+  margin: calc(var(--space-xs) * 0.6) calc(var(--space-xs) * 0.3);
+  background: color-mix(in srgb, var(--color-text) 18%, transparent);
+}
+
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.chip {
+  padding: calc(var(--space-xs) * 0.2) calc(var(--space-xs) * 1.1);
+  border: 1px solid var(--group-edge);
+  border-radius: 999px;
+  background: var(--group-fill);
+  color: var(--group);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Each group of the list carries its colour down its left edge. */
+.group {
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--group);
+}
+
+.list {
+  display: grid;
+  gap: calc(var(--space-xs) * 0.6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+html[data-motion="reduce"] .tile {
+  animation: none;
+}
+
+/* The row's ends: where tiles run on past the edge, the edge fades into the panel and offers an arrow to page on. */
+.rowFrame {
+  position: relative;
+}
+
+.edgeBefore,
+.edgeAfter {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  width: 3.5rem;
+  pointer-events: none;
+  animation: edge-in 200ms ease-out;
+}
+
+.edgeBefore {
+  left: 0;
+  justify-content: flex-start;
+  background: linear-gradient(to left, transparent, var(--glass, var(--color-ground)) 70%);
+}
+
+.edgeAfter {
+  right: 0;
+  justify-content: flex-end;
+  background: linear-gradient(to right, transparent, var(--glass, var(--color-ground)) 70%);
+}
+
+.edgeBefore > *,
+.edgeAfter > * {
+  pointer-events: auto;
+}
+
+/* The arrow nudges once toward the hidden tiles when the row first shows it. */
+.edgeAfter > * {
+  animation: nudge 900ms ease-in-out 400ms 2;
+}
+
+@keyframes edge-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes nudge {
+  50% {
+    translate: 0.25rem 0;
+  }
+}
+
+html[data-motion="reduce"] .edgeBefore,
+html[data-motion="reduce"] .edgeAfter,
+html[data-motion="reduce"] .edgeAfter > * {
+  animation: none;
+}

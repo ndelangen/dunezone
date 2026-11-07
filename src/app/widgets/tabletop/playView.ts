@@ -1,10 +1,17 @@
 import type { Vector3Tuple } from '@shared/play/model';
 import type { TablePhaseId } from '@shared/play/phases';
-import { BOTTOM_SHELF_POSITION, BOTTOM_SHELF_SIZE, FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
+import { FURNITURE_SURFACE_Y } from '@shared/play/tableFurnitureLayout';
+import {
+  BOTTOM_SHELF_BOUNDS,
+  BOTTOM_SHELF_EDGE,
+  isOnBottomShelf,
+  isOnBottomShelfOrInFront,
+  nearestBottomShelfEdge,
+} from '@shared/play/tanksShelf';
 import { PerspectiveCamera, Vector3 } from 'three';
 
 import { mapViewFramingPoints } from './tablePlateGeometry';
-import { wheelPixels } from './wheelPixels';
+import { wheelPixels, wheelZoomFactor } from './wheelPixels';
 
 /** The views around the camera dial's ring: the board at its approved angle, the two bays and the bottom shelf. */
 export const TABLE_VIEW_OPTIONS = [
@@ -51,11 +58,14 @@ type TableViewState = Readonly<{
   pendingView: PendingView | null;
   /* The active phase the camera last answered, so only a change of phase moves it. */
   phase: TablePhaseId | null;
+  /* The viewer's "Camera follows phase" choice in the game menu: off, a new phase leaves the view the player set up. */
+  follow: boolean;
 }>;
 
 type TableViewEvent =
   | Readonly<{ type: 'view.selected'; view: TableView }>
   | Readonly<{ type: 'phase.changed'; phase: TablePhaseId | null }>
+  | Readonly<{ type: 'follow.changed'; follow: boolean }>
   | Readonly<{ type: 'interaction.changed'; active: boolean }>
   | Readonly<{ type: 'scene.ready' }>;
 
@@ -112,16 +122,15 @@ const TABLE_VIEW_TARGETS: Record<TableView, Vector3Tuple> = {
   top: [0, 0.1, MAP_VIEW_TARGET_Z],
   left: [-SIDE_VIEW_TARGET_X, 0.1, 0],
   right: [SIDE_VIEW_TARGET_X, 0.1, 0],
-  bottom: [0, 0.1, BOTTOM_SHELF_POSITION[2] - 1.3],
+  bottom: [0, 0.1, (BOTTOM_SHELF_BOUNDS.minZ + BOTTOM_SHELF_BOUNDS.maxZ) / 2 - 1.3],
 };
 
-const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = [-1, 1].flatMap((x) =>
-  [-1, 1].map((z) => [
-    BOTTOM_SHELF_POSITION[0] + (x * BOTTOM_SHELF_SIZE[0]) / 2,
-    FURNITURE_SURFACE_Y,
-    BOTTOM_SHELF_POSITION[2] + (z * BOTTOM_SHELF_SIZE[2]) / 2,
-  ])
-);
+/* The bottom shelf's own edge: the Tanks pad's curve at its widest, and the shared item slots at its far end. */
+const BOTTOM_VIEW_FRAMING_POINTS: readonly Vector3Tuple[] = BOTTOM_SHELF_EDGE.points.map(([x, z]): Vector3Tuple => [
+  x,
+  FURNITURE_SURFACE_Y,
+  z,
+]);
 
 /* The camera's direction from its target and its screen axes at a tilt: 0 is the approved angle, 1 is near top-down. */
 type CameraBasis = Readonly<{ offset: Vector3Tuple; forward: Vector3Tuple; up: Vector3Tuple }>;
@@ -489,38 +498,43 @@ const CAMERA_PAN_EDGE_MARGIN = 1.2;
 /* Scroll distance, in pixels, that brings the camera e times closer. */
 const CAMERA_ZOOM_SCROLL_PX = 420;
 /*
- * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells,
- * and the bottom shelf with the Tanks and shared items. Each rectangle is [minX, maxX, minZ, maxZ] on the table.
+ * Where a close look may centre, so it never drifts off the table: the round table, the band across it that holds the side card wells
+ * ([minX, maxX, minZ, maxZ] on the table), and the bottom shelf with the Tanks and shared items, which follows its own edge.
  */
 const CAMERA_ZOOM_TARGET_RADIUS = 5.6;
-const CAMERA_ZOOM_TARGET_RECTANGLES = [
-  [-6.9, 6.9, -2, 2],
-  [-BOTTOM_SHELF_SIZE[0] / 2, BOTTOM_SHELF_SIZE[0] / 2, 0, BOTTOM_SHELF_POSITION[2] + BOTTOM_SHELF_SIZE[2] / 2],
-] as const;
+const CAMERA_ZOOM_TARGET_BAND = [-6.9, 6.9, -2, 2] as const;
 
 /** How far inside the reachable area a table point lies; negative outside it. */
 function zoomTargetDepth(x: number, z: number): number {
-  let depth = CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z);
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    depth = Math.max(depth, Math.min(x - minX, maxX - x, z - minZ, maxZ - z));
-  }
-  return depth;
+  const [minX, maxX, minZ, maxZ] = CAMERA_ZOOM_TARGET_BAND;
+  const edge = nearestBottomShelfEdge(x, z).point;
+  const toEdge = Math.hypot(edge[0] - x, edge[1] - z);
+  return Math.max(
+    CAMERA_ZOOM_TARGET_RADIUS - Math.hypot(x, z),
+    Math.min(x - minX, maxX - x, z - minZ, maxZ - z),
+    isOnBottomShelfOrInFront(x, z) ? toEdge : -toEdge
+  );
 }
 
 /** The nearest point of the reachable area. */
 function nearestZoomTarget(x: number, z: number): [number, number] {
+  if (isOnBottomShelf(x, z)) {
+    return [x, z];
+  }
   const distance = Math.hypot(x, z);
-  let best: [number, number] =
+  const [minX, maxX, minZ, maxZ] = CAMERA_ZOOM_TARGET_BAND;
+  const candidates: [number, number][] = [
     distance <= CAMERA_ZOOM_TARGET_RADIUS
       ? [x, z]
-      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS];
-  for (const [minX, maxX, minZ, maxZ] of CAMERA_ZOOM_TARGET_RECTANGLES) {
-    const candidate: [number, number] = [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))];
-    if (Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z)) {
-      best = candidate;
-    }
-  }
-  return best;
+      : [(x / distance) * CAMERA_ZOOM_TARGET_RADIUS, (z / distance) * CAMERA_ZOOM_TARGET_RADIUS],
+    [Math.min(maxX, Math.max(minX, x)), Math.min(maxZ, Math.max(minZ, z))],
+    [...nearestBottomShelfEdge(x, z).point],
+  ];
+  return candidates.reduce(
+    (best, candidate) =>
+      Math.hypot(candidate[0] - x, candidate[1] - z) < Math.hypot(best[0] - x, best[1] - z) ? candidate : best,
+    candidates[0]!
+  );
 }
 
 /** The tilt of a close look: none at the view's distance, turning toward top-down as the camera closes in. */
@@ -551,7 +565,8 @@ function cameraZoomAfterWheel(
   deltaY: number,
   deltaMode = 0
 ): CameraZoom {
-  const step = Math.exp(-wheelPixels(deltaY, deltaMode) / CAMERA_ZOOM_SCROLL_PX);
+  /* The scale is the camera's distance, so it shrinks as the wheel zooms in. */
+  const step = 1 / wheelZoomFactor(wheelPixels(deltaY, deltaMode), CAMERA_ZOOM_SCROLL_PX);
   const scale = Math.max(CAMERA_ZOOM_MINIMUM_SCALE, Math.min(1, zoom.scale * step));
   if (scale >= 1) {
     return NO_CAMERA_ZOOM;
@@ -680,9 +695,6 @@ export function cameraZoomAfterPanMotion(
   velocity: readonly [number, number],
   seconds: number
 ): CameraZoom {
-  if (zoom.scale >= 1) {
-    return zoom;
-  }
   const step = Math.min(Math.max(seconds, 0), 0.1);
   let [moveX, moveZ] = [velocity[0] * step, velocity[1] * step];
   const target = zoomedCameraPose(basePose, zoom).target;
@@ -756,7 +768,7 @@ export function cameraFogRange(position: Vector3Tuple): CameraFogRange {
 }
 
 /** The view state for a table opened during `phase`: the camera starts on the map, and the first move waits for the next phase. */
-export function createTableViewState(phase: TablePhaseId | null = null): TableViewState {
+export function createTableViewState(phase: TablePhaseId | null = null, follow = true): TableViewState {
   return {
     activeView: 'map',
     viewUnderTop: null,
@@ -765,6 +777,7 @@ export function createTableViewState(phase: TablePhaseId | null = null): TableVi
     sceneReady: false,
     pendingView: null,
     phase,
+    follow,
   };
 }
 
@@ -796,13 +809,26 @@ function chosenView(state: TableViewState, view: TableView): TableView {
   return state.activeView === 'top' ? (state.viewUnderTop ?? 'map') : state.activeView;
 }
 
+/* A phase view still waiting on an interaction, dropped; a player's choice still applies. */
+function withoutPhasePending(state: TableViewState): TableViewState {
+  return state.pendingView?.source === 'phase' ? { ...state, pendingView: null } : state;
+}
+
+function changeFollow(state: TableViewState, follow: boolean): TableViewState {
+  if (follow === state.follow) {
+    return state;
+  }
+  /* Turning following off also drops a phase view still waiting on an interaction; turning it on waits for the next phase. */
+  return follow ? { ...state, follow } : withoutPhasePending({ ...state, follow });
+}
+
 function changePhase(state: TableViewState, phase: TablePhaseId | null): TableViewState {
   if (phase === state.phase) {
     return state;
   }
-  if (phase === null) {
-    /* A phase view still waiting on an interaction is obsolete once no phase is active; a player's choice still applies. */
-    return { ...state, phase, pendingView: state.pendingView?.source === 'phase' ? null : state.pendingView };
+  if (phase === null || !state.follow) {
+    /* A phase view still waiting on an interaction is obsolete once no phase is active or the camera no longer follows phases; a player's choice still applies. */
+    return withoutPhasePending({ ...state, phase });
   }
   return requestView({ ...state, phase }, { view: PHASE_VIEWS[phase], source: 'phase' });
 }
@@ -824,6 +850,8 @@ export function reduceTableView(state: TableViewState, event: TableViewEvent): T
       return requestView(state, { view: chosenView(state, event.view), source: 'player' });
     case 'phase.changed':
       return changePhase(state, event.phase);
+    case 'follow.changed':
+      return changeFollow(state, event.follow);
     case 'interaction.changed':
       return changeInteraction(state, event.active);
     case 'scene.ready':

@@ -1,9 +1,11 @@
-import { Alert, Stack, TextInput } from '@mantine/core';
+import { Stack, TextInput } from '@mantine/core';
 import { derive } from '@shared/boards/geometry';
 import { BoardAsset } from '@shared/boards/schema';
 import type { BoardAssetData } from '@shared/boards/schema';
 import { useNavigate } from '@tanstack/react-router';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { ActionError } from '@ui/block/ActionError';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Undo2, Redo2 } from 'lucide-react';
@@ -20,9 +22,8 @@ import { boardLoadSource } from '@app/widgets/board-editor/boardLoadSource';
 import { boardEditorReducer, initialBoardEditorState } from '@app/widgets/board-editor/state';
 import type { BoardEditorState, BoardEditorEvent } from '@app/widgets/board-editor/state';
 
-import { useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
-import { CardEditChecks } from './cardEditPage';
-import type { CardEditSessionProps } from './cardEditPage';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions } from '../../../assetEditorStates';
+import type { AssetEditSessionProps } from '../../../assetEditorStates';
 
 type Draft = Omit<BoardAssetData, 'name'> & { name: string };
 type State = { draft: Draft; baseline: Draft; editor: BoardEditorState };
@@ -56,8 +57,9 @@ function reduce(state: State, event: Event): State {
 export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: AssetPublicPage }) {
   const query = useAssetPage('board', slug, { initialData: loaderData });
   return (
-    <CardEditChecks
+    <AssetEditChecks
       type="board"
+      noun="board"
       schemaName="board"
       schema={BoardAsset}
       data={query.data}
@@ -69,7 +71,7 @@ export function BoardEditPage({ slug, loaderData }: { slug: string; loaderData: 
     />
   );
 }
-function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<BoardAssetData>) {
+function BoardSession({ asset, initialDraft, access }: AssetEditSessionProps<BoardAssetData>) {
   const authoringAccountKey = useAuthoringAccountKey();
   const navigate = useNavigate();
   const saving = useUpdateAsset();
@@ -173,29 +175,30 @@ function BoardSession({ asset, initialDraft, access }: CardEditSessionProps<Boar
           statuses={[group.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete board" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content width="viewport">
         <Stack gap="sm">
-          {saving.error && (
-            <Alert color="red" role="alert">
-              {saving.error.message}
-            </Alert>
-          )}
-          {deletion.error && <Alert color="red">{deletion.error.message}</Alert>}
+          <ActionError subject="Board" verb="save" error={saving.error} />
+          <ActionError subject="Board" verb="delete" error={deletion.error} />
           {group.error}
           <BoardEditor
             state={state.editor}
             dispatch={(event) => dispatch({ kind: 'editor', event })}
             identity={
-              <TextInput
-                label="Board name"
-                disabled={!access.viewerAccess.capabilities.rename}
-                value={state.draft.name}
-                onChange={(e) => dispatch({ kind: 'name', name: e.currentTarget.value })}
+              <ControlBlock
+                title="Board name"
+                input={(fieldProps) => (
+                  <TextInput
+                    {...fieldProps}
+                    disabled={!access.viewerAccess.capabilities.rename}
+                    value={state.draft.name}
+                    onChange={(e) => dispatch({ kind: 'name', name: e.currentTarget.value })}
+                  />
+                )}
               />
             }
           />

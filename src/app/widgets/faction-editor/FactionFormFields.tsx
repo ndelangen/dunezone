@@ -1,9 +1,10 @@
-import { Badge, Box, Image, Stack, Text } from '@mantine/core';
+import { Box, Image, Stack, Text } from '@mantine/core';
 import { recalculateFactionComplexity } from '@shared/factions/complexity';
 import { FactionCard } from '@ui/block/FactionCard';
 import { effectiveComplexity } from '@ui/content/complexity';
 import { ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
@@ -197,7 +198,7 @@ function ArtifactProof({
               <LeaderToken
                 background={faction.background}
                 image={faction.factionLeader.image}
-                logo={faction.logo}
+                emblem={faction.emblem}
                 name={faction.factionLeader.name}
                 strength={undefined}
               />
@@ -211,7 +212,7 @@ function ArtifactProof({
                 <LeaderToken
                   background={faction.background}
                   image={selectedLeader.image}
-                  logo={faction.logo}
+                  emblem={faction.emblem}
                   name={selectedLeader.name}
                   strength={selectedLeader.strength}
                 />
@@ -224,7 +225,7 @@ function ArtifactProof({
                         <LeaderToken
                           background={faction.background}
                           image={leader.image}
-                          logo={faction.logo}
+                          emblem={faction.emblem}
                           name={leader.name}
                           strength={leader.strength}
                         />
@@ -248,7 +249,7 @@ function ArtifactProof({
               <AllianceCard
                 background={faction.background}
                 decals={faction.decals}
-                logo={faction.logo}
+                emblem={faction.emblem}
                 text={faction.rules.alliance.text}
                 title={faction.name}
                 troop={selectedTroop.image}
@@ -322,14 +323,14 @@ function ArtifactProof({
             /* Paper, not a pane: this is an excerpt of the printed faction sheet, and it renders
                inside the workbench surface below, and surfaces never nest. */
             <Box className={styles.rulesProof}>
-              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
+              <Text className={styles.proofHeading} ff="serif" fw={800}>
                 At start
               </Text>
               <Text ff="serif" size="sm">
                 Starting spice: {faction.rules.spiceCount} ·{' '}
                 <InlineFormattedTextSource source={faction.rules.startText} />
               </Text>
-              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase" mt="md">
+              <Text className={styles.proofHeading} ff="serif" fw={800} mt="md">
                 Revival
               </Text>
               <Text ff="serif" size="sm">
@@ -341,7 +342,7 @@ function ArtifactProof({
           title = 'Advantage excerpt';
           artifact = selectedAdvantage ? (
             <Box className={styles.rulesProof}>
-              <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
+              <Text className={styles.proofHeading} ff="serif" fw={800}>
                 {selectedAdvantage.title || 'Faction advantage'}
               </Text>
               <FormattedTextSource source={selectedAdvantage.text} size="sm" />
@@ -370,7 +371,7 @@ function ArtifactProof({
                   {selectedPhase.symbol ? (
                     <Image src={resolve(selectedPhase.symbol)} alt="" w={48} h={48} fit="contain" mb="sm" />
                   ) : null}
-                  <Text className={styles.proofHeading} ff="serif" fw={800} tt="uppercase">
+                  <Text className={styles.proofHeading} ff="serif" fw={800}>
                     {phaseRowLabel(selectedPhase, phaseIndex)}
                   </Text>
                   <Text ff="serif" size="sm" style={{ whiteSpace: 'pre-wrap' }}>
@@ -413,12 +414,12 @@ function ArtifactProof({
             {activeChapter === 'identity' ? (
               <>
                 <Box className={styles.tokenProof} data-faction-token-proof>
-                  <Token background={faction.background} logo={faction.logo} />
+                  <Token background={faction.background} emblem={faction.emblem} />
                 </Box>
                 <Box className={styles.identityProof}>
                   {artifact}
                   <Box className={styles.sheetColorReference} style={{ backgroundColor: faction.themeColor }}>
-                    <Text size="xs" fw={800} tt="uppercase">
+                    <Text size="xs" fw={800} className={styles.sheetCaps}>
                       Sheet color
                     </Text>
                     <Text size="xs" ff="monospace">
@@ -574,13 +575,13 @@ export const FactionFormFields = forwardRef<
         <form.Subscribe selector={(state) => refusedRowCount(chapter.id, state.values)}>
           {(refused) =>
             refused > 0 ? (
-              <Badge circle size="sm" color="red">
+              <StatusBadge circle tone="negative">
                 {refused}
-              </Badge>
+              </StatusBadge>
             ) : chapterWarnings.length > 0 ? (
-              <Badge circle size="sm" color="yellow">
+              <StatusBadge circle tone="pending">
                 {chapterWarnings.length}
-              </Badge>
+              </StatusBadge>
             ) : null
           }
         </form.Subscribe>

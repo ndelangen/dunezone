@@ -8,6 +8,7 @@ import { RulebookBlockCanvas } from '@game/rulebook/RulebookBlockRenderer';
 import { RulebookBoardMarkupEditing } from '@game/rulebook/RulebookBoardMarkup';
 
 import { rulebookMarkupEditor, RulebookMarkupUiProvider, useRulebookMarkupUiState } from './rulebookBoardMarkup';
+import { references as savedBoardReferences } from './rulebookBoardSceneMarkup.stories.fixture';
 import {
   BattleComparisonEdit,
   BoardSceneEdit,
@@ -16,15 +17,13 @@ import {
 } from './rulebookSceneBlockEditors';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
 
-const emptyReferences: RulebookEditorReferences = { assetsById: {}, factionsById: {} };
-
 const side = { role: '', revealed: false, dial: 0, spice: 0, cards: [], troops: [] };
 const example = { step: '', title: 'One battle plan', caption: '', left: side, right: side };
 const initialBlocks = {
   board: {
     id: 'BRDD',
     kind: 'board-scene',
-    boardId: 'arrakis',
+    boardId: 'saved-arrakis',
     caption: 'Place the factions on the board.',
     players: [],
     troops: [],
@@ -57,7 +56,7 @@ const initialBlocks = {
 export function SceneEditorStory({
   kind,
   initial,
-  references = emptyReferences,
+  references = savedBoardReferences,
 }: {
   kind: keyof typeof initialBlocks;
   /** A block to start from instead of the kind's empty one. */

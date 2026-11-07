@@ -1,4 +1,5 @@
-import { Button, Loader, Stack, Text } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The tutorial waits for this spinner by its label, so it stays a labelled Loader. */
+import { Loader, Stack, Text } from '@mantine/core';
 import { recallConversation } from '@shared/play/conversations';
 import {
   HIDDEN_ZONE_DEPTH,
@@ -9,6 +10,8 @@ import {
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RotateCcw } from 'lucide-react';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '@db/tabletop/TableSession';
@@ -18,6 +21,8 @@ import { PieceArtwork } from '@app/widgets/tabletop/PieceArtwork';
 import type { CompassTable } from '../compass/compassTable';
 import { ConnectedConversationPanel } from '../panels/chat/useConversationPanel';
 import { HandPanel } from '../panels/hand/HandPanel';
+import { PANEL_WINDOWS } from '../panels/panelWindows';
+import { KeyboardShortcutsPanel } from '../panels/shortcuts/KeyboardShortcutsPanel';
 import { SpiceReservePanel } from '../panels/spice/SpiceReservePanel';
 import { CheckpointPicker } from './checkpoints/CheckpointPicker';
 import styles from './MentatRecall.module.css';
@@ -71,9 +76,9 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
                 <Text size="sm" role="alert">
                   {failure}
                 </Text>
-                <Button size="xs" onClick={client.retryRecall}>
+                <LabeledAction size="xs" icon={<RotateCcw size={14} />} onClick={client.retryRecall}>
                   Retry checkpoint
-                </Button>
+                </LabeledAction>
               </Stack>
             ) : (
               loading && (
@@ -123,6 +128,8 @@ export function mentatRecall(client: TableSession, table: TableProjection): Comp
             },
           ]
         : []),
+      /* The keys still steer the camera and ping during a recall, so the shortcuts window stays within reach; nothing is held or bid on in a recall. */
+      { ...PANEL_WINDOWS.shortcuts, content: <KeyboardShortcutsPanel /> },
     ],
   };
 }

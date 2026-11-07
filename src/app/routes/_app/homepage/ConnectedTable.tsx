@@ -16,6 +16,7 @@ import {
 } from 'react';
 import type { ReactNode, RefObject } from 'react';
 
+import { useArrakisBoard } from '@db/arrakis';
 import { requestHomepageTicket } from '@db/homepage';
 import type { GameRuntime } from '@db/tabletop/runtime';
 import { TableSession } from '@db/tabletop/TableSession';
@@ -110,6 +111,7 @@ export default function ConnectedTable({
     () => session.getTable()?.state.stormSectorIndex,
     () => undefined
   );
+  const arrakis = useArrakisBoard();
   const stage = snapshot?.stage;
   const seatCount = snapshot?.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT;
   const mapVisible = setupMapVisible(snapshot?.setup);
@@ -147,7 +149,8 @@ export default function ConnectedTable({
             <PreviewCameraCrop viewport={viewport} />
             <MapPreviewCamera mapFramingPoints={mapFramingPoints} />
             <TabletopBoard
-              board={snapshot?.board}
+              /* The saved Arrakis is drawn only while the table connects; then the table's own board, so what is drawn is what pieces land on. */
+              board={snapshot ? snapshot.board : arrakis?.capture}
               stage={stage}
               mapVisible={mapVisible}
               seatCount={seatCount}

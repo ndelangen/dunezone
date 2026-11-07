@@ -211,7 +211,7 @@ fullscreen frame in `dune-play.css`, and the spacing tokens in `tokens.css`, all
 
 An unnamed `@container` asks the nearest container. On a document page that is the frame `AppHeader`
 declares around the band and the page, named `page-frame`, as wide as the page between the shell's
-gutters, or a Layout's container when one sits between, as `TriptychLayout`'s does on the home page.
+gutters, or a Layout's container when one sits between, as `ColumnsWithRailLayout`'s does.
 A page composition needs no container of its own. A component that lays out its own children by
 width names the container it asks, so a container inserted above it cannot move it. When that layout
 is the page's rhythm it asks `page-frame`, as `AuthoringToolbar`'s review action does, because the
@@ -220,8 +220,8 @@ room: the faction editor's workbench asks `faction-review-stage`, the review's s
 editor, and its sections ask `ConnectedTabs`' `connected-tabs-panel`. A story has no page, so a
 component that asks `page-frame` shows its widest layout there.
 
-A faction list is sized by its column count, not by its card width. `FactionList` declares
-`faction-list` and takes its count from its own width: two columns below 30rem, three from 30rem,
+A faction list is sized by its column count, not by its card width. `TileGrid` with the `card`
+size declares `tile-grid` and takes its count from its own width: two columns below 30rem, three from 30rem,
 and from 48rem as many as fit at 11.5rem or wider, which keeps a card around 200px. A card fills its
 column and sets no width, and below the same 11.5rem of its own width it takes the compact caption.
 
@@ -249,7 +249,7 @@ conditions written in TypeScript and container queries are checked in review. Ca
 Margin scattered through leaf components makes layout inconsistent and buries pages in nested
 `<Stack><Group><Grid>`. Spacing belongs to a Layout: a custom component built on Mantine primitives
 that arranges two or more **named compound slots**, as in
-`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…</TriptychLayout>`, so composition
+`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout>`, so composition
 reads top-down and large content never rides inside a prop. A leaf never carries page margin (only
 for unavoidable third-party constraints), one slot is a passthrough rather than a Layout, and Layouts
 respond by **container query, not media query**, so they lay out by the room they are given.
@@ -370,7 +370,7 @@ A forward-moving primary uses the shared bright yellow with dark text. The homep
 uses the `artwork` variant of `cta`, near-black with cream text against the sandy header.
 The `brand` family retains pale gold for emphasis and selected Play choices. Positive statuses
 remain olive, destructive actions are `negative`, and auxiliary actions are `neutral`.
-`CallToAction` and `SubmitAction` own primary emphasis; callers supply their words and intent.
+`CallToAction` and a strong `IconAction` or `LabeledAction` own primary emphasis; callers supply their words and intent.
 
 The rule's subject is app UI. Asset components are not app components and live under their own
 rules, and `src/game`'s renderers are outside it entirely: a renderer draws an artifact, not an
@@ -396,12 +396,12 @@ The language, each word earned by usage the survey found rather than invented:
 | `inverse` | legible on dark artwork | `Eyebrow` |
 | `silent` | no chrome at all, even hovered | `IconAction` |
 | `quiet` | blends in until hovered | `IconAction` |
-| `standard` | a tinted tile; the everyday weight | `IconAction` |
-| `strong` | fully filled; the action a row leads with | `IconAction` |
+| `standard` | a tinted tile; the everyday weight | `IconAction`, `LabeledAction` |
+| `strong` | fully filled; the action a row leads with | `IconAction`, `LabeledAction` |
 
 The words marked `any` are context-free and belong to any component that needs them. The rest are
 scoped to the component that earned them, and a component adding a word takes it from this table
-before inventing one. The `IconAction` four are a loudness axis rather than a meaning: they rename
+before inventing one. The `IconAction` four (its worded sibling `LabeledAction` takes only the framed two, since an unframed worded button is a text-only button) are a loudness axis rather than a meaning: they rename
 the four Mantine variants the code already used, added when that vendor enum stopped crossing the
 component's boundary. At the token layer, `inverse` also names caution's legible-on-dark-artwork
 value (`--color-caution-inverse`), the same meaning the Eyebrow row gives the word. Default actions,
@@ -411,7 +411,8 @@ The canonical `cta` role owns the spice-amber action accent.
 Destructive actions use red. Game artwork and authored asset colours remain renderer-owned.
 Selected fills, text and hover states resolve through the `--button-toggle-*` tokens in both schemes.
 Selection controls use `color="selected"`; dropdown options receive the same treatment through
-the theme. Selection borders use `--selection-border`, a neutral ink that contrasts with both
+the theme. A worded toggle is `LabeledAction pressed` and a glyph one `IconAction pressed`, which
+wear that selected tile without naming a colour. Selection borders use `--selection-border`, a neutral ink that contrasts with both
 schemes, rather than a fixed palette shade. Focus uses `--color-focus-ring` for a visible boundary
 in each scheme.
 
@@ -426,9 +427,15 @@ control with no explicit semantics makes the reader guess. Keep exactly one clea
 toolbar. Use an icon-only button only for a common, recognizable action with an `aria-label`; if the
 icon would be ambiguous, label it.
 
-*Convention. The kit carries it: `IconAction` for icon-only actions and `CallToAction` for the
-forward-moving primary. Which variant each takes is the section above; this one is about how many
-and how labelled. (`StatusBadge`'s scale is for state, not actions.)*
+*Convention. The kit carries it: `IconAction` for icon-only actions, `LabeledAction` for an action
+with room for its words (always beside a glyph, never text alone), and `CallToAction` for the
+forward-moving primary. Outside `src/app/ui` every button is one of these three rather than a raw
+Mantine `Button`, enforced by `no-restricted-imports` in `.oxlintrc.json` for `src/**` outside
+`src/app/ui`, stories and tests. A real exception (a shaped part of the game board, a split button,
+a list row until the kit has a selectable row) disables the rule on that file's one `Button`
+import with a `--` reason; the disable covers the whole file, so the reason must cover every
+`Button` in it. Which variant each takes is the section above; this one is about how many and how
+labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
 ### A bar states its statuses as glyphs and stays one line
 
@@ -439,10 +446,35 @@ keyboard and touch. Where even the glyphs do not fit, they fold into one glyph w
 them all.
 
 *Convention. The kit carries it: [`StatusMark`](../../src/app/ui/content/StatusMark.tsx) states one
-status, and `StatusMarkList` lists several inside the tooltip of the mark that stands in for them.
-`AuthoringToolbar` folds its marks, and turns Save into an icon, below 32rem of its own width, the
-room its widest caller needs. It also lists its statuses in a live region, because a screen reader
-does not announce a glyph whose name changes.*
+status, and [`StatusInfo`](../../src/app/ui/control/StatusInfo.tsx) gathers a toolbar's statuses
+behind one glyph whose popover lists them all.*
+
+### A failure is a FormError
+
+When an attempt did not happen, the page says so with
+[`FormError`](../../src/app/ui/block/FormError.tsx): a title naming what failed, the reason under it,
+and a live region so a screen reader hears it the moment it appears. A failure the reader settles on
+the spot, such as a settings conflict, carries its choices in FormError's `action`, under the words. A
+hand-made red Alert is the failure drawn a second way, usually without a title or without the
+announcement.
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/form-error` rejects a Mantine `Alert`
+with a red colour outside `src/app/ui`.*
+
+### A field is captioned by its ControlBlock
+
+Every form field takes its caption from [`ControlBlock`](../../src/app/ui/control/ControlBlock.tsx):
+a bold title, its help behind a (?), and at most one caution line under the input. Mantine's own
+`label` and `description` drew a second, smaller caption with a help paragraph under it, so the same
+editor captioned fields two ways (Norbert, 2026-11-06). An input handed over as a function takes the
+title as its `<label>`, so a click on the title focuses the field and tests find it by role or label.
+A switch, checkbox or radio still labels its own option inline, and a radio or checkbox group keeps
+a visually hidden `label`, since Mantine names the group only through it. Live state that belongs to
+the field, such as a ruleset check, stays on screen under the input rather than behind the (?).
+
+*Enforced by [`.oxlintrc.json`](../../.oxlintrc.json): `local/control-block-label` rejects `label` or
+`description` on a Mantine field, or a visible `label` on `Radio.Group` and `Checkbox.Group`. It sees
+direct `@mantine/core` imports only, so kit wrappers that pass Mantine's props through are on trust.*
 
 ### Destructive actions are held, not asked twice
 
@@ -453,12 +485,13 @@ Enter. A question-and-answer confirm asked for a second decision; the hold asks 
 intent, which is one interaction and cannot be clicked through on autopilot. On success the page
 navigates to the deleted thing's parent, since its own address just died.
 
-*Convention. The kit carries it in three shapes, sharing one hold:
-[`ConfirmDeleteAction`](../../src/app/ui/control/ConfirmDeleteAction.tsx) for the icon triggers and
-[`ConfirmDeleteButton`](../../src/app/ui/control/ConfirmDeleteButton.tsx) for the full-width one on
-the account-deletion page, and
-[`ConfirmDeleteMenuItem`](../../src/app/ui/control/ConfirmDeleteMenuItem.tsx) for a delete inside a
-menu, such as deleting a piece from a Play table. Every delete goes through one of them. One `window.confirm` survives, at
+*Convention. The kit carries it as one component,
+[`HoldAction`](../../src/app/ui/control/HoldAction.tsx), with a verb (delete, remove, convert,
+publish, leave, and so on) and a shape: an icon trigger in toolbars, a full-width button on the
+account-deletion page, or a menu item, such as deleting a piece from a Play table. Every held action
+goes through it; a new verb is one more entry in its word table. The Play compass's
+"Clear all chats" suggestion holds the same five seconds through the compass's own keys, since its search field
+keeps focus ([`useHeldSuggestion`](../../src/app/routes/_app/play/compass/useHeldSuggestion.ts)). One `window.confirm` survives, at
 the asset move on the group page, which is not a delete and is pending its own treatment.*
 
 ### A tab icon is an icon, never a proof
@@ -467,7 +500,7 @@ A chapter tab carries a simple, single-colour icon and nothing else. Not a rende
 live preview of the content, not an image of an authored asset. Several editors had drifted into
 using the tab as a second proof: the deck editor's Identity tab wore the cardback it edited, the
 bundle editor's wore its container, the treachery editor's Icon tab wore the chosen vector, and the
-faction editor's Identity and Forces tabs wore the faction's logo and first troop symbol. Each read
+faction editor's Identity and Forces tabs wore the faction's emblem and first troop symbol. Each read
 as clever in isolation and as noise in a row of tabs.
 
 Norbert, 2026-08-20: *"tabs should contain simple single color icons, nothing else, ever."*

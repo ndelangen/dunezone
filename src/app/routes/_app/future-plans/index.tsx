@@ -1,7 +1,10 @@
-import { Anchor, Badge, Box, Button, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
+import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AtlasLayout } from '@ui/layout/AtlasLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
@@ -150,20 +153,21 @@ function FuturePlansPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
-          <PageTitle eyebrow="Our ambitions" title="A map of what Dune Zone could become" />
-          <Text size="lg">
-            These are promises, not release dates. Explore the territory, then tell us where we should go next.
-          </Text>
-        </SimpleGrid>
+        <div className={styles.hero}>
+          <PageTitle
+            eyebrow="Our ambitions"
+            title="A map of what Dune Zone could become"
+            lede="These are promises, not release dates. Explore the territory, then tell us where we should go next."
+          />
+        </div>
       </PageLayout.Header>
       <PageLayout.Content>
         <AtlasLayout className={styles.atlasFrame}>
           <AtlasLayout.Sidebar>
             <Stack component="aside" gap="md">
-              <Badge color="gray" variant="filled" w="fit-content">
-                All planned
-              </Badge>
+              <Box w="fit-content">
+                <StatusBadge>All planned</StatusBadge>
+              </Box>
               <Eyebrow>The territory</Eyebrow>
               <nav aria-label="Future plan themes">
                 <Bullets gap="none">
@@ -237,25 +241,25 @@ function FuturePlansPage() {
                     </Text>
                   </Stack>
                   <Stack justify="center" gap="sm">
-                    <Button
-                      component="a"
+                    <LabeledAction
+                      emphasis="strong"
+                      icon={<MessageCirclePlus size={17} />}
                       href={GITHUB_IDEAS}
                       target="_blank"
                       rel="noopener noreferrer"
-                      leftSection={<MessageCirclePlus size={17} aria-hidden />}
                     >
                       Suggest an idea
-                    </Button>
-                    <Button
-                      component="a"
+                    </LabeledAction>
+                    <LabeledAction
+                      emphasis="strong"
+                      intent="positive"
+                      icon={<Code2 size={17} />}
                       href={GITHUB_REPOSITORY}
                       target="_blank"
                       rel="noopener noreferrer"
-                      color="confirm"
-                      leftSection={<Code2 size={17} aria-hidden />}
                     >
                       Help build Dune Zone
-                    </Button>
+                    </LabeledAction>
                   </Stack>
                 </SimpleGrid>
               </Surface>

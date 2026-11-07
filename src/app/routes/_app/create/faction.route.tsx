@@ -1,5 +1,5 @@
 import { ClientOnly, createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { lazy, Suspense } from 'react';
@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/create/faction')({
       kind: 'Tutorial',
       pathname: '/create/faction',
       description:
-        'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, logo, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
+        'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, emblem, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
       social: { kind: 'Tutorial', shape: 'portrait' },
       trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),
@@ -53,7 +53,9 @@ function FactionTutorialPage() {
         <PageTitle eyebrow="Practice draft" title={TUTORIAL.title} />
       </PageLayout.Header>
       <PageLayout.Content>
-        <LoadPending title="Opening the faction creator">Nothing you make here is saved.</LoadPending>
+        <PageState kind="pending" title="Opening the faction creator">
+          Nothing you make here is saved.
+        </PageState>
       </PageLayout.Content>
     </PageLayout>
   );

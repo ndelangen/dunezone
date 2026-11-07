@@ -1,6 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { Link } from '@tanstack/react-router';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { CallToAction } from './CallToAction';
 
@@ -28,5 +28,26 @@ export const Attention = meta.story({
   play: async ({ canvasElement }) => {
     const action = within(canvasElement).getByRole('link', { name: 'Create your own faction' });
     await expect(getComputedStyle(action).animationName).toMatch(/attention/);
+  },
+});
+
+/** A submitting call is a submit button, and while busy it says so. */
+export const SubmitWhileBusy = meta.story({
+  args: { renderRoot: undefined, submit: true, busy: true, children: 'Create game' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Create game' });
+    await expect(button).toHaveAttribute('type', 'submit');
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
+  },
+});
+
+/** Not open yet: the reason is the button's description as well as its hover text. */
+export const DisabledSaysWhy = meta.story({
+  args: { disabledReason: 'Choose a ruleset first.' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: 'Create your own faction' });
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
+    await expect(button).toHaveAccessibleDescription('Choose a ruleset first.');
+    await userEvent.click(button);
   },
 });

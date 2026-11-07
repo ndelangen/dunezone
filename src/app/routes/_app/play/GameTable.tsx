@@ -1,4 +1,6 @@
-import { Button, Group, Text, Tooltip } from '@mantine/core';
+import { Group, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The spice bank's number keys, 1 to 10, are keys and not worded actions. */
+import { Button } from '@mantine/core';
 import { turnCaption } from '@shared/play/lastTurn';
 import { pieceCount } from '@shared/play/model';
 import type { TablePiece } from '@shared/play/model';
@@ -8,7 +10,9 @@ import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { Section } from '@ui/block/Section';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
+import { ChevronLeft, ChevronRight, FlipHorizontal2 } from 'lucide-react';
 import {
   useCallback,
   useContext,
@@ -22,6 +26,9 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { TableWait } from '@app/widgets/tabletop/TableWait';
+
+import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
 import {
   PHASE_DISC_COLOR,
   PHASE_INK_COLOR,
@@ -55,7 +62,6 @@ import { CompassTableContext } from './compass/compassTable';
 import { MentatRecallBackdrop } from './multiplayer/MentatRecall';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
-import { TableWait } from './TableWait';
 
 /* How long the shell waits for the renderer before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
@@ -69,6 +75,8 @@ export type TablePanel = Readonly<{
   description?: string;
   /** The panel's full guidance, behind the window's (?) under the description. */
   help?: string;
+  /** Further words the compass's search finds the panel by, beside its name. */
+  keywords?: string;
   content: ReactNode;
   /** False when the content runs to the window's sides and insets its own text. */
   padding?: boolean;
@@ -85,6 +93,8 @@ export type TablePanel = Readonly<{
 type GameTableProps = {
   onSceneReady?: (() => void) | undefined;
   sceneContent?: ReactNode;
+  /** A territory the scene content lights on the board, such as the one under a carried battle marker. */
+  highlightTerritory?: string | null;
   readOnly?: boolean;
   /** The host's panels, grouped, ahead of the fixture's own Table panel. */
   panels?: readonly TablePanel[];
@@ -194,15 +204,21 @@ function SelectedPieceControl() {
       eyebrow="Selected piece"
       title={control.piece?.label ?? 'Select a card or token'}
       action={
-        <Button
-          variant="default"
-          aria-describedby={helpId}
-          aria-busy={control.isFlipping}
-          disabled={control.disabled || !table.canHandleTable}
+        <LabeledAction
+          icon={<FlipHorizontal2 size={16} />}
+          describedBy={helpId}
+          busy={control.isFlipping}
+          disabledReason={
+            table.canHandleTable
+              ? control.disabled && !control.isFlipping
+                ? control.help
+                : undefined
+              : 'The table is unavailable.'
+          }
           onClick={() => table.flipSelected(control.piece?.id)}
         >
           {control.label}
-        </Button>
+        </LabeledAction>
       }
     >
       <Text id={helpId} size="sm" c="dimmed">
@@ -222,18 +238,27 @@ function StormControls({ hiddenHeading = false }: { hiddenHeading?: boolean }) {
       hiddenHeading={hiddenHeading}
       eyebrow="Debug"
       title="Storm sector"
-      description="Advance the highlighted sector counter-clockwise around Arrakis."
+      help="Advance the highlighted sector counter-clockwise around Arrakis."
     >
       <Group gap="sm">
-        <Button variant="default" disabled={!canHandleTable} onClick={() => moveStormBy(-1)}>
+        <LabeledAction
+          icon={<ChevronLeft size={16} />}
+          disabledReason={canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => moveStormBy(-1)}
+        >
           Back one
-        </Button>
+        </LabeledAction>
         <Text component="output" aria-live="polite">
           <strong>Sector {stormSectorIndex + 1}</strong> of {TABLE_SECTOR_COUNT}
         </Text>
-        <Button disabled={!canHandleTable} onClick={() => moveStormBy(1)}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<ChevronRight size={16} />}
+          disabledReason={canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => moveStormBy(1)}
+        >
           Advance one
-        </Button>
+        </LabeledAction>
       </Group>
     </Section>
   );
@@ -465,10 +490,11 @@ function SpiceBankControls() {
   const canSpawn = useTabletopSelector((table) => table.canHandleTable && !table.state.draftMove);
   const { spawnSpice } = useTabletopCommands();
   return (
-    <Section
-      title="Spice Bank"
-      description="Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc to return it to the Spice Bank."
-    >
+    <Section title="Spice Bank">
+      <Text size="sm" c="dimmed">
+        Hover the Spice Bank disc left of the turn wheel and press 1 through 9, or 0 for ten. Drop spice onto the disc
+        to return it to the Spice Bank.
+      </Text>
       <Group gap="xs" role="group" aria-label="Spawn spice">
         {Array.from({ length: 10 }, (_, index) => index + 1).map((count) => (
           <Button
@@ -584,9 +610,15 @@ function useTableViewController(
   onSceneReady: GameTableProps['onSceneReady']
 ) {
   const viewPhase = word || !activePhase ? null : standardPhaseOf(activePhase);
-  const [viewState, dispatchView] = useReducer(reduceTableView, viewPhase, createTableViewState);
+  const followPhase = useCameraFollowsPhase();
+  const [viewState, dispatchView] = useReducer(reduceTableView, null, () =>
+    createTableViewState(viewPhase, followPhase)
+  );
+  /* The viewer's choice and the phase changed since the last render; the reducer answers both before this render commits, the choice first. */
+  if (viewState.follow !== followPhase) {
+    dispatchView({ type: 'follow.changed', follow: followPhase });
+  }
   if (viewState.phase !== viewPhase) {
-    /* The phase changed since the last render; the reducer answers it before this render commits. */
     dispatchView({ type: 'phase.changed', phase: viewPhase });
   }
   const cameraView = useMemo<CameraViewCommand>(
@@ -629,6 +661,7 @@ function useTableViewController(
 export function GameTable({
   onSceneReady,
   sceneContent,
+  highlightTerritory,
   readOnly = false,
   panels,
   focus,
@@ -658,7 +691,7 @@ export function GameTable({
   const heldOverlays = useHeldOverlays();
   const tableLabels = usePinnedLabels();
   const frame = stageFrame(stage);
-  /* The camera follows the phase while the header names one: in play, and on the fixture. */
+  /* The camera follows the phase while the header names one (in play, and on the fixture), unless this viewer turned "Camera follows phase" off. */
   /* A faction phase takes the camera view of the standard phase it precedes (#1138). */
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
   const controller = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
@@ -676,6 +709,7 @@ export function GameTable({
         tableProgress={tableProgress}
         stage={stage}
         mapVisible={mapVisible}
+        highlightTerritory={highlightTerritory}
       >
         {sceneContent}
       </TabletopScene>

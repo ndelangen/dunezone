@@ -463,7 +463,9 @@ export const RawJsonKeepsComponentIdentities = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(value));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load faction' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load faction' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
     await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
     await userEvent.click(page.getByRole('button', { name: 'Load faction' }));
@@ -711,21 +713,14 @@ export const DetailTellsReadersAReplacementFailed = meta.story({
 });
 
 /**
- * A faction that is not there declares the same band as one that is (#660).
- *
- * Six pages used to answer the "what kind of page is this" question twice: `default` while they had no data, `compact` once they had it.
- * The band carries `transition: height 0.2s ease-out`, so the reader watched it collapse by 143px as the page resolved, with everything below moving up with it.
- *
- * The assertion is the declaration rather than the pixel height, because the height is CSS's answer to the declaration and asserting it here would make this story a second copy of the stylesheet.
+ * A faction that is not there answers with the site's not-found page, as the live site does: the loader turns the server's NOT_FOUND refusal into a 404.
+ * Storybook used to show the faction's own error frame here instead, because its Convex worker lost the refusal's data and the loader could not recognise it (#1892).
  */
-export const DetailNotFoundDeclaresTheLoadedBand = meta.story({
+export const DetailNotFoundIsThePageNotFound = meta.story({
   args: { path: '/factions/no-such-faction' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    /* Confirms this is a placeholder state and not a loaded page that happens to agree. */
-    await expect(page.findByText('Back to factions', {}, { timeout: 30_000 })).resolves.toBeVisible();
-
-    const root = canvasElement.ownerDocument.querySelector('[data-page-layout-header-size]');
-    await expect(root?.getAttribute('data-page-layout-header-size')).toBe('compact');
+    await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByText('Back to factions')).toBeNull();
   },
 });

@@ -1,8 +1,11 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame, finishTransitions } from '@sb/storyWaits';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
+import type { Vector3Tuple } from '@shared/play/model';
 import type { GameSnapshot } from '@shared/play/protocol';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
+import { territoryAtTable } from '@shared/play/territoryPlacement';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import { expect, userEvent, within, waitFor } from 'storybook/test';
 
 import { dragBattleMarker } from './battles.marker.stories.fixture';
@@ -211,7 +214,7 @@ export const MarkerNamesItsTerritory = meta.story({
   }),
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
-    const carthag = resolveRulebookBoardDefinition('arrakis')!.geometry.parts.find((part) => part.key === 'carthag')!;
+    const carthag = ARRAKIS_OFFICIAL.geometry.parts.find((part) => part.key === 'carthag')!;
     await dragBattleMarker(
       document,
       [
@@ -220,7 +223,11 @@ export const MarkerNamesItsTerritory = meta.story({
         (carthag.y + carthag.height / 2 - 0.5) * BOARD_RADIUS * 2,
       ],
       async () => {
-        await expect(lastCommand()?.action).toMatchObject({ kind: 'battle-start', territory: 'Carthag' });
+        const action = lastCommand()?.action;
+        await expect(action).toMatchObject({ kind: 'battle-start' });
+        /* The game names the battle for the territory under the marker. */
+        const anchor = (action as { anchor: Vector3Tuple }).anchor;
+        await expect(territoryAtTable({ board: arrakisBoardCapture.definition }, anchor)?.name).toBe('Carthag');
       }
     );
   },
@@ -240,6 +247,9 @@ export const Unclaimed = meta.story({
     const bounds = claim.getBoundingClientRect();
     await expect(bounds.width).toBe(bounds.height);
     await expect(getComputedStyle(claim).borderRadius).toBe('50%');
+    /* The left side is the aggressor's, and its button says so to every viewer; the right side's says nothing more. */
+    await expect(claim).toHaveAccessibleDescription('Aggressor, normally wins ties');
+    await expect(page.getByRole('button', { name: 'Claim right side' })).not.toHaveAccessibleDescription();
     await userEvent.click(claim);
     await expect(lastCommand()?.action).toEqual({
       kind: 'battle-claim',

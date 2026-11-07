@@ -1,3 +1,4 @@
+import type { Board } from '../../src/shared/boards/schema';
 import { emptyBattlePlan, BATTLE_COUNTDOWN_MS } from '../../src/shared/play/battle';
 import type {
   BattleAction,
@@ -17,15 +18,20 @@ import {
   spiceStrengthChoices,
 } from '../../src/shared/play/battleDialing';
 import { nextSnapshot, requireAccepted } from '../../src/shared/play/commands';
-import type { StoredPiece } from '../../src/shared/play/model';
+import type { StoredPiece, Vector3Tuple } from '../../src/shared/play/model';
 import { phaseAt } from '../../src/shared/play/phases';
 import { tableForViewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { BOARD_RADIUS, restingPositionAt } from '../../src/shared/play/tableGeometry';
-import { clampPositionToTable, nearestCollisionFreePosition } from '../../src/shared/play/tablePhysics';
-import { playFromHandAtAnchor } from '../../src/shared/play/tableState';
+import {
+  clampPositionToTable,
+  nearestCollisionFreePosition,
+  restingAmongLeaders,
+} from '../../src/shared/play/tablePhysics';
+import { playFromHandSettled } from '../../src/shared/play/tableState';
 import { isTechToken, takeableIntoHand } from '../../src/shared/play/techToken';
+import { keepsInsideTerritory, territoryAtTable } from '../../src/shared/play/territoryPlacement';
 import { orderablePieces, revised } from './state';
 import type { StoredSnapshot, StoredBattle } from './state';
 
@@ -368,38 +374,70 @@ function handPiece(snapshot: StoredSnapshot, factionId: string, pieceId: string)
   return { inventory, piece };
 }
 
+/*
+ * A leader leaves the hand face down under new identities, as a card leaves under new handles:
+ * the ids it carried while it lay face up, or out of an earlier battle's reveal, would otherwise tell everyone which leader it is.
+ * A card keeps its ids, since the room retires its handles, and a tech token is public.
+ */
+function unseen(piece: StoredPiece, items: StoredPiece['items']): Pick<StoredPiece, 'id' | 'items'> {
+  if (piece.kind === 'card' || isTechToken(piece)) {
+    return { id: piece.id, items };
+  }
+  return { id: crypto.randomUUID(), items: items.map((item) => ({ ...item, id: crypto.randomUUID() })) };
+}
+
 function playFromHand(
   snapshot: StoredSnapshot,
   factionId: string,
-  action: Extract<BattleAction, { kind: 'hand-play' }>
+  action: Extract<BattleAction, { kind: 'hand-play' }>,
+  table: BattleTable
 ) {
   const { inventory, piece } = handPiece(snapshot, factionId, action.pieceId);
-  const { hiddenZone: _spot, ...leaving } = piece;
+  /* How often it was flipped or shuffled on the table before it was taken would tell it apart too, so it leaves without those counts. */
+  const { hiddenZone: _spot, flipRevision: _flips, shuffleRevision: _shuffles, ...leaving } = piece;
   /* A card or leader leaves the hand face down; a tech token is public, so it lands as it lay in the hand. */
   const items = isTechToken(piece) ? piece.items : piece.items.map((item) => ({ ...item, faceUp: false }));
-  const leavingHand = { ...leaving, inventory: undefined, items };
+  const leavingHand = { ...leaving, inventory: undefined, ...unseen(piece, items) };
   const factionInventories = {
     ...snapshot.factionInventories,
     [factionId]: inventory.filter((piece) => piece.id !== action.pieceId),
   };
-  const table = tableForViewer(snapshot, SPECTATOR_SEAT);
-  const anchored = playFromHandAtAnchor(
-    table,
+  /*
+   * A piece played from hand settles as a carried one would: on an anchor, or packed into its territory by the game's own board.
+   * Pieces other players are carrying are locked while it settles, so packing goes round them; their own locks are put back after.
+   */
+  const viewed = tableForViewer(snapshot, SPECTATOR_SEAT);
+  const guarded = {
+    ...viewed,
+    board: table.board,
+    pieces: viewed.pieces.map((piece) => (table.reserved.has(piece.id) ? { ...piece, locked: true } : piece)),
+  };
+  const settled = playFromHandSettled(
+    guarded,
     { ...leavingHand, position: restingPositionAt(action.position, piece) },
     action.position
   );
-  if (anchored) {
-    return { ...nextSnapshot(snapshot, requireAccepted(table, anchored)), factionInventories };
+  if (settled) {
+    const next = requireAccepted(guarded, settled);
+    const restored = next.pieces.map((piece) => {
+      const original = viewed.pieces.find((candidate) => candidate.id === piece.id);
+      return table.reserved.has(piece.id) && original ? { ...piece, locked: original.locked } : piece;
+    });
+    return { ...nextSnapshot(snapshot, { ...next, pieces: restored }), factionInventories };
   }
   const position = nearestCollisionFreePosition(
     piece,
     clampPositionToTable(piece, action.position),
-    snapshot.table.pieces
+    snapshot.table.pieces,
+    keepsInsideTerritory(guarded, leavingHand, viewed.pieces)
   );
   if (!position) {
     return refuse('There is no clear space for that object.');
   }
-  const played = { ...leavingHand, position: restingPositionAt(position, piece) };
+  const played = {
+    ...leavingHand,
+    position: restingAmongLeaders(piece, restingPositionAt(position, piece), snapshot.table.pieces),
+  };
   return commit(snapshot, { factionInventories }, [...snapshot.table.pieces, played]);
 }
 
@@ -461,7 +499,13 @@ function planInOrder(snapshot: StoredSnapshot, factionId: string, order: readonl
   return { battleState: { ...battle, plans } };
 }
 
-function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>) {
+/* The territory under the battle marker, which names the battle and is highlighted while it lasts. */
+function battleTerritory(anchor: Vector3Tuple, board?: Board) {
+  const territory = territoryAtTable({ board }, anchor);
+  return territory ? { territory: territory.name, territoryId: territory.id } : { territory: 'Marked territory' };
+}
+
+function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { kind: 'battle-start' }>, board?: Board) {
   if (snapshot.battleState || phaseAt(snapshot.phase, snapshot.phases).id !== 'battle') {
     return refuse('Start a battle during the Battle phase when no battle is active.');
   }
@@ -472,7 +516,7 @@ function startBattle(snapshot: StoredSnapshot, action: Extract<BattleAction, { k
     battleState: {
       id: crypto.randomUUID(),
       anchor: action.anchor,
-      territory: action.territory,
+      ...battleTerritory(action.anchor, board),
       stage: 'preparing',
       sides: [null, null],
       plans: [null, null],
@@ -522,7 +566,7 @@ function settleOverlayPiece(piece: StoredPiece, battle: StoredBattle, placed: St
   const { battleOverlay: _overlay, ...rest } = piece;
   const requested = clampPositionToTable(piece, [battle.anchor[0], 0, battle.anchor[2] + 0.7]);
   const position = nearestCollisionFreePosition(piece, requested, placed) ?? requested;
-  const moved = { ...rest, position: restingPositionAt(position, piece) };
+  const moved = { ...rest, position: restingAmongLeaders(piece, restingPositionAt(position, piece), placed) };
   placed.push(moved);
   return moved;
 }
@@ -579,24 +623,28 @@ function sideCommand(
   }
 }
 
+/** What the room knows of the table beyond the snapshot: the game's board, and the pieces players are carrying right now. */
+export type BattleTable = { board?: Board; reserved: ReadonlySet<string> };
+
 /** Room supplies current faction authority and guards physical carries before entering this transition. */
 export function battleCommand(
   snapshot: StoredSnapshot,
   factionId: string,
   action: BattleAction,
-  now: number
+  now: number,
+  table: BattleTable
 ): StoredSnapshot {
   switch (action.kind) {
     case 'hand-take':
       return takeIntoHand(snapshot, factionId, action);
     case 'hand-play':
-      return playFromHand(snapshot, factionId, action);
+      return playFromHand(snapshot, factionId, action, table);
     case 'hand-zone':
       return arrangeHiddenZone(snapshot, factionId, action);
     case 'hand-order':
       return orderHand(snapshot, factionId, action);
     case 'battle-start':
-      return startBattle(snapshot, action);
+      return startBattle(snapshot, action, table.board);
   }
   const battle = structuredClone(snapshot.battleState);
   if (!battle || battle.id !== action.battleId) {

@@ -10,6 +10,8 @@
 
 import type * as accountDeletion from "../accountDeletion.js";
 import type * as accounts from "../accounts.js";
+import type * as arrakis from "../arrakis.js";
+import type * as arrakisMigrations from "../arrakisMigrations.js";
 import type * as assetPublishingStatus from "../assetPublishingStatus.js";
 import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
@@ -24,6 +26,7 @@ import type * as componentPublication from "../componentPublication.js";
 import type * as contentImports from "../contentImports.js";
 import type * as crons from "../crons.js";
 import type * as e2e from "../e2e.js";
+import type * as emblemMigrations from "../emblemMigrations.js";
 import type * as factions from "../factions.js";
 import type * as faq from "../faq.js";
 import type * as faqReferences from "../faqReferences.js";
@@ -34,7 +37,6 @@ import type * as homepage from "../homepage.js";
 import type * as homepageAdmission from "../homepageAdmission.js";
 import type * as http from "../http.js";
 import type * as ingestTokens from "../ingestTokens.js";
-import type * as legacyDataMigrations from "../legacyDataMigrations.js";
 import type * as lib_accountIdentity from "../lib/accountIdentity.js";
 import type * as lib_accountLifecycle from "../lib/accountLifecycle.js";
 import type * as lib_accountMerge from "../lib/accountMerge.js";
@@ -84,7 +86,6 @@ import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
 import type * as lib_memoised from "../lib/memoised.js";
-import type * as lib_migrationHelpers from "../lib/migrationHelpers.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddressAvailability from "../lib/playGameAddressAvailability.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
@@ -184,6 +185,8 @@ import { anyApi, componentsGeneric } from "convex/server";
 const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
   accounts: typeof accounts;
+  arrakis: typeof arrakis;
+  arrakisMigrations: typeof arrakisMigrations;
   assetPublishingStatus: typeof assetPublishingStatus;
   assets: typeof assets;
   auth: typeof auth;
@@ -198,6 +201,7 @@ const fullApi: ApiFromModules<{
   contentImports: typeof contentImports;
   crons: typeof crons;
   e2e: typeof e2e;
+  emblemMigrations: typeof emblemMigrations;
   factions: typeof factions;
   faq: typeof faq;
   faqReferences: typeof faqReferences;
@@ -208,7 +212,6 @@ const fullApi: ApiFromModules<{
   homepageAdmission: typeof homepageAdmission;
   http: typeof http;
   ingestTokens: typeof ingestTokens;
-  legacyDataMigrations: typeof legacyDataMigrations;
   "lib/accountIdentity": typeof lib_accountIdentity;
   "lib/accountLifecycle": typeof lib_accountLifecycle;
   "lib/accountMerge": typeof lib_accountMerge;
@@ -258,7 +261,6 @@ const fullApi: ApiFromModules<{
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
   "lib/memoised": typeof lib_memoised;
-  "lib/migrationHelpers": typeof lib_migrationHelpers;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddressAvailability": typeof lib_playGameAddressAvailability;
   "lib/playGameAddresses": typeof lib_playGameAddresses;

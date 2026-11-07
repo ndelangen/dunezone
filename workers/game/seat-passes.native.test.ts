@@ -119,6 +119,18 @@ describe('Seat passes admit players without the room asking Convex about them', 
     expect(resumed.type === 'view' && resumed.viewer.viewerSeat).toBe('seat-1');
   });
 
+  it('shows a rename carried by the renewal that resumes a paused tab', async () => {
+    const a = await admitPlayer(runtime, 'a', { exp: Date.now() + 60_000 });
+    await runtime.clock(70_000);
+    await eventually(() => admissionStatuses(a).includes('pass-expired'), 'pass-expired notice');
+    const before = a.messages.length;
+    a.send({ type: 'pass', pass: await fixturePass('a', { exp: Date.now() + 200_000, displayName: 'Renamed A' }) });
+    await eventually(() => a.messages.slice(before).find((message) => message.type === 'view'), 'view after renewal');
+    const view = await syncView(a);
+    expect(view.viewer).toMatchObject({ viewerSeat: 'seat-1', displayName: 'Renamed A' });
+    expect(view.snapshot.controls?.players.map((player) => player.name)).toEqual(['Renamed A']);
+  });
+
   it('refuses a renewal that names another account', async () => {
     const a = await admitPlayer(runtime, 'a');
     a.send({ type: 'pass', pass: await fixturePass('b') });

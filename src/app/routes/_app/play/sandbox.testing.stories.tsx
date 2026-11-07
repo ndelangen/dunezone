@@ -1,16 +1,30 @@
 import { PLAY_DEBUGGER_EVENTS } from '@sb/playDebugger/events';
 import { testingPreview } from '@sb/preview';
 import { factionTokenOf } from '@shared/play/factionToken';
-import { troopScale } from '@shared/play/tableGeometry';
+import { factionSupplyLayout, seatAngleOf } from '@shared/play/setupLayout';
+import { SIDE_SHELF_CENTER_X } from '@shared/play/tableFurnitureLayout';
+import { planarDistance, troopScale } from '@shared/play/tableGeometry';
+import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
+import { troopFactionOf } from '@shared/play/troopReserves';
 import { addons } from 'storybook/preview-api';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
+import { setCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
+import { tableChromeInsets } from '../../../widgets/tabletop/seatedHeader';
 import { gameMeta, install } from './game.stories.fixture';
 import { chapter, journeyViewers, JourneyPage } from './journey.stories.fixture';
 import { expectHeaderPhase, openTab, phaseControls } from './playing.stories.fixture';
-import { sandbox, sandboxReady, sandboxSteps, sandboxTransport } from './sandbox.stories.fixture';
-import { shown, piece, withTechTokens } from './sandbox.stories.fixture';
+import {
+  messyReservesSandbox,
+  piece,
+  sandbox,
+  sandboxReady,
+  sandboxSteps,
+  sandboxTransport,
+  shown,
+  withTechTokens,
+} from './sandbox.stories.fixture';
 
 const meta = testingPreview.meta({
   ...gameMeta,
@@ -110,6 +124,50 @@ export const Sandbox = meta.story({
     await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
     await expect(sandbox.table).not.toBe(table);
     await expect(shown().hand ?? []).toHaveLength(handSize);
+  },
+});
+
+/**
+ * Seat 1 turns "Camera follows phase" off in the game menu, looks at the left bay and moves on to Revival: the camera keeps the view the player chose instead of moving to the bottom shelf.
+ */
+export const KeepCameraOnPhaseChange = meta.story({
+  /* The choice outlives the page, so the story starts from the default and puts it back. */
+  beforeEach: () => {
+    setCameraFollowsPhase(true);
+    return () => setCameraFollowsPhase(true);
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    const { room } = sandbox.table!;
+    const dial = () => page.getByRole('group', { name: 'Table view' });
+
+    /* The header's controls arrive with the table chunk, after the heading. */
+    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    const follows = await page.findByRole('menuitemcheckbox', { name: 'Camera follows phase' });
+    await expect(follows).toBeChecked();
+    await userEvent.click(follows);
+    await waitFor(() => expect(follows).not.toBeChecked());
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(within(dial()).getByRole('button', { name: /^Focus on left/ }));
+    await waitFor(() => expect(dial()).toHaveAttribute('data-view', 'left'));
+
+    const { controls, waitForPhase } = phaseControls(canvasElement);
+    await openTab(page, 'Phase');
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
+    await userEvent.click(controls().getByRole('button', { name: 'Next phase' }));
+    await waitFor(() => expect(room.snapshot.phase).toBe(4));
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 4));
+    await expect(dial()).toHaveAttribute('data-view', 'left');
+    /* The dial still marks the phase's own view, one press away. */
+    await expect(
+      within(dial()).getByRole('button', { name: 'Focus on bottom, recommended for this phase' })
+    ).toBeVisible();
+
+    /* Restart, from the Play debugger panel, puts the table back at Bidding. */
+    addons.getChannel().emit(PLAY_DEBUGGER_EVENTS.act, 'restart');
+    await waitForPhase(() => expectHeaderPhase(canvasElement, 3));
   },
 });
 
@@ -436,10 +494,13 @@ export const HiddenZone = meta.story({
 
     /* Its menu places it on the table instead, beside the faction's own token, face down as a play from the hand. */
     const edge = zoneLeader.getBoundingClientRect();
+    const onTable = new Set(table.room.snapshot.table.pieces.map((candidate) => candidate.id));
     zoneLeader.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: edge.left, clientY: edge.top }));
     await userEvent.click(await page.findByRole('menuitem', { name: 'Place on table' }));
     await waitFor(() => expect(shown().hand!.some((candidate) => candidate.id === leader.id)).toBe(false));
-    const placed = table.room.snapshot.table.pieces.find((candidate) => candidate.id === leader.id)!;
+    /* It leaves the hand under a new id, so nobody can tell which leader was played. */
+    const placed = table.room.snapshot.table.pieces.find((candidate) => !onTable.has(candidate.id))!;
+    await expect(placed.stackKey).toBe(stored.stackKey);
     const token = factionTokenOf(table.room.snapshot.table.pieces, faction)!;
     await expect(
       Math.hypot(placed.position[0] - token.position[0], placed.position[2] - token.position[2])
@@ -534,5 +595,123 @@ export const DrawRandomTechToken = meta.story({
     }
     /* A page story cannot wait on a tooltip opening, so it checks only that the button is off. */
     await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
+  },
+});
+
+/* Where the other seats ping in turn while Seat 1 looks at the left bay: the right bay and the tanks out of view, then the map and the far rim. */
+const OUT_OF_VIEW_PINGS: readonly [number, number, number][] = [
+  [SIDE_SHELF_CENTER_X, 0.38, 0],
+  [0, 0.38, (TANKS_PAD.innerRadius + TANKS_PAD.outerRadius) / 2],
+  [0, 0.38, 0],
+  [1.5, 0.38, -7],
+];
+const PING_EVERY_MS = 1600;
+/* The other seats' pinging, which starts once the camera has turned and stops when the story leaves. */
+let pinging: ReturnType<typeof setInterval> | undefined;
+
+/* Another seat pings the next spot out of view, each seat in turn. */
+function pingFromAnotherSeat(turn: number) {
+  const transport = sandbox.transport;
+  const view = sandbox.table?.frame().snapshot;
+  if (!transport?.connected() || !view) {
+    return;
+  }
+  const others = (view.roster?.seats ?? []).filter((seat) => seat.id !== sandbox.table!.seat && seat.faction);
+  const seat = others[turn % Math.max(others.length, 1)];
+  if (!seat) {
+    return;
+  }
+  transport.deliver({
+    type: 'ping',
+    ping: {
+      connectionId: `ping-${seat.id}`,
+      viewerSeat: seat.id,
+      displayName: view.controls?.players.find((player) => player.seat === seat.id)?.name ?? seat.id,
+      color: seat.faction!.color,
+      position: OUT_OF_VIEW_PINGS[turn % OUT_OF_VIEW_PINGS.length]!,
+    },
+  });
+}
+
+/**
+ * Seat 1 turns the camera to the left bay, and the other seats keep pinging elsewhere: on the map, the right bay, the tanks and the far rim.
+ * Each ping out of view shows on the edge of the table, pulsing in the pinger's colour with an arrow towards where it landed, for three seconds (#2672).
+ * By hand: turn the camera dial to another view, or pan with the arrow keys, and the markers follow;
+ * once a ping is in view only its ripple shows.
+ */
+export const PingsOutOfView = meta.story({
+  /* The meta installs the table; this story owns only the other seats' pinging. */
+  beforeEach: () => () => {
+    clearInterval(pinging);
+    pinging = undefined;
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
+    await userEvent.click(await page.findByRole('button', { name: /^Focus on left/ }));
+    let turn = 0;
+    pingFromAnotherSeat(turn);
+    clearInterval(pinging);
+    pinging = setInterval(() => pingFromAnotherSeat(++turn), PING_EVERY_MS);
+    const marker = await waitFor(
+      () => {
+        const shown = canvasElement.ownerDocument.querySelector<HTMLElement>('[data-ping-edge][data-shown]');
+        if (!shown) {
+          throw new Error('No edge marker shows yet.');
+        }
+        return shown;
+      },
+      { timeout: 20_000 }
+    );
+    /* The marker stands on the edge of the room the chrome leaves, its arrow pointing outwards, away from the view's centre. */
+    const canvas = marker.parentElement!.querySelector('canvas')!;
+    const { width, height } = canvas.getBoundingClientRect();
+    const chrome = tableChromeInsets(canvas);
+    const place = /translate3d\(([-\d.]+)px, ?([-\d.]+)px/.exec(marker.style.transform)!;
+    const [x, y] = [Number(place[1]), Number(place[2])];
+    const edges = [x - chrome.left, width - chrome.right - x, y - chrome.top, height - chrome.bottom - y];
+    await expect(Math.min(...edges.map((gap) => Math.abs(gap - 40)))).toBeLessThan(1);
+    /* Two pulse rings, then the heading that turns the arrow. */
+    const heading = marker.children[2] as HTMLElement;
+    const angle = Number.parseFloat(heading.style.rotate);
+    await expect((x - width / 2) * Math.cos(angle) + (y - height / 2) * Math.sin(angle)).toBeGreaterThan(0);
+  },
+});
+
+/**
+ * Seat 1 carries its revived troops and then its board troops onto its own faction token: each time they join the Normal reserve face up, and both reserves stand on their setup spots, Normal first, as setup dealt them.
+ */
+export const TroopsGoBackToTheirReserves = meta.story({
+  ...messyReservesSandbox,
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const table = sandbox.table!;
+    const token = factionTokenOf(shown().table.pieces, 'emperor')!;
+    const spots = factionSupplyLayout(seatAngleOf(shown().roster, 'emperor')!, 2).reserves;
+    const reserves = () =>
+      shown()
+        .table.pieces.filter((candidate) => !candidate.inventory && troopFactionOf(candidate) === 'emperor')
+        .filter((candidate) => spots.some((spot) => planarDistance(candidate.position, spot) < 0.01));
+    const carryHome = async (id: string) => {
+      table.receive({
+        type: 'begin',
+        carryId: id,
+        sourcePieceId: id,
+        expectedVersion: shown().versions[id]!,
+        pickup: 'whole',
+      });
+      table.receive({ type: 'drop', commandId: `${id}-drop`, carryId: id, position: token.position, orientation: 0 });
+      await expect(table.refusal).toBeUndefined();
+      await expect(shown().table.events[0]?.command).toBe('troops.reserve');
+    };
+    await carryHome('sandbox-revived');
+    await carryHome('sandbox-on-board');
+    const [normal, sardaukar] = spots.map((spot) =>
+      reserves().find((pile) => planarDistance(pile.position, spot) < 0.01)
+    );
+    await expect(normal?.items).toHaveLength(15);
+    await expect(normal?.items.every((item) => item.faceUp)).toBe(true);
+    await expect(sardaukar?.items).toHaveLength(5);
+    await expect(shown().table.pieces.some((candidate) => candidate.id.startsWith('sandbox-'))).toBe(false);
   },
 });

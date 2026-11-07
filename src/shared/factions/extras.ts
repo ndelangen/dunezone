@@ -36,10 +36,9 @@ export const factionExtrasSchema = z.array(factionExtraSchema).superRefine((extr
 
 /**
  * The retired TTS link lists (`{name, items}`) that `extras` held before #1226.
- * Retained Play games and frozen publications can still carry them, so reads drop them rather than fail;
- * `faction_extras_references_v1` removes them from faction rows.
+ * Faction rows no longer hold them, but retained Play games and frozen publications can, so reads drop them rather than fail.
  */
-export function isLegacyFactionExtra(value: unknown): boolean {
+function isLegacyFactionExtra(value: unknown): boolean {
   return typeof value === 'object' && value !== null && 'items' in value && !('slug' in value);
 }
 

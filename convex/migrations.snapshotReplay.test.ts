@@ -6,6 +6,7 @@ import type { z } from 'zod';
 
 import { placeholderOwner } from '../scripts/lib/snapshot-policy';
 import { publishingDeckCardback } from '../src/shared/assets/fixtures/publishingDeckCardback';
+import { publishingSpiceCard } from '../src/shared/assets/fixtures/publishingSpiceCard';
 import { publishingTokenFace } from '../src/shared/assets/fixtures/publishingTokenFace';
 import type { DeckAsset, TokenAsset } from '../src/shared/assets/schema';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
@@ -44,7 +45,7 @@ const tokenBacks = (authored: string) =>
     reference: { mode: 'reference', asset_id: authored },
   }) satisfies OnePerMode<z.infer<typeof TokenAsset>['back']>;
 
-/* A decal the vector-train retune scaled by 1.5625 in production, stored at its retuned scale. */
+/* A decal at a scale below 1, as production stores it. */
 const retunedDecal = {
   id: '/vector/decal/carryalls.svg',
   muted: false,
@@ -54,6 +55,9 @@ const retunedDecal = {
 };
 
 afterEach(() => vi.useRealTimers());
+
+/* `runSerially` schedules at least one step per migration, so the manifest's length outgrew convex-test's default of 100. */
+const REPLAY_ITERATIONS = 1000;
 
 describe('a snapshot load', () => {
   test('replays every required migration over rows production already migrated, changing none and rebuilding the aggregates', async () => {
@@ -78,9 +82,17 @@ describe('a snapshot load', () => {
           asset('token-disc', `token-${mode}`, { front: publishingTokenFace, back })
         ),
       ];
+      /* A Spice card in its moved shape: linked to a board, without the old highlight list. */
+      const spice = await ctx.db.insert('assets', {
+        ...owned,
+        type: 'card-spice',
+        slug: 'moved-spice',
+        data: { ...publishingSpiceCard, board: { asset_id: token, tints: [], tokens: [] } },
+      });
       return [
         deck,
         token,
+        spice,
         ...(await Promise.all(modeRows)),
         await ctx.db.insert('factions', {
           ...owned,
@@ -93,7 +105,7 @@ describe('a snapshot load', () => {
     const loaded = await rows();
 
     await t.mutation(internal.migrations.runRequired, { ids: required });
-    await t.finishAllScheduledFunctions(vi.runAllTimers);
+    await t.finishAllScheduledFunctions(vi.runAllTimers, REPLAY_ITERATIONS);
 
     await expect(t.query(internal.migrations.assertReadyForNarrow, { required })).resolves.toMatchObject({ ok: true });
     expect(await rows()).toEqual(loaded);
@@ -206,7 +218,7 @@ describe('a snapshot load', () => {
        */
       vi.useFakeTimers();
       await t.mutation(internal.migrations.runRequired, { ids: required });
-      await t.finishAllScheduledFunctions(vi.runAllTimers);
+      await t.finishAllScheduledFunctions(vi.runAllTimers, REPLAY_ITERATIONS);
       const hashes = await t.run(async (ctx) => ({
         drafts: (await ctx.db.query('rulebook_drafts').collect()).map((row) => row.contents_hash),
         editions: (await ctx.db.query('rulebook_editions').collect()).map((row) => row.contents_hash),

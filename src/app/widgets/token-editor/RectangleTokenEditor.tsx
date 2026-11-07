@@ -1,10 +1,12 @@
-import { Alert, Divider, Group, NumberInput, Select, Slider, Stack, Switch, Text, Textarea } from '@mantine/core';
+import { Divider, Group, Select, Stack, Switch, Text, Textarea } from '@mantine/core';
 import { RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { RectangleTokenAsset } from '@shared/assets/schema';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { RangeField } from '@ui/control/RangeField';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import type { ReactNode } from 'react';
@@ -105,49 +107,6 @@ export function RectangleProof({ face }: { face: RectangleFaceDraft }) {
   );
 }
 
-/** A slider for reach with an unclamped number beside it for precision, the pattern `DecalControls` already uses. */
-function PlacementControl({
-  title,
-  description,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-}: {
-  title: string;
-  description?: string;
-  value: number;
-  onChange: (value: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-}) {
-  return (
-    <ControlBlock
-      title={title}
-      description={description}
-      tool={
-        <NumberInput
-          aria-label={title}
-          w={96}
-          step={step}
-          decimalScale={2}
-          value={value}
-          onChange={(next) => {
-            if (typeof next === 'number') {
-              onChange(next);
-            }
-          }}
-        />
-      }
-      input={
-        <Slider aria-label={`${title} slider`} min={min} max={max} step={step} value={value} onChange={onChange} />
-      }
-    />
-  );
-}
-
 type FacePatch = (update: Partial<RectangleFaceDraft>) => void;
 
 function SurfaceFields({
@@ -188,25 +147,25 @@ function SurfaceFields({
       <ControlBlock
         title="Edge ring"
         description="A rounded inset rule. Off by default, unlike the round shapes."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Edge ring"
+            {...fieldProps}
             checked={face.ring}
             onChange={(event) => patch({ ring: event.currentTarget.checked })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Ring shadow"
         description="A pronounced shadow under the ring. Needs the ring."
-        input={
+        input={(fieldProps) => (
           <Switch
-            aria-label="Ring shadow"
+            {...fieldProps}
             checked={face.ringShadow ?? false}
             disabled={!face.ring}
             onChange={(event) => patch({ ringShadow: event.currentTarget.checked })}
           />
-        }
+        )}
       />
     </Stack>
   );
@@ -214,11 +173,10 @@ function SurfaceFields({
 
 function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePatch }) {
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Decals
-        </Text>
+    <ListChapter
+      title="Decals"
+      note={face.decals.length === 0 ? { title: 'No decals', text: 'Add one and put it anywhere on the face.' } : null}
+      actions={
         <ListLengthActions
           addLabel="Add decal"
           removeLabel="Remove last decal"
@@ -226,12 +184,8 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
           onAdd={() => patch({ decals: [...face.decals, newDecal()] })}
           onRemove={() => patch({ decals: face.decals.slice(0, -1) })}
         />
-      </Group>
-      {face.decals.length === 0 ? (
-        <Alert color="gray" variant="light" title="No decals">
-          Add one and put it anywhere on the face.
-        </Alert>
-      ) : null}
+      }
+    >
       {face.decals.map((decal, index) => (
         <Stack key={index} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -270,7 +224,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
               />
             }
           />
-          <PlacementControl
+          <RangeField
             title="Opacity"
             description="1 is fully opaque, and it multiplies with the muted treatment."
             value={decal.opacity}
@@ -287,7 +241,7 @@ function DecalsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePa
           />
         </Stack>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 
@@ -297,11 +251,17 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
       texts: face.texts.map((current, position) => (position === index ? { ...current, ...update } : current)),
     });
   return (
-    <Stack gap="md">
-      <Group justify="space-between" align="center">
-        <Text fw={700} size="sm">
-          Text elements
-        </Text>
+    <ListChapter
+      title="Text elements"
+      note={
+        face.texts.length === 0
+          ? {
+              title: 'No text',
+              text: 'The rectangle places its text rather than slotting it. Add one and put it anywhere.',
+            }
+          : null
+      }
+      actions={
         <ListLengthActions
           addLabel="Add text"
           removeLabel="Remove last text"
@@ -309,12 +269,8 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
           onAdd={() => patch({ texts: [...face.texts, newText()] })}
           onRemove={() => patch({ texts: face.texts.slice(0, -1) })}
         />
-      </Group>
-      {face.texts.length === 0 ? (
-        <Alert color="gray" variant="light" title="No text">
-          The rectangle places its text rather than slotting it. Add one and put it anywhere.
-        </Alert>
-      ) : null}
+      }
+    >
       {face.texts.map((text, index) => (
         <Stack key={index} gap="sm">
           {index > 0 ? <Divider /> : null}
@@ -358,15 +314,17 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
               />
             }
           />
-          <PlacementControl
+          <RangeField
             title="Size"
+            typedBeyondRange
+            decimals={2}
             description={`Cap height in face units; the face is ${FACE_HEIGHT} tall.`}
             value={text.size}
             onChange={(value) => setText(index, { size: value })}
             min={4}
             max={160}
           />
-          <PlacementControl
+          <RangeField
             title="Opacity"
             value={text.opacity}
             onChange={(value) => setText(index, { opacity: value })}
@@ -375,15 +333,19 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
             step={0.05}
           />
           <Group grow align="flex-start">
-            <PlacementControl
+            <RangeField
               title={`Text ${index + 1} horizontal offset`}
+              typedBeyondRange
+              decimals={2}
               value={text.offset[0]}
               onChange={(value) => setText(index, { offset: [value, text.offset[1]] })}
               min={-FACE_WIDTH}
               max={FACE_WIDTH}
             />
-            <PlacementControl
+            <RangeField
               title={`Text ${index + 1} vertical offset`}
+              typedBeyondRange
+              decimals={2}
               value={text.offset[1]}
               onChange={(value) => setText(index, { offset: [text.offset[0], value] })}
               min={-FACE_HEIGHT}
@@ -392,7 +354,7 @@ function TextsFields({ face, patch }: { face: RectangleFaceDraft; patch: FacePat
           </Group>
         </Stack>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 

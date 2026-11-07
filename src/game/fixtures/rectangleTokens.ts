@@ -9,7 +9,7 @@ const face = (data: RectangleTokenFaceData) => data;
 
 /**
  * Authored faces shared by the stories.
- * Between them they exercise every part of the free composition: an empty face, placed decals, multi-line text, four of the seven fonts, per-element opacity, and elements deliberately hung past the edge.
+ * Between them they exercise every part of the free composition: an empty face, placed decals, multi-line text, four of the eight fonts, per-element opacity, and elements deliberately hung past the edge.
  */
 export const rectangleTokenFixtures = {
   /** The state a fresh token starts in, and the one most likely to look wrong. */
@@ -23,7 +23,7 @@ export const rectangleTokenFixtures = {
     background: backgroundPresets.special,
     ring: false,
     decals: [
-      { id: '/vector/logo/atreides.svg', muted: false, outline: true, scale: 0.9, offset: [-55, -18], opacity: 1 },
+      { id: '/vector/emblem/atreides.svg', muted: false, outline: true, scale: 0.9, offset: [-55, -18], opacity: 1 },
     ],
     texts: [
       {
@@ -49,7 +49,7 @@ export const rectangleTokenFixtures = {
     background: backgroundPresets.worthless,
     ring: false,
     decals: [
-      { id: '/vector/logo/harkonnen.svg', muted: false, outline: false, scale: 1.6, offset: [110, 40], opacity: 0.5 },
+      { id: '/vector/emblem/harkonnen.svg', muted: false, outline: false, scale: 1.6, offset: [110, 40], opacity: 0.5 },
     ],
     texts: [{ content: 'KARAMA', offset: [-40, 4], size: 40, font: 'C_Desdemona', opacity: 1 }],
   }),

@@ -277,12 +277,12 @@ a fix ships as a new release. Production rows are never edited by hand
 
 First checks: `asset_publisher_cron` events with `result = failed`
 (`workers/publisher/index.ts:219-228`), and `asset_delivery_failure` filtered by `assetId`
-(`docs/deployment.md:110-130`). Open `/_admin/jobs` as an administrator for the pickup switch and error
+(`docs/deployment.md:110-130`). Open `/admin/jobs` as an administrator for the pickup switch and error
 jobs (`docs/deployment.md:449-463`).
 
 Recovery: follow "Post-deploy observation" (`docs/deployment.md`). The Cron does not retry a
 failed invocation (`workers/publisher/index.ts:143`); the next one runs five minutes later. Turning
-pickup off at `/_admin/jobs` stops new leases but not leased work. Play depends on published faction and
+pickup off at `/admin/jobs` stops new leases but not leased work. Play depends on published faction and
 deck assets: a real game refuses a faction until its faces are published and sets it aside with the
 reason (`docs/technical/play-hosted.md:320-327`).
 
@@ -350,7 +350,7 @@ There is no rollback procedure. Fixes ship as new forward deployments, and the g
 rolled back or redeployed to an older release on its own, because a page and a game Worker from
 different releases can refuse each other's messages (`docs/deployment.md:19-24`). `release_gate`
 stops any run whose commit is older than what production reports
-(`scripts/deploy-decision.ts:39-71`). To undo a change, revert it on `main` and let the deploy run.
+(`decide` in `scripts/deploy-decision.ts`). To undo a change, revert it on `main` and let the deploy run.
 
 ## 5. Known gaps
 

@@ -25,17 +25,13 @@ function formatDate(timestamp?: number) {
 
 const migrationsHeader = <PageTitle title="Migration activity" />;
 
-function MigrationsLoading() {
-  return <AdminPageLoading title="Migration activity">The migration dashboard is still loading.</AdminPageLoading>;
-}
-
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
 function MigrationDashboard() {
   const dashboard = useAdminMigrationDashboard();
   const syncRuns = useSyncMigrationRuns();
 
   if (dashboard === undefined) {
-    return <MigrationsLoading />;
+    return <AdminPageLoading title="Migration activity">The migration dashboard is still loading.</AdminPageLoading>;
   }
 
   return (

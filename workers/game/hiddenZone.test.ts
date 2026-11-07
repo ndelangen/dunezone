@@ -106,9 +106,11 @@ describe('the hidden zone', () => {
   test('forgets the spot when the piece is played onto the table', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LEADER, at: { x: 0.25, y: 0.5 } });
+    const before = new Set(room.snapshot.table.pieces.map((piece) => piece.id));
     send({ kind: 'hand-play', pieceId: LEADER, position: [1, 0, 1] });
-    const played = room.snapshot.table.pieces.find((piece) => piece.id === LEADER);
-    expect(played).toBeDefined();
+    /* A leader leaves the hand under a new id, so it is the one piece the table did not hold before. */
+    const played = room.snapshot.table.pieces.find((piece) => !before.has(piece.id));
+    expect(played?.label).toBe('Fixture leader');
     expect(played).not.toHaveProperty('hiddenZone');
   });
 
@@ -116,7 +118,7 @@ describe('the hidden zone', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-zone', pieceId: LOOSE, at: { x: 0.25, y: 0.5 } });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -148,7 +150,7 @@ describe('the hidden zone', () => {
     const { room, send } = roomWithHand();
     send({ kind: 'hand-order', pieceId: LEADER, before: LOOSE });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -170,7 +172,7 @@ describe('the hidden zone', () => {
     room.snapshot.table.pieces.push({ ...structuredClone(card), id: SECOND, position: [2, 0.14, 0] });
     send({ kind: 'hand-take', pieceId: SECOND });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({
@@ -197,7 +199,7 @@ describe('the hidden zone', () => {
     send({ kind: 'hand-take', pieceId: SECOND });
     send({ kind: 'hand-take', pieceId: THIRD });
     room.snapshot.phase = STANDARD_PHASES.findIndex((phase) => phase.id === 'battle');
-    send({ kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' });
+    send({ kind: 'battle-start', anchor: [0, 0, 0] });
     const battleId = room.snapshot.battleState!.id;
     send({ kind: 'battle-claim', battleId, side: 0 });
     send({

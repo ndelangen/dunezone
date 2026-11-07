@@ -1,15 +1,13 @@
-import { Anchor, Badge, Button, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Menu, Popover, Stack, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- A full-width disclosure toggle for the context panel, not an action. */
+import { Button } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FactionCard } from '@ui/block/FactionCard';
-import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
@@ -17,14 +15,17 @@ import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
-import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SaveAction } from '@ui/control/SaveAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
@@ -46,12 +47,13 @@ import type { ReactNode } from 'react';
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { loadFaqQuestionPage, useFaqQuestionPage } from '@db/faq';
 import type { FaqReferencePreview } from '@db/faq';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { CataloguePicker } from '@app/pickers/CataloguePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './$questionSlug.module.css';
 import { INITIAL_FAQ_EDITING_STATE, createFaqEditingSession, faqQuestionHasChanges } from './faqEditingSession';
@@ -104,31 +106,28 @@ function FaqDetailError({ error }: ErrorComponentProps) {
   const { rulesetSlug } = Route.useParams();
   if (isPublicPageNotFound(error)) {
     return (
-      <PageMessage
+      <RouteNotFound
         title="FAQ"
         back={
           <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
             Back to ruleset
           </PageMessage.Back>
         }
-      >
-        <NotAvailable title="Question not found">This FAQ question does not exist in this ruleset.</NotAvailable>
-      </PageMessage>
+        noun="FAQ question"
+      />
     );
   }
   return (
-    <PageMessage
+    <RouteLoadError
       title="FAQ"
       back={
         <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
           Back to ruleset
         </PageMessage.Back>
       }
-    >
-      <LoadError title="This question could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="This question could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -158,17 +157,22 @@ function AddAnswerForm({ createAnswer }: { createAnswer: FaqQuestionCommands['cr
           .catch(() => undefined);
       }}
     >
-      <FormattedTextInput
-        label="Your answer"
+      <ControlBlock
+        title="Your answer"
         description="Post one answer. You can update it later."
-        error={createAnswer.isError ? createAnswer.error?.message : undefined}
-        name="answer"
-        rows={3}
-        required
-        minLength={1}
-        placeholder="Your answer..."
-        value={answer}
-        onChange={setAnswer}
+        input={(fieldProps) => (
+          <FormattedTextInput
+            {...fieldProps}
+            error={createAnswer.isError ? createAnswer.error?.message : undefined}
+            name="answer"
+            rows={3}
+            required
+            minLength={1}
+            placeholder="Your answer..."
+            value={answer}
+            onChange={setAnswer}
+          />
+        )}
       />
       <Group gap="xs" wrap="nowrap">
         <IconAction
@@ -197,6 +201,24 @@ function createPageEditingSession(initial: ReturnType<typeof useFaqQuestionPage>
       commands = next;
     },
   };
+}
+
+/** The question's frame while it and its answers load. */
+function FaqQuestionPending() {
+  const { rulesetSlug } = Route.useParams();
+  return (
+    <RoutePending
+      title="FAQ"
+      back={
+        <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
+          Back to ruleset
+        </PageMessage.Back>
+      }
+      loading="Loading question"
+    >
+      This question and its answers are still loading.
+    </RoutePending>
+  );
 }
 
 function FaqDetailPage() {
@@ -243,18 +265,7 @@ function FaqDetailPage() {
   }, [item, answers]);
 
   if (!item) {
-    return (
-      <PageMessage
-        title="FAQ"
-        back={
-          <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-            Back to ruleset
-          </PageMessage.Back>
-        }
-      >
-        <LoadPending title="Loading question">This question and its answers are still loading.</LoadPending>
-      </PageMessage>
-    );
+    return <FaqQuestionPending />;
   }
 
   /* The page is the same for everyone; its controls follow the viewer, whose capabilities are the signed-out ones until the session settles. */
@@ -288,20 +299,17 @@ function FaqDetailPage() {
             />
             <FaqContext faq={faq} />
             <div className={styles.answers}>
-              <Section
-                title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`}
-                id="discussion"
-                description={
-                  hasAcceptedAnswer
+              <Section title={`${answers.length} ${answers.length === 1 ? 'answer' : 'answers'}`} id="discussion">
+                <Text size="sm" c="dimmed">
+                  {hasAcceptedAnswer
                     ? 'Accepted answer first. Other answers run from oldest to newest.'
-                    : 'Answers run from oldest to newest.'
-                }
-              >
-                {faq.setAcceptedAnswer.error || faq.deleteAnswer.error ? (
-                  <FormError title="Could not update the answer">
-                    {errorMessage(faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error)}
-                  </FormError>
-                ) : null}
+                    : 'Answers run from oldest to newest.'}
+                </Text>
+                <ActionError
+                  subject="Answer"
+                  verb="update"
+                  error={faq.setAcceptedAnswer.error ?? faq.deleteAnswer.error}
+                />
                 {answers.length ? (
                   <ul className={styles.answerList}>
                     {answers.map((answer) => (
@@ -351,7 +359,7 @@ function FaqDetailPage() {
               </Section>
             </div>
             <div className={styles.related}>
-              <Section title="Related questions" description="More questions about the same factions and assets.">
+              <Section title="Related questions" help="More questions about the same factions and assets.">
                 <FaqList
                   items={page.relatedQuestions}
                   emptyLabel="No related questions yet."
@@ -405,15 +413,18 @@ function FaqAnswerPost({
           <FaqAnswerHeading faq={faq} answer={answer} editing={editing} editingSession={editingSession} />
           {editing.editingAnswerId === answer.id ? (
             <Stack gap="sm">
-              <FormattedTextInput
-                label="Edit your answer"
-                value={editing.answerValue}
-                onChange={(value) => editingSession.setAnswerValue(value)}
-                rows={3}
+              <ControlBlock
+                title="Edit your answer"
+                input={(fieldProps) => (
+                  <FormattedTextInput
+                    {...fieldProps}
+                    value={editing.answerValue}
+                    onChange={(value) => editingSession.setAnswerValue(value)}
+                    rows={3}
+                  />
+                )}
               />
-              {faq.editAnswer.error ? (
-                <FormError title="Answer could not be saved">{faq.editAnswer.error.message}</FormError>
-              ) : null}
+              <ActionError subject="Answer" verb="save" error={faq.editAnswer.error} />
               <FaqEditorActions
                 name="answer"
                 dirty={editing.answerValue.trim() !== answer.text}
@@ -431,16 +442,16 @@ function FaqAnswerPost({
               </div>
               {!hasAcceptedAnswer && answer.capabilities.acceptAnswer ? (
                 <Group justify="flex-end">
-                  <Button
-                    color="confirm"
-                    variant="filled"
+                  <LabeledAction
+                    intent="positive"
+                    emphasis="strong"
                     size="sm"
-                    leftSection={<BadgeCheck size={17} aria-hidden />}
-                    loading={faq.setAcceptedAnswer.isPending}
+                    icon={<BadgeCheck size={17} />}
+                    busy={faq.setAcceptedAnswer.isPending}
                     onClick={() => void faq.setAcceptedAnswer.run({ answerId: answer.id }).catch(() => undefined)}
                   >
                     Accept answer
-                  </Button>
+                  </LabeledAction>
                 </Group>
               ) : null}
             </>
@@ -543,7 +554,12 @@ function FaqPostActions({
         {onDelete ? (
           <>
             {onEdit || onUnmark ? <Menu.Divider /> : null}
-            <ConfirmDeleteMenuItem label={`Hold to delete ${name}`} pending={deletePending} onConfirm={onDelete} />
+            <HoldAction
+              shape="menu-item"
+              label={`Hold to delete ${name}`}
+              pending={deletePending}
+              onConfirm={onDelete}
+            />
           </>
         ) : null}
       </Menu.Dropdown>
@@ -646,9 +662,7 @@ function FaqQuestionPost({
                 · {answers.length} {answers.length === 1 ? 'answer' : 'answers'}
               </Text>
             </Group>
-            {faq.deleteQuestion.error ? (
-              <FormError title="Question could not be deleted">{faq.deleteQuestion.error.message}</FormError>
-            ) : null}
+            <ActionError subject="Question" verb="delete" error={faq.deleteQuestion.error} />
             {editing.editingQuestion ? (
               <FaqQuestionEditor faq={faq} editing={editing} editingSession={editingSession} />
             ) : item.text.trim() !== questionHeading ? (
@@ -660,11 +674,7 @@ function FaqQuestionPost({
               <Anchor href="#discussion" size="sm" underline="never">
                 Read the answers
               </Anchor>
-              {(item.tags ?? []).map((tag) => (
-                <Badge key={tag} size="xs" variant="outline" color="dune">
-                  {FAQ_TAG_LABELS[tag]}
-                </Badge>
-              ))}
+              <ChipList items={(item.tags ?? []).map((tag) => ({ key: tag, label: FAQ_TAG_LABELS[tag] }))} />
             </Group>
           </Stack>
         </Card>
@@ -677,17 +687,20 @@ function FaqQuestionEditor({ faq, editing, editingSession }: FaqPostEditing) {
   const item = faq.page!.question;
   return (
     <Stack gap="sm">
-      <FormattedTextInput
-        label="Edit question"
-        value={editing.questionValue}
-        onChange={(value) => editingSession.setQuestionValue(value)}
-        profile="marks-only"
-        rows={2}
+      <ControlBlock
+        title="Edit question"
+        input={(fieldProps) => (
+          <FormattedTextInput
+            {...fieldProps}
+            value={editing.questionValue}
+            onChange={(value) => editingSession.setQuestionValue(value)}
+            profile="marks-only"
+            rows={2}
+          />
+        )}
       />
       <FaqTagFieldset value={editing.tagValues} onToggle={(tag, checked) => editingSession.toggleTag(tag, checked)} />
-      {faq.editQuestion.error ? (
-        <FormError title="Question could not be saved">{faq.editQuestion.error.message}</FormError>
-      ) : null}
+      <ActionError subject="Question" verb="save" error={faq.editQuestion.error} />
       <FaqEditorActions
         name="question"
         dirty={faqQuestionHasChanges(item, editing)}
@@ -859,9 +872,7 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
                 void faq.addReference.run(target).catch(() => undefined);
               }}
             />
-            {faq.addReference.error ? (
-              <FormError title="Could not add reference">{errorMessage(faq.addReference.error)}</FormError>
-            ) : null}
+            <ActionError subject="reference" verb="add" error={faq.addReference.error} />
           </Stack>
         ) : null}
       </Popover.Dropdown>
@@ -871,24 +882,24 @@ function FaqReferenceAdd({ faq }: { readonly faq: FaqQuestionCommands }) {
 
 function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
   return faq.references.length > 0 ? (
-    <TileGrid density="compact">
+    <TileGrid size="compact">
       {faq.references.map((reference) => (
         <FaqReferenceTile
           key={reference.id}
           reference={reference}
           action={
             faq.canManageReferences ? (
-              <Button
-                variant="subtle"
-                size="compact-xs"
-                disabled={faq.removeReference.isPending}
-                aria-label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+              <IconAction
+                label={`Remove reference to ${reference.kind === 'faction' ? reference.faction.data.name : reference.asset.name}`}
+                intent="negative"
+                emphasis="quiet"
+                size="sm"
+                icon={<X size={14} aria-hidden />}
+                loading={faq.removeReference.isPending}
                 onClick={() => {
                   void faq.removeReference.run(reference).catch(() => undefined);
                 }}
-              >
-                Remove
-              </Button>
+              />
             ) : undefined
           }
         />
@@ -902,9 +913,5 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
 }
 
 function FaqReferenceError({ faq }: { faq: FaqQuestionCommands }) {
-  return faq.addReference.error || faq.removeReference.error ? (
-    <FormError title="Could not update references">
-      {errorMessage(faq.addReference.error ?? faq.removeReference.error)}
-    </FormError>
-  ) : null;
+  return <ActionError subject="references" verb="update" error={faq.addReference.error ?? faq.removeReference.error} />;
 }

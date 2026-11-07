@@ -1,7 +1,7 @@
 /* @jsxImportSource @app/widgets/tabletop/three-jsx */
 
 import { factionTokenFaceUp, factionTokenOf } from '@shared/play/factionToken';
-import { handCountGrid } from '@shared/play/handCounts';
+import { handCountGrid, handCountsShowing } from '@shared/play/handCounts';
 import { stormOrder } from '@shared/play/stormSector';
 import { CARD_SLOT_OUTER_SIZE, cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
 import { playUiColors, withAlpha } from '@shared/uiPalette';
@@ -28,7 +28,7 @@ const DEPTH = CARD_SLOT_OUTER_SIZE.depth;
 const PX = 1024 / DEPTH;
 /* The space kept clear around the whole cluster, as a share of the slot's width (Norbert, #1007). */
 const PADDING = 0.12;
-/* A cell is a logo with its count beside it. */
+/* A cell is an emblem with its count beside it. */
 const CELL_ASPECT = 1.75;
 const GOLD = playUiColors.annotationGold;
 
@@ -44,14 +44,14 @@ type Row = {
 };
 
 /*
- * Each logo is decoded once and reused by every repaint; a failed load is tried again next time.
- * A table seats at most 18 factions, so keeping the latest 32 holds a whole game's logos without piling up across games.
+ * Each emblem is decoded once and reused by every repaint; a failed load is tried again next time.
+ * A table seats at most 18 factions, so keeping the latest 32 holds a whole game's emblems without piling up across games.
  */
-const logoLoads = new Map<string, Promise<HTMLImageElement | null>>();
-const KEPT_LOGOS = 32;
+const emblemLoads = new Map<string, Promise<HTMLImageElement | null>>();
+const KEPT_EMBLEMS = 32;
 
 function loadImage(href: string): Promise<HTMLImageElement | null> {
-  let loading = logoLoads.get(href);
+  let loading = emblemLoads.get(href);
   if (!loading) {
     const request: Promise<HTMLImageElement | null> = new Promise((resolve) => {
       const image = new Image();
@@ -59,17 +59,17 @@ function loadImage(href: string): Promise<HTMLImageElement | null> {
       image.onload = () => resolve(image);
       image.onerror = () => {
         /* Only this request's own entry: an evicted request must not drop the one that replaced it. */
-        if (logoLoads.get(href) === request) {
-          logoLoads.delete(href);
+        if (emblemLoads.get(href) === request) {
+          emblemLoads.delete(href);
         }
         resolve(null);
       };
       image.src = href;
     });
     loading = request;
-    logoLoads.set(href, loading);
-    if (logoLoads.size > KEPT_LOGOS) {
-      logoLoads.delete(logoLoads.keys().next().value!);
+    emblemLoads.set(href, loading);
+    if (emblemLoads.size > KEPT_EMBLEMS) {
+      emblemLoads.delete(emblemLoads.keys().next().value!);
     }
   }
   return loading;
@@ -79,7 +79,7 @@ function loadImage(href: string): Promise<HTMLImageElement | null> {
 type Disc = { cx: number; cy: number; radius: number; font: string };
 
 /** The faction token's face in a gold ring, or its initials on its colour when the face cannot load. */
-function drawLogo(
+function drawEmblem(
   context: CanvasRenderingContext2D,
   row: Row,
   image: HTMLImageElement | null,
@@ -166,7 +166,7 @@ function paint(
     }
     const radius = Math.min(cellHeight * 0.4, cellWidth * 0.27);
     const cx = x + cellWidth * 0.08 + radius;
-    drawLogo(context, row, row.front ? (images.get(row.front) ?? null) : null, { cx, cy, radius, font });
+    drawEmblem(context, row, row.front ? (images.get(row.front) ?? null) : null, { cx, cy, radius, font });
     drawCount(context, String(row.count), {
       x: cx + radius * 1.3,
       y: cy + radius * 0.08,
@@ -233,6 +233,8 @@ function useHandCountTexture(rows: readonly Row[]) {
 
 /**
  * Every seated faction's Treachery card count, in storm order, painted into the left card bay's empty slot where bidding is watched (#1007).
+ * It belongs to the Bidding phase, so the table shows it only then (#2671);
+ * the scene stays mounted through the other phases, keeping its painted texture for the next Bidding.
  * A faction whose token lies face down sits out the round, so its count is greyed out as the bidder greys it.
  */
 export function HandCountsScene({ table }: { table: TableProjection }) {
@@ -242,7 +244,9 @@ export function HandCountsScene({ table }: { table: TableProjection }) {
     [table.state.stormSectorIndex, roster, table.state.pieces]
   );
   const texture = useHandCountTexture(handCountRows(table, order));
-  const shown = Boolean(roster && table.snapshot.handCounts);
+  const shown = Boolean(
+    roster && table.snapshot.handCounts && handCountsShowing(table.snapshot.phase, table.snapshot.phases)
+  );
   if (!shown || !texture) {
     return null;
   }

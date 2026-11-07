@@ -181,8 +181,8 @@ Without `--snapshot-file <zip>`, the launch downloads the newest snapshot that t
 snapshot` workflow uploaded from `main`, using the GitHub CLI (`gh auth login` first). It ignores an
 artifact of that name from any other workflow, event, branch or fork, and one from a run that did
 not succeed. The download goes to the launch's private temporary directory, and the launch deletes
-it as soon as the import finishes or fails. Nothing is cached between launches. The workflow runs weekly and
-keeps each upload for eight days, so the newest is usually under a week old (after a failed Monday run the previous upload lasts about one more day, then none is left until the next Monday's run or a manual dispatch), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
+it as soon as the import finishes or fails. Nothing is cached between launches. The workflow refreshes weekly and
+keeps each upload for eight days, so the newest is usually under a week old (a failed Monday run is retried each day until one succeeds), and it uploads only while its `SNAPSHOT_UPLOAD` switch is `"true"`. With no
 artifact, or when GitHub cannot be reached, the launch stops before Docker starts and points at
 `--data=fixture`.
 
@@ -255,7 +255,7 @@ their progress and are skipped. A failed push or migration fails the job without
 exporting production. Schema changes follow the same widen, migrate, verify and narrow sequence
 as production. If dev missed a prerequisite release, recover it explicitly before narrowing.
 
-Every Monday at 05:17 UTC, `Anonymised snapshot` exports production once, anonymises and scans it,
+Every Monday at 05:17 UTC, or on the next day if that run fails, `Anonymised snapshot` exports production once, anonymises and scans it,
 uploads the published-only snapshot for local development, then refreshes cloud dev from that same
 file. The refresh verifies the snapshot before clearing dev, pushes the selected release, imports the snapshot,
 seeds Rulebook drafts, checks the rebuild contract and rebuilds derived data through the migration
@@ -517,7 +517,9 @@ Dune card/faction rendering and Storybook stories live in `src/game`. **Source**
 (#1888). `bun run media:sync` downloads them into `media/` and uploads new or changed ones.
 Everything under `public/m/**`, `public/image/**` and `public/web/**` is generated output and
 gitignored, apart from the committed files named in `COMMITTED_WEB_FILES`
-(`src/shared/assetRules.ts`). Run `bun run generate:images` locally, and see the image pipeline
+(`src/shared/assetRules.ts`). `app:dev`, `storybook` and `play:local` bring it up to date on start
+(`generate:images --if-stale`), filling from a store shared by every checkout on the machine and from
+`https://dune.zone/m/`, so a fresh worktree makes no requests once another has run. See the image pipeline
 section of [`AGENTS.md`](../AGENTS.md) and the [media runbooks](./technical/media-runbooks.md). `scripts/generate.ts` refreshes `src/shared/assetIds.ts`,
 the typed public-asset catalog used by game schemas, and `src/shared/media/vectorCrops.generated.ts`,
 the geometry used to fit illustrations after square normalization.

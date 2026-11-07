@@ -1,11 +1,11 @@
 import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
 import type { ProfileEntry } from '@db/profiles';
 
-import styles from './ProfileLink.module.css';
+import { EntityLink } from './EntityLink';
+import { NameDisc } from './NameDisc';
 
 type ProfileLinkBase = {
   slug: ProfileEntry['slug'];
@@ -49,43 +49,29 @@ export const ProfileLink = ({
   style,
   title,
   showName = true,
-  tone = 'default',
-  underline = 'hover',
-  density = 'default',
-  presentation = 'citation',
+  tone,
+  underline,
+  density,
+  presentation,
 }: ProfileLinkProps) => {
-  const afterAvatar = showName ? (
-    <span className={clsx(styles.username, tone === 'inverse' && styles.inverse)}>{name}</span>
-  ) : null;
-
-  const link = (
-    <Link
-      to="/profiles/$profileSlug"
-      params={{ profileSlug: slug }}
-      className={clsx(
-        styles.link,
-        underline === 'hover' && styles.underlined,
-        density === 'compact' && styles.compact,
-        presentation === 'contributor' && styles.contributor,
-        className
-      )}
+  return (
+    <EntityLink
+      name={name ?? ''}
+      /* Decorative: the name is beside it, or `title` names the link, so announcing the picture too made a link read as "CE Central". */
+      disc={<NameDisc name={name ?? ''} src={image} size="var(--entity-link-media-size)" />}
+      showName={showName}
+      label={title}
+      tone={tone}
+      underline={underline}
+      density={density}
+      presentation={presentation}
+      className={className}
       style={style}
-      /* Without the name beside it, `title` is the link's only text; naming it explicitly keeps it announced everywhere. */
-      aria-label={showName ? undefined : title}
-    >
-      {/*
-        The mark is decorative in both branches. The name is already beside it, or `title` carries it,
-        so announcing the picture or the initials too made a link read as "CE Central".
-      */}
-      {image ? (
-        <img src={image} alt="" className={styles.avatar} />
-      ) : (
-        <span className={styles.avatarPlaceholder} aria-hidden>
-          {name?.slice(0, 2).toUpperCase()}
-        </span>
-      )}
-      {afterAvatar}
-    </Link>
+      renderRoot={(props) => {
+        const link = <Link to="/profiles/$profileSlug" params={{ profileSlug: slug }} {...props} />;
+        /* The tooltip wraps the link itself, which is what takes its hover handlers and ref. */
+        return title ? <Tooltip label={title}>{link}</Tooltip> : link;
+      }}
+    />
   );
-  return title ? <Tooltip label={title}>{link}</Tooltip> : link;
 };

@@ -7,7 +7,7 @@ import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import type { TableSession } from '../../../../db/tabletop/TableSession';
-import { SeatPopover, StagePlayback, VacantSeatRequests } from './SeatRequests';
+import { SeatPopover, StagePlayback } from './SeatRequests';
 
 window.matchMedia = vi.fn().mockImplementation((query: string) => ({
   matches: false,
@@ -58,7 +58,7 @@ function renderPlayback(stage: 'drafting' | 'play' | 'finished', step: number, e
 test('playback of a stage before play steps through checkpoints from the header and returns to live', () => {
   const client = renderPlayback('drafting', 0);
   expect(screen.getByText('Playback checkpoint 0 of 3')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Earlier phase' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Earlier phase' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: 'Later phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(1);
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
@@ -68,77 +68,11 @@ test('playback of a stage before play steps through checkpoints from the header 
 test('playback of a finished game keeps stepping and returning to live in the header', () => {
   const client = renderPlayback('finished', 3);
   expect(screen.getByText('Playback checkpoint 3 of 3')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Later phase' }).hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Later phase' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('button', { name: 'Earlier phase' }));
   expect(client.requestHistory).toHaveBeenCalledWith(2);
   fireEvent.click(screen.getByRole('button', { name: 'Return to live' }));
   expect(client.resumeLive).toHaveBeenCalled();
-});
-
-function vacantTable(seatRequests: { id: string; requesterName: string; seat: string }[]) {
-  return {
-    viewer: { viewerSeat: 'seat-1' },
-    snapshot: {
-      stage: 'play',
-      roster: {
-        seatCount: 3,
-        seats: ['seat-1', 'seat-2', 'seat-3'].map((id, position) => ({ id, position, faction: null })),
-      },
-      controls: { seats: ['seat-1', 'seat-2'], seatRequests },
-    },
-    playback: null,
-    seatCommandPending: false,
-  } as unknown as Parameters<typeof VacantSeatRequests>[0]['table'];
-}
-
-test("a player approves a request from the vacant seat's Info; a seat taken since offers nothing", () => {
-  const client = { command: vi.fn() };
-  const table = vacantTable([
-    { id: 'request-taken', requesterName: 'Late', seat: 'seat-2' },
-    { id: 'request-open', requesterName: 'Next', seat: 'seat-3' },
-  ]);
-  const { rerender } = render(
-    <MantineProvider theme={appContentTheme}>
-      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-2" />
-    </MantineProvider>
-  );
-  expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
-  rerender(
-    <MantineProvider theme={appContentTheme}>
-      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-3" />
-    </MantineProvider>
-  );
-  expect(screen.getByText('Next', { exact: false }).textContent).toBe('Next');
-  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
-  expect(client.command).toHaveBeenCalledWith({ kind: 'seat-approve', requestId: 'request-open' });
-});
-
-test('a finished game offers no approval until it continues', () => {
-  const table = vacantTable([{ id: 'request-open', requesterName: 'Next', seat: 'seat-3' }]);
-  const finished = { ...table, snapshot: { ...table.snapshot, stage: 'finished' } } as typeof table;
-  render(
-    <MantineProvider theme={appContentTheme}>
-      <VacantSeatRequests client={{ command: vi.fn() } as unknown as TableSession} table={finished} seat="seat-3" />
-    </MantineProvider>
-  );
-  expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
-});
-
-test('a press that began on one request never approves the request swapped in under it', () => {
-  const client = { command: vi.fn() };
-  const info = (table: ReturnType<typeof vacantTable>) => (
-    <MantineProvider theme={appContentTheme}>
-      <VacantSeatRequests client={client as unknown as TableSession} table={table} seat="seat-3" />
-    </MantineProvider>
-  );
-  const first = { id: 'seat-request-1', requesterName: 'First', seat: 'seat-3' };
-  const second = { id: 'seat-request-2', requesterName: 'Second', seat: 'seat-3' };
-  const { rerender } = render(info(vacantTable([first])));
-  /* Another tab approves the first request before this press ends, and a second request takes its place. */
-  pressAcross(screen.getByRole('button', { name: 'Approve' }), () => rerender(info(vacantTable([second]))));
-  expect(client.command).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
-  expect(client.command).toHaveBeenCalledExactlyOnceWith({ kind: 'seat-approve', requestId: 'seat-request-2' });
 });
 
 test('a spectator press that began on one open seat never requests the seat left once it is taken', async () => {

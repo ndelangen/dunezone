@@ -1,4 +1,4 @@
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -16,9 +16,9 @@ export function AppNotFound() {
   return (
     <ApplicationChrome>
       <PageMessage title="Page not found" back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
-        <NotAvailable title="This page does not exist">
+        <PageState kind="absent" title="This page does not exist">
           The address may be mistyped, or whatever lived here has since been removed.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     </ApplicationChrome>
   );

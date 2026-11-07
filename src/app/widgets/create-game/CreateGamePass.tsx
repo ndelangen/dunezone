@@ -1,4 +1,4 @@
-import { Anchor, Box, Button, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { Anchor, Box, Divider, Group, Select, Slider, Stack, Switch, Text } from '@mantine/core';
 import { playCreateGameRequestSchema } from '@shared/play/admission';
 import { playGameNameSchema } from '@shared/play/gameNames';
 import { generatePlayGameName } from '@shared/play/generatedGameNames';
@@ -9,17 +9,21 @@ import {
   TABLE_SEAT_COUNTS,
   tableSeatAngles,
 } from '@shared/play/tableSettings';
-import { FormError } from '@ui/block/FormError';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { BoardSeats } from '@ui/content/BoardSeats';
 import { CountHeading } from '@ui/content/CountHeading';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { GameName } from '@ui/content/GameName';
 import { SeatRow } from '@ui/content/SeatRow';
+import { CallToAction } from '@ui/control/CallToAction';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
+import { useId } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -196,6 +200,16 @@ export function CreateGamePass({
       nameReady,
       summary: `${createdGameName(draft)}, ${chosen?.name}, ${draft.minimumPlayers} seats, ${draft.lastTurn} turns.`,
     });
+  /* The line under the button reads the summary once the pass is filled in; the button's reason never does. */
+  const summaryShown = !disabledReason && !notice && chosen !== undefined && objection === null && nameReady;
+  const blockedReason =
+    canCreate || pending
+      ? undefined
+      : summaryShown
+        ? rulesetCheck === 'checking'
+          ? 'Checking the ruleset first.'
+          : 'Finish the game pass first.'
+        : waiting;
 
   return (
     <>
@@ -242,11 +256,11 @@ export function CreateGamePass({
                   onChange={(lastTurn) => dispatch({ kind: 'patch', update: { lastTurn } })}
                   disabled={pending}
                 />
-                {shownFailure ? <FormError title="Not created">{shownFailure}</FormError> : null}
+                <ActionError subject="Game" verb="create" error={shownFailure} />
                 <Stack gap="xs">
-                  <Button type="submit" size="lg" fullWidth disabled={!canCreate} loading={pending}>
+                  <CallToAction submit size="lg" busy={pending} disabledReason={blockedReason}>
                     Create game
-                  </Button>
+                  </CallToAction>
                   <Text size="sm" c="dimmed" ta="center" role="status">
                     {waiting}
                   </Text>
@@ -299,16 +313,14 @@ function NameField({
       <GameName pending={draft.custom && !draft.customName.trim()}>{createdGameName(draft)}</GameName>
       <Group gap="md">
         {draft.custom ? null : (
-          <Button
-            variant="default"
+          <LabeledAction
             size="xs"
-            radius="xl"
-            leftSection={<Dices size={15} aria-hidden />}
+            icon={<Dices size={15} />}
+            disabledReason={disabled ? 'The game is being created.' : undefined}
             onClick={() => dispatch({ kind: 'reroll' })}
-            disabled={disabled}
           >
             Roll another name
-          </Button>
+          </LabeledAction>
         )}
         <Switch
           label="Set a custom name"
@@ -370,50 +382,58 @@ function RulesetField({
   /* Any finished check can be asked again, for a fix the page has not seen yet. */
   const recheckable = onRecheck && chosen && check !== 'checking';
   const objections = new Map<string, string | null>(rulesets.map((ruleset) => [ruleset.id, ruleset.objection]));
+  const statusId = useId();
   return (
-    <Select
-      label="Ruleset"
-      placeholder="Choose a ruleset"
-      searchable
-      nothingFoundMessage="No ruleset has that name"
-      value={value || null}
-      onChange={(id) => id && onChange(id)}
-      allowDeselect={false}
-      disabled={disabled}
-      data={rulesets.map((ruleset) => ({
-        value: ruleset.id,
-        label: ruleset.name,
-        disabled: !ruleset.selectable,
-      }))}
-      renderOption={({ option }) => {
-        const objection = objections.get(option.value);
-        return (
-          <Stack gap={0}>
-            <Text size="sm">{option.label}</Text>
-            {objection ? (
-              <Text size="xs" c="red">
-                {objection}
-              </Text>
-            ) : null}
-          </Stack>
-        );
-      }}
-      description={
-        chosen ? (
-          <Text component="span" size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
-            {chosen.objection ?? RULESET_CHECK_LINES[check]}
-            {recheckable ? (
-              <>
-                {' '}
-                <Anchor component="button" type="button" size="xs" onClick={onRecheck} disabled={disabled}>
-                  Check again
-                </Anchor>
-              </>
-            ) : null}
-          </Text>
-        ) : undefined
-      }
-      comboboxProps={{ shadow: 'md' }}
+    <ControlBlock
+      title="Ruleset"
+      input={(fieldProps) => (
+        /* The check's verdict is live state, not help, so it stays on screen under the field and describes it. */
+        <Stack gap={4}>
+          <Select
+            {...fieldProps}
+            attributes={chosen ? { input: { 'aria-describedby': statusId } } : undefined}
+            placeholder="Choose a ruleset"
+            searchable
+            nothingFoundMessage="No ruleset has that name"
+            value={value || null}
+            onChange={(id) => id && onChange(id)}
+            allowDeselect={false}
+            disabled={disabled}
+            data={rulesets.map((ruleset) => ({
+              value: ruleset.id,
+              label: ruleset.name,
+              disabled: !ruleset.selectable,
+            }))}
+            renderOption={({ option }) => {
+              const objection = objections.get(option.value);
+              return (
+                <Stack gap={0}>
+                  <Text size="sm">{option.label}</Text>
+                  {objection ? (
+                    <Text size="xs" c="red">
+                      {objection}
+                    </Text>
+                  ) : null}
+                </Stack>
+              );
+            }}
+            comboboxProps={{ shadow: 'md' }}
+          />
+          {chosen ? (
+            <Text id={statusId} size="xs" c={chosen.objection ? 'red' : 'dimmed'}>
+              {chosen.objection ?? RULESET_CHECK_LINES[check]}
+              {recheckable ? (
+                <>
+                  {' '}
+                  <Anchor component="button" type="button" size="xs" onClick={onRecheck} disabled={disabled}>
+                    Check again
+                  </Anchor>
+                </>
+              ) : null}
+            </Text>
+          ) : null}
+        </Stack>
+      )}
     />
   );
 }

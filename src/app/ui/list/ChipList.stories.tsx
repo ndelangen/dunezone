@@ -28,3 +28,10 @@ export const Default = meta.story({
     await expect(within(canvasElement).getAllByRole('listitem')).toHaveLength(NAMES.length);
   },
 });
+
+/** Words without pictures are drawn as tags, the glossary's avoided words or a question's topics. */
+export const Words = meta.story({
+  args: {
+    items: ['Traitor', 'Battle', 'Alliance', 'Spice blow', 'Karama'].map((word) => ({ key: word, label: word })),
+  },
+});

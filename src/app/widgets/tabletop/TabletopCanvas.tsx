@@ -9,6 +9,7 @@ import { releaseSharedMeshes } from './sharedMeshes';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
 import { useTablePalette } from './tablePalette';
+import { TABLE_ANTIALIAS, TABLE_DPR } from './tableRendering';
 import { useTableGraphics } from './useTableGraphics';
 
 /** Releases the table's shared shapes before Fiber disposes the renderer after root teardown. */
@@ -92,11 +93,11 @@ export function TabletopCanvas({
         <TableGraphicsBoundary silent={presentation === 'preview'} onShown={onUnavailable}>
           <Canvas
             camera={camera}
-            dpr={[1, 2]}
+            dpr={TABLE_DPR}
             /* Startup owns its first painted frames; later draws follow interaction and artwork changes. */
             frameloop={!painted ? 'always' : 'demand'}
             renderer={{
-              antialias: true,
+              antialias: TABLE_ANTIALIAS,
               alpha: presentation === 'preview',
               powerPreference: 'high-performance',
               toneMapping: NeutralToneMapping,

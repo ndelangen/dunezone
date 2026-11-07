@@ -1,0 +1,7 @@
+/* A named seat reads as the text around it, with a thin underline to say it has a card. */
+.mention {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: default;
+}

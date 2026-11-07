@@ -57,3 +57,8 @@ html[data-mantine-color-scheme="dark"] .glyph {
   aspect-ratio: 1;
   margin-inline-start: auto;
 }
+
+/* The credit wraps to the artwork's width, so the hover preview stays a compact card. */
+.hoverPreview {
+  width: 144px;
+}

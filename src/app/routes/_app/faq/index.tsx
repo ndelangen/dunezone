@@ -1,4 +1,4 @@
-import { Button, MultiSelect, Pill, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { MultiSelect, Pill, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { FAQ_CATALOGUE_PAGE_SIZE } from '@shared/faq/catalogueSearch';
 import { globalFaqRulesetSlugs, parseGlobalFaqSearch } from '@shared/faq/globalSearch';
 import type { GlobalFaqSearch } from '@shared/faq/globalSearch';
@@ -7,12 +7,14 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FaqWalkthrough } from '@ui/block/FaqWalkthrough';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
-import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
+import { BookOpen } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 
 import { loadGlobalFaqPage, loadGlobalFaqRulesetOptions, useGlobalFaqPage, useGlobalFaqRulesetOptions } from '@db/faq';
@@ -20,6 +22,7 @@ import type { GlobalFaqArgs, GlobalFaqPageData, GlobalFaqRulesetOptions } from '
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 
 import styles from './index.module.css';
 
@@ -147,10 +150,10 @@ function GlobalFaqPage() {
           {deps.q ? (
             <FaqResults deps={deps} initial={loaderData.page} />
           ) : (
-            <Section
-              title="How the FAQ works"
-              description="Ask about a ruleset, let the table weigh in, and mark the reply that settled it."
-            >
+            <Section title="How the FAQ works">
+              <Text size="sm" c="dimmed">
+                Ask about a ruleset, let the table weigh in, and mark the reply that settled it.
+              </Text>
               <FaqWalkthrough
                 asker="Chani"
                 askerImage={resolveAsset('/image/leader/official/chani.png', 'small')}
@@ -245,12 +248,12 @@ function RulesetSelect({
     label: option.name,
     questions: option.questions,
   }));
-  return (
+  const field = (fieldProps?: ControlBlockField) => (
     <MultiSelect
+      {...fieldProps}
       className={inToolbar ? styles.rulesetSegment : undefined}
       classNames={inToolbar ? { pillsList: styles.pillsRow } : undefined}
       variant={inToolbar ? 'unstyled' : 'default'}
-      label={label}
       aria-label={inToolbar ? 'Rulesets' : undefined}
       placeholder={value.length === 0 ? 'All rulesets' : undefined}
       data={data}
@@ -263,6 +266,7 @@ function RulesetSelect({
       comboboxProps={{ withinPortal: true }}
     />
   );
+  return label ? <ControlBlock title={label} input={field} /> : field();
 }
 
 /** The way to a question's home: questions belong to rulesets, so a new one is asked from its ruleset's page. */
@@ -272,9 +276,9 @@ function AskOnRuleset() {
       <Text ta="center">
         Got a question of your own? Ask it on its ruleset's page, where the people who play it will see it.
       </Text>
-      <Button variant="default" renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+      <LabeledAction icon={<BookOpen size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets" />}>
         Browse the rulesets
-      </Button>
+      </LabeledAction>
     </Stack>
   );
 }
@@ -300,48 +304,33 @@ function FaqResults({ deps, initial }: { deps: FaqDeps; initial: GlobalFaqPageDa
   const list = useRef<HTMLDivElement>(null);
   useFocusFirstNewRow(list, loaded, grown, QUESTION_ROW);
 
-  if (data.items.length === 0) {
-    return <NothingMatches capped={data.capped} />;
-  }
   return (
-    <Stack gap="lg" aria-busy={loading} ref={list}>
-      <FaqList
-        emptyLabel="No questions match."
-        items={data.items}
-        rulesetSlug={data.selected.length === 1 ? data.selected[0] : undefined}
-        onOpenQuestion={(questionSlug, rulesetSlug) =>
-          openQuestion({
-            to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-            params: { rulesetSlug, questionSlug },
-          })
-        }
-      />
-      {/* The rows say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? 'More questions loaded' : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={loadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
-/** No match among the questions checked; a capped search did not check them all, so another word may still find one. */
-function NothingMatches({ capped }: { capped: boolean }) {
-  return (
-    <Surface padding="xl">
-      <Stack gap="xs" align="center">
-        <Title order={2}>Nothing matches</Title>
-        <Text c="dimmed" ta="center">
-          {capped
-            ? 'No question matches this search among those checked, and some were not. A word or two more might help.'
-            : 'No question matches this search in the rulesets picked.'}
-        </Text>
-      </Stack>
-    </Surface>
+    <CatalogueResults
+      results={{
+        kind: 'search',
+        entries: data.items,
+        hasMore: data.hasMore,
+        capped: data.capped,
+        loading,
+        loaded,
+        onLoadMore: loadMore,
+      }}
+      noun="questions"
+      noMatches="No question matches this search in the rulesets picked."
+      renderEntries={(items) => (
+        <FaqList
+          emptyLabel="No questions match."
+          items={items}
+          rulesetSlug={data.selected.length === 1 ? data.selected[0] : undefined}
+          onOpenQuestion={(questionSlug, rulesetSlug) =>
+            openQuestion({
+              to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+              params: { rulesetSlug, questionSlug },
+            })
+          }
+        />
+      )}
+      ref={list}
+    />
   );
 }

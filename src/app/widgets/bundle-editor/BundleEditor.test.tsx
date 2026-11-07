@@ -1,13 +1,19 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vite-plus/test';
 
 import { BundleEditor, INITIAL_BUNDLE_DRAFT, INITIAL_BUNDLE_MEMORY } from './BundleEditor';
 import type { BundleChapter, BundleDraft, BundleMemory } from './BundleEditor';
+
+/* A field is named by its ControlBlock title through aria-labelledby; the first one with that title is the field. */
+function fieldTitled(container: HTMLElement, title: string) {
+  const [field] = within(container).queryAllByLabelText(title, { selector: 'input' });
+  return (field as HTMLInputElement | undefined) ?? null;
+}
 
 /* The band transition does not open its connected background picker. Page stories exercise that read. */
 vi.mock('@app/pickers/BackgroundPicker', () => ({ BackgroundPicker: () => null }));
@@ -68,8 +74,8 @@ function Harness() {
  */
 it('reaches an authored band from the stock one it starts on', () => {
   const { container } = render(<Harness />);
-  const bandSelect = () => container.querySelector<HTMLInputElement>('input[aria-label="Band"]');
-  const labelField = () => container.querySelector('input[aria-label="Label"]');
+  const bandSelect = () => fieldTitled(container, 'Band');
+  const labelField = () => fieldTitled(container, 'Label');
 
   expect(bandSelect()?.value).toBe('Tech band');
   expect(labelField()).toBeNull();

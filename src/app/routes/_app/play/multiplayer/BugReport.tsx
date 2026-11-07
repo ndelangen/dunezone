@@ -1,8 +1,10 @@
-import { Anchor, Button, Checkbox, Stack, Text, Textarea } from '@mantine/core';
+import { Anchor, Checkbox, Stack, Text, Textarea } from '@mantine/core';
 import { BUG_REPORT_DISCLOSURE, bugReportDescriptionSchema, bugReportDiagnosticsSchema } from '@shared/play/bugReports';
 import type { BugReportBrowser, BugReportProgress, BugReportRequest } from '@shared/play/bugReports';
 import { FormError } from '@ui/block/FormError';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { PenLine, RefreshCw, RotateCcw, Send } from 'lucide-react';
 import { useCallback, useEffect, useReducer, useRef } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 
@@ -203,18 +205,18 @@ function ReportForm({ draft, dispatch, send, check }: ReportFormProps) {
       <Text size="sm">{BUG_REPORT_DISCLOSURE}</Text>
       <ControlBlock
         title="What went wrong?"
-        input={
+        description="Describe what happened, what you expected, and how to reproduce it."
+        input={(fieldProps) => (
           <Textarea
-            aria-label="What went wrong?"
+            {...fieldProps}
             required
             maxLength={8000}
             minRows={5}
-            description="Describe what happened, what you expected, and how to reproduce it."
             value={draft.description}
             disabled={submitted}
             onChange={(event) => dispatch({ type: 'edit', value: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <Checkbox
         label="I understand this publicly reveals hidden game information to everyone."
@@ -248,14 +250,19 @@ function ReportActions({ draft, dispatch, send, check }: ReportFormProps) {
       ) : draft.requestId !== null ? (
         <SubmittedActions draft={draft} check={check} send={send} />
       ) : (
-        <Button color="cta" onClick={send} disabled={!canSend(draft)}>
+        <LabeledAction
+          emphasis="strong"
+          icon={<Send size={16} />}
+          disabledReason={canSend(draft) ? undefined : 'Describe the problem and tick the box first.'}
+          onClick={send}
+        >
           Send report
-        </Button>
+        </LabeledAction>
       )}
       {(stage === 'complete' || stage === 'failed') && (
-        <Button variant="default" onClick={() => dispatch({ type: 'reset' })}>
+        <LabeledAction icon={<PenLine size={16} />} onClick={() => dispatch({ type: 'reset' })}>
           Write another report
-        </Button>
+        </LabeledAction>
       )}
     </>
   );
@@ -269,13 +276,17 @@ function SubmittedActions({ draft, send, check }: Omit<ReportFormProps, 'dispatc
           Sending report...
         </Text>
       )}
-      <Button variant="default" onClick={check} disabled={draft.sending}>
+      <LabeledAction
+        icon={<RefreshCw size={16} />}
+        disabledReason={draft.sending ? 'The report is still sending.' : undefined}
+        onClick={check}
+      >
         Check report status
-      </Button>
+      </LabeledAction>
       {draft.error && !draft.progress && (
-        <Button variant="default" onClick={send}>
+        <LabeledAction icon={<RotateCcw size={16} />} onClick={send}>
           Retry sending report
-        </Button>
+        </LabeledAction>
       )}
     </>
   );

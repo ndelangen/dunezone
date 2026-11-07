@@ -157,7 +157,7 @@ describe('scheduled production deployment shape', () => {
       '/image/*',
       '/web',
       '/web/*',
-      '/vector/emblem/*',
+      '/vector/logo/*',
       '/__play',
       '/__play/*',
       '/sitemap*',
@@ -188,6 +188,7 @@ describe('scheduled production deployment shape', () => {
       '/tutorial/*',
       '/media',
       '/media/*',
+      '/public/*',
     ]);
   });
 });

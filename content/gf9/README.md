@@ -10,7 +10,7 @@ The requested Discord creation ticket could not be located. The private browser 
 
 The approved correction uses full composed files under [`authoring/`](authoring/README.md), file-only preparation/collection and normal authenticated Load/Save/Publish. Its inventory and environment bindings begin as explicit unbound scaffolds until the content staging pass records actual targets. See the authoring workflow before editing or preparing content.
 
-The `*-manuscript.json`, `*-rules.json`, historical Faction drafts, importer packages, `build.ts` and `assemble.ts` below describe the earlier delivery. They are superseded as publication sources for this correction. Keep them as research/history; do not edit or regenerate them to replace composed books. The `content:gf9:build` package command has been removed because its old pagination and presentation would discard accepted changes. Use the file-only preparation and collection commands in the [authoring guide](authoring/README.md).
+The `*-manuscript.json`, `*-rules.json`, historical Faction drafts, and importer packages below describe the earlier delivery. They are superseded as publication sources for this correction. Keep them as research/history; do not edit or regenerate them to replace composed books. The old `build.ts` and `assemble.ts` generators were removed (see git history) because their pagination and presentation would discard accepted changes. Use the file-only preparation and collection commands in the [authoring guide](authoring/README.md).
 
 Existing reading, coverage, judgement and asset-review records remain historical evidence. Carry a result forward only after checking its exact source/authored/artifact identity against the acceptance contract. They do not certify the new local content or production update.
 
@@ -79,7 +79,7 @@ This table distinguishes reading from runtime testing. It covers the direct reso
 
 ## Artwork and stock provenance
 
-Faction rules were authored from GF9 sources. Existing Dune Zone illustration IDs were reused from checked-in faction fixtures; those fixtures supplied artwork references, not Dreamrules mechanics. The assembler uses existing logos, textures and illustrations. `portrait-provenance.json` records the anonymous existing leader illustration used to represent Count Ilban Richese and Ur-Director Malina Aru; these are not official portraits of those characters.
+Faction rules were authored from GF9 sources. Existing Dune Zone illustration IDs were reused from checked-in faction fixtures; those fixtures supplied artwork references, not Dreamrules mechanics. The assembler uses existing emblems, textures and illustrations. `portrait-provenance.json` records the anonymous existing leader illustration used to represent Count Ilban Richese and Ur-Director Malina Aru; these are not official portraits of those characters.
 
 `assets-source-manifest.json` records source locations and SHA-256 fingerprints for the curated assets. `asset-review.json` records the independent 235-item content review, printed Homeworld face comparisons, corrected copy, inventory checks and data-hash checks. Generated faction outputs supply force tokens, leaders, traitors, Alliance Cards and shields; explicit Prediction Cards and the shared Duke Vidal token fill the component gaps documented there.
 

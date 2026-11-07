@@ -1,5 +1,6 @@
 import { Code, Group, Text, TextInput } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import styles from './kitCategories.module.css';
@@ -221,11 +222,16 @@ export function KitCategories() {
   const [name, setName] = useState('Atreides');
   return (
     <Section title="Six kit categories">
-      <TextInput
-        label="Example name"
-        value={name}
-        maxLength={16}
-        onChange={(event) => setName(event.currentTarget.value)}
+      <ControlBlock
+        title="Example name"
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            value={name}
+            maxLength={16}
+            onChange={(event) => setName(event.currentTarget.value)}
+          />
+        )}
       />
       <div className={styles.categories}>
         {CATEGORIES.map((category) => (

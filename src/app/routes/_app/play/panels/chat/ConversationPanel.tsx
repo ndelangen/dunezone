@@ -1,18 +1,31 @@
-import { Badge, Button, Group, Stack, Text, Textarea, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Group, Stack, Text, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ConversationMessage } from '@shared/play/conversations';
 import { Section } from '@ui/block/Section';
+import { StatusBadge } from '@ui/content/StatusBadge';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { History, RotateCcw } from 'lucide-react';
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
+import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { CONVERSATION_HELP } from '../../multiplayer/panelGuidance';
 import { useServerNowAs } from '../../multiplayer/useServerNow';
+import { ChatComposer } from './ChatComposer';
 import styles from './ConversationPanel.module.css';
+import type { Mention } from './mentions';
+import { MentionCard, MentionText } from './MentionText';
+import type { MentionActions } from './MentionText';
 
 const EMPTY_MESSAGES: ConversationMessage[] = [];
+const NO_MENTIONS: readonly Mention[] = [];
 /* A message keeps its line breaks and wraps even a long unbroken word. */
 const MESSAGE_TEXT_STYLE = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } as const;
 
 type Page = ConversationView['pages'][string];
+/* The seats a message can name, and what their cards can bring up. */
+type Named = Readonly<{ mentions: readonly Mention[] }> & MentionActions;
 type Pending = ConversationView['pending'][number];
 
 export type ConversationPanelProps = Readonly<{
@@ -26,8 +39,8 @@ export type ConversationPanelProps = Readonly<{
   page: Page | undefined;
   /** The viewer's messages on their way, oldest first. */
   pending: readonly Pending[];
-  /** At the table every faction writes, so each message there also names its writer's faction; null in a chat with one player. */
-  senders: Readonly<Record<string, string>> | null;
+  /** At the table every faction writes, so each message there also shows its writer's faction token and name; null in a chat with one player. */
+  senders: Readonly<Record<string, FactionToken>> | null;
   /** Whether the newest message is unread, so seeing it marks the conversation read. */
   unread: boolean;
   /** Unsent messages by conversation, which outlive the composer. */
@@ -37,6 +50,14 @@ export type ConversationPanelProps = Readonly<{
   onRetry: (requestId: string) => void;
   /** Sends a message; false keeps it in the composer. */
   onSubmit: (text: string) => boolean;
+  /** Whether the viewer cleared this chat before, so an empty history says so rather than that nobody wrote. */
+  cleared?: boolean;
+  /** Who an @ in the composer suggests: the players and factions at the table; none in a chat with one player. */
+  mentions?: readonly Mention[];
+  /** Brings up the faction information of a seat a message names. */
+  onMentionInfo?: (seat: string) => void;
+  /** Opens the chat with the player of a seat a message names. */
+  onMentionChat?: (seat: string) => void;
 }>;
 
 /** A conversation with one player or the table: its history, the viewer's pending messages and the composer. */
@@ -53,14 +74,19 @@ export function ConversationPanel({
   onRead,
   onRetry,
   onSubmit,
+  cleared = false,
+  mentions = NO_MENTIONS,
+  onMentionInfo,
+  onMentionChat,
 }: ConversationPanelProps) {
+  const named = { mentions, onInfo: onMentionInfo, onChat: onMentionChat };
   const entries = page?.entries ?? EMPTY_MESSAGES;
   const latest = entries.at(-1)?.sequence ?? 0;
   const { viewport, onScroll } = useConversationScroll(entries, pending.length);
   const newest = useVisibleRead(online && unread ? latest : null, onRead);
   const arrival = useArrivalAnnouncement(peerId, page, factionId);
   return (
-    <Section hiddenHeading title="Conversation" description={CONVERSATION_HELP} className={styles.panel}>
+    <Section hiddenHeading title="Conversation" help={CONVERSATION_HELP} className={styles.panel}>
       <Stack gap="sm" className={styles.body}>
         {!online && <Text size="sm">Offline. Pending messages will send after your faction access is checked.</Text>}
         <Stack
@@ -73,22 +99,23 @@ export function ConversationPanel({
           tabIndex={0}
           onScroll={onScroll}
         >
-          <HistoryStatus page={page} load={onLoad} />
+          <HistoryStatus page={page} load={onLoad} cleared={cleared} />
           {entries.map((message) => (
             <SavedMessage
               key={message.sequence}
               message={message}
               factionId={factionId}
-              faction={senders?.[message.senderFactionId]}
+              sender={senders?.[message.senderFactionId]}
+              named={named}
             />
           ))}
           <div ref={newest} style={{ minHeight: 1 }} aria-hidden />
           {pending.map((entry) => (
-            <PendingMessage key={entry.request.requestId} entry={entry} retry={onRetry} />
+            <PendingMessage key={entry.request.requestId} entry={entry} retry={onRetry} named={named} />
           ))}
         </Stack>
         <VisuallyHidden role="status">{arrival}</VisuallyHidden>
-        <Composer drafts={drafts} draftKey={`${factionId ?? ''}:${peerId}`} submit={onSubmit} />
+        <ChatComposer drafts={drafts} draftKey={`${factionId ?? ''}:${peerId}`} submit={onSubmit} mentions={mentions} />
       </Stack>
     </Section>
   );
@@ -183,16 +210,25 @@ function useArrivalAnnouncement(peerId: string, page: Page | undefined, factionI
   return announcement;
 }
 
+/* The size of a writer's faction token behind their name: about the height of the name's capital letters plus a little. */
+const SENDER_TOKEN_SIZE = 16;
+
 function SavedMessage({
   message,
   factionId,
-  faction,
-}: Readonly<{ message: ConversationMessage; factionId?: string; faction?: string }>) {
+  sender,
+  named,
+}: Readonly<{ message: ConversationMessage; factionId?: string; sender?: FactionToken; named: Named }>) {
   return (
     <Stack gap="xs">
-      <SavedMessageHeader message={message} faction={faction} />
+      <SavedMessageHeader
+        message={message}
+        sender={sender}
+        seat={named.mentions.find((mention) => mention.token.id === message.senderFactionId)}
+        actions={named}
+      />
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
-        {message.text}
+        <MentionText text={message.text} {...named} />
       </Text>
       {message.senderFactionId === factionId && (
         <Text size="xs" c="dimmed" data-saved-own-message>
@@ -203,68 +239,26 @@ function SavedMessage({
   );
 }
 
-function PendingMessage({ entry, retry }: Readonly<{ entry: Pending; retry: (requestId: string) => void }>) {
+function PendingMessage({
+  entry,
+  retry,
+  named,
+}: Readonly<{ entry: Pending; retry: (requestId: string) => void; named: Named }>) {
   return (
     <Stack gap="xs">
       <Text size="sm" style={MESSAGE_TEXT_STYLE}>
-        {entry.request.text}
+        <MentionText text={entry.request.text} {...named} />
       </Text>
       <PendingStatus entry={entry} retry={retry} />
     </Stack>
   );
 }
 
-function Composer({
-  drafts,
-  draftKey,
-  submit,
-}: Readonly<{ drafts: Map<string, string>; draftKey: string; submit: (text: string) => boolean }>) {
-  const [draft, setDraft] = useState(() => drafts.get(draftKey) ?? '');
-  const write = (text: string) => {
-    setDraft(text);
-    if (text) {
-      drafts.set(draftKey, text);
-    } else {
-      drafts.delete(draftKey);
-    }
-  };
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (submit(draft)) {
-          write('');
-        }
-      }}
-    >
-      <Textarea
-        aria-label="Message"
-        placeholder="Message"
-        value={draft}
-        onChange={(event) => write(event.currentTarget.value)}
-        onKeyDown={(event) => {
-          /* Enter sends, as chats do; Shift+Enter starts a new line, and Enter that ends a composed character stays the input method's. */
-          /* Safari can end a composition with an Enter that reads as not composing, but keeps the composing key code. */
-          const composing = event.nativeEvent.isComposing || event.keyCode === 229;
-          if (event.key === 'Enter' && !event.shiftKey && !composing) {
-            event.preventDefault();
-            if (draft.trim()) {
-              event.currentTarget.form?.requestSubmit();
-            }
-          }
-        }}
-        maxLength={2000}
-        minRows={2}
-        maxRows={5}
-        rightSection={<ComposerSubmit disabled={!draft.trim()} />}
-        rightSectionWidth={68}
-        rightSectionPointerEvents="auto"
-      />
-    </form>
-  );
-}
-
-function HistoryStatus({ page, load }: Readonly<{ page: Page | undefined; load: (before?: number) => void }>) {
+function HistoryStatus({
+  page,
+  load,
+  cleared,
+}: Readonly<{ page: Page | undefined; load: (before?: number) => void; cleared: boolean }>) {
   if (!page) {
     return null;
   }
@@ -272,14 +266,14 @@ function HistoryStatus({ page, load }: Readonly<{ page: Page | undefined; load: 
   return (
     <>
       {page.more && (
-        <Button variant="subtle" loading={loading} onClick={() => load(page.entries[0]!.sequence)}>
+        <LabeledAction icon={<History size={16} />} busy={loading} onClick={() => load(page.entries[0]!.sequence)}>
           Earlier messages
-        </Button>
+        </LabeledAction>
       )}
       <HistoryLoad load={page.load} retry={() => load()} />
       {!loading && !page.entries.length && (
         <Text size="sm" c="dimmed">
-          No messages yet.
+          {cleared ? 'You cleared this chat.' : 'No messages yet.'}
         </Text>
       )}
     </>
@@ -310,18 +304,43 @@ function observeVisible(target: HTMLElement, onVisible: () => void) {
   };
 }
 
-function SavedMessageHeader({ message, faction }: Readonly<{ message: ConversationMessage; faction?: string }>) {
+/*
+ * The writer's name, then at the table their faction's token and name; hovering the token shows their seat's card, as an @ naming it does.
+ * In a narrow window the token and faction name move under the name together, and the time onto its own line, rather than overlap.
+ */
+function SavedMessageHeader({
+  message,
+  sender,
+  seat,
+  actions,
+}: Readonly<{ message: ConversationMessage; sender?: FactionToken; seat?: Mention; actions: MentionActions }>) {
+  const token = sender && (
+    <FactionTokenFace token={sender} size={SENDER_TOKEN_SIZE} style={{ flexShrink: 0 }} aria-hidden />
+  );
   return (
     <Group gap="sm" justify="space-between">
-      <Text size="sm" fw={700}>
-        {message.author}
-        {faction ? (
-          <Text span size="sm" c="dimmed" fw={400}>
-            {' · '}
-            {faction}
-          </Text>
+      <Group gap={6} data-message-sender={sender?.id}>
+        <Text size="sm" fw={700}>
+          {message.author}
+        </Text>
+        {sender ? (
+          <Group gap={6} wrap="nowrap">
+            {seat && token ? (
+              <MentionCard seats={[seat]} {...actions}>
+                {/* Reachable from the keyboard too: the card opens on focus as on hover. */}
+                <span className={styles.seatTrigger} role="button" tabIndex={0} aria-label={`${seat.label} seat`}>
+                  {token}
+                </span>
+              </MentionCard>
+            ) : (
+              token
+            )}
+            <Text span size="sm" c="dimmed">
+              {sender.name}
+            </Text>
+          </Group>
         ) : null}
-      </Text>
+      </Group>
       <MessageTime savedAt={message.savedAt} />
     </Group>
   );
@@ -368,17 +387,21 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
     case 'sent':
       return (
         <Group gap="sm">
-          <Badge variant="default">Pending</Badge>
+          <StatusBadge tone="pending">Pending</StatusBadge>
         </Group>
       );
     case 'failed':
       return (
         <>
           <Group gap="sm">
-            <Badge variant="default">Failed</Badge>
-            <Button variant="subtle" size="compact-sm" onClick={() => retry(request.requestId)}>
-              Retry
-            </Button>
+            <StatusBadge tone="negative">Failed</StatusBadge>
+            <IconAction
+              label="Retry"
+              size="sm"
+              emphasis="quiet"
+              icon={<RotateCcw size={14} aria-hidden />}
+              onClick={() => retry(request.requestId)}
+            />
           </Group>
           <Text size="xs" role="alert">
             {delivery.error}
@@ -386,14 +409,6 @@ function PendingStatus({ entry, retry }: Readonly<{ entry: Pending; retry: (requ
         </>
       );
   }
-}
-
-function ComposerSubmit({ disabled }: Readonly<{ disabled: boolean }>) {
-  return (
-    <Button type="submit" size="compact-sm" disabled={disabled}>
-      Send
-    </Button>
-  );
 }
 
 function HistoryLoad({ load, retry }: Readonly<{ load: Page['load']; retry: () => void }>) {
@@ -410,9 +425,9 @@ function HistoryLoad({ load, retry }: Readonly<{ load: Page['load']; retry: () =
       return (
         <>
           <Text size="sm">{load.error}</Text>
-          <Button variant="default" onClick={retry}>
+          <LabeledAction icon={<RotateCcw size={16} aria-hidden />} onClick={retry}>
             Retry history
-          </Button>
+          </LabeledAction>
         </>
       );
   }

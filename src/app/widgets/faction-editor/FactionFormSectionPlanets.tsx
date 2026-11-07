@@ -1,6 +1,9 @@
-import { Alert, Divider, Group, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Divider, Input, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { ListChapter } from '@ui/block/ListChapter';
+import { Notice } from '@ui/block/Notice';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { useState } from 'react';
@@ -29,32 +32,37 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
         return (
           <Stack gap="sm">
             {!isCurated ? (
-              <Alert color="yellow" variant="light" title="Existing external illustration preserved">
+              <Notice tone="caution" title="Existing external illustration preserved">
                 This planet uses an older external image. It remains unchanged until you select a curated illustration.
-              </Alert>
+              </Notice>
             ) : null}
 
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
               <form.Field name={`planet[${index}].name`}>
                 {(field) => (
-                  <TextInput
-                    id={`planet-${index}-name`}
-                    label="Name"
-                    value={field.state.value}
-                    onFocus={onFocus}
-                    onBlur={field.handleBlur}
-                    onChange={(event) => {
-                      const next = event.currentTarget.value;
-                      const previous = field.state.value;
-                      field.handleChange(next);
-                      /* Rename sync: this editor is the only writer of planet names, so
+                  <ControlBlock
+                    title="Name"
+                    inputId={`planet-${index}-name`}
+                    input={(fieldProps) => (
+                      <TextInput
+                        {...fieldProps}
+                        value={field.state.value}
+                        onFocus={onFocus}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => {
+                          const next = event.currentTarget.value;
+                          const previous = field.state.value;
+                          field.handleChange(next);
+                          /* Rename sync: this editor is the only writer of planet names, so
                          troop references follow the rename keystroke for keystroke. */
-                      form.state.values.troops.forEach((troop, troopIndex) => {
-                        if (troop.planet != null && troop.planet === previous) {
-                          form.setFieldValue(`troops[${troopIndex}].planet`, next);
-                        }
-                      });
-                    }}
+                          form.state.values.troops.forEach((troop, troopIndex) => {
+                            if (troop.planet != null && troop.planet === previous) {
+                              form.setFieldValue(`troops[${troopIndex}].planet`, next);
+                            }
+                          });
+                        }}
+                      />
+                    )}
                   />
                 )}
               </form.Field>
@@ -77,14 +85,19 @@ function PlanetFields({ form, index, onFocus }: { form: FactionFormApi; index: n
 
             <form.Field name={`planet[${index}].description`}>
               {(field) => (
-                <FormattedTextInput
-                  id={`planet-${index}-description`}
-                  label="Description"
-                  minRows={2}
-                  value={field.state.value ?? ''}
-                  onFocus={onFocus}
-                  onBlur={field.handleBlur}
-                  onChange={field.handleChange}
+                <ControlBlock
+                  title="Description"
+                  inputId={`planet-${index}-description`}
+                  input={(fieldProps) => (
+                    <FormattedTextInput
+                      {...fieldProps}
+                      minRows={2}
+                      value={field.state.value ?? ''}
+                      onFocus={onFocus}
+                      onBlur={field.handleBlur}
+                      onChange={field.handleChange}
+                    />
+                  )}
                 />
               )}
             </form.Field>
@@ -109,14 +122,17 @@ export function FactionFormSectionPlanets({
   const selectIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
 
   return (
-    <Stack component="section" gap="md" aria-label="Faction planets">
-      <form.Field name="planet">
-        {(field) => {
-          const planets = field.state.value ?? [];
-          const count = planets.length;
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end">
+    <form.Field name="planet">
+      {(field) => {
+        const planets = field.state.value ?? [];
+        const count = planets.length;
+        return (
+          <ListChapter
+            title="Planets"
+            help={"Planets are optional.\nAdd one when a planet is part of this faction's identity."}
+            note={count === 0 ? { title: 'No planets', text: 'This faction has no planets.' } : null}
+            actions={
+              <>
                 <ListLengthActions
                   removeLabel="Remove last planet"
                   addLabel="Add planet"
@@ -150,25 +166,19 @@ export function FactionFormSectionPlanets({
                     selectIndex(count);
                   }}
                 />
-              </Group>
-
-              {count === 0 ? (
-                <Alert color="gray" variant="light" title="No planets">
-                  Planets are optional. Add one when a planet is part of this faction&apos;s identity.
-                </Alert>
-              ) : null}
-
-              {planets.map((_, index) => (
-                <Stack key={index} gap="md">
-                  {index > 0 ? <Divider /> : null}
-                  {/* Focusing any of a planet's fields makes it the preview rail's focused planet. */}
-                  <PlanetFields form={form} index={index} onFocus={() => selectIndex(index)} />
-                </Stack>
-              ))}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+              </>
+            }
+          >
+            {planets.map((_, index) => (
+              <Stack key={index} gap="md">
+                {index > 0 ? <Divider /> : null}
+                {/* Focusing any of a planet's fields makes it the preview rail's focused planet. */}
+                <PlanetFields form={form} index={index} onFocus={() => selectIndex(index)} />
+              </Stack>
+            ))}
+          </ListChapter>
+        );
+      }}
+    </form.Field>
   );
 }

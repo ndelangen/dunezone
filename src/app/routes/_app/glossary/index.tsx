@@ -1,4 +1,4 @@
-import { Badge, Group, Select, Stack, Text } from '@mantine/core';
+import { Group, Select, Stack, Text } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
 import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
@@ -7,13 +7,17 @@ import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ChipList } from '@ui/list/ChipList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { useState } from 'react';
 
+import { ArrakisBoardSeedProvider, loadArrakisBoard } from '@app/db/arrakis';
 import { publicPageHead } from '@app/routes/publicPage';
 
 import styles from './index.module.css';
@@ -24,6 +28,8 @@ import { TopicVisual } from './TopicVisual';
 
 export const Route = createFileRoute('/_app/glossary/')({
   ssr: true,
+  /* The saved Arrakis rides in the page's HTML, so the board terms draw it in the server's render. */
+  loader: async () => ({ arrakis: await loadArrakisBoard() }),
   head: () =>
     publicPageHead({
       name: 'Dune board game glossary',
@@ -32,8 +38,16 @@ export const Route = createFileRoute('/_app/glossary/')({
         "Explore Dune board game terms, based on the 2019 rulebook, with definitions and explanations of Dune Zone's preferred wording.",
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
-  component: GlossaryPage,
+  component: SeededGlossaryPage,
 });
+
+function SeededGlossaryPage() {
+  return (
+    <ArrakisBoardSeedProvider seed={Route.useLoaderData().arrakis}>
+      <GlossaryPage />
+    </ArrakisBoardSeedProvider>
+  );
+}
 
 const TOPIC_ICONS: Record<GlossaryTopic, TopicIconTopic> = {
   pieces: 'troops',
@@ -105,11 +119,7 @@ function TermBody({ term }: { term: GlossaryTerm }) {
           <Text size="sm" fw={600}>
             Say {term.term.toLowerCase()} instead of
           </Text>
-          {term.avoid.map((avoided) => (
-            <Badge key={avoided.word} variant="outline" color="gray" size="sm" tt="none" className={styles.avoided}>
-              {avoided.word}
-            </Badge>
-          ))}
+          <ChipList items={term.avoid.map((avoided) => ({ key: avoided.word, label: avoided.word }))} />
         </Group>
       ) : null}
     </Stack>
@@ -178,29 +188,32 @@ function GlossaryPage() {
       terms: GLOSSARY.filter((term) => term.topic === topic.id && matches(term, needle)),
     }))
     .filter((entry) => entry.terms.length > 0);
-  const topicSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.topicSegment}
-      variant={label ? 'default' : 'unstyled'}
-      aria-label={label ? undefined : 'Topic'}
-      label={label}
-      placeholder="All topics"
-      clearable
-      data={GLOSSARY_TOPICS.map((topic) => ({ value: topic.id, label: topic.label }))}
-      value={onlyTopic}
-      onChange={(value) => setOnlyTopic(value as GlossaryTopic | null)}
-    />
-  );
+  const topicSelect = (label?: string) => {
+    const field = (fieldProps?: ControlBlockField) => (
+      <Select
+        {...fieldProps}
+        className={label ? undefined : styles.topicSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label={label ? undefined : 'Topic'}
+        placeholder="All topics"
+        clearable
+        data={GLOSSARY_TOPICS.map((topic) => ({ value: topic.id, label: topic.label }))}
+        value={onlyTopic}
+        onChange={(value) => setOnlyTopic(value as GlossaryTopic | null)}
+      />
+    );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
 
   return (
     <PageLayout>
       <PageLayout.Header>
         <Stack gap="sm" maw="48rem">
-          <PageTitle eyebrow="Words we use" title="Glossary" />
-          <Text size="lg">
-            Every game idea on Dune Zone has one name. We follow the 2019 rulebook, except that we say troops where it
-            says forces. When you write on Dune Zone we point out the other words, and you can always keep your own.
-          </Text>
+          <PageTitle
+            eyebrow="Words we use"
+            title="Glossary"
+            lede="Every game idea on Dune Zone has one name. We follow the 2019 rulebook, except that we say troops where it says forces. When you write on Dune Zone we point out the other words, and you can always keep your own."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
@@ -232,8 +245,8 @@ function GlossaryPage() {
               className={styles.topic}
               icon={<TopicIcon topic={TOPIC_ICONS[topic.id]} size={20} />}
               title={topic.label}
-              description={topic.summary}
             >
+              <Text>{topic.summary}</Text>
               <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}

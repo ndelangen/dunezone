@@ -308,7 +308,7 @@ Rules between categories:
   these is two components.
 - **Layouts own spacing and lay out through named slots.** A Layout arranges its slots; a leaf never
   carries page margin/padding. Every Layout is a custom component that
-  takes **named compound slots** (`<TriptychLayout><TriptychLayout.Left>…</TriptychLayout.Left>…`),
+  takes **named compound slots** (`<ColumnsWithRailLayout><ColumnsWithRailLayout.Primary>…</ColumnsWithRailLayout.Primary>…`),
   never fewer than two, and is responsive **by container query, not media query**, so it lays out by
   the room it is given. `PageLayout` is the one exemption from the container-query rule: it is the
   shell's page frame, viewport-scoped in concert with `AppHeader` (see *Layouts own spacing* and
@@ -359,7 +359,12 @@ the hover, focus, disabled, pending or open states of the children it composes, 
 tooltips, holds or menus; it proves its wiring through the child's accessible name, value and
 description. Each visual story changes one thing from its component's baseline, so a story name that
 needs "and" is two stories. The `local/story-owns-its-states` lint rule rejects hovering and reading
-a tooltip in any story outside `src/app/ui`.
+a tooltip in any story outside `src/app/ui`. Beside it, `local/form-error` rejects a red Mantine `Alert`
+outside the kit: a failure is a `FormError`. `local/eyebrow` rejects `tt="uppercase"` on a Mantine
+`Text` outside the kit: a small capitals caption is an `Eyebrow`. `local/control-block-label` rejects a
+Mantine field's own `label` or `description`: a field is captioned by `ControlBlock`. Raw `Badge`, `Title` and `Loader`
+are restricted imports outside the kit, in favour of `StatusBadge`, `Section`/`Card`/`PageTitle` and
+`Pending`; a deliberate exception takes a reasoned `oxlint-disable-next-line` comment.
 
 Three filename conventions carry weight here. A story-only fixture takes the `.stories.fixture.tsx`
 suffix, which the lint overrides key on, so it is a name the tooling reads rather than a preference.
@@ -485,6 +490,19 @@ express; a few happy-path e2e specs are the confidence anchor. Before adding a t
 whether a type guarantee or an existing e2e path already covers it. Tests never assert on source
 text or dictate API shape ([ADR-0001](docs/adr/0001-contracts-over-expressions.md)).
 
+Two test regimes share the repository, and their `expect`s look alike but do not match (#606):
+
+| | Unit and seam tests | Stories |
+| --- | --- | --- |
+| Files | `*.test.ts(x)` | `*.stories.tsx`, `*.testing.stories.tsx` |
+| Run with | `bun run test`; `bun run game:test` for `workers/game`, `bun run publisher:test` for `workers/publisher` | `bun run storybook:test` or `bun run storybook:test:shard <shard>` |
+| `expect` from | `vite-plus/test` | `storybook/test` |
+| Document (DOM) matchers (`toBeVisible`, `toBeChecked`, `toBeDisabled`) | absent: `Invalid Chai property` | present |
+
+A unit test that needs a DOM state asserts on the element's properties (`element.checked`) instead.
+Do not install `@testing-library/jest-dom` to close the gap: that adds a second matcher stack beside
+the one Storybook already provides. A behaviour that needs those matchers belongs in a story.
+
 Write every test for a busy runner. Most past flakes came from four patterns:
 
 - **No real-time waits on animations or timers.** A loaded runner can go 5 to 10 s without drawing a
@@ -606,7 +624,10 @@ draft: the dev server previews it straight from `media/` (`scripts/lib/unsyncedM
 so it can be tried on a page and swapped without uploading (`generate:images` still refuses to run
 while one is present). A blog post using an unsynced image fails `postBodies.test.tsx` until it is synced. Run
 `bun run generate:images` after changing sources or `src/shared/assetRules.ts` (dev and Storybook
-need the generated files locally; CI produces the deployed bytes). `bun run verify:images` checks
+need the generated files locally; CI produces the deployed bytes). `app:dev`, `storybook` and
+`play:local` run `generate:images --if-stale` on start, which does nothing while `public/` matches the
+lock and rules. Off CI the variant store is one directory per machine (`~/.cache/dunezone/media/v`), and
+missing variants come from `https://dune.zone/m/` before anything is encoded. `bun run verify:images` checks
 the output structurally. Renderer identity hashes the *ingredients* (locked source hashes + other media bytes + rules +
 generator + pinned sharp version), never encoder output, so `publisher:release:verify` remains a
 local check. Image keys such as `/image/texture/021.jpg` are opaque asset ids stored on faction

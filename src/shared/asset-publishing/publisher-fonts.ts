@@ -11,6 +11,7 @@ export const requiredPublisherFontFaces = [
   { family: 'C_Busorama_Bold', weight: '400', style: 'normal' },
   { family: 'C_Busorama', weight: '400', style: 'normal' },
   { family: 'C_Trebuchet', weight: '400', style: 'normal' },
+  { family: 'C_Orthodox_Herbertarian', weight: '400', style: 'normal' },
 ] as const;
 
 export type PublisherFontFaceSet = {

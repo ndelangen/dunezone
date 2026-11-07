@@ -1,5 +1,8 @@
-import { Alert, Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
+import { Notice } from '@ui/block/Notice';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
+import { Replace, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { CustomCard } from '@game/assets/card/Custom';
@@ -47,20 +50,27 @@ export function CustomCardStartingPreset({ draft, patch }: { draft: CustomCardDr
         }))}
       />
       {pending ? (
-        <Alert title="Replace the current layers?" color="gray">
+        <Notice title="Replace the current layers?">
           <Stack gap="sm">
             <Text size="sm">
               This preset replaces all decals and text blocks. The name, type, Head background and About stay as they
               are.
             </Text>
             <Group>
-              <Button variant="default" onClick={() => setPending(null)}>
+              <LabeledAction icon={<X size={16} />} onClick={() => setPending(null)}>
                 Keep current layers
-              </Button>
-              <Button onClick={() => apply(pending)}>Replace layers</Button>
+              </LabeledAction>
+              <LabeledAction
+                intent="negative"
+                emphasis="strong"
+                icon={<Replace size={16} />}
+                onClick={() => apply(pending)}
+              >
+                Replace layers
+              </LabeledAction>
             </Group>
           </Stack>
-        </Alert>
+        </Notice>
       ) : null}
     </Stack>
   );

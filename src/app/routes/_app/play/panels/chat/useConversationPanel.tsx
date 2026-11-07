@@ -1,11 +1,17 @@
 import { Select, Stack } from '@mantine/core';
 import { TABLE_CONVERSATION, isRecallConversation } from '@shared/play/conversations';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import type { ConversationView } from '../../../../../db/tabletop/ConversationSession';
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
+import { CompassWindowsContext } from '../../compass/compassWindows';
+import { snapshotFactionToken } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { seatFaction } from '../../multiplayer/tableFactions';
+import { ClearChatAction } from './ClearChatAction';
 import { ConversationPanel } from './ConversationPanel';
+import type { Mention } from './mentions';
 
 /* Every faction's name at the table, the viewer's own among them, by faction. */
 function senderNames(context: ConversationView['context']): Record<string, string> {
@@ -17,9 +23,69 @@ function senderNames(context: ConversationView['context']): Record<string, strin
     : {};
 }
 
+/* Every faction's token at the table, by faction: its face as it lies on the table, or its initial while the table is out of reach. */
+function senderTokens(
+  context: ConversationView['context'],
+  snapshot: TableProjection['snapshot'] | undefined
+): Record<string, FactionToken> {
+  const names = senderNames(context);
+  return Object.fromEntries(Object.keys(names).map((id) => [id, snapshotFactionToken(snapshot, id, names)]));
+}
+
+/**
+ * Who an @ at the table can name: every seat, as its faction with its player beside it and the seat's token.
+ * The viewer's own seat is named in messages but never suggested;
+ * `peers` are the factions the viewer can chat with.
+ */
+export function tableMentions(
+  table: TableProjection | null | undefined,
+  tokens: Readonly<Record<string, FactionToken>>,
+  peers: readonly string[] = []
+): Mention[] {
+  const viewerSeat = table?.viewer.viewerSeat;
+  const players = table?.snapshot.controls?.players ?? [];
+  return (table?.snapshot.roster?.seats ?? []).flatMap((seat) => {
+    const faction = seat.faction;
+    if (!faction) {
+      return [];
+    }
+    const player = players.find((entry) => entry.seat === seat.id);
+    return [
+      {
+        id: seat.id,
+        label: faction.name,
+        detail: player?.name ?? null,
+        avatar: player?.avatar ?? null,
+        token: tokens[faction.id] ?? { id: faction.id, name: faction.name },
+        own: seat.id === viewerSeat,
+        chattable: seat.id !== viewerSeat && peers.includes(faction.id),
+      },
+    ];
+  });
+}
+
 /** A conversation at a live table: the caller selects the faction pair; this loads its history and sends what the viewer writes. */
 export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client: TableSession; peerId: string }>) {
-  const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const { conversations: view, table } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* Only at the table or in a recall does every faction write; the tokens follow the table's snapshot, not every clock tick. */
+  const shared = peerId === TABLE_CONVERSATION || isRecallConversation(peerId);
+  const snapshot = table?.snapshot;
+  const senders = useMemo(
+    () => (shared ? senderTokens(view.context, snapshot) : null),
+    [shared, view.context, snapshot]
+  );
+  const mentions = useMemo(
+    () =>
+      senders
+        ? tableMentions(
+            table,
+            senders,
+            view.context?.peers.map((peer) => peer.id)
+          )
+        : [],
+    [senders, table, view.context]
+  );
+  const windows = useContext(CompassWindowsContext);
   const page = view.pages[peerId];
   useEffect(() => {
     if (view.online && !page) {
@@ -35,13 +101,18 @@ export function ConnectedConversationPanel({ client, peerId }: Readonly<{ client
       online={view.online}
       page={page}
       pending={view.pending.filter((entry) => entry.request.peerId === peerId)}
-      senders={peerId === TABLE_CONVERSATION || isRecallConversation(peerId) ? senderNames(view.context) : null}
+      senders={senders}
       unread={Boolean(summary?.unread) && latest === summary?.latest}
       drafts={client.conversations.drafts}
       onLoad={(before) => client.conversations.load({ peerId, before })}
       onRead={(through) => client.conversations.read({ peerId, through })}
       onRetry={client.conversations.retry}
       onSubmit={(text) => client.conversations.submit({ peerId, text })}
+      cleared={client.conversations.clearedThrough(peerId) > 0}
+      mentions={mentions}
+      /* Only the table's chat has the seats' windows beside it; a recall shows only the viewer's own. */
+      onMentionInfo={peerId === TABLE_CONVERSATION ? windows?.factionInfo : undefined}
+      onMentionChat={peerId === TABLE_CONVERSATION ? windows?.chat : undefined}
     />
   );
 }
@@ -61,6 +132,29 @@ export function ConnectedPlayerChat({
   return <ConnectedConversationPanel key={`${context.factionId}:${peerId}`} client={client} peerId={peerId} />;
 }
 
+/** The eraser for a seat's chat, or the table's, while it has messages the viewer has not cleared. */
+export function ConnectedClearChat({
+  client,
+  table,
+  seat,
+}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
+  const { conversations } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  /* A clear that could not go out (the table is resyncing) gives back a fresh eraser, ready for another hold. */
+  const [attempt, setAttempt] = useState(0);
+  const peerId = seat === TABLE_CONVERSATION ? TABLE_CONVERSATION : seatFaction(table, seat);
+  const summary = conversations.summaries.find((entry) => entry.peerId === peerId);
+  const shown = conversations.pages[peerId ?? '']?.entries.length;
+  if (!peerId || !conversations.online || !summary || summary.latest <= summary.cleared || shown === 0) {
+    return null;
+  }
+  const clear = () => {
+    if (client.conversations.clearChat({ peerId }) === undefined) {
+      setAttempt((previous) => previous + 1);
+    }
+  };
+  return <ClearChatAction key={attempt} onClear={clear} />;
+}
+
 /** Every conversation while the table is out of reach, one at a time. */
 export function OfflineConversations({ client }: Readonly<{ client: TableSession }>) {
   const { conversations: view } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
@@ -72,11 +166,16 @@ export function OfflineConversations({ client }: Readonly<{ client: TableSession
   }
   return (
     <Stack gap="sm" w="min(36rem, 90vw)" h="70vh" style={{ overflow: 'hidden' }}>
-      <Select
-        label="Conversation"
-        value={peerId}
-        onChange={setSelected}
-        data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
+      <ControlBlock
+        title="Conversation"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            value={peerId}
+            onChange={setSelected}
+            data={peers.map((peer) => ({ value: peer.id, label: peer.name }))}
+          />
+        )}
       />
       <ConnectedConversationPanel key={`${view.context?.factionId}:${peerId}`} client={client} peerId={peerId} />
     </Stack>

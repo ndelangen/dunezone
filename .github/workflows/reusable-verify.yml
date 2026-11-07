@@ -53,11 +53,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
+          # No sparse checkout: media/image is 15 small files now that its raster originals are in R2 (#1888),
+          # and a sparse checkout made checkout a blob-less partial clone whose lazy blob fetch had no
+          # retry and once failed a job on an HTTP 408 (#2605). A plain shallow fetch is retried.
       - uses: ./.github/actions/setup
       # Each shard decides for itself whether the diff reaches the flows, so it is queued with the rest of the
       # run instead of after a gate job: the gate's own queue and the shards' second queue behind every other
@@ -130,10 +128,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       # The classifier imports only local modules and Node built-ins; it needs no dependency install.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -168,11 +162,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/generated-images
       - name: Install full Chromium
@@ -219,15 +208,17 @@ jobs:
     if: ${{ !inputs.hosted_only && !inputs.draft }}
     strategy:
       fail-fast: false
-      # Five shards balanced by measured file time, because the story suite ran 564 to 779 s on one
+      # Six shards balanced by measured file time, because the story suite ran 564 to 779 s on one
       # runner and the seven slowest Play page files were 58% of it (#1588). The tutorial chapters
       # have a shard of their own: their 3D tables kept the shared GPU process's software WebGL so busy
       # that the other page tabs drew no frame for 15 to 50 s, failing stories that wait for one.
+      # The tabletop widget's board skin stories do the same to the components tabs (#2397), so
+      # they get their own shard too.
       # .storybook/shards.json owns the rules and scripts/storybook-shard.ts resolves a shard's files; its test refuses a story file
       # no shard owns. Each shard uploads its own coverage and results under the storybook flag,
       # which Codecov merges.
       matrix:
-        shard: [play-table, play-flows, components, tutorial, pages]
+        shard: [play-table, play-flows, tabletop, components, tutorial, pages]
     permissions:
       contents: read
       # The story shard prior-pass step lists and downloads the records of earlier passes.
@@ -236,11 +227,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       # Skips the checks below when an earlier run passed the story shard on the same inputs (scripts/lib/ci-job-inputs.ts).
       - name: Reuse an earlier story shard pass on the same inputs
         id: prior
@@ -276,6 +262,11 @@ jobs:
           if-no-files-found: ignore
       - name: Upload storybook coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        # An optional upload may not cost a passing job its result: a stalled CLI download once ran out the
+        # job's whole budget after every story passed (#2596). fail_ci_if_error is already false.
+        # An upload takes 3 to 5 s, so one minute per step keeps a job's two uploads inside its own budget.
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/storybook/lcov.info
@@ -286,6 +277,8 @@ jobs:
         # Reused passes restore coverage only, so upload test results only when this run wrote them.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-storybook.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -311,12 +304,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
-          # The static narrow check below diffs against the base branch.
+          # The static narrow check below diffs against the base branch. Blob-less, as the sparse checkout
+          # made it before, so the full history of every branch stays out of the fetch.
+          filter: blob:none
           fetch-depth: 0
       - uses: ./.github/actions/setup
       - name: Lint with inline PR annotations
@@ -441,6 +431,8 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ !inputs.draft }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -451,6 +443,8 @@ jobs:
         # Failure reports still upload; setup failures may produce no report.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-unit.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -589,6 +583,8 @@ jobs:
         run: bun run publisher:test --coverage.enabled=true '--coverage.include=workers/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-publisher.junit.xml
       - name: Upload publisher coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -598,6 +594,8 @@ jobs:
       - name: Upload publisher test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/vitest-publisher.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -639,11 +637,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       # Skips the checks below when an earlier run passed the game Worker on the same inputs (scripts/lib/ci-job-inputs.ts).
       - name: Reuse an earlier game Worker pass on the same inputs
         id: prior
@@ -665,6 +658,8 @@ jobs:
         run: bun run game:test --coverage.enabled=true '--coverage.include=workers/game/**/*.ts' '--coverage.include=src/shared/**/*.ts' '--coverage.include=src/shared/**/*.tsx' --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-game.junit.xml
       - name: Upload game coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
@@ -674,6 +669,8 @@ jobs:
       - name: Upload game test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/vitest-game.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -714,11 +711,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       - uses: ./.github/actions/setup
       - uses: ./.github/actions/playwright-chromium
         with:
@@ -733,6 +725,8 @@ jobs:
         # Failure reports still upload; setup failures may produce no report.
         if: ${{ !cancelled() && hashFiles('test-results/vitest-browser-launch.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -767,11 +761,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # Leaves media/image out (#1923); its raster originals are in R2 (#1888), see the generated-images action.
-          sparse-checkout: |
-            /*
-            !/media/image/
-          sparse-checkout-cone-mode: false
       # Skips the checks below when an earlier run passed the e2e shard on the same inputs (scripts/lib/ci-job-inputs.ts).
       - name: Reuse an earlier e2e shard pass on the same inputs
         id: prior
@@ -886,6 +875,8 @@ jobs:
       - name: Upload e2e test results to Codecov
         if: ${{ !cancelled() && hashFiles('test-results/playwright.junit.xml') != '' }}
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           report_type: test_results
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -895,6 +886,8 @@ jobs:
           fail_ci_if_error: false
       - name: Upload e2e coverage to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        timeout-minutes: 1
+        continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/e2e/lcov.info

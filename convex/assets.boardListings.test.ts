@@ -33,15 +33,6 @@ async function boardFixture(bounded = false) {
       is_deleted: false,
       asset_creation_time: 1,
     });
-    const backfill = await ctx.db.insert('migration_runs', {
-      migration_id: 'board_readiness_listing_v1',
-      state: 'success',
-      is_done: true,
-      processed: 1,
-      latest_start: 1,
-      latest_end: 2,
-      updated_at: timestamps.updated_at,
-    });
     const entryId = await ctx.db.insert('catalogue_entries', {
       kind: 'asset',
       source_id: asset,
@@ -69,7 +60,7 @@ async function boardFixture(bounded = false) {
       ...timestamps,
     });
     await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: asset, slot: 'board' });
-    return { asset, summary, backfill };
+    return { asset, summary };
   });
   return { t, ...ids };
 }
@@ -98,22 +89,6 @@ test('board listing readers stay under 64 KiB with a real Arrakis definition', a
   await expect(t.run(async (ctx) => await ctx.db.get('assets', asset))).rejects.toThrow(/Read too much data/);
 });
 
-test.each(['missing', 'legacy'])('a %s summary retains the authoritative board and listing', async (state) => {
-  const { t, asset, summary, backfill } = await boardFixture();
-  await t.run(async (ctx) => {
-    await ctx.db.delete('migration_runs', backfill);
-    if (state === 'missing') {
-      await ctx.db.delete('board_readiness', summary);
-    } else {
-      await ctx.db.replace('board_readiness', summary, { asset_id: asset, usable: true });
-    }
-  });
-  const [row] = await t.query(api.assets.listByTypes, { types: ['board'] });
-  expect(row?.data.board).toBeDefined();
-  expect((await t.query(api.assets.cataloguePage, {})).recent[0]?.id).toBe(asset);
-  expect((await t.query(api.rulesets.detailPage, { slug: 'dreamrules' }))?.board?.id).toBe(asset);
-});
-
 test('an unusable board remains listed and a deleted board stays hidden', async () => {
   const { t, asset, summary } = await boardFixture();
   await t.run(async (ctx) => await ctx.db.patch('board_readiness', summary, { usable: false }));
@@ -126,35 +101,6 @@ test('an unusable board remains listed and a deleted board stays hidden', async 
   expect((await t.query(api.rulesets.detailPage, { slug: 'dreamrules' }))?.board).toBeNull();
 });
 
-test('an incomplete backfill preserves source order and membership among mixed summaries', async () => {
-  const { t, asset, backfill } = await boardFixture();
-  const second = await t.run(async (ctx) => {
-    await ctx.db.patch('migration_runs', backfill, { state: 'inProgress', is_done: false });
-    const original = await ctx.db.get('assets', asset);
-    const { _id, _creationTime, ...fields } = original!;
-    const id = await ctx.db.insert('assets', { ...fields, slug: 'second', data: { ...fields.data, name: 'Second' } });
-    await ctx.db.insert('catalogue_entries', {
-      kind: 'asset',
-      source_id: id,
-      partition: 'board',
-      slug: 'second',
-      search_text: 'second',
-      name_key: 'second',
-      created_at: 2,
-      updated_at: 2,
-      edited_at: 0,
-      complexity: 0,
-      complexity_score: 0,
-      facets: ['board'],
-    });
-    return id;
-  });
-  const rows = await t.query(api.assets.listByTypes, { types: ['board'] });
-  expect(rows.map((row) => row.id)).toEqual([second, asset]);
-  expect(rows[0]?.data.board).toBeDefined();
-  expect(rows[1]?.data.board).toBeDefined();
-});
-
 test('five landing tiles stay under 64 KiB among 1,024 board summaries', async () => {
   const { t, summary } = await boardFixture(true);
   const expected = await t.run(async (ctx) => {
@@ -164,12 +110,12 @@ test('five landing tiles stay under 64 KiB among 1,024 board summaries', async (
     for (let i = 1; i < 1024; i += 1) {
       const name = `Board ${i}`;
       const asset = await ctx.db.insert('assets', {
-        owner_id: first.owner_id!,
+        owner_id: first.owner_id,
         group_id: null,
         type: 'board',
         slug: `board-${i}`,
-        created_at: first.created_at!,
-        updated_at: first.updated_at!,
+        created_at: first.created_at,
+        updated_at: first.updated_at,
         is_deleted: false,
         data: i >= 1019 ? { name, about: '', board: arrakisBoard() } : { name, about: '' },
       });
@@ -192,21 +138,6 @@ test('five landing tiles stay under 64 KiB among 1,024 board summaries', async (
   expect(page.recent.every((row) => !Object.hasOwn(row.data, 'board'))).toBe(true);
 });
 
-test.each([
-  { state: 'success', is_done: false },
-  { state: 'failed', is_done: true },
-] as const)('an unready migration marker retains the bounded source read: %j', async (state) => {
-  const { t, backfill } = await boardFixture();
-  await t.run(async (ctx) => await ctx.db.patch('migration_runs', backfill, state));
-  expect((await t.query(api.assets.listByTypes, { types: ['board'] }))[0]?.data.board).toBeDefined();
-});
-
-test('a selected incomplete summary still reads its source after the backfill', async () => {
-  const { t, summary } = await boardFixture();
-  await t.run(async (ctx) => await ctx.db.patch('board_readiness', summary, { name: undefined }));
-  expect((await t.query(api.assets.listByTypes, { types: ['board'] }))[0]?.data.board).toBeDefined();
-});
-
 test('ten large boards fit listing read budgets without loading their geometry', async () => {
   const { t, summary } = await boardFixture(true);
   for (let index = 2; index <= 10; index += 1) {
@@ -216,13 +147,13 @@ test('ten large boards fit listing read budgets without loading their geometry',
       const name = `Arrakis ${index}`;
       const slug = `arrakis-${index}`;
       const id = await ctx.db.insert('assets', {
-        owner_id: fields.owner_id!,
+        owner_id: fields.owner_id,
         group_id: null,
         type: 'board',
         slug,
         is_deleted: false,
-        created_at: fields.created_at!,
-        updated_at: fields.updated_at!,
+        created_at: fields.created_at,
+        updated_at: fields.updated_at,
         data: { name, about: '', board: arrakisBoard() },
       });
       await ctx.db.insert('board_readiness', { ...fields, name, slug, asset_id: id, asset_creation_time: index });

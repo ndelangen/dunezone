@@ -91,7 +91,7 @@ export const TokenLayer = meta.story({
     await userEvent.tripleClick(canvas.getByRole('textbox', { name: 'Token scale' }));
     await userEvent.keyboard('1.5');
     await userEvent.tab();
-    const scaleSlider = canvas.getByRole('slider', { name: 'Token scale' });
+    const scaleSlider = canvas.getByRole('slider', { name: 'Token scale slider' });
     await expect(scaleSlider).toHaveAttribute('aria-valuenow', '1.5');
     scaleSlider.focus();
     await userEvent.keyboard('{ArrowRight}');
@@ -102,10 +102,10 @@ export const TokenLayer = meta.story({
     await userEvent.click(canvas.getByRole('button', { name: 'Move backward' }));
     await expect(canvas.getByRole('tab', { name: '2. Token' })).toHaveAttribute('aria-selected', 'true');
     await expect(canvas.getByRole('textbox', { name: 'Token scale' })).toHaveValue('1.5');
-    canvas.getByRole('slider', { name: 'Opacity for layer 2' }).focus();
+    canvas.getByRole('slider', { name: 'Opacity for layer 2 slider' }).focus();
     await userEvent.keyboard('{ArrowLeft}');
     await expect(canvas.getByRole('textbox', { name: 'Opacity for layer 2' })).toHaveValue('0.95');
-    canvas.getByRole('slider', { name: 'Rotation for layer 2' }).focus();
+    canvas.getByRole('slider', { name: 'Rotation for layer 2 slider' }).focus();
     await userEvent.keyboard('{ArrowRight}');
     await expect(canvas.getByRole('textbox', { name: 'Rotation for layer 2' })).toHaveValue('1');
   },

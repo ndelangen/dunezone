@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import { PANEL_WINDOWS } from '../panelWindows';
 import {
@@ -8,6 +8,7 @@ import {
   playerChatArgs,
   savedPage,
   tableChatArgs,
+  tableChatNamingArgs,
 } from './ConversationPanel.stories.fixture';
 
 /*
@@ -23,12 +24,44 @@ export const WithAPlayer = meta.story({
   },
 });
 
-/** The table's chat: every message also names its writer's faction. */
+/** The table's chat: behind each writer's name, their faction's token and name. */
 export const WithTheTable = meta.story({
   args: tableChatArgs(),
   parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, canvasElement, args }) => {
     await expect(canvas.getByText('Who is bidding on this one?')).toBeVisible();
+    /* Each message names its writer's faction beside the faction's token face as it lies on the table. */
+    const headers = [...canvasElement.querySelectorAll<HTMLElement>('[data-message-sender]')];
+    await expect(headers).toHaveLength(args.page!.entries.length);
+    for (const header of headers) {
+      const token = args.senders![header.dataset.messageSender!]!;
+      await expect(within(header).getByText(token.name)).toBeVisible();
+      await expect(header.querySelector('img')).toHaveAttribute('src', token.src);
+    }
+  },
+});
+
+/** Typing @ at the table suggests every other seat: its faction, with its token and player beside it. */
+export const SuggestsMentions = meta.story({
+  args: tableChatArgs(),
+  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  play: async ({ canvas, args, userEvent }) => {
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Message' }), '@');
+    const options = await within(document.body).findAllByRole('option');
+    await expect(options.map((option) => option.textContent)).toEqual(
+      args.mentions!.filter((mention) => !mention.own).map((mention) => `${mention.label}${mention.detail ?? ''}`)
+    );
+  },
+});
+
+/** A message that names a seat after an @ underlines it; hovering it, or a writer's token, shows the seat's card (see Mention card). */
+export const NamesASeat = meta.story({
+  args: tableChatNamingArgs(),
+  parameters: { panelWindow: { ...PANEL_WINDOWS.tableChat, fill: true } },
+  play: async ({ canvasElement }) => {
+    const named = canvasElement.querySelector<HTMLElement>('[data-mention]');
+    await expect(named).toBeVisible();
+    await expect(named!.textContent).toMatch(/^@/);
   },
 });
 
@@ -37,6 +70,14 @@ export const Empty = meta.story({
   args: { page: savedPage([]) },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('No messages yet.')).toBeVisible();
+  },
+});
+
+/** The viewer cleared this chat, so its empty history says so; the other side still has every message. */
+export const Cleared = meta.story({
+  args: { page: savedPage([]), cleared: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('You cleared this chat.')).toBeVisible();
   },
 });
 

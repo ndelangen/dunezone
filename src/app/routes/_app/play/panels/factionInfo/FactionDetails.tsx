@@ -1,4 +1,4 @@
-import { Accordion, Box, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Accordion, Box, Stack, Text, Tooltip } from '@mantine/core';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { PublicFaction } from '@shared/play/capture';
 import { Section } from '@ui/block/Section';
@@ -68,7 +68,7 @@ function Leaders({ faction }: Faction) {
         return (
           <Tooltip key={`${leader.name}-${index}`} label={label}>
             <div className={styles.leader} role="img" aria-label={label}>
-              <LeaderToken {...leader} background={faction.background} logo={faction.logo} />
+              <LeaderToken {...leader} background={faction.background} emblem={faction.emblem} />
             </div>
           </Tooltip>
         );
@@ -110,30 +110,19 @@ function Advantages({ faction }: Faction) {
 function Setup({ faction }: Faction) {
   return (
     <Stack gap="sm">
-      <Box>
-        <Title order={4} size="h5">
-          At start
-        </Title>
-        <Text size="sm" mt={4}>
+      <Section title="At start">
+        <Text size="sm">
           <InlineFormattedTextSource source={faction.rules.startText} />
         </Text>
-      </Box>
-      <Box>
-        <Title order={4} size="h5">
-          Starting spice
-        </Title>
-        <Text size="sm" mt={4}>
-          {faction.rules.spiceCount} spice
-        </Text>
-      </Box>
-      <Box>
-        <Title order={4} size="h5">
-          Revival
-        </Title>
-        <Text size="sm" mt={4}>
+      </Section>
+      <Section title="Starting spice">
+        <Text size="sm">{faction.rules.spiceCount} spice</Text>
+      </Section>
+      <Section title="Revival">
+        <Text size="sm">
           <InlineFormattedTextSource source={faction.rules.revivalText} />
         </Text>
-      </Box>
+      </Section>
     </Stack>
   );
 }

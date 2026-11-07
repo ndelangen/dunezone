@@ -225,19 +225,19 @@ export const EditDeckShowsOnlyTheLatestSaveFailure = meta.story({
     await userEvent.clear(name);
     await userEvent.type(name, '!!!');
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
-    await expect(page.findByText('Could not save', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Deck could not be saved', {}, { timeout: 30_000 })).resolves.toBeVisible();
 
     await userEvent.click(page.getByRole('tab', { name: 'Back' }));
     await userEvent.click(page.getByRole('radio', { name: "Another deck's back" }));
     await userEvent.click(page.getByRole('button', { name: 'Save deck' }));
     await expect(page.findByText('No deck picked', {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.queryByText('Could not save')).toBeNull();
+    await expect(page.queryByText('Deck could not be saved')).toBeNull();
   },
 });
 
 /**
  * A spice card saves through the same create flow and lands on its own editor.
- * The territory is picked first so the saved card carries a complete face, and the empty body is saved as the renderer's standard sentence.
+ * The board is picked first so the saved card carries a complete face, and the empty body is saved as the renderer's standard sentence.
  */
 export const CreateSpiceCardSaves = meta.story({
   args: { path: '/assets/card-spice/create' },
@@ -246,8 +246,8 @@ export const CreateSpiceCardSaves = meta.story({
     const name = await page.findByRole('textbox', { name: 'Name' }, { timeout: 30_000 });
     await userEvent.type(name, 'Storybook Basin');
     await userEvent.click(page.getByRole('tab', { name: 'Map' }));
-    await userEvent.type(page.getByRole('combobox', { name: 'Highlighted territories' }), 'Basin');
-    await userEvent.click(await page.findByRole('option', { name: 'Imperial Basin' }));
+    await userEvent.click(page.getByRole('combobox', { name: 'Board' }));
+    await userEvent.click(await page.findByRole('option', { name: /Arrakis Official/ }, { timeout: 30_000 }));
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
     await expect(page.findByRole('button', { name: 'Delete card' }, { timeout: 30_000 })).resolves.toBeVisible();
   },

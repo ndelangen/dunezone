@@ -181,7 +181,7 @@ function PiecesVisual() {
           <LeaderToken
             background={atreides.background}
             image="/image/leader/official/thufir.png"
-            logo="/vector/logo/atreides.svg"
+            emblem="/vector/emblem/atreides.svg"
             name="Thufir Hawat"
             strength="5"
           />
@@ -250,7 +250,7 @@ function DuncanIdaho() {
     <LeaderToken
       background={atreides.background}
       image="/image/leader/official/duncan.png"
-      logo="/vector/logo/atreides.svg"
+      emblem="/vector/emblem/atreides.svg"
       name="Duncan Idaho"
       strength="2"
     />
@@ -378,7 +378,7 @@ function SpiceVisual() {
     <div className={styles.row}>
       <Piece caption="Spice card" anchor="spice-card">
         <GameCard>
-          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
+          <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" amount={3} />
         </GameCard>
       </Piece>
       <div className={clsx(styles.column, styles.extra)}>
@@ -417,7 +417,7 @@ function CardsVisual() {
             <TraitorCard
               background={atreides.background}
               image="/image/leader/official/gurney.png"
-              logo="/vector/logo/atreides.svg"
+              emblem="/vector/emblem/atreides.svg"
               name="Gurney Halleck"
               strength="4"
               owner="Atreides"
@@ -428,7 +428,7 @@ function CardsVisual() {
       <div className={styles.row}>
         <Piece captionHidden caption="Spice card" anchor="spice-card">
           <GameCard>
-            <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" highlights={['arsunt']} amount={3} />
+            <SpiceCard name="Arsunt" subName="Spice mine" icon="spice-mine" amount={3} />
           </GameCard>
         </Piece>
         <Piece captionHidden caption="Shai-Hulud" anchor="shai-hulud">

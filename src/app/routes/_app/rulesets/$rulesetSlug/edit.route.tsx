@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Anchor, Button, Group, Popover, Radio, Stack, Text, TextInput, Title } from '@mantine/core';
+import { Anchor, Group, Popover, Radio, Stack, Text, TextInput } from '@mantine/core';
 import { RULESET_ASSET_SLOT_ORDER, RULESET_ASSET_SLOTS } from '@shared/rulesets/assetSlots';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
 import {
@@ -19,9 +19,8 @@ import type { BattleDialing } from '@shared/rulesets/battleDialing';
 import { rulesetAboutSchema, rulesetNameSchema } from '@shared/rulesets/validation';
 import { userImageSourceUrlSchema } from '@shared/user-images/contract';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { FactionLink } from '@ui/content/FactionLink';
@@ -29,16 +28,31 @@ import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FORMATTED_TEXT_SYNTAX_HELP, FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Bullets } from '@ui/list/Bullets';
 import { Surface } from '@ui/surface';
-import { ArrowDown, ArrowUp, CircleAlert, CircleCheck, Layers3, Link2, Link2Off, Pencil, X } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  CircleAlert,
+  CircleCheck,
+  Layers3,
+  Link2,
+  Link2Off,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Replace,
+  X,
+} from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { usePlayReadiness } from '@db/play';
@@ -61,10 +75,12 @@ import type { RulesetEntry } from '@db/rulesets';
 import { AssetPicker } from '@app/pickers/AssetPicker';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteNotFound } from '@app/routes/routeStates';
 import { AuthoringToolbar, failureStatus } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 /**
  * The whole edit page for one ruleset, mounted with `key={r.slug}` so a rename remounts it and resets the draft.
@@ -284,10 +300,10 @@ function RulesetEditor({
                     'Only the ruleset owner can rename it.'
                   )
                 }
-                input={
+                inputId="ruleset-settings-name"
+                input={(fieldProps) => (
                   <TextInput
-                    id="ruleset-settings-name"
-                    aria-label="Name"
+                    {...fieldProps}
                     name="name"
                     required
                     error={nameError}
@@ -300,16 +316,16 @@ function RulesetEditor({
                     }
                     disabled={!canRename}
                   />
-                }
+                )}
               />
 
               <ControlBlock
                 title="About"
                 description={helpLines(RULESET_ABOUT_HELP, FORMATTED_TEXT_SYNTAX_HELP)}
-                input={
+                inputId="ruleset-settings-about"
+                input={(fieldProps) => (
                   <FormattedTextInput
-                    id="ruleset-settings-about"
-                    aria-label="About"
+                    {...fieldProps}
                     name="about"
                     description={rulesetAboutCount(about)}
                     error={aboutError}
@@ -318,7 +334,7 @@ function RulesetEditor({
                     value={about}
                     onChange={(next) => dispatch({ kind: 'patch', update: { about: next } })}
                   />
-                }
+                )}
               />
 
               <ControlBlock
@@ -326,10 +342,10 @@ function RulesetEditor({
                 description={
                   'Optional. A full https:// URL.\nSaving stores a copy, so later changes at the source do not show here.\nLeave empty to clear the cover.'
                 }
-                input={
+                inputId="ruleset-settings-cover"
+                input={(fieldProps) => (
                   <TextInput
-                    id="ruleset-settings-cover"
-                    aria-label="Cover image URL"
+                    {...fieldProps}
                     type="url"
                     error={coverFormatError ?? rehostFailure ?? undefined}
                     value={coverUrl}
@@ -342,7 +358,7 @@ function RulesetEditor({
                     placeholder="https://…"
                     autoComplete="off"
                   />
-                }
+                )}
               />
 
               <ControlBlock
@@ -373,8 +389,8 @@ function RulesetEditor({
                 }
               />
 
-              {rehostFailure ? <FormError title="Cover could not be stored">{rehostFailure}</FormError> : null}
-              {mutationError ? <FormError title="Ruleset could not be saved">{mutationError}</FormError> : null}
+              <ActionError subject="Cover" verb="store" error={rehostFailure} />
+              <ActionError subject="Ruleset" verb="save" error={mutationError} />
             </Stack>
           </Surface>
           <RulesetRulebooks
@@ -428,13 +444,12 @@ function RulesetEditPage() {
      They were two identical blocks before, which is how they stayed identical. */
   if (loaderData.notFound || !page?.ruleset) {
     return (
-      <PageMessage
+      <RouteNotFound
         size="compact"
         title="Edit ruleset"
         back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
-      >
-        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
+        noun="ruleset"
+      />
     );
   }
 
@@ -452,9 +467,9 @@ function RulesetEditPage() {
 
   if (!page.viewerResolved) {
     return (
-      <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
-        <LoadPending title="Loading your profile">Checking what you may change here.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title={`Edit ${r.name}`} back={guardBack} loading="Loading your profile">
+        Checking what you may change here.
+      </RoutePending>
     );
   }
 
@@ -469,11 +484,11 @@ function RulesetEditPage() {
   if (!viewerAccess.capabilities.edit) {
     return (
       <PageMessage size="compact" title={`Edit ${r.name}`} back={guardBack}>
-        <NotAvailable title="You cannot edit this ruleset">
+        <PageState kind="absent" title="You cannot edit this ruleset">
           {r.group_id
             ? 'Only the ruleset owner or an active member of its group can edit this ruleset.'
             : 'Only the ruleset owner can edit this ruleset.'}
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -543,9 +558,14 @@ function PlayReadinessReport({
       id="play-readiness"
       title="Ready for Play"
       action={
-        <Button variant="light" size="compact-sm" onClick={onRecheck} loading={check.status === 'checking'}>
+        <LabeledAction
+          size="compact-sm"
+          icon={<RefreshCw size={14} />}
+          busy={check.status === 'checking'}
+          onClick={onRecheck}
+        >
           Check again
-        </Button>
+        </LabeledAction>
       }
     >
       <Surface padding="lg">
@@ -706,7 +726,7 @@ function RulesetFactions({
     <Section id="factions" title="Factions" icon={<Layers3 size={20} aria-hidden />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? <FormError title="Factions could not be updated">{error.message}</FormError> : null}
+          <ActionError subject="Factions" verb="update" error={error} />
           <Group justify="space-between" wrap="nowrap">
             <Text size="sm" c="dimmed">
               {ordered === undefined ? 'Loading factions…' : 'Drag a faction to change its place.'}
@@ -738,7 +758,7 @@ function RulesetFactions({
                           <FactionLink
                             slug={faction.slug}
                             name={faction.name}
-                            logo={faction.logo}
+                            emblem={faction.emblem}
                             background={faction.background}
                             style={{ flex: 1, minWidth: 0 }}
                           />
@@ -764,11 +784,7 @@ function RulesetFactions({
               </SortableContext>
             </DndContext>
           ) : null}
-          {ordered?.hasMore ? (
-            <Button variant="default" onClick={loadMore}>
-              Load more
-            </Button>
-          ) : null}
+          {ordered?.hasMore ? <LoadMoreButton loading={false} onLoadMore={loadMore} /> : null}
           <Text size="xs" c="dimmed">
             Changes save immediately. The ruleset page shows the first three. Removing a faction only takes it out of
             this ruleset.
@@ -877,7 +893,7 @@ function RulesetRulebooks({
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       <Surface padding="lg">
         <Stack gap="md">
-          {error ? <FormError title="Rulebooks could not be updated">{error.message}</FormError> : null}
+          <ActionError subject="Rulebooks" verb="update" error={error} />
           {rulebooks.length === 0 ? <Text c="dimmed">No Rulebooks yet.</Text> : null}
           <Stack component="ol" aria-label="Rulebooks" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
             {rulebooks.map((book, index) => (
@@ -919,7 +935,7 @@ function RulesetRulebooks({
                     icon={<ArrowDown size={16} aria-hidden />}
                   />
                   {canDelete ? (
-                    <ConfirmDeleteAction
+                    <HoldAction
                       label={`Delete ${book.name}`}
                       size="sm"
                       pending={remove.isPending}
@@ -963,18 +979,14 @@ function RulesetAssetSlots({
   const [openSlot, setOpenSlot] = useState<RulesetAssetSlot | null>(null);
 
   return (
-    <Stack gap="lg">
-      <Stack gap={2}>
-        <Title order={2} size="h4">
-          Board, decks and bundles
-        </Title>
-        <Text size="sm" c="dimmed">
-          What this ruleset puts on the table. Choose a board to make it available for Play. Any deck may fill any deck
-          slot.
-        </Text>
-      </Stack>
-      {setSlot.error ? <FormError title="Slot could not be filled">{setSlot.error.message}</FormError> : null}
-      {clearSlot.error ? <FormError title="Slot could not be cleared">{clearSlot.error.message}</FormError> : null}
+    <Section
+      title="Board, decks and bundles"
+      help={
+        'What this ruleset puts on the table.\nChoose a board to make it available for Play. Any deck may fill any deck slot.'
+      }
+    >
+      <ActionError subject="Slot" verb="fill" error={setSlot.error} />
+      <ActionError subject="Slot" verb="clear" error={clearSlot.error} />
       {RULESET_ASSET_SLOT_ORDER.map((slot) => {
         const rule = RULESET_ASSET_SLOTS[slot];
         const held = slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);
@@ -993,13 +1005,14 @@ function RulesetAssetSlots({
                 withinPortal
               >
                 <Popover.Target>
-                  <Button
-                    variant="light"
+                  <LabeledAction
                     size="compact-sm"
+                    intent={rule.single && held.length > 0 ? 'neutral' : 'positive'}
+                    icon={rule.single && held.length > 0 ? <Replace size={14} /> : <Plus size={14} />}
                     onClick={() => setOpenSlot(openSlot === slot ? null : slot)}
                   >
                     {rule.single && held.length > 0 ? 'Change' : 'Add'}
-                  </Button>
+                  </LabeledAction>
                 </Popover.Target>
                 <Popover.Dropdown>
                   <AssetPicker
@@ -1051,6 +1064,6 @@ function RulesetAssetSlots({
           </Stack>
         );
       })}
-    </Stack>
+    </Section>
   );
 }

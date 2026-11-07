@@ -1,4 +1,8 @@
 import { Pagination, Stack, Text } from '@mantine/core';
+import type { ElementType } from 'react';
+
+/** The props that make one page's control a link to it: the link component, in practice the router's `Link`, and what it takes, such as `{ component: Link, to, search }`. */
+export type PageLinkProps = { component: ElementType } & Record<string, unknown>;
 
 export type CataloguePagerProps = {
   /** The page shown, from 1. */
@@ -13,8 +17,8 @@ export type CataloguePagerProps = {
   noun: string;
   /** Names the page list for assistive technology. */
   label: string;
-  /** The props that make one page's control a link to it, such as `{ component: Link, to, search }`; the caller decides where a page lives. */
-  pageLinkProps: (page: number) => Record<string, unknown>;
+  /** The props that make one page's control a link to it; the caller decides where a page lives. */
+  pageLinkProps: (page: number) => PageLinkProps;
 };
 
 /**

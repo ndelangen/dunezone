@@ -21,9 +21,10 @@ import { TabletopSessionProvider } from './TabletopContext';
 import { TabletopScene } from './TabletopScene';
 import { BoardSkinOverride } from './useBoardSkinMaterial';
 
+/* Every table plays on a board, so a story draws the saved Arrakis unless it names another. */
 function PreparedTable({
   presentation,
-  board,
+  board = arrakisBoardCapture,
   skin,
   planet = false,
 }: {
@@ -127,7 +128,7 @@ let objectUrls: MockInstance<typeof URL.createObjectURL> | undefined;
  */
 export const AuthoredArrakis = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { presentation: 'play', board: arrakisBoardCapture },
+  args: { presentation: 'play' },
   beforeEach: () => {
     objectUrls = spyOn(URL, 'createObjectURL');
     return () => objectUrls?.mockRestore();

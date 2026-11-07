@@ -30,7 +30,9 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Button, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, Group, Menu, Radio, Popover, Select, Stack, Text, TextInput, VisuallyHidden } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The film strip's pages are draggable thumbnails, not actions. */
+import { Button } from '@mantine/core';
 import {
   canonicalRulebookCoverControlValues,
   createRulebookLocalId,
@@ -75,17 +77,19 @@ import {
 import type { RulebookSettings } from '@shared/rulebooks/settings';
 import { createFileRoute, deepEqual, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
-import { errorMessage } from '@ui/content/errorMessage';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
-import { ConfirmPublishAction } from '@ui/control/ConfirmPublishAction';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
 import { SaveAction } from '@ui/control/SaveAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { StatusInfo } from '@ui/control/StatusInfo';
@@ -98,6 +102,8 @@ import { NestedTabs, Surface } from '@ui/surface';
 import { Toolbar, useDismissToolbarOverflow } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
+  CloudDownload,
+  PenLine,
   BookMarked,
   Check,
   CircleAlert,
@@ -113,6 +119,7 @@ import {
   SlidersHorizontal,
   Settings,
   TextCursorInput,
+  X,
 } from 'lucide-react';
 import {
   memo,
@@ -138,12 +145,13 @@ import {
   useSaveRulebook,
 } from '@db/rulebooks';
 import type { RulebookEditorPageData, RulebookMetadata } from '@db/rulebooks';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { FactionPicker } from '@app/pickers/FactionPicker';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RulebookBoardMarkupEditing } from '@game/rulebook/RulebookBoardMarkup';
 import { RulebookPageRenderer } from '@game/rulebook/RulebookRenderer';
@@ -185,6 +193,7 @@ import type {
   RulebookPageDetailsBlockRegion,
   RulebookPageDetailsDropStatus,
 } from './rulebookPageDetailsEdit';
+import { emptyBoardScene, useNewSceneBoardId } from './rulebookSceneBlockEditors';
 
 type ReadyResult = Extract<RulebookEditorResult, { status: 'ready' }>;
 
@@ -867,10 +876,10 @@ function emptyBattleExample() {
   };
 }
 
-function createBlock(kind: RulebookBlockKind, id: string): RulebookBlockDraft {
+function createBlock(kind: RulebookBlockKind, id: string, boardId: string): RulebookBlockDraft {
   switch (kind) {
     case 'board-scene':
-      return { id, kind, boardId: 'arrakis', caption: '', players: [], troops: [], highlights: [], annotations: [] };
+      return { id, kind, ...emptyBoardScene(boardId) };
     case 'piece-transfer':
       return { id, kind, left: { label: '', pieces: [] }, right: { label: '', pieces: [] } };
     case 'piece-movement':
@@ -1200,52 +1209,33 @@ function FactionReferenceControl({
   title?: string;
   description?: string;
 }) {
-  const [opened, setOpened] = useState(false);
   const chosenName = factionId ? (factionsById[factionId]?.name ?? 'Unavailable faction') : undefined;
   return (
-    <ControlBlock
+    <PickerField
       title={title}
       description={description}
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button
-              variant="default"
-              aria-label={
-                title === 'Faction'
-                  ? undefined
-                  : [`Choose ${title.toLowerCase()}`, chosenName].filter(Boolean).join(': ')
-              }
-              onClick={() => setOpened(!opened)}
-            >
-              {chosenName ?? 'Choose faction'}
-            </Button>
-            {factionId ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <FactionPicker
-              copy={{
-                title: 'Choose faction',
-                intro: 'Choose a live faction reference.',
-                errorTitle: 'Factions could not be loaded',
-                emptyMessage: 'No factions are available.',
-                confirmTitle: 'Selected faction',
-                confirmLabel: 'Use faction',
-                confirmIntent: 'positive',
-              }}
-              onPick={(picked) => {
-                onChange(picked.id);
-                setOpened(false);
-              }}
-              onCancel={() => setOpened(false)}
-            />
-          ) : null}
-        </Stack>
-      }
+      chosen={chosenName ?? 'Choose faction'}
+      chooseLabel={title === 'Faction' ? undefined : `Choose ${title.toLowerCase()}`}
+      onClear={factionId ? () => onChange(undefined) : undefined}
+      loadingLabel="Loading factions"
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Choose a live faction reference.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            onChange(picked.id);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
@@ -1284,15 +1274,15 @@ function blockEditorPanel(
     <ControlBlock
       title="Anchor"
       description="Set the stable public anchor used in links to this Block."
-      input={
+      input={(fieldProps) => (
         <TextInput
-          aria-label="Anchor"
+          {...fieldProps}
           leftSection={<Link2 size={16} aria-hidden />}
           leftSectionPointerEvents="none"
           value={block.anchor ?? ''}
           onChange={(event) => replaceBlock({ ...block, anchor: event.currentTarget.value || undefined })}
         />
-      }
+      )}
     />
   );
   const change = (value: object) => replaceBlock({ ...block, ...value });
@@ -1458,7 +1448,7 @@ function controlRegionPanel(
       />
     );
   }
-  return <Alert color="red">This Control region has no matching editor.</Alert>;
+  return <FormError title="No editor for this region">This Control region has no matching editor.</FormError>;
 }
 
 type FilmstripProps = {
@@ -1818,6 +1808,7 @@ function RulebookWorkspace({
     flush: flushRailDragPosition,
     cancel: cancelRailDragPosition,
   } = useCoalescedDragPosition(processRailDragPosition);
+  const newSceneBoardId = useNewSceneBoardId();
 
   if (!active || !activePage || !projectedActivePage) {
     return (
@@ -1895,7 +1886,7 @@ function RulebookWorkspace({
       entity: {
         kind: 'block',
         pageId: page.id,
-        block: createBlock(kind, blockId),
+        block: createBlock(kind, blockId, newSceneBoardId),
       },
       placement: {
         container: { kind: 'block-region', pageId: page.id, regionKey },
@@ -2155,7 +2146,7 @@ function RulebookWorkspace({
           {blockEditorPanel(page.blocksById[active.blockId]!, replaceBlock, factionsById, assetsById, result.draft)}
         </RulebookMarkupUiProvider>
         <Group justify="flex-end">
-          <ConfirmDeleteAction
+          <HoldAction
             key={active.blockId}
             label="Delete Block"
             size="sm"
@@ -2286,13 +2277,7 @@ function RulebookWorkspace({
                     );
                   })}
                   <NestedTabs.Tools>
-                    <ConfirmDeleteAction
-                      key={page.id}
-                      label="Delete Page"
-                      size="sm"
-                      pending={false}
-                      onConfirm={deletePage}
-                    />
+                    <HoldAction key={page.id} label="Delete Page" size="sm" pending={false} onConfirm={deletePage} />
                     <AddMenu
                       label="Add Block"
                       values={availableBlockKinds}
@@ -2592,6 +2577,9 @@ function reviewPlacementOptions(result: ReadyResult, difference: Extract<Differe
   });
 }
 
+/* The saved side of a difference, the same glyph the settings conflict uses for its saved side. */
+const SAVED_ICON = <CloudDownload size={16} />;
+
 function RulebookDifferenceReview({
   result,
   dispatch,
@@ -2613,18 +2601,20 @@ function RulebookDifferenceReview({
   return (
     <Section
       title="Review differences"
-      description="Choose which version to keep. You can return to editing at any time; Save waits until every difference is reviewed."
+      help={
+        'Choose which version to keep.\nYou can return to editing at any time; Save waits until every difference is reviewed.'
+      }
       action={
-        <Button variant="default" onClick={onClose}>
+        <LabeledAction icon={<ArrowLeft size={16} />} onClick={onClose}>
           Back to editing
-        </Button>
+        </LabeledAction>
       }
     >
       <Stack gap="lg">
         {result.incompatibilities.length === 0 ? (
-          <Alert color="confirm" role="status">
+          <Notice tone="positive" live>
             All differences are reviewed. Return to editing to check and save your draft.
-          </Alert>
+          </Notice>
         ) : null}
         {result.incompatibilities.map((difference) => {
           let name: string;
@@ -2696,7 +2686,7 @@ function RulebookDifferenceReview({
             <Section
               key={difference.id}
               title={name}
-              action={approved ? <Badge color="confirm">Reviewed</Badge> : undefined}
+              action={approved ? <StatusBadge tone="positive">Reviewed</StatusBadge> : undefined}
             >
               <AsymmetricSplitLayout>
                 <AsymmetricSplitLayout.Wide>
@@ -2704,9 +2694,9 @@ function RulebookDifferenceReview({
                     <Section title="Your draft">
                       {local}
                       {localOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, localOutcome!)}>
+                        <LabeledAction icon={<PenLine size={16} />} onClick={() => approve(difference, localOutcome!)}>
                           Keep your version
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2716,9 +2706,9 @@ function RulebookDifferenceReview({
                     <Section title="Latest saved version">
                       {latest}
                       {latestOutcome ? (
-                        <Button variant="default" onClick={() => approve(difference, latestOutcome!)}>
+                        <LabeledAction icon={SAVED_ICON} onClick={() => approve(difference, latestOutcome!)}>
                           {difference.kind === 'anchor' ? 'Use available anchor' : 'Keep saved version'}
-                        </Button>
+                        </LabeledAction>
                       ) : null}
                     </Section>
                   </Surface>
@@ -2728,17 +2718,22 @@ function RulebookDifferenceReview({
                 ? (() => {
                     const options = reviewPlacementOptions(result, difference);
                     return (
-                      <Select
-                        label="Choose the position"
-                        placeholder="Select a destination"
-                        value={null}
-                        data={options.map((option, index) => ({ value: String(index), label: option.label }))}
-                        onChange={(value) => {
-                          const option = value === null ? undefined : options[Number(value)];
-                          if (option) {
-                            approve(difference, { kind: 'placement', destination: option.destination });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Choose the position"
+                        input={(fieldProps) => (
+                          <Select
+                            {...fieldProps}
+                            placeholder="Select a destination"
+                            value={null}
+                            data={options.map((option, index) => ({ value: String(index), label: option.label }))}
+                            onChange={(value) => {
+                              const option = value === null ? undefined : options[Number(value)];
+                              if (option) {
+                                approve(difference, { kind: 'placement', destination: option.destination });
+                              }
+                            }}
+                          />
+                        )}
                       />
                     );
                   })()
@@ -2764,6 +2759,12 @@ function RulebookRename({
   const [name, setName] = useState(rulebook.name);
   const rename = useRenameRulebook();
   const validName = rulebookNameSchema.safeParse(name);
+  /* Why Rename cannot run yet, if it cannot: the button shows it and Enter in the field honours it. */
+  const blocked = !validName.success
+    ? 'Enter a name for the Rulebook.'
+    : validName.data === rulebook.name
+      ? 'Type a new name first.'
+      : undefined;
   return (
     <Stack
       component="form"
@@ -2771,7 +2772,10 @@ function RulebookRename({
       gap="sm"
       onSubmit={(event) => {
         event.preventDefault();
-        if (validName.success && !rename.isPending) {
+        if (rename.isPending) {
+          return;
+        }
+        if (blocked === undefined && validName.success) {
           rename.mutate(
             { rulebookId: rulebook._id, name: validName.data },
             {
@@ -2789,31 +2793,38 @@ function RulebookRename({
         }
       }}
     >
-      <TextInput
-        label="Rulebook name"
-        value={name}
-        required
-        disabled={rename.isPending}
-        onChange={(event) => setName(event.currentTarget.value)}
+      <ControlBlock
+        title="Rulebook name"
         description={<SlugRenameNotice noun="Rulebook" url={`/rulesets/${rulesetSlug}/rulebooks/${rulebook.slug}`} />}
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            value={name}
+            required
+            disabled={rename.isPending}
+            onChange={(event) => setName(event.currentTarget.value)}
+          />
+        )}
       />
-      {rename.error ? (
-        <Alert color="red" title="Rulebook could not be renamed">
-          {rename.error.message}
-        </Alert>
-      ) : null}
+      <ActionError subject="Rulebook" verb="rename" error={rename.error} />
       <Group gap="xs">
-        <Button
+        <LabeledAction
           type="submit"
-          color="confirm"
-          loading={rename.isPending}
-          disabled={!validName.success || name.trim() === rulebook.name}
+          intent="positive"
+          emphasis="strong"
+          icon={<PencilLine size={16} />}
+          busy={rename.isPending}
+          disabledReason={blocked}
         >
           Rename Rulebook
-        </Button>
-        <Button variant="default" disabled={rename.isPending} onClick={onClose}>
+        </LabeledAction>
+        <LabeledAction
+          icon={<X size={16} />}
+          disabledReason={rename.isPending ? 'Wait for the rename to finish.' : undefined}
+          onClick={onClose}
+        >
           Cancel
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );
@@ -3040,47 +3051,57 @@ function RulebookSettingsPopover({
 function RulebookSettingsEditor({ settings, layoutIds, onChange }: RulebookSettingsEditorProps) {
   return (
     <Stack gap="md">
-      <Radio.Group
-        label="Book size"
-        value={settings.size}
-        onChange={(size) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
-          if (parsed.success) {
-            onChange(parsed.data);
-          }
-        }}
-      >
-        <Stack gap="xs" pt="xs">
-          {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
-            const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
-            return (
-              <Radio
-                key={id}
-                value={id}
-                label={`${label} (${widthMm} × ${heightMm} mm)`}
-                description={supported ? undefined : 'Page layouts do not fit'}
-                disabled={!supported}
-              />
-            );
-          })}
-        </Stack>
-      </Radio.Group>
-      <Radio.Group
-        label="Book design"
-        value={settings.design}
-        onChange={(design) => {
-          const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
-          if (parsed.success) {
-            onChange(parsed.data);
-          }
-        }}
-      >
-        <Stack gap="xs" pt="xs">
-          {rulebookDesignCatalogue.map(({ id, label }) => (
-            <Radio key={id} value={id} label={label} />
-          ))}
-        </Stack>
-      </Radio.Group>
+      <ControlBlock
+        title="Book size"
+        input={
+          <Radio.Group
+            label={<VisuallyHidden>Book size</VisuallyHidden>}
+            value={settings.size}
+            onChange={(size) => {
+              const parsed = rulebookSettingsSchema.safeParse({ ...settings, size });
+              if (parsed.success) {
+                onChange(parsed.data);
+              }
+            }}
+          >
+            <Stack gap="xs" pt="xs">
+              {rulebookSizeCatalogue.map(({ id, label, widthMm, heightMm }) => {
+                const supported = layoutIds.every((layoutId) => isRulebookLayoutSupported(layoutId, id));
+                return (
+                  <Radio
+                    key={id}
+                    value={id}
+                    label={`${label} (${widthMm} × ${heightMm} mm)`}
+                    description={supported ? undefined : 'Page layouts do not fit'}
+                    disabled={!supported}
+                  />
+                );
+              })}
+            </Stack>
+          </Radio.Group>
+        }
+      />
+      <ControlBlock
+        title="Book design"
+        input={
+          <Radio.Group
+            label={<VisuallyHidden>Book design</VisuallyHidden>}
+            value={settings.design}
+            onChange={(design) => {
+              const parsed = rulebookSettingsSchema.safeParse({ ...settings, design });
+              if (parsed.success) {
+                onChange(parsed.data);
+              }
+            }}
+          >
+            <Stack gap="xs" pt="xs">
+              {rulebookDesignCatalogue.map(({ id, label }) => (
+                <Radio key={id} value={id} label={label} />
+              ))}
+            </Stack>
+          </Radio.Group>
+        }
+      />
     </Stack>
   );
 }
@@ -3158,9 +3179,7 @@ function RulebookEditorSession({
     return (
       <PageLayout>
         <PageLayout.Content>
-          <Alert color="red" role="alert" title="This Rulebook could not open">
-            {result.message}
-          </Alert>
+          <FormError title="This Rulebook could not open">{result.message}</FormError>
         </PageLayout.Content>
       </PageLayout>
     );
@@ -3382,7 +3401,8 @@ function RulebookEditorSession({
                     </Toolbar.Cluster>
                     <Toolbar.Cluster kind="commit">
                       {/* Held like a deletion, because an Edition is as permanent, and violet, because it is not a second Save (Norbert, 2026-09-29). */}
-                      <ConfirmPublishAction
+                      <HoldAction
+                        verb="publish"
                         label={`Publish Edition ${nextEditionNumber}`}
                         pending={publishMutation.isPending}
                         disabledReason={publishBlocker}
@@ -3425,43 +3445,49 @@ function RulebookEditorSession({
             </Surface>
           ) : null}
           {result.settingsConflict ? (
-            <Alert color="red" title="Book settings changed in another editor">
-              <Stack gap="sm">
-                <Text>Choose which size and design to save. Your Contents changes stay in the draft.</Text>
+            <FormError
+              title="Book settings changed in another editor"
+              action={
                 <Group>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}>
+                  <LabeledAction
+                    icon={<PenLine size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'local' })}
+                  >
                     Keep my settings
-                  </Button>
-                  <Button onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}>
+                  </LabeledAction>
+                  <LabeledAction
+                    icon={<CloudDownload size={16} />}
+                    onClick={() => dispatch({ kind: 'resolve-settings', choice: 'saved' })}
+                  >
                     Use saved settings
-                  </Button>
+                  </LabeledAction>
                 </Group>
-              </Stack>
-            </Alert>
+              }
+            >
+              Choose which size and design to save. Your Contents changes stay in the draft.
+            </FormError>
           ) : null}
-          {result.operationError ? <Alert color="red">{result.operationError}</Alert> : null}
-          {publishMutation.error ? (
-            <Alert color="red" role="alert" title="Edition could not be published">
-              {publishMutation.error.message}
-            </Alert>
+          {result.operationError ? (
+            <FormError title="That change was not made">{result.operationError}</FormError>
           ) : null}
+          <ActionError subject="Edition" verb="publish" error={publishMutation.error} />
           {view.notice === 'stale' ? (
-            <Alert color="yellow" role="status">
+            <Notice tone="caution" live>
               Another editor saved first. Your changes are still here.{' '}
               {needsReview
                 ? 'Review the differences before saving.'
                 : 'The saved changes have been combined with yours. Save again when ready.'}
-            </Alert>
+            </Notice>
           ) : null}
           {view.notice === 'published' ? (
-            <Alert color="confirm" role="status">
+            <Notice tone="positive" live>
               The new Edition is now current. HTML and PDF are being prepared independently.
-            </Alert>
+            </Notice>
           ) : null}
           {view.notice === 'unchanged' ? (
-            <Alert color="blue" role="status">
+            <Notice tone="info" live>
               The saved draft already matches the current Edition.
-            </Alert>
+            </Notice>
           ) : null}
           {view.reviewing ? (
             <RulebookDifferenceReview
@@ -3525,15 +3551,17 @@ function RulebookEditorPage() {
       }
     >
       {data === undefined ? (
-        <LoadPending title="Loading Rulebook">Loading the saved draft and your editing access.</LoadPending>
+        <PageState kind="pending" title="Loading Rulebook">
+          Loading the saved draft and your editing access.
+        </PageState>
       ) : data === null ? (
-        <NotAvailable title="Rulebook not found">This Rulebook does not exist or was deleted.</NotAvailable>
+        <NotFoundState noun="Rulebook" />
       ) : data.kind === 'sign-in-required' ? (
         <LoginGate action="edit this Rulebook" />
       ) : (
-        <NotAvailable title="You cannot edit this Rulebook">
+        <PageState kind="absent" title="You cannot edit this Rulebook">
           Only the Ruleset owner or an active member of its Group can edit this Rulebook.
-        </NotAvailable>
+        </PageState>
       )}
     </PageMessage>
   );
@@ -3541,10 +3569,11 @@ function RulebookEditorPage() {
 
 function RulebookEditorError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Edit Rulebook" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="This Rulebook could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Edit Rulebook"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="This Rulebook could not be loaded"
+      error={error}
+    />
   );
 }

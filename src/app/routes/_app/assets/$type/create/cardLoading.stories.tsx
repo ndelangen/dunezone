@@ -14,9 +14,10 @@ import { pageStoryMeta } from '../../../../storybookConfig';
 
 /* The choice is read from its own page before it can be loaded, so Load waits for that read. */
 async function enabledLoadButton(page: ReturnType<typeof within>) {
-  const load = page.getByRole('button', { name: /^Load card$/ });
-  await waitFor(() => expect(load).toBeEnabled());
-  return load;
+  await waitFor(() =>
+    expect(page.getByRole('button', { name: /^Load card$/ })).not.toHaveAttribute('aria-disabled', 'true')
+  );
+  return page.getByRole('button', { name: /^Load card$/ });
 }
 
 const meta = testingPreview.meta({
@@ -76,7 +77,9 @@ export const CancelAndReset = meta.story({
     await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
     await expect(name).toHaveValue('Keep this draft');
     await userEvent.click(page.getByRole('button', { name: 'Load existing card' }));
-    await waitForFrame(() => expect(page.getByRole('button', { name: /^Load card$/ })).toBeDisabled());
+    await waitForFrame(() =>
+      expect(page.getByRole('button', { name: /^Load card$/ })).toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(await page.findByRole('option', { name: /Battle reference/ }, { timeout: 30_000 }));
     await userEvent.click(await enabledLoadButton(page));
     await userEvent.click(page.getByRole('button', { name: 'Reset unsaved edits' }));
@@ -154,7 +157,7 @@ export const EmptyCatalogue = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('button', { name: 'Load existing card' }));
     await waitForFrame(() => expect(page.getByText('No custom cards are available to load yet.')).toBeVisible());
-    await expect(page.getByRole('button', { name: /^Load card$/ })).toBeDisabled();
+    await expect(page.getByRole('button', { name: /^Load card$/ })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -244,7 +247,9 @@ export const RawJsonReplacement = meta.story({
       const input = page.getByRole('textbox', { name: 'Writable JSON' });
       await userEvent.click(input);
       await userEvent.paste(JSON.stringify(replacement));
-      await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+      await waitFor(() =>
+        expect(page.getByRole('button', { name: 'Load card' })).not.toHaveAttribute('aria-disabled', 'true')
+      );
     };
     await open();
     await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
@@ -278,7 +283,7 @@ export const RawJsonErrorAndCancel = meta.story({
     await userEvent.paste('{"owner_id":"no"}');
     await expect(page.findByRole('alert')).resolves.toBeVisible();
     await expect(input).toHaveValue('{"owner_id":"no"}');
-    await expect(page.getByRole('button', { name: 'Load card' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Load card' })).toHaveAttribute('aria-disabled', 'true');
     await userEvent.click(page.getByRole('button', { name: 'Cancel' }));
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Lasgun');
     await expect(page.getByRole('button', { name: 'Reset unsaved edits' })).toBeDisabled();
@@ -315,13 +320,15 @@ export const RawNativeSpiceSave = meta.story({
     await userEvent.click(input);
     await userEvent.paste(unresolved);
     await expect(page.findByRole('alert')).resolves.toHaveTextContent('$.board.tokens');
-    await expect(page.getByRole('button', { name: 'Load card' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Load card' })).toHaveAttribute('aria-disabled', 'true');
     await expect(input).toHaveValue(unresolved);
     await expect((await loadAssetPage('card-spice', 'arsunt'))!.asset.data).toEqual(before.asset.data);
     await expect(page.getByRole('button', { name: 'Reset unsaved edits' })).toBeDisabled();
     await userEvent.clear(input);
     await userEvent.paste(JSON.stringify(replacement));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load card' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('button', { name: 'Load card' }));
     await expect((await loadAssetPage('card-spice', 'arsunt'))!.asset.data).toEqual(before.asset.data);
     await userEvent.click(page.getByRole('button', { name: 'Save card' }));
@@ -350,7 +357,9 @@ export const RawConversionKeepsIdentity = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(replacement));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load card' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await expect(page.getByRole('checkbox', { name: 'Also rename' })).not.toBeChecked();
     await userEvent.click(page.getByRole('button', { name: 'Load card' }));
     await expect(name).toHaveValue(before.asset.name);
@@ -363,7 +372,9 @@ export const RawConversionKeepsIdentity = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Paste JSON' }));
     await userEvent.click(page.getByRole('textbox', { name: 'Writable JSON' }));
     await userEvent.paste(JSON.stringify(replacement));
-    await waitFor(() => expect(page.getByRole('button', { name: 'Load card' })).toBeEnabled());
+    await waitFor(() =>
+      expect(page.getByRole('button', { name: 'Load card' })).not.toHaveAttribute('aria-disabled', 'true')
+    );
     await userEvent.click(page.getByRole('checkbox', { name: 'Also rename' }));
     await userEvent.click(page.getByRole('button', { name: 'Load card' }));
     await expect(name).toHaveValue(replacement.name);

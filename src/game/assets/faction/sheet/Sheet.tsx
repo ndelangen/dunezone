@@ -35,8 +35,8 @@ export function FactionSheetPage1(props: SheetProps) {
   return (
     <div className={styles.page} {...{ [CAPTURE_PROTOCOL.pageMarker.attribute]: '1' }}>
       <div className={`${styles.page_title} ${styles.title}`}>{props.name}</div>
-      <div className={styles.logo}>
-        <Token logo={props.logo} background={props.background} />
+      <div className={styles.emblem}>
+        <Token emblem={props.emblem} background={props.background} />
       </div>
       <div className={styles.start}>
         <strong className={styles.head}>At start:</strong>{' '}
@@ -181,7 +181,7 @@ export function FactionSheetPage2(props: SheetProps) {
                       <LeaderToken
                         background={props.background}
                         image={leader.image}
-                        logo={props.logo}
+                        emblem={props.emblem}
                         name={leader.name}
                         strength={leader.strength}
                       />

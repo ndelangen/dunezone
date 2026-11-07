@@ -3,12 +3,15 @@ import { emptyBattlePlan, fixtureBattleFaces } from '@shared/play/battle';
 import type { Disclosure } from '@shared/play/battle';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot, nextSnapshot } from '@shared/play/commands';
+import { factionTokenStackKey } from '@shared/play/factionToken';
 import { arrakisBoardCapture } from '@shared/play/fixtures/board';
-import type { TablePiece } from '@shared/play/model';
+import type { LogEntry } from '@shared/play/log';
+import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
 import { tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
+import { createSpiceStack } from '@shared/play/spiceBank';
 import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
@@ -173,7 +176,16 @@ describe('hosted public controls', () => {
     const snapshot = {
       ...initialSnapshot(),
       phase: 1,
-      controls: { seats: [], ready: [], requests: [], seatRequests: [], players: [], phaseChangedAt: 1 },
+      controls: {
+        seats: [],
+        ready: [],
+        requests: [],
+        seatRequests: [],
+        players: [],
+        spectators: [],
+        guests: 0,
+        phaseChangedAt: 1,
+      },
     };
     socket().deliver(view({ snapshot, phaseCooldownMs: PHASE_CHANGE_COOLDOWN_MS }));
     expect(table(client).phaseCooling).toBe(true);
@@ -310,6 +322,17 @@ describe('hosted public controls', () => {
     page([{ ...entry, sequence: 2, text: 'Spice blew.' }, entry]);
     expect(client.getSnapshot().logHistory.game?.entries).toHaveLength(2);
     expect(panelListener).toHaveBeenCalledTimes(1);
+  });
+  test('a deletion that can no longer be restored loses its Restore on the page read again', async () => {
+    const client = await connected();
+    const deletion = { sequence: 1, class: 'deletion' as const, text: 'Ann deleted Lasgun card.', context: '', at: 1 };
+    const page = (entries: LogEntry[]) =>
+      socket().deliver({ type: 'log-history', tab: 'game', before: 20, entries, more: false });
+    client.readLogHistory('game', 20);
+    page([{ ...deletion, restore: '7' }]);
+    client.readLogHistory('game', 20);
+    page([deletion]);
+    expect(client.getSnapshot().logHistory.game?.entries[0]?.restore).toBeUndefined();
   });
   test('releases the capture on a completion the tab could not apply', async () => {
     const client = await connected();
@@ -1069,6 +1092,28 @@ describe('hosted table interaction', () => {
     expect(table(client).snapshot.board).toBe(board);
   });
 
+  test('a changed board replaces the drawn one, so the table draws the territories its commands use', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const renamed = structuredClone(arrakisBoardCapture);
+    renamed.asset = { ...renamed.asset, name: 'Arrakis Revised' };
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: renamed } }));
+    expect(table(client).snapshot.board?.asset.name).toBe('Arrakis Revised');
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 3 } }));
+    expect(table(client).snapshot.board).toBeUndefined();
+  });
+
+  test('a board whose territories change under the same name is drawn anew', async () => {
+    const client = await connected();
+    authorize({ ...initialSnapshot(), revision: 1, board: structuredClone(arrakisBoardCapture) });
+    const redrawn = structuredClone(arrakisBoardCapture);
+    const [key] = Object.keys(redrawn.definition.properties);
+    redrawn.definition.properties[key!]!.name = 'Redrawn territory';
+    socket().deliver(view({ snapshot: { ...initialSnapshot(), revision: 2, board: redrawn } }));
+    expect(table(client).snapshot.board?.asset).toEqual(arrakisBoardCapture.asset);
+    expect(table(client).snapshot.board?.definition.properties[key!]?.name).toBe('Redrawn territory');
+  });
+
   test('playback is read-only, ignores a superseded response and returns to the newest live state', async () => {
     const client = await connected();
     client.requestHistory(0);
@@ -1506,16 +1551,16 @@ describe('private spice reserves and public transfers', () => {
 
 test("asks once for a seated faction's captured sheet and keeps each answer", async () => {
   const client = await connected({ ...viewer, viewerSeat: 'neutral' });
-  const { leaders, rules, background, logo } = assetPublishingFaction;
+  const { leaders, rules, background, emblem } = assetPublishingFaction;
   client.readFaction('atreides');
   client.readFaction('atreides');
   expect(socket().sent.filter((message) => message.type === 'faction')).toEqual([
     { type: 'faction', factionId: 'atreides' },
   ]);
-  socket().deliver({ type: 'faction', factionId: 'atreides', faction: { leaders, rules, background, logo } });
+  socket().deliver({ type: 'faction', factionId: 'atreides', faction: { leaders, rules, background, emblem } });
   socket().deliver({ type: 'faction', factionId: 'fixture', faction: null });
   expect(client.getSnapshot().factions).toEqual({
-    atreides: { leaders, rules, background, logo },
+    atreides: { leaders, rules, background, emblem },
     fixture: null,
   });
 });
@@ -2511,6 +2556,94 @@ describe('unanswered commands', () => {
   });
 });
 
+describe('the Spice blow command', () => {
+  /* One face-up spice card for each territory, side by side off the board. */
+  const territories = ['broken_land', 'arsunt', 'hagga_basin', 'red_chasm', 'funeral_plain'];
+  const loose = initialSnapshot().table.pieces.find((piece) => piece.id === 'treachery-card-loose')!;
+  const spiceCards: TablePiece[] = [];
+  for (const [index, territory] of territories.entries()) {
+    spiceCards.push({
+      ...loose,
+      id: `spice-card-${index}`,
+      inventory: undefined,
+      battleOverlay: undefined,
+      position: [5, 0.005, -2 + index],
+      items: [
+        {
+          id: `spice-card-${index}-item`,
+          faceUp: true,
+          artwork: {
+            back: 'https://dune.zone/spice.jpg',
+            type: 'card-spice',
+            spiceBlow: { amount: 2, territories: [territory] },
+          },
+        },
+      ],
+    });
+  }
+  /* A game in play with these spice cards on the table. */
+  const playedWith = (cards: readonly TablePiece[]): GameSnapshot => {
+    const snapshot = initialSnapshot();
+    return {
+      ...snapshot,
+      stage: 'play',
+      board: arrakisBoardCapture,
+      table: { ...snapshot.table, pieces: [...snapshot.table.pieces, ...cards] },
+    };
+  };
+  const blows = () =>
+    socket().sent.flatMap((message) =>
+      message.type === 'command' && message.action.kind === 'spice-blow' ? [message] : []
+    );
+  const rejectOthers = () => {
+    for (const message of socket().sent.slice()) {
+      if (message.type === 'command' && message.action.kind !== 'spice-blow') {
+        socket().deliver({ type: 'rejected', requestId: message.commandId, message: 'The table changed.' });
+      }
+    }
+  };
+  /* Four storm moves fill the unanswered limit, so Spice blow holds its first card back. */
+  const heldBack = async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: playedWith(spiceCards.slice(0, 2)) }));
+    for (let press = 0; press < 4; press++) {
+      client.moveStormBy(1);
+    }
+    table(client).spiceBlowControls!.placeAll();
+    expect(blows()).toHaveLength(0);
+  };
+
+  test('places every face-up spice card one after another, so none is dropped past the unanswered limit', async () => {
+    const client = await connected();
+    socket().deliver(view({ snapshot: playedWith(spiceCards) }));
+    table(client).spiceBlowControls!.placeAll();
+    expect(blows()).toHaveLength(1);
+    for (let answered = 1; answered < territories.length; answered++) {
+      socket().deliver({ type: 'rejected', requestId: blows().at(-1)!.commandId, message: 'The table changed.' });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(blows()).toHaveLength(answered + 1);
+    }
+    expect(blows().map(({ action }) => ('territory' in action ? action.territory : null))).toEqual(territories);
+  });
+
+  test('a card held back by the unanswered limit goes out once any other command is answered', async () => {
+    await heldBack();
+    rejectOthers();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(blows()).toHaveLength(1);
+  });
+
+  test('a seat change drops the cards still waiting, so none goes out under the new seat', async () => {
+    await heldBack();
+    socket().deliver(
+      view({ viewer: { ...viewer, viewerSeat: 'atreides' }, snapshot: playedWith(spiceCards.slice(0, 2)) })
+    );
+    rejectOthers();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(blows()).toHaveLength(0);
+  });
+});
+
 describe('a plate another player carries', () => {
   const plateItem = {
     id: 'hms-item',
@@ -2729,4 +2862,87 @@ test('spectators receive public pings during live play and collective recall wit
   expect(pings).toHaveBeenCalledTimes(2);
   client.publishPointer([1, 0, 1], [1, 0, 1]);
   expect(client.ping()).toBe(false);
+});
+
+describe('spice let go over a faction token', () => {
+  /* Harkonnen's own token and Atreides' stand side by side on the ring. */
+  const ring: Record<'harkonnen' | 'atreides', Vector3Tuple> = {
+    harkonnen: [0, 0.005, 4.39],
+    atreides: [2, 0.005, 4.39],
+  };
+  const token = (factionId: keyof typeof ring): TablePiece => ({
+    id: `token-${factionId}`,
+    label: factionId,
+    owner: 'shared',
+    color: '#888888',
+    accent: '#cccccc',
+    items: [{ id: `token-${factionId}-1`, faceUp: true }],
+    stackKey: factionTokenStackKey(factionId),
+    position: ring[factionId],
+    orientation: 0,
+    flipRevision: 0,
+    zoneId: null,
+    locked: false,
+    kind: 'force',
+  });
+  /* Harkonnen holds spice; its own token and Atreides' stand side by side on the ring. */
+  async function carryingSpice() {
+    const client = await connected();
+    const spice = createSpiceStack(900, 2);
+    const base = initialSnapshot();
+    const snapshot: GameSnapshot = {
+      ...base,
+      bank: { factionId: 'harkonnen', balance: 20 },
+      roster: {
+        seatCount: 6,
+        seats: [
+          { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#ed927c' } },
+          { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#4a7a3a' } },
+        ],
+      },
+      table: { ...base.table, pieces: [...base.table.pieces, spice, token('harkonnen'), token('atreides')] },
+    };
+    socket().deliver(view({ snapshot }));
+    client.beginGesture(spice.id, 'whole');
+    const begin = socket().sent.find((message) => message.type === 'begin');
+    const draft = table(client).state.draftMove;
+    if (!begin || !draft) {
+      throw new Error('The carry did not start.');
+    }
+    socket().deliver({ type: 'carry', carryId: begin.carryId, draft });
+    return client;
+  }
+  /* A ray straight down through `point`, as a top-down camera casts it. */
+  const rayDownAt = ([x, , z]: Vector3Tuple) => ({
+    origin: [x, 10, z] as Vector3Tuple,
+    direction: [0, -1, 0] as Vector3Tuple,
+  });
+
+  test('seen over a token it would not land on, it waits over that token, and the room is told where', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([2.9, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([2.3, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'pose', position: [2, 0.62, 4.39] });
+    expect(sentDrops()).toEqual([]);
+  });
+
+  test('what it is seen over wins over the own token it would land on', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([0.2, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([1.7, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+  });
+
+  test('landing on a token counts when the pointer is seen beside it', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([2.3, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([3, 0, 4.39]) });
+    expect(table(client).spiceGift).toMatchObject({ factionId: 'atreides' });
+    expect(socket().sent.at(-1)).toMatchObject({ type: 'pose', position: [2.3, 0.62, 4.39] });
+  });
+
+  test('over its own token only, it lands as any drop does', async () => {
+    const client = await carryingSpice();
+    client.finishGesture([0.2, 0.62, 4.39], { x: 1, y: 1, ray: rayDownAt([0.1, 0, 4.39]) });
+    expect(table(client).spiceGift).toBeUndefined();
+    expect(sentDrops()).toHaveLength(1);
+  });
 });

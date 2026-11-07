@@ -1,18 +1,24 @@
-import { Avatar, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Avatar.Group stacks the lobby's NameDiscs, and its "+N" overflow disc is a count, not a name. */
+import { Avatar, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
-import { nameDiscColor } from '@ui/content/nameDisc';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { SeatedTable } from '@ui/content/SeatedTable';
 import type { TableCentre, TableSeat } from '@ui/content/SeatedTable';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { CallToAction } from '@ui/control/CallToAction';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
-import { CardGrid } from '@ui/list/CardGrid';
+import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
+import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -129,7 +135,7 @@ function tableSeat(player: Player): TableSeat {
     image: player.avatarUrl ?? null,
     initial: player.displayName.trim().charAt(0).toUpperCase(),
     token: player.faction?.token ? (
-      <FactionToken logo={player.faction.token.logo} background={player.faction.token.background} />
+      <FactionToken emblem={player.faction.token.emblem} background={player.faction.token.background} />
     ) : null,
     crowned: won,
     highlighted: player.viewer,
@@ -184,76 +190,75 @@ function cardBadge(entry: LobbyEntry): ReactNode {
 }
 
 /* A game as the lobby's grid shows it: its table as a ring, and where it stands, how full it is, when it last moved and the way in. */
-function gameCard(entry: LobbyEntry, gameLink: PlayLobbyLinks['gameLink']) {
-  return {
-    key: entry.gameId,
-    title: entry.name,
-    badge: (
-      <Stack gap="xs" align="flex-end">
-        <Group gap="xs" wrap="nowrap">
-          <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
-          <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
-            {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
-          </Text>
-        </Group>
-        {cardBadge(entry)}
-      </Stack>
-    ),
-    figure: <TableRing entry={entry} />,
-    caption: (
-      <>
-        {entry.rulesetName ? (
-          <Text size="xs" c="dimmed">
-            Ruleset: {entry.rulesetName}
-          </Text>
-        ) : null}
-        <Text size="sm" fw={600} lh={1.35}>
-          {whereWords(entry)}
+/** One game in the lobby: its name and age over a ring of its seats, with where it stands and who is in it. */
+function GameCard({ entry, gameLink }: { entry: LobbyEntry; gameLink: PlayLobbyLinks['gameLink'] }) {
+  const badge = (
+    <Stack gap="xs" align="flex-end">
+      <Group gap="xs" wrap="nowrap">
+        <Clock size={12} color="var(--mantine-color-dimmed)" aria-hidden />
+        <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap' }}>
+          {formatRelativeDate(new Date(entry.lastActivityAt).toISOString())}
         </Text>
+      </Group>
+      {cardBadge(entry)}
+    </Stack>
+  );
+  const caption = (
+    <>
+      {entry.rulesetName ? (
         <Text size="xs" c="dimmed">
-          {entry.seatsFilled} of {entry.seatCount} seated
+          Ruleset: {entry.rulesetName}
         </Text>
-        <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
-          <Avatar.Group spacing={10} aria-label={`Players at ${entry.name}`}>
-            {entry.players.slice(0, 6).map((player) => (
-              <Tooltip key={player.displayName} label={player.displayName} withArrow>
-                <Avatar
-                  src={player.avatarUrl}
-                  name={player.displayName}
-                  alt={player.displayName}
-                  size="sm"
-                  radius="xl"
-                />
-              </Tooltip>
-            ))}
-            {entry.players.length > 6 && (
-              <Tooltip
-                label={entry.players
-                  .slice(6)
-                  .map((player) => player.displayName)
-                  .join(', ')}
-                withArrow
-              >
-                <Avatar size="sm" radius="xl">
-                  +{entry.players.length - 6}
-                </Avatar>
-              </Tooltip>
-            )}
-          </Avatar.Group>
-          <Button
-            renderRoot={gameLink(entry.slug ?? entry.gameId)}
-            size="compact-sm"
-            color="slate"
-            variant={entry.viewerSeated ? 'filled' : 'light'}
-            rightSection={<ArrowRight size={15} aria-hidden />}
-            aria-label={`Open ${entry.name}`}
-          >
-            Open
-          </Button>
-        </Group>
-      </>
-    ),
-  };
+      ) : null}
+      <Text size="sm" fw={600} lh={1.35}>
+        {whereWords(entry)}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {entry.seatsFilled} of {entry.seatCount} seated
+      </Text>
+      <Group justify="space-between" gap="xs" wrap="nowrap" pt="sm">
+        <Avatar.Group spacing={10} aria-label={`Players at ${entry.name}`}>
+          {entry.players.slice(0, 6).map((player) => (
+            <Tooltip key={player.displayName} label={player.displayName} withArrow>
+              <NameDisc src={player.avatarUrl} name={player.displayName} label={player.displayName} size={26} />
+            </Tooltip>
+          ))}
+          {entry.players.length > 6 && (
+            <Tooltip
+              label={entry.players
+                .slice(6)
+                .map((player) => player.displayName)
+                .join(', ')}
+              withArrow
+            >
+              <Avatar size="sm" radius="xl">
+                +{entry.players.length - 6}
+              </Avatar>
+            </Tooltip>
+          )}
+        </Avatar.Group>
+        <LabeledAction
+          renderRoot={gameLink(entry.slug ?? entry.gameId)}
+          size="compact-sm"
+          emphasis={entry.viewerSeated ? 'strong' : 'standard'}
+          icon={<ArrowRight size={15} />}
+          accessibleName={`Open ${entry.name}`}
+        >
+          Open
+        </LabeledAction>
+      </Group>
+    </>
+  );
+  return (
+    <Card title={entry.name} action={badge} padding="md">
+      <FigureCaptionLayout>
+        <FigureCaptionLayout.Figure>
+          <TableRing entry={entry} />
+        </FigureCaptionLayout.Figure>
+        <FigureCaptionLayout.Caption>{caption}</FigureCaptionLayout.Caption>
+      </FigureCaptionLayout>
+    </Card>
+  );
 }
 
 const EMPTY_WORDS: Record<LobbyView, string> = {
@@ -266,7 +271,9 @@ function EmptyView({ title, children }: Readonly<{ title: string; children: stri
   return (
     <Surface padding="xl">
       <Stack align="center" ta="center">
-        <NotAvailable title={title}>{children}</NotAvailable>
+        <PageState kind="absent" title={title}>
+          {children}
+        </PageState>
       </Stack>
     </Surface>
   );
@@ -289,22 +296,25 @@ function LobbyToolbar({
   createLink: RootLink;
   createDisabledReason: string | undefined;
 }>) {
-  const viewSelect = (label?: string, joined = false) => (
-    <Select
-      variant={joined ? 'unstyled' : 'default'}
-      label={label}
-      value={view}
-      data={[
-        { value: 'ongoing', label: `Ongoing (${counts.ongoing})` },
-        { value: 'yours', label: `Yours (${counts.yours})` },
-        { value: 'finished', label: `Finished (${counts.finished})` },
-      ]}
-      allowDeselect={false}
-      onChange={(value) => onViewChange((value as LobbyView | null) ?? 'ongoing')}
-      aria-label="Show games"
-      leftSection={<ListFilter size={15} aria-hidden />}
-    />
-  );
+  const viewSelect = (label?: string, joined = false) => {
+    const field = (fieldProps?: ControlBlockField) => (
+      <Select
+        {...fieldProps}
+        variant={joined ? 'unstyled' : 'default'}
+        value={view}
+        data={[
+          { value: 'ongoing', label: `Ongoing (${counts.ongoing})` },
+          { value: 'yours', label: `Yours (${counts.yours})` },
+          { value: 'finished', label: `Finished (${counts.finished})` },
+        ]}
+        allowDeselect={false}
+        onChange={(value) => onViewChange((value as LobbyView | null) ?? 'ongoing')}
+        aria-label="Show games"
+        leftSection={<ListFilter size={15} aria-hidden />}
+      />
+    );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
   return (
     <Toolbar>
       <Toolbar.Center>
@@ -365,14 +375,9 @@ export function PlayLobbyHeader({
         Take a seat, choose your faction, and fight for Arrakis.
       </Text>
       <Group gap="sm" justify="center">
-        <Button
-          variant="default"
-          size="lg"
-          leftSection={<GraduationCap size={17} aria-hidden />}
-          renderRoot={tutorialLink}
-        >
+        <LabeledAction size="lg" icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
           Learn to play
-        </Button>
+        </LabeledAction>
         <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
           Create a game
         </CallToAction>
@@ -450,5 +455,11 @@ function LobbyContent({
       <EmptyView title="Nothing here">{EMPTY_WORDS[view]}</EmptyView>
     );
   }
-  return <CardGrid aria-label="Games" items={games.map((entry) => gameCard(entry, gameLink))} />;
+  return (
+    <TileGrid size="wide" aria-label="Games">
+      {games.map((entry) => (
+        <GameCard key={entry.gameId} entry={entry} gameLink={gameLink} />
+      ))}
+    </TileGrid>
+  );
 }

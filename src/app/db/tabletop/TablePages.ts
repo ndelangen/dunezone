@@ -26,7 +26,9 @@ function sameLogPage(previous: LogPage, next: LogPage) {
         entry.class === other.class &&
         entry.text === other.text &&
         entry.context === other.context &&
-        entry.at === other.at
+        entry.at === other.at &&
+        /* A deletion restored since, or let go, loses its Restore button even when its page shows no new entry. */
+        entry.restore === other.restore
       );
     })
   );

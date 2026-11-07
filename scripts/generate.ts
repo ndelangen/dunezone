@@ -9,6 +9,8 @@ import { Box2 } from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader.js';
 
 import rasterLock from '../media/raster.lock.json';
+import { compareCodeUnits } from '../src/shared/compareText';
+import creditDefinitions from '../src/shared/media/credits.json';
 import stockAssetCollections from '../src/shared/stockAssetCollections.json';
 import { normalizeSvg } from '../src/shared/vectorNormalize';
 import { VECTOR_ARTWORK_ALIASES } from '../src/shared/vectorRules';
@@ -67,16 +69,22 @@ const background = await getFiles('/vector/background', 'media');
 const generic = await getFiles('/vector/generic', 'media');
 const decal = [...(await getFiles('/vector/decal', 'media')), ...rastersIn('/image/decal')];
 const icon = await getFiles('/vector/icon', 'media');
-const logo = await getFiles('/vector/logo', 'media');
+const emblem = await getFiles('/vector/emblem', 'media');
 const troop = await getFiles('/vector/troop', 'media');
 const troop_modifier = await getFiles('/vector/troop_modifier', 'media');
 
+/* Retired copies stay valid identifiers in their own category, so saved references keep parsing. */
+const retiredIn = (category: string) =>
+  Object.keys(VECTOR_ARTWORK_ALIASES)
+    .filter((path) => path.startsWith(`/vector/${category}/`))
+    .map((path) => path.slice(1));
+
 const enums = {
   background,
-  generic,
-  logo,
-  decal,
-  icon: [...icon, ...Object.keys(VECTOR_ARTWORK_ALIASES).map((path) => path.slice(1))],
+  generic: [...generic, ...retiredIn('generic')],
+  emblem,
+  decal: [...decal, ...retiredIn('decal')],
+  icon: [...icon, ...retiredIn('icon')],
   leaders,
   planet,
   texture,
@@ -99,7 +107,7 @@ for (const collection of stockAssetCollections) {
     classifiedAssets.add(asset);
   }
 }
-for (const asset of [...leaders, ...logo, ...planet, ...decal]) {
+for (const asset of [...leaders, ...emblem, ...planet, ...decal, ...generic, ...troop]) {
   if (!classifiedAssets.has(`/${asset}`)) {
     throw new Error(`Add /${asset} to a browsing collection in src/shared/stockAssetCollections.json`);
   }
@@ -120,7 +128,7 @@ export const ${name.toUpperCase()} = z.enum([
   .join('\n')}
 
 export const ALL = z.union([
-  ${['GENERIC', 'LOGO', 'DECAL', 'ICON', 'TROOP'].join(',\n  ')}
+  ${['GENERIC', 'EMBLEM', 'DECAL', 'ICON', 'TROOP'].join(',\n  ')}
 ]);
 `;
 
@@ -141,7 +149,7 @@ await Bun.write(join(import.meta.dirname, '..', 'src/shared/assetIds.ts'), forma
 const mediaDirectory = join(import.meta.dirname, '..', 'src/app/routes/_app/media');
 const mediaIndex = JSON.parse(readFileSync(join(mediaDirectory, 'media-index.json'), 'utf8')) as Record<
   string,
-  { description: string; tags: string[]; subjects: string[]; sourceHash: string }
+  { description: string; tags: string[]; subjects: string[]; credit: string; creditDetail?: string; sourceHash: string }
 >;
 const searchIndex = Object.fromEntries(
   Object.entries(mediaIndex).map(([key, { description, tags, subjects }]) => [key, { description, tags, subjects }])
@@ -154,10 +162,35 @@ if (searchIndexOutput.errors.length > 0) {
 }
 await Bun.write(join(mediaDirectory, 'mediaSearchIndex.generated.json'), searchIndexOutput.code);
 
+/* Pickers credit stock artwork without loading the search index, so paths are grouped by credit and folder. */
+const creditFiles: Record<string, Record<string, string[]>> = {};
+const creditDetails: Record<string, string> = {};
+for (const [key, { credit, creditDetail }] of Object.entries(mediaIndex).sort(([a], [b]) => compareCodeUnits(a, b))) {
+  if (!Object.hasOwn(creditDefinitions, credit)) {
+    throw new Error(`${key} names credit "${credit}", which src/shared/media/credits.json does not define`);
+  }
+  const folder = key.slice(0, key.lastIndexOf('/') + 1);
+  ((creditFiles[credit] ??= {})[folder] ??= []).push(key.slice(folder.length));
+  if (creditDetail) {
+    creditDetails[key] = creditDetail;
+  }
+}
+const creditIndexOutput = await format(
+  'credits.generated.json',
+  JSON.stringify({ files: creditFiles, details: creditDetails }),
+  formatOptions
+);
+if (creditIndexOutput.errors.length > 0) {
+  throw new Error(
+    `Media credit index did not format: ${creditIndexOutput.errors.map((error) => error.message).join('; ')}`
+  );
+}
+await Bun.write(join(import.meta.dirname, '..', 'src/shared/media/credits.generated.json'), creditIndexOutput.code);
+
 /* Geometry retains the artwork's shape and centre without depending on a platform's raster encoder. */
 const vectorCrops: Record<string, readonly [number, number, number, number]> = {};
 const loader = new SVGLoader();
-for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
+for (const key of [...generic, ...emblem, ...decal, ...icon, ...troop]
   .filter((key) => key.endsWith('.svg'))
   .sort((a, b) => (a < b ? -1 : Number(a > b)))) {
   const source = readFileSync(join(import.meta.dirname, '..', 'media', key), 'utf8');
@@ -187,7 +220,7 @@ for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
     bounds.union(pathBounds);
   }
   if (bounds.isEmpty()) {
-    /* Empty catalogue placeholders, such as the CHOAM logo, retain the full square. */
+    /* Empty catalogue placeholders, such as the CHOAM emblem, retain the full square. */
     vectorCrops[`/${key}`] = [50, 50, 100, 100];
     continue;
   }
@@ -202,9 +235,6 @@ for (const key of [...generic, ...logo, ...decal, ...icon, ...troop]
     Number((right - left).toFixed(2)),
     Number((bottom - top).toFixed(2)),
   ];
-}
-for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
-  vectorCrops[alias] = vectorCrops[target];
 }
 const crops = await format(
   'vectorCrops.generated.ts',

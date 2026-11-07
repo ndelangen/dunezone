@@ -1,6 +1,8 @@
-import { Alert, Text } from '@mantine/core';
+import { Text } from '@mantine/core';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { ActionError } from '@ui/block/ActionError';
+import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -29,13 +31,13 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 import { DeckAsset as DeckAssetSchema } from '@game/data/objects';
 
-import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, assetNameField } from '../../assetEditorStates';
 import { LoadedDeckDraft } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design, because the generic version cost more than the duplication it removed.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored deck has no room for (D3): the declared Custom intents, the composition kept across mode flips, the picked deck the tile draws, and whether a save has already complained.
  * `baseline` is what a reset returns to.
  */
@@ -127,7 +129,9 @@ export function DeckCreatePage() {
     case 'pending':
       return (
         <AssetEditorMessage title="New deck" type="deck">
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -199,11 +203,11 @@ export function DeckCreatePage() {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <ActionError subject="deck" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
-              <Alert color="yellow" variant="light" role="alert" title="No deck picked">
+              <Notice tone="caution" title="No deck picked" live>
                 Pick a deck whose cardback this one wears, or choose another back mode.
-              </Alert>
+              </Notice>
             ) : null}
             <DeckEditor
               presets={presets}

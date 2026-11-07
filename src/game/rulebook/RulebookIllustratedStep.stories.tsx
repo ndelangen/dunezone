@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
+import { ARRAKIS_OFFICIAL } from '@shared/rulebooks/fixtures/arrakisOfficial';
 import { expect } from 'storybook/test';
 
 import { atreidesSide, battleSequencePage, harkonnenSide } from './RulebookBattlePlan.stories.fixture';
@@ -9,7 +9,7 @@ import { RulebookPieceMovement } from './RulebookPieceMovement';
 import { RulebookPageRenderer } from './RulebookRenderer';
 import { RulebookTerritoryScene } from './RulebookTerritoryScene';
 
-const board = RULEBOOK_BOARD_DEFINITIONS[0]!;
+const board = ARRAKIS_OFFICIAL;
 const leftTroop = atreidesSide.plan.troops[0]!.artwork;
 const rightTroop = harkonnenSide.plan.troops[0]!.artwork;
 

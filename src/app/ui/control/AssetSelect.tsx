@@ -1,13 +1,22 @@
 import { Combobox, Group, Image, Popover, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
 import type { ComboboxProps, TextInputProps } from '@mantine/core';
+import { VECTOR_ARTWORK_ALIASES } from '@shared/vectorRules';
 import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useReducer, useRef } from 'react';
+import { useId, useReducer, useRef } from 'react';
 
 import { matchAsset, searchTerms } from './assetSearch';
 import styles from './AssetSelect.module.css';
 import { IconAction } from './IconAction';
+
+/** A readable name from a file path, for a saved value with no matching option. */
+function fileLabel(value: string) {
+  return (value.split('/').at(-1) ?? value)
+    .replace(/\.[^.]+$/, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 interface AssetSelectOption {
   value: string;
@@ -16,6 +25,8 @@ interface AssetSelectOption {
   collection?: string;
   keywords?: string;
   glyphPreview?: boolean;
+  /** Who made the artwork, shown under the hover preview. */
+  credit?: string;
 }
 
 export interface AssetSelectProps extends Omit<
@@ -112,6 +123,8 @@ export function AssetSelect({
   placeholder,
   ...props
 }: AssetSelectProps) {
+  const filterNameId = useId();
+  const fieldLabelledBy = props['aria-labelledby'];
   const [browse, dispatch] = useReducer(browseReducer, {
     collection: '',
     mode: 'artwork',
@@ -132,6 +145,17 @@ export function AssetSelect({
   });
   const viewport = useRef<HTMLDivElement>(null);
   const optionsByValue = new Map(data.map((option) => [option.value, option]));
+  /* A value saved under a retired copy's name still shows its original's label and credit. */
+  for (const [alias, target] of Object.entries(VECTOR_ARTWORK_ALIASES)) {
+    const option = optionsByValue.get(target);
+    if (option && !optionsByValue.has(alias)) {
+      optionsByValue.set(alias, option);
+    }
+  }
+  /* A saved value the list no longer offers, such as retired artwork, still shows its name and can be cleared. */
+  const selectedOption = value ? (optionsByValue.get(value) ?? { value, label: fileLabel(value) }) : undefined;
+  /* The option a saved value stands for, so a retired duplicate still highlights and deselects its original. */
+  const selectedValue = selectedOption?.value ?? null;
   const isGlyph = (id: string) => optionsByValue.get(id)?.glyphPreview ?? glyphPreviews;
   const previewFor = (id: string, size: number) =>
     artworkPreview({
@@ -143,7 +167,19 @@ export function AssetSelect({
       disc: previewShape === 'disc',
     });
   const selectedPreview = value ? previewFor(value, previewSize) : null;
-  const hoveredPreview = browse.hovered ? previewFor(browse.hovered, 144) : null;
+  const hoveredCredit = browse.hovered ? optionsByValue.get(browse.hovered)?.credit : undefined;
+  const hoveredArtwork = browse.hovered ? previewFor(browse.hovered, 144) : null;
+  const hoveredPreview =
+    hoveredArtwork && hoveredCredit ? (
+      <Stack gap={4} align="center" className={styles.hoverPreview}>
+        {hoveredArtwork}
+        <Text size="xs" c="dimmed" ta="center">
+          {hoveredCredit}
+        </Text>
+      </Stack>
+    ) : (
+      hoveredArtwork
+    );
   const groups = new Map<string, AssetSelectOption[]>();
   for (const option of data) {
     const name = option.collection ?? 'Artwork';
@@ -198,7 +234,7 @@ export function AssetSelect({
         }
         const option = optionsByValue.get(next);
         if (option) {
-          onChange?.(allowDeselect && next === value ? null : next, option);
+          onChange?.(allowDeselect && next === selectedValue ? null : next, option);
         }
         combobox.closeDropdown();
         if (trigger) {
@@ -238,9 +274,7 @@ export function AssetSelect({
                         ...attributes,
                         input: { ...attributes?.input, 'aria-describedby': ariaDescribedBy },
                       }}
-                      value={
-                        combobox.dropdownOpened ? browse.search : (value && optionsByValue.get(value)?.label) || ''
-                      }
+                      value={combobox.dropdownOpened ? browse.search : (selectedOption?.label ?? '')}
                       placeholder={
                         combobox.dropdownOpened
                           ? choosingCollection
@@ -274,9 +308,8 @@ export function AssetSelect({
                             <Combobox.ClearButton
                               aria-label="Clear artwork"
                               onClear={() => {
-                                const option = optionsByValue.get(value);
-                                if (option) {
-                                  onChange?.(null, option);
+                                if (selectedOption) {
+                                  onChange?.(null, selectedOption);
                                 }
                                 dispatch({ type: 'close' });
                               }}
@@ -289,8 +322,24 @@ export function AssetSelect({
                               className={styles.filterSlot}
                               onMouseDown={(event) => event.preventDefault()}
                             >
+                              {/* A field named by a caption elsewhere names its filter after that caption, word for word. */}
+                              {fieldLabelledBy ? (
+                                <>
+                                  <span id={`${filterNameId}-before`} hidden>
+                                    Filter
+                                  </span>
+                                  <span id={`${filterNameId}-after`} hidden>
+                                    collections
+                                  </span>
+                                </>
+                              ) : null}
                               <IconAction
                                 label={`Filter ${props['aria-label'] ?? 'artwork'} collections`}
+                                aria-labelledby={
+                                  fieldLabelledBy
+                                    ? `${filterNameId}-before ${fieldLabelledBy} ${filterNameId}-after`
+                                    : undefined
+                                }
                                 tooltip={activeCollection || 'Filter by collection'}
                                 icon={<SlidersHorizontal size={17} aria-hidden />}
                                 intent="neutral"
@@ -373,7 +422,7 @@ export function AssetSelect({
             ) : (
               <ArtworkOptions
                 groups={visibleGroups}
-                value={value}
+                value={selectedValue}
                 previewFor={previewFor}
                 onHover={(next) => dispatch({ type: 'hover', value: next })}
               />
@@ -412,6 +461,7 @@ function ArtworkOptions({
             disabled={option.disabled}
             active={option.value === value}
             className={styles.option}
+            aria-description={option.credit}
             onMouseEnter={() => onHover(option.value)}
             onMouseLeave={() => onHover(null)}
           >

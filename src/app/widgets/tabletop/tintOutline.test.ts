@@ -1,7 +1,8 @@
-import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, RADIUS } from '@shared/boards/geometry';
 import { territoryId } from '@shared/boards/schema';
 import { boardTerritories } from '@shared/boards/territories';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import { describe, expect, it } from 'vitest';
 
 import { territoryTintPresets } from '../../routes/_app/play/panels/tints/territoryTintPresets';
@@ -38,7 +39,7 @@ describe('outerSegments', () => {
   });
 
   it('leaves no border between the Fremen deployment territories', () => {
-    const board = retainedArrakisBoard();
+    const board = arrakisBoardCapture.definition;
     const fremen = territoryTintPresets(board)[0].territories;
     const territories = boardTerritories(board)
       .filter((face) => fremen.includes(territoryId(board.properties[face.key].name)))
@@ -74,7 +75,7 @@ describe('outlinePaths', () => {
   });
 
   it('covers every outer edge of the Fremen deployment exactly once', () => {
-    const board = retainedArrakisBoard();
+    const board = arrakisBoardCapture.definition;
     const fremen = territoryTintPresets(board)[0].territories;
     const outer = outerSegments(
       boardTerritories(board)
@@ -107,7 +108,7 @@ describe('offsetPath', () => {
 
 describe('offRim', () => {
   it('keeps the inland edges of a territory on the rim and drops the ones along it', () => {
-    const board = retainedArrakisBoard();
+    const board = arrakisBoardCapture.definition;
     const segments = boardTerritories(board).flatMap((face) =>
       face.rings.flatMap((ring) => ring.slice(1).map((b, i) => [ring[i], b] as const))
     );

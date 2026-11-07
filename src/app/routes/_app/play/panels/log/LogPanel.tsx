@@ -1,6 +1,10 @@
-import { Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Log classes are categories with a colour each, not statuses. */
+import { Anchor, Badge, Group, Stack, Text } from '@mantine/core';
 import type { LogClass, LogEntry, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, ChevronsRight, Undo2 } from 'lucide-react';
 
 import styles from './LogPanel.module.css';
 
@@ -12,6 +16,8 @@ const CLASSIFICATIONS = {
   prediction: { label: 'Prediction', color: 'violet' },
   alliance: { label: 'Alliance', color: 'confirm' },
   deletion: { label: 'Deleted', color: 'gray' },
+  restore: { label: 'Restored', color: 'gray' },
+  chat: { label: 'Chat', color: 'gray' },
   seat: { label: 'Seat', color: 'blue' },
   vote: { label: 'Vote', color: 'confirm' },
   'bug-report': { label: 'Bug report', color: 'orange' },
@@ -28,6 +34,8 @@ export type LogPanelProps = Readonly<{
   page: LogPanelPage | null;
   onEarlier: () => void;
   onLatest: () => void;
+  /** Brings a deleted piece back, by the deletion an entry names; absent for a viewer who cannot handle the table. */
+  onRestore?: (deletionId: string) => void;
 }>;
 
 /**
@@ -35,7 +43,7 @@ export type LogPanelProps = Readonly<{
  * The page stays where the reader left it while the table keeps changing;
  * the newest page is one control away.
  */
-export function LogPanel({ tab, page, onEarlier, onLatest }: LogPanelProps) {
+export function LogPanel({ tab, page, onEarlier, onLatest, onRestore }: LogPanelProps) {
   return (
     <Section hiddenHeading title={TITLES[tab]}>
       <Stack gap="md">
@@ -59,6 +67,7 @@ export function LogPanel({ tab, page, onEarlier, onLatest }: LogPanelProps) {
                       Open GitHub issue
                     </Anchor>
                   )}
+                  {entry.restore && onRestore && <RestoreButton deletionId={entry.restore} onRestore={onRestore} />}
                   {entry.context && (
                     <Text size="xs" c="dimmed">
                       {entry.context}
@@ -72,18 +81,33 @@ export function LogPanel({ tab, page, onEarlier, onLatest }: LogPanelProps) {
         {page && (page.more || !page.latest) && (
           <Group>
             {page.more && (
-              <Button variant="default" onClick={onEarlier}>
+              <LabeledAction icon={<ChevronLeft size={16} />} onClick={onEarlier}>
                 Earlier entries
-              </Button>
+              </LabeledAction>
             )}
             {!page.latest && (
-              <Button variant="default" onClick={onLatest}>
+              <LabeledAction icon={<ChevronsRight size={16} />} onClick={onLatest}>
                 Latest entries
-              </Button>
+              </LabeledAction>
             )}
           </Group>
         )}
       </Stack>
     </Section>
+  );
+}
+
+/* A deletion the game still keeps can be undone from its entry: the piece comes back where it lay, or nearby, face down (#2132). */
+function RestoreButton({ deletionId, onRestore }: Readonly<{ deletionId: string; onRestore: (id: string) => void }>) {
+  return (
+    <IconAction
+      label="Restore"
+      tooltip="Puts the piece back where it was, or at the nearest free spot. It always comes back face down."
+      size="sm"
+      emphasis="standard"
+      className={styles.restore}
+      icon={<Undo2 size={14} />}
+      onClick={() => onRestore(deletionId)}
+    />
   );
 }

@@ -1,6 +1,7 @@
-import { Button } from '@mantine/core';
 import { isSpicePiece } from '@shared/play/spice';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { RadialMenu } from '@ui/control/RadialMenu';
+import { Ellipsis } from 'lucide-react';
 import type { RefObject } from 'react';
 
 import { PeekView } from './PeekView';
@@ -18,6 +19,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   );
   const deckControls = useTabletopSelector((table) => (pieceMenu ? table.deckControls : undefined));
   const spiceReserveControls = useTabletopSelector((table) => (pieceMenu ? table.spiceReserveControls : undefined));
+  const spiceBlowControls = useTabletopSelector((table) => (pieceMenu ? table.spiceBlowControls : undefined));
   const peekControls = useTabletopSelector((table) => (pieceMenu ? table.peekControls : undefined));
   const deleteControls = useTabletopSelector((table) => (pieceMenu ? table.deleteControls : undefined));
   const handControls = useTabletopSelector((table) => (pieceMenu ? table.handControls : undefined));
@@ -34,7 +36,7 @@ function PieceMenu({ pieceMenu, onClose }: Readonly<{ pieceMenu: PieceMenuAnchor
   const hub = spice ? 'Spice' : deck ? `${count} card${count === 1 ? '' : 's'}` : 'Token';
   const actions = pieceMenuActions(
     menuPiece,
-    { deckControls, spiceReserveControls, peekControls, deleteControls, handControls },
+    { deckControls, spiceReserveControls, spiceBlowControls, peekControls, deleteControls, handControls },
     { reserved: menuPieceReserved, onClose }
   );
   /* A leader or a tech token may offer only Take into hand, which a viewer who cannot act does not get; then there is no ring to show. */
@@ -108,21 +110,24 @@ export function TabletopTools({
   const selectedPieceId = useTabletopSelector((table) => table.state.selectedPieceId);
   return (
     <>
-      <Button
-        className={keyboardActionsClassName}
-        disabled={hasDraft || !selectedPieceId}
-        onClick={(event) => {
-          const { state } = readTable();
-          const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
-          if (!piece || !pieceHasMenu(piece)) {
-            return;
-          }
-          const bounds = event.currentTarget.getBoundingClientRect();
-          onMenuChange({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
-        }}
-      >
-        Selected piece actions
-      </Button>
+      {/* Shown on keyboard focus only, so while there is nothing to act on it leaves the tab order altogether. */}
+      {hasDraft || !selectedPieceId ? null : (
+        <LabeledAction
+          className={keyboardActionsClassName}
+          icon={<Ellipsis size={16} />}
+          onClick={(event) => {
+            const { state } = readTable();
+            const piece = state.pieces.find((entry) => entry.id === state.selectedPieceId);
+            if (!piece || !pieceHasMenu(piece)) {
+              return;
+            }
+            const bounds = event.currentTarget.getBoundingClientRect();
+            onMenuChange({ pieceId: piece.id, x: bounds.left, y: bounds.bottom });
+          }}
+        >
+          Selected piece actions
+        </LabeledAction>
+      )}
       <PieceMenu pieceMenu={pieceMenu} onClose={() => onMenuChange(null)} />
       <SpiceGiftMenu />
       <PeekView />

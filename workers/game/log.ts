@@ -1,5 +1,6 @@
 import { alliesOf, isAllianceAction } from '../../src/shared/play/alliances';
 import { deletedName } from '../../src/shared/play/commands';
+import { isRecallConversation, TABLE_CONVERSATION } from '../../src/shared/play/conversations';
 import { factionTitleText, rosterFactionTitles } from '../../src/shared/play/factionLabels';
 import { LOG_CLASS_TABS, LOG_PAGE_SIZE } from '../../src/shared/play/log';
 import type { LogClass, LogEntry, LogTab } from '../../src/shared/play/log';
@@ -12,8 +13,12 @@ import type { ResultAction } from '../../src/shared/play/result';
 import { rosterSeat } from '../../src/shared/play/schema';
 import { setupStep } from '../../src/shared/play/setup';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
+import { deletionId } from './deletions';
 import { internalPieceId } from './state';
 import type { StoredSnapshot } from './state';
+
+/* A deletion row is keyed by its deletion, so the row can offer Restore while the game keeps the piece. */
+const DELETION_KEY = 'deletion:v2:';
 
 /** The one name retained history shows for a deleted account. */
 export const DELETED_USER = '[deleted user]';
@@ -74,6 +79,8 @@ type ReviewResult = {
   ballots: ReviewBallot[];
   /* Who ended or withdrew it, or what did: a seat change, or the game ending. */
   by: Person | 'seats' | 'game-ended' | null;
+  /* A finished game's recall, which starts without a vote and leaves no play to resume. */
+  finished?: boolean;
   context: string;
   at: number;
 };
@@ -98,9 +105,13 @@ export class PublicLog {
     );
   }
 
+  /** Files the entry once per key; true when this added it. */
   record(entry: Entry) {
     if (!this.enabled) {
-      return;
+      return false;
+    }
+    if (this.storage.sql.exec('SELECT 1 FROM public_log WHERE key=?', entry.key).toArray().length > 0) {
+      return false;
     }
     this.storage.sql.exec(
       'INSERT OR IGNORE INTO public_log(key,class,template,people,context,created_at) VALUES(?,?,?,?,?,?)',
@@ -111,6 +122,7 @@ export class PublicLog {
       entry.context ?? this.context(),
       entry.at ?? Date.now()
     );
+    return true;
   }
 
   /** Every entry of a commit: the stage it entered, the phase it reached, a prediction, a spice transfer and a battle result. */
@@ -151,11 +163,47 @@ export class PublicLog {
     this.record(voteEntry(vote));
   }
 
+  /**
+   * A faction cleared a chat from its own view: everyone may know it happened, never what it said (#2674).
+   * Private chats go unnamed and count once per phase, so the log never shows who talked with whom.
+   * A recall's chat ends with the recall, so it goes unlogged.
+   * True when this added an entry.
+   */
+  recordChatClear(clear: {
+    snapshot: StoredSnapshot;
+    holders: readonly Holder[];
+    factionId: string;
+    peerId: string;
+    through: number;
+  }) {
+    if (isRecallConversation(clear.peerId)) {
+      return false;
+    }
+    const people: Person[] = [];
+    const who = factionNamer(clear.snapshot, clear.holders)(clear.factionId, people);
+    const context = logContext(clear.snapshot);
+    const table = clear.peerId === TABLE_CONVERSATION;
+    return this.record({
+      key: table
+        ? `chat-clear:${clear.factionId}:${TABLE_CONVERSATION}:${clear.through}`
+        : `chat-clear:${clear.factionId}:private:${context}`,
+      class: 'chat',
+      template: table ? `${who} cleared the table chat.` : `${who} cleared its private chats.`,
+      people,
+      context,
+    });
+  }
+
   recordReview(review: ReviewResult) {
     this.record(reviewEntry(review));
   }
 
-  page(tab: LogTab, before: number): { entries: LogEntry[]; more: boolean } {
+  /** A page of a tab, newest first; a deletion whose piece the game still keeps offers to restore it. */
+  page(
+    tab: LogTab,
+    before: number,
+    restorable: ReadonlySet<string> = new Set()
+  ): { entries: LogEntry[]; more: boolean } {
     const classes = (Object.keys(LOG_CLASS_TABS) as LogClass[]).filter((entry) => LOG_CLASS_TABS[entry] === tab);
     const rows = this.storage.sql
       .exec<Row>(
@@ -169,10 +217,11 @@ export class PublicLog {
       entries: rows.slice(0, LOG_PAGE_SIZE).map((row) => {
         // Old deletion templates did not distinguish a hidden token's name from its public label.
         const template =
-          row.class === 'deletion' && !row.key.startsWith('deletion:v2:')
+          row.class === 'deletion' && !row.key.startsWith(DELETION_KEY)
             ? '{0} deleted a piece from the game.'
             : row.template;
         const text = render(template, JSON.parse(row.people) as Person[]);
+        const restore = row.key.startsWith(DELETION_KEY) ? row.key.slice(DELETION_KEY.length) : undefined;
         const issueUrl =
           row.class === 'bug-report'
             ? /https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u.exec(text)?.[0]
@@ -185,6 +234,7 @@ export class PublicLog {
           context: row.context,
           at: row.created_at,
           ...(issueUrl ? { issueUrl } : {}),
+          ...(restore && restorable.has(restore) ? { restore } : {}),
         };
       }),
       more: rows.length > LOG_PAGE_SIZE,
@@ -281,6 +331,35 @@ function commitEntries({
     ...(transfer ? [spiceEntry(transfer, { userId: viewer.userId, name: viewer.displayName }, faction, context)] : []),
     ...(result && result.revision === next.revision ? [battleEntry(result, faction, context)] : []),
     ...deletionEntries(before, next, message, viewer, context),
+    ...restoreEntries(before, next, message, viewer, context),
+  ];
+}
+
+/* A restored piece comes back face down, so its row names it as the table now shows it. */
+function restoreEntries(
+  before: StoredSnapshot,
+  next: StoredSnapshot,
+  message: CommitMessage,
+  viewer: Viewer,
+  context: string
+): Entry[] {
+  if (message.type !== 'command' || message.action.kind !== 'restore' || before.revision === next.revision) {
+    return [];
+  }
+  const restored = message.action.deletionId;
+  const id = before.deletedPieces.find((entry) => entry.id === restored)?.piece.id;
+  const piece = next.table.pieces.find((candidate) => candidate.id === id);
+  if (!piece) {
+    return [];
+  }
+  return [
+    {
+      key: `restore:${restored}`,
+      class: 'restore',
+      template: `{0} restored ${literal(deletedName(piece))} to the table, face down.`,
+      people: [{ userId: viewer.userId, name: viewer.displayName }],
+      context,
+    },
   ];
 }
 
@@ -303,7 +382,7 @@ function deletionEntries(
   }
   return [
     {
-      key: `deletion:v2:${next.revision}`,
+      key: `${DELETION_KEY}${deletionId(next.revision)}`,
       class: 'deletion',
       template: `{0} deleted ${literal(deletedName(piece))} from the game.`,
       people: [{ userId: viewer.userId, name: viewer.displayName }],
@@ -692,13 +771,18 @@ function reviewEntry(review: ReviewResult): Entry {
   };
   const checkpoint = literal(review.checkpoint);
   const templates: Record<ReviewOutcome, () => string> = {
-    started: () => `The table recalls ${checkpoint}, as {0} proposed: ${breakdown()}.`,
+    started: () =>
+      review.finished
+        ? `The table recalls ${checkpoint}, as {0} asked.`
+        : `The table recalls ${checkpoint}, as {0} proposed: ${breakdown()}.`,
     declined: () => `The table declined {0}'s recall of ${checkpoint}: ${breakdown()}.`,
     withdrawn: () => `The recall of ${checkpoint} {0} proposed was withdrawn ${by()}.`,
     ended: () =>
       review.by === 'game-ended'
         ? `The recall of ${checkpoint} ended as the game ended.`
-        : `The recall of ${checkpoint} was ended ${by()}, and play resumed.`,
+        : review.finished
+          ? `The recall of ${checkpoint} was ended ${by()}.`
+          : `The recall of ${checkpoint} was ended ${by()}, and play resumed.`,
   };
   return {
     key: `review:${review.id}:${review.result}`,

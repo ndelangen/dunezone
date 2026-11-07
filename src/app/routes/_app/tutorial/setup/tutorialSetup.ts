@@ -5,7 +5,6 @@ import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import type { TutorialCheckpoint } from '@shared/tutorial/recipe';
 
-import { onCurrentBoard } from '../../../../../../workers/game/boardLayoutSnapshot';
 import { storedSnapshotSchema } from '../../../../../../workers/game/state';
 import type { ChapterScript } from '../chapterScripts/chapterScript';
 import type { RecordedDeal } from '../table/localSession';
@@ -37,11 +36,9 @@ export type TutorialSetup = Readonly<{
 export const withOrigin = <Value>(value: Value, origin: string): Value =>
   JSON.parse(JSON.stringify(value).replaceAll('{{origin}}', origin)) as Value;
 
-/* A recorded stored table, through the Worker's own migration, with its images under the page's origin. */
+/* A recorded stored table, with its images under the page's origin. */
 const storedAt = (setup: TutorialSetup, checkpoint: TutorialCheckpoint, origin: string) =>
-  storedSnapshotSchema.parse(
-    onCurrentBoard(withOrigin(setup.checkpoints[checkpoint].stored, origin) as Parameters<typeof onCurrentBoard>[0])
-  );
+  storedSnapshotSchema.parse(withOrigin(setup.checkpoints[checkpoint].stored, origin));
 
 /*
  * How the recording dealt: each seat's faction and station at setup, with the faction token trading showed for it,

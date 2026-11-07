@@ -1,5 +1,4 @@
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { PageState } from '@ui/block/PageState';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
@@ -7,6 +6,7 @@ import type { SessionViewer } from '@db/profiles';
 
 import { LoginGate } from './LoginGate';
 import { PageMessage } from './PageMessage';
+import { RoutePending } from './RoutePending';
 
 export interface AdminGateProps {
   /** Who is reading, from `useSessionViewer`. */
@@ -51,7 +51,9 @@ export function AdminGate({
   if (!viewer.isAdmin) {
     return (
       <PageMessage size={size} title={title}>
-        <NotAvailable title={deniedTitle}>{deniedMessage}</NotAvailable>
+        <PageState kind="absent" title={deniedTitle}>
+          {deniedMessage}
+        </PageState>
       </PageMessage>
     );
   }
@@ -69,8 +71,8 @@ export function AdminPageLoading({
   children: string;
 }) {
   return (
-    <PageMessage size={size} title={title}>
-      <LoadPending title={`Loading ${title.toLowerCase()}`}>{children}</LoadPending>
-    </PageMessage>
+    <RoutePending size={size} title={title} loading={`Loading ${title.toLowerCase()}`}>
+      {children}
+    </RoutePending>
   );
 }

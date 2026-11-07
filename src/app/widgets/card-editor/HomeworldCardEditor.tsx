@@ -7,7 +7,6 @@ import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Globe, ScrollText } from 'lucide-react';
@@ -16,11 +15,10 @@ import type { z } from 'zod';
 
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { HomeworldCard } from '@game/assets/card/Homeworld';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { fixedCardHeadChapter } from './CardHeadChapters';
 import { CardIconScaleControl } from './CardIconAdjustments';
+import { CardProof } from './CardProof';
 
 export type HomeworldDraft = z.infer<typeof HomeworldCardAsset>;
 export type HomeworldChapter = 'head' | 'planet' | 'effects' | 'about';
@@ -83,9 +81,9 @@ export function HomeworldCardEditor({
                     <ControlBlock
                       title="Planet illustration"
                       description="Shown in the card head. Any faction can use this homeworld."
-                      input={
+                      input={(fieldProps) => (
                         <AssetSelect
-                          aria-label="Planet illustration"
+                          {...fieldProps}
                           allowDeselect={false}
                           data={planets}
                           getPreviewSrc={(image) => resolveAsset(image, 'small')}
@@ -97,7 +95,7 @@ export function HomeworldCardEditor({
                             }
                           }}
                         />
-                      }
+                      )}
                     />
                     <CardIconScaleControl
                       value={draft}
@@ -119,9 +117,9 @@ export function HomeworldCardEditor({
                       description={
                         'The fewest reserve forces for the high-reserve effect.\nFewer forces use the low-reserve effect.'
                       }
-                      input={
+                      input={(fieldProps) => (
                         <NumberInput
-                          aria-label="High reserve threshold"
+                          {...fieldProps}
                           value={draft.threshold}
                           min={1}
                           max={999}
@@ -132,7 +130,7 @@ export function HomeworldCardEditor({
                             }
                           }}
                         />
-                      }
+                      )}
                     />
                     {(['high', 'low'] as const).map((key) => {
                       const label = key === 'high' ? 'High reserves' : 'Low reserves';
@@ -141,23 +139,23 @@ export function HomeworldCardEditor({
                           <ControlBlock
                             title={label}
                             description="Up to 400 characters and six lines."
-                            input={
+                            input={(fieldProps) => (
                               <FormattedTextInput
-                                aria-label={label}
+                                {...fieldProps}
                                 minRows={3}
                                 value={draft[key].text}
                                 onChange={(text) => patch({ [key]: { ...draft[key], text } })}
                               />
-                            }
+                            )}
                           />
                           <ControlBlock
                             title={`${label} strength`}
                             description={
                               'The battle dial bonus at home.\nNative forces lost to a Lasgun / Shield explosion.'
                             }
-                            input={
+                            input={(fieldProps) => (
                               <NumberInput
-                                aria-label={`${label} strength`}
+                                {...fieldProps}
                                 min={0}
                                 max={99}
                                 allowDecimal={false}
@@ -168,7 +166,7 @@ export function HomeworldCardEditor({
                                   }
                                 }}
                               />
-                            }
+                            )}
                           />
                         </Stack>
                       );
@@ -176,14 +174,14 @@ export function HomeworldCardEditor({
                     <ControlBlock
                       title="Occupied"
                       description="The occupier's effect, including any income. Up to 400 characters and six lines."
-                      input={
+                      input={(fieldProps) => (
                         <FormattedTextInput
-                          aria-label="Occupied"
+                          {...fieldProps}
                           minRows={3}
                           value={draft.occupied}
                           onChange={(occupied) => patch({ occupied })}
                         />
-                      }
+                      )}
                     />
                   </Stack>
                 ),
@@ -194,14 +192,9 @@ export function HomeworldCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CanvasScale
-          rounded
-          canvasWidth={CARD_SIZE.width}
-          canvasHeight={CARD_SIZE.height}
-          frameClassName={styles.proofFrame}
-        >
+        <CardProof>
           <HomeworldCard {...draft} frontStyle={frontStyle} />
-        </CanvasScale>
+        </CardProof>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

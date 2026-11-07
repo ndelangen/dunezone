@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { TERRITORY_NAME_LIMIT } from '../boards/schema';
+import { tintTerritorySchema } from '../boards/tints';
 import { HistoricalFactionPublicationObject, TroopArtwork } from '../factions/schema';
 import { playStageSchema } from './admission';
 import { allianceActionSchema, allianceStateSchema } from './alliances';
@@ -54,7 +56,9 @@ import { territoryTintActionSchema, territoryTintsSchema } from './territoryTint
 
 const factionArtworkSchema = z.record(
   z.string(),
-  HistoricalFactionPublicationObject.pick({ background: true, logo: true }).extend({ troops: z.array(TroopArtwork) })
+  HistoricalFactionPublicationObject.pick({ background: true, emblem: true }).extend({
+    troops: z.array(TroopArtwork),
+  })
 );
 
 const phaseEntrySchema = z.object({
@@ -92,9 +96,9 @@ export const gameSnapshotSchema = z.object({
   setup: setupStateSchema.optional(),
   predictions: predictionsSchema.optional(),
   removalVotes: z.array(removalVoteSchema).optional(),
-  /* The table review being voted on or showing now; absent outside setup and play. */
+  /* The table review being voted on or showing now; absent before setup. */
   review: tableReviewSchema.nullable().optional(),
-  /* The recent checkpoints a review can show, newest last; absent outside setup and play. */
+  /* The checkpoints a review can show, newest last: the recent ones, or all once finished; absent before setup. */
   reviewCheckpoints: z.array(reviewCheckpointSchema).optional(),
   /* Who is determining the winner during Mentat Pause, then the declared result once finished. */
   ending: gameEndingSchema.nullable().optional(),
@@ -180,11 +184,19 @@ const tableActionSchema = z.discriminatedUnion('kind', [
     direction,
     steps: z.number().int().min(2).max(ROTATE_STEPS_LIMIT).optional(),
   }),
-  /* Takes a card, token or stack out of the game for good. */
+  /* Takes a card, token or stack out of the game; the game log can bring it back. */
   z.strictObject({ kind: z.literal('delete'), pieceId: id }),
   z.strictObject({ kind: z.literal('storm'), direction }),
   z.strictObject({ kind: z.literal('phase'), direction: direction.optional() }),
   z.strictObject({ kind: z.literal('spice-spawn'), count: z.number().int().min(1).max(10) }),
+  /* Places a revealed spice card's spice in its territory; the page finds the spot, since the table keeps no territory shapes (#2678). */
+  z.strictObject({
+    kind: z.literal('spice-blow'),
+    pieceId: id,
+    territory: tintTerritorySchema,
+    name: z.string().trim().min(1).max(TERRITORY_NAME_LIMIT),
+    position,
+  }),
   /* Takes one tech token at random out of the shared table inventory and sets it down on the table shelf. */
   z.strictObject({ kind: z.literal('tech-token-draw') }),
   z.strictObject({ kind: z.literal('reset') }),
@@ -200,6 +212,9 @@ const deckActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('deck-shuffle'), pieceId: id }),
 ]);
 export type DeckAction = z.infer<typeof deckActionSchema>;
+/* Brings a deleted piece back onto the table, face down, named by the deletion its game log entry offers to restore (#2132). */
+const restoreActionSchema = z.strictObject({ kind: z.literal('restore'), deletionId: id });
+export type RestoreAction = z.infer<typeof restoreActionSchema>;
 const pieceActionSchema = z.discriminatedUnion('kind', [
   ...battleActionSchema.options,
   ...biddingActionSchema.options,
@@ -219,6 +234,7 @@ const pieceActionSchema = z.discriminatedUnion('kind', [
   ...tableActionSchema.options,
   ...deckActionSchema.options,
   ...peekActionSchema.options,
+  restoreActionSchema,
 ]);
 export type PieceAction = z.infer<typeof pieceActionSchema>;
 export const clientMessageSchema = z.discriminatedUnion('type', [
@@ -238,6 +254,14 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('conversation-read'),
+    requestId: id,
+    factionId: id,
+    peerId: conversationPeerSchema,
+    through: count,
+  }),
+  /* Hides the conversation through `through` from the faction's own view; the other side keeps its copy. */
+  z.strictObject({
+    type: z.literal('conversation-clear'),
     requestId: id,
     factionId: id,
     peerId: conversationPeerSchema,
@@ -486,6 +510,7 @@ export function tableForViewer(snapshot: GameSnapshot, viewerSeat: Viewer['viewe
     viewerFaction: rosterSeat(snapshot.roster, viewerSeat)?.faction?.id ?? null,
     factionNames: rosterFactionNames(snapshot.roster),
     ...(snapshot.handCounts ? { handCounts: snapshot.handCounts } : {}),
+    ...(snapshot.board ? { board: snapshot.board.definition } : {}),
     selectedPieceId: null,
     draftMove: null,
   };

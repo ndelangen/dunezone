@@ -1,21 +1,15 @@
-import {
-  Alert,
-  Anchor,
-  Button,
-  Center,
-  Combobox,
-  Divider,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-  useCombobox,
-} from '@mantine/core';
+import { Anchor, Combobox, Divider, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The picker's optional heading names a popover, which has no Section around it. */
+import { Title } from '@mantine/core';
 import { FactionInputSchema } from '@shared/factions/schema';
 import { Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { FieldWarning } from '@ui/content/FieldWarning';
+import { Pending } from '@ui/content/Pending';
+import type { ActionIntent } from '@ui/control/actionIntent';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
@@ -41,7 +35,8 @@ interface PickedFaction {
 }
 
 /* The picker owns the resolution, so a caller states the meaning and never a hue. */
-const CONFIRM_INTENT_COLOR = { positive: 'confirm', caution: 'orange' } as const;
+/* A pick that replaces work in progress takes the destructive tone; one that only adds takes the creating one. */
+const CONFIRM_INTENT = { positive: 'positive', caution: 'negative' } as const satisfies Record<string, ActionIntent>;
 
 /**
  * Everything the picker says, supplied by the caller.
@@ -156,15 +151,9 @@ export function FactionPicker(props: FactionPickerProps) {
           ) : null}
         </Stack>
       ) : null}
-      {error && (
-        <Alert color="red" title={copy.errorTitle} role="alert">
-          {error}
-        </Alert>
-      )}
+      {error && <FormError title={copy.errorTitle}>{error}</FormError>}
       {picker.isPending ? (
-        <Center py="md">
-          <Loader size="sm" aria-label="Loading factions" />
-        </Center>
+        <Pending>Loading factions</Pending>
       ) : availableRows.length === 0 ? (
         <Text size="sm" c="dimmed">
           {copy.emptyMessage}
@@ -182,27 +171,29 @@ export function FactionPicker(props: FactionPickerProps) {
             }
           }}
         >
-          <Combobox.EventsTarget>
-            <TextInput
-              label="Search factions"
-              placeholder="Type name, owner, group, or token…"
-              value={search}
-              // Safari and password-manager extensions ignore autoComplete="off"
-              // alone; the search type, neutral name, and vendor opt-outs keep
-              // credential autofill prompts off this field.
-              type="search"
-              name="faction-search"
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-bwignore
-              data-form-type="other"
-              onChange={(event) => {
-                setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
-              }}
-            />
-          </Combobox.EventsTarget>
+          <ControlBlock
+            title="Search factions"
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
+                <TextInput
+                  {...fieldProps}
+                  placeholder="Type name, owner, group, or token…"
+                  value={search}
+                  type="search"
+                  name="faction-search"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-bwignore
+                  data-form-type="other"
+                  onChange={(event) => {
+                    setSearch(event.currentTarget.value);
+                    combobox.selectFirstOption();
+                  }}
+                />
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {filteredRows.length === 0 ? (
@@ -213,7 +204,7 @@ export function FactionPicker(props: FactionPickerProps) {
                     <FactionLoadOptionRow
                       name={row.data.name}
                       slug={row.slug}
-                      logo={row.data.logo}
+                      emblem={row.data.emblem}
                       background={row.data.background}
                       ownerLabel={factionLoadOwnerLabel(row)}
                       groupLabel={row.groupLabel}
@@ -239,29 +230,26 @@ export function FactionPicker(props: FactionPickerProps) {
             <FactionLoadOptionRow
               name={selectedRow.data.name}
               slug={selectedRow.slug}
-              logo={selectedRow.data.logo}
+              emblem={selectedRow.data.emblem}
               background={selectedRow.data.background}
               ownerLabel={factionLoadOwnerLabel(selectedRow)}
               groupLabel={selectedRow.groupLabel}
               isMember={selectedRow.groupId ? memberGroupSet.has(String(selectedRow.groupId)) : false}
             />
-            {props.copy.confirmNote ? (
-              <Text size="xs" c="var(--color-caution)">
-                {props.copy.confirmNote}
-              </Text>
-            ) : null}
+            {props.copy.confirmNote ? <FieldWarning>{props.copy.confirmNote}</FieldWarning> : null}
             <Group justify="flex-end" gap="xs">
-              <Button type="button" variant="default" size="compact-sm" onClick={props.onCancel}>
+              <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={props.onCancel}>
                 Cancel
-              </Button>
-              <Button
-                type="button"
-                color={CONFIRM_INTENT_COLOR[props.copy.confirmIntent]}
+              </LabeledAction>
+              <LabeledAction
+                intent={CONFIRM_INTENT[props.copy.confirmIntent]}
+                emphasis="strong"
                 size="compact-sm"
+                icon={<Check size={14} />}
                 onClick={() => commit(selectedRow)}
               >
                 {props.copy.confirmLabel}
-              </Button>
+              </LabeledAction>
             </Group>
           </Stack>
         </>

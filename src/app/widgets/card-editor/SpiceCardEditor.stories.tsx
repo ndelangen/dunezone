@@ -62,14 +62,11 @@ export const IconPlacement = meta.story({
   },
 });
 
-/** A fresh card warns about its missing name and territory rather than refusing to draw. */
+/** A fresh card warns about its missing name and board rather than refusing to draw. */
 export const Blank = meta.story({
   args: { draft: INITIAL_SPICE_DRAFT, nameField: <TextInput aria-label="Name" readOnly value="" /> },
   play: async () => {
-    await expect(spiceDraftWarnings(INITIAL_SPICE_DRAFT).map(({ missing }) => missing)).toEqual([
-      'a name',
-      'a highlighted territory',
-    ]);
+    await expect(spiceDraftWarnings(INITIAL_SPICE_DRAFT).map(({ missing }) => missing)).toEqual(['a name', 'a board']);
   },
 });
 
@@ -87,7 +84,7 @@ export const CarriedRegion = meta.story({
   render: (args) => <LiveEditor {...args} initial={onStrongholds} />,
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
-    const covered = () => proofOf(canvasElement).querySelectorAll('[data-tint="highlights"] > g');
+    const covered = () => proofOf(canvasElement).querySelectorAll('[data-tint="highlights"] [data-tint-fill]');
     await expect(covered()).toHaveLength(5);
     await userEvent.click(canvas.getByRole('button', { name: 'Paint Strongholds' }));
     const { x, y } = territoryOnScreen(canvasElement, 'arrakeen');

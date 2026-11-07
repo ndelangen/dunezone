@@ -1,5 +1,5 @@
 import { ActionIcon, Tooltip, VisuallyHidden } from '@mantine/core';
-import type { ActionIconProps, ActionIconVariant } from '@mantine/core';
+import type { ActionIconProps } from '@mantine/core';
 import clsx from 'clsx';
 import { useId } from 'react';
 import type {
@@ -12,79 +12,12 @@ import type {
 } from 'react';
 
 import type { RenderRoot } from '../renderRoot';
+import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
+import type { ActionEmphasis, ActionIntent } from './actionIntent';
 import styles from './IconAction.module.css';
 
-/**
- * What the action means to the reader, independent of the palette that renders it.
- * Drawn from the variant language, so the same word means the same thing here as it does on a badge or a picker.
- */
-type IconActionIntent = 'neutral' | 'positive' | 'negative' | 'publish' | 'export';
-
-/*
- * The component owns the resolution, so a call site states the meaning and never a hue.
- * Each hue names what happens to the reader's work (Norbert, 2026-09-29):
- * `neutral` changes nothing (go, look, arrange, share, change access), `positive` creates or keeps, `publish` makes it public for good, `export` hands the reader a file to take away, and `negative` loses something for good.
- * Red is kept for what cannot be undone in one step, so removing a Group or logging out is `neutral`.
- */
-const INTENT_COLOR = {
-  neutral: 'gray',
-  positive: 'confirm',
-  negative: 'red',
-  publish: 'violet',
-  export: 'cyan',
-} as const satisfies Record<IconActionIntent, string>;
-
-/*
- * A standard tile takes its colours from the tokens rather than Mantine's light variant, which in dark mode paints every glyph near-white and so makes a red Delete look like Back.
- * A pressed toggle keeps its tile: it wears the app's selected look, never a stronger fill, so being on never reads as another colour.
- */
-const TILE = {
-  neutral: ['var(--action-neutral-bg)', 'var(--action-neutral-hover-bg)', 'var(--action-neutral-fg)'],
-  positive: [
-    'rgb(from var(--action-positive-bg) r g b / var(--action-positive-bg-alpha))',
-    'rgb(from var(--action-positive-hover-bg) r g b / var(--action-positive-hover-bg-alpha))',
-    'var(--action-positive-fg)',
-  ],
-  negative: [
-    'rgb(from var(--action-negative-bg) r g b / var(--action-negative-bg-alpha))',
-    'rgb(from var(--action-negative-hover-bg) r g b / var(--action-negative-hover-bg-alpha))',
-    'var(--action-negative-fg)',
-  ],
-  publish: [
-    'rgb(from var(--action-publish-bg) r g b / var(--action-publish-bg-alpha))',
-    'rgb(from var(--action-publish-hover-bg) r g b / var(--action-publish-hover-bg-alpha))',
-    'var(--action-publish-fg)',
-  ],
-  export: [
-    'rgb(from var(--action-export-bg) r g b / var(--action-export-bg-alpha))',
-    'rgb(from var(--action-export-hover-bg) r g b / var(--action-export-hover-bg-alpha))',
-    'var(--action-export-fg)',
-  ],
-} as const satisfies Record<IconActionIntent, readonly [string, string, string]>;
-
-const PRESSED_TILE = [
-  'var(--button-toggle-active-bg)',
-  'var(--button-toggle-active-bg)',
-  'var(--button-toggle-fg)',
-] as const;
-
-function tileVars(intent: IconActionIntent, pressed: boolean) {
-  const [background, hover, color] = pressed ? PRESSED_TILE : TILE[intent];
-  return { root: { '--ai-bg': background, '--ai-hover': hover, '--ai-color': color } };
-}
-
-/**
- * How loudly the action sits on the page: silent draws no chrome at all even when hovered, quiet blends in until hovered, standard wears a tinted tile, strong is fully filled.
- * The kit's words rather than Mantine's, so the vendor's variant enum never crosses this membrane.
- */
-type IconActionEmphasis = 'silent' | 'quiet' | 'standard' | 'strong';
-
-const EMPHASIS_VARIANT = {
-  silent: 'transparent',
-  quiet: 'subtle',
-  standard: 'light',
-  strong: 'filled',
-} as const satisfies Record<IconActionEmphasis, ActionIconVariant>;
+/* The hover text is also the name, and sometimes the only route to longer detail, so a keyboard focus opens it too. */
+const TOOLTIP_EVENTS = { hover: true, focus: true, touch: false };
 
 export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disabled' | 'loading'> {
   /**
@@ -93,9 +26,9 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
    */
   label: string;
   /** The reader-facing meaning; the colour follows from it, never the other way round. */
-  intent?: IconActionIntent;
+  intent?: ActionIntent;
   /** How loudly the action renders; omitted keeps Mantine's default, which is strong. */
-  emphasis?: IconActionEmphasis;
+  emphasis?: ActionEmphasis;
   /** Longer hover text, when the glyph needs more explanation than its name. */
   tooltip?: ReactNode;
   /**
@@ -142,6 +75,8 @@ export interface IconActionProps extends Pick<ActionIconProps, 'size' | 'disable
   role?: string;
   tabIndex?: number;
   'aria-describedby'?: string;
+  /** Names the action from words on the page, over `label`, which stays the hover text; `AssetSelect` names its filter after the field's title this way. */
+  'aria-labelledby'?: string;
   'aria-roledescription'?: string;
   'aria-pressed'?: boolean;
   'aria-disabled'?: boolean;
@@ -191,77 +126,75 @@ export function IconAction({
   const vars = tinted ? () => tileVars(intent ?? 'neutral', pressed === true) : undefined;
   const classes = clsx(className, pressed && styles.pressed);
   const pressedState = pressed ?? actionIconProps['aria-pressed'];
-  if (disabledReason != null) {
-    /* Mantine's own disabled look, without the `disabled` attribute that would swallow the hover. The reason is also the control's description, for a reader who never hovers. */
-    return (
-      <>
-        <Tooltip label={disabledReason}>
+  const disabled = disabledReason != null;
+  /* A caller that already describes the control (a form's own message for the same reason) keeps that description instead of a second copy. */
+  const ownReason = disabled && actionIconProps['aria-describedby'] == null;
+  const describedBy = ownReason ? reasonId : actionIconProps['aria-describedby'];
+  /*
+   * One tree for both states, so the button a reader is focused on stays that button when its reason comes or goes.
+   * Disabled is Mantine's own look without the `disabled` attribute that would swallow the hover, and the reason is also the control's description, for a reader who never hovers.
+   * A disabled link renders as a button, since there is nowhere it may go.
+   * Two element branches rather than one spread: `component="a"` re-types the whole element, so the anchor form cannot carry the button-shaped ref, click handler or form binding anyway.
+   */
+  return (
+    <>
+      {/* A longer explanation wraps at a readable width; the bare name stays on one line. */}
+      <Tooltip
+        label={disabled ? disabledReason : (tooltip ?? label)}
+        opened={disabled ? undefined : tooltipOpened}
+        events={TOOLTIP_EVENTS}
+        multiline={disabled || tooltip != null}
+        maw={disabled || tooltip != null ? 320 : undefined}
+      >
+        {href == null || disabled ? (
           <ActionIcon
-            size={actionIconProps.size}
+            {...actionIconProps}
             color={resolvedColor}
             variant={resolvedVariant}
             vars={vars}
+            /* A reason replaces Mantine's own disabled and loading, which set the attribute that swallows the hover. */
+            disabled={disabled ? undefined : actionIconProps.disabled}
+            loading={disabled ? undefined : actionIconProps.loading}
+            aria-pressed={pressedState}
             ref={ref}
-            type="button"
-            data-disabled
-            aria-disabled
+            type={disabled ? 'button' : renderRoot ? undefined : type}
+            form={disabled ? undefined : form}
+            data-disabled={disabled || undefined}
+            aria-disabled={disabled || actionIconProps['aria-disabled'] || undefined}
+            aria-describedby={describedBy}
             aria-label={label}
-            aria-describedby={actionIconProps['aria-describedby'] ?? reasonId}
-            onClick={(event) => event.preventDefault()}
+            onClick={disabled ? (event) => event.preventDefault() : onClick}
+            onPointerDown={disabled ? undefined : onPointerDown}
+            onPointerUp={disabled ? undefined : onPointerUp}
+            onPointerLeave={disabled ? undefined : onPointerLeave}
+            onPointerCancel={disabled ? undefined : onPointerCancel}
+            onKeyDown={disabled ? undefined : onKeyDown}
+            onKeyUp={disabled ? undefined : onKeyUp}
+            onContextMenu={disabled ? undefined : onContextMenu}
+            onBlur={onBlur}
+            className={classes}
+            renderRoot={disabled ? undefined : renderRoot}
+          >
+            {icon}
+          </ActionIcon>
+        ) : (
+          <ActionIcon
+            {...actionIconProps}
+            color={resolvedColor}
+            variant={resolvedVariant}
+            vars={vars}
+            component="a"
+            href={href}
+            target={target}
+            rel={rel}
+            aria-label={label}
             className={classes}
           >
             {icon}
           </ActionIcon>
-        </Tooltip>
-        {actionIconProps['aria-describedby'] ? null : <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden>}
-      </>
-    );
-  }
-  /* Two branches rather than one spread: `component="a"` re-types the whole element, so the
-     anchor form cannot carry the button-shaped ref, click handler or form binding anyway. */
-  return (
-    <Tooltip label={tooltip ?? label} opened={tooltipOpened}>
-      {href == null ? (
-        <ActionIcon
-          {...actionIconProps}
-          color={resolvedColor}
-          variant={resolvedVariant}
-          vars={vars}
-          aria-pressed={pressedState}
-          ref={ref}
-          type={renderRoot ? undefined : type}
-          form={form}
-          aria-label={label}
-          onClick={onClick}
-          onPointerDown={onPointerDown}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerLeave}
-          onPointerCancel={onPointerCancel}
-          onKeyDown={onKeyDown}
-          onKeyUp={onKeyUp}
-          onContextMenu={onContextMenu}
-          onBlur={onBlur}
-          className={classes}
-          renderRoot={renderRoot}
-        >
-          {icon}
-        </ActionIcon>
-      ) : (
-        <ActionIcon
-          {...actionIconProps}
-          color={resolvedColor}
-          variant={resolvedVariant}
-          vars={vars}
-          component="a"
-          href={href}
-          target={target}
-          rel={rel}
-          aria-label={label}
-          className={classes}
-        >
-          {icon}
-        </ActionIcon>
-      )}
-    </Tooltip>
+        )}
+      </Tooltip>
+      {ownReason ? <VisuallyHidden id={reasonId}>{disabledReason}</VisuallyHidden> : null}
+    </>
   );
 }

@@ -1,19 +1,19 @@
-import { Alert, Avatar, Box, Group, Stack, Text } from '@mantine/core';
-import type { ErrorComponentProps } from '@tanstack/react-router';
+/* oxlint-disable-next-line no-restricted-imports -- The group's page mark is a rounded square filling its header slot, not a name disc. */
+import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FactionLink } from '@ui/content/FactionLink';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
@@ -30,16 +30,19 @@ import type { GroupDetailPageData, MembershipState } from '@db/groups';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { detailError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 
 type RosterEntry = GroupDetailPageData['roster'][number];
+
+const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
 
 export const Route = createFileRoute('/_app/groups/$groupSlug/')({
   ssr: true,
@@ -51,7 +54,7 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     }
     return { groupDetail };
   },
-  errorComponent: GroupDetailError,
+  errorComponent: detailError({ noun: 'group', isMissing: isPublicPageNotFound, back: backToProfiles }),
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.groupDetail.group.name ?? 'Group',
@@ -66,29 +69,6 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
     }),
   component: GroupDetailPage,
 });
-
-const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
-
-/**
- * The frame for a load that failed, most often a slug naming no group.
- * A failed Convex query throws to this route boundary, so the live-query result has no separate error state.
- */
-function GroupDetailError({ error }: ErrorComponentProps) {
-  if (isPublicPageNotFound(error)) {
-    return (
-      <PageMessage size="compact" title="Group" back={backToProfiles}>
-        <NotAvailable title="Group not found">This group does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
-  }
-  return (
-    <PageMessage size="compact" title="Group" back={backToProfiles}>
-      <LoadError title="Group could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
-  );
-}
 
 function GroupDetailPage() {
   const { groupSlug } = Route.useParams();
@@ -109,9 +89,9 @@ function GroupDetailPage() {
   useLivePageTitle(page?.group.name, 'Group');
   if (!page) {
     return (
-      <PageMessage size="compact" title="Group" back={backToProfiles}>
-        <LoadPending title="Loading group">The group details are still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title="Group" back={backToProfiles} loading="Loading group">
+        The group details are still loading.
+      </RoutePending>
     );
   }
 
@@ -244,27 +224,19 @@ function GroupDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {capabilities?.delete ? (
-                <ConfirmDeleteAction
-                  label="Delete group"
-                  pending={deleteGroup.isPending}
-                  onConfirm={handleDeleteGroup}
-                />
+                <HoldAction label="Delete group" pending={deleteGroup.isPending} onConfirm={handleDeleteGroup} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {requestError && (
-          <Alert color="red" variant="light" title="Membership request failed" role="alert" mb="lg">
-            {requestError}
-          </Alert>
-        )}
-        {deleteGroup.error && (
-          <Alert color="red" variant="light" title="Delete failed" role="alert" mb="lg">
-            {deleteGroup.error.message}
-          </Alert>
-        )}
+        {requestError || deleteGroup.error ? (
+          <Stack gap="lg" mb="lg">
+            {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
+            <ActionError subject="Group" verb="delete" error={deleteGroup.error} />
+          </Stack>
+        ) : null}
         <Box className={styles.twoColumnGrid}>
           <Stack gap="lg">
             <Card
@@ -302,11 +274,7 @@ function GroupDetailPage() {
           </Stack>
 
           <Stack gap="lg">
-            {membersModerationError && (
-              <Alert color="red" variant="light" title="Moderation failed" role="alert">
-                {membersModerationError}
-              </Alert>
-            )}
+            {membersModerationError && <FormError title="Moderation failed">{membersModerationError}</FormError>}
 
             <PendingRequestsPanel
               pendingMembers={pendingMembers}
@@ -407,7 +375,7 @@ function RulesetAssignPicker({ disabled, currentGroupId, currentGroupName, onAss
 
 /**
  * Dune-specific crest for the Factions section.
- * These faction logo files ship without root width/height (see `Token`'s `StrokedUse` pattern).
+ * These faction emblem files ship without root width/height (see `Token`'s `StrokedUse` pattern).
  * Reference the `#root` fragment via `<use>` inside an own viewBox rather than a plain `<img src>`, which renders as a broken 0x0 image.
  */
 function FremenIcon({ size = 18 }: { size?: number }) {
@@ -420,7 +388,7 @@ function FremenIcon({ size = 18 }: { size?: number }) {
       focusable="false"
       style={{ display: 'block', flex: '0 0 auto' }}
     >
-      <use href="/vector/logo/fremen.svg#root" width={100} height={100} fill="currentColor" />
+      <use href="/vector/emblem/fremen.svg#root" width={100} height={100} fill="currentColor" />
     </svg>
   );
 }
@@ -456,7 +424,7 @@ function MemberRow({
         ) : (
           /* No slug means no profile to link to, so the avatar has no anchor to live inside. */
           <>
-            <Avatar src={entry.user.avatar_url} radius="xl" size="sm" />
+            <NameDisc src={entry.user.avatar_url} name={entry.user.username ?? '?'} size={26} />
             <Text size="sm">{entry.user.username ?? entry.user.id}</Text>
           </>
         )}
@@ -490,7 +458,7 @@ function MemberRow({
           />
         )}
         {entry.capabilities.remove && onRemove && (
-          <ConfirmDeleteAction
+          <HoldAction
             label="Remove member"
             verb="remove"
             size="md"
@@ -561,7 +529,7 @@ function PendingRequestsPanel({
     return null;
   }
   return (
-    <Alert color="yellow" variant="light" title={`Pending requests (${pendingMembers.length})`}>
+    <Notice tone="caution" title={`Pending requests (${pendingMembers.length})`}>
       <Stack gap="xs">
         {pendingMembers.map((entry) => (
           <MemberRow
@@ -573,7 +541,7 @@ function PendingRequestsPanel({
           />
         ))}
       </Stack>
-    </Alert>
+    </Notice>
   );
 }
 
@@ -589,7 +557,7 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
           key={faction._id}
           slug={faction.slug}
           name={faction.data.name}
-          logo={faction.data.logo}
+          emblem={faction.data.emblem}
           background={faction.data.background}
         />
       ))}

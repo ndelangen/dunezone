@@ -1,12 +1,13 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
-import { isComponentAssetType } from '../src/shared/asset-publishing/componentGeometry';
+import { componentGeometrySchema, isComponentAssetType } from '../src/shared/asset-publishing/componentGeometry';
 import {
   factionMemberPublicationId,
   parseFactionMemberPublicationId,
 } from '../src/shared/asset-publishing/componentPublication';
 import { CanonicalFactionStoredObject } from '../src/shared/factions/schema';
+import { renameLegacyEmblems } from '../src/shared/legacyEmblem';
 import {
   resolveRulebookAnnotatedIllustrationResponseSchema,
   rulebookAnnotatedIllustrationIdentitySchema,
@@ -22,6 +23,7 @@ import { assetDisplayName } from './lib/assetInput';
 import { currentFactionLeaderData } from './lib/publication';
 import { rulebookForArtifactDelivery } from './lib/rulebookEditionArtifacts';
 import { contentsForRulebookEdition } from './lib/rulebookEditionContents';
+import { savedBoardGeometry } from './lib/rulebookReferences';
 import type { QueryCtx } from './types';
 
 type SourceResolution = Extract<RulebookAnnotatedIllustrationResolution, { status: 'found' }>['source'];
@@ -40,12 +42,12 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
     const id = ctx.db.normalizeId('factions', reference.factionId);
     const faction = id ? await ctx.db.get('factions', id) : null;
     const parsed = faction && !faction.is_deleted ? CanonicalFactionStoredObject.safeParse(faction.data) : null;
-    return parsed?.success && RULEBOOK_STOCK_ARTWORK.some((id) => id === parsed.data.logo)
-      ? { status: 'stock', reference, artworkId: parsed.data.logo, name: parsed.data.name }
+    return parsed?.success && RULEBOOK_STOCK_ARTWORK.some((id) => id === parsed.data.emblem)
+      ? { status: 'stock', reference, artworkId: parsed.data.emblem, name: parsed.data.name }
       : { status: 'unavailable' };
   }
   if (reference.kind === 'board') {
-    return { status: 'board', boardId: reference.boardId };
+    return resolveSavedBoard(ctx, reference);
   }
   if (reference.kind === 'faction-member') {
     if (!parseFactionMemberPublicationId(`${reference.factionId}.${reference.memberId}`)) {
@@ -84,6 +86,38 @@ async function resolveSource(ctx: QueryCtx, reference: RulebookSourceReference |
   return resolvePublication(ctx, reference, asset.type, asset._id, assetDisplayName(asset));
 }
 
+/** A saved board draws from its published image, with the territories that capture drew for the annotations to point at. */
+async function resolveSavedBoard(
+  ctx: QueryCtx,
+  reference: Extract<RulebookSourceReference, { kind: 'board' }>
+): Promise<SourceResolution> {
+  const id = ctx.db.normalizeId('assets', reference.boardId);
+  const asset = id ? await ctx.db.get('assets', id) : null;
+  if (!asset || asset.is_deleted || asset.type !== 'board') {
+    return { status: 'unavailable' };
+  }
+  const publication = await ctx.db
+    .query('publication_assets')
+    .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'board').eq('asset_id', asset._id))
+    .unique();
+  const geometry =
+    publication &&
+    componentGeometrySchema.safeParse(
+      await savedBoardGeometry(ctx, asset._id, asset.data, publication.component_geometry)
+    );
+  return publication && geometry?.success
+    ? {
+        status: 'image',
+        reference,
+        name: assetDisplayName(asset),
+        assetType: 'board',
+        assetId: asset._id,
+        revision: publication.cache_token,
+        geometry: geometry.data,
+      }
+    : { status: 'pending' };
+}
+
 async function resolvePublication(
   ctx: QueryCtx,
   reference: RulebookSourceReference,
@@ -111,7 +145,12 @@ async function resolvePublication(
 
 /** Resolves immutable annotation choices under the same live Rulebook and Ruleset gates as Edition artifacts. */
 export const resolveDelivery = internalQuery({
-  args: { rulebookId: v.string(), editionNumber: v.number(), pageId: v.string(), blockId: v.string() },
+  args: {
+    rulebookId: v.string(),
+    editionNumber: v.number(),
+    pageId: v.string(),
+    blockId: v.string(),
+  },
   returns: zodToConvex(resolveRulebookAnnotatedIllustrationResponseSchema),
   handler: async (ctx, args): Promise<RulebookAnnotatedIllustrationResolution> => {
     const identity = rulebookAnnotatedIllustrationIdentitySchema.safeParse(args);
@@ -131,7 +170,10 @@ export const resolveDelivery = internalQuery({
     if (!edition) {
       return { ok: true, status: 'missing' };
     }
-    const parsed = rulebookEditionContentsV1Schema.safeParse(await contentsForRulebookEdition(ctx, edition));
+    /* An Edition the emblem rename has not reached yet names its old paths (see src/shared/legacyEmblem.ts). */
+    const parsed = rulebookEditionContentsV1Schema.safeParse(
+      renameLegacyEmblems(await contentsForRulebookEdition(ctx, edition))
+    );
     const page =
       parsed.success && parsed.data.pageOrder.includes(args.pageId) ? parsed.data.pagesById[args.pageId] : null;
     const block = page?.blocksById[args.blockId];
@@ -146,17 +188,14 @@ export const resolveDelivery = internalQuery({
       source: block.source,
       numbering: block.numbering,
       colorMode: block.colorMode,
+      ...(block.sectorLines ? { sectorLines: true } : {}),
       items: block.itemOrder.map((id) => {
         const { text: _text, ...item } = block.itemsById[id]!;
         return item;
       }),
     });
-    return {
-      ok: true,
-      status: 'found',
-      design: (edition.settings ?? DEFAULT_RULEBOOK_SETTINGS).design,
-      configuration,
-      source: await resolveSource(ctx, configuration.source),
-    };
+    const design = (edition.settings ?? DEFAULT_RULEBOOK_SETTINGS).design;
+    const source = await resolveSource(ctx, configuration.source);
+    return { ok: true, status: 'found', design, configuration, source };
   },
 });

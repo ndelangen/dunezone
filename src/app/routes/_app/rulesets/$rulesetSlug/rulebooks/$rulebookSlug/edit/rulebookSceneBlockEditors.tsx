@@ -1,27 +1,16 @@
-import {
-  Accordion,
-  Button,
-  ColorInput,
-  Group,
-  Loader,
-  NumberInput,
-  Select,
-  Stack,
-  Switch,
-  TextInput,
-  Textarea,
-} from '@mantine/core';
-import { resolveRulebookBoardDefinition, RULEBOOK_BOARD_DEFINITIONS } from '@shared/rulebooks/boardDefinitions';
-import { boardHighlightTints } from '@shared/rulebooks/boardHighlightTints';
+import { Accordion, ColorInput, Group, NumberInput, Select, Stack, Switch, TextInput, Textarea } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookBoardSceneValue, RulebookPieceMovementValue } from '@shared/rulebooks/illustratedScenes';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { createContext, lazy, Suspense, useContext, useState } from 'react';
+import { PickerField } from '@ui/control/PickerField';
+import { createContext, lazy, useContext } from 'react';
 
+import { useArrakisFace } from '@app/db/arrakis';
 import { BoardPicker } from '@app/pickers/BoardPicker';
 
-import { BattleSourceControl, BattleStepEdit } from './rulebookBattleStepEdit';
+import { BattleSourceControl, BattleStepEdit, TroopChoice } from './rulebookBattleStepEdit';
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import { RulebookBoardMarkupFields, useRulebookMarkupUi } from './rulebookBoardMarkup';
 import type { RulebookEditorReferences } from './rulebookVisualBlockEditors';
@@ -34,15 +23,12 @@ const emptyReferences = { assetsById: {}, factionsById: {} };
 /* The editor's resolved references, for the parts of a saved board the fields below offer. */
 const BoardReferences = createContext<RulebookEditorReferences>(emptyReferences);
 
-/** A board's named parts: the maintained Arrakis definition's, or a saved board's as its references resolved them. */
+/** A board's named parts, as its references resolved them. */
 function useBoardParts(boardId: string) {
-  const references = useContext(BoardReferences);
-  return (
-    resolveRulebookBoardDefinition(boardId)?.geometry.parts ?? references.assetsById[boardId]?.geometry?.parts ?? []
-  );
+  return useContext(BoardReferences).assetsById[boardId]?.geometry?.parts ?? [];
 }
 
-/** The maintained boards and saved board assets in one field, each beside its face. */
+/** The saved boards in one field, each beside its face. */
 function BoardChoice({
   boardId,
   references,
@@ -56,21 +42,15 @@ function BoardChoice({
   return (
     <ControlBlock
       title="Board"
-      description={'The board the scene draws: the Arrakis map, or a saved board.\nSaved boards take tints and tokens.'}
+      description="The board the scene draws, with its tints and tokens."
       input={
         <BoardPicker
           label="Board"
-          value={boardId}
-          fixed={RULEBOOK_BOARD_DEFINITIONS.map((board) => ({
-            id: board.id,
-            name: board.name,
-            previewSrc: board.imageUrl,
-            collection: 'Maintained boards',
-          }))}
+          value={boardId || null}
           selected={
-            resolveRulebookBoardDefinition(boardId)
-              ? undefined
-              : { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+            boardId
+              ? { id: boardId, name: chosen?.name ?? 'Unavailable board', previewSrc: chosen?.imageUrl ?? null }
+              : undefined
           }
           onPick={onChange}
         />
@@ -79,14 +59,15 @@ function BoardChoice({
   );
 }
 
-const emptyBoard: RulebookBoardSceneValue = {
-  boardId: 'arrakis',
-  caption: '',
-  players: [],
-  troops: [],
-  highlights: [],
-  annotations: [],
-};
+/** A new scene's board: the saved Arrakis, or none while it loads or the site has none published, so the author picks one. */
+export function useNewSceneBoardId() {
+  return useArrakisFace()?.assetId ?? '';
+}
+
+/** An empty scene on a board. */
+export function emptyBoardScene(boardId: string): RulebookBoardSceneValue {
+  return { boardId, caption: '', players: [], troops: [], highlights: [], annotations: [] };
+}
 
 function FactionControl({
   label,
@@ -99,44 +80,32 @@ function FactionControl({
   references: RulebookEditorReferences;
   onChange: (id: string | undefined) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <ControlBlock
+    <PickerField
       title="Faction"
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" aria-label={`Choose ${label} faction`} onClick={() => setOpened(!opened)}>
-              {factionId ? (references.factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
-            </Button>
-            {factionId ? (
-              <Button variant="subtle" aria-label={`Clear ${label} faction`} onClick={() => onChange(undefined)}>
-                Clear
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading factions" />}>
-              <FactionPicker
-                copy={{
-                  title: 'Choose faction',
-                  intro: 'Use this faction in the illustration.',
-                  errorTitle: 'Factions could not be loaded',
-                  emptyMessage: 'No factions are available.',
-                  confirmTitle: 'Selected faction',
-                  confirmLabel: 'Use faction',
-                  confirmIntent: 'positive',
-                }}
-                onPick={(picked) => {
-                  onChange(picked.id);
-                  setOpened(false);
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={factionId ? (references.factionsById[factionId]?.name ?? 'Unavailable faction') : 'Choose faction'}
+      chooseLabel={`Choose ${label} faction`}
+      onClear={factionId ? () => onChange(undefined) : undefined}
+      clearLabel={`Clear ${label} faction`}
+      loadingLabel="Loading factions"
+      picker={(close) => (
+        <FactionPicker
+          copy={{
+            title: 'Choose faction',
+            intro: 'Use this faction in the illustration.',
+            errorTitle: 'Factions could not be loaded',
+            emptyMessage: 'No factions are available.',
+            confirmTitle: 'Selected faction',
+            confirmLabel: 'Use faction',
+            confirmIntent: 'positive',
+          }}
+          onPick={(picked) => {
+            onChange(picked.id);
+            close();
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
@@ -153,13 +122,6 @@ function TroopFields({
   onChange: (fields: Partial<typeof value>) => void;
 }) {
   const troops = value.factionId ? (references.factionsById[value.factionId]?.troops ?? []) : [];
-  const selected = troops.find((troop) => troop.troopId === value.troopId);
-  const options = troops.flatMap((troop) =>
-    troop.troopId ? [{ value: troop.troopId, label: troop.name || 'Unnamed troop' }] : []
-  );
-  if (value.troopId && !options.some((option) => option.value === value.troopId)) {
-    options.push({ value: value.troopId, label: 'Unavailable troop' });
-  }
   return (
     <Stack gap="sm">
       <FactionControl
@@ -169,41 +131,29 @@ function TroopFields({
         onChange={(factionId) => onChange({ factionId, troopId: undefined, face: 'front' })}
       />
       <Group grow align="start">
-        <Select
-          label="Troop"
-          aria-label={`${label} troop`}
-          placeholder="Choose troop"
-          data={options}
-          value={value.troopId ?? null}
+        <TroopChoice
+          troops={troops}
+          troopId={value.troopId}
+          face={value.face}
+          troopLabel={`${label} troop`}
+          faceLabel={`${label} face`}
           clearable
-          onChange={(troopId) => onChange({ troopId: troopId ?? undefined, face: 'front' })}
+          onChange={onChange}
         />
-        <Select
-          label="Face"
-          aria-label={`${label} face`}
-          value={value.face}
-          data={[
-            { value: 'front', label: selected?.name || 'Front' },
-            ...(selected?.back || value.face === 'back'
-              ? [{ value: 'back', label: selected?.back?.name || 'Back' }]
-              : []),
-          ]}
-          onChange={(face) => {
-            if (face === 'front' || face === 'back') {
-              onChange({ face });
-            }
-          }}
-        />
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Count"
-          aria-label={`${label} count`}
-          min={0}
-          max={100}
-          allowDecimal={false}
-          value={value.count}
-          onChange={(count) => onChange({ count: typeof count === 'number' ? count : 0 })}
+        <ControlBlock
+          title="Count"
+          input={
+            <NumberInput
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              aria-label={`${label} count`}
+              min={0}
+              max={100}
+              allowDecimal={false}
+              value={value.count}
+              onChange={(count) => onChange({ count: typeof count === 'number' ? count : 0 })}
+            />
+          }
         />
       </Group>
     </Stack>
@@ -228,17 +178,21 @@ function PositionFields({
   return (
     <Group grow>
       {(['x', 'y'] as const).map((axis) => (
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
+        <ControlBlock
           key={axis}
-          label={axis === 'x' ? 'Across (%)' : 'Down (%)'}
-          aria-label={`${label} ${axis}`}
-          min={min}
-          max={max}
-          decimalScale={2}
-          value={(axis === 'x' ? x : y) * 100}
-          onChange={(next) => onChange({ [axis]: (typeof next === 'number' ? next : 0) / 100 })}
+          title={axis === 'x' ? 'Across (%)' : 'Down (%)'}
+          input={
+            <NumberInput
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              aria-label={`${label} ${axis}`}
+              min={min}
+              max={max}
+              decimalScale={2}
+              value={(axis === 'x' ? x : y) * 100}
+              onChange={(next) => onChange({ [axis]: (typeof next === 'number' ? next : 0) / 100 })}
+            />
+          }
         />
       ))}
     </Group>
@@ -256,19 +210,23 @@ function NamedPosition({
 }) {
   const parts = useBoardParts(boardId);
   return (
-    <Select
-      label="Place at board feature"
-      aria-label={`${label} board feature`}
-      placeholder="Choose a named location"
-      searchable
-      value={null}
-      data={parts.map((part) => ({ value: part.key, label: part.label ?? part.key }))}
-      onChange={(key) => {
-        const part = parts.find((entry) => entry.key === key);
-        if (part) {
-          onChange({ x: part.x + part.width / 2, y: part.y + part.height / 2 });
-        }
-      }}
+    <ControlBlock
+      title="Place at board feature"
+      input={
+        <Select
+          aria-label={`${label} board feature`}
+          placeholder="Choose a named location"
+          searchable
+          value={null}
+          data={parts.map((part) => ({ value: part.key, label: part.label ?? part.key }))}
+          onChange={(key) => {
+            const part = parts.find((entry) => entry.key === key);
+            if (part) {
+              onChange({ x: part.x + part.width / 2, y: part.y + part.height / 2 });
+            }
+          }}
+        />
+      }
     />
   );
 }
@@ -298,33 +256,48 @@ function BoardTroopRow({
       <NamedPosition boardId={boardId} label={`Board group ${index + 1}`} onChange={onChange} />
       <PositionFields label={`Board group ${index + 1}`} x={troop.x} y={troop.y} onChange={onChange} />
       <Group grow>
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Columns"
-          min={1}
-          max={20}
-          allowDecimal={false}
-          value={troop.columns}
-          onChange={(columns) => onChange({ columns: typeof columns === 'number' ? columns : 1 })}
+        <ControlBlock
+          title="Columns"
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              min={1}
+              max={20}
+              allowDecimal={false}
+              value={troop.columns}
+              onChange={(columns) => onChange({ columns: typeof columns === 'number' ? columns : 1 })}
+            />
+          )}
         />
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Token size (%)"
-          min={0.1}
-          max={20}
-          value={troop.size * 100}
-          onChange={(size) => onChange({ size: (typeof size === 'number' ? size : 1) / 100 })}
+        <ControlBlock
+          title="Token size (%)"
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              min={0.1}
+              max={20}
+              value={troop.size * 100}
+              onChange={(size) => onChange({ size: (typeof size === 'number' ? size : 1) / 100 })}
+            />
+          )}
         />
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Gap (%)"
-          min={0}
-          max={10}
-          value={troop.gap * 100}
-          onChange={(gap) => onChange({ gap: (typeof gap === 'number' ? gap : 0) / 100 })}
+        <ControlBlock
+          title="Gap (%)"
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              min={0}
+              max={10}
+              value={troop.gap * 100}
+              onChange={(gap) => onChange({ gap: (typeof gap === 'number' ? gap : 0) / 100 })}
+            />
+          )}
         />
       </Group>
     </Stack>
@@ -346,41 +319,54 @@ function BoardHighlightRow({
   const missing = parts.length > 0 && !parts.some((part) => part.key === highlight.territory);
   return (
     <Group grow align="start">
-      <Select
-        label="Board feature"
-        aria-label={`Highlight ${index + 1} feature`}
-        searchable
-        data={[
-          ...parts.map((part) => ({ value: part.key, label: part.label ?? part.key })),
-          /* A highlight the board does not have stays selected, kept for a board that has it, and says so. */
-          ...(missing ? [{ value: highlight.territory, label: highlight.territory }] : []),
-        ]}
-        value={highlight.territory}
-        error={missing ? 'Not on this board; it is kept but not drawn' : undefined}
-        onChange={(territory) => {
-          if (territory) {
-            onChange({ territory });
-          }
-        }}
+      <ControlBlock
+        title="Board feature"
+        input={
+          <Select
+            aria-label={`Highlight ${index + 1} feature`}
+            searchable
+            data={[
+              ...parts.map((part) => ({ value: part.key, label: part.label ?? part.key })),
+              /* A highlight the board does not have stays selected, kept for a board that has it, and says so. */
+              ...(missing ? [{ value: highlight.territory, label: highlight.territory }] : []),
+            ]}
+            value={highlight.territory}
+            error={missing ? 'Not on this board; it is kept but not drawn' : undefined}
+            onChange={(territory) => {
+              if (territory) {
+                onChange({ territory });
+              }
+            }}
+          />
+        }
       />
-      <ColorInput
-        label="Colour"
-        aria-label={`Highlight ${index + 1} colour`}
-        value={highlight.color}
-        onChange={(color) => {
-          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-            onChange({ color });
-          }
-        }}
+      <ControlBlock
+        title="Colour"
+        input={
+          <ColorInput
+            aria-label={`Highlight ${index + 1} colour`}
+            value={highlight.color}
+            onChange={(color) => {
+              if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+                onChange({ color });
+              }
+            }}
+          />
+        }
       />
-      <NumberInput
-        clampBehavior="strict"
-        allowLeadingZeros={false}
-        label="Opacity (%)"
-        min={0}
-        max={100}
-        value={(highlight.opacity ?? 0.4) * 100}
-        onChange={(opacity) => onChange({ opacity: (typeof opacity === 'number' ? opacity : 0) / 100 })}
+      <ControlBlock
+        title="Opacity (%)"
+        input={(fieldProps) => (
+          <NumberInput
+            {...fieldProps}
+            clampBehavior="strict"
+            allowLeadingZeros={false}
+            min={0}
+            max={100}
+            value={(highlight.opacity ?? 0.4) * 100}
+            onChange={(opacity) => onChange({ opacity: (typeof opacity === 'number' ? opacity : 0) / 100 })}
+          />
+        )}
       />
     </Group>
   );
@@ -399,17 +385,25 @@ function BoardAnnotationRow({
 }) {
   return (
     <Stack gap="sm">
-      <TextInput
-        label="Title"
-        aria-label={`Annotation ${index + 1} title`}
-        value={annotation.title}
-        onChange={(event) => onChange({ title: event.currentTarget.value })}
+      <ControlBlock
+        title="Title"
+        input={
+          <TextInput
+            aria-label={`Annotation ${index + 1} title`}
+            value={annotation.title}
+            onChange={(event) => onChange({ title: event.currentTarget.value })}
+          />
+        }
       />
-      <Textarea
-        label="Explanation"
-        aria-label={`Annotation ${index + 1} explanation`}
-        value={annotation.text}
-        onChange={(event) => onChange({ text: event.currentTarget.value })}
+      <ControlBlock
+        title="Explanation"
+        input={
+          <Textarea
+            aria-label={`Annotation ${index + 1} explanation`}
+            value={annotation.text}
+            onChange={(event) => onChange({ text: event.currentTarget.value })}
+          />
+        }
       />
       <NamedPosition boardId={boardId} label={`Annotation ${index + 1}`} onChange={onChange} />
       <PositionFields label={`Annotation ${index + 1}`} x={annotation.x} y={annotation.y} onChange={onChange} />
@@ -436,15 +430,19 @@ function BoardAnnotationRow({
           }
         />
       ) : null}
-      <ColorInput
-        label="Colour"
-        aria-label={`Annotation ${index + 1} colour`}
-        value={annotation.color ?? ''}
-        onChange={(color) => {
-          if (!color || /^#[0-9a-fA-F]{6}$/.test(color)) {
-            onChange({ color: color || undefined });
-          }
-        }}
+      <ControlBlock
+        title="Colour"
+        input={
+          <ColorInput
+            aria-label={`Annotation ${index + 1} colour`}
+            value={annotation.color ?? ''}
+            onChange={(color) => {
+              if (!color || /^#[0-9a-fA-F]{6}$/.test(color)) {
+                onChange({ color: color || undefined });
+              }
+            }}
+          />
+        }
       />
     </Stack>
   );
@@ -455,9 +453,10 @@ function BoardPlayerFields({ value, onChange, references }: BoardSceneFieldsProp
     <Accordion.Item value="players">
       <Accordion.Control>Player markers ({value.players.length})</Accordion.Control>
       <Accordion.Panel>
-        <ControlBlock
+        <ListChapter
           title="Player markers"
-          tool={
+          titleHidden
+          actions={
             <ListLengthActions
               addLabel="Add player marker"
               addDisabled={value.players.length >= 64}
@@ -475,45 +474,46 @@ function BoardPlayerFields({ value, onChange, references }: BoardSceneFieldsProp
               onRemove={() => onChange({ ...value, players: value.players.slice(0, -1) })}
             />
           }
-          input={
-            <Stack gap="md">
-              {value.players.map((player, index) => (
-                <Stack key={player.id} gap="sm">
-                  <FactionControl
-                    label={`player ${index + 1}`}
-                    factionId={player.factionId}
-                    references={references}
-                    onChange={(factionId) =>
-                      onChange({
-                        ...value,
-                        players: value.players.map((entry) =>
-                          entry.id === player.id ? { ...entry, factionId } : entry
-                        ),
-                      })
-                    }
-                  />
-                  <NumberInput
-                    clampBehavior="strict"
-                    allowLeadingZeros={false}
-                    label="Position angle"
-                    aria-label={`Player ${index + 1} angle`}
-                    min={-360}
-                    max={360}
-                    value={player.angle}
-                    onChange={(angle) =>
-                      onChange({
-                        ...value,
-                        players: value.players.map((entry) =>
-                          entry.id === player.id ? { ...entry, angle: typeof angle === 'number' ? angle : 0 } : entry
-                        ),
-                      })
-                    }
-                  />
-                </Stack>
-              ))}
-            </Stack>
-          }
-        />
+        >
+          <Stack gap="md">
+            {value.players.map((player, index) => (
+              <Stack key={player.id} gap="sm">
+                <FactionControl
+                  label={`player ${index + 1}`}
+                  factionId={player.factionId}
+                  references={references}
+                  onChange={(factionId) =>
+                    onChange({
+                      ...value,
+                      players: value.players.map((entry) => (entry.id === player.id ? { ...entry, factionId } : entry)),
+                    })
+                  }
+                />
+                <ControlBlock
+                  title="Position angle"
+                  input={
+                    <NumberInput
+                      clampBehavior="strict"
+                      allowLeadingZeros={false}
+                      aria-label={`Player ${index + 1} angle`}
+                      min={-360}
+                      max={360}
+                      value={player.angle}
+                      onChange={(angle) =>
+                        onChange({
+                          ...value,
+                          players: value.players.map((entry) =>
+                            entry.id === player.id ? { ...entry, angle: typeof angle === 'number' ? angle : 0 } : entry
+                          ),
+                        })
+                      }
+                    />
+                  }
+                />
+              </Stack>
+            ))}
+          </Stack>
+        </ListChapter>
       </Accordion.Panel>
     </Accordion.Item>
   );
@@ -524,9 +524,10 @@ function BoardTroopFields({ value, onChange, references }: BoardSceneFieldsProps
     <Accordion.Item value="troops">
       <Accordion.Control>Troop groups ({value.troops.length})</Accordion.Control>
       <Accordion.Panel>
-        <ControlBlock
+        <ListChapter
           title="Troop groups"
-          tool={
+          titleHidden
+          actions={
             <ListLengthActions
               addLabel="Add board troop group"
               addDisabled={value.troops.length >= 64}
@@ -553,26 +554,25 @@ function BoardTroopFields({ value, onChange, references }: BoardSceneFieldsProps
               onRemove={() => onChange({ ...value, troops: value.troops.slice(0, -1) })}
             />
           }
-          input={
-            <Stack gap="md">
-              {value.troops.map((troop, index) => (
-                <BoardTroopRow
-                  key={troop.id}
-                  troop={troop}
-                  index={index}
-                  boardId={value.boardId}
-                  references={references}
-                  onChange={(fields) =>
-                    onChange({
-                      ...value,
-                      troops: value.troops.map((entry) => (entry.id === troop.id ? { ...entry, ...fields } : entry)),
-                    })
-                  }
-                />
-              ))}
-            </Stack>
-          }
-        />
+        >
+          <Stack gap="md">
+            {value.troops.map((troop, index) => (
+              <BoardTroopRow
+                key={troop.id}
+                troop={troop}
+                index={index}
+                boardId={value.boardId}
+                references={references}
+                onChange={(fields) =>
+                  onChange({
+                    ...value,
+                    troops: value.troops.map((entry) => (entry.id === troop.id ? { ...entry, ...fields } : entry)),
+                  })
+                }
+              />
+            ))}
+          </Stack>
+        </ListChapter>
       </Accordion.Panel>
     </Accordion.Item>
   );
@@ -584,9 +584,10 @@ function BoardHighlightFields({ value, onChange }: BoardSceneFieldsProps) {
     <Accordion.Item value="highlights">
       <Accordion.Control>Highlights ({value.highlights.length})</Accordion.Control>
       <Accordion.Panel>
-        <ControlBlock
+        <ListChapter
           title="Highlights"
-          tool={
+          titleHidden
+          actions={
             <ListLengthActions
               addLabel="Add highlight"
               addDisabled={value.highlights.length >= 64}
@@ -604,27 +605,26 @@ function BoardHighlightFields({ value, onChange }: BoardSceneFieldsProps) {
               onRemove={() => onChange({ ...value, highlights: value.highlights.slice(0, -1) })}
             />
           }
-          input={
-            <Stack gap="md">
-              {value.highlights.map((highlight, index) => (
-                <BoardHighlightRow
-                  key={index}
-                  highlight={highlight}
-                  index={index}
-                  boardId={value.boardId}
-                  onChange={(fields) =>
-                    onChange({
-                      ...value,
-                      highlights: value.highlights.map((entry, position) =>
-                        position === index ? { ...entry, ...fields } : entry
-                      ),
-                    })
-                  }
-                />
-              ))}
-            </Stack>
-          }
-        />
+        >
+          <Stack gap="md">
+            {value.highlights.map((highlight, index) => (
+              <BoardHighlightRow
+                key={index}
+                highlight={highlight}
+                index={index}
+                boardId={value.boardId}
+                onChange={(fields) =>
+                  onChange({
+                    ...value,
+                    highlights: value.highlights.map((entry, position) =>
+                      position === index ? { ...entry, ...fields } : entry
+                    ),
+                  })
+                }
+              />
+            ))}
+          </Stack>
+        </ListChapter>
       </Accordion.Panel>
     </Accordion.Item>
   );
@@ -635,9 +635,10 @@ function BoardAnnotationFields({ value, onChange }: BoardSceneFieldsProps) {
     <Accordion.Item value="annotations">
       <Accordion.Control>Annotations ({value.annotations.length})</Accordion.Control>
       <Accordion.Panel>
-        <ControlBlock
+        <ListChapter
           title="Annotations"
-          tool={
+          titleHidden
+          actions={
             <ListLengthActions
               addLabel="Add annotation"
               addDisabled={value.annotations.length >= 64}
@@ -661,27 +662,26 @@ function BoardAnnotationFields({ value, onChange }: BoardSceneFieldsProps) {
               onRemove={() => onChange({ ...value, annotations: value.annotations.slice(0, -1) })}
             />
           }
-          input={
-            <Stack gap="md">
-              {value.annotations.map((annotation, index) => (
-                <BoardAnnotationRow
-                  key={annotation.id}
-                  annotation={annotation}
-                  index={index}
-                  boardId={value.boardId}
-                  onChange={(fields) =>
-                    onChange({
-                      ...value,
-                      annotations: value.annotations.map((entry) =>
-                        entry.id === annotation.id ? { ...entry, ...fields } : entry
-                      ),
-                    })
-                  }
-                />
-              ))}
-            </Stack>
-          }
-        />
+        >
+          <Stack gap="md">
+            {value.annotations.map((annotation, index) => (
+              <BoardAnnotationRow
+                key={annotation.id}
+                annotation={annotation}
+                index={index}
+                boardId={value.boardId}
+                onChange={(fields) =>
+                  onChange({
+                    ...value,
+                    annotations: value.annotations.map((entry) =>
+                      entry.id === annotation.id ? { ...entry, ...fields } : entry
+                    ),
+                  })
+                }
+              />
+            ))}
+          </Stack>
+        </ListChapter>
       </Accordion.Panel>
     </Accordion.Item>
   );
@@ -714,20 +714,25 @@ function BoardViewportFields({ value, onChange }: BoardSceneFieldsProps) {
           />
           <Group grow>
             {(['width', 'height'] as const).map((dimension) => (
-              <NumberInput
-                clampBehavior="strict"
-                allowLeadingZeros={false}
+              <ControlBlock
                 key={dimension}
-                label={dimension === 'width' ? 'Width (%)' : 'Height (%)'}
-                min={1}
-                max={300}
-                value={value.viewport![dimension] * 100}
-                onChange={(next) =>
-                  onChange({
-                    ...value,
-                    viewport: { ...value.viewport!, [dimension]: (typeof next === 'number' ? next : 1) / 100 },
-                  })
-                }
+                title={dimension === 'width' ? 'Width (%)' : 'Height (%)'}
+                input={(fieldProps) => (
+                  <NumberInput
+                    {...fieldProps}
+                    clampBehavior="strict"
+                    allowLeadingZeros={false}
+                    min={1}
+                    max={300}
+                    value={value.viewport![dimension] * 100}
+                    onChange={(next) =>
+                      onChange({
+                        ...value,
+                        viewport: { ...value.viewport!, [dimension]: (typeof next === 'number' ? next : 1) / 100 },
+                      })
+                    }
+                  />
+                )}
               />
             ))}
           </Group>
@@ -746,69 +751,67 @@ function BoardStormFields({ value, onChange }: BoardSceneFieldsProps) {
         onChange={(event) => onChange({ ...value, storm: event.currentTarget.checked ? { angle: 0 } : undefined })}
       />
       {value.storm ? (
-        <NumberInput
-          clampBehavior="strict"
-          allowLeadingZeros={false}
-          label="Storm angle"
+        <ControlBlock
+          title="Storm angle"
           description="Degrees counterclockwise from the right edge."
-          min={-360}
-          max={360}
-          value={value.storm.angle}
-          onChange={(angle) => onChange({ ...value, storm: { angle: typeof angle === 'number' ? angle : 0 } })}
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              clampBehavior="strict"
+              allowLeadingZeros={false}
+              min={-360}
+              max={360}
+              value={value.storm?.angle ?? 0}
+              onChange={(angle) => onChange({ ...value, storm: { angle: typeof angle === 'number' ? angle : 0 } })}
+            />
+          )}
         />
       ) : null}
     </>
   );
 }
 
-/**
- * A scene moved from the maintained board onto a saved one carries its highlights over as tints, which a saved board draws instead.
- * Tints and tokens draw on the maintained board too, so moving back keeps what the scene showed.
- * A scene that already has tints keeps them and its highlights as they are.
- */
-function withBoard(value: RulebookBoardSceneValue, boardId: string): RulebookBoardSceneValue {
-  const carry =
-    !resolveRulebookBoardDefinition(boardId) &&
-    resolveRulebookBoardDefinition(value.boardId) &&
-    value.highlights.length &&
-    !value.tints?.length;
-  return carry
-    ? { ...value, boardId, highlights: [], tints: boardHighlightTints(value.highlights) }
-    : { ...value, boardId };
-}
-
 function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps) {
   const [ui, setUi] = useRulebookMarkupUi();
-  const saved = !resolveRulebookBoardDefinition(value.boardId);
   return (
     <BoardReferences.Provider value={references}>
       <Stack gap="md">
         <BoardChoice
           boardId={value.boardId}
           references={references}
-          onChange={(boardId) => onChange(withBoard(value, boardId))}
+          onChange={(boardId) => onChange({ ...value, boardId })}
         />
-        <Textarea
-          label="Caption"
-          minRows={2}
-          value={value.caption}
-          onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+        <ControlBlock
+          title="Caption"
+          input={(fieldProps) => (
+            <Textarea
+              {...fieldProps}
+              minRows={2}
+              value={value.caption}
+              onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+            />
+          )}
         />
-        <Select
-          label="Board size"
-          value={value.size ?? 'automatic'}
-          data={[
-            { value: 'automatic', label: 'Automatic' },
-            { value: 'compact', label: 'Compact' },
-            { value: 'fit-width', label: 'Fill available width' },
-          ]}
-          onChange={(size) => {
-            if (size === 'automatic') {
-              onChange({ ...value, size: undefined });
-            } else if (size === 'compact' || size === 'fit-width') {
-              onChange({ ...value, size });
-            }
-          }}
+        <ControlBlock
+          title="Board size"
+          input={(fieldProps) => (
+            <Select
+              {...fieldProps}
+              value={value.size ?? 'automatic'}
+              data={[
+                { value: 'automatic', label: 'Automatic' },
+                { value: 'compact', label: 'Compact' },
+                { value: 'fit-width', label: 'Fill available width' },
+              ]}
+              onChange={(size) => {
+                if (size === 'automatic') {
+                  onChange({ ...value, size: undefined });
+                } else if (size === 'compact' || size === 'fit-width') {
+                  onChange({ ...value, size });
+                }
+              }}
+            />
+          )}
         />
         <BoardViewportFields value={value} references={references} onChange={onChange} />
         <BoardStormFields value={value} references={references} onChange={onChange} />
@@ -816,7 +819,7 @@ function BoardSceneFields({ value, references, onChange }: BoardSceneFieldsProps
           <BoardPlayerFields value={value} references={references} onChange={onChange} />
           <BoardTroopFields value={value} references={references} onChange={onChange} />
           <RulebookBoardMarkupFields value={value} onChange={onChange} assetsById={references.assetsById} />
-          {!saved || value.highlights.length ? (
+          {value.highlights.length ? (
             <BoardHighlightFields value={value} references={references} onChange={onChange} />
           ) : null}
           <BoardRouteFields value={value} references={references} onChange={onChange} />
@@ -849,15 +852,19 @@ function MovementGroupEdit({
 }) {
   return (
     <Stack gap="md">
-      <TextInput
-        label="Group label"
-        aria-label={`${label} group label`}
-        value={value.label}
-        onChange={(event) => onChange({ ...value, label: event.currentTarget.value })}
-      />
       <ControlBlock
+        title="Group label"
+        input={
+          <TextInput
+            aria-label={`${label} group label`}
+            value={value.label}
+            onChange={(event) => onChange({ ...value, label: event.currentTarget.value })}
+          />
+        }
+      />
+      <ListChapter
         title="Pieces"
-        tool={
+        actions={
           <ListLengthActions
             addLabel={`Add ${label} piece`}
             addDisabled={value.pieces.length >= 64}
@@ -875,71 +882,82 @@ function MovementGroupEdit({
             onRemove={() => onChange({ ...value, pieces: value.pieces.slice(0, -1) })}
           />
         }
-        input={
-          <Stack gap="md">
-            {value.pieces.map((piece, index) => {
-              const update = (next: typeof piece) =>
-                onChange({ ...value, pieces: value.pieces.map((entry) => (entry.id === piece.id ? next : entry)) });
-              return (
-                <Stack key={piece.id} gap="sm">
-                  <Select
-                    label="Piece type"
-                    aria-label={`${label} piece ${index + 1} type`}
-                    value={piece.kind}
-                    data={[
-                      { value: 'source', label: 'Card, leader or token' },
-                      { value: 'troops', label: 'Troops' },
-                    ]}
-                    onChange={(kind) => {
-                      if (kind === 'source' || kind === 'troops') {
-                        update(
-                          kind === 'source'
-                            ? { id: piece.id, kind, count: piece.count, label: piece.label }
-                            : { id: piece.id, kind, count: piece.count, label: piece.label, face: 'front' }
-                        );
-                      }
-                    }}
-                  />
-                  <TextInput
-                    label="Label"
-                    aria-label={`${label} piece ${index + 1} label`}
-                    value={piece.label ?? ''}
-                    onChange={(event) => update({ ...piece, label: event.currentTarget.value || undefined })}
-                  />
-                  {piece.kind === 'source' ? (
-                    <>
-                      <BattleSourceControl
-                        title={`${label} piece ${index + 1}`}
-                        source={piece.source}
-                        references={references}
-                        onChange={(source) => update({ ...piece, source })}
-                      />
-                      <NumberInput
-                        clampBehavior="strict"
-                        allowLeadingZeros={false}
-                        label="Count"
-                        aria-label={`${label} piece ${index + 1} count`}
-                        min={0}
-                        max={100}
-                        allowDecimal={false}
-                        value={piece.count}
-                        onChange={(count) => update({ ...piece, count: typeof count === 'number' ? count : 0 })}
-                      />
-                    </>
-                  ) : (
-                    <TroopFields
-                      label={`${label} piece ${index + 1}`}
-                      value={piece}
-                      references={references}
-                      onChange={(fields) => update({ ...piece, ...fields })}
+      >
+        <Stack gap="md">
+          {value.pieces.map((piece, index) => {
+            const update = (next: typeof piece) =>
+              onChange({ ...value, pieces: value.pieces.map((entry) => (entry.id === piece.id ? next : entry)) });
+            return (
+              <Stack key={piece.id} gap="sm">
+                <ControlBlock
+                  title="Piece type"
+                  input={
+                    <Select
+                      aria-label={`${label} piece ${index + 1} type`}
+                      value={piece.kind}
+                      data={[
+                        { value: 'source', label: 'Card, leader or token' },
+                        { value: 'troops', label: 'Troops' },
+                      ]}
+                      onChange={(kind) => {
+                        if (kind === 'source' || kind === 'troops') {
+                          update(
+                            kind === 'source'
+                              ? { id: piece.id, kind, count: piece.count, label: piece.label }
+                              : { id: piece.id, kind, count: piece.count, label: piece.label, face: 'front' }
+                          );
+                        }
+                      }}
                     />
-                  )}
-                </Stack>
-              );
-            })}
-          </Stack>
-        }
-      />
+                  }
+                />
+                <ControlBlock
+                  title="Label"
+                  input={
+                    <TextInput
+                      aria-label={`${label} piece ${index + 1} label`}
+                      value={piece.label ?? ''}
+                      onChange={(event) => update({ ...piece, label: event.currentTarget.value || undefined })}
+                    />
+                  }
+                />
+                {piece.kind === 'source' ? (
+                  <>
+                    <BattleSourceControl
+                      title={`${label} piece ${index + 1}`}
+                      source={piece.source}
+                      references={references}
+                      onChange={(source) => update({ ...piece, source })}
+                    />
+                    <ControlBlock
+                      title="Count"
+                      input={
+                        <NumberInput
+                          clampBehavior="strict"
+                          allowLeadingZeros={false}
+                          aria-label={`${label} piece ${index + 1} count`}
+                          min={0}
+                          max={100}
+                          allowDecimal={false}
+                          value={piece.count}
+                          onChange={(count) => update({ ...piece, count: typeof count === 'number' ? count : 0 })}
+                        />
+                      }
+                    />
+                  </>
+                ) : (
+                  <TroopFields
+                    label={`${label} piece ${index + 1}`}
+                    value={piece}
+                    references={references}
+                    onChange={(fields) => update({ ...piece, ...fields })}
+                  />
+                )}
+              </Stack>
+            );
+          })}
+        </Stack>
+      </ListChapter>
     </Stack>
   );
 }
@@ -949,29 +967,50 @@ export function PieceMovementEdit({
   onChange,
   references = emptyReferences,
 }: RulebookBlockEditorProps<'piece-movement'>) {
+  const boardId = useNewSceneBoardId();
   return (
     <Stack gap="md">
       <Group grow>
-        <TextInput
-          label="Step"
-          value={value.step}
-          onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
+        <ControlBlock
+          title="Step"
+          input={(fieldProps) => (
+            <TextInput
+              {...fieldProps}
+              value={value.step}
+              onChange={(event) => onChange({ ...value, step: event.currentTarget.value })}
+            />
+          )}
         />
-        <TextInput
-          label="Title"
-          value={value.title}
-          onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+        <ControlBlock
+          title="Title"
+          input={(fieldProps) => (
+            <TextInput
+              {...fieldProps}
+              value={value.title}
+              onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
+            />
+          )}
         />
       </Group>
-      <Textarea
-        label="Explanation"
-        value={value.caption}
-        onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+      <ControlBlock
+        title="Explanation"
+        input={(fieldProps) => (
+          <Textarea
+            {...fieldProps}
+            value={value.caption}
+            onChange={(event) => onChange({ ...value, caption: event.currentTarget.value })}
+          />
+        )}
       />
-      <TextInput
-        label="Outcome"
-        value={value.outcome ?? ''}
-        onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
+      <ControlBlock
+        title="Outcome"
+        input={(fieldProps) => (
+          <TextInput
+            {...fieldProps}
+            value={value.outcome ?? ''}
+            onChange={(event) => onChange({ ...value, outcome: event.currentTarget.value || undefined })}
+          />
+        )}
       />
       <PieceTransferFields
         value={value}
@@ -981,7 +1020,9 @@ export function PieceMovementEdit({
       <Switch
         label="Include board scene"
         checked={Boolean(value.board)}
-        onChange={(event) => onChange({ ...value, board: event.currentTarget.checked ? { ...emptyBoard } : undefined })}
+        onChange={(event) =>
+          onChange({ ...value, board: event.currentTarget.checked ? emptyBoardScene(boardId) : undefined })
+        }
       />
       {value.board ? (
         <BoardSceneFields
@@ -1034,9 +1075,9 @@ function MovementNotesFields({
   onChange: (value: RulebookPieceMovementValue) => void;
 }) {
   return (
-    <ControlBlock
+    <ListChapter
       title="Notes"
-      tool={
+      actions={
         <ListLengthActions
           addLabel="Add movement note"
           addDisabled={(value.notes?.length ?? 0) >= 64}
@@ -1054,45 +1095,52 @@ function MovementNotesFields({
           onRemove={() => onChange({ ...value, notes: value.notes?.slice(0, -1) })}
         />
       }
-      input={
-        <Stack gap="md">
-          {value.notes?.map((note, index) => {
-            const update = (fields: Partial<typeof note>) =>
-              onChange({
-                ...value,
-                notes: value.notes?.map((entry) => (entry.id === note.id ? { ...entry, ...fields } : entry)),
-              });
-            return (
-              <Stack gap="sm" key={note.id}>
-                <Textarea
-                  label="Note"
-                  aria-label={`Movement note ${index + 1}`}
-                  value={note.label}
-                  onChange={(event) => update({ label: event.currentTarget.value })}
-                />
-                <BattleSourceControl
-                  title={`Note ${index + 1} illustration`}
-                  source={note.source}
-                  references={references}
-                  onChange={(source) => update({ source })}
-                />
-                <NumberInput
-                  clampBehavior="strict"
-                  allowLeadingZeros={false}
-                  label="Count"
-                  aria-label={`Note ${index + 1} count`}
-                  min={0}
-                  max={100}
-                  allowDecimal={false}
-                  value={note.count}
-                  onChange={(count) => update({ count: typeof count === 'number' ? count : 0 })}
-                />
-              </Stack>
-            );
-          })}
-        </Stack>
-      }
-    />
+    >
+      <Stack gap="md">
+        {value.notes?.map((note, index) => {
+          const update = (fields: Partial<typeof note>) =>
+            onChange({
+              ...value,
+              notes: value.notes?.map((entry) => (entry.id === note.id ? { ...entry, ...fields } : entry)),
+            });
+          return (
+            <Stack gap="sm" key={note.id}>
+              <ControlBlock
+                title="Note"
+                input={
+                  <Textarea
+                    aria-label={`Movement note ${index + 1}`}
+                    value={note.label}
+                    onChange={(event) => update({ label: event.currentTarget.value })}
+                  />
+                }
+              />
+              <BattleSourceControl
+                title={`Note ${index + 1} illustration`}
+                source={note.source}
+                references={references}
+                onChange={(source) => update({ source })}
+              />
+              <ControlBlock
+                title="Count"
+                input={
+                  <NumberInput
+                    clampBehavior="strict"
+                    allowLeadingZeros={false}
+                    aria-label={`Note ${index + 1} count`}
+                    min={0}
+                    max={100}
+                    allowDecimal={false}
+                    value={note.count}
+                    onChange={(count) => update({ count: typeof count === 'number' ? count : 0 })}
+                  />
+                }
+              />
+            </Stack>
+          );
+        })}
+      </Stack>
+    </ListChapter>
   );
 }
 
@@ -1108,19 +1156,24 @@ function PieceTransferFields({
   return (
     <Stack gap="md">
       {' '}
-      <Select
-        label="Movement"
-        value={value.direction ?? 'none'}
-        data={[
-          { value: 'none', label: 'No arrow' },
-          { value: 'right', label: 'Move right' },
-          { value: 'exchange', label: 'Exchange' },
-        ]}
-        onChange={(direction) => {
-          if (direction === 'none' || direction === 'right' || direction === 'exchange') {
-            onChange({ ...value, direction });
-          }
-        }}
+      <ControlBlock
+        title="Movement"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            value={value.direction ?? 'none'}
+            data={[
+              { value: 'none', label: 'No arrow' },
+              { value: 'right', label: 'Move right' },
+              { value: 'exchange', label: 'Exchange' },
+            ]}
+            onChange={(direction) => {
+              if (direction === 'none' || direction === 'right' || direction === 'exchange') {
+                onChange({ ...value, direction });
+              }
+            }}
+          />
+        )}
       />
       <Accordion multiple defaultValue={['left']}>
         {(['left', 'right'] as const).map((side) => (
@@ -1165,149 +1218,185 @@ function BoardRouteFields({ value, onChange }: BoardSceneFieldsProps) {
     <Accordion.Item value="routes">
       <Accordion.Control>Routes ({routes.length})</Accordion.Control>
       <Accordion.Panel>
-        <Stack gap="md">
-          <ListLengthActions
-            addLabel="Add route"
-            addDisabled={routes.length >= 64 || !parts.length}
-            removeLabel="Remove last route"
-            removeDisabled={!routes.length}
-            onAdd={() =>
-              onChange({
-                ...value,
-                routes: [
-                  ...routes,
-                  {
-                    id: createRulebookLocalId(routes.map((route) => route.id)),
-                    label: 'Route',
-                    direction: 'forward',
-                    waypoints: [{ territory: parts[0]!.key }, { territory: (parts[1] ?? parts[0])!.key }],
-                  },
-                ],
-              })
-            }
-            onRemove={() => onChange({ ...value, routes: routes.slice(0, -1) })}
-          />
+        <ListChapter
+          title="Routes"
+          titleHidden
+          actions={
+            <ListLengthActions
+              addLabel="Add route"
+              addDisabled={routes.length >= 64 || !parts.length}
+              removeLabel="Remove last route"
+              removeDisabled={!routes.length}
+              onAdd={() =>
+                onChange({
+                  ...value,
+                  routes: [
+                    ...routes,
+                    {
+                      id: createRulebookLocalId(routes.map((route) => route.id)),
+                      label: 'Route',
+                      direction: 'forward',
+                      waypoints: [{ territory: parts[0]!.key }, { territory: (parts[1] ?? parts[0])!.key }],
+                    },
+                  ],
+                })
+              }
+              onRemove={() => onChange({ ...value, routes: routes.slice(0, -1) })}
+            />
+          }
+        >
           {routes.map((route, routeIndex) => (
             <Stack gap="sm" key={route.id}>
-              <TextInput
-                label={`Route ${routeIndex + 1} label`}
-                value={route.label}
-                onChange={(event) => update(routeIndex, { ...route, label: event.currentTarget.value })}
+              <ControlBlock
+                title={`Route ${routeIndex + 1} label`}
+                input={(fieldProps) => (
+                  <TextInput
+                    {...fieldProps}
+                    value={route.label}
+                    onChange={(event) => update(routeIndex, { ...route, label: event.currentTarget.value })}
+                  />
+                )}
               />
-              <ColorInput
-                label="Route color"
-                format="hex"
-                value={route.color ?? '#215f89'}
-                onChange={(color) => {
-                  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-                    update(routeIndex, { ...route, color });
-                  }
-                }}
+              <ControlBlock
+                title="Route color"
+                input={(fieldProps) => (
+                  <ColorInput
+                    {...fieldProps}
+                    format="hex"
+                    value={route.color ?? '#215f89'}
+                    onChange={(color) => {
+                      if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+                        update(routeIndex, { ...route, color });
+                      }
+                    }}
+                  />
+                )}
               />
-              <Select
-                label="Arrows"
-                value={route.direction}
-                data={[
-                  { value: 'forward', label: 'Forward' },
-                  { value: 'both', label: 'Both directions' },
-                  { value: 'none', label: 'No arrows' },
-                ]}
-                onChange={(direction) => {
-                  if (direction === 'forward' || direction === 'both' || direction === 'none') {
-                    update(routeIndex, { ...route, direction });
-                  }
-                }}
+              <ControlBlock
+                title="Arrows"
+                input={(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    value={route.direction}
+                    data={[
+                      { value: 'forward', label: 'Forward' },
+                      { value: 'both', label: 'Both directions' },
+                      { value: 'none', label: 'No arrows' },
+                    ]}
+                    onChange={(direction) => {
+                      if (direction === 'forward' || direction === 'both' || direction === 'none') {
+                        update(routeIndex, { ...route, direction });
+                      }
+                    }}
+                  />
+                )}
               />
               <Switch
                 label="Number the waypoints"
                 checked={route.showWaypoints !== false}
                 onChange={(event) => update(routeIndex, { ...route, showWaypoints: event.currentTarget.checked })}
               />
-              {route.waypoints.map((point, pointIndex) => (
-                <Stack gap="xs" key={pointIndex}>
-                  <Select
-                    label={`Waypoint ${pointIndex + 1}`}
-                    searchable
-                    data={territoryOptions}
-                    clearable={Boolean(point.position)}
-                    value={point.territory ?? null}
-                    onChange={(territory) => {
-                      if (territory || point.position) {
-                        update(routeIndex, {
-                          ...route,
-                          waypoints: route.waypoints.map((entry, i) =>
-                            i === pointIndex ? (territory ? { territory } : { position: point.position }) : entry
-                          ),
-                        });
-                      }
-                    }}
-                  />
-                  <Switch
-                    label={`Position waypoint ${pointIndex + 1} manually`}
-                    checked={Boolean(point.position)}
-                    disabled={!point.territory}
-                    onChange={(event) => {
-                      const part = parts.find((entry) => entry.key === point.territory);
-                      const position = event.currentTarget.checked
-                        ? { x: part ? part.x + part.width / 2 : 0.5, y: part ? part.y + part.height / 2 : 0.5 }
-                        : undefined;
+              <ListChapter
+                title={`Route ${routeIndex + 1} waypoints`}
+                actions={
+                  <ListLengthActions
+                    addLabel="Add waypoint"
+                    addDisabled={route.waypoints.length >= 64 || !parts.length}
+                    removeLabel="Remove last waypoint"
+                    removeDisabled={route.waypoints.length <= 2}
+                    onAdd={() =>
+                      update(routeIndex, { ...route, waypoints: [...route.waypoints, { territory: parts[0]!.key }] })
+                    }
+                    onRemove={() =>
                       update(routeIndex, {
                         ...route,
-                        waypoints: route.waypoints.map((entry, i) =>
-                          i === pointIndex ? { ...entry, position } : entry
-                        ),
-                      });
-                    }}
+                        waypoints: route.waypoints.slice(0, -1),
+                        blockedAfter:
+                          route.blockedAfter !== undefined && route.blockedAfter >= route.waypoints.length - 2
+                            ? undefined
+                            : route.blockedAfter,
+                      })
+                    }
                   />
-                  {point.position ? (
-                    <PositionFields
-                      label={`Waypoint ${pointIndex + 1}`}
-                      {...point.position}
-                      onChange={(position) =>
+                }
+              >
+                {route.waypoints.map((point, pointIndex) => (
+                  <Stack gap="xs" key={pointIndex}>
+                    <ControlBlock
+                      title={`Waypoint ${pointIndex + 1}`}
+                      input={(fieldProps) => (
+                        <Select
+                          {...fieldProps}
+                          searchable
+                          data={territoryOptions}
+                          clearable={Boolean(point.position)}
+                          value={point.territory ?? null}
+                          onChange={(territory) => {
+                            if (territory || point.position) {
+                              update(routeIndex, {
+                                ...route,
+                                waypoints: route.waypoints.map((entry, i) =>
+                                  i === pointIndex ? (territory ? { territory } : { position: point.position }) : entry
+                                ),
+                              });
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Switch
+                      label={`Position waypoint ${pointIndex + 1} manually`}
+                      checked={Boolean(point.position)}
+                      disabled={!point.territory}
+                      onChange={(event) => {
+                        const part = parts.find((entry) => entry.key === point.territory);
+                        const position = event.currentTarget.checked
+                          ? { x: part ? part.x + part.width / 2 : 0.5, y: part ? part.y + part.height / 2 : 0.5 }
+                          : undefined;
                         update(routeIndex, {
                           ...route,
                           waypoints: route.waypoints.map((entry, i) =>
-                            i === pointIndex ? { ...entry, position: { ...point.position!, ...position } } : entry
+                            i === pointIndex ? { ...entry, position } : entry
                           ),
-                        })
-                      }
+                        });
+                      }}
                     />
-                  ) : null}
-                </Stack>
-              ))}
-              <ListLengthActions
-                addLabel="Add waypoint"
-                addDisabled={route.waypoints.length >= 64 || !parts.length}
-                removeLabel="Remove last waypoint"
-                removeDisabled={route.waypoints.length <= 2}
-                onAdd={() =>
-                  update(routeIndex, { ...route, waypoints: [...route.waypoints, { territory: parts[0]!.key }] })
-                }
-                onRemove={() =>
-                  update(routeIndex, {
-                    ...route,
-                    waypoints: route.waypoints.slice(0, -1),
-                    blockedAfter:
-                      route.blockedAfter !== undefined && route.blockedAfter >= route.waypoints.length - 2
-                        ? undefined
-                        : route.blockedAfter,
-                  })
-                }
-              />
-              <Select
-                label="Blocked segment"
-                clearable
-                value={route.blockedAfter === undefined ? null : String(route.blockedAfter)}
-                data={route.waypoints
-                  .slice(0, -1)
-                  .map((_, i) => ({ value: String(i), label: `Waypoint ${i + 1} to ${i + 2}` }))}
-                onChange={(segment) =>
-                  update(routeIndex, { ...route, blockedAfter: segment === null ? undefined : Number(segment) })
-                }
+                    {point.position ? (
+                      <PositionFields
+                        label={`Waypoint ${pointIndex + 1}`}
+                        {...point.position}
+                        onChange={(position) =>
+                          update(routeIndex, {
+                            ...route,
+                            waypoints: route.waypoints.map((entry, i) =>
+                              i === pointIndex ? { ...entry, position: { ...point.position!, ...position } } : entry
+                            ),
+                          })
+                        }
+                      />
+                    ) : null}
+                  </Stack>
+                ))}
+              </ListChapter>
+              <ControlBlock
+                title="Blocked segment"
+                input={(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    clearable
+                    value={route.blockedAfter === undefined ? null : String(route.blockedAfter)}
+                    data={route.waypoints
+                      .slice(0, -1)
+                      .map((_, i) => ({ value: String(i), label: `Waypoint ${i + 1} to ${i + 2}` }))}
+                    onChange={(segment) =>
+                      update(routeIndex, { ...route, blockedAfter: segment === null ? undefined : Number(segment) })
+                    }
+                  />
+                )}
               />
             </Stack>
           ))}
-        </Stack>
+        </ListChapter>
       </Accordion.Panel>
     </Accordion.Item>
   );

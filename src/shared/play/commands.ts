@@ -1,5 +1,5 @@
 import { isFactionToken } from './factionToken';
-import { freshTableState, gestureBlockReason, nearestZone, pieceCount } from './model';
+import { freshTableState, gestureBlockReason, isFlippablePiece, nearestZone, pieceCount } from './model';
 import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { publicPieceLabel } from './peeking';
 import { phaseAt, STANDARD_PHASES, stepPhase, tableProgressFor } from './phases';
@@ -10,9 +10,10 @@ import type { DurableTable, GameSnapshot, TableAction } from './protocol';
 import { GameRejection } from './rejection';
 import { isSpicePiece } from './spice';
 import { createSpiceStack } from './spiceBank';
+import { placeSpiceBlowInState } from './spiceBlowPlacement';
 import { SHARED_ITEM_PLACEMENT_ANCHORS } from './tableFurnitureLayout';
 import { planarDistance, restingPositionAt, stackPreviewPositionFor } from './tableGeometry';
-import { isCollisionFreePosition, nearestCollisionFreePosition } from './tablePhysics';
+import { isCollisionFreePosition, nearestCollisionFreePosition, restingAmongLeaders } from './tablePhysics';
 import {
   accepted,
   applyDraftToState,
@@ -34,6 +35,7 @@ function durableTable(table: TableState): DurableTable {
     handCounts: _handCounts,
     selectedPieceId: _selection,
     draftMove: _draft,
+    board: _board,
     ...durable
   } = table;
   return durable;
@@ -150,6 +152,8 @@ export function applyPieceAction(
       return splitPiece(state, piece, action.count);
     case 'delete':
       return deletePiece(state, piece, actorName);
+    case 'spice-blow':
+      return placeSpiceBlowInState(state, piece, action, actorName);
   }
 }
 
@@ -306,16 +310,18 @@ export function rotatedPiece(state: TableState, piece: TablePiece, turns: number
     return null;
   }
   const orientation = piece.orientation - turns * ROTATE_STEP;
-  const rotated = {
-    ...piece,
-    orientation,
-    position: restingPositionAt(piece.position, { ...piece, orientation }),
-  };
   const rules = placementRules(
     state.pieces,
     piece,
     state.pieces.filter((candidate) => candidate.id !== piece.id)
   );
+  /* A leader turning in a pile keeps its place in it: still above the discs it lay on, still below the ones on it. */
+  const beneath = rules.obstacles.filter((other) => other.position[1] < piece.position[1]);
+  const rotated = {
+    ...piece,
+    orientation,
+    position: restingAmongLeaders(piece, restingPositionAt(piece.position, { ...piece, orientation }), beneath),
+  };
   return isCollisionFreePosition(rotated, rotated.position, rules.obstacles) &&
     rules.fits(rotated.position, orientation)
     ? rotated
@@ -402,8 +408,25 @@ function splitDescription(piece: TablePiece, count: number) {
   return `${count} ${count === 1 ? one : many} taken from ${publicPieceLabel(piece)}.`;
 }
 
+/* Only a stack or deck of two or more splits. */
+const canSplit = (piece: TablePiece) => pieceCount(piece) > 1;
+
+/**
+ * Whether the room takes up a flip, turn or split of this piece, by the same checks it runs before working out where the result goes: the piece is there and unlocked, a flip needs a card or force, and a split needs two or more.
+ * The keyboard shortcuts window asks it which piece keys are live.
+ */
+export function offersPieceAction(piece: TablePiece | undefined, kind: 'flip' | 'rotate' | 'split'): boolean {
+  if (!piece || pieceCount(piece) === 0 || gestureBlockReason(piece)) {
+    return false;
+  }
+  if (kind === 'flip') {
+    return isFlippablePiece(piece);
+  }
+  return kind === 'split' ? canSplit(piece) : true;
+}
+
 function splitPiece(state: TableState, piece: TablePiece, requestedCount: number): TableState {
-  if (pieceCount(piece) <= 1) {
+  if (!canSplit(piece)) {
     throw new GameRejection('That piece cannot be split.');
   }
   const count = Math.min(requestedCount, pieceCount(piece));

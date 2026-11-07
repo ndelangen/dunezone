@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+<title>CHOAM Logo</title>
+<g data-name="CHOAM Logo - Red Semicircle" data-material="Red CHOAM" data-z="0.000"><path fill="#f71e15" fill-rule="evenodd" d="M990 600C990 384.609 815.391 210 600 210C384.609 210 210 384.609 210 600L990 600Z"/></g>
+<g data-name="CHOAM Logo - Black Semicircle" data-material="Black" data-z="0.000"><path fill="#000000" fill-rule="evenodd" d="M990 600C990 815.391 815.391 990 600 990C384.609 990 210 815.391 210 600L990 600Z"/></g>
+</svg>

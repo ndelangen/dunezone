@@ -1,9 +1,11 @@
-import { Alert, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { CustomCardAsset, SpiceAsset } from '@shared/assets/schema';
 import { slugify } from '@shared/slugify';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
-import { ConfirmConvertAction } from '@ui/control/ConfirmConvertAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -13,7 +15,6 @@ import { useReducer, useState } from 'react';
 
 import { loadAssetPage, useConvertCustomToSpice } from '@app/db/assets';
 import { useAuthoringAccountKey } from '@app/db/authoring';
-import { mutationErrorMessage } from '@app/db/core/mutationError';
 import { assetLoad } from '@app/pickers/assetLoadSource';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoadExisting } from '@app/widgets/authoring/LoadExisting';
@@ -22,10 +23,10 @@ import { INITIAL_SPICE_DRAFT, SpiceCardEditor, spiceDraftWarnings } from '@app/w
 import type { SpiceChapter, SpiceDraft } from '@app/widgets/card-editor/SpiceCardEditor';
 
 import { assetNameField } from '../../assetEditorStates';
+import type { AssetEditSessionProps } from '../../assetEditorStates';
 import { layeredCardTokenPicker } from '../../layeredCardTokenPicker';
 import { SpiceBoardRead, spiceBoardSelect } from '../../spiceCardBoard';
 import { CardEditGate } from './edit/cardEditPage';
-import type { CardEditSessionProps } from './edit/cardEditPage';
 
 export const Route = createFileRoute('/_app/assets/$type/$slug/convert-to-spice')({
   loader: async ({ params }) => {
@@ -68,7 +69,7 @@ function reduce(state: State, event: Event): State {
   }
 }
 
-function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps<{ name: string; about: string }>) {
+function ConversionSession({ asset, initialDraft, access }: AssetEditSessionProps<{ name: string; about: string }>) {
   const initial = { ...INITIAL_SPICE_DRAFT, name: initialDraft.name, about: initialDraft.about };
   const [state, dispatch] = useReducer(reduce, { draft: initial, initial });
   const [chapter, setChapter] = useState<SpiceChapter>('identity');
@@ -146,8 +147,10 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
                     onClick={header.releasing(() => dispatch({ kind: 'reset' }))}
                     icon={<RotateCcw size={17} aria-hidden />}
                   />
-                  <ConfirmConvertAction
-                    target="spice card"
+                  <HoldAction
+                    verb="convert"
+                    label="Convert to spice card"
+                    hint="Hold to convert to a spice card. Keeps its decks and owner. This cannot be reversed."
                     pending={conversion.isPending}
                     disabled={blocked}
                     onConfirm={convert}
@@ -160,7 +163,7 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <Alert title="Review the spice card before converting" color="blue">
+          <Notice tone="info" title="Review the spice card before converting">
             <Stack gap="xs">
               <Text size="sm">
                 Conversion replaces the custom layers with the spice draft shown here. It keeps this card's identity,
@@ -170,12 +173,8 @@ function ConversionSession({ asset, initialDraft, access }: CardEditSessionProps
               <Text size="sm">Destination: /assets/card-spice/{targetSlug || '…'}</Text>
               <Text size="sm">Loading changes this draft only. Hold the conversion action when it is ready.</Text>
             </Stack>
-          </Alert>
-          {conversion.error ? (
-            <Alert color="red" title="Could not convert" role="alert">
-              {mutationErrorMessage(conversion.error)}
-            </Alert>
-          ) : null}
+          </Notice>
+          <ActionError subject="Card" verb="convert" error={conversion.error} />
           <SpiceBoardRead
             draft={state.draft}
             render={(boardRead) => (

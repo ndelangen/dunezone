@@ -60,7 +60,7 @@ export function HandPanel(props: HandPanelProps) {
 function HandShelf({ group, children }: Readonly<{ group: HandGroup; children: ReactNode }>) {
   return (
     <section className={styles.shelf} data-group={group.key} aria-label={group.label}>
-      <Text size="xs" fw={700} tt="uppercase" className={styles.caption} data-hand-label>
+      <Text size="xs" fw={700} className={styles.caption} data-hand-label>
         {group.label} <span className={styles.count}>{group.pieces.length}</span>
       </Text>
       {children}
@@ -137,7 +137,7 @@ function InteractiveHand({ actions }: Readonly<{ actions: HandActions }>) {
     );
   };
   return (
-    <Section hiddenHeading title="Your hand and leaders" description={HAND_HELP}>
+    <Section hiddenHeading title="Your hand and leaders" help={HAND_HELP}>
       <div ref={ref} className={styles.shelves}>
         {actions.groups.map((group) => (
           <HandShelf key={group.key} group={group}>

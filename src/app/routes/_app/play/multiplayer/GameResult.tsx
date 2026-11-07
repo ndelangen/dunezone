@@ -1,6 +1,7 @@
-import { Button } from '@mantine/core';
 import { phaseAt } from '@shared/play/phases';
 import { describeResult } from '@shared/play/result';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Play, Trophy } from 'lucide-react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import { factionName, isSpectator } from './tableFactions';
@@ -18,15 +19,19 @@ export function resultTitle(table: TableProjection): string | undefined {
     : undefined;
 }
 
-/** A finished game's one phase control, where Next phase sat: any player resumes it from Mentat Pause of this turn. */
+/** A finished game's one phase control, where Next phase sat: any player resumes it from Mentat Pause of this turn; plain, since it is no longer the table's main step. */
 export function ContinuePlaying({ client, table }: Props) {
   if (table.playback || table.snapshot.stage !== 'finished' || !table.snapshot.result || !seated(table)) {
     return null;
   }
   return (
-    <Button disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-continue' })}>
+    <LabeledAction
+      icon={<Play size={16} />}
+      disabledReason={table.canInteract ? undefined : 'The table is unavailable.'}
+      onClick={() => client.command({ kind: 'result-continue' })}
+    >
       Continue playing
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -47,8 +52,12 @@ export function DetermineWinner({ client, table }: Props) {
     return null;
   }
   return (
-    <Button variant="default" disabled={!table.canInteract} onClick={() => client.command({ kind: 'result-open' })}>
+    <LabeledAction
+      icon={<Trophy size={16} />}
+      disabledReason={table.canInteract ? undefined : 'The table is unavailable.'}
+      onClick={() => client.command({ kind: 'result-open' })}
+    >
       Determine winner
-    </Button>
+    </LabeledAction>
   );
 }

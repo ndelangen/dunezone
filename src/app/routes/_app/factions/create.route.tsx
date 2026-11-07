@@ -1,6 +1,6 @@
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { PageState } from '@ui/block/PageState';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useContext, useRef } from 'react';
@@ -77,7 +77,9 @@ function CreateFactionPage() {
         back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
       >
         {profile.data === undefined ? (
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         ) : (
           <LoginGate action="create a faction" />
         )}

@@ -27,8 +27,8 @@ images or content; the colour values below are declared in code.
 | `#F6D979` | `mapSand` | The equivalent fallback fill for sand territories. | Retained board definitions with territory type `sand`. Same renderer. |
 | `#EEE7AD` | `phaseDisc` | Inactive phase-disc faces and bodies, the turn-wheel face, and the default face for a symbol disc. | Phase icon shapes from the current ruleset's phase declarations. Standard paths are listed in [`phases.ts`](../../src/shared/play/phases.ts). [`PhaseSymbol.tsx`](../../src/app/widgets/tabletop/PhaseSymbol.tsx), [`TurnTracker.tsx`](../../src/app/widgets/tabletop/TurnTracker.tsx). |
 | `#111111` | `phaseInk` | Phase glyphs and their circular rings; turn-wheel numbers, frame and pointer. | The same phase icons and procedural turn wheel. The spice-bank glyph also uses this ink. |
-| `#E3DBB3` | `predictionPaper` | The light outline around the chosen faction logo and predicted turn number. It is not the card's paper background. | Prediction overlay built from `snapshot.factionArtwork[factionId].logo` and the chosen turn. [`predictionFace.ts`](../../src/app/widgets/tabletop/prediction/predictionFace.ts). |
-| `#1C140D` | `predictionInk` | The predicted turn number's ink. The faction logo itself retains its source image's colours. | The same prediction overlay. |
+| `#E3DBB3` | `predictionPaper` | The light outline around the chosen faction emblem and predicted turn number. It is not the card's paper background. | Prediction overlay built from `snapshot.factionArtwork[factionId].emblem` and the chosen turn. [`predictionFace.ts`](../../src/app/widgets/tabletop/prediction/predictionFace.ts). |
+| `#1C140D` | `predictionInk` | The predicted turn number's ink. The faction emblem itself retains its source image's colours. | The same prediction overlay. |
 | `#999582` | `spiceDisc` | The spice-bank disc face and body. | Procedural bank disc with the `/vector/icon/spice.svg` glyph, rather than the published Spice token. [`SpiceBank.tsx`](../../src/app/widgets/tabletop/SpiceBank.tsx), [`tableTrackers.ts`](../../src/app/widgets/tabletop/tableTrackers.ts). |
 
 One additional material was previously hidden behind the UI's `placeholder` role. Newly created
@@ -36,7 +36,7 @@ Traitor decks store `#D5BA8C` as their base colour. It now has the game-owned ro
 in `assetColors.ts`, so the supply builder no longer declares the pigment itself. The value is unchanged.
 
 The standard phase glyphs coloured with `phaseInk` are `/vector/icon/storrm_standalone.svg`,
-`/vector/icon/spice-blow_standalone.svg`, `/vector/generic/chaom.svg`,
+`/vector/icon/spice-blow_standalone.svg`, `/vector/generic/choam.svg`,
 `/vector/icon/bidding_standalone.svg`, `/vector/icon/revival_standalone.svg`,
 `/vector/icon/shipment_disc.svg`, `/vector/icon/combat.svg`, `/vector/icon/collection_standalone.svg`
 and `/vector/icon/mentat.svg`. Custom rulesets can supply different phase symbols. These SVGs
@@ -48,7 +48,7 @@ These eight swatches belong to `playUiColors`. None comes from an artwork file o
 
 | Colour | Code role | Exact use |
 | --- | --- | --- |
-| `#211D18` | `fallbackFaction` | Background for the hand-count logo when a faction token is missing. [`HandCounts.tsx`](../../src/app/routes/_app/play/multiplayer/HandCounts.tsx). |
+| `#211D18` | `fallbackFaction` | Background for the hand-count emblem when a faction token is missing. [`HandCounts.tsx`](../../src/app/routes/_app/play/multiplayer/HandCounts.tsx). |
 | `#BFB09A` | `unknownFaction` | Neutral colour for an unassigned seat's swap token. [`SwapScene.tsx`](../../src/app/routes/_app/play/multiplayer/SwapScene.tsx). |
 | `#171511` | `boardDivider` | Narrow divider bars between the board rim's player-station sections. [`TabletopBoard.tsx`](../../src/app/widgets/tabletop/TabletopBoard.tsx). |
 | `#D7C299` | `stationGround` | The small circular pad at each player station. It is procedural geometry beneath the faction token. Same renderer. |
@@ -69,9 +69,8 @@ neither palette imports the other.
 
 ## Artwork outside these swatches
 
-The built-in [`arrakis-map.svg`](../../src/app/widgets/tabletop/assets/arrakis-map.svg) supplies its
-own fills and strokes to `boardMapGeometry.ts`. Retained boards receive their complete artwork
-through [`authoredBoardTexture.tsx`](../../src/app/widgets/tabletop/authoredBoardTexture.tsx), which
+Every table plays on a board asset, whether its ruleset's or the bundled Arrakis preset, and
+receives its complete artwork through [`authoredBoardTexture.tsx`](../../src/app/widgets/tabletop/authoredBoardTexture.tsx), which
 renders the game board asset and its decals. Those full images supersede the temporary terrain fills.
 
 Published faction tokens, troops, leaders and cards retain their image colours. Their material sides

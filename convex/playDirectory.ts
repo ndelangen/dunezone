@@ -62,7 +62,7 @@ async function factionToken(ctx: QueryCtx, factionId: string) {
   }
   const parsed = CanonicalFactionStoredObject.safeParse(row.data);
   return parsed.success
-    ? { logo: parsed.data.logo, background: await resolveBackgrounds(ctx, parsed.data.background) }
+    ? { emblem: parsed.data.emblem, background: await resolveBackgrounds(ctx, parsed.data.background) }
     : null;
 }
 

@@ -1,10 +1,7 @@
-import { Stack, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
-import { PageLayout } from '@ui/layout/PageLayout';
 
 import { publicPageHead } from '@app/routes/publicPage';
-import { TutorialRows, TutorialTracks } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
+import { TutorialCatalogue } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 import type { CatalogueRow } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 
 import { CREATOR_PARTS, CREATOR_TUTORIALS, creatorArt } from './creatorTutorials';
@@ -35,21 +32,12 @@ const ROWS: readonly CatalogueRow[] = CREATOR_PARTS.map((part) => ({
 
 function CreatorTutorials() {
   return (
-    <PageLayout>
-      <PageLayout.Header size="hero">
-        <Stack gap="md" miw={0} align="center" ta="center">
-          <PageTitle title="Learn to create" subtitle="How to make your own Dune content" />
-          <Text size="lg" fw={500} maw="36rem">
-            Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make.
-          </Text>
-        </Stack>
-      </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <TutorialTracks track="create" />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <TutorialRows rows={ROWS} />
-      </PageLayout.Content>
-    </PageLayout>
+    <TutorialCatalogue
+      track="create"
+      title="Learn to create"
+      subtitle="How to make your own Dune content"
+      lede="Make your own factions, cards, boards and Rulebooks. Start with a faction, or pick what you want to make."
+      rows={ROWS}
+    />
   );
 }

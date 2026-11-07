@@ -25,7 +25,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/atreides.svg"
+          "image": "/vector/emblem/atreides.svg"
         },
         "head": {
           "colors": [
@@ -48,7 +48,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/atreides.svg"
+          "/vector/emblem/atreides.svg"
         ],
         "name": "Atreides",
         "secretAlly": "During a battle, force your opponent to reveal your choice of one element of their Battle Plan: leader, weapon, defense, or number dialed.",
@@ -78,7 +78,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/bene-gesserit.svg"
+          "image": "/vector/emblem/bene-gesserit.svg"
         },
         "head": {
           "colors": [
@@ -101,7 +101,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/bene-gesserit.svg"
+          "/vector/emblem/bene-gesserit.svg"
         ],
         "name": "Bene Gesserit",
         "secretAlly": "During a battle, you may use the Bene Gesserit Voice advantage of forcing your opponent to play or not play a Treachery Card.",
@@ -157,7 +157,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/choam.svg"
+          "image": "/vector/emblem/choam.svg"
         },
         "head": {
           "colors": [
@@ -206,7 +206,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/choam.svg"
+          "/vector/emblem/choam.svg"
         ],
         "name": "CHOAM",
         "secretAlly": "You may either discard a Worthless Card and gain 2 spice during Spice Collection, or after winning a battle, you may look at a random card in your opponent's hand (not used in battle).",
@@ -236,7 +236,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/ecaz.svg"
+          "image": "/vector/emblem/ecaz.svg"
         },
         "head": {
           "colors": [
@@ -259,7 +259,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/ecaz.svg"
+          "/vector/emblem/ecaz.svg"
         ],
         "name": "Ecaz",
         "secretAlly": "Force one player to reveal whether or not they have any of your leaders as Traitors (though not which leaders).",
@@ -289,7 +289,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/emperor.svg"
+          "image": "/vector/emblem/emperor.svg"
         },
         "head": {
           "colors": [
@@ -312,7 +312,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/emperor.svg"
+          "/vector/emblem/emperor.svg"
         ],
         "name": "Emperor",
         "secretAlly": "Keep your spice when buying a Treachery Card (you must show that you have the amount you would have paid) or, revive 3 additional troops beyond Revival limits during Revival for free.",
@@ -342,7 +342,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/fremen.svg"
+          "image": "/vector/emblem/fremen.svg"
         },
         "head": {
           "colors": [
@@ -365,7 +365,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/fremen.svg"
+          "/vector/emblem/fremen.svg"
         ],
         "name": "Fremen",
         "secretAlly": "You may either avoid losing troops to Shai-Hulud, or revive a total of 3 of your troops for free during Revival.",
@@ -395,7 +395,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/harkonnen.svg"
+          "image": "/vector/emblem/harkonnen.svg"
         },
         "head": {
           "colors": [
@@ -418,7 +418,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/harkonnen.svg"
+          "/vector/emblem/harkonnen.svg"
         ],
         "name": "Harkonnen",
         "secretAlly": "During the Mentat Pause, draw two Traitor Cards and add them to your hand. Then shuffle two Traitor Cards you hold back into the Traitor deck.",
@@ -448,7 +448,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/ixian.svg"
+          "image": "/vector/emblem/ixian.svg"
         },
         "head": {
           "colors": [
@@ -471,7 +471,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/ixian.svg"
+          "/vector/emblem/ixian.svg"
         ],
         "name": "Ixians",
         "secretAlly": "You may discard a Treachery Card you just purchased during Bidding and then draw the top card of the Treachery deck.",
@@ -501,7 +501,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/moritani.svg"
+          "image": "/vector/emblem/moritani.svg"
         },
         "head": {
           "colors": [
@@ -524,7 +524,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/moritani.svg"
+          "/vector/emblem/moritani.svg"
         ],
         "name": "Moritani",
         "secretAlly": "When you lose a battle that had a winner, keep one Treachery Card you played in the battle you would have been able to keep had you won.",
@@ -554,7 +554,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/richese.svg"
+          "image": "/vector/emblem/richese.svg"
         },
         "head": {
           "colors": [
@@ -577,7 +577,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/richese.svg"
+          "/vector/emblem/richese.svg"
         ],
         "name": "Richese",
         "secretAlly": "You may discard a Treachery Card you just purchased during Bidding and then draw the top card of the Treachery deck.",
@@ -607,7 +607,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/guild.svg"
+          "image": "/vector/emblem/guild.svg"
         },
         "head": {
           "colors": [
@@ -630,7 +630,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/guild.svg"
+          "/vector/emblem/guild.svg"
         ],
         "name": "Spacing Guild",
         "secretAlly": "Your shipment is at Guild rates, and you may also ship cross-planet or back to your reserves as your Shipping action.",
@@ -660,7 +660,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "image": "/vector/logo/bene-tleilaxu.svg"
+          "image": "/vector/emblem/bene-tleilaxu.svg"
         },
         "head": {
           "colors": [
@@ -683,7 +683,7 @@
             "influence": 0.65,
             "invert": false
           },
-          "/vector/logo/bene-tleilaxu.svg"
+          "/vector/emblem/bene-tleilaxu.svg"
         ],
         "name": "Tleilaxu",
         "secretAlly": "Revive one of your leaders for free and up to 5 of your troops for 1 spice each during Revival.",
@@ -1004,7 +1004,7 @@
         "battleText": "Your opponent subtracts 1 from their Battle total for each Stronghold they occupy (not counting those occupied by advisors).",
         "decals": [
           {
-            "id": "/vector/decal/beaurocrat-multicolor.svg",
+            "id": "/vector/decal/bureaucrat-multicolor.svg",
             "muted": false,
             "offset": [
               0,
@@ -17830,7 +17830,7 @@
         "name": "GF9 Atreides Ambassador",
         "about": "Atreides - See visitor's hand. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/atreides.svg",
+          "image": "/vector/emblem/atreides.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -17860,7 +17860,7 @@
         "name": "GF9 Harkonnen Ambassador",
         "about": "Harkonnen - Look at a random Traitor Card the visiting faction holds. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/harkonnen.svg",
+          "image": "/vector/emblem/harkonnen.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -17890,7 +17890,7 @@
         "name": "GF9 Fremen Ambassador",
         "about": "Fremen - Move a group of your forces on the board to any territory (subject to storm and occupancy rules). Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/fremen.svg",
+          "image": "/vector/emblem/fremen.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -17920,7 +17920,7 @@
         "name": "GF9 Emperor Ambassador",
         "about": "Emperor - Gain 5 spice. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/emperor.svg",
+          "image": "/vector/emblem/emperor.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -17950,7 +17950,7 @@
         "name": "GF9 Guild Ambassador",
         "about": "Guild - Send up to 4 of your forces in reserves to any territory not in storm for free. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/guild.svg",
+          "image": "/vector/emblem/guild.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -17980,7 +17980,7 @@
         "name": "GF9 Bene Gesserit Ambassador",
         "about": "Bene Gesserit - Trigger the effect of any Ambassador that was not part of your supply, then remove this Bene Gesserit Ambassador from the game. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/bene-gesserit.svg",
+          "image": "/vector/emblem/bene-gesserit.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18010,7 +18010,7 @@
         "name": "GF9 Ixian Ambassador",
         "about": "Ixian - Discard a Treachery Card and draw from the deck. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/ixian.svg",
+          "image": "/vector/emblem/ixian.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18040,7 +18040,7 @@
         "name": "GF9 Tleilaxu Ambassador",
         "about": "Tleilaxu - Revive one of your leaders or up to 4 of your forces for free. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/bene-tleilaxu.svg",
+          "image": "/vector/emblem/bene-tleilaxu.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18070,7 +18070,7 @@
         "name": "GF9 CHOAM Ambassador",
         "about": "CHOAM - Discard any of your Treachery Cards and gain 3 spice for each one. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/choam.svg",
+          "image": "/vector/emblem/choam.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18100,7 +18100,7 @@
         "name": "GF9 Richese Ambassador",
         "about": "Richese - If your hand is not full, pay 3 spice to the Bank to draw the top Treachery Card. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/richese.svg",
+          "image": "/vector/emblem/richese.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18130,7 +18130,7 @@
         "name": "GF9 Ecaz Ambassador",
         "about": "Ecaz - Gain Vidal if he is not in the Tanks, captured, or a ghola until used in a battle, or form an alliance with the visiting faction (if neither of you is allied and they agree); you may then give them control of Vidal for this turn. This token returns to your available supply. Ecaz may trigger this immediately when a faction other than its ally or the matching faction enters with non-advisor forces. The effect interrupts the entering action. See Ecaz rules for the Ecaz alliance/Vidal choice.",
         "front": {
-          "image": "/vector/logo/ecaz.svg",
+          "image": "/vector/emblem/ecaz.svg",
           "background": {
             "colors": [
               "#073a16",
@@ -18228,7 +18228,7 @@
         "name": "GF9 Assassination",
         "about": "Choose a random leader from that player, send it to the Tanks and collect its fighting strength in spice from the Bank (3 spice for Zoal).",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18248,7 +18248,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18276,7 +18276,7 @@
         "name": "GF9 Atomics",
         "about": "All forces in the territory go to the Tanks. Place the Atomics Aftermath token in the territory. No forces may ever ship into this territory (even Fremen). From this turn forward, your hand limit is reduced by 1 (as well as your ally's), discarding a random card if a hand exceeds the limit.",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18296,7 +18296,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18324,7 +18324,7 @@
         "name": "GF9 Extortion",
         "about": "Gain 5 spice from the Spice Bank, placed in front of your shield. Collect it in the Mentat Pause, then regain this Terror token unless any one player in storm order pays you 3 spice.",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18344,7 +18344,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18372,7 +18372,7 @@
         "name": "GF9 Robbery",
         "about": "Steal half the spice (rounded up) from that player or take the top card of the Treachery Deck (then discarding a card of your choice if you exceed your hand size).",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18392,7 +18392,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18420,7 +18420,7 @@
         "name": "GF9 Sabotage",
         "about": "Draw a random Treachery Card from that player and discard it if possible. Then you may give that player a Treachery Card of your choice from your hand.",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18440,7 +18440,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18468,7 +18468,7 @@
         "name": "GF9 Sneak Attack",
         "about": "Send up to 5 of your forces in reserves into that territory at no cost (subject to storm and occupancy rules), even if the Atomics Aftermath token is there.",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18488,7 +18488,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/moritani.svg",
+            "image": "/vector/emblem/moritani.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -18564,7 +18564,7 @@
         "name": "GF9 Atomics Aftermath",
         "about": "No force may ship into this territory for the rest of the game, including Fremen. Normal movement and an explicit Sneak Attack remain allowed. Place after resolving the Atomics Terror token.",
         "front": {
-          "image": "/vector/logo/moritani.svg",
+          "image": "/vector/emblem/moritani.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18623,7 +18623,7 @@
         "name": "GF9 No-Field 0",
         "about": "Hidden No-Field contains 0 forces, limited by reserves when revealed. Counts as one force while hidden, including the 0 token. Only one may be on Arrakis; the same number cannot be used consecutively.",
         "front": {
-          "image": "/vector/logo/richese.svg",
+          "image": "/vector/emblem/richese.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18643,7 +18643,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/richese.svg",
+            "image": "/vector/emblem/richese.svg",
             "background": {
               "colors": [
                 "#7b7871",
@@ -18671,7 +18671,7 @@
         "name": "GF9 No-Field 3",
         "about": "Hidden No-Field contains 3 forces, limited by reserves when revealed. Counts as one force while hidden, including the 0 token. Only one may be on Arrakis; the same number cannot be used consecutively.",
         "front": {
-          "image": "/vector/logo/richese.svg",
+          "image": "/vector/emblem/richese.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18691,7 +18691,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/richese.svg",
+            "image": "/vector/emblem/richese.svg",
             "background": {
               "colors": [
                 "#7b7871",
@@ -18719,7 +18719,7 @@
         "name": "GF9 No-Field 5",
         "about": "Hidden No-Field contains 5 forces, limited by reserves when revealed. Counts as one force while hidden, including the 0 token. Only one may be on Arrakis; the same number cannot be used consecutively.",
         "front": {
-          "image": "/vector/logo/richese.svg",
+          "image": "/vector/emblem/richese.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18739,7 +18739,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/richese.svg",
+            "image": "/vector/emblem/richese.svg",
             "background": {
               "colors": [
                 "#7b7871",
@@ -18803,7 +18803,7 @@
         "name": "GF9 Inflation",
         "about": "During Mentat Pause, place this token on CHOAM Charity with either Double or Cancel face up. Next turn, double or cancel all CHOAM Charity, including CHOAM and Bene Gesserit. At the following Mentat Pause flip it; at the next, remove it from the game. No spice bribes while Double is in play. Inflation does not change Tech Token income.",
         "front": {
-          "image": "/vector/logo/choam.svg",
+          "image": "/vector/emblem/choam.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -18823,7 +18823,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/choam.svg",
+            "image": "/vector/emblem/choam.svg",
             "background": {
               "colors": [
                 "#bda35d",
@@ -18899,7 +18899,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/fremen.svg",
+            "image": "/vector/emblem/fremen.svg",
             "background": {
               "colors": [
                 "#bda35d",
@@ -18947,7 +18947,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/fremen.svg",
+            "image": "/vector/emblem/fremen.svg",
             "background": {
               "colors": [
                 "#bda35d",
@@ -18995,7 +18995,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/fremen.svg",
+            "image": "/vector/emblem/fremen.svg",
             "background": {
               "colors": [
                 "#bda35d",
@@ -19043,7 +19043,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/fremen.svg",
+            "image": "/vector/emblem/fremen.svg",
             "background": {
               "colors": [
                 "#bda35d",
@@ -19091,7 +19091,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/guild.svg",
+            "image": "/vector/emblem/guild.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -19139,7 +19139,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/guild.svg",
+            "image": "/vector/emblem/guild.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -19187,7 +19187,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/guild.svg",
+            "image": "/vector/emblem/guild.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -19235,7 +19235,7 @@
         "back": {
           "mode": "custom",
           "face": {
-            "image": "/vector/logo/guild.svg",
+            "image": "/vector/emblem/guild.svg",
             "background": {
               "colors": [
                 "#253861",
@@ -19320,7 +19320,7 @@
         "name": "GF9 Hidden Mobile Stronghold",
         "about": "Ixian separate stronghold pointing at a sector of any non-stronghold territory, including the Polar Sink. Its occupants are protected from storm and worms. While Ixians occupy it, move it up to 3 territories before later storm movement is dialed or revealed; never into, out of or through storm. During its movement through a spice-bearing sector, immediately collect up to 2 spice per troop inside. Ixians may ship directly inside; other factions enter from the pointed territory by movement, with BG accompanying-shipment and Fremen worm-ride exceptions. It is separate for battles and counts as one stronghold.",
         "front": {
-          "image": "/vector/logo/ixian.svg",
+          "image": "/vector/emblem/ixian.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -19438,7 +19438,7 @@
         "name": "GF9 Sandworm",
         "about": "Marks the Fremen worm position under the Advanced Fremen rules.",
         "front": {
-          "image": "/vector/logo/fremen.svg",
+          "image": "/vector/emblem/fremen.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -19539,13 +19539,34 @@
         "name": "Cielago North",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "cielago-north"
-        ],
         "amount": 8,
         "text": "East sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Cielago North in its east sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Cielago North in its east sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "cielago_north"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-cielago-south",
@@ -19555,13 +19576,34 @@
         "name": "Cielago South",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "cielago-south"
-        ],
         "amount": 12,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 12 spice in Cielago South in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 12 spice in Cielago South in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "cielago_south"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-the-minor-erg",
@@ -19571,13 +19613,34 @@
         "name": "The Minor Erg",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "the-minor-erg"
-        ],
         "amount": 8,
         "text": "Far North sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in The Minor Erg in its far north sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in The Minor Erg in its far north sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "the_minor_erg"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-red-chasm",
@@ -19587,13 +19650,34 @@
         "name": "Red Chasm",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "red-chasm"
-        ],
         "amount": 8,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Red Chasm."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Red Chasm.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "red_chasm"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-south-mesa",
@@ -19603,13 +19687,34 @@
         "name": "South Mesa",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "south-mesa"
-        ],
         "amount": 10,
         "text": "Middle sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in South Mesa in its middle sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in South Mesa in its middle sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "south_mesa"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-sihaya-ridge",
@@ -19619,13 +19724,34 @@
         "name": "Sihaya Ridge",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "sihaya-ridge"
-        ],
         "amount": 6,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Sihaya Ridge."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Sihaya Ridge.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "sihaya_ridge"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-old-gap",
@@ -19635,13 +19761,34 @@
         "name": "Old Gap",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "old-gap"
-        ],
         "amount": 6,
         "text": "Middle sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Old Gap in its middle sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Old Gap in its middle sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "old_gap"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-broken-land",
@@ -19651,13 +19798,34 @@
         "name": "Broken Land",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "broken-land"
-        ],
         "amount": 8,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Broken Land in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Broken Land in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "broken_land"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-rock-outcroppings",
@@ -19667,13 +19835,34 @@
         "name": "Rock Outcrops",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "rock-outcroppings"
-        ],
         "amount": 6,
         "text": "South sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Rock Outcroppings in its south sector. The face abbreviates Rock Outcroppings to fit the printed title."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Rock Outcroppings in its south sector. The face abbreviates Rock Outcroppings to fit the printed title.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "rock_outcroppings"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-hagga-basin",
@@ -19683,13 +19872,34 @@
         "name": "Hagga Basin",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "hagga-basin"
-        ],
         "amount": 6,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Hagga Basin in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Hagga Basin in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "hagga_basin"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-funeral-plain",
@@ -19699,13 +19909,34 @@
         "name": "Funeral Plain",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "funeral-plain"
-        ],
         "amount": 6,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Funeral Plain."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Funeral Plain.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "funeral_plain"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-the-great-flat",
@@ -19715,13 +19946,34 @@
         "name": "The Great Flat",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "the-great-flat"
-        ],
         "amount": 10,
         "text": "Spice blow.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in The Great Flat."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in The Great Flat.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "the_great_flat"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-habbanya-erg",
@@ -19731,13 +19983,34 @@
         "name": "Habbanya Erg",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "habbanya-erg"
-        ],
         "amount": 8,
         "text": "West sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Habbanya Erg in its west sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 8 spice in Habbanya Erg in its west sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "habbanya_erg"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-wind-pass-north",
@@ -19747,13 +20020,34 @@
         "name": "Wind Pass North",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "wind-pass-north"
-        ],
         "amount": 6,
         "text": "North sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Wind Pass North in its north sector."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 6 spice in Wind Pass North in its north sector.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "wind_pass_north"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-spice-habbanya-ridge-flat",
@@ -19763,13 +20057,34 @@
         "name": "Habbanya R. Flat",
         "subName": "Spice blow",
         "icon": "spice",
-        "highlights": [
-          "habbanya-ridge-flat"
-        ],
         "amount": 10,
         "text": "East sector.",
-        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in Habbanya Ridge Flat in its east sector. The face abbreviates Habbanya Ridge Flat to fit the printed title."
-      }
+        "about": "GF9 base Spice Card. Storm and first-turn restrictions apply. Place 10 spice in Habbanya Ridge Flat in its east sector. The face abbreviates Habbanya Ridge Flat to fit the printed title.",
+        "board": {
+          "asset_id": "",
+          "tints": [
+            {
+              "id": "highlights",
+              "name": "Spice blow",
+              "color": "#9e5f00",
+              "territories": [
+                "habbanya_ridge_flat"
+              ]
+            }
+          ],
+          "tokens": []
+        }
+      },
+      "bindings": [
+        {
+          "path": [
+            "board",
+            "asset_id"
+          ],
+          "key": "gf9-board",
+          "field": "id"
+        }
+      ]
     },
     {
       "key": "gf9-shai-hulud",
@@ -20953,7 +21268,7 @@
         "name": "GF9 Duke Vidal",
         "about": "Shared Ecaz and Moritani leader, strength 6. Starts uncontrolled. No Traitor Card. The controlling faction may use him in battle; follow the faction and Homeworld rules for gaining or losing control.",
         "front": {
-          "image": "/vector/logo/ecaz.svg",
+          "image": "/vector/emblem/ecaz.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -21193,7 +21508,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/atreides.svg"
+          "/vector/emblem/atreides.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21246,7 +21561,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/bene-gesserit.svg"
+          "/vector/emblem/bene-gesserit.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21299,7 +21614,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/choam.svg"
+          "/vector/emblem/choam.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21352,7 +21667,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/ecaz.svg"
+          "/vector/emblem/ecaz.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21405,7 +21720,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/emperor.svg"
+          "/vector/emblem/emperor.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21458,7 +21773,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/fremen.svg"
+          "/vector/emblem/fremen.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21511,7 +21826,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/harkonnen.svg"
+          "/vector/emblem/harkonnen.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21564,7 +21879,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/ixian.svg"
+          "/vector/emblem/ixian.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21617,7 +21932,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/moritani.svg"
+          "/vector/emblem/moritani.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21670,7 +21985,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/richese.svg"
+          "/vector/emblem/richese.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21723,7 +22038,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/guild.svg"
+          "/vector/emblem/guild.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -21776,7 +22091,7 @@
             "influence": 1,
             "invert": true
           },
-          "/vector/logo/bene-tleilaxu.svg"
+          "/vector/emblem/bene-tleilaxu.svg"
         ],
         "format": "plain",
         "about": "Choose this faction and one turn card secretly at setup. Reveal at game end if the Bene Gesserit prediction succeeds.",
@@ -22017,7 +22332,7 @@
         "name": "GF9 Kwisatz Haderach",
         "about": "Advanced Atreides companion token. Activate after 7 force losses in battles. Use the matching reference card and faction rules.",
         "front": {
-          "image": "/vector/logo/atreides.svg",
+          "image": "/vector/emblem/atreides.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -22047,7 +22362,7 @@
         "name": "GF9 Atreides Battle Loss Counter",
         "about": "Move on the Kwisatz Haderach reference card track when Atreides lose forces in battle. Activate the companion at 7 losses.",
         "front": {
-          "image": "/vector/logo/atreides.svg",
+          "image": "/vector/emblem/atreides.svg",
           "background": {
             "colors": [
               "#bda35d",
@@ -22126,7 +22441,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Atreides",
-        "logo": "/vector/logo/atreides.svg",
+        "emblem": "/vector/emblem/atreides.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -22253,7 +22568,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Harkonnen",
-        "logo": "/vector/logo/harkonnen.svg",
+        "emblem": "/vector/emblem/harkonnen.svg",
         "background": {
           "image": "/image/texture/026.jpg",
           "colors": [
@@ -22371,7 +22686,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Emperor",
-        "logo": "/vector/logo/emperor.svg",
+        "emblem": "/vector/emblem/emperor.svg",
         "background": {
           "image": "/image/texture/055.jpg",
           "colors": [
@@ -22493,7 +22808,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Spacing Guild",
-        "logo": "/vector/logo/guild.svg",
+        "emblem": "/vector/emblem/guild.svg",
         "background": {
           "image": "/image/texture/006.jpg",
           "colors": [
@@ -22617,7 +22932,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Fremen",
-        "logo": "/vector/logo/fremen.svg",
+        "emblem": "/vector/emblem/fremen.svg",
         "background": {
           "image": "/image/texture/019.jpg",
           "colors": [
@@ -22783,7 +23098,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Bene Gesserit",
-        "logo": "/vector/logo/bene-gesserit.svg",
+        "emblem": "/vector/emblem/bene-gesserit.svg",
         "background": {
           "image": "/image/texture/019.jpg",
           "colors": [
@@ -22945,7 +23260,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Ixians",
-        "logo": "/vector/logo/ixian.svg",
+        "emblem": "/vector/emblem/ixian.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -23085,7 +23400,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Tleilaxu",
-        "logo": "/vector/logo/bene-tleilaxu.svg",
+        "emblem": "/vector/emblem/bene-tleilaxu.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -23228,7 +23543,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Richese",
-        "logo": "/vector/logo/richese.svg",
+        "emblem": "/vector/emblem/richese.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -23369,7 +23684,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 CHOAM",
-        "logo": "/vector/logo/choam.svg",
+        "emblem": "/vector/emblem/choam.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -23523,7 +23838,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Ecaz",
-        "logo": "/vector/logo/ecaz.svg",
+        "emblem": "/vector/emblem/ecaz.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [
@@ -23682,7 +23997,7 @@
       "kind": "faction",
       "data": {
         "name": "GF9 Moritani",
-        "logo": "/vector/logo/moritani.svg",
+        "emblem": "/vector/emblem/moritani.svg",
         "background": {
           "image": "/image/texture/082.jpg",
           "colors": [

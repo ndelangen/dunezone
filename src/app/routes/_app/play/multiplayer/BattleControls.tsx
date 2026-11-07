@@ -1,20 +1,21 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The battle disc's claims, outcome choices, cancel and pieces are shaped parts of the board, not page actions. */
+import { Button } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { Html } from '@react-three/drei/webgpu';
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
-import type { Board } from '@shared/boards/schema';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { BattlePlan, DisclosedPlan, PublicBattle } from '@shared/play/battle';
 import { dialsFlat } from '@shared/play/battleDialing';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
-import { resolveRulebookBoardDefinition } from '@shared/rulebooks/boardDefinitions';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CalloutSurface } from '@ui/surface/CalloutSurface';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
+import { Check } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useReducer, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 
@@ -258,51 +259,16 @@ function onTablePlate([x, , z]: Vector3Tuple) {
   const { minX, maxX, minZ, maxZ } = TABLE_PLATE_BOUNDS;
   return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }
-/* These parts group several territories, and the storm sectors cut across all of them, so none of them names where a battle is. */
-const BOARD_GROUPS = new Set(['strongholds', 'rock', 'sand', 'sectors']);
-/**
- * The territory a table point falls in, read from the rulebook board that the table map draws edge to edge across the board disc.
- * The disc maps onto the board's unit square by the board radius, and each territory's outline is tested in that square.
- * A point outside every territory keeps the generic name.
- */
-async function territoryAt(position: Vector3Tuple, board?: Board) {
-  if (board) {
-    const { boardTerritoryAt, CENTER, RADIUS } = await import('@shared/boards/territories');
-    return (
-      boardTerritoryAt(board, [
-        CENTER[0] + (position[0] * RADIUS) / BOARD_RADIUS,
-        CENTER[1] + (position[2] * RADIUS) / BOARD_RADIUS,
-      ])?.name ?? 'Marked territory'
-    );
-  }
-  const parts = resolveRulebookBoardDefinition('arrakis')?.geometry.parts ?? [];
-  const context = document.createElement('canvas').getContext('2d');
-  const x = position[0] / (2 * BOARD_RADIUS) + 0.5;
-  const y = position[2] / (2 * BOARD_RADIUS) + 0.5;
-  const territory = parts.find(
-    (part) =>
-      !BOARD_GROUPS.has(part.key) &&
-      part.highlight?.paths.some(({ d, transform }) => {
-        const outline = new Path2D();
-        outline.addPath(new Path2D(d), transform && new DOMMatrix(transform));
-        return context?.isPointInPath(outline, x, y, 'evenodd');
-      })
-  );
-  return territory?.label ?? 'Marked territory';
-}
 async function sendDrop(client: TableSession, event: DragEvent, position: Vector3Tuple) {
   const pieceId = event.dataTransfer?.getData('application/dune-hand');
   if (pieceId && onTablePlate(position)) {
     client.command({ kind: 'hand-play', pieceId, position });
   }
 }
-/** Marks a battle at a table point, named for the territory under it, unless the table moved on while the name loaded. */
-async function markBattle(client: TableSession, position: Vector3Tuple) {
-  const before = client.getTable();
-  const territory = await territoryAt(position, before?.snapshot.board?.definition);
-  const current = client.getTable();
-  if (current?.canHandleTable && before?.snapshot.revision === current.snapshot.revision) {
-    client.command({ kind: 'battle-start', anchor: position, territory });
+/** Marks a battle at a table point; the game names it for the territory under it. */
+function markBattle(client: TableSession, position: Vector3Tuple) {
+  if (client.getTable()?.canHandleTable) {
+    client.command({ kind: 'battle-start', anchor: position });
   }
 }
 function useInventoryDrop({ client, table }: Props) {
@@ -431,7 +397,15 @@ function BattleCentre(props: ActiveProps) {
           </Text>
         )}
         <OutcomeButton {...props} outcome="none" />
-        <CancelBattleButton {...props} size="compact-xs" variant="subtle" className={styles.resolve} />
+        <LabeledAction
+          size="compact-xs"
+          icon={<Check size={14} />}
+          className={styles.resolve}
+          disabledReason={props.table.canHandleTable ? undefined : 'The table is unavailable.'}
+          onClick={() => props.client.command({ kind: 'battle-cancel', battleId: props.battle.id })}
+        >
+          Resolve battle
+        </LabeledAction>
       </Stack>
     );
   }
@@ -524,6 +498,7 @@ function SideContents({
 }: ActiveProps & { index: 0 | 1; active: Set<string> }) {
   const side = battle.sides[index];
   const motion = useMotionAllowed();
+  const hint = useId();
   const names = snapshotFactionLabels(table.snapshot);
   if (battle.revealed) {
     return (
@@ -572,12 +547,23 @@ function SideContents({
     <Button
       className={styles.claim}
       aria-label={index ? 'Claim right side' : 'Claim left side'}
-      styles={{ label: { whiteSpace: 'normal' } }}
+      aria-describedby={index ? undefined : hint}
+      classNames={{ label: styles.claimLabel }}
       variant="default"
       disabled={!table.canHandleTable || own >= 0}
       onClick={() => client.command({ kind: 'battle-claim', battleId: battle.id, side: index })}
     >
-      {index ? 'Claim right' : 'Claim left'}
+      {index ? (
+        'Claim right'
+      ) : (
+        /* The left side is the aggressor's, which a tie normally favours; nothing else on the table says so. */
+        <>
+          <span>Claim left</span>
+          <span id={hint} className={styles.claimNote}>
+            Aggressor, normally wins ties
+          </span>
+        </>
+      )}
     </Button>
   );
 }
@@ -641,8 +627,15 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
     </Html>
   );
 }
-/** The scene owns pointer projection; every drop remains an intent sent to the game authority. */
-export function BattleScene(props: Props) {
+/**
+ * The scene owns pointer projection;
+ * every drop remains an intent sent to the game authority.
+ * The territory under the carried marker goes out through `onMarkerTerritory`, for the page to light.
+ */
+export function BattleScene({
+  onMarkerTerritory,
+  ...props
+}: Props & Readonly<{ onMarkerTerritory?: (territoryId: string | null) => void }>) {
   const battle = props.table.snapshot.battle;
   const placement = useBattlePlacement(battle);
   useInventoryDrop(props);
@@ -652,11 +645,8 @@ export function BattleScene(props: Props) {
       <BattleBeacon
         table={props.table}
         battle={battle}
-        onDrop={(position) => {
-          void markBattle(props.client, position).catch(() => {
-            /* A failed geometry load leaves the beacon at the tracker for another drop. */
-          });
-        }}
+        onDrop={(position) => markBattle(props.client, position)}
+        onHover={onMarkerTerritory}
       />
       {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
     </>

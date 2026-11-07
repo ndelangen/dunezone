@@ -22,7 +22,7 @@ export const DuplicateName = meta.story({
     await typeCustomName(page, 'Arrakeen picnic');
     await expect(page.findByText(/You can keep the name/, {}, { timeout: 10_000 })).resolves.toBeVisible();
     await expect(page.getByLabelText('Custom name')).not.toHaveAttribute('aria-invalid', 'true');
-    await expect(page.getByRole('button', { name: 'Create game' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true');
   },
 });
 
@@ -59,7 +59,7 @@ export const RulesetTheTableCannotTake = meta.story({
       'Custom token bundles: Homeworld Reserves: Add playable members before requesting this asset.'
     );
     await expect(named.find((element) => !element.closest('[role="listbox"]'))).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Create game' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Create game' })).toHaveAttribute('aria-disabled', 'true');
     await expect(page.getByRole('button', { name: 'Check again' })).toBeVisible();
   },
 });

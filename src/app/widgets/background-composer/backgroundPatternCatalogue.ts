@@ -1,4 +1,5 @@
 import { BACKGROUND, TEXTURE } from '@shared/assetIds';
+import { isRetiredArtwork } from '@shared/media/retiredArtwork';
 
 import type { Faction } from '@db/factions';
 
@@ -14,11 +15,13 @@ export const BACKGROUND_PATTERN_CATALOGUE = [
     image,
     label: image.endsWith('/map.svg') ? 'Map lines' : image.endsWith('/starfield.svg') ? 'Starfield' : 'Moons',
   })),
-  ...TEXTURE.options.map((image) => {
-    const number = image.slice('/image/texture/'.length, -'.jpg'.length);
-    return {
-      image,
-      label: `Texture ${number}`,
-    };
-  }),
+  ...TEXTURE.options
+    .filter((image) => !isRetiredArtwork(image))
+    .map((image) => {
+      const number = image.slice('/image/texture/'.length, -'.jpg'.length);
+      return {
+        image,
+        label: `Texture ${number}`,
+      };
+    }),
 ] satisfies readonly BackgroundPatternOption[];

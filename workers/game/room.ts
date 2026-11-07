@@ -1,7 +1,10 @@
 import { randomInt } from 'node:crypto';
 
+import { arrakisBoardCapture } from '../../src/shared/boards/arrakisPreset';
+import type { Board } from '../../src/shared/boards/schema';
 import { tableHandlingOpen } from '../../src/shared/play/admission';
 import { isAllianceAction } from '../../src/shared/play/alliances';
+import type { AllianceAction } from '../../src/shared/play/alliances';
 import { isBattleAction } from '../../src/shared/play/battle';
 import type { BattleAction } from '../../src/shared/play/battle';
 import { isBiddingAction } from '../../src/shared/play/bidding';
@@ -43,6 +46,7 @@ import type {
   Viewer,
   PublicCarry,
   PublicPointer,
+  RestoreAction,
 } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import type { RemovalAction } from '../../src/shared/play/removal';
@@ -64,15 +68,22 @@ import {
   heldPieceFor,
   canFlipInHand,
   giveSpiceDraft,
+  returnTroopsDraftToReserves,
   projectCarryAtPosition,
+  noRoomMessage,
   settleCarryAtPosition,
 } from '../../src/shared/play/tableState';
+import type { TroopReserveLanding } from '../../src/shared/play/tableState';
+import { territoryAtTable, territoryLanding, withNudges } from '../../src/shared/play/territoryPlacement';
+import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
+import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../../src/shared/play/troopReserves';
 import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
 import { concealCards, deckCommand } from './decks';
+import { restoreCommand, withDeletions } from './deletions';
 import { dealFixtureDeck } from './fixture';
 import { lastTurnCommand } from './lastTurn';
 import { isMovementAction, movementAfterTable, movementCommand } from './movement';
@@ -90,6 +101,10 @@ function isFactionSetting(action: { kind: string }): action is FactionSetting {
     action.kind === 'last-turn' || isMovementAction(action) || isBiddingAction(action) || isTerritoryTintAction(action)
   );
 }
+function isSeatedCommand(action: PieceAction): action is AllianceAction | RestoreAction {
+  return action.kind === 'restore' || isAllianceAction(action);
+}
+
 type RoomAction = Exclude<
   PieceAction,
   SeatAction | RemovalAction | ReviewAction | ResultAction | DraftAction | SwapAction
@@ -117,11 +132,15 @@ type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<Cli
  * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
  * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
  * A tech token draw picks from whatever the shared table inventory holds when it arrives.
+ * A restore names its deletion and finds room among the pieces as they lie when it arrives.
+ * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
  * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
  * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
  */
 const REVISION_TOLERANT_ACTIONS = new Set<string>([
   'spice-spawn',
+  'spice-blow',
+  'restore',
   'tech-token-draw',
   'hand-order',
   'deck-draw',
@@ -231,13 +250,21 @@ export class Room {
   readonly pointers = new Map<string, PublicPointer>();
   private readonly usedCarryIds = new Map<string, Set<string>>();
   private readonly flipUntil = new Map<string, number>();
+  /** The troop kinds a faction was dealt, in setup order, from its capture; the session sets it, and a room without it orders the kinds on the table by key. */
+  dealtTroops: (factionId: string) => readonly string[] | undefined = () => undefined;
   constructor(
     snapshot: GameSnapshot | StoredSnapshot,
     private readonly seatedPlayers: () => Identity['viewerSeat'][],
     private readonly factionFor: (userId: string) => string | undefined = () => undefined,
     /** The catalogue deck the fixture deals on reset; a room adopts one after the fact when its catalogue answers late. */
     public fixtureDeck?: StoredSpawnContents,
-    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS
+    private readonly phaseCooldownMs = PHASE_CHANGE_COOLDOWN_MS,
+    /**
+     * The board the game captured with its ruleset;
+     * a table without one plays on the bundled Arrakis preset.
+     * The homepage and tutorial tables follow the saved Arrakis instead, and have no territories until it arrives.
+     */
+    private readonly board: () => Board | undefined = () => arrakisBoardCapture.definition
   ) {
     this.snapshot = storedSnapshotSchema.parse(snapshot);
     this.settledRevision = this.snapshot.revision;
@@ -309,8 +336,18 @@ export class Room {
 
   // Reserved sources remain physical obstacles until their owner's drop is accepted.
   // They cannot become somebody else's merge target while being carried.
+  /** The table as a seat sees it, on the board the game captured, whose territories stacks keep inside. */
+  private viewerTable(viewerSeat: Identity['viewerSeat']): TableState {
+    const table = tableForViewer(this.snapshot, viewerSeat);
+    return { ...table, board: this.board() };
+  }
+
   private table(identity: Identity, ownCarryId?: string): TableState {
-    const state = tableForViewer(this.snapshot, identity.viewerSeat);
+    return this.lockReserved(this.viewerTable(identity.viewerSeat), ownCarryId);
+  }
+
+  /** The table with every piece a carry holds locked, other than the given carry's own. */
+  private lockReserved(state: TableState, ownCarryId?: string): TableState {
     return {
       ...state,
       pieces: state.pieces.map((piece) => {
@@ -426,7 +463,7 @@ export class Room {
     this.assertCarryCapacity(identity);
     this.assertCarryHistory(identity, input);
     this.available(sourceId);
-    const state = tableForViewer(this.snapshot, identity.viewerSeat);
+    const state = this.viewerTable(identity.viewerSeat);
     const source = this.pickupSource(state, input);
     const draft = draftForGesture(source, pickup);
     if (!draft) {
@@ -542,20 +579,44 @@ export class Room {
     if (landing.give) {
       return this.dropAsGift(identity, { guarded, draft, landing: { ...landing, give: landing.give }, late });
     }
+    const reserves = this.reservesUnder(guarded, draft, landing.position);
+    if (reserves) {
+      /* Returned troops always go back face up, so turns made in hand are dropped rather than logged. */
+      const home = { ...draft, flips: 0 };
+      const returned = returnTroopsDraftToReserves(guarded, home, reserves, seatSubject(identity.viewerSeat));
+      const table = requireAccepted(guarded, returned);
+      const raw = this.viewerTable(identity.viewerSeat);
+      return nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
+    }
     const settled = settleCarryAtPosition(guarded, draft, landing.position);
     if (!settled) {
-      throw new GameRejection('There is no clear space for that object.');
+      throw new GameRejection(noRoomMessage(guarded, draft, landing.position));
     }
     if (settled.targetPieceId) {
       this.available(settled.targetPieceId, id);
     }
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     // Applied to the guarded table, so a plate leaves behind what another player is carrying off it;
     // the temporary reservation locks are then put back as stored, never persisted.
     const table = requireAccepted(guarded, applyDraftToState(guarded, settled, seatSubject(identity.viewerSeat)));
     const next = nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late));
     /* A faction token flipped in hand turns its faction out of the bidding, the same as the flip command. */
     return { ...next, ...biddingAfterTable(this.snapshot, next, Date.now()) };
+  }
+
+  /** The reserves of the faction whose troops are held, when they are let go over that faction's own token. */
+  private reservesUnder(
+    guarded: TableState,
+    draft: DraftMove,
+    position: Vector3Tuple
+  ): TroopReserveLanding | undefined {
+    const factionId = troopFactionOf(heldPieceFor(guarded, draft));
+    if (!factionId || factionTokenUnder(guarded.pieces, position) !== factionId) {
+      return undefined;
+    }
+    const keys = troopReserveKeys(guarded.pieces, factionId, this.dealtTroops(factionId));
+    const spots = troopReserveSpots(this.snapshot.roster, factionId, keys);
+    return spots && { factionName: this.factionName(factionId), spots };
   }
 
   /** Spice let go over another faction's token goes to that faction: into its spice reserve as a payment, or onto its bribe pile. */
@@ -569,7 +630,7 @@ export class Room {
     const pile = as === 'bribe' ? bribePilePosition(guarded.pieces, this.snapshot.roster, target) : undefined;
     const gift = { as, factionName, pile };
     const table = requireAccepted(guarded, giveSpiceDraft(guarded, draft, gift, seatSubject(identity.viewerSeat)));
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     return { ...nextSnapshot(this.snapshot, this.restoreReservationLocks(raw, table, late)), factionBanks: banks };
   }
 
@@ -631,6 +692,7 @@ export class Room {
         'lock',
         'rotate',
         'delete',
+        'restore',
         'tech-token-draw',
         'deck-draw',
         'deck-shuffle',
@@ -675,6 +737,27 @@ export class Room {
       : biddingCommand(this.snapshot, factionId, action, now);
   }
 
+  /** An alliance or a restore from the game log: only a seated faction sends either, and neither waits on the table to settle. */
+  private seatedCommand(identity: Identity, action: AllianceAction | RestoreAction, now: number): StoredSnapshot {
+    const factionId = this.requireFaction(identity);
+    return action.kind === 'restore'
+      ? this.restoreCommand(action, seatSubject(identity.viewerSeat))
+      : allianceCommand(this.snapshot, factionId, action, now);
+  }
+
+  /* A restore packs around what other players carry, as a drop does, and leaves every carried piece as it was; their temporary locks are then put back as stored. */
+  private restoreCommand(action: RestoreAction, actorName: string): StoredSnapshot {
+    const raw = this.viewerTable(SPECTATOR_SEAT);
+    const guarded = this.lockReserved(raw);
+    return restoreCommand(this.snapshot, action, actorName, {
+      table: guarded,
+      settle: (placed) => {
+        this.assertReservationsUnchanged(guarded, placed);
+        return this.restoreReservationLocks(raw, placed);
+      },
+    });
+  }
+
   private requireFaction(identity: Identity): string {
     const factionId = this.factionFor(identity.userId);
     if (!factionId) {
@@ -684,7 +767,8 @@ export class Room {
   }
 
   command(identity: Identity, action: RoomAction, expectedRevision: number, now = Date.now()): StoredSnapshot {
-    const next = this.applyCommand(identity, action, expectedRevision, now);
+    const applied = this.applyCommand(identity, action, expectedRevision, now);
+    const next = withDeletions(this.snapshot, applied, action);
     /* A new phase closes every peek, while the table keeps who peeked at what; setup holds the phase still, so each setup step and the start of play count too. */
     const moved =
       next.phase !== this.snapshot.phase ||
@@ -719,8 +803,8 @@ export class Room {
     if (isFactionSetting(action)) {
       return this.factionSettingCommand(identity, action, now);
     }
-    if (isAllianceAction(action)) {
-      return allianceCommand(this.snapshot, this.requireFaction(identity), action, now);
+    if (isSeatedCommand(action)) {
+      return this.seatedCommand(identity, action, now);
     }
     this.assertTableSettled(action, now);
     if (action.kind === 'bank-withdraw' || action.kind === 'bank-collect') {
@@ -751,7 +835,10 @@ export class Room {
 
   private battleCommand(identity: Identity, action: BattleAction, now: number): StoredSnapshot {
     const factionId = this.requireFaction(identity);
-    const next = battleCommand(this.snapshot, factionId, action, now);
+    const next = battleCommand(this.snapshot, factionId, action, now, {
+      board: this.board(),
+      reserved: new Set(this.reservations.keys()),
+    });
     /* Settling a revealed battle, by outcome or cancel, moves its overlay pieces even mid-carry; refusing it would let a carry hold the battle open. */
     if (this.snapshot.battleState?.stage !== 'revealed' || next.battleState) {
       this.assertReservationsUnchanged(this.snapshot.table as TableState, next.table as TableState);
@@ -772,7 +859,7 @@ export class Room {
   /** A plain table command: the piece move or phase change itself, kept clear of every other player's carry. */
   private tableCommand(identity: Identity, action: TableAction, now: number): StoredSnapshot {
     this.assertPhaseChange(action, now);
-    const raw = tableForViewer(this.snapshot, identity.viewerSeat);
+    const raw = this.viewerTable(identity.viewerSeat);
     const guarded = this.table(identity);
     const guardedNext = this.nextTable(guarded, action, identity);
     // Any command touching a reserved donor or target must be rejected, even
@@ -844,12 +931,14 @@ export class Room {
       throw new GameRejection("Only the faction's current player can use its spice reserve.");
     }
     const balance = this.snapshot.factionBanks[factionId];
-    const table = tableForViewer(this.snapshot, identity.viewerSeat);
+    const table = this.viewerTable(identity.viewerSeat);
+    /* A withdrawal packs into its territory around what other players carry, as a drop does; their temporary locks are then put back as stored. */
     const change =
       action.kind === 'bank-withdraw'
-        ? this.withdrawSpice(table, balance, action.amount, identity.viewerSeat, action.position)
+        ? this.withdrawSpice(this.table(identity), balance, action.amount, identity.viewerSeat, action.position)
         : this.collectSpice(table, balance, action.pieceId);
-    const next = nextSnapshot(this.snapshot, accepted(change.table, action.kind, `${factionId} ${change.message}`));
+    const settled = action.kind === 'bank-withdraw' ? this.restoreReservationLocks(table, change.table) : change.table;
+    const next = nextSnapshot(this.snapshot, accepted(settled, action.kind, `${factionId} ${change.message}`));
     return { ...next, factionBanks: { ...this.snapshot.factionBanks, [factionId]: change.balance } };
   }
 
@@ -863,10 +952,10 @@ export class Room {
     if (amount > balance) {
       throw new GameRejection('There is not enough spice in the spice reserve for that withdrawal.');
     }
-    const piece = this.spiceReserveStack(table, amount, seat, position);
+    const { piece, nudges } = this.spiceReserveStack(table, amount, seat, position);
     return {
       balance: balance - amount,
-      table: { ...table, pieces: [...table.pieces, piece] },
+      table: { ...table, pieces: [...withNudges(table.pieces, nudges), piece] },
       message: `withdrew ${amount} spice onto the table.`,
     };
   }
@@ -904,7 +993,7 @@ export class Room {
     amount: number,
     seat: Identity['viewerSeat'],
     requested?: Vector3Tuple
-  ): TablePiece {
+  ): { piece: TablePiece; nudges?: TerritoryNudge[] } {
     const piece = createSpiceStack(table.nextEventNumber, 1);
     piece.items = Array.from({ length: amount }, (_, index) => ({ id: `${piece.id}-${index + 1}`, faceUp: true }));
     const front = this.stationFront(seat);
@@ -916,11 +1005,19 @@ export class Room {
     if (requested && Math.hypot(supported[0] - origin[0], supported[2] - origin[2]) > 1e-6) {
       throw new GameRejection('Drop the spice on the table.');
     }
+    /* Spice set down in a territory keeps inside it, as a carried stack does, and the stacks there make room. */
+    const landing = territoryLanding(table, piece, origin, table.pieces);
+    if (landing === null) {
+      throw new GameRejection(`${territoryAtTable(table, origin)!.name} has no room for that.`);
+    }
+    if (landing) {
+      return { piece: { ...piece, position: landing.position }, nudges: landing.nudges };
+    }
     const position = nearestCollisionFreePosition(piece, origin, table.pieces);
     if (!position) {
       throw new GameRejection('Make room on the table before withdrawing spice.');
     }
-    return { ...piece, position };
+    return { piece: { ...piece, position } };
   }
 
   private assertPhaseChange(action: PieceAction, now: number) {
@@ -963,7 +1060,7 @@ export class Room {
     if (!controls.seats.includes(identity.viewerSeat)) {
       throw new GameRejection('Only a current seated player can use this control.');
     }
-    const table = { ...tableForViewer(this.snapshot, identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
+    const table = { ...this.viewerTable(identity.viewerSeat), pieces: [...this.snapshot.table.pieces] };
     let message: string;
     switch (action.kind) {
       case 'ready':
@@ -1257,7 +1354,7 @@ export class Room {
   }
 
   private publicCarry(carry: Carry): PublicCarry[] {
-    const held = heldPieceFor(tableForViewer(this.snapshot, carry.viewerSeat), carry.draft);
+    const held = heldPieceFor(this.viewerTable(carry.viewerSeat), carry.draft);
     if (!held) {
       return [];
     }

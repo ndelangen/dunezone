@@ -14,6 +14,10 @@ export class HomepageRoom extends ProductionHomepageRoom {
       await this.ctx.storage.put('table', { ...saved, snapshot: {} });
       return new Response(null, { status: 204 });
     }
+    if (url.pathname === '/native-test/saved-board') {
+      const board = await this.ctx.storage.get<{ asset?: { name?: string } }>('arrakis-board');
+      return Response.json({ name: board?.asset?.name ?? null });
+    }
     if (url.pathname === '/native-test/clock') {
       fixedNow = url.searchParams.has('now') ? Number(url.searchParams.get('now')) : undefined;
       offset = Number(url.searchParams.get('offset'));

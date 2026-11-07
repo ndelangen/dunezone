@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- Each post title is itself the link to the post, which a Section title cannot be. */
 import { Anchor, Grid, SimpleGrid, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -9,7 +10,7 @@ import { publicPageHead } from '@app/routes/publicPage';
 
 import { AuthorByline } from './AuthorByline';
 import styles from './index.module.css';
-import { BLOG_POSTS, blogPostAuthor } from './posts';
+import { blogPostAuthor, LISTED_BLOG_POSTS } from './posts';
 import type { BlogPostMeta } from './posts';
 
 export const Route = createFileRoute('/_app/blog/')({
@@ -43,8 +44,8 @@ function BlogPage() {
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap={0} className={styles.list}>
-          {BLOG_POSTS.map((meta, index) => (
-            <PostEntry meta={meta} number={BLOG_POSTS.length - index} key={meta.slug} />
+          {LISTED_BLOG_POSTS.map((meta, index) => (
+            <PostEntry meta={meta} number={LISTED_BLOG_POSTS.length - index} key={meta.slug} />
           ))}
         </Stack>
       </PageLayout.Content>

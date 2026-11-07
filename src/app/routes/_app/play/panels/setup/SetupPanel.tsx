@@ -1,11 +1,13 @@
-import { Button, Group, Select, Stack, Text } from '@mantine/core';
+import { Group, Select, Stack, Text } from '@mantine/core';
 import type { setupStep } from '@shared/play/setup';
 import { playUiColors } from '@shared/uiPalette';
 import { Section } from '@ui/block/Section';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Stepper } from '@ui/control/Stepper';
-import { Layers } from 'lucide-react';
+import { Eye, Layers, Lock } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { factionOption } from '../../multiplayer/factionOption';
@@ -118,13 +120,18 @@ function PredictionInput({
     choice.factionId && typeof choice.turn === 'number' && Number.isSafeInteger(choice.turn) && choice.turn >= 1;
   return (
     <Stack gap="sm">
-      <Select
-        label="Predicted winner"
-        data={options}
-        renderOption={({ option }) => factionOption(options, option.value)}
-        value={choice.factionId}
-        onChange={(factionId) => change({ factionId })}
-        disabled={disabled}
+      <ControlBlock
+        title="Predicted winner"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            data={options}
+            renderOption={({ option }) => factionOption(options, option.value)}
+            value={choice.factionId}
+            onChange={(factionId) => change({ factionId })}
+            disabled={disabled}
+          />
+        )}
       />
       <Stepper
         label="Predicted turn"
@@ -133,12 +140,16 @@ function PredictionInput({
         onChange={(turn) => change({ turn })}
         disabled={disabled}
       />
-      <Button
-        disabled={disabled || !valid}
+      <LabeledAction
+        emphasis="strong"
+        icon={<Lock size={16} />}
+        disabledReason={
+          disabled ? 'The table is unavailable.' : valid ? undefined : 'Choose a faction and a turn first.'
+        }
         onClick={() => valid && onLock({ factionId: choice.factionId!, turn: Number(choice.turn) })}
       >
         Lock prediction
-      </Button>
+      </LabeledAction>
     </Stack>
   );
 }
@@ -162,16 +173,20 @@ function Prediction({
   const { state } = row;
   return (
     /* The Setup window's guidance names the current step only, so every other declaration keeps its heading in view. */
-    <Section hiddenHeading={hiddenHeading && row.current} title={row.title} description={row.help}>
+    <Section hiddenHeading={hiddenHeading && row.current} title={row.title} help={row.help}>
       <Stack gap="sm">
         {state.kind === 'locked' ? (
           <>
             <Text size="sm">{lockedPredictionText(state.revealed, state.byCard)}</Text>
             {state.choice && <PredictionCards {...state.choice} />}
             {state.canReveal && (
-              <Button variant="default" disabled={disabled} onClick={() => onRevealPrediction(row.stepId)}>
+              <LabeledAction
+                icon={<Eye size={16} />}
+                disabledReason={disabled ? 'The table is unavailable.' : undefined}
+                onClick={() => onRevealPrediction(row.stepId)}
+              >
                 Reveal prediction
-              </Button>
+              </LabeledAction>
             )}
           </>
         ) : state.kind === 'choosing' ? (
@@ -211,13 +226,17 @@ export function SetupPanel(props: SetupPanelProps) {
   return (
     <Stack gap="md">
       {step.kind !== 'prediction' && (
-        <Section hiddenHeading={hiddenHeading} title={step.title} description={step.help}>
+        <Section hiddenHeading={hiddenHeading} title={step.title} help={step.help}>
           <Stack gap="sm">
             {step.kind === 'traitors' && !observing && (
               <>
-                <Button variant="default" disabled={disabled} onClick={onGatherTraitors}>
+                <LabeledAction
+                  icon={<Layers size={16} />}
+                  disabledReason={disabled ? 'The table is unavailable.' : undefined}
+                  onClick={onGatherTraitors}
+                >
                   Gather tabletop traitors
-                </Button>
+                </LabeledAction>
                 {traitors?.factions.map((faction) => (
                   <Group key={faction.value} justify="space-between" wrap="nowrap">
                     {factionOption(traitors.factions, faction.value)}

@@ -21,7 +21,7 @@ export const THUFIR: ComponentProps<typeof LeaderToken> = {
     influence: 1,
   },
   image: '/image/leader/official/thufir.png',
-  logo: '/vector/logo/atreides.svg',
+  emblem: '/vector/emblem/atreides.svg',
   name: 'Thufir Hawat',
   strength: '5',
 };

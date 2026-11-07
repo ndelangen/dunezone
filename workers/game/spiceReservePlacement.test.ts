@@ -1,6 +1,9 @@
 import { expect, test } from 'vite-plus/test';
 
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { spiceReserveActionSchema } from '../../src/shared/play/spiceReserve';
+import { restingPositionAt } from '../../src/shared/play/tableGeometry';
+import { innermostPoint, tableTerritories } from '../../src/shared/play/territoryFit';
 import { hostedFixturePlan } from './fixture';
 import { Room } from './room';
 
@@ -73,4 +76,33 @@ test('the wire rejects invalid spice amounts and positions while retaining legac
     expect(spiceReserveActionSchema.safeParse({ kind: 'bank-withdraw', amount: 1, position }).success).toBe(false);
   }
   expect(spiceReserveActionSchema.safeParse({ kind: 'bank-withdraw', amount: 1 }).success).toBe(true);
+});
+
+test('spice withdrawn into a territory packs around a stack another player is carrying, and their carry still lands', () => {
+  const snapshot = hostedFixturePlan.snapshot(hostedFixturePlan.roster);
+  const troops = snapshot.table.pieces.find((piece) => piece.kind === 'force' && !piece.inventory && !piece.locked)!;
+  const arrakeen = tableTerritories(arrakisBoardCapture.definition).find((territory) => territory.name === 'Arrakeen')!;
+  const [x, z] = innermostPoint(arrakeen);
+  const placed = { ...troops, position: restingPositionAt([x, 0, z], troops) };
+  const table = new Room(
+    { ...snapshot, table: { ...snapshot.table, pieces: [placed] }, factionBanks: { atreides: 37 } },
+    () => ['atreides', 'harkonnen'],
+    (userId) => (userId === player.userId ? 'atreides' : undefined),
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
+  );
+  const carrier = { ...player, connectionId: 'carrier', userId: 'carrier', viewerSeat: 'harkonnen' };
+  table.begin(carrier, {
+    carryId: 'held',
+    sourcePieceId: placed.id,
+    expectedVersion: table.snapshot.versions[placed.id],
+    pickup: 'whole',
+  });
+  table.accept(table.command(player, { kind: 'bank-withdraw', amount: 2, position: [x, 0, z] }, 0, Date.now()));
+  const carried = table.snapshot.table.pieces.find((piece) => piece.id === placed.id)!;
+  /* The carried stack is neither shifted nor left locked; the spice found room around it. */
+  expect(carried.position).toEqual(placed.position);
+  expect(carried.locked).toBe(placed.locked);
+  expect(() => table.drop(carrier, 'held', { position: [x, 0.38, z], orientation: 0 })).not.toThrow();
 });

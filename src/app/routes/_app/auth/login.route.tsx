@@ -1,11 +1,14 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Button, Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core';
+import { Stack, Text, TextInput, Tooltip, VisuallyHidden } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- Every button on this page wears the sign-in layout (provider marks, the full-width Go to Dune Zone), and the e2e setup finds the local one by its test id. */
+import { Button } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import type { SignInReturn } from '@shared/authDestination';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight, History } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
@@ -176,21 +179,31 @@ function SignInPanel({
       )}
       {localAuthEnabled ? (
         <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>
-          <TextInput
-            label="Email"
-            type="email"
-            autoComplete="username"
-            value={state.email}
-            onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
-            disabled={state.busy !== null}
+          <ControlBlock
+            title="Email"
+            input={(fieldProps) => (
+              <TextInput
+                {...fieldProps}
+                type="email"
+                autoComplete="username"
+                value={state.email}
+                onChange={(event) => dispatch({ kind: 'emailChanged', value: event.currentTarget.value })}
+                disabled={state.busy !== null}
+              />
+            )}
           />
-          <TextInput
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            value={state.password}
-            onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
-            disabled={state.busy !== null}
+          <ControlBlock
+            title="Password"
+            input={(fieldProps) => (
+              <TextInput
+                {...fieldProps}
+                type="password"
+                autoComplete="current-password"
+                value={state.password}
+                onChange={(event) => dispatch({ kind: 'passwordChanged', value: event.currentTarget.value })}
+                disabled={state.busy !== null}
+              />
+            )}
           />
           <Button
             type="submit"

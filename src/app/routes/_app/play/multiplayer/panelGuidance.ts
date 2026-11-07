@@ -68,6 +68,16 @@ export const ALLIANCES_GUIDANCE: Guidance = {
   help: ALLIANCES_HELP,
 };
 
+export const SEATS_HELP = helpLines(
+  'A spectator asks for an open seat from Seats in the header, and any one player approves it here.',
+  'Signed-in spectators are listed by name; anyone watching signed out is only counted.'
+);
+
+export const SEATS_GUIDANCE: Guidance = {
+  description: 'Who is watching, and who asks for a seat.',
+  help: SEATS_HELP,
+};
+
 export const GAME_LENGTH_HELP = 'The turn wheel counts up to the last turn. Play can carry on past it.';
 
 export const GAME_LENGTH_GUIDANCE: Guidance = { description: 'How many turns the game lasts.', help: GAME_LENGTH_HELP };
@@ -134,7 +144,10 @@ export function phaseGuidance(table: TableProjection): Guidance | undefined {
   return { description: `${phase.label}, instructions and actions.`, help: phaseHelp(table) };
 }
 
-export const CONVERSATION_HELP = 'Sent means saved. No read receipts.';
+export const CONVERSATION_HELP = helpLines(
+  'Sent means saved. No read receipts.',
+  'Hold the eraser to clear it for you; the log says you did, the others keep theirs.'
+);
 
 export const TABLE_CONVERSATION_GUIDANCE: Guidance = {
   description: 'Messages to every seated faction.',

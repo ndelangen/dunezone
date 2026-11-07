@@ -1,4 +1,6 @@
-import { Alert, Avatar, Badge, Box, Button, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
+/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
+import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -7,21 +9,20 @@ import type { RouteNoticeCode } from '@shared/routeNotices';
 import { getRulebookSize } from '@shared/rulebooks/settings';
 import { Link, createFileRoute, notFound, redirect, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { FactionCard } from '@ui/block/FactionCard';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { ColumnsWithRailLayout } from '@ui/layout/ColumnsWithRailLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
@@ -29,7 +30,6 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   CircleHelp,
   EllipsisVertical,
@@ -37,6 +37,7 @@ import {
   FileText,
   History,
   Layers3,
+  MessageCircleQuestion,
   MessageCircleQuestionMark,
   Pencil,
   RefreshCw,
@@ -51,12 +52,13 @@ import { useCurrentProfile } from '@db/profiles';
 import { useRetryRulebookFirstPagePreview } from '@db/rulebooks';
 import type { RulebookListEntry } from '@db/rulebooks';
 import { loadRulesetDetailPage, useDeleteRuleset, useRulesetDetailPage, useSetRulesetGroup } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 import styles from './index.module.css';
 
@@ -287,7 +289,7 @@ function RulesetFaqPreview({
       id="faq"
       icon={<CircleHelp size={20} aria-hidden />}
       title="Community FAQ"
-      description="Browse community questions and accepted answers."
+      help="Browse community questions and accepted answers."
     >
       <form
         role="search"
@@ -356,13 +358,12 @@ function RulesetFaqPreview({
       />
       {questionCount > items.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<MessageCircleQuestion size={16} />}
             renderRoot={(props) => <Link {...props} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
           >
-            All {questionCount} questions
-          </Button>
+            {`All ${questionCount} questions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Section>
@@ -419,19 +420,21 @@ const backToRulesets = <PageMessage.Back to="/rulesets">Back to rulesets</PageMe
 
 function RulesetDetailPending() {
   return (
-    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-      <LoadPending title="Loading ruleset">The ruleset details are still loading.</LoadPending>
-    </PageMessage>
+    <RoutePending size="compact" title="Ruleset" back={backToRulesets} loading="Loading ruleset">
+      The ruleset details are still loading.
+    </RoutePending>
   );
 }
 
 function RulesetDetailError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-      <LoadError title="Ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      size="compact"
+      title="Ruleset"
+      back={backToRulesets}
+      what="Ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -450,11 +453,7 @@ function RulesetDetailPage() {
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
   if (!page) {
-    return (
-      <PageMessage size="compact" title="Ruleset" back={backToRulesets}>
-        <NotAvailable title="Ruleset not found">This ruleset does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
+    return <RouteNotFound size="compact" title="Ruleset" back={backToRulesets} noun="ruleset" />;
   }
 
   /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */
@@ -649,11 +648,7 @@ function RulesetDetailPage() {
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
               {actionVisibility.canDelete ? (
-                <ConfirmDeleteAction
-                  label="Delete ruleset"
-                  pending={deleteRuleset.isPending}
-                  onConfirm={handleDelete}
-                />
+                <HoldAction label="Delete ruleset" pending={deleteRuleset.isPending} onConfirm={handleDelete} />
               ) : null}
             </Toolbar.Cluster>
           </Toolbar.Right>
@@ -664,21 +659,11 @@ function RulesetDetailPage() {
           <ColumnsWithRailLayout.Primary>
             <Stack gap="xl">
               {routeNotice ? (
-                <Alert
-                  color={routeNotice.color}
-                  title={routeNotice.title}
-                  role="alert"
-                  withCloseButton
-                  onClose={dismissRouteNotice}
-                >
+                <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
                   {routeNotice.message}
-                </Alert>
+                </Notice>
               ) : null}
-              {mutationError ? (
-                <Alert color="red" title="The change could not be saved" role="alert">
-                  {mutationError}
-                </Alert>
-              ) : null}
+              <ActionError subject="The change" verb="save" error={mutationError} />
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
                 <Surface padding="lg">
@@ -714,12 +699,12 @@ function RulesetDetailPage() {
                     <FactionCard key={faction._id} faction={faction} />
                   ))}
                   {factionCount > page.factionPreview.length ? (
-                    <Button
-                      variant="default"
+                    <LabeledAction
+                      icon={<TopicIcon topic="factions" size={16} />}
                       renderRoot={(props) => <Link {...props} to="/factions" search={{ ruleset: r.slug }} />}
                     >
-                      All {factionCount} factions
-                    </Button>
+                      {`All ${factionCount} factions`}
+                    </LabeledAction>
                   ) : null}
                 </Stack>
               ) : (

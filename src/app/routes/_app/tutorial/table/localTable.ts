@@ -1,4 +1,5 @@
 import { capturedTokenStackKey } from '@shared/play/assetCapture';
+import type { BoardCapture } from '@shared/play/capture';
 import { describeCardDraw } from '@shared/play/cardDraw';
 import { spawnableKey } from '@shared/play/inventory';
 import type { SpawnSelection, StoredSpawnContents } from '@shared/play/inventory';
@@ -8,7 +9,7 @@ import type { TablePiece } from '@shared/play/model';
 import type { ClientMessage, GameSnapshot, PieceAction, ServerMessage, Viewer } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 import { isResultAction } from '@shared/play/result';
-import { isReviewAction, REVIEW_CHECKPOINTS, reviewableStage, reviewRunning } from '@shared/play/review';
+import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '@shared/play/review';
 
 import { expireBattle } from '../../../../../../workers/game/battle';
 import { applyResult, settleEnding } from '../../../../../../workers/game/result';
@@ -72,6 +73,10 @@ export class LocalTable {
   private readonly pingTimes: number[] = [];
   private tradingTimer: ReturnType<typeof setTimeout> | undefined;
   private battleTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The board the table plays on: the saved Arrakis, once the page has read it. */
+  board: BoardCapture | undefined;
+  /* The guide's last view of the table, and the room and board it showed. */
+  private guideSeen: { room: unknown; board: BoardCapture | undefined; snapshot: GameSnapshot } | undefined;
   /** Delivers a frame to the page; the transport sets it once the page connects. */
   deliver: (message: ServerMessage) => void = () => {};
   /** The seat the page is viewed as. */
@@ -107,8 +112,18 @@ export class LocalTable {
       () => this.session.actors.seats(),
       (userId) => this.factionFor(userId),
       undefined,
-      0
+      0,
+      () => this.board?.definition
     );
+  }
+
+  /** Puts the table on a board, and shows the page the table on it. */
+  setBoard(board: BoardCapture | undefined) {
+    if (board === this.board) {
+      return;
+    }
+    this.board = board;
+    this.deliver(this.frame());
   }
 
   private factionFor(userId: string) {
@@ -135,6 +150,15 @@ export class LocalTable {
     return { ...holder, viewerSeat: seat };
   }
 
+  /** The page's seat's view for the guide, which asks every frame: projected again only once the room or its board has moved on. */
+  guideSnapshot() {
+    const { snapshot: room } = this.room;
+    if (this.guideSeen?.room !== room || this.guideSeen.board !== this.board) {
+      this.guideSeen = { room, board: this.board, snapshot: this.frame().snapshot };
+    }
+    return this.guideSeen.snapshot;
+  }
+
   /** The view a seat receives of the room as it stands, projected as the Worker projects it. */
   frame(seat = this.seat, completedCommandId?: string): View {
     const room = this.room;
@@ -146,10 +170,11 @@ export class LocalTable {
       epoch: room.epoch,
       snapshot: {
         ...projected,
+        ...(this.board ? { board: this.board } : {}),
         ...(reviewableStage(room.snapshot.stage)
           ? {
               review: this.session.reviews.current(),
-              reviewCheckpoints: this.session.history.recent(REVIEW_CHECKPOINTS),
+              reviewCheckpoints: this.session.history.recent(reviewCheckpointLimit(room.snapshot.stage)),
             }
           : {}),
         /* Who sits where comes from the session's directory, as in a real game. */
@@ -193,9 +218,20 @@ export class LocalTable {
     };
   }
 
+  /** Logs a chat clear as the Worker does; true when it added a line. */
+  recordChatClear(clear: { factionId: string; peerId: string; through: number }) {
+    return this.session.log.recordChatClear({
+      snapshot: this.session.currentSnapshot,
+      holders: this.session.actors.occupants(),
+      ...clear,
+    });
+  }
+
   /** New events follow the chapter's recorded log, using the same sequence across both tabs. */
   logPage(tab: LogTab, before: number) {
-    const recent = this.session.log.page(tab, before);
+    /* A deletion the room still keeps offers Restore here too, as at a real table. */
+    const restorable = new Set(this.room.snapshot.deletedPieces.map((entry) => entry.id));
+    const recent = this.session.log.page(tab, before, restorable);
     const entries = [...recent.entries, ...(this.opening.log[tab] ?? []).filter((entry) => entry.sequence < before)];
     return { entries: entries.slice(0, LOG_PAGE_SIZE), more: recent.more || entries.length > LOG_PAGE_SIZE };
   }
@@ -421,7 +457,7 @@ export class LocalTable {
           action: message.action,
           now: Date.now(),
           checkpoint: (step) =>
-            this.session.history.recent(REVIEW_CHECKPOINTS).find((entry) => entry.step === step)?.context,
+            this.session.history.checkpointContext(step, reviewCheckpointLimit(room.snapshot.stage)),
         })
       );
       return;

@@ -4,7 +4,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
-import { api, internal } from './_generated/api';
+import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 
 async function authenticatedTest() {
@@ -132,7 +132,7 @@ describe('faction slug reservations', () => {
     await asUser.mutation(api.factions.update, { id: first._id, data: { ...first.data, name: 'House Corrino' } });
     const saved = await asUser.mutation(api.factions.update, {
       id: second._id,
-      data: { ...second.data, logo: first.data.logo },
+      data: { ...second.data, emblem: first.data.emblem },
     });
     expect(saved.slug).toBe(second.slug);
     const spelling = await asUser.mutation(api.factions.update, {
@@ -141,53 +141,5 @@ describe('faction slug reservations', () => {
     });
     expect(spelling.slug).toBe(second.slug);
     expect(spelling.data.name).toBe('HOUSE ATREIDES!');
-  });
-
-  test('the repair keeps the active public slug and archives the deleted duplicate', async () => {
-    const t = applicationTest();
-    const { activeId, deletedId } = await t.run(async (ctx) => {
-      const ownerId = await ctx.db.insert('users', { name: 'Faction slug migration owner' });
-      await ctx.db.insert('profiles', {
-        user_id: ownerId,
-        username: 'Faction slug migration owner',
-        avatar_url: null,
-        account_state: 'active',
-        slug: 'faction-slug-migration-owner',
-        created_at: '2026-07-22T06:00:00.000Z',
-        updated_at: '2026-07-22T06:00:00.000Z',
-      });
-      const deletedId = await ctx.db.insert('factions', {
-        owner_id: ownerId,
-        data: { ...assetPublishingFaction, name: 'Migrated Faction' },
-        slug: 'migrated-faction',
-        created_at: '2026-07-22T06:00:00.000Z',
-        updated_at: '2026-07-22T06:01:00.000Z',
-        is_deleted: true,
-        group_id: null,
-      });
-      const activeId = await ctx.db.insert('factions', {
-        owner_id: ownerId,
-        data: { ...assetPublishingFaction, name: 'Migrated Faction' },
-        slug: 'migrated-faction',
-        created_at: '2026-07-22T06:02:00.000Z',
-        updated_at: '2026-07-22T06:02:00.000Z',
-        is_deleted: false,
-        group_id: null,
-      });
-      return { activeId, deletedId };
-    });
-
-    await t.mutation(internal.migrations.faction_slug_reservations_v1, {});
-    await t.mutation(internal.migrations.faction_slug_reservations_verify_v1, {});
-
-    const repaired = await t.run(async (ctx) => ({
-      active: await ctx.db.get('factions', activeId),
-      deleted: await ctx.db.get('factions', deletedId),
-    }));
-    expect(repaired.active?.slug).toBe('migrated-faction');
-    expect(repaired.deleted?.slug).toBe(`migrated-faction-archived-${deletedId}`);
-    await expect(t.query(api.factions.pageBySlug, { slug: 'migrated-faction' })).resolves.toMatchObject({
-      faction: { _id: activeId },
-    });
   });
 });

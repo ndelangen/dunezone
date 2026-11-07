@@ -1,0 +1,170 @@
+/* The drawn keyboard: rows of key tiles, each in its group's colour, glowing when it does something only now. */
+.keyboard {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-xs) * 0.6);
+  container-type: inline-size;
+}
+
+.row {
+  display: flex;
+  gap: inherit;
+}
+
+.key {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space-xs) * 0.3);
+  min-width: 0;
+  height: 3.1rem;
+  padding: calc(var(--space-xs) * 0.4) calc(var(--space-xs) * 0.2);
+  border: 1px solid color-mix(in srgb, var(--color-text) 10%, transparent);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  color: color-mix(in srgb, var(--color-text) 30%, transparent);
+  font: inherit;
+  transition:
+    opacity 220ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    scale 160ms ease-out;
+}
+
+/* The whole key lifts and grows under the pointer, above its neighbours. */
+.key[data-state]:hover,
+.key[data-state]:focus-visible {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0.3rem 0.8rem var(--color-shadow);
+  scale: 1.25;
+}
+
+.key[data-blank] {
+  visibility: hidden;
+}
+
+.key[data-state] {
+  border-color: var(--group-edge);
+  background: var(--group-fill);
+  color: var(--color-text);
+  cursor: help;
+}
+
+/* A key that only does something now glows in its colour, softly breathing once as it lights. */
+.key[data-state="now"] {
+  border-color: var(--group);
+  background: var(--group-fill-now);
+  box-shadow: 0 0 0.6rem color-mix(in srgb, var(--group) 45%, transparent);
+  animation: light 700ms ease-out;
+}
+
+.key[data-focus] {
+  outline: 2px solid var(--group, var(--color-text));
+  outline-offset: 1px;
+}
+
+/* The key's own letter, large and plain. */
+.letter {
+  display: inline-block;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.caption {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--color-muted);
+  font-size: 0.6rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: word-in 260ms ease-out;
+}
+
+.key[data-state="now"] .caption {
+  color: var(--color-text);
+}
+
+.lit {
+  color: var(--group);
+  font-weight: 800;
+}
+
+@keyframes light {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--group) 80%, transparent);
+  }
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.25rem;
+  }
+}
+
+/* Pinned into a narrow slot, the keys keep their caps and colours and leave their words to the tooltips. */
+@container (max-width: 26rem) {
+  .row {
+    gap: calc(var(--space-xs) * 0.4);
+  }
+
+  .key {
+    height: 2.2rem;
+    padding: 0;
+    font-size: 0.8rem;
+  }
+
+  .letter {
+    font-size: 1.05rem;
+  }
+
+  .caption {
+    display: none;
+  }
+}
+
+html[data-motion="reduce"] .key[data-state="now"],
+html[data-motion="reduce"] .caption {
+  animation: none;
+}
+
+html[data-motion="reduce"] .key {
+  transition: none;
+}
+
+/* The tooltip: one line per meaning, its group's colour on the left edge. */
+.tip {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-xs) * 0.7);
+}
+
+.tipLine {
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: 0 calc(var(--space-xs) * 1.2);
+  padding-left: calc(var(--space-xs) * 0.9);
+  border-left: 2px solid var(--group);
+}
+
+.tipAction {
+  font-weight: 600;
+}
+
+.tipWhen {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.tipHook {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  font-style: italic;
+  opacity: 0.8;
+}

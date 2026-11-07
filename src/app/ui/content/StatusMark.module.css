@@ -15,17 +15,6 @@
   outline-offset: 2px;
 }
 
-/* In a list the glyph sits beside the first line of its words, however many lines they wrap to. */
-.row {
-  display: flex;
-  gap: var(--mantine-spacing-xs);
-  align-items: flex-start;
-}
-
-.row > .glyph {
-  padding-top: 1px;
-}
-
 .neutral {
   color: var(--mantine-color-dimmed);
 }

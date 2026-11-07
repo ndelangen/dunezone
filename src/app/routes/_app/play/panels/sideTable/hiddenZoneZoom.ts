@@ -4,6 +4,8 @@
  * A zoomed view shows part of what the unzoomed view shows, never more, so a piece is never laid where zooming out cannot show it.
  */
 
+import { wheelZoomFactor } from '../../../../../widgets/tabletop/wheelPixels';
+
 /** The closest the side-table zooms in. */
 export const HIDDEN_ZONE_MAX_ZOOM = 4;
 
@@ -48,4 +50,4 @@ export function zoomAbout(
 }
 
 /** How much one wheel step zooms: a notch of a mouse wheel is about 100 pixels of delta, a fifth more or less. */
-export const wheelFactor = (deltaY: number) => Math.exp(-deltaY * 0.0018);
+export const wheelFactor = (deltaY: number) => wheelZoomFactor(deltaY, 1 / 0.0018);

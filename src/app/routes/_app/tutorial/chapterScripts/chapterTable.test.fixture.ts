@@ -1,3 +1,4 @@
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { PieceAction } from '@shared/play/protocol';
 
 import recorded from '../setup/setup.json';
@@ -11,6 +12,8 @@ export function chapterTable(script: ChapterScript) {
   const table = new LocalTable(
     startAt(recorded as unknown as TutorialSetup, script.checkpoint, 'https://dune.zone', script)
   );
+  /* The page puts the table on the saved Arrakis once it has read it. */
+  table.setBoard(arrakisBoardCapture);
   let sequence = 0;
   const act = (action: PieceAction, seat = table.seat) =>
     table.receive(

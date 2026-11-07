@@ -1,17 +1,20 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Alert, Button, Group, Stack, Text } from '@mantine/core';
+import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { FormError } from '@ui/block/FormError';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { ArrowRight, Merge } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
 import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/connect')({
   head: () => ({
@@ -33,9 +36,9 @@ function ConnectAccountPage() {
 
 function ConnectionPending() {
   return (
-    <PageMessage title="Connect sign-in method">
-      <LoadPending title="Checking the connection">The sign-in result is loading.</LoadPending>
-    </PageMessage>
+    <RoutePending title="Connect sign-in method" loading="Checking the connection">
+      The sign-in result is loading.
+    </RoutePending>
   );
 }
 
@@ -62,9 +65,9 @@ function ConnectAccount({ token }: { token: string }) {
   if (!connection) {
     return (
       <PageMessage title="Connect sign-in method">
-        <NotAvailable title="Connection unavailable">
+        <PageState kind="absent" title="Connection unavailable">
           This connection expired or the sign-in did not finish. Start again from your profile.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -77,11 +80,7 @@ function ConnectAccount({ token }: { token: string }) {
       <PageLayout.Content>
         <Surface padding="lg">
           <Stack>
-            {state.error && (
-              <Alert color="red" role="alert">
-                {state.error}
-              </Alert>
-            )}
+            {state.error && <FormError title="Connection could not finish">{state.error}</FormError>}
             <ConnectionStatus
               connection={connection}
               provider={provider}
@@ -129,9 +128,9 @@ function ConnectionStatus({
       );
     case 'failed':
       return (
-        <Alert color="red" role="alert">
-          The merge paused. An administrator can resume it from Accounts. {connection.error}
-        </Alert>
+        <FormError title="Merge paused">
+          {['An administrator can resume it from Accounts.', connection.error].filter(Boolean).join(' ')}
+        </FormError>
       );
     case 'completed':
       return (
@@ -139,7 +138,9 @@ function ConnectionStatus({
           <Text>
             {provider} is now connected to {connection.targetName}. Your content and access have been combined.
           </Text>
-          <Button onClick={onContinue}>Continue with {provider}</Button>
+          <LabeledAction intent="positive" emphasis="strong" icon={<ArrowRight size={16} />} onClick={onContinue}>
+            {`Continue with ${provider}`}
+          </LabeledAction>
         </>
       );
   }
@@ -178,9 +179,9 @@ function ConnectionReview({
       </Text>
       <Text size="sm">This merge cannot be undone. You will sign in once more when it finishes.</Text>
       <Group>
-        <Button loading={busy} onClick={onAccept}>
+        <LabeledAction intent="positive" emphasis="strong" icon={<Merge size={16} />} busy={busy} onClick={onAccept}>
           Connect and merge profiles
-        </Button>
+        </LabeledAction>
         <Link to="/profiles">Cancel</Link>
       </Group>
     </>

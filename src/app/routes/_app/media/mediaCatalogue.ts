@@ -4,12 +4,13 @@ import {
   GENERIC,
   ICON,
   LEADERS,
-  LOGO,
+  EMBLEM,
   PLANET,
   TEXTURE,
   TROOP,
   TROOP_MODIFIER,
 } from '@shared/assetIds';
+import { isRetiredArtwork } from '@shared/media/retiredArtwork';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 
 import metadata from './mediaSearchIndex.generated.json';
@@ -25,6 +26,8 @@ export interface MediaEntry {
   subjects: readonly string[];
   glyphPreview: boolean;
   kind: MediaKind;
+  /** Who made the artwork and how this copy was made. */
+  credit?: string;
 }
 
 const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => path.startsWith(prefix));
@@ -32,7 +35,7 @@ const indexedPaths = (prefix: string) => Object.keys(metadata).filter((path) => 
 const assetsByKind: Record<MediaKind, readonly string[]> = {
   decal: DECAL.options,
   generic: GENERIC.options,
-  logo: LOGO.options,
+  emblem: EMBLEM.options,
   icon: ICON.options,
   troop: TROOP.options,
   troop_modifier: TROOP_MODIFIER.options,
@@ -47,14 +50,16 @@ const assetsByKind: Record<MediaKind, readonly string[]> = {
 };
 
 export const mediaEntries: MediaEntry[] = indexedMediaKinds.flatMap(({ value: kind }) =>
-  stockAssetOptions(assetsByKind[kind]).map(({ keywords: _collectionKeywords, ...entry }) => ({
-    ...entry,
-    kind,
-    ...(['cover', 'card', 'shield', 'web'].includes(kind)
-      ? { collection: indexedMediaKinds.find((item) => item.value === kind)!.label }
-      : {}),
-    ...metadata[entry.value as keyof typeof metadata],
-  }))
+  stockAssetOptions(assetsByKind[kind].filter((path) => !isRetiredArtwork(path))).map(
+    ({ keywords: _collectionKeywords, ...entry }) => ({
+      ...entry,
+      kind,
+      ...(['cover', 'card', 'shield', 'web'].includes(kind)
+        ? { collection: indexedMediaKinds.find((item) => item.value === kind)!.label }
+        : {}),
+      ...metadata[entry.value as keyof typeof metadata],
+    })
+  )
 );
 
 export const catalogueEntries = mediaEntries.filter((entry) => mediaKinds.some((kind) => kind.value === entry.kind));

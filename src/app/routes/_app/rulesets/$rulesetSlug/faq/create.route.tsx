@@ -1,26 +1,28 @@
-import { Button, Group, Stack } from '@mantine/core';
+import { Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { FormError } from '@ui/block/FormError';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
+import { ActionError } from '@ui/block/ActionError';
+import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
-import { errorMessage } from '@ui/content/errorMessage';
 import { RulesetLink } from '@ui/content/RulesetLink';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Send } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { useAskFaqQuestion } from '@db/faq';
 import { useCurrentProfile } from '@db/profiles';
 import { loadRulesetBySlug, useRulesetBySlug } from '@db/rulesets';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
   loader: async ({ params }) => ({ ruleset: await loadRulesetBySlug(params.rulesetSlug) }),
@@ -39,11 +41,12 @@ export const Route = createFileRoute('/_app/rulesets/$rulesetSlug/faq/create')({
  */
 function FaqCreateError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage title="Ask a question" back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}>
-      <LoadError title="This ruleset could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+    <RouteLoadError
+      title="Ask a question"
+      back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
+      what="This ruleset could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -94,9 +97,9 @@ function FaqCreatePage() {
 
   if (!rulesetRow) {
     return (
-      <PageMessage title="Ask a question" back={backToRuleset}>
-        <LoadPending title="Loading ruleset">The ruleset this question belongs to is still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending title="Ask a question" back={backToRuleset} loading="Loading ruleset">
+        The ruleset this question belongs to is still loading.
+      </RoutePending>
     );
   }
   const rulesetId = rulesetRow._id;
@@ -105,7 +108,9 @@ function FaqCreatePage() {
     return (
       <PageMessage title="Ask a question" back={backToRuleset}>
         {profile.data === undefined ? (
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         ) : (
           <LoginGate action="ask a question" />
         )}
@@ -151,32 +156,46 @@ function FaqCreatePage() {
                 .catch(() => undefined);
             }}
           >
-            <FormattedTextInput
-              label="Ask a question"
-              name="question"
-              profile="marks-only"
-              required
-              minLength={1}
-              placeholder="Your question..."
-              value={question}
-              onChange={(next) => dispatch({ kind: 'patch', update: { question: next } })}
+            <ControlBlock
+              title="Ask a question"
+              input={(fieldProps) => (
+                <FormattedTextInput
+                  {...fieldProps}
+                  name="question"
+                  profile="marks-only"
+                  required
+                  minLength={1}
+                  placeholder="Your question..."
+                  value={question}
+                  onChange={(next) => dispatch({ kind: 'patch', update: { question: next } })}
+                />
+              )}
             />
-            <FormattedTextInput
-              label="Your answer (optional-you can add or edit it later)"
-              name="answer"
-              rows={3}
-              placeholder="Optional answer..."
-              value={answer}
-              onChange={(next) => dispatch({ kind: 'patch', update: { answer: next } })}
+            <ControlBlock
+              title="Your answer (optional-you can add or edit it later)"
+              input={(fieldProps) => (
+                <FormattedTextInput
+                  {...fieldProps}
+                  name="answer"
+                  rows={3}
+                  placeholder="Optional answer..."
+                  value={answer}
+                  onChange={(next) => dispatch({ kind: 'patch', update: { answer: next } })}
+                />
+              )}
             />
             <FaqTagFieldset />
-            {askQuestion.error ? (
-              <FormError title="Question could not be asked">{askQuestion.error.message}</FormError>
-            ) : null}
+            <ActionError subject="Question" verb="ask" error={askQuestion.error} />
             <Group gap="xs" wrap="nowrap">
-              <Button variant="filled" color="confirm" type="submit" disabled={askQuestion.isPending}>
-                {askQuestion.isPending ? 'Asking…' : 'Ask'}
-              </Button>
+              <LabeledAction
+                type="submit"
+                intent="positive"
+                emphasis="strong"
+                icon={<Send size={16} />}
+                busy={askQuestion.isPending}
+              >
+                Ask
+              </LabeledAction>
             </Group>
           </Stack>
         </Surface>

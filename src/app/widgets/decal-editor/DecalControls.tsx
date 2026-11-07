@@ -1,8 +1,9 @@
-import { Grid, NumberInput, Slider, Stack, Switch } from '@mantine/core';
+import { Grid, Stack, Switch } from '@mantine/core';
 import type { Decal } from '@shared/assets/schema';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { RangeField } from '@ui/control/RangeField';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
 
@@ -86,96 +87,43 @@ export function DecalControls({
         </Grid.Col>
       </Grid>
 
-      <ControlBlock
+      <RangeField
         title="Scale"
+        name={`Scale for ${label}`}
         description="Resize the decal from 0 (hidden) to 3; 1 is the full reference size."
-        tool={
-          <NumberInput
-            aria-label={`Scale for ${label}`}
-            w={96}
-            min={0}
-            max={3}
-            step={0.01}
-            decimalScale={2}
-            value={value.scale}
-            onChange={(next) => {
-              if (typeof next === 'number') {
-                onChange({ ...value, scale: next });
-              }
-            }}
-          />
-        }
-        input={
-          <Slider
-            aria-label={`Scale slider for ${label}`}
-            min={0}
-            max={3}
-            step={0.01}
-            value={value.scale}
-            label={(current) => current.toFixed(2)}
-            onChange={(next) => onChange({ ...value, scale: next })}
-          />
-        }
+        min={0}
+        max={3}
+        step={0.01}
+        value={value.scale}
+        onChange={(next) => onChange({ ...value, scale: next })}
       />
 
       {placement ?? (
         <Grid>
           <Grid.Col span={{ base: 12, xs: 6 }}>
-            <ControlBlock
+            <RangeField
               title="Horizontal offset"
+              name={`Horizontal offset for ${label}`}
               description="Move left with a negative value or right with a positive value."
-              tool={
-                <NumberInput
-                  aria-label={`Horizontal offset for ${label}`}
-                  w={96}
-                  step={1}
-                  value={value.offset[0]}
-                  onChange={(next) => {
-                    if (typeof next === 'number') {
-                      onChange({ ...value, offset: [next, value.offset[1]] });
-                    }
-                  }}
-                />
-              }
-              input={
-                <Slider
-                  aria-label={`Horizontal offset slider for ${label}`}
-                  min={-offsetRange[0]}
-                  max={offsetRange[0]}
-                  step={1}
-                  value={value.offset[0]}
-                  onChange={(next) => onChange({ ...value, offset: [next, value.offset[1]] })}
-                />
-              }
+              min={-offsetRange[0]}
+              max={offsetRange[0]}
+              decimals={2}
+              typedBeyondRange
+              value={value.offset[0]}
+              onChange={(next) => onChange({ ...value, offset: [next, value.offset[1]] })}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, xs: 6 }}>
-            <ControlBlock
+            <RangeField
               title="Vertical offset"
+              name={`Vertical offset for ${label}`}
               description="Move up with a negative value or down with a positive value."
-              tool={
-                <NumberInput
-                  aria-label={`Vertical offset for ${label}`}
-                  w={96}
-                  step={1}
-                  value={value.offset[1]}
-                  onChange={(next) => {
-                    if (typeof next === 'number') {
-                      onChange({ ...value, offset: [value.offset[0], next] });
-                    }
-                  }}
-                />
-              }
-              input={
-                <Slider
-                  aria-label={`Vertical offset slider for ${label}`}
-                  min={-offsetRange[1]}
-                  max={offsetRange[1]}
-                  step={1}
-                  value={value.offset[1]}
-                  onChange={(next) => onChange({ ...value, offset: [value.offset[0], next] })}
-                />
-              }
+              min={-offsetRange[1]}
+              max={offsetRange[1]}
+              decimals={2}
+              typedBeyondRange
+              value={value.offset[1]}
+              onChange={(next) => onChange({ ...value, offset: [value.offset[0], next] })}
             />
           </Grid.Col>
         </Grid>

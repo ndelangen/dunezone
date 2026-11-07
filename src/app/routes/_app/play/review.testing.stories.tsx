@@ -74,7 +74,10 @@ export const AskingShowsTheCheckpointToEveryone = meta.story({
     await userEvent.click(await page.findByRole('button', { name: 'Ask the table to recall' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-propose', step: newest.step } });
     const vote = await page.findByRole('group', { name: 'Mentat recall vote' });
-    await expect(within(vote).getByRole('button', { name: 'Withdraw' })).toBeVisible();
+    /* The proposer withdraws in the Mentat recall window, which the header links to, not in the header. */
+    await expect(within(vote).getByRole('status')).toHaveTextContent(/^You ask to Mentat recall /);
+    await expect(within(vote).queryByRole('button', { name: 'Withdraw' })).toBeNull();
+    await expect(within(vote).getByRole('button', { name: 'Mentat recall' })).toBeVisible();
     (session.transport as ReturnType<typeof reviewTransport>).othersAgree();
 
     const reviewing = await page.findByRole('group', { name: 'Mentat recall in progress' }, { timeout: 5000 });
@@ -101,13 +104,28 @@ export const AnsweringAProposal = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     const vote = await page.findByRole('group', { name: 'Mentat recall vote' }, { timeout: 30_000 });
     await expect(within(vote).getByRole('status')).toHaveTextContent(
-      /asks to recall Turn 1, Bidding \(1 of 4 agreed\)/
+      /asks to Mentat recall Turn 1, Bidding \(1 of 4 agreed\)/
     );
     await userEvent.click(within(vote).getByRole('button', { name: 'Decline' }));
     await expect(commands().at(-1)).toMatchObject({ action: { kind: 'review-ballot', choice: 'decline' } });
     await waitFor(() =>
       expect(within(vote).getByRole('button', { name: 'Decline' })).toHaveAttribute('aria-pressed', 'true')
     );
+  },
+});
+
+/* The header's Mentat recall link opens the closed Mentat recall window, where the vote can be read in full. */
+export const HeaderLinkOpensTheRecallWindow = meta.story({
+  beforeEach: install(() =>
+    reviewTransport('seat-2', reviewOf(reviewableSnapshot(), bidding, 'seat-1'), { agreeAfterMs: null })
+  ),
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const page = within(document.body);
+    const vote = await page.findByRole('group', { name: 'Mentat recall vote' }, { timeout: 30_000 });
+    await expect(document.querySelector('[data-window="review"]')).toBeNull();
+    await userEvent.click(within(vote).getByRole('button', { name: 'Mentat recall' }));
+    await waitFor(() => expect(document.querySelector('[data-window="review"]')).not.toBeNull());
   },
 });
 

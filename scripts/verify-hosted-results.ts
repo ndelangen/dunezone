@@ -8,6 +8,12 @@ import type { HostedToolkit } from './verify-hosted-play-browser.ts';
 import { required, requireView } from './verify-hosted-types.ts';
 import type { HostedPeer } from './verify-hosted-types.ts';
 
+/*
+ * A fresh connection may have to outlast a stalled local Worker: one CI run held every request for 12 s, so the first socket missed the client's 5 s view wait and the retry opened only after `until`'s default 15 s had passed.
+ * 30 s covers that stall, one pending timeout and one retry, and the product's own retry stays what is being tested.
+ */
+const FRESH_CONNECTION_TIMEOUT_MS = 30_000;
+
 /**
  * A real game played to a declared result and continued, through ordinary browser controls.
  * The native journeys prove the rules.
@@ -101,7 +107,11 @@ export async function verifyResults({
   /* A reload re-admits into the finished game from the room's stored state, not from anything the page kept. */
   const reloadedFrom = requireView(b).viewer.connectionId;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
-  await until(() => requireView(b).viewer.connectionId !== reloadedFrom, 'The reload did not get a fresh connection.');
+  await until(
+    () => requireView(b).viewer.connectionId !== reloadedFrom,
+    'The reload did not get a fresh connection.',
+    FRESH_CONNECTION_TIMEOUT_MS
+  );
   await b.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(stage(b), 'finished');
   await bar(b).getByText(title, { exact: true }).waitFor();
@@ -150,7 +160,8 @@ export async function verifyResults({
   await lobbyCard(observer.page).getByRole('link').click();
   await until(
     () => requireView(observer).viewer.connectionId !== observerLeft,
-    'The observer did not get a fresh connection.'
+    'The observer did not get a fresh connection.',
+    FRESH_CONNECTION_TIMEOUT_MS
   );
   await observer.page.locator('[data-connection="authorized"]').waitFor();
   assert.equal(stage(observer), 'play');

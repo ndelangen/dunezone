@@ -5,6 +5,7 @@ import { MultiSelect, NumberInput, Select, Stack, TextInput } from '@mantine/cor
 import { createRulebookLocalId, rulebookListIconSchema } from '@shared/rulebooks/contents';
 import type { RulebookBlockDraft, RulebookBlockKind } from '@shared/rulebooks/contents';
 import { rulebookReferenceTargets } from '@shared/rulebooks/projectRenderDocument';
+import { ListChapter } from '@ui/block/ListChapter';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -70,20 +71,20 @@ function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps
       <ControlBlock
         title="Name"
         description="Optional bold name before this text."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Name"
+            {...fieldProps}
             value={value.name ?? ''}
             onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Related rules"
         description="Links follow their destination and show the current page number in print."
-        input={
+        input={(fieldProps) => (
           <MultiSelect
-            aria-label="Related rules"
+            {...fieldProps}
             searchable
             clearable
             data={options}
@@ -100,19 +101,19 @@ function TextBlockEdit({ value, onChange, references }: RulebookBlockEditorProps
               })
             }
           />
-        }
+        )}
       />
       <ControlBlock
         title="Content"
         description="Write the text shown by this Block."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Content"
+            {...fieldProps}
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
           />
-        }
+        )}
       />
     </Stack>
   );
@@ -123,13 +124,13 @@ function SectionHeadingEdit({ value, onChange }: RulebookBlockEditorProps<'secti
     <ControlBlock
       title="Title"
       description="Introduce a section of related rules. A linked faction supplies its current colour."
-      input={
+      input={(fieldProps) => (
         <TextInput
-          aria-label="Title"
+          {...fieldProps}
           value={value.title}
           onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
         />
-      }
+      )}
     />
   );
 }
@@ -140,9 +141,9 @@ function CalloutEdit({ value, onChange }: RulebookBlockEditorProps<'callout'>) {
       <ControlBlock
         title="Style"
         description="Distinguish a note, a worked example, or a quotation."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Style"
+            {...fieldProps}
             data={[
               { value: 'note', label: 'Note' },
               { value: 'example', label: 'Example' },
@@ -155,42 +156,42 @@ function CalloutEdit({ value, onChange }: RulebookBlockEditorProps<'callout'>) {
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Title"
         description="Optional title for this callout."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Title"
+            {...fieldProps}
             value={value.title ?? ''}
             onChange={(event) => onChange({ ...value, title: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Content"
         description="Write the note, example, or quotation."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Content"
+            {...fieldProps}
             minRows={5}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
           />
-        }
+        )}
       />
       {value.variant === 'quotation' ? (
         <ControlBlock
           title="Attribution"
           description="Optional name of the person or source being quoted."
-          input={
+          input={(fieldProps) => (
             <TextInput
-              aria-label="Attribution"
+              {...fieldProps}
               value={value.attribution ?? ''}
               onChange={(event) => onChange({ ...value, attribution: event.currentTarget.value || undefined })}
             />
-          }
+          )}
         />
       ) : null}
     </Stack>
@@ -203,37 +204,37 @@ function QuestionAnswerEdit({ value, onChange }: RulebookBlockEditorProps<'quest
       <ControlBlock
         title="Topic"
         description="Optional topic label for this question and answer."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Topic"
+            {...fieldProps}
             value={value.topic ?? ''}
             onChange={(event) => onChange({ ...value, topic: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Question"
         description="The question this entry answers."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Question"
+            {...fieldProps}
             minRows={3}
             value={value.question}
             onChange={(question) => onChange({ ...value, question })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Answer"
         description="Explain the ruling or clarify the rule."
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Answer"
+            {...fieldProps}
             minRows={5}
             value={value.answer}
             onChange={(answer) => onChange({ ...value, answer })}
           />
-        }
+        )}
       />
     </Stack>
   );
@@ -255,20 +256,25 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
   return (
     <Stack gap="md">
       {value.style === 'numbered' ? (
-        <NumberInput
-          label="Start at"
-          min={1}
-          allowDecimal={false}
-          value={value.start ?? 1}
-          onChange={(start) => onChange({ ...value, start: typeof start === 'number' ? start : undefined })}
+        <ControlBlock
+          title="Start at"
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              min={1}
+              allowDecimal={false}
+              value={value.start ?? 1}
+              onChange={(start) => onChange({ ...value, start: typeof start === 'number' ? start : undefined })}
+            />
+          )}
         />
       ) : null}
       <ControlBlock
         title="Style"
         description="Number steps that must be followed in order, or use bullets for related points."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Style"
+            {...fieldProps}
             data={[
               { value: 'bulleted', label: 'Bulleted' },
               { value: 'numbered', label: 'Numbered' },
@@ -280,107 +286,116 @@ function ListBlockEdit({ value, onChange }: RulebookBlockEditorProps<'list'>) {
               }
             }}
           />
+        )}
+      />
+      <ListChapter
+        title="Items"
+        actions={
+          <ListLengthActions
+            addLabel="Add item"
+            removeLabel="Remove last item"
+            removeDisabled={value.itemOrder.length === 0}
+            onAdd={() => {
+              const id = createRulebookLocalId(Object.keys(value.itemsById));
+              onChange({
+                ...value,
+                itemOrder: [...value.itemOrder, id],
+                itemsById: { ...value.itemsById, [id]: { id, text: '' } },
+              });
+            }}
+            onRemove={() => {
+              const removed = value.itemOrder.at(-1);
+              onChange({
+                ...value,
+                itemOrder: value.itemOrder.slice(0, -1),
+                itemsById: Object.fromEntries(Object.entries(value.itemsById).filter(([id]) => id !== removed)),
+              });
+            }}
+          />
         }
-      />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
-          <Stack component="ul" gap="md" className={styles.itemList}>
-            {value.itemOrder.map((itemId, index) => {
-              const item = value.itemsById[itemId]!;
-              const label = `Item ${index + 1}`;
-              return (
-                <SortableItem key={itemId} as="li" id={itemId} className={styles.item}>
-                  {({ setActivatorNodeRef, attributes, listeners }) => (
-                    <div className={styles.itemRow}>
-                      <Stack gap="sm" className={styles.itemInput}>
-                        <ControlBlock
-                          title={`${label} name`}
-                          description="Optional bold name before this item."
-                          input={
-                            <TextInput
-                              aria-label={`${label} name`}
-                              value={item.name ?? ''}
-                              onChange={(event) =>
-                                onChange({
-                                  ...value,
-                                  itemsById: {
-                                    ...value.itemsById,
-                                    [itemId]: { ...item, name: event.currentTarget.value || undefined },
-                                  },
-                                })
-                              }
-                            />
-                          }
+      >
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" gap="md" className={styles.itemList}>
+              {value.itemOrder.map((itemId, index) => {
+                const item = value.itemsById[itemId]!;
+                const label = `Item ${index + 1}`;
+                return (
+                  <SortableItem key={itemId} as="li" id={itemId} className={styles.item}>
+                    {({ setActivatorNodeRef, attributes, listeners }) => (
+                      <div className={styles.itemRow}>
+                        <Stack gap="sm" className={styles.itemInput}>
+                          <ControlBlock
+                            title={`${label} name`}
+                            description="Optional bold name before this item."
+                            input={(fieldProps) => (
+                              <TextInput
+                                {...fieldProps}
+                                value={item.name ?? ''}
+                                onChange={(event) =>
+                                  onChange({
+                                    ...value,
+                                    itemsById: {
+                                      ...value.itemsById,
+                                      [itemId]: { ...item, name: event.currentTarget.value || undefined },
+                                    },
+                                  })
+                                }
+                              />
+                            )}
+                          />
+                          <ControlBlock
+                            title={`${label} icon`}
+                            description="Optional symbol in a circular frame beside this item."
+                            input={(fieldProps) => (
+                              <AssetSelect
+                                {...fieldProps}
+                                placeholder="No icon"
+                                data={listIconOptions}
+                                getPreviewSrc={(icon) => icon}
+                                glyphPreviews
+                                clearable
+                                value={item.icon ?? null}
+                                onChange={(selected) => {
+                                  const icon = selected === null ? undefined : rulebookListIconSchema.parse(selected);
+                                  onChange({
+                                    ...value,
+                                    itemsById: { ...value.itemsById, [itemId]: { ...item, icon } },
+                                  });
+                                }}
+                              />
+                            )}
+                          />
+                          <ControlBlock
+                            title={label}
+                            description="Write one step or point."
+                            input={(fieldProps) => (
+                              <FormattedTextInput
+                                {...fieldProps}
+                                minRows={2}
+                                value={item.text}
+                                onChange={(text) =>
+                                  onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, text } } })
+                                }
+                              />
+                            )}
+                          />
+                        </Stack>
+                        <SortableReorderHandle
+                          label={`Reorder ${label.toLowerCase()}`}
+                          setActivatorNodeRef={setActivatorNodeRef}
+                          attributes={attributes}
+                          listeners={listeners}
                         />
-                        <ControlBlock
-                          title={`${label} icon`}
-                          description="Optional symbol in a circular frame beside this item."
-                          input={
-                            <AssetSelect
-                              aria-label={`${label} icon`}
-                              placeholder="No icon"
-                              data={listIconOptions}
-                              getPreviewSrc={(icon) => icon}
-                              glyphPreviews
-                              clearable
-                              value={item.icon ?? null}
-                              onChange={(selected) => {
-                                const icon = selected === null ? undefined : rulebookListIconSchema.parse(selected);
-                                onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, icon } } });
-                              }}
-                            />
-                          }
-                        />
-                        <ControlBlock
-                          title={label}
-                          description="Write one step or point."
-                          input={
-                            <FormattedTextInput
-                              aria-label={label}
-                              minRows={2}
-                              value={item.text}
-                              onChange={(text) =>
-                                onChange({ ...value, itemsById: { ...value.itemsById, [itemId]: { ...item, text } } })
-                              }
-                            />
-                          }
-                        />
-                      </Stack>
-                      <SortableReorderHandle
-                        label={`Reorder ${label.toLowerCase()}`}
-                        setActivatorNodeRef={setActivatorNodeRef}
-                        attributes={attributes}
-                        listeners={listeners}
-                      />
-                    </div>
-                  )}
-                </SortableItem>
-              );
-            })}
-          </Stack>
-        </SortableContext>
-      </DndContext>
-      <ListLengthActions
-        addLabel="Add item"
-        removeLabel="Remove last item"
-        removeDisabled={value.itemOrder.length === 0}
-        onAdd={() => {
-          const id = createRulebookLocalId(Object.keys(value.itemsById));
-          onChange({
-            ...value,
-            itemOrder: [...value.itemOrder, id],
-            itemsById: { ...value.itemsById, [id]: { id, text: '' } },
-          });
-        }}
-        onRemove={() => {
-          const removed = value.itemOrder.at(-1);
-          onChange({
-            ...value,
-            itemOrder: value.itemOrder.slice(0, -1),
-            itemsById: Object.fromEntries(Object.entries(value.itemsById).filter(([id]) => id !== removed)),
-          });
-        }}
-      />
+                      </div>
+                    )}
+                  </SortableItem>
+                );
+              })}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+      </ListChapter>
     </Stack>
   );
 }

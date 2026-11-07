@@ -1,8 +1,8 @@
-import { Avatar } from '@mantine/core';
 import type { PublicFaction } from '@shared/play/capture';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import type { RemovalVote } from '@shared/play/removal';
 import { rosterSeat } from '@shared/play/schema';
+import { NameDisc } from '@ui/content/NameDisc';
 import type { ReactNode } from 'react';
 import { useEffect, useSyncExternalStore } from 'react';
 
@@ -12,7 +12,6 @@ import type { TableProjection, TableSession } from '../../../../../db/tabletop/T
 import { factionToken, FactionTokenFace } from '../../multiplayer/FactionTokenFace';
 import { seatPlayers, standInToken } from '../../multiplayer/playerWindows';
 import type { Player } from '../../multiplayer/playerWindows';
-import { VacantSeatRequests } from '../../multiplayer/SeatRequests';
 import { SwappingSeat } from '../../multiplayer/Swapping';
 import { isSpectator } from '../../multiplayer/tableFactions';
 import { useServerNow } from '../../multiplayer/useServerNow';
@@ -71,9 +70,7 @@ function headerModel(
     token: faction ? (
       <FactionTokenFace token={factionToken(table, faction.id, names, standInToken(table, player))} size={44} />
     ) : (
-      <Avatar src={standInToken(table, player)} size={44} radius="50%" alt="">
-        {player.name.slice(0, 1)}
-      </Avatar>
+      <NameDisc src={standInToken(table, player)} name={player.name} size={44} />
     ),
     name: player.name,
     seatId: player.seat,
@@ -100,7 +97,6 @@ export type FactionInfoSources = Readonly<{
   details: PublicFaction | undefined;
   slug: string | null | undefined;
   now: number;
-  requests: ReactNode;
   trade: ReactNode;
   onBallot: (voteId: string, choice: BallotChoice | null) => void;
   onStartRemoval: (seat: string) => void;
@@ -121,7 +117,6 @@ export function factionInfoProps(
   return {
     error: sources.error,
     vote: vote ? voteView(table, vote, sources.now) : null,
-    requests: sources.requests,
     header: headerModel(table, player, { ...sources, hasVote: Boolean(vote) }),
     trade: sources.trade,
     details: sources.details,
@@ -155,7 +150,6 @@ export function ConnectedFactionInfoPanel({
     details,
     slug,
     now,
-    requests: <VacantSeatRequests client={client} table={table} seat={seat} />,
     trade: <SwappingSeat client={client} table={table} seat={seat} />,
     onBallot: (voteId, choice) => client.command({ kind: 'removal-ballot', voteId, choice }),
     onStartRemoval: (target) => client.command({ kind: 'removal-start', seat: target }),

@@ -880,9 +880,9 @@ async function account(label: string) {
   return who;
 }
 /**
- * A spectator asks for a seat and a seated player approves it where the seat is shown.
- * Drafting: the (+) in the roster on the table, and the requester's ghost there carries Approve.
- * Later: the header's Seats popover names the open seat, and the vacant seat's window carries Approve.
+ * A spectator asks for a seat and a seated player approves it in Seats & spectators, which the request opens.
+ * Drafting: the request is the (+) in the roster on the table.
+ * Later: the header's Seats popover names the open seat.
  */
 async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const drafting = requireView(who).snapshot.stage === 'drafting';
@@ -896,21 +896,13 @@ async function seatThrough(approver: HostedPeer, who: HostedPeer) {
   const before = requireView(who).snapshot.revision;
   await request.click();
   await until(() => requireView(who).snapshot.revision > before, 'The seat request did not commit.');
-  if (!drafting) {
-    /* A seat without a player goes by its faction. */
-    const roster = required(requireView(approver).snapshot.roster, 'roster');
-    const seated = new Set(requireView(approver).snapshot.controls?.players.map((player) => player.seat));
-    const vacant = roster.seats.find((seat) => !seated.has(seat.id));
-    assert.ok(vacant, 'No seat is open for the request.');
-    const name = vacant.faction?.name ?? vacant.id;
-    /* The request is answered in Faction info, set on the vacant seat by its token. */
-    await openTab(approver, 'Faction info');
-    await windowOf(approver, 'Faction info')
-      .getByRole('group', { name: 'Factions' })
-      .getByRole('button', { name, exact: true })
-      .click();
-  }
-  await act(approver, 'Approve');
+  /* The request opens Seats & spectators for every player by itself, and its Approve names the requester. */
+  await until(
+    async () => (await windowOf(approver, 'Seats & spectators').count()) > 0,
+    'The seat request did not open Seats & spectators.'
+  );
+  await openTab(approver, 'Seats & spectators');
+  await act(approver, `Approve ${requireView(who).viewer.displayName}`);
   await until(() => requireView(who).viewer.viewerSeat !== SPECTATOR, 'The approved request did not seat its player.');
 }
 /** A seated player gives up the seat by holding it in the game menu for five seconds; the seat stays open with its faction. */
@@ -1075,14 +1067,17 @@ async function previousPhaseDisabled(who: HostedPeer) {
   await who.page.getByRole('menuitem', { name: 'Previous phase', exact: true }).waitFor({ state: 'hidden' });
   return disabled;
 }
-/** Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held. */
-async function act(who: HostedPeer, name: string) {
+/**
+ * Clicks an exact-named button once it is enabled and waits for this peer's view to pass the revision it held.
+ * `force` skips Playwright's stability wait, for a click with a deadline: that wait needs two animation frames with the same box, and a SwiftShader table under load can leave seconds between frames.
+ */
+async function act(who: HostedPeer, name: string, options: { force?: boolean } = {}) {
   const control = () => (name === 'Previous phase' ? previousPhase(who) : button(who, name));
   await until(async () => (await control()).isEnabled(), `${name} did not become enabled.`, 20_000);
   /* Read after the control is enabled: a commit that enabled it has then reached this view,
      so the next revision is this click's and not that one arriving late. */
   const before = requireView(who).snapshot.revision;
-  await (await control()).click();
+  await (await control()).click({ force: options.force });
   await until(() => requireView(who).snapshot.revision > before, `${name} did not commit.`);
 }
 async function converged(peers: HostedPeer[]) {

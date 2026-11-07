@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 
 import { brushTakes, territoryBrush } from '../../../../widgets/tabletop/territoryBrush';
+import { isTypingTarget } from '../typingTarget';
 import { pulse } from './pulse';
 import type { Pulse } from './pulse';
 import { SIDES } from './slotLimits';
@@ -84,13 +85,6 @@ function useTablePress(onPress: () => void, enabled: boolean) {
 /* The keys that pin the centre window: [ to the bottom left and ] to the bottom right. */
 export const PIN_KEYS: Readonly<Record<Side, string>> = { left: '[', right: ']' };
 
-function typing(target: EventTarget | null) {
-  return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"]') !== null)
-  );
-}
-
 /* A bare [ or ] away from a text field pins the centre window, as its pin buttons do. */
 function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
   const pinTo = useEffectEvent(onPin);
@@ -100,7 +94,7 @@ function usePinKeys(onPin: (side: Side) => void, enabled: boolean) {
     }
     const listener = (event: KeyboardEvent) => {
       const side = SIDES.find((entry) => PIN_KEYS[entry] === event.key);
-      if (!side || event.repeat || event.metaKey || event.ctrlKey || event.altKey || typing(event.target)) {
+      if (!side || event.repeat || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target)) {
         return;
       }
       event.preventDefault();

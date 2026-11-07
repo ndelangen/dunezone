@@ -29,6 +29,20 @@ function play(state: WindowFocusState, renders: readonly Partial<WindowFocusInpu
 }
 
 describe('the windows follow the live table', () => {
+  test('each seat request opens Seats & spectators once; one withdrawn never makes an older one still waiting look new', () => {
+    const request = (id: string) => ({ key: 'seats', token: `seat-request:${id}` });
+    const tokens = play(initialWindowFocus('play:1:blow', true), [
+      { phase: 'play:1:blow', events: [request('a')] },
+      { phase: 'play:1:blow', events: [request('a'), request('b')] },
+      { phase: 'play:1:blow', events: [request('a')] },
+      { phase: 'play:1:blow', events: [request('a'), request('c')] },
+    ]);
+    expect(tokens[0]).toMatch(/^seat-request:a#/);
+    expect(tokens[1]).toMatch(/^seat-request:b#/);
+    expect(tokens[2]).toBe(tokens[1]);
+    expect(tokens[3]).toMatch(/^seat-request:c#/);
+  });
+
   test('the phase the table loaded on opens nothing, and a later return to it opens its window', () => {
     const tokens = play(initialWindowFocus('play:1:choam', true), [
       { phase: 'play:1:choam' },

@@ -1,5 +1,6 @@
-import { Button, Popover, Stack, Text } from '@mantine/core';
+import { Popover, Stack, Text } from '@mantine/core';
 import { useClipboard } from '@mantine/hooks';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, Link2 } from 'lucide-react';
 
 /* The button is the whole share; the address itself shows only when copying fails, for the player to copy by hand. */
@@ -8,9 +9,12 @@ export function GameLink({ address, page }: Readonly<{ address: string; page?: s
   const url = new URL(page ?? `/play/${address}`, window.location.origin).href;
   return (
     <Stack gap="xs" p="xs" maw={300}>
-      <Button variant="default" onClick={() => clipboard.copy(url)}>
+      <LabeledAction
+        icon={clipboard.copied ? <Check size={16} /> : <Link2 size={16} />}
+        onClick={() => clipboard.copy(url)}
+      >
         {clipboard.copied ? 'Game link copied' : 'Copy game link'}
-      </Button>
+      </LabeledAction>
       {clipboard.error ? (
         <Text size="xs" role="alert" style={{ overflowWrap: 'anywhere' }}>
           Could not copy. Select and copy this link: {url}
@@ -28,14 +32,13 @@ export function InviteLink({ address, page }: Readonly<{ address: string; page?:
   return (
     <Popover opened={Boolean(clipboard.error)} onChange={(open) => !open && clipboard.reset()} withinPortal>
       <Popover.Target>
-        <Button
+        <LabeledAction
           size="compact-sm"
-          variant="default"
-          leftSection={clipboard.copied ? <Check size={14} aria-hidden /> : <Link2 size={14} aria-hidden />}
+          icon={clipboard.copied ? <Check size={14} /> : <Link2 size={14} />}
           onClick={() => clipboard.copy(url)}
         >
           {clipboard.copied ? 'Link copied' : clipboard.error ? 'Copy failed' : 'Copy invite link'}
-        </Button>
+        </LabeledAction>
       </Popover.Target>
       <Popover.Dropdown maw={300}>
         <Text size="xs" role="alert" style={{ overflowWrap: 'anywhere', userSelect: 'all' }}>

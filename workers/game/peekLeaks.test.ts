@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import { initialSnapshot } from '../../src/shared/play/commands';
+import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { MOVEMENT_PHASE_ID } from '../../src/shared/play/movement';
 import { PHASE_CHANGE_COOLDOWN_MS, TABLE_PHASES } from '../../src/shared/play/phases';
 import type { GameSnapshot } from '../../src/shared/play/protocol';
@@ -31,7 +32,10 @@ function peekedRoom(stage: Partial<GameSnapshot> = {}) {
   const room = new Room(
     { ...initialSnapshot(), roster: hostedFixturePlan.roster, ...stage },
     () => ['harkonnen', 'atreides'],
-    (id) => FACTIONS[id]
+    (id) => FACTIONS[id],
+    undefined,
+    undefined,
+    () => arrakisBoardCapture.definition
   );
   room.accept(room.command(alice, { kind: 'peek', pieceId: DECK }, room.snapshot.revision, LATER));
   const granted = new Set(room.snapshot.table.pieces.find((piece) => piece.id === DECK)!.items.map((item) => item.id));
@@ -58,7 +62,7 @@ const battleId = (room: Room) => room.snapshot.battleState?.id ?? 'battle';
  */
 const STEPS: Record<Kind, (room: Room) => Step[]> = {
   /* The marker goes on the board: the deck lies off it, where a battle cannot start. */
-  'battle-start': () => [[bob, { kind: 'battle-start', anchor: [0, 0, 0], territory: 'Arrakeen' }]],
+  'battle-start': () => [[bob, { kind: 'battle-start', anchor: [0, 0, 0] }]],
   'battle-claim': (room) => [[bob, { kind: 'battle-claim', battleId: battleId(room), side: 0 }]],
   'battle-plan': (room) => [
     [
@@ -171,9 +175,17 @@ const STEPS: Record<Kind, (room: Room) => Step[]> = {
   lock: () => [[bob, { kind: 'lock', pieceId: DECK }]],
   rotate: () => [[bob, { kind: 'rotate', pieceId: DECK, direction: 1 }]],
   delete: () => [[bob, { kind: 'delete', pieceId: DECK }]],
+  /* The peeked deck deleted, then restored from the log under the deletion the delete made. */
+  restore: (room) => [
+    [bob, { kind: 'delete', pieceId: DECK }],
+    [bob, { kind: 'restore', deletionId: String(room.snapshot.revision + 1) }],
+  ],
   storm: () => [[bob, { kind: 'storm', direction: 1 }]],
   phase: () => [[bob, { kind: 'phase' }]],
   'spice-spawn': () => [[bob, { kind: 'spice-spawn', count: 1 }]],
+  'spice-blow': () => [
+    [bob, { kind: 'spice-blow', pieceId: DECK, territory: 'arrakeen', name: 'Arrakeen', position: [0, 0, 0] }],
+  ],
   'tech-token-draw': () => [[bob, { kind: 'tech-token-draw' }]],
   reset: () => [[bob, { kind: 'reset' }]],
   'deck-draw': () => [[bob, { kind: 'deck-draw', pieceId: DECK }]],
@@ -217,7 +229,7 @@ const STAGED: Partial<Record<Kind, Staged>> = {
   'battle-start': {
     stage: { phase: BATTLE_PHASE },
     accepted: [true, false],
-    effect: (room) => expect(room.snapshot.battleState?.territory).toBe('Arrakeen'),
+    effect: (room) => expect(room.snapshot.battleState?.territory).toBe('Polar sink'),
   },
   'bid-seconds': {
     accepted: [true, true],
@@ -236,6 +248,14 @@ const STAGED: Partial<Record<Kind, Staged>> = {
     stage: { stage: 'setup', setup: PREDICTION_SETUP },
     accepted: [true, true, false, false],
     effect: (room) => expect(room.snapshot.privatePredictions.step?.revealedAt).toBe(LATER),
+  },
+  /* A restored deck comes back face down, and the peek held on it before the deletion stays closed. */
+  restore: {
+    accepted: [true, true, true, true],
+    effect: (room) => {
+      expect(deck(room)?.items.every((item) => !item.faceUp)).toBe(true);
+      expect(shown(room)).toEqual([]);
+    },
   },
   'movement-done': {
     stage: { phase: MOVEMENT_PHASE },

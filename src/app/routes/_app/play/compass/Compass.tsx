@@ -1,7 +1,7 @@
 import { Kbd } from '@ui/content/Kbd';
 import { Search } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef } from 'react';
-import type { PointerEvent, RefObject } from 'react';
+import type { KeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent, RefObject } from 'react';
 
 import { useClosingCopy } from '@app/styles/closingCopy';
 import { useMotionAllowed } from '@app/styles/motion';
@@ -11,6 +11,7 @@ import styles from './Compass.module.css';
 import type { Spot, TileSpot } from './compassSpots';
 import type { Tile } from './compassTiles';
 import type { Suggestion } from './suggestions';
+import type { HeldSuggestion } from './useHeldSuggestion';
 
 /*
  * The compass over the table: a tile at the end of each arm, the search field at its centre, and the suggestions below.
@@ -31,6 +32,11 @@ export type CompassProps = Readonly<{
   onQuery: (query: string) => void;
   onCursor: (cursor: number) => void;
   onConfirm: (spot: TileSpot) => void;
+  /** The destructive suggestion counting down, if one is held. */
+  held: HeldSuggestion | null;
+  /** A press on a destructive suggestion's row starts its countdown; letting go stops it. */
+  onHold: (suggestion: Suggestion) => void;
+  onRelease: () => void;
   onClose: () => void;
 }>;
 
@@ -163,12 +169,59 @@ type SuggestionListProps = Readonly<{
   spot: Spot;
   query: string;
   cursor: number;
+  held: HeldSuggestion | null;
   onSpot: (spot: Spot) => void;
   onCursor: (cursor: number) => void;
+  onHold: (suggestion: Suggestion) => void;
+  onRelease: () => void;
 }>;
 
+/* A destructive suggestion runs on a held press, as every delete does; anything else runs on a click. */
+function pressesOf(
+  entry: Suggestion,
+  index: number,
+  list: Pick<SuggestionListProps, 'onCursor' | 'onHold' | 'onRelease'>
+) {
+  if (entry.disabled) {
+    return {};
+  }
+  if (!entry.held) {
+    return {
+      onClick: () => entry.run(),
+      onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => event.key === 'Enter' && entry.run(),
+    };
+  }
+  return {
+    onPointerDown: (event: PointerEvent<HTMLDivElement>) => {
+      if (event.isPrimary && event.button === 0) {
+        list.onCursor(index);
+        list.onHold(entry);
+      }
+    },
+    onPointerUp: list.onRelease,
+    onPointerLeave: list.onRelease,
+    onPointerCancel: list.onRelease,
+    onContextMenu: (event: ReactMouseEvent<HTMLDivElement>) => event.preventDefault(),
+  };
+}
+
+/* A held suggestion's label turns into its countdown, "Clearing in 4..". */
+function labelOf(entry: Suggestion, held: HeldSuggestion | null) {
+  return entry.held && held?.key === entry.key ? `${entry.held} in ${held.remaining}..` : entry.label;
+}
+
 /* The suggestions below the hub: the matches for what was typed, or what the table suggests while nothing was. */
-function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: SuggestionListProps) {
+function SuggestionList({
+  suggestions,
+  spot,
+  query,
+  cursor,
+  held,
+  onSpot,
+  onCursor,
+  onHold,
+  onRelease,
+}: SuggestionListProps) {
   const listed = spot === 'search' || (spot === 'hub' && query !== '');
   const title = query ? 'Matches' : 'Suggested';
   return (
@@ -194,11 +247,10 @@ function SuggestionList({ suggestions, spot, query, cursor, onSpot, onCursor }: 
             onSpot('search');
             onCursor(index);
           }}
-          onClick={() => !entry.disabled && entry.run()}
-          onKeyDown={(event) => !entry.disabled && event.key === 'Enter' && entry.run()}
+          {...pressesOf(entry, index, { onCursor, onHold, onRelease })}
         >
           {entry.icon}
-          <span className={styles.suggestionLabel}>{entry.label}</span>
+          <span className={styles.suggestionLabel}>{labelOf(entry, held)}</span>
           <span className={styles.suggestionHint}>{entry.hint}</span>
           {entry.shortcut && (
             <span className={styles.suggestionShortcut}>
@@ -227,6 +279,9 @@ export function Compass({
   onQuery,
   onCursor,
   onConfirm,
+  held,
+  onHold,
+  onRelease,
   onClose,
 }: CompassProps) {
   /* The search field keeps the caret while the arrows steer, so typing never needs a click first. */
@@ -281,8 +336,11 @@ export function Compass({
           spot={spot}
           query={query}
           cursor={cursor}
+          held={held}
           onSpot={onSpot}
           onCursor={onCursor}
+          onHold={onHold}
+          onRelease={onRelease}
         />
       </dialog>
     </div>

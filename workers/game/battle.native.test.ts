@@ -4,7 +4,7 @@ import type { BattlePlanInput } from '../../src/shared/play/battle';
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import type { TablePiece } from '../../src/shared/play/model';
 import type { ClientMessage } from '../../src/shared/play/protocol';
-import { TANKS_PLAY_AREA } from '../../src/shared/play/tablePhysics';
+import { isOnBottomShelf } from '../../src/shared/play/tanksShelf';
 import { messageOf } from './native-runtime.fixture.ts';
 import { readHistoricalSnapshot } from './native-runtime.fixture.ts';
 import type { NativeMessage } from './native-runtime.fixture.ts';
@@ -82,10 +82,11 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
   async function start() {
     const started = await accepted(a, {
       kind: 'battle-start' as const,
-      anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
+      anchor: [1.32, 0.18, -2.94],
     });
     const battleId = required(started.snapshot.battle).id;
+    /* The game names the battle for the territory under the marker, and every page learns which territory to light. */
+    expect(started.snapshot.battle).toMatchObject({ territory: 'Arrakeen', territoryId: 'arrakeen' });
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
     await accepted(b, { kind: 'battle-claim' as const, battleId, side: 1 });
     return battleId;
@@ -200,7 +201,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const started = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     const battleId = required(started.snapshot.battle).id;
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
@@ -444,7 +444,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     expect((await sendCommand(b, { kind: 'phase' as const })).reply).toMatchObject({
       type: 'rejected' as const,
@@ -475,7 +474,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     const battleId = required(placed.snapshot.battle).id;
     await accepted(a, { kind: 'battle-claim' as const, battleId, side: 0 });
@@ -493,7 +491,6 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const placed = await accepted(a, {
       kind: 'battle-start' as const,
       anchor: [0.95, 0.18, -3.05],
-      territory: 'Arrakeen',
     });
     expect((await sendCommand(b, { kind: 'phase' as const, direction: -1 })).reply).toMatchObject({
       type: 'rejected' as const,
@@ -507,9 +504,7 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
 
   it('rejects competing starts and claims, counts exact support and refunds a mode switch', async () => {
     const battleId = await start();
-    expect(
-      (await sendCommand(b, { kind: 'battle-start' as const, anchor: [0, 0, 0], territory: 'Polar Sink' })).reply.type
-    ).toBe('rejected');
+    expect((await sendCommand(b, { kind: 'battle-start' as const, anchor: [0, 0, 0] })).reply.type).toBe('rejected');
     expect((await sendCommand(a, { kind: 'battle-claim' as const, battleId, side: 1 })).reply.type).toBe('rejected');
     expect((await sendCommand(a, { kind: 'battle-plan' as const, battleId, plan: plan(2, 3) })).reply.type).toBe(
       'rejected'
@@ -541,11 +536,8 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     const played = await accepted(a, { kind: 'hand-play' as const, pieceId: handCard.id, position: [29, 0, 29] });
     const card = played.snapshot.table.pieces.find((piece) => piece.kind === 'card' && piece.items.length === 1);
     expect(required(card).id).not.toBe(handCard.id);
-    /* A card thrown far off the table lands on the nearest edge it can rest on: the Tleilaxu Tanks shelf corner. */
-    expect(required(card).position[0]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minX);
-    expect(required(card).position[0]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxX);
-    expect(required(card).position[2]).toBeGreaterThanOrEqual(TANKS_PLAY_AREA.minZ);
-    expect(required(card).position[2]).toBeLessThanOrEqual(TANKS_PLAY_AREA.maxZ);
+    /* A card thrown far off the table lands on the nearest edge it can rest on: the bottom shelf's far corner. */
+    expect(isOnBottomShelf(required(card).position[0], required(card).position[2])).toBe(true);
     expect(required(card).items[0].faceUp).toBe(false);
     expect((await syncView(a)).snapshot.hand).toHaveLength(0);
   });
@@ -736,15 +728,14 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect(leaders).toHaveLength(1);
     expect(leaders[0].battleOverlay).toBeUndefined();
     if (order === 'movement-first') {
-      expect([leaders[0].position[0], leaders[0].position[2]]).toEqual([-2, 2]);
+      /* The leader lands where it was let go, stepping in just clear of its territory's border. */
+      expect(Math.hypot(leaders[0].position[0] + 2, leaders[0].position[2] - 2)).toBeLessThan(0.2);
     }
     expect(required(final.battleResults)[0].plans[0].leaderIds).toEqual(['fixture-leader']);
     expect(required(final.bank).balance).toBe(10);
   });
   it('rejects invalid anchors, unavailable resources, duplicate choices and locked plan edits', async () => {
-    expect(
-      (await sendCommand(a, { kind: 'battle-start' as const, anchor: [29, 0, 29], territory: 'Outside' })).reply.type
-    ).toBe('rejected');
+    expect((await sendCommand(a, { kind: 'battle-start' as const, anchor: [29, 0, 29] })).reply.type).toBe('rejected');
     const battleId = await start();
     expect(
       messageOf(
@@ -804,5 +795,37 @@ describe('Player-run battles through the native game boundary', { timeout: 15_00
     expect((await sendCommand(a, { kind: 'battle-ready' as const, battleId, ready: true })).reply.type).toBe(
       'rejected'
     );
+  });
+
+  it('takes a repeated recall ballot right after a battle settles instead of failing on the stored result', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
+      JSON.stringify({ ...readHistoricalSnapshot(rows[0].data), stage: 'play' }),
+    ]);
+    await runtime.restart();
+    a = await admit('a');
+    b = await admit('b');
+    const step = required(required((await syncView(a)).snapshot.reviewCheckpoints).at(-1)).step;
+    const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
+    expect(review.startedAt).toBeNull();
+    const battleId = await start();
+    await accepted(a, { kind: 'battle-plan' as const, battleId, plan: plan() });
+    await ready(battleId);
+    await runtime.clock(6000);
+    await revealed();
+    await accepted(a, { kind: 'battle-outcome' as const, battleId, outcome: 'left' });
+    const settled = await accepted(b, { kind: 'battle-cancel' as const, battleId });
+    expect(required(settled.snapshot.battleResults)[0]).toMatchObject({
+      id: battleId,
+      revision: settled.snapshot.revision,
+    });
+    /* The proposer's ballot is already cast, so this changes nothing: it must not store the battle's result a second time. */
+    const repeated = await sendCommand(a, {
+      kind: 'review-ballot' as const,
+      reviewId: review.id,
+      choice: 'review' as const,
+    });
+    expect(repeated.reply.type).not.toBe('rejected');
+    expect((await sendCommand(b, { kind: 'phase' as const })).reply.type).not.toBe('rejected');
   });
 });

@@ -1,28 +1,25 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { Anchor, Box, Button, Group, Pagination, Stack, Text } from '@mantine/core';
+import { Anchor, Box, Group, Pagination, Stack, Text } from '@mantine/core';
 import { parseProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
-import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { FactionCard } from '@ui/block/FactionCard';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
-import { errorMessage } from '@ui/content/errorMessage';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { FactionList } from '@ui/list/FactionList';
 import { FaqList } from '@ui/list/FaqList';
+import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -38,12 +35,14 @@ import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { detailError, RouteNotFound } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 import { profileDescription } from './profileDescription';
+
+const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   ssr: true,
@@ -65,7 +64,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
     }
     return { profilePage };
   },
-  errorComponent: ProfileDetailError,
+  errorComponent: detailError({ noun: 'profile', isMissing: isPublicPageNotFound, back: backToProfiles }),
   head: ({ loaderData, params, match }) =>
     publicPageHead({
       name: loaderData?.profilePage.profile.username ?? 'Profile',
@@ -88,29 +87,6 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
   component: ProfileDetailPage,
 });
 
-const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
-
-/**
- * The frame for a load that failed, most often a slug naming no profile.
- * The loader throws rather than returning nothing, so the component's absent branch below never sees that case and the reader met the router's unstyled default instead.
- */
-function ProfileDetailError({ error }: ErrorComponentProps) {
-  if (isPublicPageNotFound(error)) {
-    return (
-      <PageMessage size="compact" title="Profile" back={backToProfiles}>
-        <NotAvailable title="Profile not found">This profile does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
-  }
-  return (
-    <PageMessage size="compact" title="Profile" back={backToProfiles}>
-      <LoadError title="Profile could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
-  );
-}
-
 /**
  * The member's newest factions and, when they have more, the way to the rest: the catalogue narrowed to them, in the same newest-first order.
  * The server counts the whole list and never fewer than the cards it sends.
@@ -129,18 +105,21 @@ function ProfileFactions({ page }: { page: ProfilePageData }) {
   }
   return (
     <Stack gap="md">
-      <FactionList factions={page.factions} />
+      <TileGrid size="card">
+        {page.factions.map((faction) => (
+          <FactionCard key={faction._id} faction={faction} />
+        ))}
+      </TileGrid>
       {page.listedFactionCount > page.factions.length ? (
         <Box>
-          <Button
-            variant="default"
-            rightSection={<ArrowRight size={16} aria-hidden />}
+          <LabeledAction
+            icon={<TopicIcon topic="factions" size={16} />}
             renderRoot={(props) => (
               <Link {...props} to="/factions" search={{ owner: page.profile.slug, sort: 'created' }} />
             )}
           >
-            All {factionCount} factions
-          </Button>
+            {`All ${factionCount} factions`}
+          </LabeledAction>
         </Box>
       ) : null}
     </Stack>
@@ -213,11 +192,7 @@ function ProfileDetailPage() {
   const navigate = useNavigate();
 
   if (!page) {
-    return (
-      <PageMessage size="compact" title="Profile" back={backToProfiles}>
-        <NotAvailable title="Profile not found">This profile does not exist or was deleted.</NotAvailable>
-      </PageMessage>
-    );
+    return <RouteNotFound size="compact" title="Profile" back={backToProfiles} noun="profile" />;
   }
 
   const isSelf = currentProfile.data?._id === page.profile._id;

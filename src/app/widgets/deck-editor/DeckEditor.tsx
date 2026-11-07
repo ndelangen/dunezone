@@ -3,9 +3,10 @@ import type { CardbackPresetKey } from '@shared/assets/cardbackPresetKeys';
 import type { CardbackPreset } from '@shared/assets/cardbackPresets';
 import { INITIAL_CARDBACK_PRESETS } from '@shared/assets/cardbackPresets';
 import type { CardBack as CardBackSchema, DeckAsset } from '@shared/assets/schema';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { HoldAction } from '@ui/control/HoldAction';
 import { MemberCountInput } from '@ui/control/MemberCountInput';
 import { PreviewChoice } from '@ui/control/PreviewChoice';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
@@ -35,9 +36,6 @@ type CardbackData = z.infer<typeof CardBackSchema>;
 
 /**
  * A deck's cardback can be composed here, linked to a shared preset, or borrowed from another deck.
- *
- * The editor excludes the stored union's legacy untagged composition.
- * The stored shape also carries a bare untagged composition, transitional until `assets_deck_cardback_wrap_v1` has tagged every row, and the route flattens that at its parse boundary so this file never learns a shape scheduled for deletion.
  *
  * `asset_id` is nullable here and never in storage.
  * Choosing the reference tile necessarily precedes picking the deck, so the draft has to hold a reference that has not chosen its target yet;
@@ -340,58 +338,56 @@ export function DeckEditor({
                 icon: <TopicIcon topic="contents" size={21} />,
                 panel: panel(
                   <>
-                    <ControlBlock
+                    <ListChapter
                       title="Composition"
-                      description={
+                      help={
                         'Which community cards this deck holds, and how many of each.\nDuplicates are a count, not repeated rows.'
                       }
-                      tool={cardPicker}
-                      input={
-                        members.length === 0 ? (
-                          <Text size="sm" c="dimmed">
-                            No cards yet.
-                          </Text>
-                        ) : (
-                          <Stack gap="xs">
-                            {members.map((member) => (
-                              <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
-                                {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
-                                <Box w={34} miw={34}>
-                                  <AssetFace
-                                    href={member.card.previewHref}
-                                    type={member.card.type}
-                                    data={member.card.data}
-                                    name={member.card.name}
-                                  />
-                                </Box>
-                                <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
-                                  {member.card.name}
-                                </Text>
-                                <MemberCountInput
-                                  label={`Copies of ${member.card.name}`}
-                                  min={1}
-                                  max={99}
-                                  disabled={onCountChange === null}
-                                  value={member.count}
-                                  onCommit={(count) => onCountChange?.(member.card.id, count)}
-                                />
-                                {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
-                                <ConfirmDeleteAction
-                                  label={`Remove ${member.card.name}`}
-                                  verb="remove"
-                                  pending={countPending && removingId === member.card.id}
-                                  disabled={onCountChange === null}
-                                  onConfirm={() => {
-                                    setRemovingId(member.card.id);
-                                    onCountChange?.(member.card.id, 0);
-                                  }}
-                                />
-                              </Group>
-                            ))}
-                          </Stack>
-                        )
+                      actions={cardPicker}
+                      note={
+                        members.length === 0
+                          ? { title: 'No cards', text: 'Add the community cards this deck holds.' }
+                          : null
                       }
-                    />
+                    >
+                      <Stack gap="xs">
+                        {members.map((member) => (
+                          <Group key={member.card.id} gap="sm" wrap="nowrap" align="center">
+                            {/* A row thumbnail is a fixed size, which the face reads off this box rather than from a prop. */}
+                            <Box w={34} miw={34}>
+                              <AssetFace
+                                href={member.card.previewHref}
+                                type={member.card.type}
+                                data={member.card.data}
+                                name={member.card.name}
+                              />
+                            </Box>
+                            <Text size="sm" style={{ flex: 1, minWidth: 0 }}>
+                              {member.card.name}
+                            </Text>
+                            <MemberCountInput
+                              label={`Copies of ${member.card.name}`}
+                              min={1}
+                              max={99}
+                              disabled={onCountChange === null}
+                              value={member.count}
+                              onCommit={(count) => onCountChange?.(member.card.id, count)}
+                            />
+                            {/* Removal is held, not clicked: the row vanishing on a stray click was the last unguarded deletion (Norbert, 2026-08-21). */}
+                            <HoldAction
+                              label={`Remove ${member.card.name}`}
+                              verb="remove"
+                              pending={countPending && removingId === member.card.id}
+                              disabled={onCountChange === null}
+                              onConfirm={() => {
+                                setRemovingId(member.card.id);
+                                onCountChange?.(member.card.id, 0);
+                              }}
+                            />
+                          </Group>
+                        ))}
+                      </Stack>
+                    </ListChapter>
                   </>
                 ),
               },

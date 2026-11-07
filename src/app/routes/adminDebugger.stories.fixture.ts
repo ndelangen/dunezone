@@ -54,6 +54,6 @@ export async function openReport(canvasElement: HTMLElement) {
   await page.findByRole('button', { name: 'Bug report file' }, { timeout: 30_000 });
   const input = canvasElement.ownerDocument.querySelector<HTMLInputElement>('input[type="file"]')!;
   await userEvent.upload(input, reportFile());
-  await expect(page.findByText('Game example-game')).resolves.toBeVisible();
+  await expect(page.findByText(/^Game example-game,/)).resolves.toBeVisible();
   return page;
 }

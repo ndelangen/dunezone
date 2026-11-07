@@ -1,16 +1,18 @@
-import { Anchor, Button, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
+import { Anchor, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
 import { Section } from '@ui/block/Section';
 import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { X, Images, Info, ArrowRight } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, Images, Info, X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
@@ -265,7 +267,12 @@ function MediaPreview({ entry, large = false }: Readonly<{ entry: MediaEntry; la
 }
 
 function mediaDetails(entry: MediaEntry) {
-  return helpLines(entry.description, `Keywords: ${entry.tags.join(', ')}.`, `File: ${entry.value}`);
+  return helpLines(
+    entry.description,
+    entry.credit && `Credit: ${entry.credit}`,
+    `Keywords: ${entry.tags.join(', ')}.`,
+    `File: ${entry.value}`
+  );
 }
 
 function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
@@ -274,19 +281,25 @@ function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onCl
       title={focused.label}
       action={
         <Group gap="xs">
-          <Tooltip label={mediaDetails(focused)} multiline w={320} events={{ hover: true, focus: true, touch: true }}>
-            <Button variant="subtle" size="xs" aria-label="Artwork details">
-              <Info size={16} aria-hidden />
-            </Button>
-          </Tooltip>
-          <Button variant="subtle" size="xs" onClick={onClose}>
+          <IconAction
+            label="Artwork details"
+            tooltip={mediaDetails(focused)}
+            emphasis="standard"
+            icon={<Info size={16} />}
+          />
+          <LabeledAction size="xs" icon={<X size={14} />} onClick={onClose}>
             Close preview
-          </Button>
+          </LabeledAction>
         </Group>
       }
     >
       <Stack align="center" gap="sm">
         <MediaPreview entry={focused} large />
+        {focused.credit && (
+          <Text size="sm" c="dimmed" ta="center" maw={480}>
+            {focused.credit}
+          </Text>
+        )}
         <Anchor href={resolveAsset(focused.value, 'large')} target="_blank" rel="noreferrer">
           Open image file
         </Anchor>
@@ -318,16 +331,15 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
       {tile.variants.length > 1 && (
         <Group gap="xs" justify="center" mt="xs" aria-label={`${tile.label} versions`}>
           {tile.variants.map((variant) => (
-            <Tooltip key={variant.value} label={`${variantLabel(variant)} version`}>
-              <Button
-                size="compact-xs"
-                variant={variant.value === entry.value ? 'light' : 'subtle'}
-                aria-pressed={variant.value === entry.value}
-                onClick={() => setSelected(variant.value)}
-              >
-                {variantLabel(variant)}
-              </Button>
-            </Tooltip>
+            <LabeledAction
+              key={variant.value}
+              size="compact-xs"
+              pressed={variant.value === entry.value}
+              icon={<ImageIcon size={12} />}
+              onClick={() => setSelected(variant.value)}
+            >
+              {variantLabel(variant)}
+            </LabeledAction>
           ))}
         </Group>
       )}
@@ -447,84 +459,105 @@ function MediaRefinements({
 }>) {
   return (
     <>
-      <Select
-        label="Library"
-        aria-label="Media library"
-        value={search.source}
-        data={[
-          { value: 'media', label: 'Game media' },
-          { value: 'topics', label: 'Topic icons' },
-          { value: 'lucide', label: 'Lucide icons' },
-        ]}
-        allowDeselect={false}
-        comboboxProps={{ keepMounted: false }}
-        onChange={(value) =>
-          updateSearch({
-            source: value as MediaSearch['source'],
-            kind: 'all',
-            group: '',
-            subject: undefined,
-            item: undefined,
-          })
+      <ControlBlock
+        title="Library"
+        input={
+          <Select
+            aria-label="Media library"
+            value={search.source}
+            data={[
+              { value: 'media', label: 'Game media' },
+              { value: 'topics', label: 'Topic icons' },
+              { value: 'lucide', label: 'Lucide icons' },
+            ]}
+            allowDeselect={false}
+            comboboxProps={{ keepMounted: false }}
+            onChange={(value) =>
+              updateSearch({
+                source: value as MediaSearch['source'],
+                kind: 'all',
+                group: '',
+                subject: undefined,
+                item: undefined,
+              })
+            }
+          />
         }
       />
       {search.source === 'media' && (
         <>
-          <Select
-            label="Media type"
-            aria-label="Media type"
-            value={search.kind}
-            data={[
-              { value: 'all', label: 'Choose a gallery' },
-              ...catalogue.kindCounts.map(({ value, label, count }) => ({
-                value,
-                label: `${label} (${count})`,
-              })),
-            ]}
-            allowDeselect={false}
-            searchable
-            comboboxProps={{ keepMounted: false }}
-            onChange={(value) => updateSearch({ kind: value as MediaSearch['kind'], group: '', item: undefined })}
+          <ControlBlock
+            title="Media type"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                value={search.kind}
+                data={[
+                  { value: 'all', label: 'Choose a gallery' },
+                  ...catalogue.kindCounts.map(({ value, label, count }) => ({
+                    value,
+                    label: `${label} (${count})`,
+                  })),
+                ]}
+                allowDeselect={false}
+                searchable
+                comboboxProps={{ keepMounted: false }}
+                onChange={(value) => updateSearch({ kind: value as MediaSearch['kind'], group: '', item: undefined })}
+              />
+            )}
           />
-          <Select
-            label="Subject"
-            aria-label="Filter by subject"
-            placeholder="All subjects"
-            value={search.subject ?? null}
-            data={catalogue.subjectCounts.map(({ value, label, count }) => ({
-              value,
-              label: `${label} (${count})`,
-            }))}
-            searchable
-            clearable
-            comboboxProps={{ keepMounted: false }}
-            onChange={(value) => updateSearch({ subject: value ?? undefined })}
+          <ControlBlock
+            title="Subject"
+            input={
+              <Select
+                aria-label="Filter by subject"
+                placeholder="All subjects"
+                value={search.subject ?? null}
+                data={catalogue.subjectCounts.map(({ value, label, count }) => ({
+                  value,
+                  label: `${label} (${count})`,
+                }))}
+                searchable
+                clearable
+                comboboxProps={{ keepMounted: false }}
+                onChange={(value) => updateSearch({ subject: value ?? undefined })}
+              />
+            }
           />
-          <Select
-            label="Collection"
-            aria-label="Filter by group"
-            placeholder="All collections"
-            value={search.group || null}
-            data={catalogue.collectionCounts.map(({ value, label, count }) => ({
-              value,
-              label: `${label} (${count})`,
-            }))}
-            searchable
-            clearable
-            comboboxProps={{ keepMounted: false }}
-            onChange={(value) => updateSearch({ group: value ?? '' })}
+          <ControlBlock
+            title="Collection"
+            input={
+              <Select
+                aria-label="Filter by group"
+                placeholder="All collections"
+                value={search.group || null}
+                data={catalogue.collectionCounts.map(({ value, label, count }) => ({
+                  value,
+                  label: `${label} (${count})`,
+                }))}
+                searchable
+                clearable
+                comboboxProps={{ keepMounted: false }}
+                onChange={(value) => updateSearch({ group: value ?? '' })}
+              />
+            }
           />
           {search.kind !== 'leader' && search.kind !== 'decal' && (
-            <Select
-              label="Group results by"
-              value={search.browse ?? 'subject'}
-              data={[
-                { value: 'subject', label: 'Subject' },
-                { value: 'collection', label: 'Collection' },
-              ]}
-              allowDeselect={false}
-              comboboxProps={{ keepMounted: false }}
-              onChange={(value) => updateSearch({ browse: value === 'collection' ? 'collection' : undefined })}
+            <ControlBlock
+              title="Group results by"
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  value={search.browse ?? 'subject'}
+                  data={[
+                    { value: 'subject', label: 'Subject' },
+                    { value: 'collection', label: 'Collection' },
+                  ]}
+                  allowDeselect={false}
+                  comboboxProps={{ keepMounted: false }}
+                  onChange={(value) => updateSearch({ browse: value === 'collection' ? 'collection' : undefined })}
+                />
+              )}
             />
           )}
         </>

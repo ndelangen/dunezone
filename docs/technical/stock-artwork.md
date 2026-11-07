@@ -13,8 +13,8 @@ uncurated vectors by their purpose and subject.
 
 ## Adding portraits or emblems
 
-1. Put the source artwork in `media/image/leader/<source>/` or `media/vector/logo/`.
-2. Add its complete `/image/leader/...` or `/vector/logo/...` key to one collection in
+1. Put the source artwork in `media/image/leader/<source>/` or `media/vector/emblem/`.
+2. Add its complete `/image/leader/...` or `/vector/emblem/...` key to one collection in
    `stockAssetCollections.json`. Reuse the collection for matching artwork; create one for a new set.
 3. Give a new set a descriptive label and useful search keywords. A source name and a matching set
    answer different questions, so faction sets collect related portraits across source folders. Visual sets use labels such as
@@ -27,10 +27,10 @@ uncurated vectors by their purpose and subject.
 5. Browse the real picker in Storybook. Check the whole set together, narrow to it, and select an
    image. Run the AssetSelect and Leaders and Alliance stories, then the required release checks.
 
-Existing asset paths are saved in faction and asset documents. Organize them through this catalogue;
-keep those paths stable. SVG repairs can replace artwork at its existing path without touching
+Existing asset paths are saved in faction and asset documents. Organize them through this catalogue.
+A path can only move through a rename, described under [Renaming vector artwork](#renaming-vector-artwork). SVG repairs can replace artwork at its existing path without touching
 collection membership. New sources not yet assigned a set remain discoverable through fallback
-categories at runtime; generation requires curated collections for portraits, emblems, planets and decals before delivery.
+categories at runtime; generation requires curated collections for portraits, emblems, planets, decals, general symbols and troops before delivery.
 
 ## Decal subjects
 
@@ -51,8 +51,7 @@ filename remain searchable for related uses. The collections do not prescribe ca
 - A visible building, hand or diagram takes precedence over an abstract card-effect name. For example,
   `choam-share.svg` depicts a building and `extortion.svg` depicts a dagger.
 - Fluids and containers collects vessels, chemical preparations and water-storage objects. Standalone plants and portable collection mechanisms stay in their own subject groups.
-- Alternate drawings and colour variants of the same named illustration stay together. Existing
-  paths and spellings stay unchanged because saved documents refer to them.
+- Alternate drawings and colour variants of the same named illustration stay together.
 
 Add each new decal to one collection before running `bun run generate`. Monochrome SVGs inherit
 the caller's colour; artwork with a fixed palette uses the `-multicolor.svg` suffix. Generate the
@@ -105,7 +104,7 @@ The initial descriptions were AI-assisted and checked against contact sheets. Po
 are conservative and often describe the shared appearance of a set. They do not assert character
 biographies, canon, species identities or rules that the image cannot establish. Monochrome partners
 share visible subject descriptions where appropriate, with corrections for omitted scene details.
-The existing empty CHOAM logo is explicitly described as a placeholder.
+The existing empty CHOAM emblem is explicitly described as a placeholder.
 
 Search runs locally without a model call or external service. Every query word must match; word
 order, accents, common singular/plural forms and a small synonym vocabulary are normalized. Exact
@@ -127,6 +126,52 @@ When adding or changing artwork:
    changed artwork. The index coverage test rejects missing files, removed files and stale hashes.
 5. Run `bunx vitest run src/app/routes/_app/media`, then check real searches and the focused preview.
    Run the Media page stories and the required release verification before updating the PR.
+
+### Art credits
+
+Every record in `media-index.json` names a `credit`, an id defined in `src/shared/media/credits.json`,
+and may add a `creditDetail` sentence, such as the reference a single AI planet was based on. A
+definition records the method (`official`, `restored`, `recreated`, `traced`, `ai-restored`,
+`ai-adapted`, `ai`, `blog`, `online`, `online-copy` or `unknown`), the original artist, the source work, the style
+AI artwork was asked to match, and who prepared the copy. `creditText` in
+`src/shared/media/credits.ts` turns this into one sentence. The focused `/media` preview, its
+details tooltip and the artwork pickers' hover preview show it.
+
+`bun run generate` writes `src/shared/media/credits.generated.json`, which groups paths by credit
+and folder so the pickers can show credits without loading the search index. The media credit test
+rejects records without a defined credit, unused definitions and a stale generated index. When you
+add artwork, give it the credit its provenance record supports; use `online` when it was found
+online and its source is still unknown, and `online-copy` when it was found online and is based on a
+known design; its `creditDetail` names that original.
+
+### Retiring duplicate artwork
+
+Saved factions, boards and rulebooks store artwork paths, so a duplicate is retired, never deleted.
+Delete the duplicate's vector source and its `media-index.json` record, then map its path to the
+artwork it duplicates in `VECTOR_ARTWORK_ALIASES` (`src/shared/vectorRules.ts`). The path stays a
+valid identifier in its category, `bun run generate:vectors` writes its file as a copy of the
+original, and the library and pickers show only the original. A raster that shares its original's
+bytes, such as `/image/texture/058.jpg`, keeps its lock entry and is listed in
+`src/shared/media/retiredArtwork.ts` instead.
+
+### Renaming vector artwork
+
+A rename uses the same mechanism as retiring a duplicate. Move the source to its new path, move its
+`media-index.json` key and collection entry, and map the old path to the new one in
+`VECTOR_ARTWORK_ALIASES`. The old path stays valid, so saved factions, boards and rulebooks need no
+data migration, and `bun run generate:vectors` keeps publishing a copy at the old URL. An alias must
+point at a real source, so when a target is renamed, repoint the aliases that named it.
+
+Troops, icons, emblems and portraits keep their paths: icons and troops are named by game data and
+generated pieces, and raster originals are locked by key. Their display names live in
+`src/shared/stockAssetNames.json`, which overrides the label a file name would produce.
+
+### General symbols and troops
+
+A general symbol with a known fictional universe belongs to that universe's collection, such as
+`General symbols / Star Trek`. A universe with one or two files goes in
+`General symbols / Other science fiction`. Other symbols are grouped by what they depict. A credit's
+`creditDetail` decides the universe. Troops are grouped by subject, with Dune faction troops together.
 
 ### GF9 artwork provenance
 

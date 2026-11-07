@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { resolveRulebookBoardDefinition } from './boardDefinitions';
 import { rulebookContentsV1Schema, rulebookEditionContentsV1Schema } from './contents';
 import type { RulebookContentsDraftV1 } from './contents';
 import {
@@ -152,10 +151,6 @@ describe('Rulebook live source contracts', () => {
     expect(projectRulebookSource({ kind: 'stock', artworkId }, {})).toMatchObject({
       status: 'ready',
       imageUrl: artworkId,
-    });
-    expect(projectRulebookSource({ kind: 'board', boardId: 'arrakis' }, {})).toMatchObject({
-      status: 'ready',
-      imageUrl: resolveRulebookBoardDefinition('arrakis')!.imageUrl,
     });
     for (const reference of [
       { kind: 'stock', artworkId: 'https://example.com/image.png' },

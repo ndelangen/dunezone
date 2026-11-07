@@ -1,9 +1,27 @@
-import { Alert, Button, ColorInput, Group, NumberInput, Select, Slider, Stack, Switch, Text } from '@mantine/core';
+import { ColorInput, Group, NumberInput, Select, Stack, Switch, Text } from '@mantine/core';
 import { CUSTOM_CARD_MAX_LAYERS, CUSTOM_CARD_MAX_TEXT_LENGTH, RECTANGLE_TOKEN_FONTS } from '@shared/assets/schema';
 import type { CustomCardTokens } from '@shared/assets/schema';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { ListChapter } from '@ui/block/ListChapter';
+import { helpLines } from '@ui/content/helpLines';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
+import { HoldAction } from '@ui/control/HoldAction';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RangeField } from '@ui/control/RangeField';
+import {
+  AlignHorizontalJustifyCenter,
+  AlignVerticalJustifyCenter,
+  BringToFront,
+  Coins,
+  Copy,
+  Crosshair,
+  Replace,
+  ScanText,
+  SendToBack,
+  Sticker,
+  Type,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -19,6 +37,15 @@ export type CardTokenPicker = (onPick: (id: string) => void, onCancel: () => voi
 type TokenContext = { tokens: z.infer<typeof CustomCardTokens>; tokenPicker: CardTokenPicker };
 
 type Patch = (update: Partial<CustomCardDraft>) => void;
+
+const LAYERS_FULL = `A card holds at most ${CUSTOM_CARD_MAX_LAYERS} layers.`;
+
+const LAYER_NAME: Record<CardLayer['kind'], string> = { decal: 'Decal', token: 'Token', text: 'Text' };
+const LAYER_ICON: Record<CardLayer['kind'], ReactNode> = {
+  decal: <Sticker size={16} />,
+  token: <Coins size={16} />,
+  text: <Type size={16} />,
+};
 
 function TextLayerFields({
   layer,
@@ -42,86 +69,110 @@ function TextLayerFields({
           />
         }
       />
-      <Select
-        label="Font"
-        aria-label={`Font for ${label}`}
-        allowDeselect={false}
-        data={RECTANGLE_TOKEN_FONTS.map((font) => ({
-          value: font,
-          label: font.replace(/^C_/, '').replace(/_/g, ' '),
-        }))}
-        value={layer.font}
-        onChange={(font) => {
-          if (font) {
-            onChange({ ...layer, font: font as typeof layer.font });
-          }
-        }}
-        renderOption={({ option }) => (
-          <span style={{ fontFamily: `"${option.value}", sans-serif` }}>{option.label}</span>
-        )}
+      <ControlBlock
+        title="Font"
+        input={
+          <Select
+            aria-label={`Font for ${label}`}
+            allowDeselect={false}
+            data={RECTANGLE_TOKEN_FONTS.map((font) => ({
+              value: font,
+              label: font.replace(/^C_/, '').replace(/_/g, ' '),
+            }))}
+            value={layer.font}
+            onChange={(font) => {
+              if (font) {
+                onChange({ ...layer, font: font as typeof layer.font });
+              }
+            }}
+            renderOption={({ option }) => (
+              <span style={{ fontFamily: `"${option.value}", sans-serif` }}>{option.label}</span>
+            )}
+          />
+        }
       />
       <Group grow>
-        <NumberInput
-          label="Text size"
-          aria-label={`Text size for ${label}`}
-          value={layer.size}
-          min={1}
-          max={200}
-          onChange={(size) => {
-            if (typeof size === 'number') {
-              onChange({ ...layer, size });
-            }
-          }}
+        <ControlBlock
+          title="Text size"
+          input={
+            <NumberInput
+              aria-label={`Text size for ${label}`}
+              value={layer.size}
+              min={1}
+              max={200}
+              onChange={(size) => {
+                if (typeof size === 'number') {
+                  onChange({ ...layer, size });
+                }
+              }}
+            />
+          }
         />
-        <Select
-          label="Alignment"
-          aria-label={`Alignment for ${label}`}
-          value={layer.align}
-          allowDeselect={false}
-          data={['left', 'center', 'right']}
-          onChange={(align) => {
-            if (align) {
-              onChange({ ...layer, align: align as typeof layer.align });
-            }
-          }}
+        <ControlBlock
+          title="Alignment"
+          input={
+            <Select
+              aria-label={`Alignment for ${label}`}
+              value={layer.align}
+              allowDeselect={false}
+              data={['left', 'center', 'right']}
+              onChange={(align) => {
+                if (align) {
+                  onChange({ ...layer, align: align as typeof layer.align });
+                }
+              }}
+            />
+          }
         />
       </Group>
       <Group grow>
-        <NumberInput
-          label="Width"
-          aria-label={`Width for ${label}`}
-          value={layer.width}
-          min={1}
-          max={900}
-          onChange={(width) => {
-            if (typeof width === 'number') {
-              onChange({ ...layer, width });
-            }
-          }}
+        <ControlBlock
+          title="Width"
+          input={
+            <NumberInput
+              aria-label={`Width for ${label}`}
+              value={layer.width}
+              min={1}
+              max={900}
+              onChange={(width) => {
+                if (typeof width === 'number') {
+                  onChange({ ...layer, width });
+                }
+              }}
+            />
+          }
         />
-        <NumberInput
-          label="Height"
-          aria-label={`Height for ${label}`}
-          value={layer.height}
-          min={1}
-          max={1263}
-          onChange={(height) => {
-            if (typeof height === 'number') {
-              onChange({ ...layer, height });
-            }
-          }}
+        <ControlBlock
+          title="Height"
+          input={
+            <NumberInput
+              aria-label={`Height for ${label}`}
+              value={layer.height}
+              min={1}
+              max={1263}
+              onChange={(height) => {
+                if (typeof height === 'number') {
+                  onChange({ ...layer, height });
+                }
+              }}
+            />
+          }
         />
       </Group>
-      <ColorInput
-        label="Text color"
-        aria-label={`Text color for ${label}`}
-        format="hex"
-        value={layer.color}
-        onChangeEnd={(color) => {
-          if (/^#[0-9a-fA-F]{6}$/.test(color)) {
-            onChange({ ...layer, color });
-          }
-        }}
+      <ControlBlock
+        title="Text color"
+        input={
+          <ColorInput
+            aria-label={`Text color for ${label}`}
+            format="hex"
+            value={layer.color}
+            onChangeEnd={(color) => {
+              if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+                onChange({ ...layer, color });
+              }
+            }}
+          />
+        }
       />
     </>
   );
@@ -140,15 +191,23 @@ function TokenLayerFields({
   const token = tokens[layer.asset_id];
   return (
     <Stack gap="sm">
-      <Text size="sm">
-        {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
-      </Text>
-      <Text size="sm" c="dimmed">
-        The front stays linked to the original token. Editing that token updates this card.
-      </Text>
-      <Button variant="default" onClick={() => setPicking(true)}>
-        Replace token
-      </Button>
+      <ControlBlock
+        title="Token"
+        description={helpLines(
+          'The front stays linked to the original token.',
+          'Editing that token updates this card.'
+        )}
+        tool={
+          <LabeledAction icon={<Replace size={16} />} onClick={() => setPicking(true)}>
+            Replace token
+          </LabeledAction>
+        }
+        input={
+          <Text size="sm">
+            {token?.name ?? (token === null ? 'This token is unavailable.' : 'Loading linked token...')}
+          </Text>
+        }
+      />
       {picking
         ? tokenPicker(
             (asset_id) => {
@@ -158,34 +217,13 @@ function TokenLayerFields({
             () => setPicking(false)
           )
         : null}
-      <ControlBlock
+      <RangeField
         title="Token scale"
-        tool={
-          <NumberInput
-            aria-label="Token scale"
-            w={110}
-            min={0.05}
-            max={3}
-            step={0.05}
-            value={layer.scale}
-            onChange={(scale) => {
-              if (typeof scale === 'number') {
-                onChange({ ...layer, scale });
-              }
-            }}
-          />
-        }
-        input={
-          <Slider
-            aria-label="Token scale slider"
-            thumbLabel="Token scale"
-            min={0.05}
-            max={3}
-            step={0.05}
-            value={layer.scale}
-            onChange={(scale) => onChange({ ...layer, scale })}
-          />
-        }
+        min={0.05}
+        max={3}
+        step={0.05}
+        value={layer.scale}
+        onChange={(scale) => onChange({ ...layer, scale })}
       />
     </Stack>
   );
@@ -225,12 +263,16 @@ function LayerFields({
         </>
       )}
       {layer.kind === 'decal' ? (
-        <Switch
-          label="Behind frame"
-          aria-label="Behind frame"
+        <ControlBlock
+          title="Behind frame"
           description="Draw this decal under the frame, which hides artwork outside its window."
-          checked={layer.behindFrame ?? false}
-          onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
+          input={(fieldProps) => (
+            <Switch
+              {...fieldProps}
+              checked={layer.behindFrame ?? false}
+              onChange={(event) => onChange({ ...layer, behindFrame: event.currentTarget.checked })}
+            />
+          )}
         />
       ) : null}
       {layer.kind !== 'decal' ? (
@@ -242,35 +284,15 @@ function LayerFields({
           { key: 'rotation', title: 'Rotation', min: -360, max: 360, step: 1 },
         ] as const
       ).map(({ key, title, min, max, step }) => (
-        <ControlBlock
+        <RangeField
           key={key}
           title={title}
-          tool={
-            <NumberInput
-              aria-label={`${title} for ${label.toLowerCase()}`}
-              w={110}
-              value={layer[key]}
-              min={min}
-              max={max}
-              step={step}
-              onChange={(value) => {
-                if (typeof value === 'number') {
-                  onChange({ ...layer, [key]: value });
-                }
-              }}
-            />
-          }
-          input={
-            <Slider
-              aria-label={`${title} slider for ${label.toLowerCase()}`}
-              thumbLabel={`${title} for ${label.toLowerCase()}`}
-              value={layer[key]}
-              min={min}
-              max={max}
-              step={step}
-              onChange={(value) => onChange({ ...layer, [key]: value })}
-            />
-          }
+          name={`${title} for ${label.toLowerCase()}`}
+          min={min}
+          max={max}
+          step={step}
+          value={layer[key]}
+          onChange={(value) => onChange({ ...layer, [key]: value })}
         />
       ))}
     </Stack>
@@ -290,13 +312,9 @@ function LayerPlacement({
 }) {
   const origin = [card.width / 2, card.height / 2];
   const isText = layer.kind === 'text';
+  const placed = isText ? "the text box's top-left corner" : `the ${LAYER_NAME[layer.kind].toLowerCase()}'s centre`;
   return (
     <Stack gap="md">
-      <Text size="sm" c="dimmed">
-        {isText
-          ? "Place the text box's top-left corner, measured from the card's top-left corner."
-          : `Place the ${layer.kind === 'token' ? 'token' : 'decal'}'s centre, measured from the card's top-left corner.`}
-      </Text>
       {(['Horizontal', 'Vertical'] as const).map((axis, index) => {
         const value = layer.offset[index] + origin[index];
         const max = index === 0 ? card.width : card.height;
@@ -306,70 +324,49 @@ function LayerPlacement({
           onChange({ ...layer, offset });
         };
         return (
-          <ControlBlock
+          <RangeField
             key={axis}
             title={`${axis} position`}
-            tool={
-              <NumberInput
-                aria-label={`${axis} position`}
-                w={110}
-                value={value}
-                step={1}
-                onChange={(next) => {
-                  if (typeof next === 'number') {
-                    change(next);
-                  }
-                }}
-              />
-            }
-            input={
-              <Slider
-                aria-label={`${axis} position slider`}
-                thumbLabel={`${axis} position`}
-                min={0}
-                max={max}
-                step={1}
-                value={value}
-                onChange={change}
-              />
-            }
+            description={`How far ${placed} sits from the card's ${index === 0 ? 'left' : 'top'} edge.`}
+            min={0}
+            max={max}
+            decimals={2}
+            typedBeyondRange
+            value={value}
+            onChange={change}
           />
         );
       })}
       <Group gap="xs">
-        <Button
-          variant="default"
-          size="xs"
+        <IconAction
+          label="Centre horizontally"
+          emphasis="standard"
+          icon={<AlignHorizontalJustifyCenter size={16} aria-hidden />}
           onClick={() => onChange({ ...layer, offset: [isText ? -layer.width / 2 : 0, layer.offset[1]] })}
-        >
-          Centre horizontally
-        </Button>
-        <Button
-          variant="default"
-          size="xs"
+        />
+        <IconAction
+          label="Centre vertically"
+          emphasis="standard"
+          icon={<AlignVerticalJustifyCenter size={16} aria-hidden />}
           onClick={() => onChange({ ...layer, offset: [layer.offset[0], isText ? -layer.height / 2 : 0] })}
-        >
-          Centre vertically
-        </Button>
+        />
         {isText ? (
-          <Button
-            variant="default"
-            size="xs"
+          <IconAction
+            label="Fit box to text body"
+            emphasis="standard"
+            icon={<ScanText size={16} aria-hidden />}
             onClick={() => {
               const body = newCardText(format, undefined, windowOffsetY);
               onChange({ ...layer, offset: body.offset, width: body.width, height: body.height });
             }}
-          >
-            Fit box to text body
-          </Button>
+          />
         ) : format === 'decal-window' ? (
-          <Button
-            variant="default"
-            size="xs"
+          <IconAction
+            label={layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
+            emphasis="standard"
+            icon={<Crosshair size={16} aria-hidden />}
             onClick={() => onChange({ ...layer, offset: [0, -161.5 + windowOffsetY] })}
-          >
-            {layer.kind === 'token' ? 'Centre in window' : 'Centre in decal window'}
-          </Button>
+          />
         ) : null}
       </Group>
     </Stack>
@@ -390,6 +387,7 @@ export function CustomCardLayerPanel({
   onChapterChange: (chapter: CustomCardChapter) => void;
 }) {
   const layer = draft.layers[index];
+  const full = draft.layers.length >= CUSTOM_CARD_MAX_LAYERS;
   const move = (step: number) => {
     const layers = [...draft.layers];
     const target = index + step;
@@ -402,28 +400,35 @@ export function CustomCardLayerPanel({
   return (
     <Stack gap="lg">
       <Group gap="xs">
-        <Button size="xs" variant="default" disabled={index === 0} onClick={() => move(-1)}>
-          Move backward
-        </Button>
-        <Button size="xs" variant="default" disabled={index === draft.layers.length - 1} onClick={() => move(1)}>
-          Move forward
-        </Button>
-        <Button
-          size="xs"
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        <IconAction
+          label="Move backward"
+          emphasis="standard"
+          icon={<SendToBack size={16} aria-hidden />}
+          disabledReason={index === 0 ? 'This layer is already at the back.' : undefined}
+          onClick={() => move(-1)}
+        />
+        <IconAction
+          label="Move forward"
+          emphasis="standard"
+          icon={<BringToFront size={16} aria-hidden />}
+          disabledReason={index === draft.layers.length - 1 ? 'This layer is already at the front.' : undefined}
+          onClick={() => move(1)}
+        />
+        <IconAction
+          label="Duplicate layer"
+          emphasis="standard"
+          icon={<Copy size={16} aria-hidden />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => {
             const duplicate = { ...structuredClone(layer), layerId: crypto.randomUUID() };
             patch({ layers: [...draft.layers.slice(0, index + 1), duplicate, ...draft.layers.slice(index + 1)] });
             onChapterChange(`layer:${duplicate.layerId}`);
           }}
-        >
-          Duplicate layer
-        </Button>
-        <ConfirmDeleteAction
+        />
+        <HoldAction
           label="Remove layer"
           verb="remove"
-          size="sm"
+          size="md"
           pending={false}
           onConfirm={() => {
             patch({ layers: draft.layers.filter((current) => current.layerId !== layer.layerId) });
@@ -458,34 +463,56 @@ export function CustomCardLayers({
   onChapterChange: (chapter: CustomCardChapter) => void;
 }) {
   const [picking, setPicking] = useState(false);
+  const full = draft.layers.length >= CUSTOM_CARD_MAX_LAYERS;
   const add = (layer: CardLayer) => {
     patch({ layers: [...draft.layers, layer] });
     onChapterChange(`layer:${layer.layerId}`);
   };
   return (
-    <Stack gap="md">
+    <ListChapter
+      title="Layers"
+      titleHidden
+      help={helpLines(
+        'Each layer has its own tab.',
+        'Layers stack in tab order on each side of the frame.',
+        'The Head stays on top.'
+      )}
+      actions={
+        <Text size="sm" c="dimmed">
+          {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
+        </Text>
+      }
+      note={
+        draft.layers.length === 0
+          ? { title: 'No layers', text: 'Add decals and text, or choose a starting preset in Format.' }
+          : null
+      }
+    >
       <Group>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        <LabeledAction
+          intent="positive"
+          icon={<Sticker size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => add(newCardDecal())}
         >
           Add decal
-        </Button>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          icon={<Type size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => add(newCardText(draft.format, undefined, draft.windowOffsetY))}
         >
           Add text
-        </Button>
-        <Button
-          variant="default"
-          disabled={draft.layers.length >= CUSTOM_CARD_MAX_LAYERS}
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          icon={<Coins size={16} />}
+          disabledReason={full ? LAYERS_FULL : undefined}
           onClick={() => setPicking(true)}
         >
           Add token
-        </Button>
+        </LabeledAction>
       </Group>
       {picking
         ? tokenPicker(
@@ -496,27 +523,16 @@ export function CustomCardLayers({
             () => setPicking(false)
           )
         : null}
-      <Text size="sm" c="dimmed">
-        {draft.layers.length} of {CUSTOM_CARD_MAX_LAYERS} layers
-      </Text>
-      <Text size="sm" c="dimmed">
-        Each layer has its own tab. Layers stack in tab order on each side of the frame. The Head stays on top.
-      </Text>
-      {draft.layers.length === 0 ? (
-        <Alert title="No layers" color="gray">
-          Add decals and text, or choose a starting preset in Format.
-        </Alert>
-      ) : null}
       {draft.layers.map((layer, index) => (
-        <Button
+        <LabeledAction
           key={layer.layerId}
-          variant="subtle"
           justify="start"
+          icon={LAYER_ICON[layer.kind]}
           onClick={() => onChapterChange(`layer:${layer.layerId}`)}
         >
-          {index + 1}. {layer.kind === 'decal' ? 'Decal' : layer.kind === 'token' ? 'Token' : 'Text'}
-        </Button>
+          {`${index + 1}. ${LAYER_NAME[layer.kind]}`}
+        </LabeledAction>
       ))}
-    </Stack>
+    </ListChapter>
   );
 }

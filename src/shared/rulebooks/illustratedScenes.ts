@@ -94,7 +94,7 @@ export const rulebookBoardRouteSchema = z
   });
 
 export const rulebookBoardSceneSchema = z.strictObject({
-  boardId: z.string().min(1),
+  boardId: z.string().min(1, 'Choose a board for this scene.'),
   caption: z.string(),
   size: z.enum(['compact', 'fit-width']).optional(),
   routes: identifiedItems(rulebookBoardRouteSchema).optional(),

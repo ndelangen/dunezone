@@ -1,6 +1,6 @@
+/* oxlint-disable-next-line no-restricted-imports -- A seat request is a ghost disc with no person in it yet. */
+import { Avatar } from '@mantine/core';
 import {
-  Avatar,
-  Button,
   CloseButton,
   Group,
   Indicator,
@@ -28,10 +28,12 @@ import type { PublicControls } from '@shared/play/inventory';
 import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
-import { Check } from 'lucide-react';
+import { Ban, Check, Dices } from 'lucide-react';
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -41,7 +43,7 @@ import type { TableProjection, TableSession } from '../../../../db/tabletop/Tabl
 import styles from './Drafting.module.css';
 import { ReadyToggle } from './PhaseNavigation';
 import { publicControlsOf } from './publicControls';
-import { seatLocked } from './SeatRequests';
+import { seatLocked, seatLockedReason } from './SeatRequests';
 
 /*
  * Drafting as accepted on #1016 (overlay D, refined) and #1145 (the panel): the ledger over the
@@ -105,7 +107,15 @@ function ledgerTitle(mine: boolean, kind: 'pick' | 'ban', faction: string, owner
 
 /** No draft control sends while the session cannot act or a seat command is still in flight. */
 function locked(table: TableProjection): boolean {
-  return !table.canInteract || table.seatCommandPending;
+  return lockedReason(table) !== undefined;
+}
+
+/** Why a drafting action waits, in the words its disabled button gives; nothing while it can run. */
+function lockedReason(table: TableProjection): string | undefined {
+  if (table.seatCommandPending) {
+    return 'Your last seat action is still on its way.';
+  }
+  return table.canInteract ? undefined : 'The table is unavailable.';
 }
 
 /** The real generated token face, clipped round, no border; a banned token is greyed and slashed. */
@@ -128,7 +138,7 @@ function FactionToken({
   const style = { '--token-size': `${size}rem` } as CSSProperties;
   const face = (
     <span className={styles.tokenFace} aria-hidden="true">
-      <Token logo={faction.logo} background={faction.background} />
+      <Token emblem={faction.emblem} background={faction.background} />
     </span>
   );
   return (
@@ -162,16 +172,13 @@ function PlayerMark({ player, size, ready = false }: Readonly<{ player: Player; 
       title={name}
       style={
         {
-          '--profile-link-avatar-size': `${size}rem`,
-          '--profile-link-initials-size': `${size * 0.4}rem`,
+          '--entity-link-media-size': `${size}rem`,
         } as CSSProperties
       }
     />
   ) : (
     <Tooltip label={name}>
-      <Avatar src={player.avatar} size={`${size}rem`} radius="50%" alt="" role="img" aria-label={name}>
-        {player.name.slice(0, 1)}
-      </Avatar>
+      <NameDisc src={player.avatar} name={player.name} size={`${size}rem`} label={name} />
     </Tooltip>
   );
   return (
@@ -232,17 +239,16 @@ function RequestRow({ client, table, request }: Props & Readonly<{ request: Seat
                 asks to sit
               </Text>
               {/* Keyed by the request, so a press that began on one request never approves the next. */}
-              <Button
+              <LabeledAction
                 key={request.id}
                 size="compact-sm"
-                radius="xl"
-                color="confirm"
-                leftSection={<Check size={14} aria-hidden />}
-                disabled={seatLocked(table)}
+                intent="positive"
+                icon={<Check size={14} />}
+                disabledReason={seatLockedReason(table)}
                 onClick={() => client.command({ kind: 'seat-approve', requestId: request.id })}
               >
                 Approve
-              </Button>
+              </LabeledAction>
             </>
           )}
         </span>
@@ -557,26 +563,25 @@ function FactionRow({
         {banners.length > 0 && <Attribution verb="banned" players={players} seats={banners} />}
       </Group>
       <Group gap="xs" wrap="nowrap" className={styles.rowActions}>
-        <Button
+        <LabeledAction
           size="compact-sm"
-          color="brand"
-          variant={picked ? 'filled' : 'default'}
-          aria-pressed={picked}
-          disabled={locked(table) || ((banned || !dealable) && !picked)}
+          pressed={picked}
+          icon={<Check size={14} />}
+          disabledReason={lockedReason(table) ?? (picked || !why ? undefined : `${why}.`)}
           onClick={() => client.command({ kind: picked ? 'draft-unpick' : 'draft-pick', factionId: faction.id })}
         >
           {picked ? 'Drafted' : 'Draft'}
-        </Button>
-        <Button
+        </LabeledAction>
+        <LabeledAction
           size="compact-sm"
-          color="red"
-          variant={mine ? 'filled' : 'default'}
-          aria-pressed={mine}
-          disabled={locked(table)}
+          intent="negative"
+          pressed={mine}
+          icon={<Ban size={14} />}
+          disabledReason={lockedReason(table)}
           onClick={() => client.command({ kind: mine ? 'draft-unban' : 'draft-ban', factionId: faction.id })}
         >
           {mine ? 'Banned' : 'Ban'}
-        </Button>
+        </LabeledAction>
       </Group>
     </li>
   );
@@ -649,9 +654,14 @@ export function DraftingReady({ client, table }: Props) {
   /* A failed deal keeps everyone's readiness, so a ready player deals again rather than withdrawing. */
   if (draft.failure && ready) {
     return (
-      <Button color="cta" disabled={locked(table)} onClick={() => client.command({ kind: 'draft-ready', ready: true })}>
+      <LabeledAction
+        emphasis="strong"
+        icon={<Dices size={16} />}
+        disabledReason={lockedReason(table)}
+        onClick={() => client.command({ kind: 'draft-ready', ready: true })}
+      >
         Deal again
-      </Button>
+      </LabeledAction>
     );
   }
   return (

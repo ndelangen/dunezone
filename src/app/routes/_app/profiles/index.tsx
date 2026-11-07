@@ -1,12 +1,13 @@
-import { Button, Group, Select, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Group, Select, Stack } from '@mantine/core';
 import { PROFILE_CATALOGUE_PAGE_SIZE, parseProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import type { ProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
+import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ProfileLink } from '@ui/content/ProfileLink';
-import { CataloguePager } from '@ui/control/CataloguePager';
-import { LoadMoreButton } from '@ui/control/LoadMoreButton';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Stats } from '@ui/list/Stats';
@@ -21,6 +22,7 @@ import type { ProfileDirectoryArgs, ProfileDirectoryEntry, ProfileDirectoryPageD
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
+import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
@@ -49,12 +51,6 @@ const SEARCH_STEP = PROFILE_CATALOGUE_PAGE_SIZE;
 
 /** The rows' links, as the list renders them, in their order. */
 const ROW_LINK = 'a[href^="/profiles/"]';
-
-/** A browsed page of the directory: counts, numbered pages, a chosen order. */
-type BrowsedDirectory = Exclude<ProfileDirectoryPageData, { mode: 'search' }>;
-
-/** A searched directory: the best matches first, and more by asking for a larger limit. */
-type SearchedDirectory = Extract<ProfileDirectoryPageData, { mode: 'search' }>;
 
 /** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
 function catalogueQueryArgs(args: ProfileDirectoryArgs, limit: number): ProfileDirectoryArgs {
@@ -137,19 +133,22 @@ function ProfilesPage() {
   const query = useSearchDraft(search.q ?? '', commitQuery);
 
   /* A search is always best match, so its sort takes no change; choosing an order is for browsing. */
-  const sortSelect = (label?: string) => (
-    <Select
-      className={label ? undefined : styles.sortSegment}
-      variant={label ? 'default' : 'unstyled'}
-      label={label}
-      aria-label="Sort"
-      allowDeselect={false}
-      data={sortOptions(Boolean(search.q))}
-      value={search.q ? 'relevance' : (search.sort ?? 'name')}
-      disabled={Boolean(search.q)}
-      onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
-    />
-  );
+  const sortSelect = (label?: string) => {
+    const field = (fieldProps?: ControlBlockField) => (
+      <Select
+        {...fieldProps}
+        className={label ? undefined : styles.sortSegment}
+        variant={label ? 'default' : 'unstyled'}
+        aria-label="Sort"
+        allowDeselect={false}
+        data={sortOptions(Boolean(search.q))}
+        value={search.q ? 'relevance' : (search.sort ?? 'name')}
+        disabled={Boolean(search.q)}
+        onChange={(value) => changeSearch({ sort: value === 'name' ? undefined : value })}
+      />
+    );
+    return label ? <ControlBlock title={label} input={field} /> : field();
+  };
 
   return (
     <PageLayout>
@@ -197,37 +196,32 @@ type DirectoryContentProps = {
 function DirectoryContent({ data, loading, loaded, onLoadMore, ref }: DirectoryContentProps) {
   if (data.directoryTotal === 0) {
     return (
-      <Text size="sm" c="dimmed">
-        No profiles yet.
-      </Text>
+      <Surface padding="xl">
+        <EmptyResults title="Nothing here yet">No one has made a profile so far.</EmptyResults>
+      </Surface>
     );
   }
-  if ('mode' in data) {
-    return <SearchedDirectory data={data} loading={loading} loaded={loaded} onLoadMore={onLoadMore} ref={ref} />;
-  }
-  return <BrowsedDirectory data={data} />;
-}
-
-/** No match among the profiles checked; a capped search did not check them all, so another word may still find one. */
-function NothingMatches({ capped }: { capped: boolean }) {
   return (
-    <Surface padding="xl">
-      <Stack gap="xs" align="center">
-        <Title order={2}>Nothing matches</Title>
-        <Text c="dimmed" ta="center">
-          No profile matches this search.
-        </Text>
-        {capped ? (
-          <Text size="xs" c="dimmed" ta="center">
-            Only the first matches of this search were checked. Add a word to narrow it.
-          </Text>
-        ) : null}
-      </Stack>
-    </Surface>
+    <CatalogueResults
+      results={
+        'mode' in data
+          ? { kind: 'search', ...data, loading, loaded, onLoadMore }
+          : { kind: 'browse', ...data, pagerLabel: 'Profile pages', pageLinkProps: profilePageLink }
+      }
+      noun="profiles"
+      noMatches="No profile matches this search."
+      renderEntries={(entries) => <ProfileRows entries={entries} />}
+      ref={ref}
+    />
   );
 }
 
-function ProfileRows({ entries }: { entries: ProfileDirectoryEntry[] }) {
+/** The link to one page of the browsed directory. */
+function profilePageLink(page: number) {
+  return { component: Link, to: '/profiles', search: pageSearch(page) };
+}
+
+function ProfileRows({ entries }: { entries: readonly ProfileDirectoryEntry[] }) {
   return (
     <Surface padding="lg">
       <Stack component="ul" gap="xs" className={styles.list}>
@@ -236,73 +230,6 @@ function ProfileRows({ entries }: { entries: ProfileDirectoryEntry[] }) {
         ))}
       </Stack>
     </Surface>
-  );
-}
-
-/** One page of the browsed directory, with its pager. */
-function BrowsedDirectory({ data }: { data: BrowsedDirectory }) {
-  if (data.total === 0) {
-    return <NothingMatches capped={!data.complete} />;
-  }
-  if (data.entries.length === 0) {
-    return (
-      <Surface padding="xl">
-        <PastTheEnd pageCount={data.pageCount} />
-      </Surface>
-    );
-  }
-  return (
-    <Stack gap="lg">
-      <ProfileRows entries={data.entries} />
-      <CataloguePager
-        page={data.page}
-        pageCount={data.pageCount}
-        pageSize={data.pageSize}
-        total={data.total}
-        complete={data.complete}
-        noun="profiles"
-        label="Profile pages"
-        pageLinkProps={(page) => ({ component: Link, to: '/profiles', search: pageSearch(page) })}
-      />
-    </Stack>
-  );
-}
-
-/**
- * The best matches of a search, and a "Load more" that asks for a longer list while there is one: no count and no pages.
- * When the longer list arrives, focus moves to its first new row, so a keyboard reader carries on from where the list grew.
- */
-function SearchedDirectory({
-  data,
-  loading,
-  loaded,
-  onLoadMore,
-  ref,
-}: {
-  data: SearchedDirectory;
-  loading: boolean;
-  /** Whether the longer list asked for has arrived. */
-  loaded: boolean;
-  onLoadMore: () => void;
-  ref: Ref<HTMLDivElement>;
-}) {
-  if (data.entries.length === 0) {
-    return <NothingMatches capped={data.capped} />;
-  }
-  return (
-    <Stack gap="lg" aria-busy={loading} ref={ref}>
-      <ProfileRows entries={data.entries} />
-      {/* The rows say how many arrived; this says only that they did, so a reader hears the list grow without a count the page never shows. */}
-      <VisuallyHidden role="status" aria-live="polite">
-        {loaded ? 'More profiles loaded' : null}
-      </VisuallyHidden>
-      {data.hasMore ? <LoadMoreButton loading={loading} onLoadMore={onLoadMore} /> : null}
-      {data.capped ? (
-        <Text c="dimmed" ta="center">
-          That's as far as this search goes. Add a word to narrow it.
-        </Text>
-      ) : null}
-    </Stack>
   );
 }
 
@@ -345,29 +272,11 @@ function ProfileRow({ entry }: { entry: ProfileDirectoryEntry }) {
   );
 }
 
-/** A page past the end, from an old link or a directory that shrank: say where the results end and link there. */
-function PastTheEnd({ pageCount }: { pageCount: number }) {
-  return (
-    <Stack gap="sm" align="center">
-      <Title order={2}>Nothing on this page</Title>
-      <Text c="dimmed">
-        {pageCount === 1 ? 'These results fit on one page.' : `These results end on page ${pageCount}.`}
-      </Text>
-      <Button
-        variant="default"
-        renderRoot={(props) => <Link {...props} to="/profiles" search={pageSearch(pageCount)} />}
-      >
-        {pageCount === 1 ? 'Go to the results' : `Go to page ${pageCount}`}
-      </Button>
-    </Stack>
-  );
-}
-
 function ProfilesPastTheEnd({ data }: NotFoundRouteProps) {
   const pageCount = (data as { pageCount?: number } | undefined)?.pageCount ?? 1;
   return (
     <PageMessage title="Profiles">
-      <PastTheEnd pageCount={pageCount} />
+      <PastTheEnd pageCount={pageCount} noun="profiles" pageLinkProps={profilePageLink} />
     </PageMessage>
   );
 }

@@ -3,7 +3,7 @@
 import { useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ThreeEvent } from '@react-three/fiber/webgpu';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
-import { retainedArrakisBoard } from '@shared/boards/geometry';
+import { tableTerritoryAt } from '@shared/boards/tableTerritories';
 import { gameAssetColors, rendererColors } from '@shared/play/assetColors';
 import { isFactionToken } from '@shared/play/factionToken';
 import { gestureBlockReason, pieceCount } from '@shared/play/model';
@@ -47,6 +47,7 @@ import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
+import { tintsWithBattle } from '@shared/play/territoryTints';
 import { isTroopStack } from '@shared/play/troop';
 import { playUiColors } from '@shared/uiPalette';
 import clsx from 'clsx';
@@ -59,17 +60,17 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { Ray, Texture } from 'three';
-import { DoubleSide, Mesh, MeshBasicMaterial, Plane, Raycaster, RingGeometry, Vector2, Vector3 } from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial, Plane, RingGeometry, Vector3 } from 'three';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
 import { tableCardFaceKey } from './cardFaceTexture';
+import { TABLE_FOCUS_ATTRIBUTE } from './focusTable';
 import { ignoreRaycast } from './ignoreRaycast';
 import { MapPreviewCamera } from './MapPreviewCamera';
 import { peekMarkerList } from './peekMarkers';
@@ -84,6 +85,7 @@ import { SceneCardDraws } from './SceneCardDraws';
 import { useSharedMeshes } from './sharedMeshes';
 import type { SharedMeshes } from './sharedMeshes';
 import { SpiceBankInteraction } from './SpiceBank';
+import { useBoardTints } from './spiceBlowTints';
 import { SpiceStackIcon } from './SpiceStackIcon';
 import { loadPieceBadge, loadPlayCamera, loadScenePings, loadScenePresence, loadTabletopTools } from './tableChunks';
 import { useTableFraming } from './tableFraming';
@@ -97,14 +99,13 @@ import styles from './TabletopScene.module.css';
 import type { PieceMenuAnchor } from './TabletopTools';
 import type { TableProgress } from './tableTrackers';
 import { BRUSH_CURSOR, territoryBrush, useTerritoryBrush } from './territoryBrush';
-import { territoryAtTablePoint } from './TerritoryTints';
 import { useTurnedDownFaces } from './turnedDownFaces';
 import { useDeckShuffleAnimation } from './useDeckShuffleAnimation';
 import { usePieceFlipAnimation } from './usePieceFlipAnimation';
 import { usePublishedFace } from './usePublishedFace';
 import { useSceneInteractions } from './useSceneInteractions';
+import { useTablePointerRay } from './useTablePointerRay';
 import { PlatePosesProvider, useTablePose } from './useTablePose';
-import { useTableSurfacePointFromClient } from './useTableSurfacePoint';
 
 type TabletopSceneProps = {
   readOnly?: boolean;
@@ -121,6 +122,8 @@ type TabletopSceneProps = {
   /* Absent on the fixture, which has no lifecycle. */
   stage?: GameSnapshot['stage'];
   mapVisible?: boolean;
+  /** A territory the page lights for a moment, such as the one under a battle marker a player carries. */
+  highlightTerritory?: string | null;
 };
 
 /** The play area's class and style: the paintbrush cursor while the brush is on. */
@@ -144,7 +147,7 @@ function paintTerritory(
   /* Setup keeps the map off the table until it is shown, and nothing can be painted on a map that is not there. */
   const mapShown = stage !== 'setup' || !!mapVisible;
   const point = brush && mapShown && ray.intersectPlane(BOARD_PLANE, new Vector3());
-  const territory = point && territoryAtTablePoint(board?.definition ?? retainedArrakisBoard(), point.x, point.z);
+  const territory = point && board && tableTerritoryAt(board.definition, point.x, point.z);
   if (brush && territory) {
     brush.paint(territory);
   }
@@ -673,30 +676,18 @@ function peekedLine(piece: TablePiece, state: Pick<TableState, 'factionNames'>) 
 }
 
 function useTablePointFromClient() {
-  const { camera, renderer } = useThree();
-  const normalizedPointer = useMemo(() => new Vector2(), []);
-  const raycaster = useMemo(() => new Raycaster(), []);
-  const pointFromClient = useCallback(
+  const { renderer } = useThree();
+  const pointerRay = useTablePointerRay();
+  return useCallback(
     (piece: TablePiece, clientX: number, clientY: number): Vector3Tuple | null => {
       if (!isPublicTablePoint(renderer.domElement, clientX, clientY)) {
         return null;
       }
-      const bounds = renderer.domElement.getBoundingClientRect();
-      normalizedPointer.set(
-        ((clientX - bounds.left) / bounds.width) * 2 - 1,
-        -((clientY - bounds.top) / bounds.height) * 2 + 1
-      );
-      raycaster.setFromCamera(normalizedPointer, camera);
-      return pointOnPieceDragRay(
-        piece,
-        [raycaster.ray.origin.x, raycaster.ray.origin.y, raycaster.ray.origin.z],
-        [raycaster.ray.direction.x, raycaster.ray.direction.y, raycaster.ray.direction.z]
-      );
+      const { origin, direction } = pointerRay(clientX, clientY);
+      return pointOnPieceDragRay(piece, origin, direction);
     },
-    [camera, normalizedPointer, raycaster, renderer.domElement]
+    [pointerRay, renderer.domElement]
   );
-
-  return pointFromClient;
 }
 
 function useScenePointerSession(onActiveChange: (active: boolean) => void) {
@@ -705,13 +696,13 @@ function useScenePointerSession(onActiveChange: (active: boolean) => void) {
     useTabletop();
   const { renderer } = useThree();
   const point = useTablePointFromClient();
-  const surfacePoint = useTableSurfacePointFromClient();
+  const pointerRay = useTablePointerRay();
   const controls = {
     canHandleTable,
     hasDraft: Boolean(state.draftMove),
     piece: (id: string) => state.pieces.find((piece) => piece.id === id),
     point,
-    surfacePoint,
+    pointerRay,
     isPublicPoint: (x: number, y: number) => isPublicTablePoint(renderer.domElement, x, y),
     beginGesture,
     updateGesture,
@@ -1133,6 +1124,13 @@ function boardSelection(
   };
 }
 
+/* The board's tints; the page's highlight, such as a carried battle marker's territory, wins over the battle's own, which stays lit while the battle lasts. */
+function useSceneTints(highlightTerritory: string | null | undefined) {
+  const tableTints = useBoardTints();
+  const battleTerritory = useTabletopSelector((value) => value.snapshot.battle?.territoryId);
+  return tintsWithBattle(tableTints, highlightTerritory ?? battleTerritory);
+}
+
 function SceneContents({
   cameraView = DEFAULT_CAMERA_VIEW,
   onInteractionActiveChange,
@@ -1145,8 +1143,10 @@ function SceneContents({
   presentation,
   readOnly = false,
   drawBoard = true,
+  highlightTerritory,
 }: Pick<
   TabletopSceneProps,
+  | 'highlightTerritory'
   | 'cameraView'
   | 'onInteractionActiveChange'
   | 'seatCount'
@@ -1163,7 +1163,7 @@ function SceneContents({
   const table = useTabletop();
   const palette = useTablePalette();
   const board = useTabletopSelector((value) => value.snapshot.board);
-  const tints = useTabletopSelector((value) => value.snapshot.tints);
+  const tints = useSceneTints(highlightTerritory);
   const { state, renderedPieces, selectPiece } = table;
   const { controlsEnabled, onPointerSessionChange } = useSceneInteractions(onInteractionActiveChange);
   useScenePointerSession(onPointerSessionChange);
@@ -1241,6 +1241,7 @@ export function TabletopScene({
   readOnly = false,
   stage,
   mapVisible,
+  highlightTerritory,
 }: TabletopSceneProps) {
   const editing = presentation === 'play' && !readOnly;
   const { takeAdditionalFromTarget } = useTabletopCommands();
@@ -1267,6 +1268,11 @@ export function TabletopScene({
     <div
       ref={areaRef}
       {...painting}
+      className={clsx(painting.className, styles.focusTarget)}
+      tabIndex={-1}
+      /* The focus target a chat's Escape hands the keys back to (focusTable). */
+      {...{ [TABLE_FOCUS_ATTRIBUTE]: '' }}
+      data-highlight-territory={highlightTerritory ?? undefined}
       onContextMenu={(event) => {
         event.preventDefault();
         if (hasDraft) {
@@ -1297,6 +1303,7 @@ export function TabletopScene({
             presentation={presentation}
             stage={stage}
             mapVisible={mapVisible}
+            highlightTerritory={highlightTerritory}
             cameraView={cameraView}
             onInteractionActiveChange={onInteractionActiveChange}
             seatCount={seatCount}

@@ -1,22 +1,25 @@
 import { debuggingChanged, describeDebugging, note } from '@sb/playDebugger/preview';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { LogEntry, LogTab } from '@shared/play/log';
 import type { Viewer } from '@shared/play/protocol';
+import type { SpiceBlow } from '@shared/play/spiceBlow';
 import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
 import type { within } from 'storybook/test';
 import { expect } from 'storybook/test';
 
-import { onCurrentBoard } from '../../../../../workers/game/boardLayoutSnapshot';
 import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
 import { LocalTable } from '../tutorial/table/localTable';
 import type { TableMessage } from '../tutorial/table/localTable';
+import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
-import { journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
+import { chapter, journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
 import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
+import { dealtTroopsOf, withMessyReserves } from './troopReserves.stories.fixture';
 
 /*
  * The Play sandbox: the game Worker's own table (`Room`) running in the browser, started from the room's stored state at
@@ -82,7 +85,7 @@ export class SandboxTable extends LocalTable {
   constructor({ start, seat, prepare }: SandboxStart) {
     const index = clampStart(start);
     const step = journeySteps()[index]!;
-    const recorded = variedTreachery(storedSnapshotSchema.parse(onCurrentBoard(step.stored)));
+    const recorded = variedTreachery(storedSnapshotSchema.parse(step.stored));
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     const viewers = Object.fromEntries(
@@ -103,6 +106,11 @@ export class SandboxTable extends LocalTable {
     });
     this.start = index;
     this.prepare = prepare;
+    /* A real game plays on its ruleset's board. */
+    this.setBoard(arrakisBoardCapture);
+    /* Setup dealt the reserves in the order the factions' captures list their troops, which the dealt table still shows. */
+    const dealt = journeySteps()[sandboxSteps()[0]!]!;
+    this.room.dealtTroops = dealtTroopsOf(storedSnapshotSchema.parse(dealt.stored));
   }
 }
 
@@ -226,4 +234,56 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
     versions[piece.id] = stored.revision;
   }
   return { ...stored, table: { ...stored.table, pieces }, versions };
+}
+
+/** A sandbox at Shipment and Movement as seat 1, its troops in a mess for carrying back to their reserves. */
+export const messyReservesSandbox = {
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() =>
+      sandboxTransport({
+        start: Number(args.step ?? 1) - 1,
+        seat: String(args.seat ?? 'seat-1'),
+        prepare: withMessyReserves,
+      })
+    )(),
+};
+
+/**
+ * The recording's Spice cards as a game now captures them: each Broken Land card names its territory and its eight spice, as the published card's highlight and amount say, so its revealed face can place its spice (#2678).
+ */
+export function withSpiceBlows(stored: StoredSnapshot): StoredSnapshot {
+  const spiceBlow = { amount: 8, territories: ['broken_land'] } satisfies SpiceBlow;
+  const capture = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) =>
+    item.artwork?.type === 'card-spice' ? { ...item, artwork: { ...item.artwork, spiceBlow } } : item;
+  return {
+    ...stored,
+    table: {
+      ...stored.table,
+      pieces: stored.table.pieces.map((candidate) => ({ ...candidate, items: candidate.items.map(capture) })),
+    },
+  };
+}
+
+/**
+ * The same table with a second face-up spice card, an Arsunt blow of 6, tucked under each revealed spice card.
+ * Only the card on top counts, so Broken Land lights and Arsunt does not.
+ */
+export function withCoveredSpiceBlow(stored: StoredSnapshot): StoredSnapshot {
+  const captured = withSpiceBlows(stored);
+  const arsunt = { amount: 6, territories: ['arsunt'] } satisfies SpiceBlow;
+  return {
+    ...captured,
+    table: {
+      ...captured.table,
+      pieces: captured.table.pieces.map((candidate) => {
+        const top = candidate.items.at(-1);
+        if (candidate.kind !== 'card' || !top?.faceUp || top.artwork?.type !== 'card-spice') {
+          return candidate;
+        }
+        const under = { ...top, id: `${top.id}-under`, artwork: { ...top.artwork, name: 'Arsunt', spiceBlow: arsunt } };
+        return { ...candidate, items: [...candidate.items.slice(0, -1), under, top] };
+      }),
+    },
+  };
 }

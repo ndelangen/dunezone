@@ -1,9 +1,13 @@
 import { testingPreview } from '@sb/preview';
 import { LEADERS } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
+import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { pageStoryMeta } from './storybookConfig';
+
+/* Retired portraits stay valid ids but are never offered. */
+const offeredLeaderCount = LEADERS.options.filter((image) => !isRetiredStockAsset(image)).length;
 
 const meta = testingPreview.meta({ title: 'Media', ...pageStoryMeta });
 export const Leaders = meta.story({
@@ -11,7 +15,7 @@ export const Leaders = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Alien portraits / Armored creatures' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(LEADERS.options.length);
+    await expect(page.getAllByRole('article')).toHaveLength(offeredLeaderCount);
   },
 });
 export const Decals = meta.story({
@@ -19,7 +23,7 @@ export const Decals = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Decals / Blades and melee weapons' })).resolves.toBeVisible();
-    await expect(page.getAllByRole('article')).toHaveLength(321);
+    await expect(page.getAllByRole('article')).toHaveLength(345);
   },
 });
 
@@ -70,32 +74,14 @@ export const Catalogue = meta.story({
     await expect(page.getByRole('button', { name: 'Play artwork preview' })).toBeVisible();
   },
 });
-export const LegacyLink = meta.story({
-  args: { path: '/__icons' },
-  play: async ({ canvasElement }) => {
-    await expect(
-      within(canvasElement).findByRole('heading', { name: 'Media catalogue' }, { timeout: 30_000 })
-    ).resolves.toBeVisible();
-  },
-});
 export const VisualSearch = meta.story({
   args: { path: '/media/game/decals?q=crossed+knives' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('article', { name: 'Knifes' })).resolves.toBeVisible();
+    await expect(page.findByRole('article', { name: 'Knives' })).resolves.toBeVisible();
     await expect(page.queryByRole('article', { name: 'Fremen' })).toBeNull();
     await expect(page.queryByRole('button', { name: 'Organize collections' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Link to this view' })).toBeNull();
-  },
-});
-export const LegacyMediaLink = meta.story({
-  args: { path: '/__media?kind=leader&q=Aramsham' },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('article', { name: 'Aramsham' })).resolves.toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Faction portraits / Emperor' })).toBeVisible();
-    const all = page.getByRole('link', { name: 'Show everything from this group' });
-    await expect(all).toHaveAttribute('href', '/media/game/leaders?group=Faction+portraits+%2F+Emperor');
   },
 });
 

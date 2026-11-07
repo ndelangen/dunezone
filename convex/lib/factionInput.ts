@@ -2,7 +2,7 @@ import { ConvexError } from 'convex/values';
 
 import { ensureFactionComponentIds } from '../../src/shared/factions/componentIdentity';
 import { factionMembersHaveIds } from '../../src/shared/factions/memberIdentity';
-import { CanonicalFactionStoredObject, FactionWriteSchema } from '../../src/shared/factions/schema';
+import { FactionWriteSchema, CanonicalFactionStoredObject } from '../../src/shared/factions/schema';
 import { factionTroopsHaveIds } from '../../src/shared/factions/troopIdentity';
 import type { Doc } from '../_generated/dataModel';
 

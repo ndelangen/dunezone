@@ -1,6 +1,7 @@
-import { Group, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { StrongholdCardAsset } from '@shared/assets/schema';
+import { ListChapter } from '@ui/block/ListChapter';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -112,11 +113,10 @@ function StrongholdDecals({
   patch,
 }: Readonly<{ draft: StrongholdDraft; patch: (update: Partial<StrongholdDraft>) => void }>) {
   return (
-    <Stack gap="md">
-      <Group justify="space-between">
-        <Text fw={700} size="sm">
-          Decals
-        </Text>
+    <ListChapter
+      title="Decals"
+      note={null}
+      actions={
         <ListLengthActions
           addLabel="Add decal"
           removeLabel="Remove last decal"
@@ -127,7 +127,7 @@ function StrongholdDecals({
               decals: [
                 ...draft.decals,
                 {
-                  id: '/vector/decal/palace.svg',
+                  id: '/vector/icon/stronghold.svg',
                   muted: false,
                   outline: true,
                   scale: 1,
@@ -138,7 +138,8 @@ function StrongholdDecals({
           }
           onRemove={() => patch({ decals: draft.decals.slice(0, -1) })}
         />
-      </Group>
+      }
+    >
       {draft.decals.map((decal, index) => (
         <DecalControls
           key={index /* NOSONAR: only the final decal can be removed, so every remaining control keeps its position. */}
@@ -148,7 +149,7 @@ function StrongholdDecals({
           onChange={(next) => patch({ decals: draft.decals.map((item, i) => (i === index ? next : item)) })}
         />
       ))}
-    </Stack>
+    </ListChapter>
   );
 }
 
@@ -161,9 +162,9 @@ function StrongholdBody({
       <ControlBlock
         title="Body"
         description="The advantage gained by controlling this stronghold. Keep it short enough to fit the proof."
-        input={
-          <FormattedTextInput aria-label="Body" minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
-        }
+        input={(fieldProps) => (
+          <FormattedTextInput {...fieldProps} minRows={4} value={draft.text} onChange={(text) => patch({ text })} />
+        )}
       />
     </Stack>
   );

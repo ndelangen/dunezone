@@ -1,3 +1,4 @@
+import { TextInput } from '@mantine/core';
 import preview from '@sb/preview';
 import { stockBackgroundValues as backgroundPresets } from '@shared/backgrounds/defaults';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -10,7 +11,7 @@ const meta = preview.meta({
   title: 'Treachery Card Editor',
   component: TreacheryCardEditor,
   args: {
-    nameField: <input aria-label="Name" readOnly value="Lasgun" />,
+    nameField: <TextInput aria-label="Name" readOnly value="Lasgun" />,
     draft: { ...INITIAL_TREACHERY_DRAFT, name: 'Lasgun', subName: 'Weapon - Special' },
     patch: fn(),
     memory: INITIAL_TREACHERY_MEMORY,
@@ -36,7 +37,7 @@ export const Category = meta.story({
   },
 });
 
-export const ExistingLogoSymbol = meta.story({
+export const ExistingEmblemSymbol = meta.story({
   args: { chapter: 'icon' as const, draft: { ...INITIAL_TREACHERY_DRAFT, ...treacheryCardFixtures.richeseKarama } },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);

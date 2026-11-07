@@ -1,4 +1,4 @@
-import { BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
+import { BLOG_POST_SLUGS, UNLISTED_BLOG_POST_SLUGS } from '@shared/blogPostSlugs';
 import type { BlogPostSlug } from '@shared/blogPostSlugs';
 import { resolveAsset } from '@shared/media/resolveAsset';
 
@@ -31,13 +31,39 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'dune-homebrew-art-ai-and-credits': {
+    slug: 'dune-homebrew-art-ai-and-credits',
+    title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
+    date: '2026-11-06',
+    author: 'Central419',
+    summary:
+      "The art in the 2019 Dune box began as a fan's free print-and-play. Here's how Dune Zone builds on that, where AI comes in, and who gets the credit.",
+    cover: {
+      key: '/web/blog/why-dune/avalon-hill-set.jpg',
+      alt: 'An early Print and Play edition of Dune laid out on a table: board, shields, leader discs, battle wheels and cards',
+      aspect: 562 / 798,
+    },
+  },
+  'playing-dune-online-in-real-time': {
+    slug: 'playing-dune-online-in-real-time',
+    title: 'Playing Dune online in real time: how hands, moving pieces and secret cards work',
+    date: '2026-11-03',
+    author: 'Central419',
+    summary:
+      "What happens between your mouse and everyone else's screen on the dune.zone game table: the hands you see moving, a piece in flight, how every table stays in step, and how your cards stay yours.",
+    cover: {
+      key: '/web/blog/playing-dune-online-in-real-time/table-in-play.jpg',
+      alt: 'A six-player game on the dune.zone game table in Shipment and Movement: troops in the strongholds, spice on the board and the treachery decks',
+      aspect: 1110 / 2048,
+    },
+  },
   'anatomy-of-a-dune-faction-atreides': {
     slug: 'anatomy-of-a-dune-faction-atreides',
     title: 'Anatomy of a Dune faction: how House Atreides becomes every card, token and sheet',
     date: '2026-10-30',
     author: 'Central419',
     summary:
-      'House Atreides, taken apart: the logo, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
+      'House Atreides, taken apart: the emblem, colours, leaders and rules it is made of, and how dune.zone draws every card, token and sheet from that one faction.',
     cover: {
       key: '/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg',
       alt: 'House Atreides laid out on a table: its shield, both faction sheet pages, five traitor cards, the alliance card, leader tokens, faction token and troops',
@@ -126,6 +152,16 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
 
 /** Every published post, newest first, in the order of `BLOG_POST_SLUGS`. */
 export const BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POST_SLUGS.map((slug) => BLOG_POST_META[slug]);
+
+/** The posts the blog list shows, newest first: every post except the unlisted ones, which only their link reaches. */
+export const LISTED_BLOG_POSTS: readonly BlogPostMeta[] = BLOG_POSTS.filter(
+  (post) => !UNLISTED_BLOG_POST_SLUGS.has(post.slug)
+);
+
+/** An unlisted post is reachable by its link but asks search engines not to index it. */
+export function isUnlistedBlogPost(meta: BlogPostMeta): boolean {
+  return UNLISTED_BLOG_POST_SLUGS.has(meta.slug);
+}
 
 export function findBlogPost(slug: string): BlogPostMeta | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);

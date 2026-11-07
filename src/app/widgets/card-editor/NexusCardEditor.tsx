@@ -1,14 +1,14 @@
-import { Button, Stack, TextInput } from '@mantine/core';
-import { GENERIC, LOGO } from '@shared/assetIds';
+import { Stack, TextInput } from '@mantine/core';
+import { GENERIC, EMBLEM } from '@shared/assetIds';
 import type { CardFrontStyle } from '@shared/assets/cardFrontPresets';
 import type { NexusCardAsset } from '@shared/assets/schema';
 import { FactionLink } from '@ui/content/FactionLink';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
-import { CanvasScale } from '@ui/layout/CanvasScale';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
-import { ScrollText, Shield } from 'lucide-react';
+import { Replace, ScrollText, Shield } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { z } from 'zod';
@@ -17,11 +17,10 @@ import { FactionPicker } from '@app/pickers/FactionPicker';
 import { aboutChapter } from '@app/widgets/asset-about/AboutChapter';
 import { NexusCard } from '@game/assets/card/Nexus';
 import { backgroundPresets } from '@game/data/backgrounds';
-import { card as CARD_SIZE } from '@game/data/sizes';
 
-import styles from './CardEditor.module.css';
 import { fixedCardHeadChapter, initialCardHeadMemory } from './CardHeadChapters';
 import type { CardHeadMemory } from './CardHeadChapters';
+import { CardProof } from './CardProof';
 
 export type NexusDraft = z.infer<typeof NexusCardAsset>;
 export type NexusMemory = CardHeadMemory;
@@ -34,9 +33,9 @@ export const INITIAL_NEXUS_DRAFT: NexusDraft = {
   about: '',
   subName: 'Nexus',
   faction: '',
-  factionSymbol: { image: '/vector/logo/atreides.svg', background: backgroundPresets.atreides },
+  factionSymbol: { image: '/vector/emblem/atreides.svg', background: backgroundPresets.atreides },
   head: backgroundPresets.nexus,
-  icon: [backgroundPresets.atreides, '/vector/logo/atreides.svg'],
+  icon: [backgroundPresets.atreides, '/vector/emblem/atreides.svg'],
   betrayal: '',
   cunning: '',
   secretAlly: '',
@@ -67,25 +66,27 @@ function FactionFields({
   patch,
 }: Readonly<{ draft: NexusDraft; patch: (update: Partial<NexusDraft>) => void }>) {
   const [choosing, setChoosing] = useState(false);
-  const factionLogo = LOGO.or(GENERIC).safeParse(draft.factionSymbol.image);
+  const factionEmblem = EMBLEM.or(GENERIC).safeParse(draft.factionSymbol.image);
   return (
     <Stack gap="md">
       <ControlBlock
         title="Faction"
         description="The linked faction supplies the name, symbol and colours."
-        input={<TextInput aria-label="Faction" value={draft.faction} readOnly placeholder="Choose a faction" />}
+        input={(fieldProps) => (
+          <TextInput {...fieldProps} value={draft.faction} readOnly placeholder="Choose a faction" />
+        )}
       />
-      {draft.factionLink && factionLogo.success ? (
+      {draft.factionLink && factionEmblem.success ? (
         <FactionLink
           slug={draft.factionLink.slug}
           name={draft.faction}
-          logo={factionLogo.data}
+          emblem={factionEmblem.data}
           background={draft.factionSymbol.background}
         />
       ) : null}
-      <Button type="button" variant="default" onClick={() => setChoosing((current) => !current)}>
+      <LabeledAction icon={<Replace size={16} />} onClick={() => setChoosing((current) => !current)}>
         {draft.factionLink ? 'Change faction' : 'Choose faction'}
-      </Button>
+      </LabeledAction>
       {choosing ? (
         <FactionPicker
           copy={{
@@ -102,8 +103,8 @@ function FactionFields({
             patch({
               factionLink: { id, slug },
               faction: data.name,
-              factionSymbol: { image: data.logo, background: data.background },
-              icon: [data.background, data.logo],
+              factionSymbol: { image: data.emblem, background: data.background },
+              icon: [data.background, data.emblem],
             });
             setChoosing(false);
           }}
@@ -169,14 +170,14 @@ export function NexusCardEditor({
                         key={key}
                         title={label}
                         description={`${description} Up to 400 characters and six lines.`}
-                        input={
+                        input={(fieldProps) => (
                           <FormattedTextInput
-                            aria-label={label}
+                            {...fieldProps}
                             minRows={3}
                             value={draft[key]}
                             onChange={(text) => patch({ [key]: text })}
                           />
-                        }
+                        )}
                       />
                     ))}
                   </Stack>
@@ -188,14 +189,9 @@ export function NexusCardEditor({
         </div>
       </WorkbenchLayout.Chapters>
       <WorkbenchLayout.Rail>
-        <CanvasScale
-          rounded
-          canvasWidth={CARD_SIZE.width}
-          canvasHeight={CARD_SIZE.height}
-          frameClassName={styles.proofFrame}
-        >
+        <CardProof>
           <NexusCard {...draft} frontStyle={frontStyle} />
-        </CanvasScale>
+        </CardProof>
       </WorkbenchLayout.Rail>
     </WorkbenchLayout.Workbench>
   );

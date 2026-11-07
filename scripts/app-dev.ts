@@ -618,8 +618,28 @@ async function runPersistentDevelopment(requested: LocalData, directory: string,
   }
 }
 
+/**
+ * Brings `public/m`, `public/image` and `public/web` up to date before anything serves them, so a fresh worktree shows its images.
+ * It does nothing when they were generated from the current lock and rules, and fills from the machine's shared store or `/m` otherwise.
+ * A failure (offline, an unsynced draft) is reported and the launch carries on with whatever images are there.
+ */
+function ensureGeneratedImages() {
+  const result = spawnSync(process.execPath, ['run', 'generate:images', '--if-stale'], {
+    cwd: rootDirectory,
+    stdio: 'inherit',
+  });
+  if (result.status !== 0) {
+    console.warn(
+      'Images could not be brought up to date, so some may be missing. Run `bun run generate:images` to see why.'
+    );
+  }
+}
+
 async function main() {
   const mode = parseAppDevMode(process.argv.slice(2));
+  if (mode.kind !== 'help') {
+    ensureGeneratedImages();
+  }
   switch (mode.kind) {
     case 'help':
       printHelp();

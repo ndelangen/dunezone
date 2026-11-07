@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 
 import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { ConversationSession } from './ConversationSession';
 import { TableSession } from './TableSession';
 
 let stop: (() => void) | undefined;
@@ -141,7 +142,7 @@ test('clears private history immediately on a live seat change and an identity s
     type: 'conversations',
     factionId: 'one',
     generation: 0,
-    entries: [{ peerId: 'two', latest: 1, unread: 1 }],
+    entries: [{ peerId: 'two', latest: 1, unread: 1, cleared: 0 }],
   });
   client.conversations.load({ peerId: 'two' });
   const request = socket().sent.find((entry) => entry.type === 'conversation-history')!;
@@ -160,7 +161,7 @@ test('clears private history immediately on a live seat change and an identity s
     type: 'conversations',
     factionId: 'one',
     generation: 1,
-    entries: [{ peerId: 'two', latest: 1, unread: 1 }],
+    entries: [{ peerId: 'two', latest: 1, unread: 1, cleared: 0 }],
   });
   expect(client.getSnapshot().conversations.pages).toEqual({});
   client.conversations.submit({ peerId: 'two', text: 'A plan' });
@@ -293,4 +294,139 @@ test('recall chat clears messages, drafts and queued sends on close while preser
   socket().deliver({ type: 'conversation-message', factionId: 'one', peerId, message: saved('late') });
   expect(client.getSnapshot().conversations.pages[peerId]).toBeUndefined();
   expect(client.conversations.reaches(peerId)).toBe(false);
+});
+
+test('clearing a chat hides it at once, other tabs drop it with their summaries, and a refusal brings it back', async () => {
+  const client = await connect();
+  const summaries = (cleared: number) =>
+    socket().deliver({
+      type: 'conversations',
+      factionId: 'one',
+      generation: 0,
+      entries: [{ peerId: 'two', latest: 2, unread: 0, cleared }],
+    });
+  const loadHistory = () => {
+    client.conversations.load({ peerId: 'two' });
+    const request = socket()
+      .sent.filter((entry) => entry.type === 'conversation-history')
+      .at(-1)!;
+    socket().deliver({
+      ...request,
+      type: 'conversation-history',
+      factionId: 'one',
+      peerId: 'two',
+      before: Number.MAX_SAFE_INTEGER,
+      entries: [
+        { ...saved('first'), sequence: 1 },
+        { ...saved('second'), sequence: 2 },
+      ],
+      more: false,
+    } as ServerMessage);
+  };
+  summaries(0);
+  loadHistory();
+  expect(client.conversations.clearable()).toBe(true);
+  client.conversations.clearAllChats();
+  const clear = socket().sent.find((entry) => entry.type === 'conversation-clear')!;
+  expect(clear).toMatchObject({ factionId: 'one', peerId: 'two', through: 2 });
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  socket().deliver({ type: 'rejected', requestId: clear.requestId, message: 'This message is not available.' });
+  expect(client.getSnapshot().conversations.pages.two).toBeUndefined();
+  /* Another tab of the same faction cleared through the first message. */
+  loadHistory();
+  summaries(1);
+  expect(client.getSnapshot().conversations.pages.two?.entries.map((entry) => entry.sequence)).toEqual([2]);
+  summaries(2);
+  expect(client.conversations.clearable()).toBe(false);
+});
+
+test('a cleared message stays cleared when a retried send or a history page brings it back', async () => {
+  const client = await connect();
+  socket().deliver({
+    type: 'conversations',
+    factionId: 'one',
+    generation: 0,
+    entries: [{ peerId: 'two', latest: 2, unread: 0, cleared: 2 }],
+  });
+  expect(client.conversations.submit({ peerId: 'two', text: 'Sent before the other tab cleared' })).toBe(true);
+  const send = socket()
+    .sent.filter((entry) => entry.type === 'conversation-send')
+    .at(-1)!;
+  client.conversations.load({ peerId: 'two' });
+  const request = socket()
+    .sent.filter((entry) => entry.type === 'conversation-history')
+    .at(-1)!;
+  socket().deliver({
+    ...request,
+    type: 'conversation-history',
+    factionId: 'one',
+    peerId: 'two',
+    before: Number.MAX_SAFE_INTEGER,
+    entries: [{ ...saved('cleared-elsewhere'), sequence: 1 }],
+    more: false,
+  } as ServerMessage);
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  /* The room answers the retried send with the message it saved before the clear. */
+  socket().deliver({
+    type: 'conversation-message',
+    factionId: 'one',
+    peerId: 'two',
+    message: { ...saved(send.requestId), sequence: 2 },
+  });
+  expect(client.getSnapshot().conversations.pages.two?.entries).toEqual([]);
+  expect(client.getSnapshot().conversations.pending).toEqual([]);
+});
+
+test('clearing every chat names the position meant for each one, even when the clear cannot go out yet', () => {
+  /* The table is resyncing, so the transport refuses every request until it is ready again. */
+  let ready = false;
+  const sent: unknown[] = [];
+  const conversations = new ConversationSession(
+    (request) => ready && sent.push(request) > 0,
+    () => {},
+    () => 0
+  );
+  conversations.authority(snapshot, viewer);
+  conversations.receive({
+    type: 'conversations',
+    factionId: 'one',
+    generation: 0,
+    entries: [
+      { peerId: 'two', latest: 4, unread: 0, cleared: 0 },
+      { peerId: '@table', latest: 2, unread: 0, cleared: 2 },
+    ],
+  });
+  expect(conversations.clearAllChats()).toEqual({ two: 4 });
+  /* The chat reads as cleared at once, and the clear goes out once the table is ready. */
+  expect(conversations.clearedThrough('two')).toBe(4);
+  expect(conversations.clearChat({ peerId: 'two' })).toBeUndefined();
+  ready = true;
+  conversations.tick();
+  expect(sent).toEqual([expect.objectContaining({ type: 'conversation-clear', peerId: 'two', through: 4 })]);
+  conversations.tick();
+  expect(sent).toHaveLength(1);
+});
+
+test('a clear lost with the connection goes out again once the summaries are back', async () => {
+  const client = await connect();
+  const summaries = (cleared: number) =>
+    socket().deliver({
+      type: 'conversations',
+      factionId: 'one',
+      generation: 0,
+      entries: [{ peerId: 'two', latest: 2, unread: 0, cleared }],
+    });
+  summaries(0);
+  client.conversations.clearChat({ peerId: 'two' });
+  expect(socket().sent.filter((entry) => entry.type === 'conversation-clear')).toHaveLength(1);
+  socket().close();
+  await vi.advanceTimersByTimeAsync(1000);
+  socket().open();
+  authorize();
+  summaries(0);
+  expect(socket().sent.filter((entry) => entry.type === 'conversation-clear')).toEqual([
+    expect.objectContaining({ peerId: 'two', through: 2 }),
+  ]);
+  summaries(2);
+  expect(client.conversations.clearedThrough('two')).toBe(2);
 });

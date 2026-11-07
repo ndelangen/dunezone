@@ -5,15 +5,18 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Box, Button, Group, Loader, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
+import { Box, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import type { RulebookCardSourceReference } from '@shared/rulebooks/sources';
+import { ListChapter } from '@ui/block/ListChapter';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
+import { PickerField } from '@ui/control/PickerField';
+import { SelectableRow } from '@ui/control/SelectableRow';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, useState } from 'react';
 
 import type { RulebookBlockEditorProps } from './rulebookBlockEditors';
 import styles from './rulebookCardBlockEditors.module.css';
@@ -44,39 +47,26 @@ function CardSourceControl({
   references: RulebookEditorReferences;
   onChange: (source: RulebookCardSourceReference | undefined) => void;
 }) {
-  const [opened, setOpened] = useState(false);
   return (
-    <ControlBlock
+    <PickerField
       title="Card"
       description="The name and image follow the selected Card. Your guidance stays in this Rulebook."
-      input={
-        <Stack gap="sm">
-          <Group gap="sm">
-            <Button variant="default" onClick={() => setOpened(!opened)}>
-              {cardLabel(source, references)}
-            </Button>
-            {source ? (
-              <Button variant="subtle" onClick={() => onChange(undefined)}>
-                Clear Card
-              </Button>
-            ) : null}
-          </Group>
-          {opened ? (
-            <Suspense fallback={<Loader size="sm" aria-label="Loading Cards" />}>
-              <RulebookSourcePicker
-                purpose="card-group"
-                onPick={(next) => {
-                  if (next.kind === 'asset') {
-                    onChange(next);
-                    setOpened(false);
-                  }
-                }}
-                onCancel={() => setOpened(false)}
-              />
-            </Suspense>
-          ) : null}
-        </Stack>
-      }
+      chosen={cardLabel(source, references)}
+      onClear={source ? () => onChange(undefined) : undefined}
+      clearLabel="Clear Card"
+      loadingLabel="Loading Cards"
+      picker={(close) => (
+        <RulebookSourcePicker
+          purpose="card-group"
+          onPick={(next) => {
+            if (next.kind === 'asset') {
+              onChange(next);
+              close();
+            }
+          }}
+          onCancel={close}
+        />
+      )}
     />
   );
 }
@@ -95,26 +85,21 @@ function CardGuidanceFields({
       <ControlBlock
         title="Quantity"
         description="Optional count for the collection or example you are describing."
-        input={
+        input={(fieldProps) => (
           <NumberInput
-            aria-label="Quantity"
+            {...fieldProps}
             min={0}
             allowDecimal={false}
             value={quantity ?? ''}
             onChange={(next) => onChange({ quantity: typeof next === 'number' ? next : undefined })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Guidance"
-        input={
-          <FormattedTextInput
-            aria-label="Guidance"
-            minRows={3}
-            value={text}
-            onChange={(next) => onChange({ text: next })}
-          />
-        }
+        input={(fieldProps) => (
+          <FormattedTextInput {...fieldProps} minRows={3} value={text} onChange={(next) => onChange({ text: next })} />
+        )}
       />
     </Stack>
   );
@@ -135,20 +120,20 @@ export function CardEntryEdit({
       <ControlBlock
         title="Name"
         description="Optional name when using artwork instead of a saved Card."
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Name"
+            {...fieldProps}
             value={value.name ?? ''}
             onChange={(event) => onChange({ ...value, name: event.currentTarget.value || undefined })}
           />
-        }
+        )}
       />
       <IllustrationSizeControl value={value.size} onChange={(size) => onChange({ ...value, size })} />
       <ControlBlock
         title="Image side"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Image side"
+            {...fieldProps}
             value={value.imageSide ?? 'left'}
             data={[
               { value: 'left', label: 'Left' },
@@ -160,13 +145,13 @@ export function CardEntryEdit({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Text flow"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Text flow"
+            {...fieldProps}
             value={value.textFlow ?? 'beside'}
             data={[
               { value: 'beside', label: 'Beside image' },
@@ -178,7 +163,7 @@ export function CardEntryEdit({
               }
             }}
           />
-        }
+        )}
       />
       <CardGuidanceFields
         text={value.text}
@@ -210,31 +195,31 @@ export function CardGroupEdit({
     <Stack gap="md">
       <ControlBlock
         title="Heading"
-        input={
+        input={(fieldProps) => (
           <TextInput
-            aria-label="Heading"
+            {...fieldProps}
             value={value.title}
             onChange={(event) => onChange({ ...value, title: event.currentTarget.value })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Shared guidance"
-        input={
+        input={(fieldProps) => (
           <FormattedTextInput
-            aria-label="Shared guidance"
+            {...fieldProps}
             minRows={3}
             value={value.text}
             onChange={(text) => onChange({ ...value, text })}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Treatment"
         description="Use compact rows, a gallery, a featured Card, or a fan. All members keep their guidance."
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Treatment"
+            {...fieldProps}
             value={value.variant}
             data={[
               { value: 'compact', label: 'Compact' },
@@ -253,15 +238,15 @@ export function CardGroupEdit({
               }
             }}
           />
-        }
+        )}
       />
       {value.variant === 'featured-member' ? (
         <ControlBlock
           title="Featured Card"
           description="Choose a member of this group. It stays featured when you reorder the group."
-          input={
+          input={(fieldProps) => (
             <Select
-              aria-label="Featured Card"
+              {...fieldProps}
               clearable
               placeholder="Choose a member"
               value={value.featuredItemId ?? null}
@@ -271,13 +256,13 @@ export function CardGroupEdit({
               }))}
               onChange={(id) => onChange({ ...value, featuredItemId: id ?? undefined })}
             />
-          }
+          )}
         />
       ) : null}
-      <ControlBlock
+      <ListChapter
         title="Cards"
-        description="Drag a Card to reorder it. Its guidance and quantity move with it."
-        tool={
+        help="Drag a Card to reorder it. Its guidance and quantity move with it."
+        actions={
           <ListLengthActions
             addLabel="Add Card"
             removeLabel="Remove last Card"
@@ -302,55 +287,50 @@ export function CardGroupEdit({
             }}
           />
         }
-        input={
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={({ active, over }) => {
-              if (!over) {
-                return;
-              }
-              const from = value.itemOrder.indexOf(String(active.id));
-              const to = value.itemOrder.indexOf(String(over.id));
-              if (from >= 0 && to >= 0 && from !== to) {
-                setSelectedId(activeId ?? null);
-                onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
-              }
-            }}
-          >
-            <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
-              <Stack component="ul" className={styles.entries} gap="xs">
-                {value.itemOrder.map((id, index) => (
-                  <SortableItem as="li" key={id} id={id}>
-                    {({ setActivatorNodeRef, attributes, listeners }) => (
-                      <Box className={styles.row}>
-                        <Button
-                          fullWidth
-                          className={styles.select}
-                          justify="start"
-                          color="selected"
-                          variant={activeId === id ? 'light' : 'subtle'}
-                          aria-pressed={activeId === id}
-                          onClick={() => setSelectedId(id)}
-                        >
-                          {index + 1}. {cardLabel(value.itemsById[id]!.source, references)}
-                        </Button>
-                        <SortableReorderHandle
-                          className={styles.handle}
-                          label={`Reorder Card ${index + 1}`}
-                          setActivatorNodeRef={setActivatorNodeRef}
-                          attributes={attributes}
-                          listeners={listeners}
-                        />
-                      </Box>
-                    )}
-                  </SortableItem>
-                ))}
-              </Stack>
-            </SortableContext>
-          </DndContext>
-        }
-      />
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={({ active, over }) => {
+            if (!over) {
+              return;
+            }
+            const from = value.itemOrder.indexOf(String(active.id));
+            const to = value.itemOrder.indexOf(String(over.id));
+            if (from >= 0 && to >= 0 && from !== to) {
+              setSelectedId(activeId ?? null);
+              onChange({ ...value, itemOrder: arrayMove(value.itemOrder, from, to) });
+            }
+          }}
+        >
+          <SortableContext items={value.itemOrder} strategy={verticalListSortingStrategy}>
+            <Stack component="ul" className={styles.entries} gap="xs">
+              {value.itemOrder.map((id, index) => (
+                <SortableItem as="li" key={id} id={id}>
+                  {({ setActivatorNodeRef, attributes, listeners }) => (
+                    <Box className={styles.row}>
+                      <SelectableRow
+                        className={styles.select}
+                        selected={activeId === id}
+                        onSelect={() => setSelectedId(id)}
+                      >
+                        {index + 1}. {cardLabel(value.itemsById[id]!.source, references)}
+                      </SelectableRow>
+                      <SortableReorderHandle
+                        className={styles.handle}
+                        label={`Reorder Card ${index + 1}`}
+                        setActivatorNodeRef={setActivatorNodeRef}
+                        attributes={attributes}
+                        listeners={listeners}
+                      />
+                    </Box>
+                  )}
+                </SortableItem>
+              ))}
+            </Stack>
+          </SortableContext>
+        </DndContext>
+      </ListChapter>
       {item ? (
         <Stack key={item.id} gap="md">
           <Text size="sm" fw={700}>

@@ -21,7 +21,6 @@ export const Arsunt = meta.story({
     name: 'Arsunt',
     subName: 'Spice mine',
     icon: 'spice-mine',
-    highlights: ['arsunt'],
     amount: 3,
   },
   play: async ({ canvasElement }) => {
@@ -39,7 +38,6 @@ export const DiscoveryWindPassNorth = meta.story({
     name: 'Wind Pass North',
     subName: 'Spice blow - Discovery',
     icon: 'spice',
-    highlights: ['wind-pass-north', 'plastic-basin'],
     amount: 6,
     text: `**Smuggler token** on Plastic Basin\n+\n**6 spice** on Wind Pass North`,
     overlays: [
@@ -69,9 +67,26 @@ export const OnSavedBoard = meta.story({
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelectorAll('[data-tint]')).toHaveLength(3);
     /* The type-wide tint covers every stronghold on the board. */
-    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] [data-tint-fill]')).toHaveLength(5);
     await expect(canvasElement.querySelectorAll('[data-tint-sticker="spice"]')).toHaveLength(1);
     await expect(canvasElement.querySelectorAll('[data-token-instance]')).toHaveLength(4);
+  },
+});
+
+/** Overlays an author placed on the classic map stay on the card once it is linked to a saved board. */
+export const OverlayOnSavedBoard = meta.story({
+  args: {
+    ...discoveryOnBoard,
+    boardDefinition: arrakisBoard(),
+    boardTokens: spiceBoardTokens,
+    overlays: [{ image: '/image/texture/052.jpg', offset: [21.6, 16.4], scale: 6.2 }],
+  },
+  play: async ({ canvasElement }) => {
+    const href = resolveAsset('/image/texture/052.jpg', 'large');
+    const overlays = Array.from(canvasElement.querySelectorAll('svg image')).filter(
+      (image) => image.getAttribute('href') === href
+    );
+    await expect(overlays).toHaveLength(1);
   },
 });
 
@@ -99,13 +114,12 @@ export const PalaceOnSavedBoard = meta.story({
     name: '',
     subName: 'Spice blow',
     icon: 'spice',
-    highlights: [],
     amount: 6,
     board: { asset_id: 'palace-board', tints: [], tokens: [] },
     boardDefinition: (() => {
       const board = arrakisBoard();
       const territory = Object.values(board.properties).find(({ name }) => name === 'Tueks')!;
-      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/decal/palace.svg' };
+      territory.decals[0] = { ...territory.decals[0], artwork: '/vector/icon/stronghold.svg' };
       return board;
     })(),
   },
@@ -125,8 +139,8 @@ export const MissingTerritory = meta.story({
     boardTokens: spiceBoardTokens,
   },
   play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelectorAll('[data-tint="blow"] > g')).toHaveLength(0);
-    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] > g')).toHaveLength(5);
+    await expect(canvasElement.querySelectorAll('[data-tint="blow"] [data-tint-fill]')).toHaveLength(0);
+    await expect(canvasElement.querySelectorAll('[data-tint="strongholds"] [data-tint-fill]')).toHaveLength(5);
   },
 });
 

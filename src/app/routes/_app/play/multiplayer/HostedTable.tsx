@@ -1,4 +1,5 @@
-import { Anchor, Button, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The reconnect pill on the dark table carries its own tooltip and colour. */
+import { Anchor, Group, Loader, Stack, Text, Tooltip } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { tableHandlingOpen } from '@shared/play/admission';
 import { canLowerBid } from '@shared/play/bidding';
@@ -8,22 +9,27 @@ import { lastTurnOf } from '@shared/play/lastTurn';
 import { phaseAt, tableProgressFor } from '@shared/play/phases';
 import { reviewRunning } from '@shared/play/review';
 import { setupMapVisible } from '@shared/play/setup';
+import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { DEFAULT_TABLE_SEAT_COUNT } from '@shared/play/tableSettings';
 import { Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Dices } from 'lucide-react';
 import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
 import { usePreloadedCardFaces } from '../../../../widgets/tabletop/cardFacePreload';
-import { PredictionLogosContext } from '../../../../widgets/tabletop/prediction/predictionFace';
+import { PredictionEmblemsContext } from '../../../../widgets/tabletop/prediction/predictionFace';
 import { TabletopSessionProvider } from '../../../../widgets/tabletop/TabletopContext';
 import { BrowserDiagnostics } from '../browserDiagnostics';
+import { CompassEpochContext } from '../compass/compassEpoch';
 import type { CompassTable } from '../compass/compassTable';
 import { CompassTableContext } from '../compass/compassTable';
 import { FoilConfetti } from '../FoilConfetti';
@@ -33,7 +39,7 @@ import type { TablePanel } from '../GameTable';
 import { ConnectedAlliancesPanel } from '../panels/alliances/useAlliancesPanel';
 import { ConnectedBattlePlanPanel } from '../panels/battlePlan/useBattlePlanPanel';
 import { ConnectedBattleHistoryPanel } from '../panels/battles/useBattleHistoryPanel';
-import { ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
+import { ConnectedClearChat, ConnectedPlayerChat, OfflineConversations } from '../panels/chat/useConversationPanel';
 import { ConnectedFactionInfoPanel } from '../panels/factionInfo/useFactionInfoPanel';
 import { ConnectedHandPanel } from '../panels/hand/useHandPanel';
 import { ConnectedSharedInventoryPanel } from '../panels/inventory/useSharedInventoryPanel';
@@ -42,15 +48,17 @@ import { PANEL_WINDOWS } from '../panels/panelWindows';
 import { ConnectedReplayPanel } from '../panels/replay/useReplayPanel';
 import { ConnectedResultPanel, useDeclareChoice } from '../panels/result/useResultPanel';
 import type { DeclareChoice } from '../panels/result/useResultPanel';
+import { ConnectedSeatsPanel, seatRequestsWaiting, waitingSeatRequests } from '../panels/seats/useSeatsPanel';
 import { ConnectedGameLengthPanel } from '../panels/settings/useGameLengthPanel';
 import { ConnectedSetupPanel, setupWindow } from '../panels/setup/useSetupPanel';
+import { ConnectedKeyboardShortcutsPanel } from '../panels/shortcuts/useKeyboardShortcutsPanel';
 import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSideTablePanel';
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
-import { TableWait } from '../TableWait';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
+import { useAutoClearChatsAtNewTurn } from './autoClearChats';
 import { BattleModeToggle, BattleScene } from './BattleControls';
 import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
@@ -127,13 +135,12 @@ function seatLabel(table: TableProjection): string {
 function ConnectionControls({ client, table, error }: ConnectionControlsProps) {
   const seat = seatLabel(table);
   return (
-    <Section
-      hiddenHeading={Boolean(table.snapshot.stage)}
-      eyebrow="Hosted fixture"
-      title="Hosted connection"
-      description={`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}
-    >
+    <Section hiddenHeading={Boolean(table.snapshot.stage)} eyebrow="Hosted fixture" title="Hosted connection">
       <Stack gap="sm">
+        <Text
+          size="sm"
+          c="dimmed"
+        >{`${table.viewer.displayName} · ${seat} · Saved revision ${table.liveRevision}`}</Text>
         {error && <FormError title="From the table">{error}</FormError>}
         <ConnectedReplayPanel client={client} table={table} />
       </Stack>
@@ -185,12 +192,31 @@ function useWindowFocus(table: TableProjection, progress: ReturnType<typeof game
     playback: Boolean(table.playback),
     phase,
     phaseTab: phaseWindow(table, progress.activePhaseId),
-    events: [resultFocus(table), battleFocus(table), stageFocus(table)],
+    events: [resultFocus(table), battleFocus(table), stageFocus(table), ...seatRequestFocus(table)],
   });
   if (next !== state) {
     setState(next);
   }
   return next.focus;
+}
+
+type WindowFocus = ReturnType<typeof useWindowFocus>;
+
+/*
+ * A window the header asks for, such as Mentat recall from its vote, opens in the centre like the compass opens it.
+ * The table's next event focus, or a fresh start of the controls, takes over again.
+ */
+function useAskedWindow(focus: WindowFocus) {
+  /* The tutorial's Reset starts the controls afresh, so a window asked for before it must not open itself on the next run. */
+  const epoch = useContext(CompassEpochContext);
+  const [asked, setAsked] = useState<{ key: string; token: string; placement: 'centre' } | null>(null);
+  const [followed, setFollowed] = useState({ token: focus?.token, epoch });
+  if (focus?.token !== followed.token || epoch !== followed.epoch) {
+    setFollowed({ token: focus?.token, epoch });
+    setAsked(null);
+  }
+  const open = (key: string) => setAsked({ key, token: `asked:${crypto.randomUUID()}`, placement: 'centre' });
+  return [asked ?? focus, open] as const;
 }
 
 /*
@@ -206,6 +232,16 @@ function stageFocus(table: TableProjection) {
     return { key: 'stage', token: 'stage:drafting' };
   }
   return stage === 'setup' ? { key: 'setup', token: 'stage:setup' } : null;
+}
+
+/*
+ * A spectator asking for a seat opens Seats & spectators once for every player (Norbert, 2026-11-05).
+ * Each request waiting on the player is its own event, so one withdrawn or approved never makes an older one look new.
+ * Like a battle, a request already waiting when the table loads opens it too, as does one whose seat opens again.
+ * Spectators, a past table and a finished game approve nothing, so it opens for none of them.
+ */
+function seatRequestFocus(table: TableProjection) {
+  return waitingSeatRequests(table).map((row) => ({ key: PANEL_WINDOWS.seats.key, token: `seat-request:${row.id}` }));
 }
 
 /* The end of the game opens the Result window once for everyone: when someone starts determining the winner, and when it is declared. */
@@ -227,7 +263,7 @@ function PhaseControls({ table }: Pick<ConnectionControlsProps, 'table'>) {
       hiddenHeading={Boolean(table.snapshot.stage)}
       eyebrow={table.playback ? 'Playback phase' : 'Shared phase'}
       title={phase.label}
-      description={phaseHelp(table)}
+      help={phaseHelp(table)}
     >
       {!table.snapshot.stage && <Text size="sm">{PHASE_PREVIOUS}</Text>}
     </Section>
@@ -260,6 +296,17 @@ function withTableError(error: string | null, controls: ReactNode) {
       {controls}
     </>
   );
+}
+
+/* Seats & spectators, for every viewer of a game that has a stage, until it is discarded. */
+function seatsPanel({ client, table, error }: ConnectionControlsProps) {
+  const stage = table.snapshot.stage;
+  if (!stage || stage === 'discarded') {
+    return [];
+  }
+  return [
+    { ...PANEL_WINDOWS.seats, content: withTableError(error, <ConnectedSeatsPanel client={client} table={table} />) },
+  ];
 }
 
 /* The Alliances panel, only while the game is in play. */
@@ -353,6 +400,7 @@ function gameGroup({ client, table, error, declare }: ControlPanelsProps, inPlay
         : []),
       ...resultPanels({ client, table, error, declare }),
       ...alliancesPanel({ client, table, error }),
+      ...seatsPanel({ client, table, error }),
     ],
   };
 }
@@ -387,6 +435,48 @@ function tableGroup({ client, table, error }: ConnectionControlsProps): TablePan
   };
 }
 
+/**
+ * How the table looks back.
+ * Players may not look back alone, so a game offers a review the table agrees to instead, and once it is finished the table still looks back together, without a vote.
+ */
+function lookBackPanels({ client, table, error }: ConnectionControlsProps): TablePanel[] {
+  const review = table.review;
+  const recall = review
+    ? [
+        {
+          ...(review.finished ? PANEL_WINDOWS.finishedReview : PANEL_WINDOWS.review),
+          content: <TableReviewPanel client={client} table={table} error={error} />,
+        },
+      ]
+    : [];
+  return replaysAlone(table)
+    ? [
+        ...recall,
+        {
+          ...PANEL_WINDOWS.replay,
+          content: (
+            <>
+              {error && !table.playback && <FormError title="From the table">{error}</FormError>}
+              <ConnectedReplayPanel client={client} table={table} />
+            </>
+          ),
+        },
+      ]
+    : recall;
+}
+
+/**
+ * Observers of a finished game, who cannot start a recall, and fixture tables replay alone, unless a recall is showing;
+ * a replay already open keeps its tab.
+ */
+function replaysAlone(table: TableProjection): boolean {
+  if (reviewRunning(table.review?.current) || table.review?.seat) {
+    return false;
+  }
+  const { stage } = table.snapshot;
+  return stage === 'finished' || stage === undefined || Boolean(table.playback) || table.historyPending;
+}
+
 /** Public records and replay stay together as the game changes phase or finishes. */
 function historyGroup({ client, table, error }: ConnectionControlsProps, hasInventory: boolean): TablePanel {
   return {
@@ -407,28 +497,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
             },
           ]
         : []),
-      /* Players may not look back alone, so a game in progress offers a review the table agrees to instead. */
-      ...(table.review
-        ? [{ ...PANEL_WINDOWS.review, content: <TableReviewPanel client={client} table={table} error={error} /> }]
-        : []),
-      /* Players may not keep notes, so replay opens once the game is finished or on a fixture; a replay already open keeps its tab. */
-      ...(!reviewRunning(table.review?.current) &&
-      (table.snapshot.stage === 'finished' ||
-        table.snapshot.stage === undefined ||
-        table.playback ||
-        table.historyPending)
-        ? [
-            {
-              ...PANEL_WINDOWS.replay,
-              content: (
-                <>
-                  {error && !table.playback && <FormError title="From the table">{error}</FormError>}
-                  <ConnectedReplayPanel client={client} table={table} />
-                </>
-              ),
-            },
-          ]
-        : []),
+      ...lookBackPanels({ client, table, error }),
     ],
   };
 }
@@ -458,11 +527,18 @@ function controlPanels(
           },
         ]
       : []),
+    /* Every viewer, seated or watching, can look up the keys. */
+    { ...PANEL_WINDOWS.shortcuts, content: <ConnectedKeyboardShortcutsPanel /> },
   ];
 }
 
 /* The pieces the stage stands on the board: the trade and setup scenes before play, then the battle, bidder, hands and coins. */
-function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly<{ bidderFaded: boolean }>) {
+function stageScene({
+  client,
+  table,
+  bidderFaded,
+  onMarkerTerritory,
+}: TableControlProps & Readonly<{ bidderFaded: boolean; onMarkerTerritory: (territoryId: string | null) => void }>) {
   if (reviewRunning(table.review?.current)) {
     return null;
   }
@@ -471,13 +547,13 @@ function stageScene({ client, table, bidderFaded }: TableControlProps & Readonly
     return (
       <>
         <SwapScene snapshot={table.snapshot} />
-        {stage === 'setup' && <BattleScene client={client} table={table} />}
+        {stage === 'setup' && <BattleScene client={client} table={table} onMarkerTerritory={onMarkerTerritory} />}
       </>
     );
   }
   return (
     <>
-      <BattleScene client={client} table={table} />
+      <BattleScene client={client} table={table} onMarkerTerritory={onMarkerTerritory} />
       {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
       {stageInPlay(stage) && <HandCountsScene table={table} />}
       <AllianceCoinsScene table={table} />
@@ -504,13 +580,13 @@ function phaseTabControls({
         table.snapshot.setup &&
         progress.turn === 1 &&
         progress.activePhaseId === 'storm' && (
-          <Button
-            variant="default"
-            disabled={!table.canInteract}
+          <LabeledAction
+            icon={<Dices size={16} />}
+            disabledReason={table.canInteract ? undefined : 'The table is unavailable.'}
             onClick={() => client.command({ kind: 'storm-random' })}
           >
             Place storm randomly
-          </Button>
+          </LabeledAction>
         )}
       {stage === 'play' || stage === 'finished' ? (
         <>
@@ -524,7 +600,14 @@ function phaseTabControls({
   );
 }
 
+/* The Spice blow command, while the viewer can act and a face-up spice card lies on the table, not during a look back or recall. */
+function spiceBlowCommand(table: TableProjection): (() => void) | null {
+  const controls = table.spiceBlowControls;
+  return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
+}
+
 function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+  useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
   const players = usePlayerWindows(client, table);
@@ -532,10 +615,14 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
     ...players,
     recall,
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
+    clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
     nextPhase: nextPhaseStep(client, table),
+    clearChats: client.conversations.clearable() ? client.conversations.clearAllChats : null,
+    spiceBlow: spiceBlowCommand(table),
     token: viewerToken(client, table),
     bidding: viewerBidding(client, table),
+    seatRequests: seatRequestsWaiting(table),
   };
   const readOnly = Boolean(table.playback || table.historyPending || recall);
   return { readOnly, normal, compassTable };
@@ -584,20 +671,22 @@ function ConnectedTable({
 }>) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
-  const focus = useWindowFocus(table, progress);
+  const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
+  /* The territory under the battle marker while it is carried, which the board lights. */
+  const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
   const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
-  const predictionLogos = useMemo(
-    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.logo])),
+  const predictionEmblems = useMemo(
+    () => Object.fromEntries(Object.entries(factionArtwork ?? {}).map(([id, artwork]) => [id, artwork.emblem])),
     [factionArtwork]
   );
   return (
-    <PredictionLogosContext value={predictionLogos}>
+    <PredictionEmblemsContext value={predictionEmblems}>
       <TabletopSessionProvider session={client}>
         {/* A boxless wrapper carries the connection state the browser verification waits on, whichever browser tab is open. */}
         <div data-connection={connection} data-revision={table.liveRevision} style={{ display: 'contents' }}>
@@ -613,13 +702,21 @@ function ConnectedTable({
               connectionStatus={<ConnectionStatus table={table} />}
               alliances={<AllianceStrip table={table} />}
               techTokens={<TechTokenStrip table={table} />}
-              toolbarControl={stageToolbar({ client, table, error, bidderFaded, onBidderFadedChange: setBidderFaded })}
+              toolbarControl={stageToolbar({
+                client,
+                table,
+                error,
+                bidderFaded,
+                onBidderFadedChange: setBidderFaded,
+                onOpenRecall: () => openWindow('review'),
+              })}
               /* The gathered Traitor pile lies under the Tleilaxu Tanks, below the Map view's frame on a wide screen (#1635). */
               requestedView={table.traitorsGathered ? { view: 'bottom', revision: table.traitorsGathered } : undefined}
               showStormControls={offersActions(table) && stageInPlay(stage) && progress.activePhaseId === 'storm'}
+              highlightTerritory={markerTerritory}
               sceneContent={
                 <>
-                  {stageScene({ client, table, bidderFaded })}
+                  {stageScene({ client, table, bidderFaded, onMarkerTerritory: setMarkerTerritory })}
                   {celebration.mounted && <FoilConfetti launch={celebration.launch} />}
                 </>
               }
@@ -656,7 +753,7 @@ function ConnectedTable({
           </CompassTableContext>
         </div>
       </TabletopSessionProvider>
-    </PredictionLogosContext>
+    </PredictionEmblemsContext>
   );
 }
 

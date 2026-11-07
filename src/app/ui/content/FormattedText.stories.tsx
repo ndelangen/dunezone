@@ -1,23 +1,12 @@
 import preview from '@sb/preview';
-import { parseFormattedText } from '@shared/formattedText';
 
-import { FormattedText, InlineFormattedTextSource } from './FormattedText';
-import type { FormattedTextBlocks } from './FormattedText';
+import { FormattedTextSource, InlineFormattedTextSource } from './FormattedText';
 
-function validBlocks(source: string): FormattedTextBlocks {
-  const parsed = parseFormattedText(source);
-  if (!parsed.valid) {
-    throw new Error('A FormattedText story contains invalid source.');
-  }
-  return parsed.blocks;
-}
-
-const mixedBlocks = validBlocks(
-  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\nA blank line starts a new thought.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild'
-);
+const mixedSource =
+  'Plans survive *first contact* until the Guild calls.\nAdjust without losing the _-*intent*-_.\n\nA blank line starts a new thought.\n\n- Gather the spice\n- Guard the shipment\n- Pay the Guild';
 
 const meta = preview.meta({
-  component: FormattedText,
+  component: FormattedTextSource,
   globals: {
     backgrounds: { value: 'dark', grid: false },
   },
@@ -26,7 +15,7 @@ const meta = preview.meta({
 
 export const MixedBlocks = meta.story({
   args: {
-    blocks: mixedBlocks,
+    source: mixedSource,
   },
 });
 
@@ -35,18 +24,18 @@ export const Dark = meta.story({
     backgrounds: { value: 'dark', grid: false },
   },
   args: {
-    blocks: mixedBlocks,
+    source: mixedSource,
   },
 });
 
 export const NestedMarks = meta.story({
   args: {
-    blocks: validBlocks('Every _-*layer*-_ stays legible, including *bold*, -italic-, and _underlined_ words.'),
+    source: 'Every _-*layer*-_ stays legible, including *bold*, -italic-, and _underlined_ words.',
   },
 });
 
 export const InlineSource = meta.story({
-  args: { blocks: [] },
+  args: { source: '' },
   render: () => (
     <h2>
       Can I use <InlineFormattedTextSource source="*this* effect" />?

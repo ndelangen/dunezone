@@ -1,5 +1,9 @@
-import { ActionIcon, Button, Group, NativeSelect, Popover, Stack, Text } from '@mantine/core';
+import { Group, NativeSelect, Popover, Stack } from '@mantine/core';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
+import { TitledLine } from '@ui/content/TitledLine';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
+import { AddAction } from '@ui/control/ListLengthActions';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -17,12 +21,8 @@ function referenceKey(reference: AssetReference): string {
   return `${reference.type}/${reference.slug}`;
 }
 
-/** Everything the list says, supplied by the caller; see `AssetPicker` for why there are no defaults. */
+/** What the add control says, supplied by the caller; see `AssetPicker` for why there are no defaults. */
 interface AssetListPickerCopy {
-  /** Names the list for assistive technology. */
-  listLabel: string;
-  /** Shown while nothing is chosen. */
-  emptyMessage: string;
   addLabel: string;
 }
 
@@ -64,15 +64,10 @@ function ListedAsset({ reference, entry }: { reference: AssetReference; entry: A
     return <AssetPickerOptionRow entry={entry} />;
   }
   return (
-    <Stack gap={2} miw={0}>
-      <Text size="sm" fw={700} lh={1.25} truncate>
-        {reference.slug}
-      </Text>
-      <Text size="xs" c="dimmed" lh={1.2}>
-        {typeLabel(reference.type)}
-        {entry === null ? ' · No longer in the catalogue' : ''}
-      </Text>
-    </Stack>
+    <TitledLine
+      title={reference.slug}
+      detail={`${typeLabel(reference.type)}${entry === null ? ' · No longer in the catalogue' : ''}`}
+    />
   );
 }
 
@@ -96,82 +91,94 @@ function useListedEntries(value: readonly AssetReference[]) {
 }
 
 /**
- * A Picker that keeps a list: the chosen assets, each drawn the way `AssetPicker` draws its options, with an Add control that picks one more of any offered type.
- * It reads the listed assets while it is on screen, so callers mount it only where the list is shown, such as an editor chapter that mounts with its tab.
+ * A Picker that keeps a list, in two parts so the caller can place each in its own layout: `AssetListAdd` beside a heading, `AssetList` under it.
  * The add popover reads one type's catalogue at a time, chosen in its type control, and only while it is open.
  * Each asset is offered once: a listed one is filtered out of the add choices.
  */
-export function AssetListPicker({ value, types, defaultType, copy, onChange }: AssetListPickerProps) {
+export function AssetListAdd({ value, types, defaultType, copy, onChange }: AssetListPickerProps) {
   const [picking, setPicking] = useState(false);
   const [type, setType] = useState(defaultType);
-  const entries = useListedEntries(value);
   return (
-    <Stack gap="sm">
-      <Group justify="flex-end">
-        <Popover
-          opened={picking}
-          onChange={setPicking}
-          width={360}
-          position="bottom-end"
-          withinPortal
-          trapFocus
-          returnFocus
-        >
-          <Popover.Target>
-            <Button variant="light" size="compact-sm" onClick={() => setPicking((open) => !open)}>
-              {copy.addLabel}
-            </Button>
-          </Popover.Target>
-          <Popover.Dropdown>
-            <Stack gap="sm">
+    <Popover
+      opened={picking}
+      onChange={setPicking}
+      width={360}
+      position="bottom-end"
+      withinPortal
+      trapFocus
+      returnFocus
+    >
+      <Popover.Target>
+        <AddAction label={copy.addLabel} onClick={() => setPicking((open) => !open)} />
+      </Popover.Target>
+      <Popover.Dropdown>
+        <Stack gap="sm">
+          <ControlBlock
+            title="Type"
+            input={(fieldProps) => (
               <NativeSelect
-                label="Type"
+                {...fieldProps}
                 value={type}
                 data={typeOptions(types)}
                 onChange={(event) => setType(event.currentTarget.value)}
               />
-              <AssetPicker
-                key={type}
-                types={[type]}
-                focusSearch
-                filter={(entry) => !value.some((listed) => listed.type === entry.type && listed.slug === entry.slug)}
-                copy={{
-                  searchLabel: `Search ${typeLabel(type).toLowerCase()}`,
-                  searchPlaceholder: 'Type a name, slug or owner…',
-                  emptyMessage: `No other ${typeLabel(type).toLowerCase()} exist yet.`,
-                  cancelLabel: 'Done',
-                }}
-                onPick={(picked) => {
-                  setPicking(false);
-                  onChange([...value, { type: picked.type, slug: picked.slug }]);
-                }}
-                onCancel={() => setPicking(false)}
-              />
-            </Stack>
-          </Popover.Dropdown>
-        </Popover>
-      </Group>
-      {value.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          {copy.emptyMessage}
-        </Text>
-      ) : (
-        <Stack component="ul" gap="xs" aria-label={copy.listLabel} className={styles.list}>
-          {value.map((reference, index) => (
-            <Group component="li" key={referenceKey(reference)} gap="sm" wrap="nowrap" justify="space-between">
-              <ListedAsset reference={reference} entry={entries.get(referenceKey(reference))} />
-              <ActionIcon
-                variant="subtle"
-                color="gray"
-                aria-label={`Remove ${entries.get(referenceKey(reference))?.name ?? reference.slug}`}
-                onClick={() => onChange(value.filter((_, at) => at !== index))}
-              >
-                <X size={16} aria-hidden />
-              </ActionIcon>
-            </Group>
-          ))}
+            )}
+          />
+          <AssetPicker
+            key={type}
+            types={[type]}
+            focusSearch
+            filter={(entry) => !value.some((listed) => listed.type === entry.type && listed.slug === entry.slug)}
+            copy={{
+              searchLabel: `Search ${typeLabel(type).toLowerCase()}`,
+              searchPlaceholder: 'Type a name, slug or owner…',
+              emptyMessage: `No other ${typeLabel(type).toLowerCase()} exist yet.`,
+              cancelLabel: 'Done',
+            }}
+            onPick={(picked) => {
+              setPicking(false);
+              onChange([...value, { type: picked.type, slug: picked.slug }]);
+            }}
+            onCancel={() => setPicking(false)}
+          />
         </Stack>
-      )}
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+/**
+ * The chosen assets, each drawn the way `AssetPicker` draws its options, with a remove action per row.
+ * It reads the listed assets while it is on screen, so callers mount it only where the list is shown, such as an editor chapter that mounts with its tab.
+ * An empty list renders nothing: the caller says what empty means.
+ */
+export function AssetList({
+  value,
+  label,
+  onChange,
+}: {
+  value: readonly AssetReference[];
+  /** Names the list for assistive technology. */
+  label: string;
+  onChange: (value: AssetReference[]) => void;
+}) {
+  const entries = useListedEntries(value);
+  if (value.length === 0) {
+    return null;
+  }
+  return (
+    <Stack component="ul" gap="xs" aria-label={label} className={styles.list}>
+      {value.map((reference, index) => (
+        <Group component="li" key={referenceKey(reference)} gap="sm" wrap="nowrap" justify="space-between">
+          <ListedAsset reference={reference} entry={entries.get(referenceKey(reference))} />
+          <IconAction
+            label={`Remove ${entries.get(referenceKey(reference))?.name ?? reference.slug}`}
+            emphasis="quiet"
+            onClick={() => onChange(value.filter((_, at) => at !== index))}
+            icon={<X size={16} />}
+          />
+        </Group>
+      ))}
     </Stack>
   );
 }

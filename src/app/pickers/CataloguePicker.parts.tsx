@@ -1,4 +1,5 @@
-import { Box, Combobox, Group, Stack, Text } from '@mantine/core';
+import { Box, Combobox, Group } from '@mantine/core';
+import { TitledLine } from '@ui/content/TitledLine';
 import { Check } from 'lucide-react';
 
 import type { CatalogueChoice } from '@db/cataloguePicker';
@@ -17,7 +18,7 @@ function catalogueChoiceCopy(choice: CatalogueChoice) {
 function CataloguePickerPreview({ choice }: { choice: CatalogueChoice }) {
   return choice.kind === 'faction' ? (
     <Box w={32} h={32}>
-      <Token logo={choice.faction.data.logo} background={choice.faction.data.background} />
+      <Token emblem={choice.faction.data.emblem} background={choice.faction.data.background} />
     </Box>
   ) : (
     <AssetFace
@@ -43,17 +44,15 @@ export function CataloguePickerOption({
       aria-label={selected ? `${name}, already selected` : name}
     >
       <Group gap="sm" wrap="nowrap">
-        <Box w={36} miw={36} h={42} aria-hidden style={{ display: 'grid', placeItems: 'center' }}>
-          <CataloguePickerPreview choice={choice} />
-        </Box>
-        <Stack gap={0} miw={0} flex={1}>
-          <Text size="sm" fw={600} lh={1.25} style={{ overflowWrap: 'anywhere' }}>
-            {name}
-          </Text>
-          <Text size="xs" c="dimmed" truncate>
-            {context}
-          </Text>
-        </Stack>
+        <TitledLine
+          media={
+            <Box w={36} miw={36} h={42} style={{ display: 'grid', placeItems: 'center' }}>
+              <CataloguePickerPreview choice={choice} />
+            </Box>
+          }
+          title={name}
+          detail={context}
+        />
         {selected ? <Check size={16} aria-hidden /> : null}
       </Group>
     </Combobox.Option>

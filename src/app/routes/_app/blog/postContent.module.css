@@ -43,6 +43,15 @@
   line-height: 1.7;
 }
 
+.list {
+  display: grid;
+  gap: var(--space-xs);
+  margin: 0;
+  padding-inline-start: 1.4em;
+  font-size: var(--mantine-font-size-lg);
+  line-height: 1.7;
+}
+
 /*
  * On a phone the column is a hand wide, so the book-page sizes come down a step:
  * the lead to the body's desktop size, the body to a touch over the app's own, the cap to under two of the lead's lines.
@@ -61,7 +70,8 @@
     margin-block-start: var(--space-md);
   }
 
-  .paragraph {
+  .paragraph,
+  .list {
     font-size: 1.0625rem;
     line-height: 1.6;
   }
@@ -69,7 +79,8 @@
 
 /* A link in running text keeps the text's size, and is underlined so it reads as a link without relying on colour. */
 .lead a,
-.paragraph a {
+.paragraph a,
+.list a {
   font-size: inherit;
   line-height: inherit;
   text-decoration: underline;

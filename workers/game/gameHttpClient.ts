@@ -1,7 +1,6 @@
 import { ConvexHttpClient } from 'convex/browser';
 
 import { PLAY_REQUEST_TIMEOUT_MS } from '../../src/shared/play/admission';
-import { readingRenamedEmblems } from '../../src/shared/renamedEmblem';
 import { DependencyFailure } from './diagnostics';
 import type { ConvexCall } from './roomSummary';
 
@@ -30,7 +29,7 @@ function functionPath(body: unknown) {
 }
 
 export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHttpClient {
-  const client = new ConvexHttpClient(url, {
+  return new ConvexHttpClient(url, {
     logger: false,
     /* Bun's own `fetch` type adds `preconnect`, which the client never calls; the page's tutorial tables type-check this file under Bun. */
     fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -83,6 +82,4 @@ export function gameHttpClient(url: string, observe?: ConvexObserver): ConvexHtt
       }
     }) as typeof fetch,
   });
-  /* Answers read under this release's names, ahead of the emblem rename (see `readRenamedEmblems`). */
-  return readingRenamedEmblems(client, ['query', 'consistentQuery', 'mutation', 'action']);
 }

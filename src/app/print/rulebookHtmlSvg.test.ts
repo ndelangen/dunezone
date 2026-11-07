@@ -21,6 +21,14 @@ test('downloaded battle diagrams carry troop and star fragments inside the docum
   }
 });
 
+test('a token saved under a renamed symbol path still travels inside the document', () => {
+  const html = rulebookHtmlSvg(
+    '<html><body><svg><use href="/vector/generic/ceasar.svg#root"/></svg></body></html>',
+    'https://dune.zone/rulebook.html'
+  );
+  expect(parseHTML(html).document.querySelectorAll('symbol')).toHaveLength(1);
+});
+
 test('exported battle plans embed wheel symbols and load hidden card backs from the website', () => {
   const side = { factionId: 'atreides', role: '', revealed: true, dial: 2, spice: 1, cards: [], troops: [] };
   const hidden = { ...side, revealed: false, cards: [{ kind: 'asset' as const, assetId: 'card' }] };
@@ -52,7 +60,7 @@ test('exported battle plans embed wheel symbols and load hidden card backs from 
         factionId: 'atreides',
         name: 'Atreides',
         color: '#123456',
-        token: { logo: assetPublishingFaction.logo, background: assetPublishingFaction.background },
+        token: { emblem: assetPublishingFaction.emblem, background: assetPublishingFaction.background },
       },
     }
   );

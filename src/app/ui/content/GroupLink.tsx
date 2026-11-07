@@ -1,9 +1,8 @@
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { CSSProperties } from 'react';
 
-import styles from './EntityLink.module.css';
-import { nameDiscColor } from './nameDisc';
+import { EntityLink } from './EntityLink';
+import { nameDiscColor } from './NameDisc';
 
 export interface GroupLinkProps {
   slug: string;
@@ -23,8 +22,12 @@ export interface GroupLinkProps {
  * The destination is hardcoded because it is the component's name.
  */
 export const GroupLink = ({ slug, name, className, style }: GroupLinkProps) => (
-  <Link to="/groups/$groupSlug" params={{ groupSlug: slug }} className={clsx(styles.link, className)} style={style}>
-    <span className={styles.media} style={{ backgroundColor: nameDiscColor(name) }} aria-hidden />
-    <span className={styles.name}>{name}</span>
-  </Link>
+  <EntityLink
+    name={name}
+    disc={null}
+    color={nameDiscColor(name)}
+    className={className}
+    style={style}
+    renderRoot={(props) => <Link to="/groups/$groupSlug" params={{ groupSlug: slug }} {...props} />}
+  />
 );

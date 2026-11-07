@@ -1,5 +1,6 @@
 import { derive } from '../boards/geometry';
 import { BoardAsset } from '../boards/schema';
+import { renameLegacyEmblems } from '../legacyEmblem';
 import {
   BundleAssetInput,
   CustomCardAssetInput,
@@ -48,10 +49,21 @@ export function parseBoardData(data: unknown) {
   return parsed;
 }
 
+/** A Spice card's data without an empty classic highlight list, which an editor tab opened before its removal may still send. */
+function withoutEmptyHighlights(data: unknown): unknown {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return data;
+  }
+  const { highlights, ...rest } = data as Record<string, unknown>;
+  return Array.isArray(highlights) && highlights.length === 0 ? rest : data;
+}
+
 /**
  * Validates writable Asset data against the renderer-owned shape shared by the browser and server.
  */
-export function parseAssetDataForWrite(type: string, data: unknown): { data: unknown; name: string } {
+export function parseAssetDataForWrite(type: string, input: unknown): { data: unknown; name: string } {
+  /* A package or tab from before the emblem rename may still send its old names (see src/shared/legacyEmblem.ts). */
+  const data = renameLegacyEmblems(input);
   switch (type) {
     case 'token-leader': {
       const parsed = LeaderTokenAssetInput.parse(data);
@@ -66,7 +78,7 @@ export function parseAssetDataForWrite(type: string, data: unknown): { data: unk
       return { data: parsed, name: parsed.name };
     }
     case 'card-spice': {
-      const parsed = SpiceAssetInput.parse(data);
+      const parsed = SpiceAssetInput.parse(withoutEmptyHighlights(data));
       return { data: parsed, name: parsed.name };
     }
     case 'card-leaderability': {

@@ -47,7 +47,11 @@ test('profile editing connects settings, previews avatars, and persists appearan
 
   await page.getByRole('tab', { name: 'Creation defaults' }).click();
   await expect(page.getByRole('combobox', { name: 'Default Group' })).toBeVisible();
-  const defaultGroupHelp = page.getByRole('group', { name: 'Default Group' }).getByRole('img', { name: 'Help' });
+  /* The title names the field itself, so the help is found in the field's own group. */
+  const defaultGroupHelp = page
+    .getByRole('combobox', { name: 'Default Group' })
+    .locator('xpath=ancestor::*[@role="group"][1]')
+    .getByRole('img', { name: 'Help' });
   await defaultGroupHelp.hover();
   await expect(page.getByRole('tooltip')).toHaveText(
     'New rulesets and factions start in this Group.\nYou can change an item’s Group after its first save.'

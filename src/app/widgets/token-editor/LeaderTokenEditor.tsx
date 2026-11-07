@@ -1,5 +1,5 @@
 import { Stack } from '@mantine/core';
-import { LEADERS, LOGO } from '@shared/assetIds';
+import { LEADERS, EMBLEM } from '@shared/assetIds';
 import type { LeaderTokenAsset } from '@shared/assets/schema';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
@@ -28,7 +28,7 @@ export type LeaderTokenMemory = {
   refusedStrength: string | null;
 };
 const portraits = stockAssetOptions(LEADERS.options);
-const emblems = stockAssetOptions(LOGO.options);
+const emblems = stockAssetOptions(EMBLEM.options);
 const backgrounds = [
   { key: 'ecaz', label: 'Ecaz', background: backgroundPresets.ecaz },
   { key: 'moritani', label: 'Moritani', background: backgroundPresets.moritani },
@@ -142,9 +142,9 @@ function ArtworkFields({
     <Stack gap="md">
       <ControlBlock
         title="Leader portrait"
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Leader portrait"
+            {...fieldProps}
             allowDeselect={false}
             data={portraits}
             previewShape="disc"
@@ -157,25 +157,25 @@ function ArtworkFields({
               }
             }}
           />
-        }
+        )}
       />
       <ControlBlock
         title="Emblem"
-        input={
+        input={(fieldProps) => (
           <AssetSelect
-            aria-label="Emblem"
+            {...fieldProps}
             allowDeselect={false}
             data={emblems}
             getPreviewSrc={(image) => image}
-            value={draft.logo}
-            onChange={(logo) => {
-              const value = LOGO.safeParse(logo);
+            value={draft.emblem}
+            onChange={(emblem) => {
+              const value = EMBLEM.safeParse(emblem);
               if (value.success) {
-                patch({ logo: value.data });
+                patch({ emblem: value.data });
               }
             }}
           />
-        }
+        )}
       />
     </Stack>
   );

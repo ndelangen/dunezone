@@ -97,3 +97,20 @@ export const SearchOpensFactionInfo = meta.story({
     });
   },
 });
+
+/** An opened chat is ready to type in; Escape hands the keys back to the table and keeps the chat open, and a second Escape closes it. */
+export const OpenedChatTakesTheKeys = meta.story({
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const { buttons } = await chatBar(canvasElement);
+    await userEvent.click(buttons[0]!);
+    const chat = await waitFor(() => document.querySelector<HTMLElement>('[data-window="table-chat"]')!);
+    const composer = await within(chat).findByRole('textbox', { name: 'Message' });
+    await waitFor(() => expect(composer).toHaveFocus());
+    await userEvent.keyboard('{Escape}');
+    await expect(composer).not.toHaveFocus();
+    await expect(chat).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(chat).not.toBeInTheDocument());
+  },
+});

@@ -1,11 +1,8 @@
 import clsx from 'clsx';
-import { Children, isValidElement } from 'react';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import styles from './AsymmetricSplitLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const ASYMMETRICSPLIT_SLOTS = ['AsymmetricSplitLayout.Wide', 'AsymmetricSplitLayout.Narrow'] as const;
+import { collectSlots } from './collectSlots';
 
 const Wide: (props: PropsWithChildren) => null = () => null;
 
@@ -39,24 +36,9 @@ function AsymmetricSplitLayoutBase({
   narrowFallback = 'stack',
   children,
 }: AsymmetricSplitLayoutProps) {
-  let wide: ReactNode = null;
-  let narrow: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('AsymmetricSplitLayout', ASYMMETRICSPLIT_SLOTS, child);
-      return;
-    }
-    if (child.type === Wide) {
-      wide = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Narrow) {
-      narrow = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('AsymmetricSplitLayout', ASYMMETRICSPLIT_SLOTS, child);
-  });
+  const slots = collectSlots('AsymmetricSplitLayout', { Wide, Narrow }, children);
+  const wide = slots.Wide?.children;
+  const narrow = slots.Narrow?.children;
 
   return (
     <div className={clsx(styles.root, className)}>

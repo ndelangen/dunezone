@@ -1,15 +1,18 @@
-import { Alert, Button, Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- This page has no header band, so its h1 heads the confirmation pane. */
+import { Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
-import { ConfirmDeleteButton } from '@ui/control/ConfirmDeleteButton';
+import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
+import { Section } from '@ui/block/Section';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, UserRoundSearch } from 'lucide-react';
+import { ArrowLeft, UserRoundSearch, UserRoundX } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
@@ -18,6 +21,7 @@ import { ProfilePicker } from '@app/pickers/ProfilePicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets', asset: 'Assets' } as const;
 
@@ -57,9 +61,9 @@ function AccountDeletionPage() {
 
   if (page.isPending) {
     return (
-      <PageMessage title="Delete account" back={backToSettings}>
-        <LoadPending title="Loading">Checking what deleting this account would affect.</LoadPending>
-      </PageMessage>
+      <RoutePending title="Delete account" back={backToSettings} loading="Loading">
+        Checking what deleting this account would affect.
+      </RoutePending>
     );
   }
 
@@ -78,9 +82,9 @@ function AccountDeletionPage() {
   if (data.kind === 'denied') {
     return (
       <PageMessage title="Delete account" back={backToSettings}>
-        <NotAvailable title="This is not your account">
+        <PageState kind="absent" title="This is not your account">
           You must be signed in to the profile named in this address.
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -94,9 +98,9 @@ function AccountDeletionPage() {
             {data.operation?.error ?? 'The operation needs administrative repair before it can continue.'}
           </LoadError>
         ) : (
-          <LoadPending title="Account deletion is in progress">
+          <PageState kind="pending" title="Account deletion is in progress">
             {`Current phase: ${data.operation?.phase ?? 'starting'}. This page updates automatically.`}
-          </LoadPending>
+          </PageState>
         )}
       </PageMessage>
     );
@@ -129,10 +133,7 @@ function AccountDeletionPage() {
               <Text c="dimmed">Review direct ownership before deleting {data.profile.username ?? 'this account'}.</Text>
             </div>
 
-            <Stack gap="xs">
-              <Title order={2} size="h3">
-                Direct ownership
-              </Title>
+            <Section title="Direct ownership">
               {hasOwnership ? (
                 <List>
                   {data.summary.map((entry) => (
@@ -145,12 +146,9 @@ function AccountDeletionPage() {
               ) : (
                 <Text c="dimmed">This account directly owns no Groups, factions, rulesets, or assets.</Text>
               )}
-            </Stack>
+            </Section>
 
-            <Stack gap="sm">
-              <Title order={2} size="h3">
-                Choose the outcome
-              </Title>
+            <Section title="Choose the outcome">
               <Text>
                 Select one active profile to receive every directly owned Group, faction, ruleset, and asset. If you
                 leave the replacement empty, those records will be soft-deleted instead.
@@ -164,14 +162,9 @@ function AccountDeletionPage() {
                 closeOnEscape
               >
                 <Popover.Target>
-                  <Button
-                    type="button"
-                    variant="light"
-                    leftSection={<UserRoundSearch size={16} aria-hidden />}
-                    onClick={() => setPickerOpen((open) => !open)}
-                  >
+                  <LabeledAction icon={<UserRoundSearch size={16} />} onClick={() => setPickerOpen((open) => !open)}>
                     {replacement ? 'Change replacement owner' : 'Choose a replacement owner'}
-                  </Button>
+                  </LabeledAction>
                 </Popover.Target>
                 <Popover.Dropdown>
                   {pickerOpen ? (
@@ -191,25 +184,23 @@ function AccountDeletionPage() {
                   <Text>
                     New owner: <strong>{replacement.username}</strong>
                   </Text>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    color="gray"
+                  <LabeledAction
+                    icon={<UserRoundX size={16} />}
                     onClick={() => {
                       setReplacement(null);
                       setAcknowledged(false);
                     }}
                   >
                     Use no replacement
-                  </Button>
+                  </LabeledAction>
                 </Group>
               ) : (
-                <Alert color="orange" title="No replacement selected">
+                <Notice tone="caution" title="No replacement selected">
                   All directly owned records will be soft-deleted. Records you only authored, joined, or may edit are
                   not affected.
-                </Alert>
+                </Notice>
               )}
-            </Stack>
+            </Section>
 
             {confirm.isError ? (
               <FormError title="Account deletion could not start">
@@ -226,7 +217,8 @@ function AccountDeletionPage() {
               }
             />
             {/* The checkbox states what will happen; the hold is the commitment. The heaviest delete in the application wears the same five seconds as every other (Norbert, 2026-08-21). */}
-            <ConfirmDeleteButton
+            <HoldAction
+              shape="button"
               label={replacement ? 'Transfer ownership and delete account' : 'Delete account'}
               disabled={!acknowledged}
               pending={confirm.isPending}

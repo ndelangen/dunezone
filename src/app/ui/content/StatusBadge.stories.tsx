@@ -49,3 +49,15 @@ export const Live = meta.story({
 export const LongLabel = meta.story({
   args: { tone: 'pending', children: 'Awaiting moderator approval' },
 });
+
+/** A count beside a tab or chapter name, round so one or two digits sit centred. */
+export const Circle = meta.story({
+  render: () => (
+    <Group gap="xs">
+      <StatusBadge circle>3</StatusBadge>
+      <StatusBadge circle tone="brand">
+        12
+      </StatusBadge>
+    </Group>
+  ),
+});

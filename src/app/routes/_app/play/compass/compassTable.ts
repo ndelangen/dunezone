@@ -37,12 +37,20 @@ export type CompassTable = Readonly<{
   chat: (seat: string) => ReactNode;
   /** A seat's faction information, with any vote against its player and any request for the seat. */
   factionInfo: (seat: string) => ReactNode;
+  /** The eraser in the title bar of a seat's chat, or the table's; null while it has nothing to clear. */
+  clearChat?: (seat: string) => ReactNode;
+  /** Clears every chat from the viewer's own view; null while none has a message to clear. */
+  clearChats?: (() => void) | null;
   /** Steps to the next phase; null while the header's Next phase button would be disabled, or the stage has none. */
   nextPhase: (() => void) | null;
+  /** The Spice blow command: every face-up spice card on the table places its spice; null while there is none or the viewer cannot act. */
+  spiceBlow?: (() => void) | null;
   /** The viewer's own faction token on the table: which side shows, turning it over, and whether the Bidding phase is on; null without a seat or a token. */
   token: Readonly<{ faceUp: boolean; flip: () => void; inBidding?: boolean }> | null;
   /** The bidder's raise by one, lowering (null unless the viewer raised this turn) and pass, while it points at the viewer. */
   bidding?: Readonly<{ raise: () => void; lower: (() => void) | null; pass: () => void }> | null;
+  /** How many spectators' requests for a seat wait on the viewer's approval; while any do, the compass's top arm leads to Seats & spectators. */
+  seatRequests?: number;
 }>;
 
 export const CompassTableContext = createContext<CompassTable | null>(null);

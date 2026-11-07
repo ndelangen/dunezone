@@ -1,14 +1,14 @@
 /* @jsxImportSource ./three-jsx */
 
-import { CENTER, RADIUS, retainedArrakisBoard } from '@shared/boards/geometry';
+import { CENTER, contains, RADIUS } from '@shared/boards/geometry';
 import type { Board, Point } from '@shared/boards/schema';
 import { propertyId } from '@shared/boards/schema';
-import { placeStickers } from '@shared/boards/stickerPlacement';
-import { boardTerritories, boardTerritoryAt } from '@shared/boards/territories';
+import { placeStickers, TABLE_STICKER_LARGEST } from '@shared/boards/stickerPlacement';
+import { boardPointToTable } from '@shared/boards/tableTerritories';
+import { boardTerritories } from '@shared/boards/territories';
 import type { OutlinePath } from '@shared/boards/tintOutline';
 import { offRim, offsetPath, outerSegments, outlinePaths } from '@shared/boards/tintOutline';
 import { tintOutlineOpacity } from '@shared/boards/tints';
-import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import type { TerritoryTint, TintStamp } from '@shared/play/territoryTints';
 import { tintPaint } from '@shared/play/territoryTints';
 import { playUiColors } from '@shared/uiPalette';
@@ -20,27 +20,13 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { ignoreRaycast } from './ignoreRaycast';
 import { TINT_STICKERS } from './tintStickers';
 
-/* Board drawing units run across the board's circle; the table's board disc is BOARD_RADIUS wide. */
-function toTable([x, y]: Readonly<Point>): [number, number] {
-  return [((x - CENTER[0]) / RADIUS) * BOARD_RADIUS, ((y - CENTER[1]) / RADIUS) * BOARD_RADIUS];
-}
-
-/** The territory under a table point, by the ID tints keep, or undefined off the map. */
-export function territoryAtTablePoint(board: Board, x: number, z: number) {
-  const property = boardTerritoryAt(board, [
-    CENTER[0] + (x * RADIUS) / BOARD_RADIUS,
-    CENTER[1] + (z * RADIUS) / BOARD_RADIUS,
-  ]);
-  return property && { id: propertyId(property), name: property.name };
-}
-
 function fillGeometry(rings: Point[][]) {
   const shapes = rings.map((ring) => ring.slice(0, -1).map(([x, y]) => new Vector2(x, y)));
   const flat = shapes.flat();
   const positions: number[] = [];
   for (const triangle of ShapeUtils.triangulateShape(shapes[0], shapes.slice(1))) {
     for (const index of triangle) {
-      const [x, z] = toTable([flat[index].x, flat[index].y]);
+      const [x, z] = boardPointToTable([flat[index].x, flat[index].y]);
       positions.push(x, 0, z);
     }
   }
@@ -54,8 +40,8 @@ function outlineGeometry(rings: Point[][]) {
   const edges = rings.flatMap((ring) => ring.slice(1).map((to, i) => [ring[i], to] as const));
   const positions: number[] = [];
   for (const [from, to] of offRim(edges, CENTER, RADIUS)) {
-    const [ax, az] = toTable(from);
-    const [bx, bz] = toTable(to);
+    const [ax, az] = boardPointToTable(from);
+    const [bx, bz] = boardPointToTable(to);
     positions.push(ax, 0, az, bx, 0, bz);
   }
   const geometry = new BufferGeometry();
@@ -111,9 +97,32 @@ function doubleLineGeometries(segments: readonly Segment[], raisedEdges: Readonl
   const bands: Bands = { rest: [], raised: [] };
   for (const { points, closed } of outlinePaths(segments)) {
     const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
-    const path = { points: points.map(toTable), closed };
+    const path = { points: points.map(boardPointToTable), closed };
     bandAlong(bands, path, raised, inner, outer);
     bandAlong(bands, path, raised, -inner, -outer);
+  }
+  return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
+}
+
+/* A rim tint's line, in table units: how far out from the border it starts, and how wide it is. */
+const RIM_GAP = 0.004;
+const RIM_WIDTH = 0.032;
+
+/**
+ * One thick band along each line, on the side away from the territories it surrounds.
+ * The stretches along `raisedEdges` come apart, as a double line's do.
+ * Which side is outside is tested on each line's first stretch, since the outline's direction is not fixed.
+ */
+function rimGeometries(segments: readonly Segment[], raisedEdges: ReadonlySet<string>, rings: readonly Point[][]) {
+  const bands: Bands = { rest: [], raised: [] };
+  for (const { points, closed } of outlinePaths(segments)) {
+    const raised = points.map((point, i) => raisedEdges.has(edgeKey([point, points[(i + 1) % points.length]])));
+    /* A probe a hair off the first side tells inside from outside, however narrow the territory. */
+    const probe = offsetPath({ points, closed }, 1e-3);
+    const middle: Point = [(probe[0]![0] + probe[1]![0]) / 2, (probe[0]![1] + probe[1]![1]) / 2];
+    const outward = contains([...rings], middle) ? -1 : 1;
+    const path = { points: points.map(boardPointToTable), closed };
+    bandAlong(bands, path, raised, outward * RIM_GAP, outward * (RIM_GAP + RIM_WIDTH));
   }
   return { rest: positionsGeometry(bands.rest), raised: positionsGeometry(bands.raised) };
 }
@@ -132,18 +141,23 @@ function polarEdges(faces: readonly Face[]) {
 /** An outline-only tint: one double line round its territories taken together, the borders between them and the board's rim left out. */
 function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: readonly Face[] }>) {
   const key = tint.territories.join(' ');
+  const rim = tint.rim === true;
   const geometries = useMemo(() => {
     const ids = new Set(key.split(' '));
     const tinted = faces.filter((face) => ids.has(face.id));
-    const { rest, raised } = doubleLineGeometries(
-      offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS),
-      polarEdges(tinted)
-    );
+    const segments = offRim(outerSegments(tinted.map((face) => face.rings)), CENTER, RADIUS);
+    const { rest, raised } = rim
+      ? rimGeometries(
+          segments,
+          polarEdges(tinted),
+          tinted.flatMap((face) => face.rings)
+        )
+      : doubleLineGeometries(segments, polarEdges(tinted));
     return [
       { geometry: rest, order: TINT_ORDER.line },
       { geometry: raised, order: POLAR_TINT_ORDER.line },
     ];
-  }, [faces, key]);
+  }, [faces, key, rim]);
   useEffect(
     () => () => {
       for (const { geometry } of geometries) {
@@ -161,8 +175,7 @@ function TintOutline({ tint, faces }: Readonly<{ tint: TerritoryTint; faces: rea
   ));
 }
 
-/* The largest a sticker gets, in table units, and the smallest it shrinks to in a cramped territory. */
-const STICKER_LARGEST = 0.3;
+/* The smallest a sticker shrinks to in a cramped territory. */
 const STICKER_SMALLEST = 0.14;
 /* The board's glyph colours: near-black ink inside a pale outline. */
 const STICKER_INK = playUiColors.annotationInk;
@@ -210,9 +223,9 @@ function stickerPlacement(rings: Point[][], count: number) {
   let placement = byCount.get(count);
   if (!placement) {
     placement = placeStickers(
-      rings.map((ring) => ring.map(toTable)),
+      rings.map((ring) => ring.map(boardPointToTable)),
       count,
-      STICKER_LARGEST
+      TABLE_STICKER_LARGEST
     );
     byCount.set(count, placement);
   }
@@ -234,7 +247,7 @@ function Stickers({
   const { at, size: fitted } = stickerPlacement(rings, stamps.length);
   const size = Math.max(STICKER_SMALLEST, fitted);
   return stamps.map((stamp, index) => {
-    const [x, z] = at[index] ?? toTable(center);
+    const [x, z] = at[index] ?? boardPointToTable(center);
     const { ink, outline } = stickerGeometry(stamp);
     return (
       <group key={stamp} position={[x, 0.004, z]} rotation={[Math.PI / 2, 0, 0]} scale={size}>
@@ -281,10 +294,7 @@ function TintedTerritory({
 }
 
 /** Tints laid over territories, oldest first so a later tint paints over an earlier one; each territory keeps the colour's outline, or the tint is one outline round them all. */
-export function TerritoryTints({
-  board = retainedArrakisBoard(),
-  tints,
-}: Readonly<{ board?: Board; tints: readonly TerritoryTint[] }>) {
+export function TerritoryTints({ board, tints }: Readonly<{ board: Board; tints: readonly TerritoryTint[] }>) {
   const faces = useMemo<Face[]>(
     () =>
       boardTerritories(board).map((face) => ({

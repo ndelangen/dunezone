@@ -1,11 +1,15 @@
-import { Alert, Anchor, Button, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
+import { Anchor, Group, Progress, Select, Stack, Table, Text, Textarea, TextInput } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import { contentImportPackageSchema } from '@shared/contentImports/package';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { Download, Eye, Import } from 'lucide-react';
 import { useReducer } from 'react';
 import type { Dispatch } from 'react';
 import { z } from 'zod';
@@ -157,10 +161,7 @@ function ImportExportPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <PageTitle
-          title="Import and export"
-          subtitle="Move authored content as JSON, with a preview before you write."
-        />
+        <PageTitle title="Import and export" lede="Move authored content as JSON, with a preview before you write." />
       </PageLayout.Header>
       <PageLayout.Content>
         {viewer.kind === 'signed-out' ? (
@@ -169,37 +170,50 @@ function ImportExportPage() {
           <Text>Loading your account...</Text>
         ) : (
           <Stack gap="xl">
-            <Section
-              title="Destination"
-              description={`Signed in as ${viewer.profile.username ?? 'your account'}. Your usual editing and group permissions apply.`}
-            >
+            <Section title="Destination">
+              <Text size="sm">
+                Signed in as {viewer.profile.username ?? 'your account'}. Your usual editing and group permissions
+                apply.
+              </Text>
               <Surface>
                 <Group grow align="start">
-                  <TextInput
-                    label="Ruleset address"
+                  <ControlBlock
+                    title="Ruleset address"
                     description="The last part of its URL, such as gf9."
-                    value={state.rulesetSlug}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { rulesetSlug: event.currentTarget.value } })}
+                    input={(fieldProps) => (
+                      <TextInput
+                        {...fieldProps}
+                        value={state.rulesetSlug}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          dispatch({ kind: 'edit', patch: { rulesetSlug: event.currentTarget.value } })
+                        }
+                      />
+                    )}
                   />
-                  <TextInput
-                    label="Group address"
+                  <ControlBlock
+                    title="Group address"
                     description="Every imported faction and asset is assigned to this group."
-                    value={state.groupSlug}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { groupSlug: event.currentTarget.value } })}
+                    input={(fieldProps) => (
+                      <TextInput
+                        {...fieldProps}
+                        value={state.groupSlug}
+                        disabled={disabled}
+                        onChange={(event) =>
+                          dispatch({ kind: 'edit', patch: { groupSlug: event.currentTarget.value } })
+                        }
+                      />
+                    )}
                   />
                 </Group>
               </Surface>
             </Section>
-            {state.error && (
-              <Alert title="Could not finish" role="alert">
-                {state.error}
-              </Alert>
-            )}
+            {state.error && <FormError title="Could not finish">{state.error}</FormError>}
             <Section
               title="Import a package"
-              description="Choose a JSON file or paste its contents. Preview checks the format, destination and proposed changes."
+              help={
+                'Choose a JSON file or paste its contents.\nPreview checks the format, destination and proposed changes.'
+              }
             >
               <Surface>
                 <Stack gap="md">
@@ -215,21 +229,38 @@ function ImportExportPage() {
                       }
                     }}
                   />
-                  <Textarea
-                    label="Package JSON"
-                    minRows={8}
-                    value={state.json}
-                    disabled={disabled}
-                    onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}
+                  <ControlBlock
+                    title="Package JSON"
+                    input={(fieldProps) => (
+                      <Textarea
+                        {...fieldProps}
+                        minRows={8}
+                        value={state.json}
+                        disabled={disabled}
+                        onChange={(event) => dispatch({ kind: 'edit', patch: { json: event.currentTarget.value } })}
+                      />
+                    )}
                   />
                   <Group>
-                    <Button
-                      disabled={disabled || !state.json || !target.rulesetSlug || !target.groupSlug}
-                      loading={state.busy === 'preview'}
+                    <LabeledAction
+                      emphasis="strong"
+                      icon={<Eye size={16} />}
+                      busy={state.busy === 'preview'}
+                      disabledReason={
+                        state.busy === 'preview'
+                          ? undefined
+                          : disabled
+                            ? 'Another import step is running.'
+                            : !state.json
+                              ? 'Paste the package JSON first.'
+                              : !target.rulesetSlug || !target.groupSlug
+                                ? 'Choose a ruleset and a group first.'
+                                : undefined
+                      }
                       onClick={() => void inspect(state, dispatch)}
                     >
                       Preview import
-                    </Button>
+                    </LabeledAction>
                     <Anchor
                       href="https://github.com/ndelangen/dunezone/blob/main/docs/content-imports.md"
                       target="_blank"
@@ -242,10 +273,11 @@ function ImportExportPage() {
               </Surface>
             </Section>
             {state.preview && (
-              <Section
-                title="Review the import"
-                description={`${state.preview.entries.length} items for ${state.preview.rulesetName}, assigned to ${state.preview.groupName}. New records belong to your signed-in account.`}
-              >
+              <Section title="Review the import">
+                <Text size="sm">
+                  {state.preview.entries.length} items for {state.preview.rulesetName}, assigned to{' '}
+                  {state.preview.groupName}. New records belong to your signed-in account.
+                </Text>
                 <Surface>
                   <Stack gap="md">
                     <Table>
@@ -273,13 +305,24 @@ function ImportExportPage() {
                       Import writes one item at a time. New records become public and artwork preparation starts as they
                       are created.
                     </Text>
-                    <Button
-                      disabled={disabled || state.preview.entries.some((entry) => entry.status === 'conflict')}
-                      loading={state.busy === 'import'}
+                    <LabeledAction
+                      emphasis="strong"
+                      intent="positive"
+                      icon={<Import size={16} />}
+                      busy={state.busy === 'import'}
+                      disabledReason={
+                        state.busy === 'import'
+                          ? undefined
+                          : disabled
+                            ? 'Another import step is running.'
+                            : state.preview.entries.some((entry) => entry.status === 'conflict')
+                              ? 'Resolve the conflicts first.'
+                              : undefined
+                      }
                       onClick={() => void apply(state, dispatch)}
                     >
                       Import reviewed content
-                    </Button>
+                    </LabeledAction>
                   </Stack>
                 </Surface>
               </Section>
@@ -308,54 +351,82 @@ function ImportExportPage() {
             )}
             <Section
               title="Export a record"
-              description="Export a saved Rulebook draft, faction or asset for review and editing. The download lists any references that need binding before use elsewhere."
+              help={
+                'Export a saved Rulebook draft, faction or asset for review and editing.\nThe download lists any references that need binding before use elsewhere.'
+              }
             >
               <Surface>
                 <Stack gap="md">
                   <Group grow align="start">
-                    <Select
-                      label="Record kind"
-                      data={[
-                        { value: 'rulebook', label: 'Rulebook draft' },
-                        { value: 'faction', label: 'Faction' },
-                        { value: 'asset', label: 'Asset' },
-                      ]}
-                      value={state.exportKind}
-                      disabled={disabled}
-                      onChange={(value) => {
-                        if (value) {
-                          patch({ exportKind: value as State['exportKind'] });
-                        }
-                      }}
+                    <ControlBlock
+                      title="Record kind"
+                      input={(fieldProps) => (
+                        <Select
+                          {...fieldProps}
+                          data={[
+                            { value: 'rulebook', label: 'Rulebook draft' },
+                            { value: 'faction', label: 'Faction' },
+                            { value: 'asset', label: 'Asset' },
+                          ]}
+                          value={state.exportKind}
+                          disabled={disabled}
+                          onChange={(value) => {
+                            if (value) {
+                              patch({ exportKind: value as State['exportKind'] });
+                            }
+                          }}
+                        />
+                      )}
                     />
-                    <TextInput
-                      label="Record address"
-                      value={state.exportSlug}
-                      disabled={disabled}
-                      onChange={(event) => patch({ exportSlug: event.currentTarget.value })}
+                    <ControlBlock
+                      title="Record address"
+                      input={(fieldProps) => (
+                        <TextInput
+                          {...fieldProps}
+                          value={state.exportSlug}
+                          disabled={disabled}
+                          onChange={(event) => patch({ exportSlug: event.currentTarget.value })}
+                        />
+                      )}
                     />
                     {state.exportKind === 'asset' && (
-                      <Select
-                        label="Asset type"
-                        data={ASSET_TYPE_KEYS.map((value) => ({ value, label: ASSET_TYPES[value].label }))}
-                        value={state.exportType}
-                        disabled={disabled}
-                        onChange={(value) => {
-                          if (value) {
-                            patch({ exportType: value });
-                          }
-                        }}
+                      <ControlBlock
+                        title="Asset type"
+                        input={(fieldProps) => (
+                          <Select
+                            {...fieldProps}
+                            data={ASSET_TYPE_KEYS.map((value) => ({ value, label: ASSET_TYPES[value].label }))}
+                            value={state.exportType}
+                            disabled={disabled}
+                            onChange={(value) => {
+                              if (value) {
+                                patch({ exportType: value });
+                              }
+                            }}
+                          />
+                        )}
                       />
                     )}
                   </Group>
-                  <Button
-                    variant="default"
-                    disabled={disabled || !state.exportSlug.trim() || !target.rulesetSlug || !target.groupSlug}
-                    loading={state.busy === 'export'}
+                  <LabeledAction
+                    intent="export"
+                    icon={<Download size={16} />}
+                    busy={state.busy === 'export'}
+                    disabledReason={
+                      state.busy === 'export'
+                        ? undefined
+                        : disabled
+                          ? 'Another import step is running.'
+                          : !state.exportSlug.trim()
+                            ? 'Enter the slug to export first.'
+                            : !target.rulesetSlug || !target.groupSlug
+                              ? 'Choose a ruleset and a group first.'
+                              : undefined
+                    }
                     onClick={() => void exportRecord(state, dispatch)}
                   >
                     Download JSON
-                  </Button>
+                  </LabeledAction>
                   {state.warnings.map((warning) => (
                     <Text key={warning}>{warning}</Text>
                   ))}

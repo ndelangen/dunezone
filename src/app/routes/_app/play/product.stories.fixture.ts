@@ -12,7 +12,7 @@ import { BOARD_RADIUS, restingPositionAt } from '@shared/play/tableGeometry';
 import type { TableSeatCount } from '@shared/play/tableSettings';
 import { tableSeatAngles } from '@shared/play/tableSettings';
 import { labelForCount } from '@shared/play/tableState';
-import board from '@shared/rulebooks/boards/arrakis.json';
+import { ARRAKIS_OFFICIAL as board } from '@shared/rulebooks/fixtures/arrakisOfficial';
 
 import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
@@ -100,7 +100,7 @@ export function swappingSnapshot(): GameSnapshot {
         slug,
         {
           background: data.background,
-          logo: data.logo,
+          emblem: data.emblem,
           troops: data.troops.map(({ back, ...front }) => ({
             ...troopArtwork(front),
             ...(back ? { back: troopArtwork(back) } : {}),
@@ -129,7 +129,8 @@ export function swappingSnapshot(): GameSnapshot {
 }
 
 /* A faction as the Worker retains it at public assignment, less its Extras, with the published faces the README names. */
-function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
+/** A story faction's captured sheet with its art, as the room captures it at setup. */
+export function capture({ slug, data, token, leaders }: (typeof factions)[number]): FactionCapture {
   const face = (name: string) => imageHref(`/play-fixtures/product/${slug}-${name}.jpg`);
   return {
     faction: { id: slug, slug, name: data.name },

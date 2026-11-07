@@ -1,11 +1,11 @@
-import { Group, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { PublicFaction } from '@shared/play/capture';
 import type { RemovalVote } from '@shared/play/removal';
 import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
-import { StatusBadge } from '@ui/content/StatusBadge';
 import type { ReactNode } from 'react';
 
+import { Ballots } from '../../Ballots';
 import { FactionDetails } from './FactionDetails';
 import { FactionInfoHeader } from './FactionInfoHeader';
 import type { FactionInfoHeaderModel } from './FactionInfoHeader';
@@ -30,8 +30,6 @@ export type FactionInfoPanelProps = Readonly<{
   /** The table's refusal of the last command sent from here. */
   error: string | null;
   vote: RemovalVoteView | null;
-  /** Requests for the seat, while it is open. */
-  requests: ReactNode;
   header: FactionInfoHeaderModel;
   /** The seat's trade action, while seats are traded. */
   trade: ReactNode;
@@ -48,21 +46,6 @@ const BALLOT_BADGES = {
   uncast: { tone: 'neutral', label: 'Uncast' },
 } as const;
 
-function Ballots({ ballots }: Readonly<{ ballots: RemovalVote['ballots'] }>) {
-  return (
-    <Stack gap={4}>
-      {ballots.map((ballot, index) => (
-        <Group key={`${ballot.seat}-${index}`} justify="space-between" gap="sm">
-          <Text size="sm">{ballot.name}</Text>
-          <StatusBadge tone={BALLOT_BADGES[ballot.choice ?? 'uncast'].tone}>
-            {BALLOT_BADGES[ballot.choice ?? 'uncast'].label}
-          </StatusBadge>
-        </Group>
-      ))}
-    </Stack>
-  );
-}
-
 /* The open vote's state: how far it is from a decision, how long it has been open, each ballot, and why the viewer cannot vote when they cannot. The viewer's own ballot is cast from the toolbar. */
 function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
   const { ballot, elapsed } = vote;
@@ -73,7 +56,7 @@ function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
           {vote.needed.remove} more Remove or {vote.needed.keep} more Keep to decide.{' '}
           {elapsed < 1 ? 'Just opened.' : `Open ${Math.floor(elapsed / 60)}m ${elapsed % 60}s.`}
         </Text>
-        <Ballots ballots={vote.ballots} />
+        <Ballots ballots={vote.ballots} badges={BALLOT_BADGES} />
         {'reason' in ballot && (
           <Text size="sm" c="dimmed">
             {ballot.reason}
@@ -86,9 +69,10 @@ function OpenVote({ vote }: Readonly<{ vote: RemovalVoteView }>) {
 
 /**
  * A seat's faction information: the header, the toolbar with every action on the seat under it, then the content.
- * The content leads with any vote against the seat's player and any request for the seat, then what the faction starts with.
+ * The content leads with any vote against the seat's player, then what the faction starts with;
+ * requests for a seat are in Seats & spectators.
  */
-export function FactionInfoPanel({ error, vote, requests, header, trade, details, onBallot }: FactionInfoPanelProps) {
+export function FactionInfoPanel({ error, vote, header, trade, details, onBallot }: FactionInfoPanelProps) {
   const ballot = vote && 'choice' in vote.ballot ? { choice: vote.ballot.choice, cast: onBallot } : null;
   return (
     <>
@@ -106,7 +90,6 @@ export function FactionInfoPanel({ error, vote, requests, header, trade, details
             ballot={ballot}
           />
           {vote && <OpenVote vote={vote} />}
-          {requests}
           {details && <FactionDetails faction={details} />}
         </Stack>
       </Section>

@@ -1,3 +1,4 @@
+/* oxlint-disable-next-line no-restricted-imports -- The amount is printed on the spice token like a game piece, not a status. */
 import { Badge, Box } from '@mantine/core';
 import { SPICE_TOKEN_HREF } from '@shared/play/spiceToken';
 import { PublishedImage } from '@ui/content/PublishedImage';

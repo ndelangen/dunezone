@@ -1,10 +1,14 @@
-import { Box, Button, Center, Group, Loader, Select, Stack, Text } from '@mantine/core';
-import { RULEBOOK_BOARD_ARTWORK, RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
+import { Box, Group, Select, Stack, Text } from '@mantine/core';
+import { RULEBOOK_STOCK_ARTWORK, rulebookArtworkName } from '@shared/rulebooks/sources';
 import type { RulebookSourceReference } from '@shared/rulebooks/sources';
+import { Pending } from '@ui/content/Pending';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { TokenImage } from '@ui/content/TokenImage';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { SelectableRow } from '@ui/control/SelectableRow';
+import { ArrowLeft, X } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { useRulebookFactionMembers, useRulebookFactionTroops } from '@db/rulebookSources';
@@ -38,11 +42,7 @@ function FactionMemberChoices({
 }) {
   const result = useRulebookFactionMembers(factionId);
   if (result.isPending) {
-    return (
-      <Center>
-        <Loader size="sm" aria-label="Loading leaders" />
-      </Center>
-    );
+    return <Pending>Loading leaders</Pending>;
   }
   if (!result.data) {
     return <Text size="sm">This faction is unavailable.</Text>;
@@ -56,12 +56,9 @@ function FactionMemberChoices({
           {result.data.members
             .filter((member) => !traitor || member.role === 'Leader')
             .map((member) => (
-              <Button
+              <SelectableRow
                 key={member.memberId}
-                variant="subtle"
-                justify="start"
-                h="auto"
-                onClick={() =>
+                onSelect={() =>
                   onPick({
                     kind: 'faction-member',
                     factionId,
@@ -81,7 +78,7 @@ function FactionMemberChoices({
                     {member.name || `Unnamed ${member.role.toLowerCase()}`} · {member.role}
                   </Text>
                 </Group>
-              </Button>
+              </SelectableRow>
             ))}
         </Stack>
       }
@@ -98,11 +95,7 @@ function FactionTroopChoices({
 }) {
   const result = useRulebookFactionTroops(factionId);
   if (result.isPending) {
-    return (
-      <Center>
-        <Loader size="sm" aria-label="Loading troops" />
-      </Center>
-    );
+    return <Pending>Loading troops</Pending>;
   }
   if (!result.data) {
     return <Text size="sm">This faction is unavailable.</Text>;
@@ -119,13 +112,7 @@ function FactionTroopChoices({
             }
             const reference = source.reference;
             return (
-              <Button
-                key={`${reference.troopId}.${reference.face}`}
-                variant="subtle"
-                justify="start"
-                h="auto"
-                onClick={() => onPick(reference)}
-              >
+              <SelectableRow key={`${reference.troopId}.${reference.face}`} onSelect={() => onPick(reference)}>
                 <Group gap="sm" wrap="nowrap">
                   {source.status === 'ready' ? (
                     <Box w={44} miw={44} aria-hidden>
@@ -137,7 +124,7 @@ function FactionTroopChoices({
                     {reference.face === 'back' ? ' · Back' : ''}
                   </Text>
                 </Group>
-              </Button>
+              </SelectableRow>
             );
           })}
         </Stack>
@@ -171,9 +158,9 @@ export function RulebookSourcePicker({
           }}
           onPick={(picked) => onPick({ kind: 'asset', assetId: picked.id })}
         />
-        <Button variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
+        </LabeledAction>
       </Stack>
     );
   }
@@ -181,9 +168,9 @@ export function RulebookSourcePicker({
     <Stack gap="md">
       <ControlBlock
         title="Source type"
-        input={
+        input={(fieldProps) => (
           <Select
-            aria-label="Source type"
+            {...fieldProps}
             value={state.kind}
             data={[
               { value: 'asset', label: 'Published Asset' },
@@ -199,14 +186,14 @@ export function RulebookSourcePicker({
               }
             }}
           />
-        }
+        )}
       />
       {state.kind === 'faction' || state.kind === 'faction-member' ? (
         <ControlBlock
           title="Presentation"
-          input={
+          input={(fieldProps) => (
             <Select
-              aria-label="Presentation"
+              {...fieldProps}
               value={state.sheet ? 'sheet' : state.alternate ? 'alternate' : 'default'}
               data={
                 state.kind === 'faction'
@@ -224,7 +211,7 @@ export function RulebookSourcePicker({
                 dispatch({ type: 'presentation', alternate: value === 'alternate', sheet: value === 'sheet' })
               }
             />
-          }
+          )}
         />
       ) : null}
       {state.kind === 'asset' ? (
@@ -251,9 +238,9 @@ export function RulebookSourcePicker({
       {state.kind === 'stock' ? (
         <ControlBlock
           title="Artwork"
-          input={
+          input={(fieldProps) => (
             <AssetSelect
-              aria-label="Artwork"
+              {...fieldProps}
               value={null}
               placeholder="Choose artwork"
               data={stockAssetOptions(RULEBOOK_STOCK_ARTWORK).map((option) => ({
@@ -267,34 +254,26 @@ export function RulebookSourcePicker({
                 }
               }}
             />
-          }
+          )}
         />
       ) : null}
       {state.kind === 'board' ? (
-        <ControlBlock
-          title="Board"
-          input={
-            <AssetSelect
-              aria-label="Board"
-              value={null}
-              placeholder="Choose board"
-              data={RULEBOOK_BOARD_ARTWORK.map(({ id, name }) => ({ value: id, label: name }))}
-              getPreviewSrc={(value) => RULEBOOK_BOARD_ARTWORK.find(({ id }) => id === value)?.imageUrl}
-              onChange={(boardId) => {
-                if (boardId) {
-                  onPick({ kind: 'board', boardId });
-                }
-              }}
-            />
-          }
+        <AssetPicker
+          types={['board']}
+          copy={{
+            searchLabel: 'Find Board',
+            searchPlaceholder: 'Search Boards',
+            emptyMessage: 'No Boards are available.',
+          }}
+          onPick={(picked) => onPick({ kind: 'board', boardId: picked.id })}
         />
       ) : null}
       {state.kind === 'faction' || state.kind === 'faction-member' || state.kind === 'faction-troop' ? (
         state.factionId ? (
           <Stack gap="sm">
-            <Button variant="subtle" onClick={() => dispatch({ type: 'faction' })}>
+            <LabeledAction icon={<ArrowLeft size={16} />} onClick={() => dispatch({ type: 'faction' })}>
               Choose another faction
-            </Button>
+            </LabeledAction>
             {state.kind === 'faction-troop' ? (
               <FactionTroopChoices factionId={state.factionId} onPick={onPick} />
             ) : (
@@ -341,9 +320,9 @@ export function RulebookSourcePicker({
       ) : null}
       {state.kind !== 'faction' &&
       !((state.kind === 'faction-member' || state.kind === 'faction-troop') && !state.factionId) ? (
-        <Button variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
+        </LabeledAction>
       ) : null}
     </Stack>
   );

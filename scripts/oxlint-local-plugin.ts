@@ -501,11 +501,15 @@ const noTitleTooltipRule: Rule = {
 
 const TOOLTIP_LENGTH_RULE_NAME = 'tooltip-length';
 
-/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and a ControlBlock's description, which its (?) shows. */
+/* The props whose words show in a tooltip: the kit Tooltip's label, the (?)'s text, and the help a ControlBlock, a Section or a kit wrapper around them shows behind its (?). */
 const TOOLTIP_PROPS: Readonly<Record<string, string>> = {
   Tooltip: 'label',
   HelpMark: 'text',
   ControlBlock: 'description',
+  Section: 'help',
+  ListChapter: 'help',
+  RangeField: 'description',
+  PickerField: 'description',
 };
 const TOOLTIP_LINE_MAX = 100;
 
@@ -702,6 +706,217 @@ const storyOwnsItsStatesRule: Rule = {
   },
 };
 
+const FORM_ERROR_RULE_NAME = 'form-error';
+
+/* The palette colour that makes a Mantine Alert read as a failure, with or without a shade, `red` or `red.6`. */
+const FAILURE_COLOUR = 'red';
+
+/**
+ * Keeps every failure on the kit's FormError, which carries the title, the colour and the live region together.
+ * Hand-made red Alerts had drifted: some left out `role="alert"`, so a screen reader never heard the failure, and some had no title.
+ * The rule reads a Mantine `Alert` whose `color` is a red string literal;
+ * a colour chosen at run time is left to review.
+ */
+const formErrorRule: Rule = {
+  meta: {
+    name: FORM_ERROR_RULE_NAME,
+    messages: {
+      formError: 'A red Alert is a failure. Use FormError from @ui/block/FormError, which titles and announces it.',
+    },
+  },
+  create(context) {
+    /* The local names bound to Mantine's Alert. */
+    const alerts = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === 'ImportSpecifier' &&
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name === 'Alert'
+          ) {
+            alerts.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'color') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement' || element.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (!alerts.has(element.name.name)) {
+          return;
+        }
+        const value = node.value;
+        const literal =
+          value?.type === 'Literal'
+            ? value.value
+            : value?.type === 'JSXExpressionContainer' && value.expression.type === 'Literal'
+              ? value.expression.value
+              : undefined;
+        if (typeof literal === 'string' && literal.split('.')[0] === FAILURE_COLOUR) {
+          context.report({ node: element, messageId: 'formError' });
+        }
+      },
+    };
+  },
+};
+
+const EYEBROW_RULE_NAME = 'eyebrow';
+
+/**
+ * Keeps every small capitals caption on the kit's Eyebrow, which owns its size, weight, spacing and tone.
+ * Hand-made `tt="uppercase"` captions had drifted to four weights and three letter spacings.
+ * Printed sheet typography sets its capitals in its own CSS module instead.
+ * The rule reads only `tt="uppercase"` on Mantine `Text`;
+ * a CSS module's `text-transform` is out of its reach, so such a caption carries a comment naming why it is not an Eyebrow.
+ */
+const eyebrowRule: Rule = {
+  meta: {
+    name: EYEBROW_RULE_NAME,
+    messages: {
+      eyebrow: 'An uppercase caption is an Eyebrow. Use Eyebrow from @ui/content/Eyebrow.',
+    },
+  },
+  create(context) {
+    /* The local names bound to Mantine's Text. */
+    const texts = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === 'ImportSpecifier' &&
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name === 'Text'
+          ) {
+            texts.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || node.name.name !== 'tt') {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement' || element.name.type !== 'JSXIdentifier') {
+          return;
+        }
+        if (!texts.has(element.name.name)) {
+          return;
+        }
+        const value = node.value;
+        const literal =
+          value?.type === 'Literal'
+            ? value.value
+            : value?.type === 'JSXExpressionContainer' && value.expression.type === 'Literal'
+              ? value.expression.value
+              : undefined;
+        if (literal === 'uppercase') {
+          context.report({ node: element, messageId: 'eyebrow' });
+        }
+      },
+    };
+  },
+};
+
+const CONTROL_LABEL_RULE_NAME = 'control-block-label';
+
+/* The Mantine fields whose `label` and `description` are a field caption; Slider's `label` is its value bubble, and a Switch, Checkbox or Radio labels its own option. */
+const LABELLED_FIELDS = new Set([
+  'TextInput',
+  'Select',
+  'NumberInput',
+  'Textarea',
+  'ColorInput',
+  'MultiSelect',
+  'NativeSelect',
+  'FileInput',
+  'PasswordInput',
+  'Autocomplete',
+  'TagsInput',
+  'JsonInput',
+]);
+const LABELLED_GROUPS = new Set(['Radio', 'Checkbox']);
+
+/**
+ * Keeps every field caption on the kit's ControlBlock, so a field is titled one way and its help sits behind the (?).
+ * Mantine's own `label` and `description` drew a second, smaller caption with a help paragraph under it (Norbert, 2026-11-06).
+ * The rule reads `label` or `description` on a Mantine field, or on `Radio.Group` and `Checkbox.Group`.
+ * A group's `label` given as a `<VisuallyHidden>` element is allowed: Mantine names the radiogroup only through `label`, so that is its accessible name and draws no caption.
+ * It sees direct `@mantine/core` imports only: `Input.Wrapper` and kit wrappers that pass Mantine's props through (FormattedTextInput, BattleValueInput) are not checked.
+ */
+const controlBlockLabelRule: Rule = {
+  meta: {
+    name: CONTROL_LABEL_RULE_NAME,
+    messages: {
+      controlBlockLabel:
+        "A field is captioned by ControlBlock (title, and description behind its (?)), not by the input's own label or description.",
+    },
+  },
+  create(context) {
+    const fields = new Set<string>();
+    const groups = new Set<string>();
+    const hiders = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (specifier.type !== 'ImportSpecifier' || specifier.imported.type !== 'Identifier') {
+            continue;
+          }
+          if (LABELLED_FIELDS.has(specifier.imported.name)) {
+            fields.add(specifier.local.name);
+          }
+          if (LABELLED_GROUPS.has(specifier.imported.name)) {
+            groups.add(specifier.local.name);
+          }
+          if (specifier.imported.name === 'VisuallyHidden') {
+            hiders.add(specifier.local.name);
+          }
+        }
+      },
+      JSXAttribute(node) {
+        if (node.name.type !== 'JSXIdentifier' || (node.name.name !== 'label' && node.name.name !== 'description')) {
+          return;
+        }
+        const element = node.parent;
+        if (element.type !== 'JSXOpeningElement') {
+          return;
+        }
+        const name = element.name;
+        const isField = name.type === 'JSXIdentifier' && fields.has(name.name);
+        const isGroup =
+          name.type === 'JSXMemberExpression' &&
+          name.object.type === 'JSXIdentifier' &&
+          groups.has(name.object.name) &&
+          name.property.name === 'Group';
+        const value = node.value;
+        const namesOnly =
+          isGroup &&
+          node.name.name === 'label' &&
+          value?.type === 'JSXExpressionContainer' &&
+          value.expression.type === 'JSXElement' &&
+          value.expression.openingElement.name.type === 'JSXIdentifier' &&
+          hiders.has(value.expression.openingElement.name.name);
+        if ((isField || isGroup) && !namesOnly) {
+          context.report({ node, messageId: 'controlBlockLabel' });
+        }
+      },
+    };
+  },
+};
+
 export default {
   meta: {
     name: 'local',
@@ -715,5 +930,8 @@ export default {
     [SHARED_OVERLAYS_RULE_NAME]: sharedOverlaysRule,
     [TOOLTIP_LENGTH_RULE_NAME]: tooltipLengthRule,
     [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
+    [FORM_ERROR_RULE_NAME]: formErrorRule,
+    [EYEBROW_RULE_NAME]: eyebrowRule,
+    [CONTROL_LABEL_RULE_NAME]: controlBlockLabelRule,
   },
 };

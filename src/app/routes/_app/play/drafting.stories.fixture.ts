@@ -2,6 +2,7 @@ import type { Background } from '@shared/factions/schema';
 import { CanonicalFactionStoredObject } from '@shared/factions/schema';
 import { emptySnapshot } from '@shared/play/commands';
 import type { DraftFaction, DraftState } from '@shared/play/drafting';
+import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { PublicControls } from '@shared/play/inventory';
 import { emptyPublicControls } from '@shared/play/inventory';
 import type { GameSnapshot } from '@shared/play/protocol';
@@ -33,7 +34,7 @@ export const factions = capturedFactions.map((entry) => ({
 type CatalogueSnapshotEntry = {
   slug: string;
   name: string;
-  logo: ComponentProps<typeof Token>['logo'];
+  emblem: ComponentProps<typeof Token>['emblem'];
   background: z.infer<typeof Background>;
   themeColor: string;
   rulesets: string[];
@@ -44,7 +45,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ixians',
     name: 'Ixians',
-    logo: '/vector/logo/ixian.svg',
+    emblem: '/vector/emblem/ixian.svg',
     background: {
       image: '/image/texture/022.jpg',
       colors: ['#b29b54', '#d1be82'],
@@ -59,7 +60,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'bene-tleilax',
     name: 'Bene Tleilax',
-    logo: '/vector/logo/bene-tleilaxu.svg',
+    emblem: '/vector/emblem/bene-tleilaxu.svg',
     background: {
       image: '/image/texture/073.jpg',
       colors: ['#3c0a78', '#741890'],
@@ -74,7 +75,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'iduali',
     name: 'Iduali',
-    logo: '/vector/logo/iduali.svg',
+    emblem: '/vector/emblem/iduali.svg',
     background: {
       image: '/image/texture/082.jpg',
       colors: ['#663b01', '#3e2400'],
@@ -89,7 +90,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ecaz-ecaz-moritani',
     name: 'Ecaz (Ecaz/Moritani)',
-    logo: '/vector/logo/ecaz.svg',
+    emblem: '/vector/emblem/ecaz.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: [
@@ -115,7 +116,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'moritani-ecaz-moritani',
     name: 'Moritani (Ecaz/Moritani)',
-    logo: '/vector/logo/moritani.svg',
+    emblem: '/vector/emblem/moritani.svg',
     background: {
       image: '/image/texture/030.jpg',
       colors: [
@@ -140,7 +141,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'richese',
     name: 'Richese',
-    logo: '/vector/logo/richese.svg',
+    emblem: '/vector/emblem/richese.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#e8e8e8', '#5e5e5e'],
@@ -155,7 +156,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ginaz',
     name: 'Ginaz',
-    logo: '/vector/logo/ginaz.svg',
+    emblem: '/vector/emblem/ginaz.svg',
     background: {
       image: '/image/texture/022.jpg',
       colors: ['#009080', '#004D40'],
@@ -170,7 +171,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'landsraad-council',
     name: 'Landsraad Council',
-    logo: '/vector/generic/council.svg',
+    emblem: '/vector/generic/council.svg',
     background: {
       image: '/image/texture/001.jpg',
       colors: ['#444444', '#222222'],
@@ -185,7 +186,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'choam',
     name: 'CHOAM',
-    logo: '/vector/generic/guildeyes.svg',
+    emblem: '/vector/generic/guild-eyes.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#5f0000', '#5f0000'],
@@ -200,7 +201,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'honored-matres',
     name: 'Honored Matres',
-    logo: '/vector/generic/matres.svg',
+    emblem: '/vector/generic/honored-matres.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: [
@@ -224,7 +225,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'ordos',
     name: 'Ordos',
-    logo: '/vector/generic/tech.svg',
+    emblem: '/vector/generic/tech.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#004020', '#222222'],
@@ -239,7 +240,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'thinking-machines',
     name: 'Thinking Machines',
-    logo: '/vector/generic/detector.svg',
+    emblem: '/vector/generic/detector.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#808080', '#222222'],
@@ -254,7 +255,7 @@ const OTHER_FACTIONS: readonly CatalogueSnapshotEntry[] = [
   {
     slug: 'corrino',
     name: 'Corrino',
-    logo: '/vector/generic/flauqre.svg',
+    emblem: '/vector/generic/great-house-emblem.svg',
     background: {
       image: '/image/texture/021.jpg',
       colors: ['#ff08b2', '#ff08b2'],
@@ -278,7 +279,7 @@ const DRAFT_FACTIONS: DraftFaction[] = [
     id: slug,
     slug,
     name: data.name,
-    logo: data.logo,
+    emblem: data.emblem,
     background: data.background,
     color: data.themeColor,
     linked: true,
@@ -288,7 +289,7 @@ const DRAFT_FACTIONS: DraftFaction[] = [
     id: entry.slug,
     slug: entry.slug,
     name: entry.name,
-    logo: entry.logo,
+    emblem: entry.emblem,
     background: entry.background,
     color: entry.themeColor,
     linked: entry.rulesets.includes('dreamrules'),
@@ -316,6 +317,8 @@ export function draftingSnapshot(
 ): GameSnapshot {
   return {
     ...emptySnapshot(),
+    /* A real game plays on its ruleset's board from the start. */
+    board: arrakisBoardCapture,
     roster: {
       seatCount,
       seats: players.map((player, position) => ({ id: player.seat, position, faction: null })),

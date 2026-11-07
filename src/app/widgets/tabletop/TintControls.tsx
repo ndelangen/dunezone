@@ -1,6 +1,8 @@
-import { ActionIcon, Button, ColorPicker, ColorSwatch, Group, Popover, SimpleGrid, Text, Tooltip } from '@mantine/core';
+import { ColorPicker, ColorSwatch, Group, Popover, SimpleGrid, Text, Tooltip } from '@mantine/core';
 import { TINT_COLOR_NAMES, TINT_COLORS, TINT_STAMPS, withFillOpacity } from '@shared/boards/tints';
 import type { TintStamp } from '@shared/boards/tints';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { Brush, Square, Sticker } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
@@ -57,18 +59,7 @@ function SettingToggle({
   children,
 }: Readonly<{ label: string; on: boolean; enabled: boolean; onToggle: () => void; children: ReactNode }>) {
   return (
-    <Tooltip label={label}>
-      <ActionIcon
-        variant={on ? 'light' : 'subtle'}
-        color={on ? 'yellow' : 'gray'}
-        aria-label={label}
-        aria-pressed={on}
-        disabled={!enabled}
-        onClick={onToggle}
-      >
-        {children}
-      </ActionIcon>
-    </Tooltip>
+    <IconAction label={label} emphasis="quiet" pressed={on} disabled={!enabled} onClick={onToggle} icon={children} />
   );
 }
 
@@ -83,16 +74,13 @@ function StickerPicker({
   return (
     <Popover position="bottom-end" shadow="md" withArrow>
       <Popover.Target>
-        <Tooltip label={count ? `${label}: ${count}` : label}>
-          <ActionIcon
-            variant={count ? 'light' : 'subtle'}
-            color={count ? 'yellow' : 'gray'}
-            aria-label={label}
-            disabled={!enabled}
-          >
-            <Sticker size={18} />
-          </ActionIcon>
-        </Tooltip>
+        <IconAction
+          label={label}
+          tooltip={count ? `${label}: ${count}` : undefined}
+          emphasis={count ? 'standard' : 'quiet'}
+          disabled={!enabled}
+          icon={<Sticker size={18} />}
+        />
       </Popover.Target>
       <Popover.Dropdown aria-label={label}>
         <Text size="xs" c="dimmed" mb={6}>
@@ -102,18 +90,16 @@ function StickerPicker({
           {TINT_STAMPS.map((stamp) => {
             const on = !!tint.stamps?.includes(stamp);
             return (
-              <Button
+              <LabeledAction
                 key={stamp}
                 size="compact-sm"
                 justify="flex-start"
-                variant={on ? 'light' : 'subtle'}
-                color={on ? 'yellow' : 'gray'}
-                aria-pressed={on}
-                leftSection={<StickerIcon stamp={stamp} />}
+                pressed={on}
+                icon={<StickerIcon stamp={stamp} />}
                 onClick={() => onToggle(stamp)}
               >
                 {TINT_STICKERS[stamp].label}
-              </Button>
+              </LabeledAction>
             );
           })}
         </SimpleGrid>
@@ -228,19 +214,15 @@ export function TintRow({
           <Square size={18} />
         </SettingToggle>
         <StickerPicker tint={tint} enabled={enabled} onToggle={onStamp} />
-        <Tooltip label={painting ? 'Stop painting (Esc)' : `Paint ${tint.name}`}>
-          <ActionIcon
-            variant={painting ? 'filled' : 'subtle'}
-            color={painting ? 'yellow' : 'gray'}
-            autoContrast
-            aria-label={`Paint ${tint.name}`}
-            aria-pressed={painting}
-            disabled={!enabled || !!tint.hidden}
-            onClick={onBrush}
-          >
-            <Brush size={18} />
-          </ActionIcon>
-        </Tooltip>
+        <IconAction
+          label={`Paint ${tint.name}`}
+          tooltip={painting ? 'Stop painting (Esc)' : undefined}
+          emphasis="quiet"
+          pressed={painting}
+          disabled={!enabled || !!tint.hidden}
+          onClick={onBrush}
+          icon={<Brush size={18} />}
+        />
         {after}
       </Group>
     </Group>

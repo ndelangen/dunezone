@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
+import { ARRAKIS_BOARD_SLUG } from '../../src/shared/boards/arrakisOfficial';
 import {
   HOMEPAGE_CONNECTION_LIMIT,
   HOMEPAGE_EDITOR_LIMIT,
@@ -11,11 +12,12 @@ import {
 } from '../../src/shared/homepage/protocol';
 import type { HomepageAction } from '../../src/shared/homepage/protocol';
 import { homepageSnapshot } from '../../src/shared/homepage/setup';
+import { boardCaptureSchema } from '../../src/shared/play/capture';
+import type { BoardCapture } from '../../src/shared/play/capture';
 import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol';
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
-import { onCurrentBoard } from './boardLayoutSnapshot';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { gameHttpClient } from './gameHttpClient';
@@ -36,9 +38,13 @@ type Connection = {
   controlUpdatedAt: number;
 };
 type Saved = { resetAt: number; snapshot: StoredSnapshot; epoch?: string };
+/* The saved Arrakis is kept under its own key, so a move does not rewrite it with the table. */
+const BOARD_KEY = 'arrakis-board';
 type Admission = ReturnType<typeof homepageAdmissionSchema.parse>;
 type Settlement = Extract<HomepageAction, { type: 'drop' | 'command' }>;
 type Gesture = Exclude<HomepageAction, Settlement>;
+/* A failed board read tries again after each of these waits, then every ten minutes until one succeeds. */
+const BOARD_RETRY_MS = [1000, 5000, 30_000, 120_000, 600_000];
 const COLORS = ['#d7b65c', '#73bb9d', '#7fa8e8', '#d89481', '#c2a0e1', '#9fc774'];
 
 /* One public table, with private games' physical rules and its own admission and hourly lifetime. */
@@ -46,10 +52,16 @@ export class HomepageRoom extends DurableObject<GameEnv> {
   private room!: Room;
   private readonly diagnostics: GameDiagnostics;
   private resetAt = 0;
+  /* The saved Arrakis Official board the table plays on, read from Convex; until it arrives the table has no board. */
+  private board?: BoardCapture;
   private epoch: string = crypto.randomUUID();
   private scheduledAlarm = 0;
   private delivery = new RoomDelivery();
   private activityTimer?: ReturnType<typeof setTimeout>;
+  private boardRetry?: ReturnType<typeof setTimeout>;
+  private boardFailures = 0;
+  /* Reads overlap (a wake's and a reset's); only the latest one's answer is applied. */
+  private boardReads = 0;
   private readonly connections = new Map<WebSocket, Connection>();
 
   constructor(ctx: DurableObjectState, env: GameEnv) {
@@ -65,8 +77,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     void ctx.blockConcurrencyWhile(() =>
       this.diagnostics.run('load', async () => {
         const saved = await ctx.storage.get<Saved>('table');
-        const parsed = saved && storedSnapshotSchema.safeParse(onCurrentBoard(saved.snapshot));
+        const parsed = saved && storedSnapshotSchema.safeParse(saved.snapshot);
         this.resetAt = saved?.resetAt ?? 0;
+        const board = boardCaptureSchema.safeParse(await ctx.storage.get(BOARD_KEY));
+        this.board = board.success ? board.data : undefined;
         const snapshot = parsed?.success
           ? parsed.data
           : storedSnapshotSchema.parse(homepageSnapshot(env.APPLICATION_ORIGIN));
@@ -75,7 +89,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         } else if (saved && this.resetAt > Date.now()) {
           await ctx.storage.put<Saved>('table', { resetAt: this.resetAt, snapshot, epoch: this.epoch });
         }
-        this.room = new Room(snapshot, () => []);
+        this.room = this.tableRoom(snapshot);
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
           connection.authenticating = false;
@@ -86,6 +100,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         await this.diagnostics.run('refresh', () => this.refresh());
         /* Hibernation keeps the table's generation; the full frame retires activity lost while idle. */
         this.broadcast();
+        /* A table that has never read the board reads it without holding up the visitors; it joins the table when it arrives. */
+        if (!this.board) {
+          void this.loadBoard();
+        }
       })
     );
   }
@@ -134,10 +152,58 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     }
   }
 
+  private tableRoom(snapshot: StoredSnapshot) {
+    return new Room(
+      snapshot,
+      () => [],
+      undefined,
+      undefined,
+      undefined,
+      () => this.board?.definition
+    );
+  }
+
+  /*
+   * Reads the saved Arrakis Official board and puts the table on it. When Convex finds no saved board the table
+   * leaves its board; a failed read keeps the board it had and tries again until one succeeds.
+   */
+  private async loadBoard() {
+    clearTimeout(this.boardRetry);
+    this.boardRetry = undefined;
+    const read = ++this.boardReads;
+    try {
+      await this.diagnostics.run('board', async () => {
+        const found = await gameHttpClient(this.env.CONVEX_URL).query(api.arrakis.board, {});
+        if (read !== this.boardReads) {
+          return;
+        }
+        const board = found
+          ? boardCaptureSchema.parse({
+              asset: { id: found.assetId, slug: ARRAKIS_BOARD_SLUG, name: found.name },
+              definition: found.board,
+            })
+          : undefined;
+        if (JSON.stringify(board) === JSON.stringify(this.board)) {
+          return;
+        }
+        this.board = board;
+        await (board ? this.ctx.storage.put(BOARD_KEY, board) : this.ctx.storage.delete(BOARD_KEY));
+        this.broadcast();
+      });
+      this.boardFailures = 0;
+    } catch {
+      if (read !== this.boardReads) {
+        return;
+      }
+      const wait = BOARD_RETRY_MS[Math.min(this.boardFailures++, BOARD_RETRY_MS.length - 1)]!;
+      this.boardRetry = setTimeout(() => void this.loadBoard(), wait);
+    }
+  }
+
   private frame() {
     return {
       epoch: this.epoch,
-      snapshot: gameSnapshotSchema.parse(this.room.snapshot),
+      snapshot: { ...gameSnapshotSchema.parse(this.room.snapshot), ...(this.board ? { board: this.board } : {}) },
       carries: this.room.publicCarries(),
       pointers: [...this.room.pointers.values()],
     };
@@ -205,9 +271,11 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       await this.ctx.storage.put<Saved>('table', { resetAt, snapshot, epoch });
       this.resetAt = resetAt;
       this.epoch = epoch;
-      this.room = new Room(snapshot, () => []);
+      this.room = this.tableRoom(snapshot);
       this.delivery = new RoomDelivery();
       this.broadcast();
+      /* Each new table picks up edits to the saved board. */
+      void this.loadBoard();
     }
     let changed = false;
     for (const [socket, connection] of this.connections) {

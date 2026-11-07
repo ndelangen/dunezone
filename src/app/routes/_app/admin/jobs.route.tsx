@@ -1,10 +1,14 @@
-import { Anchor, Alert, Badge, Button, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { BriefcaseBusiness } from 'lucide-react';
+import { BriefcaseBusiness, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
@@ -19,14 +23,6 @@ export const Route = createFileRoute('/_app/admin/jobs')({
   head: () => pageHead('Publication jobs'),
   component: PublicationJobsDashboard,
 });
-
-function PublicationJobsLoading() {
-  return (
-    <AdminPageLoading size="compact" title="Publication jobs">
-      The durable work queue is still loading.
-    </AdminPageLoading>
-  );
-}
 
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
 function PublicationJobsDashboard() {
@@ -57,7 +53,11 @@ function PublicationJobsDashboard() {
   const pickupMutation = useSetPublicationPickupEnabled();
 
   if (result === undefined) {
-    return <PublicationJobsLoading />;
+    return (
+      <AdminPageLoading size="compact" title="Publication jobs">
+        The durable work queue is still loading.
+      </AdminPageLoading>
+    );
   }
 
   return (
@@ -65,10 +65,10 @@ function PublicationJobsDashboard() {
       <PageLayout.Header size="compact">
         <Stack align="center" gap="xs">
           <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
-          <PageTitle title="Publication jobs" />
-          <Text ta="center" maw={680}>
-            Inspect the durable work queue and control whether the next scheduled run may pick up pending work.
-          </Text>
+          <PageTitle
+            title="Publication jobs"
+            lede="Inspect the durable work queue and control whether the next scheduled run may pick up pending work."
+          />
         </Stack>
       </PageLayout.Header>
       <PageLayout.Toolbar>
@@ -87,77 +87,74 @@ function PublicationJobsDashboard() {
                   </Text>
                 </div>
                 <Switch
+                  label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
                   size="lg"
                   checked={result.settings?.publicationPickupEnabled ?? false}
                   disabled={result.settings === null || pickupMutation.isPending}
-                  label={result.settings?.publicationPickupEnabled ? 'Enabled' : 'Disabled'}
                   onChange={(event) => pickupMutation.mutate({ enabled: event.currentTarget.checked })}
                 />
               </Group>
 
-              {pickupMutation.isError ? (
-                <Alert color="red" title="Could not update publisher pickup">
-                  {pickupMutation.error?.message}
-                </Alert>
-              ) : null}
+              <ActionError subject="publisher pickup" verb="update" error={pickupMutation.error} />
 
               <Group gap="xl" align="flex-start" wrap="wrap">
                 <Count label="Pending" value={result.counts.pending} tone="pending" />
                 <Count label="In progress" value={result.counts.inProgress} tone="progress" />
                 <Count label="Error" value={result.counts.error} tone="negative" />
                 <div>
-                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                    Renderer revisions
-                  </Text>
+                  <Eyebrow>Renderer revisions</Eyebrow>
                   <Group gap="xs" mt={4}>
                     {result.settings
                       ? Object.entries(result.settings.rendererRevisions).map(([type, revision]) => (
-                          <Badge variant="light" key={type}>
-                            {formatAssetType(type)} · {revision}
-                          </Badge>
+                          <StatusBadge key={type}>{`${formatAssetType(type)} · ${revision}`}</StatusBadge>
                         ))
                       : 'Not initialized'}
                   </Group>
                 </div>
               </Group>
-              {Object.values(result.counts).some((count) => count.limited) && (
-                <Text size="sm" c="dimmed">
-                  Counts ending in + are lower bounds. All jobs remain available in the pages below.
-                </Text>
-              )}
             </Stack>
           </Surface>
 
           <Surface>
             <Group p="md" justify="space-between" align="end" wrap="wrap">
               <Group align="end">
-                <Select
-                  label="Status"
-                  clearable
-                  placeholder="All statuses"
-                  value={status ?? null}
-                  data={[
-                    { value: 'error', label: 'Error' },
-                    { value: 'in_progress', label: 'In progress' },
-                    { value: 'pending', label: 'Pending' },
-                  ]}
-                  onChange={(value) =>
-                    dispatch({
-                      kind: 'filter',
-                      update: { status: (value as PublicationJobStatus | null) ?? undefined },
-                    })
-                  }
+                <ControlBlock
+                  title="Status"
+                  input={(fieldProps) => (
+                    <Select
+                      {...fieldProps}
+                      clearable
+                      placeholder="All statuses"
+                      value={status ?? null}
+                      data={[
+                        { value: 'error', label: 'Error' },
+                        { value: 'in_progress', label: 'In progress' },
+                        { value: 'pending', label: 'Pending' },
+                      ]}
+                      onChange={(value) =>
+                        dispatch({
+                          kind: 'filter',
+                          update: { status: (value as PublicationJobStatus | null) ?? undefined },
+                        })
+                      }
+                    />
+                  )}
                 />
-                <Select
-                  label="Asset type"
-                  clearable
-                  placeholder="All asset types"
-                  value={assetType ?? null}
-                  data={Object.keys(result.settings?.rendererRevisions ?? {}).map((value) => ({
-                    value,
-                    label: formatAssetType(value),
-                  }))}
-                  onChange={(value) => dispatch({ kind: 'filter', update: { assetType: value ?? undefined } })}
+                <ControlBlock
+                  title="Asset type"
+                  input={(fieldProps) => (
+                    <Select
+                      {...fieldProps}
+                      clearable
+                      placeholder="All asset types"
+                      value={assetType ?? null}
+                      data={Object.keys(result.settings?.rendererRevisions ?? {}).map((value) => ({
+                        value,
+                        label: formatAssetType(value),
+                      }))}
+                      onChange={(value) => dispatch({ kind: 'filter', update: { assetType: value ?? undefined } })}
+                    />
+                  )}
                 />
               </Group>
               <Text size="sm" c="dimmed">
@@ -219,16 +216,20 @@ function PublicationJobsDashboard() {
           </Surface>
 
           <Group justify="center" aria-label="Publication job pages">
-            <Button variant="default" disabled={cursors.length === 1} onClick={() => dispatch({ kind: 'previous' })}>
+            <LabeledAction
+              icon={<ChevronLeft size={16} />}
+              disabledReason={cursors.length === 1 ? 'This is the first page.' : undefined}
+              onClick={() => dispatch({ kind: 'previous' })}
+            >
               Previous
-            </Button>
-            <Button
-              variant="default"
-              disabled={result.isDone}
+            </LabeledAction>
+            <LabeledAction
+              icon={<ChevronRight size={16} />}
+              disabledReason={result.isDone ? 'This is the last page.' : undefined}
               onClick={() => dispatch({ kind: 'next', cursor: result.continueCursor })}
             >
               Next
-            </Button>
+            </LabeledAction>
           </Group>
         </Stack>
       </PageLayout.Content>
@@ -236,27 +237,12 @@ function PublicationJobsDashboard() {
   );
 }
 
-/* The same three meanings the job badges carry, at the tally's own size. */
-const COUNT_TONE_COLOR = { pending: 'yellow', progress: 'blue', negative: 'red' } as const;
-
-function Count({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: { value: number; limited: boolean };
-  tone: keyof typeof COUNT_TONE_COLOR;
-}) {
+/* The same three meanings the job badges carry, under a caption naming the tally. */
+function Count({ label, value, tone }: { label: string; value: number; tone: 'pending' | 'progress' | 'negative' }) {
   return (
     <div>
-      <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-        {label}
-      </Text>
-      <Badge size="xl" color={COUNT_TONE_COLOR[tone]} variant="light" mt={4}>
-        {value.value.toLocaleString()}
-        {value.limited ? '+' : ''}
-      </Badge>
+      <Eyebrow>{label}</Eyebrow>
+      <StatusBadge tone={tone}>{value.toLocaleString()}</StatusBadge>
     </div>
   );
 }

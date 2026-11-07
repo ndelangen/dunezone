@@ -1,8 +1,12 @@
-import { ActionIcon, Alert, Button, Group, Stack, Text, Title } from '@mantine/core';
+/* oxlint-disable-next-line no-restricted-imports -- The review plane's heading sits in a row with its close action and replaces the page while open. */
+import { Group, Stack, Text, Title } from '@mantine/core';
 import { FactionRender } from '@shared/factions/schema';
+import { Notice } from '@ui/block/Notice';
 import { Eyebrow } from '@ui/content/Eyebrow';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
-import { ChevronDown, Link2, X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -152,29 +156,22 @@ function ReviewHeading({
           </Text>
         </Stack>
         <Group gap="xs" wrap="nowrap">
-          <Button type="button" variant="default" leftSection={<X size={16} />} onClick={onClose}>
+          <LabeledAction icon={<X size={16} />} onClick={onClose}>
             Return to editing
-          </Button>
-          <ActionIcon
+          </LabeledAction>
+          <IconAction
             ref={closeButtonRef}
-            type="button"
-            variant="default"
+            label="Close faction sheet review"
+            emphasis="standard"
             size="lg"
-            aria-label="Close faction sheet review"
             onClick={onClose}
-          >
-            <X size={18} aria-hidden />
-          </ActionIcon>
+            icon={<X size={18} />}
+          />
         </Group>
       </Group>
-      <Alert
-        variant="light"
-        color="orange"
-        icon={<Link2 size={18} aria-hidden />}
-        title="Share the faction URL, not a screenshot"
-      >
+      <Notice tone="info" title="Share the faction URL, not a screenshot">
         Save this draft first, then share its canonical faction URL so everyone reaches the published version.
-      </Alert>
+      </Notice>
     </Stack>
   );
 }

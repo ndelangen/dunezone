@@ -42,6 +42,8 @@ function OpenCompass() {
     onSpot: setSpot,
     onCursor: vi.fn(),
     onConfirm: vi.fn(),
+    onLetGo: vi.fn(),
+    onRelease: vi.fn(),
   });
   return (
     <div data-compass-controls>
@@ -58,6 +60,9 @@ function OpenCompass() {
         onQuery={vi.fn()}
         onCursor={vi.fn()}
         onConfirm={vi.fn()}
+        held={null}
+        onHold={vi.fn()}
+        onRelease={vi.fn()}
         onClose={vi.fn()}
       />
     </div>
@@ -135,6 +140,9 @@ test('a press outside the compass closes it and goes no further; one on a tile d
         onQuery={vi.fn()}
         onCursor={vi.fn()}
         onConfirm={vi.fn()}
+        held={null}
+        onHold={vi.fn()}
+        onRelease={vi.fn()}
         onClose={onClose}
       />
     </div>
@@ -169,6 +177,9 @@ test('the click a dismissing press ends in reaches nothing, and the next click i
         onQuery={vi.fn()}
         onCursor={vi.fn()}
         onConfirm={vi.fn()}
+        held={null}
+        onHold={vi.fn()}
+        onRelease={vi.fn()}
         onClose={onClose}
       />
     </>
@@ -209,6 +220,9 @@ test('a disabled search command exposes its state and refuses both clicks and En
         onQuery={() => {}}
         onCursor={() => {}}
         onConfirm={() => {}}
+        held={null}
+        onHold={() => {}}
+        onRelease={() => {}}
         onClose={() => {}}
       />
     );

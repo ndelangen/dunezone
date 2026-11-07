@@ -4,6 +4,7 @@ import type { HomeworldCard as HomeworldCardSchema } from '@shared/assets/schema
 import type { z } from 'zod';
 
 import { CardEffects } from './CardEffects';
+import { homeworldEffects } from './cardEffectText';
 import { CustomCard } from './Custom';
 
 /** Homeworlds reuse the Custom card frame and Nexus effects, with a strength beside each reserve state. */
@@ -26,24 +27,7 @@ export function HomeworldCard({
         layers={[]}
         iconPresentation="image"
       />
-      <CardEffects
-        layout="homeworld"
-        effects={[
-          {
-            title: 'High reserves',
-            condition: `${threshold} or more forces`,
-            text: high.text,
-            strength: high.strength,
-          },
-          {
-            title: 'Low reserves',
-            condition: threshold === 1 ? '0 forces' : `0 to ${threshold - 1} forces`,
-            text: low.text,
-            strength: low.strength,
-          },
-          { title: 'Occupied', text: occupied },
-        ]}
-      />
+      <CardEffects layout="homeworld" effects={homeworldEffects({ threshold, high, low, occupied })} />
     </div>
   );
 }

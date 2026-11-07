@@ -1,8 +1,9 @@
 import spiceMask from '../../../media/vector/icon/spice.svg?raw';
+import { canonicalVectorArtwork } from '../../shared/vectorRules';
 
 const tokenSymbols = import.meta.glob<string>(
   [
-    '../../../media/vector/logo/*.svg',
+    '../../../media/vector/emblem/*.svg',
     '../../../media/vector/generic/*.svg',
     '../../../media/vector/troop/*.svg',
     '../../../media/vector/troop_modifier/*.svg',
@@ -24,11 +25,11 @@ export function rulebookHtmlSvg(markup: string, canonicalHref: string): string {
   );
   const withLocalSymbols = withLocalMasks.replace(/<use\b[^>]*>/g, (use) =>
     use.replace(
-      /(xlink:href|href)="(\/vector\/(?:logo|generic|troop|troop_modifier|decal)\/[^"#]+\.svg)#(root|star|outline)"/,
+      /(xlink:href|href)="(\/vector\/(?:emblem|generic|troop|troop_modifier|decal)\/[^"#]+\.svg)#(root|star|outline)"/,
       (_, attribute, href, fragment) => {
         const id = `rulebook-token-${href.replace(/[^a-z0-9]/gi, '-')}`;
         if (!symbols.has(id)) {
-          const svg = tokenSymbols[`../../../media${href}`];
+          const svg = tokenSymbols[`../../../media${canonicalVectorArtwork(href)}`];
           if (svg === undefined) {
             throw new Error('The selected game token symbol is not bundled.');
           }

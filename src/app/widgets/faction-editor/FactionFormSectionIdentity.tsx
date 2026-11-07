@@ -1,4 +1,5 @@
-import { Box, ColorInput, Stack, Text, TextInput } from '@mantine/core';
+import { Box, ColorInput, Group, Stack, Text, TextInput } from '@mantine/core';
+import { HelpMark } from '@ui/content/HelpMark';
 import { stockAssetOptions } from '@ui/content/stockAssetOptions';
 import { AssetSelect } from '@ui/control/AssetSelect';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -6,12 +7,12 @@ import type { ReactNode } from 'react';
 
 import type { Faction } from '@db/factions';
 
-import { assetOptionToPreviewSrc, logoOptions } from './factionFormAssetUtils';
+import { assetOptionToPreviewSrc, emblemOptions } from './factionFormAssetUtils';
 import styles from './FactionFormSectionIdentity.module.css';
 import type { FactionFormApi } from './factionFormTypes';
 import { TtsColorsEditor } from './TtsColorsEditor';
 
-const logoSelectOptions = stockAssetOptions(logoOptions);
+const emblemSelectOptions = stockAssetOptions(emblemOptions);
 
 /** The route supplies owner-only renaming; the section binds the control to its form. */
 export type FactionIdentityNameField = (props: {
@@ -41,14 +42,12 @@ export function FactionFormSectionIdentity({
       aria-labelledby={showIntro ? 'faction-identity-heading' : undefined}
     >
       {showIntro ? (
-        <Stack gap="xs">
+        <Group gap={6} wrap="nowrap">
           <Text id="faction-identity-heading" fw={700} size="lg">
             Faction identity
           </Text>
-          <Text c="dimmed" size="sm">
-            These values name the faction and establish the identity reused across its artifacts.
-          </Text>
-        </Stack>
+          <HelpMark text="The name and look reused across all of this faction's artifacts." />
+        </Group>
       ) : null}
 
       <Box className={styles.identityGrid}>
@@ -80,27 +79,27 @@ export function FactionFormSectionIdentity({
           )}
         </form.Field>
 
-        <form.Field name="logo">
+        <form.Field name="emblem">
           {(field) => (
             <ControlBlock
-              title="Faction logo"
+              title="Faction emblem"
               description="Used on faction tokens and faction-branded game artifacts."
-              input={
+              inputId="faction-emblem"
+              input={(fieldProps) => (
                 <AssetSelect
-                  id="faction-logo"
-                  aria-label="Faction logo"
+                  {...fieldProps}
                   allowDeselect={false}
-                  data={logoSelectOptions}
+                  data={emblemSelectOptions}
                   getPreviewSrc={assetOptionToPreviewSrc}
                   glyphPreviews
                   value={field.state.value}
                   onChange={(value) => {
                     if (value) {
-                      field.handleChange(value as Faction['logo']);
+                      field.handleChange(value as Faction['emblem']);
                     }
                   }}
                 />
-              }
+              )}
             />
           )}
         </form.Field>
@@ -110,16 +109,16 @@ export function FactionFormSectionIdentity({
             <ControlBlock
               title="Faction sheet theme"
               description="Used for headings and accents on the complete faction sheet."
-              input={
+              inputId="faction-theme-color"
+              input={(fieldProps) => (
                 <ColorInput
-                  id="faction-theme-color"
-                  aria-label="Faction sheet theme"
+                  {...fieldProps}
                   format="hex"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={field.handleChange}
                 />
-              }
+              )}
             />
           )}
         </form.Field>

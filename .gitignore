@@ -3,7 +3,6 @@ node_modules
 workers/publisher/runtime-generated
 .netlify
 .env
-supabase/.temp
 storybook-static
 chromatic.log
 chromatic-diagnostics.json

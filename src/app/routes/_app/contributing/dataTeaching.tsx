@@ -1,6 +1,9 @@
-import { Anchor, Button, Code, Group, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
+import { Anchor, Code, Group, NumberInput, SimpleGrid, Stack, Text, TextInput } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Save } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import styles from './dataTeaching.module.css';
@@ -103,19 +106,24 @@ function QuerySharing() {
           the viewer's identity, the result can vary by visitor. We keep profile and session reads separate so public
           content can share a cached result.
         </Text>
-        <NumberInput
-          label="Signed-in viewers looking at the same faction"
-          min={1}
-          max={12}
-          allowDecimal={false}
-          allowNegative={false}
-          clampBehavior="strict"
-          value={readers}
-          onChange={(value) => {
-            if (typeof value === 'number') {
-              setReaders(Math.max(1, Math.min(12, value)));
-            }
-          }}
+        <ControlBlock
+          title="Signed-in viewers looking at the same faction"
+          input={(fieldProps) => (
+            <NumberInput
+              {...fieldProps}
+              min={1}
+              max={12}
+              allowDecimal={false}
+              allowNegative={false}
+              clampBehavior="strict"
+              value={readers}
+              onChange={(value) => {
+                if (typeof value === 'number') {
+                  setReaders(Math.max(1, Math.min(12, value)));
+                }
+              }}
+            />
+          )}
         />
         <SimpleGrid type="container" cols={{ base: 1, '30rem': 2 }} spacing="lg">
           <Section title="Shared page query">
@@ -367,19 +375,32 @@ function SaveLoop() {
       <SaveDesktop saved={example.saved} />
       <SaveMobile saved={example.saved} />
       <Group align="end" gap="sm">
-        <TextInput
-          label="Try a local name change"
-          value={example.draft}
-          maxLength={24}
-          onChange={(event) => dispatch({ type: 'edit', name: event.currentTarget.value })}
+        <ControlBlock
+          title="Try a local name change"
+          input={(fieldProps) => (
+            <TextInput
+              {...fieldProps}
+              value={example.draft}
+              maxLength={24}
+              onChange={(event) => dispatch({ type: 'edit', name: event.currentTarget.value })}
+            />
+          )}
         />
-        <Button
-          color="confirm"
-          disabled={!example.draft.trim() || example.draft.trim() === example.saved}
+        <LabeledAction
+          emphasis="strong"
+          intent="positive"
+          icon={<Save size={16} />}
+          disabledReason={
+            !example.draft.trim()
+              ? 'Type a name first.'
+              : example.draft.trim() === example.saved
+                ? 'Change the name first.'
+                : undefined
+          }
           onClick={() => dispatch({ type: 'save' })}
         >
           Save sample name
-        </Button>
+        </LabeledAction>
       </Group>
       <figcaption>
         <Text size="sm" c="dimmed" role="status">

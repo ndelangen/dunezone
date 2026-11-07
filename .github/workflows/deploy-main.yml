@@ -65,9 +65,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # The decision compares production's commits with this one in git history.
-          fetch-depth: 0
 
+      # The decision asks GitHub's compare API where production's commits sit against this one, so the
+      # job needs no history: deepening this shallow checkout with a commits-only filter crashed git
+      # itself (#2721), and before that fetch-depth: 0 ran out the job's five minutes (#2610).
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -330,6 +331,8 @@ jobs:
           export MEDIA_PUBLISH_TOKEN
           bun run media:publish --verify
           bun run media:publish --deployed
+          # Local setup reads these packs instead of one request per variant; they never decide what production serves.
+          bun run media:packs
 
       - name: Keep the variant entries this deploy proved
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

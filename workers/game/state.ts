@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import { z } from 'zod';
 
 import {
+  isBattleLeader,
   publicBattleSchema,
   battleFaceSchema,
   storedBattlePlanSchema,
@@ -13,6 +14,7 @@ import { isFactionToken } from '../../src/shared/play/factionToken';
 import { treacheryHandCounts } from '../../src/shared/play/handCounts';
 import { storedControlsSchema } from '../../src/shared/play/inventory';
 import type { SpawnContents } from '../../src/shared/play/inventory';
+import { topItemFaceUp } from '../../src/shared/play/model';
 import type { DraftMove, StoredPiece, TableEvent, TableItem, TablePiece } from '../../src/shared/play/model';
 import { publicPieceLabel, showsPeeker } from '../../src/shared/play/peeking';
 import { gameSnapshotSchema, rosterFactionIds, tableForViewer } from '../../src/shared/play/protocol';
@@ -30,8 +32,11 @@ import { predictionSchema, predictionChoiceSchema } from '../../src/shared/play/
 import { heldTechTokens } from '../../src/shared/play/techToken';
 import { battleDialingSchema, DEFAULT_BATTLE_DIALING } from '../../src/shared/rulesets/battleDialing';
 
-/** The board layout a stored game's positions are laid out for; see boardLayout.ts. */
-export const BOARD_LAYOUT = 4;
+/** The board layout a stored game's positions are laid out for; a game stored on an earlier layout no longer opens. */
+const BOARD_LAYOUT = 4;
+
+/** How many deleted pieces a game keeps for restoring; the oldest is let go for good once more are deleted. */
+export const DELETED_PIECES_LIMIT = 50;
 
 const storedBattleSchema = publicBattleSchema.omit({ revealed: true, disclosed: true }).extend({
   plans: z.tuple([storedBattlePlanSchema.nullable(), storedBattlePlanSchema.nullable()]),
@@ -104,6 +109,14 @@ export const storedSnapshotSchema = gameSnapshotSchema
     pieceHandles: z.record(tableIdSchema, tableIdSchema).default({}),
     /* Every card front the game has held, sorted; it only grows, so a hidden card that leaves the game never tells which one it was. */
     cardFaces: z.array(z.string().url()).default([]),
+    /*
+     * The pieces deleted from the game, newest first, each whole and under the deletion its game log entry names (#2132).
+     * Stored only, never projected, so a hidden face stays hidden until the piece is back on the table, face down.
+     */
+    deletedPieces: z
+      .array(z.object({ id: tableIdSchema, piece: storedPieceSchema }))
+      .max(DELETED_PIECES_LIMIT)
+      .default([]),
     /* The board size the stored positions were laid out for; every snapshot read through this schema is on the current one. */
     boardLayout: z.literal(BOARD_LAYOUT).default(BOARD_LAYOUT),
   });
@@ -439,10 +452,16 @@ export class RoomProjection {
         : key?.startsWith('leader:')
           ? 'leader:'
           : 'token:';
+    /*
+     * A stack key names what a token is, so a leader's is told apart per piece: leaders never stack, and a face-down leader played out of a hand under new ids must not be named by its key.
+     * A catalogue disc that may fight as a leader is told apart while it lies face down, when it stacks with nothing either, and shares its asset's key face up.
+     * Troops and every other token keep the key their kind shares, so the page previews the same merges the room makes.
+     */
+    const named = prefix === 'leader:' || (isBattleLeader(piece) && !topItemFaceUp(piece));
     const projected: TablePiece = {
       ...piece,
       label: visible ? piece.label : publicPieceLabel(piece),
-      stackKey: key === null ? null : `${prefix}${this.cardId(`token-stack-${key}`)}`,
+      stackKey: key === null ? null : `${prefix}${this.cardId(`token-stack-${key}${named ? `:${piece.id}` : ''}`)}`,
       items: piece.items.map((item) => {
         if (!hidden(item) || !item.artwork) {
           return item;
@@ -639,6 +658,7 @@ export class RoomProjection {
       id: battle.id,
       anchor: battle.anchor,
       territory: battle.territory,
+      ...(battle.territoryId ? { territoryId: battle.territoryId } : {}),
       stage: battle.stage,
       sides: battle.sides,
       deadline: battle.deadline,

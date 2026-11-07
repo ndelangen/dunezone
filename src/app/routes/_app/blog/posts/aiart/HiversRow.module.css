@@ -1,0 +1,21 @@
+/* The queries below read this wrapper, since a container query never reads the element it styles. */
+.root {
+  container-type: inline-size;
+}
+
+/* Five discs across the wide column; on a phone the disc keeps a readable size and the row wraps instead. */
+.row {
+  --disc: clamp(5.5rem, 17cqw, 9rem);
+
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portrait {
+  display: block;
+}

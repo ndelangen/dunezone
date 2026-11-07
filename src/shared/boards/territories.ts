@@ -1,5 +1,4 @@
 import { derive } from './geometry';
-export { CENTER, RADIUS } from './geometry';
 import type { Board, Point } from './schema';
 
 /* Definitions retained by a game are immutable; geometry follows that lifetime. */

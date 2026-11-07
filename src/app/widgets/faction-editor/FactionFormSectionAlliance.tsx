@@ -1,4 +1,6 @@
-import { Alert, Divider, Grid, Group, Stack, Text } from '@mantine/core';
+import { Divider, Grid, Stack, Text } from '@mantine/core';
+import { ListChapter } from '@ui/block/ListChapter';
+import { Eyebrow } from '@ui/content/Eyebrow';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
@@ -44,7 +46,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
       selector={(state) => ({
         background: state.values.background,
         decals: state.values.decals,
-        logo: state.values.logo,
+        emblem: state.values.emblem,
         text: state.values.rules.alliance.text,
         title: state.values.name,
         troop: state.values.troops[0]?.image,
@@ -52,9 +54,7 @@ function AllianceCardPreview({ form }: { form: FactionFormApi }) {
     >
       {(preview) => (
         <Stack align="stretch" gap="sm" pos="sticky" top="calc(var(--app-shell-header-offset, 0px) + 6rem)">
-          <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-            Used on: Alliance card
-          </Text>
+          <Eyebrow align="center">Used on: Alliance card</Eyebrow>
           <CanvasScale canvasWidth={CARD_SIZE.width} canvasHeight={CARD_SIZE.height} frameClassName={styles.cardFrame}>
             <AllianceCard {...preview} />
           </CanvasScale>
@@ -83,28 +83,25 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const blank = field.state.value.trim().length === 0;
                 return (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Alliance advantage"
-                      description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
-                      input={
-                        <FormattedTextInput
-                          id="rules-alliance"
-                          aria-label="Alliance advantage"
-                          minRows={4}
-                          value={field.state.value}
-                          aria-describedby={blank ? 'rules-alliance-warning' : undefined}
-                          onBlur={field.handleBlur}
-                          onChange={field.handleChange}
-                        />
-                      }
-                    />
-                    {blank ? (
-                      <Text id="rules-alliance-warning" c="var(--color-caution)" size="xs" role="status">
-                        The alliance advantage is empty. This is advisory and does not prevent saving.
-                      </Text>
-                    ) : null}
-                  </Stack>
+                  <ControlBlock
+                    title="Alliance advantage"
+                    description="Rules text printed on the alliance card. Use the shared formatted-text syntax."
+                    inputId="rules-alliance"
+                    warning={
+                      blank
+                        ? 'The alliance advantage is empty. This is advisory and does not prevent saving.'
+                        : undefined
+                    }
+                    input={(control) => (
+                      <FormattedTextInput
+                        {...control}
+                        minRows={4}
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={field.handleChange}
+                      />
+                    )}
+                  />
                 );
               }}
             </form.Field>
@@ -113,11 +110,17 @@ export function FactionFormSectionAlliance({
               {(field) => {
                 const count = field.state.value.length;
                 return (
-                  <Stack gap="md">
-                    <Group justify="space-between" align="center">
-                      <Text fw={700} size="sm">
-                        Decals
-                      </Text>
+                  <ListChapter
+                    title="Decals"
+                    note={
+                      count === 0
+                        ? {
+                            title: 'No alliance decals',
+                            text: 'Decals are optional. The alliance card remains valid without them.',
+                          }
+                        : null
+                    }
+                    actions={
                       <ListLengthActions
                         removeLabel="Remove last alliance decal"
                         addLabel="Add alliance decal"
@@ -129,14 +132,8 @@ export function FactionFormSectionAlliance({
                         }}
                         onAdd={() => field.pushValue(defaultDecal())}
                       />
-                    </Group>
-
-                    {count === 0 ? (
-                      <Alert color="gray" variant="light" title="No alliance decals">
-                        Decals are optional. The alliance card remains valid without them.
-                      </Alert>
-                    ) : null}
-
+                    }
+                  >
                     {field.state.value.map((_, index) => (
                       <Stack key={index} gap="sm">
                         {index > 0 ? <Divider /> : null}
@@ -146,7 +143,7 @@ export function FactionFormSectionAlliance({
                         <DecalCard form={form} index={index} />
                       </Stack>
                     ))}
-                  </Stack>
+                  </ListChapter>
                 );
               }}
             </form.Field>

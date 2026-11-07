@@ -24,7 +24,14 @@ export const conversationMessageSchema = z.object({
   savedAt: count,
 });
 export type ConversationMessage = z.infer<typeof conversationMessageSchema>;
-export const conversationSummarySchema = z.object({ peerId: conversationPeerSchema, latest: count, unread: count });
+/* `cleared` is the newest message the viewer's faction cleared from its own view of the conversation; 0 when it never cleared it. */
+export const conversationSummarySchema = z.object({
+  peerId: conversationPeerSchema,
+  latest: count,
+  unread: count,
+  /* A Worker from before clears existed sends none. */
+  cleared: count.default(0),
+});
 export type ConversationSummary = z.infer<typeof conversationSummarySchema>;
 
 /** Conversations open once assigned factions enter setup and remain readable after play ends. */

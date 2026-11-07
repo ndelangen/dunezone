@@ -216,19 +216,19 @@
   height: calc(var(--unit) * 0.8);
 }
 
-/* 2024: each piece is a finished picture, its colours and logo painted in. */
+/* 2024: each piece is a finished picture, its colours and emblem painted in. */
 .filled {
   border-color: transparent;
   background: linear-gradient(135deg, #5c5d10, #393d05);
 }
 
-/* 2026: the pieces are drawn on demand, so they are outlines with the logo traced in from the record. */
+/* 2026: the pieces are drawn on demand, so they are outlines with the emblem traced in from the record. */
 .ghost {
   border-style: dashed;
   border-color: rgb(228 240 255 / 55%);
 }
 
-.logo {
+.emblem {
   display: block;
   width: 62%;
   aspect-ratio: 1;
@@ -238,16 +238,16 @@
   mask-size: contain;
 }
 
-.record > .logo {
+.record > .emblem {
   width: calc(var(--unit) * 0.9);
   background: var(--color-brand);
 }
 
-.small .logo {
+.small .emblem {
   width: 70%;
 }
 
-.ghostLogo {
+.ghostEmblem {
   opacity: 0.45;
 }
 

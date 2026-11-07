@@ -1,19 +1,15 @@
-import { Alert, Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
-import type { ErrorComponentProps } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { FormError } from '@ui/block/FormError';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
-import { errorMessage } from '@ui/content/errorMessage';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
@@ -34,10 +30,11 @@ import { isFactionNotFound, loadPublicFactionDetail, useFactionDetail, useFactio
 import type { FactionData, FactionDetailPageData, PublicAssetPublishingStatusProjection } from '@db/factions';
 import { useGroupMembershipWorkflow } from '@db/members';
 import { profileAvatarUrl } from '@db/profiles';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { profileLink, publicDescription, publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
+import { detailError } from '@app/routes/routeStates';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { RelatedFaq } from '@app/widgets/related-faq/RelatedFaq';
 import { useAsset } from '@game/assets/assetRenderMode';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
@@ -49,6 +46,8 @@ import { TTS_COLOR_SWATCHES } from '@game/data/ttsColors';
 import styles from './index.module.css';
 
 const FACTION_KIND = 'Custom faction';
+
+const backToFactions = <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>;
 
 export const Route = createFileRoute('/_app/factions/$factionId/')({
   ssr: true,
@@ -62,7 +61,7 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
     return page;
   },
   pendingComponent: FactionDetailPending,
-  errorComponent: FactionDetailError,
+  errorComponent: detailError({ noun: 'faction', isMissing: isFactionNotFound, back: backToFactions, renamed: true }),
   head: ({ match, loaderData, params }) =>
     publicPageHead({
       name: loaderData?.faction.data.name ?? 'Faction',
@@ -81,13 +80,11 @@ export const Route = createFileRoute('/_app/factions/$factionId/')({
   component: FactionDetailPage,
 });
 
-const backToFactions = <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>;
-
 function FactionDetailPending() {
   return (
-    <PageMessage size="compact" title="Faction" back={backToFactions}>
-      <LoadPending title="Loading faction">The faction details are still loading.</LoadPending>
-    </PageMessage>
+    <RoutePending size="compact" title="Faction" back={backToFactions} loading="Loading faction">
+      The faction details are still loading.
+    </RoutePending>
   );
 }
 
@@ -95,7 +92,7 @@ function FactionSidebarOverview({ data }: { data: FactionData }) {
   return (
     <Section icon={<TopicIcon topic="factionLeader" size={20} />} title="Faction leader">
       <div className={styles.loreFactionLeaderToken}>
-        <LeaderToken {...data.factionLeader} strength={undefined} background={data.background} logo={data.logo} />
+        <LeaderToken {...data.factionLeader} strength={undefined} background={data.background} emblem={data.emblem} />
       </div>
     </Section>
   );
@@ -276,40 +273,19 @@ function FactionTroop({ troop, background }: { troop: Troop; background: Faction
 function FactionLeader({
   leader,
   background,
-  logo,
+  emblem,
 }: {
   leader: FactionData['leaders'][number];
   background: FactionData['background'];
-  logo: FactionData['logo'];
+  emblem: FactionData['emblem'];
 }) {
   const label = `${leader.name}, strength ${leader.strength ?? 'not specified'}`;
   return (
     <Tooltip label={label}>
       <article className={styles.leaderTile} aria-label={label}>
-        <LeaderToken {...leader} background={background} logo={logo} />
+        <LeaderToken {...leader} background={background} emblem={emblem} />
       </article>
     </Tooltip>
-  );
-}
-
-function FactionDetailError({ error }: ErrorComponentProps) {
-  const absent = isFactionNotFound(error);
-  useLivePageTitle(absent ? 'Faction not found' : undefined);
-  if (absent) {
-    return (
-      <PageMessage size="compact" title="Faction" back={backToFactions}>
-        <NotAvailable title="Faction not found">
-          This faction does not exist or was deleted. Its address may have changed after a rename.
-        </NotAvailable>
-      </PageMessage>
-    );
-  }
-  return (
-    <PageMessage size="compact" title="Faction" back={backToFactions}>
-      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
   );
 }
 
@@ -501,7 +477,7 @@ function FactionDetailContent({
           title={data.name}
           media={
             <div className={styles.factionSymbol} role="img" aria-label={`${data.name} symbol`}>
-              <FactionToken logo={data.logo} background={data.background} />
+              <FactionToken emblem={data.emblem} background={data.background} />
             </div>
           }
           breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
@@ -589,9 +565,9 @@ function FactionDetailContent({
       <PageLayout.Content>
         <Stack gap="xl">
           {membershipWorkflow.request.isError ? (
-            <Alert color="red" title="Membership request failed" role="alert" mb="xl">
-              {membershipWorkflow.request.error?.message}
-            </Alert>
+            <FormError title="Membership request failed">
+              {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
+            </FormError>
           ) : null}
           <Flex
             direction={{ base: 'column-reverse', md: 'row' }}
@@ -609,7 +585,7 @@ function FactionDetailContent({
                         key={`${leader.name}-${leader.image}-${index}`}
                         leader={leader}
                         background={data.background}
-                        logo={data.logo}
+                        emblem={data.emblem}
                       />
                     ))}
                   </div>
@@ -651,10 +627,7 @@ function FactionDetailContent({
               <Section icon={<TopicIcon topic="setup" size={20} />} title="Setup">
                 <Surface padding="lg">
                   <Stack gap="lg">
-                    <Stack gap="xs">
-                      <Title order={3} size="h4">
-                        Preferred TTS color
-                      </Title>
+                    <Section title="Preferred TTS color">
                       {data.colors.length > 0 ? (
                         <Group gap="sm">
                           {data.colors.map((color) => (
@@ -672,25 +645,19 @@ function FactionDetailContent({
                           None specified.
                         </Text>
                       )}
-                    </Stack>
+                    </Section>
                     <Divider />
-                    <Box>
-                      <Title order={3} size="h4">
-                        At start
-                      </Title>
-                      <Text size="sm" mt="xs">
+                    <Section title="At start">
+                      <Text size="sm">
                         <InlineFormattedTextSource source={data.rules.startText} />
                       </Text>
-                    </Box>
+                    </Section>
                     <Divider />
-                    <Box>
-                      <Title order={3} size="h4">
-                        Revival
-                      </Title>
-                      <Text size="sm" mt="xs">
+                    <Section title="Revival">
+                      <Text size="sm">
                         <InlineFormattedTextSource source={data.rules.revivalText} />
                       </Text>
-                    </Box>
+                    </Section>
                   </Stack>
                 </Surface>
               </Section>

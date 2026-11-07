@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { parsePublicationAssetData } from './asset-publishing/publication';
 import { publishingSpiceCard } from './assets/fixtures/publishingSpiceCard';
 import { publishingTreacheryCard } from './assets/fixtures/publishingTreacheryCard';
 import { SpiceAsset, SpiceAssetInput, TreacheryAsset, TreacheryAssetInput } from './assets/schema';
@@ -30,7 +31,17 @@ describe('stored prose write validation', () => {
     const { amount: _amount, ...withoutAmount } = publishingSpiceCard;
     expect(() => parseAssetDataForWrite('card-spice', withoutAmount)).toThrow();
     expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, amount: 0 })).toThrow();
-    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['nowhere'] })).toThrow();
+    /* The classic highlight list is gone from the schema: an empty one from an older tab is dropped, one naming territories is refused. */
+    expect(parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: [] }).data).toEqual(
+      publishingSpiceCard
+    );
+    expect(() => parseAssetDataForWrite('card-spice', { ...publishingSpiceCard, highlights: ['arsunt'] })).toThrow();
+    expect(SpiceAsset.safeParse({ ...publishingSpiceCard, highlights: [] }).success).toBe(false);
+    /* A capture queued with the list, which the strip left alone mid-capture, still reads as the card it stands for. */
+    const queued = { assetId: 'card', slug: 'arsunt', card: publishingSpiceCard };
+    expect(
+      parsePublicationAssetData('card-spice', { ...queued, card: { ...publishingSpiceCard, highlights: ['arsunt'] } })
+    ).toEqual(parsePublicationAssetData('card-spice', queued));
   });
 
   it('allows blocks in ruleset About and FAQ answers, but keeps FAQ questions inline', () => {

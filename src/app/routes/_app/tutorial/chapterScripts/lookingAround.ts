@@ -13,7 +13,7 @@ import { at, closeUpShown, dialTask, scrolled, tableDeck, task } from './guideCh
  * Tilting is left out: on a desktop the table has no tilt of its own, only a trackpad's two fingers.
  */
 
-/* The keys that slide a close look, as the table names them. */
+/* The keys that slide the view, as the table names them. */
 const PAN_KEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowleft', 'arrowdown', 'arrowright']);
 
 /*
@@ -55,21 +55,21 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     task({
       id: 'zoom-in',
       task: 'Look closer at Arrakis',
-      detail: "Let's take a closer look! Scroll down over the board to move toward the spot under your pointer.",
+      detail: "Let's take a closer look! Scroll up over the board to move toward the spot under your pointer.",
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...scrolled('in'),
     }),
     task({
       id: 'slide',
       task: 'Move across the board',
-      detail: 'You can explore while zoomed in. Hold an arrow key or {W}, {A}, {S} or {D} to move the view.',
+      detail: 'You can explore from here. Hold an arrow key or {W}, {A}, {S} or {D} to move the view.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...slid(),
     }),
     task({
       id: 'zoom-out',
       task: 'Step back',
-      detail: 'Scroll up over the board to move the camera back out.',
+      detail: 'Scroll down over the board to move the camera back out.',
       anchor: { kind: 'table', point: () => [0, 0, 0] },
       ...scrolled('out'),
     }),
@@ -114,7 +114,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'Scroll over the board to look closer, and back to step out',
-  'Slide a close look with the arrow keys or {W}, {A}, {S} and {D}',
+  'Slide the view with the arrow keys or {W}, {A}, {S} and {D}',
   'Click L, R, B or M on the camera dial to jump the view',
   'Hold {Alt} over a card to read it flat and large',
   'Press {Tab} over the table to ping a spot for everyone',

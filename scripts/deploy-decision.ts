@@ -1,13 +1,14 @@
-import { spawnSync } from 'node:child_process';
 import { appendFileSync } from 'node:fs';
 
 /*
  * Decides, before anything deploys, whether a production deploy run goes ahead.
- * Each production Worker reports the commit it was deployed from on a public health endpoint, and git history says whether that commit comes before or after GITHUB_SHA.
+ * Each production Worker reports the commit it was deployed from on a public health endpoint, and GitHub's compare API says whether that commit comes before or after GITHUB_SHA.
+ * The gate asks GitHub instead of a local clone: deepening the job's shallow checkout with a commits-only filter crashed git itself (#2721), and the API needs no history at all.
  * When both already report GITHUB_SHA, the Actions API says whether an earlier run of this workflow finished that release.
  * The release_gate job in .github/workflows/deploy-main.yml says why an older commit can reach this point.
  * Only a positive answer stops a run.
- * An endpoint that cannot be read, a commit git cannot place, or an Actions API that cannot be read lets the deploy go ahead, because refusing then would also block the release that repairs a broken endpoint or finishes a failed one.
+ * An endpoint that cannot be read, a commit GitHub cannot place, or an Actions API that cannot be read lets the deploy go ahead, because refusing then would also block the release that repairs a broken endpoint or finishes a failed one.
+ * A compare API that never answers fails the gate instead, as the history fetch it replaced did, because only it can tell an older commit from a newer one.
  * This script imports no packages, so the job that runs it skips the dependency install.
  */
 
@@ -27,6 +28,7 @@ type Decision = { deploy: boolean; base: string; reason: string; unread?: true }
  * This run as GitHub's environment describes it, and the request function the gate reaches the Actions API with.
  * The other fields come from GITHUB_API_URL, GITHUB_REPOSITORY, GITHUB_TOKEN, GITHUB_SHA and GITHUB_RUN_ID.
  * In a run the request function is fetch, and a test passes its own to answer for GitHub.
+ * The gate makes two kinds of request with it: the compare API for where production's commits sit, and the Actions API for earlier runs.
  */
 export type GitHub = {
   api: string;
@@ -35,6 +37,8 @@ export type GitHub = {
   head: string;
   run: number;
   request: (url: string, init: RequestInit) => Promise<Response>;
+  /** The pause before the compare API is asked again; a test sets it to 0. */
+  retryDelayMs?: number;
 };
 
 /**
@@ -45,12 +49,7 @@ export type GitHub = {
  * When every Worker reports the same earlier commit, that commit is the base the dev rebuild measures its change range from.
  * When they report different earlier commits, the one the others descend from is the base.
  */
-export async function decide(
-  readings: readonly Reading[],
-  attempt: number,
-  github: GitHub,
-  repository = process.cwd()
-): Promise<Decision> {
+export async function decide(readings: readonly Reading[], attempt: number, github: GitHub): Promise<Decision> {
   const ahead = readings.find((reading) => reading.position === 'newer');
   if (ahead) {
     return { deploy: false, base: '', reason: `${ahead.endpoint} already reports ${ahead.sha}, a later commit` };
@@ -70,7 +69,7 @@ export async function decide(
     return { deploy: true, base, reason: `production reports the earlier commit ${base}` };
   }
   /* A run that failed between the two Worker deploys leaves them on different earlier commits; the dev rebuild measures from the older one, so the failed run's own changes stay in range. */
-  const oldest = earlier.has(undefined) ? undefined : oldestOf([...earlier] as string[], repository);
+  const oldest = earlier.has(undefined) ? undefined : await oldestOf([...earlier] as string[], github);
   if (oldest !== undefined) {
     return { deploy: true, base: oldest, reason: `production reports earlier commits, the oldest being ${oldest}` };
   }
@@ -113,11 +112,7 @@ async function earlierRelease(github: GitHub): Promise<Lookup> {
   let response: Response;
   try {
     response = await github.request(url, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        ...(github.token ? { Authorization: `Bearer ${github.token}` } : {}),
-      },
+      headers: headers(github),
       redirect: 'error',
       signal: AbortSignal.timeout(10_000),
     });
@@ -151,52 +146,94 @@ function finishedGreen(run: unknown, github: GitHub): run is { id: number } {
   );
 }
 
+function headers(github: GitHub): HeadersInit {
+  return {
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+    ...(github.token ? { Authorization: `Bearer ${github.token}` } : {}),
+  };
+}
+
+/** How GitHub's compare API places head against base, as its status field says. */
+type Comparison = 'identical' | 'ahead' | 'behind' | 'diverged';
+const COMPARE_ATTEMPTS = 3;
+
 /**
- * Exit 0 and 1 answer the question.
- * Any other status means git could not compare the two, usually because the commit is not in this checkout.
- * Only full SHAs reach git, so a short or option-shaped value cannot name another commit or pass git an option.
- * Git also gets --end-of-options, so it reads both as revisions whatever they hold.
+ * Asks GitHub's compare API where head sits against base.
+ * Only full SHAs reach the URL, so a short or path-shaped value cannot name another commit or another endpoint.
+ * A commit GitHub does not have answers 404, which reads as undefined, the way git once answered for a commit missing from the checkout.
+ * Any other failure is retried twice and then fails the gate, which skips the deploy: an unread answer must not let an older commit replace a newer one.
  */
-function isAncestor(ancestor: string, descendant: string, repository: string): boolean | undefined {
-  if (!FULL_SHA.test(ancestor) || !FULL_SHA.test(descendant)) {
+async function compare(base: string, head: string, github: GitHub): Promise<Comparison | undefined> {
+  if (!FULL_SHA.test(base) || !FULL_SHA.test(head)) {
     return undefined;
   }
-  /* Sonar suppression: both revisions passed FULL_SHA above and follow --end-of-options. */
-  const gitArgs = ['merge-base', '--is-ancestor', '--end-of-options', ancestor, descendant];
-  const { status } = spawnSync('/usr/bin/git', gitArgs, { cwd: repository }); /* NOSONAR */
-  switch (status) {
-    case 0:
-      return true;
-    case 1:
-      return false;
-    default:
+  const url = `${github.api}/repos/${github.repository}/compare/${base}...${head}?per_page=1`;
+  let failure = '';
+  for (let attempt = 1; attempt <= COMPARE_ATTEMPTS; attempt++) {
+    if (attempt > 1) {
+      await new Promise((resolve) => setTimeout(resolve, github.retryDelayMs ?? 2000));
+    }
+    let response: Response;
+    try {
+      response = await github.request(url, {
+        headers: headers(github),
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      failure = 'no answer';
+      continue;
+    }
+    if (response.status === 404) {
       return undefined;
+    }
+    const body: unknown = response.status === 200 ? await response.json().catch(() => undefined) : undefined;
+    const status = typeof body === 'object' && body !== null && 'status' in body ? body.status : undefined;
+    if (status === 'identical' || status === 'ahead' || status === 'behind' || status === 'diverged') {
+      return status;
+    }
+    failure = response.status === 200 ? 'no status in the answer' : `HTTP ${response.status}`;
   }
+  throw new Error(`GitHub's compare API could not place ${base} against ${head} (${failure})`);
 }
 
-/** The commit every other one descends from, or undefined when git cannot order them all. */
-function oldestOf(commits: readonly string[], repository: string): string | undefined {
-  return commits.find((candidate) =>
-    commits.every((other) => other === candidate || isAncestor(candidate, other, repository) === true)
-  );
+/** Whether descendant contains ancestor in its history, or undefined when GitHub could not say. */
+async function isAncestor(ancestor: string, descendant: string, github: GitHub): Promise<boolean | undefined> {
+  const found = await compare(ancestor, descendant, github);
+  return found === undefined ? undefined : found === 'ahead' || found === 'identical';
 }
 
-/** Where production's commit sits against head in the history of the git checkout at repository. */
-export function position(head: string, production: string, repository: string): Position {
-  switch (true) {
-    case production === head:
-      return 'same';
-    case isAncestor(head, production, repository):
-      return 'newer';
-    case isAncestor(production, head, repository):
+/** The commit every other one descends from, or undefined when GitHub cannot order them all. */
+async function oldestOf(commits: readonly string[], github: GitHub): Promise<string | undefined> {
+  for (const candidate of commits) {
+    const answers = await Promise.all(
+      commits.filter((other) => other !== candidate).map((other) => isAncestor(candidate, other, github))
+    );
+    if (answers.every((answer) => answer === true)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+/** Where production's commit sits against head, the commit this run would deploy. */
+export async function position(head: string, production: string, github: GitHub): Promise<Position> {
+  if (production === head) {
+    return 'same';
+  }
+  switch (await compare(production, head, github)) {
+    case 'ahead':
       return 'older';
+    case 'behind':
+      return 'newer';
     default:
       return 'unknown';
   }
 }
 
 /** The notes are fixed text, so nothing an endpoint returns reaches the log except a validated SHA. */
-async function read(endpoint: string, head: string, repository: string): Promise<Reading> {
+async function read(endpoint: string, github: GitHub): Promise<Reading> {
   let response: Response;
   try {
     response = await fetch(endpoint, {
@@ -216,12 +253,12 @@ async function read(endpoint: string, head: string, repository: string): Promise
   if (typeof sha !== 'string' || !FULL_SHA.test(sha)) {
     return { endpoint, position: 'unknown', note: 'no commit SHA in the answer' };
   }
-  const found = position(head, sha, repository);
+  const found = await position(github.head, sha, github);
   return {
     endpoint,
     sha,
     position: found,
-    note: found === 'unknown' ? 'git cannot place it against this commit' : undefined,
+    note: found === 'unknown' ? 'GitHub cannot place it against this commit' : undefined,
   };
 }
 
@@ -235,21 +272,21 @@ if (import.meta.main) {
   if (!Number.isInteger(attempt) || attempt < 1) {
     throw new Error('GITHUB_RUN_ATTEMPT must be a positive whole number');
   }
-  const repository = process.cwd();
-  const readings = await Promise.all(HEALTH_ENDPOINTS.map((endpoint) => read(endpoint, head, repository)));
-  for (const reading of readings) {
-    const line = `${reading.endpoint}: ${reading.sha ?? 'no commit'} (${reading.position}${reading.note ? `, ${reading.note}` : ''})`;
-    console.log(reading.position === 'unknown' ? `::warning::${line}` : line);
-  }
-  // The release_gate step passes GITHUB_TOKEN and GitHub sets the rest; unset, as in a local run, the lookup reads the public repository without a token and leaves no run out.
-  const decision = await decide(readings, attempt, {
+  // The release_gate step passes GITHUB_TOKEN and GitHub sets the rest; unset, as in a local run, the lookups read the public repository without a token and leave no run out.
+  const github: GitHub = {
     api: process.env.GITHUB_API_URL ?? 'https://api.github.com',
     repository: process.env.GITHUB_REPOSITORY ?? 'ndelangen/dunezone',
     token: process.env.GITHUB_TOKEN ?? '',
     head,
     run: Number(process.env.GITHUB_RUN_ID ?? '0'),
     request: fetch,
-  });
+  };
+  const readings = await Promise.all(HEALTH_ENDPOINTS.map((endpoint) => read(endpoint, github)));
+  for (const reading of readings) {
+    const line = `${reading.endpoint}: ${reading.sha ?? 'no commit'} (${reading.position}${reading.note ? `, ${reading.note}` : ''})`;
+    console.log(reading.position === 'unknown' ? `::warning::${line}` : line);
+  }
+  const decision = await decide(readings, attempt, github);
   console.log(
     decision.deploy
       ? `${decision.unread ? '::warning::' : ''}Deploying ${head}: ${decision.reason}.`

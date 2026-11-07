@@ -1,16 +1,9 @@
-import {
-  Avatar,
-  Button,
-  Center,
-  Combobox,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  useCombobox,
-} from '@mantine/core';
+import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { NameDisc } from '@ui/content/NameDisc';
+import { Pending } from '@ui/content/Pending';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Check, ChevronsDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { useReplacementProfiles } from '@db/accountDeletion';
@@ -41,9 +34,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
         </Text>
       </div>
       {picker.status === 'LoadingFirstPage' ? (
-        <Center py="md">
-          <Loader size="sm" aria-label="Loading profiles" />
-        </Center>
+        <Pending>Loading profiles</Pending>
       ) : picker.data.length === 0 ? (
         <Text size="sm" c="dimmed">
           No other active profiles are available.
@@ -53,19 +44,24 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
           store={combobox}
           onOptionSubmit={(userId) => setSelectedUserId(userId as ReplacementProfile['userId'])}
         >
-          <Combobox.EventsTarget>
-            <TextInput
-              label="Search profiles"
-              type="search"
-              name="profile-search"
-              autoComplete="off"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
-              }}
-            />
-          </Combobox.EventsTarget>
+          <ControlBlock
+            title="Search profiles"
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
+                <TextInput
+                  {...fieldProps}
+                  type="search"
+                  name="profile-search"
+                  autoComplete="off"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.currentTarget.value);
+                    combobox.selectFirstOption();
+                  }}
+                />
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {rows.length === 0 ? (
@@ -78,7 +74,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
                     active={profile.userId === selectedUserId}
                   >
                     <Group wrap="nowrap">
-                      <Avatar src={profile.avatarUrl} name={profile.username} size="sm" />
+                      <NameDisc src={profile.avatarUrl} name={profile.username ?? ''} size={26} />
                       <div>
                         <Text size="sm" fw={700}>
                           {profile.username}
@@ -94,19 +90,25 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
             </Combobox.Options>
           </ScrollArea.Autosize>
           {picker.status === 'CanLoadMore' ? (
-            <Button type="button" variant="subtle" size="compact-sm" onClick={picker.loadMore}>
+            <LabeledAction size="compact-sm" icon={<ChevronsDown size={14} />} onClick={picker.loadMore}>
               Load more profiles
-            </Button>
+            </LabeledAction>
           ) : null}
         </Combobox>
       )}
       <Group justify="flex-end">
-        <Button type="button" variant="default" onClick={onCancel}>
+        <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
-        </Button>
-        <Button type="button" disabled={!selected} onClick={() => selected && onPick(selected)}>
+        </LabeledAction>
+        <LabeledAction
+          intent="positive"
+          emphasis="strong"
+          icon={<Check size={16} />}
+          disabledReason={selected ? undefined : 'Pick a profile first.'}
+          onClick={() => selected && onPick(selected)}
+        >
           Use this profile
-        </Button>
+        </LabeledAction>
       </Group>
     </Stack>
   );

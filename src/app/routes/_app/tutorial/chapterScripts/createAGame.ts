@@ -34,7 +34,10 @@ export const createAGame: LobbyChapterScript = {
       task: 'Choose a ruleset',
       detail:
         "Let's set up a game of your own! The ruleset supplies the board, decks and factions you can play.\n\nChoose Dreamrules for this practice game.",
-      anchor: { kind: 'page', element: element('form[aria-label="New game"] .mantine-Select-root') },
+      anchor: {
+        kind: 'page',
+        element: element('form[aria-label="New game"] [role="group"]:has(.mantine-Select-root)'),
+      },
       begin: () => undefined,
       done: () => state().draft.rulesetId === TUTORIAL_RULESET.id,
     }),

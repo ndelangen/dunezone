@@ -111,7 +111,7 @@ export const FactionSetAside = meta.story({
     const list = () => within(page.getByRole('list', { name: 'Factions' }));
     await shows(() => list().getByText(`Not ready to deal: ${NOT_READY}`));
     const row = list().getByText('Iduali').closest('li') as HTMLElement;
-    await expect(within(row).getByRole('button', { name: /^Draft$/ })).toBeDisabled();
+    await expect(within(row).getByRole('button', { name: /^Draft$/ })).toHaveAttribute('aria-disabled', 'true');
   },
 });
 

@@ -1,14 +1,17 @@
-import { Alert, Button, Group, Popover } from '@mantine/core';
+import { Group, Popover } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { NotAvailable } from '@ui/block/NotAvailable';
+import { ActionError } from '@ui/block/ActionError';
+import { Notice } from '@ui/block/Notice';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
 import { TruncatedText } from '@ui/content/TruncatedText';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { HoldAction } from '@ui/control/HoldAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
+import { Replace } from 'lucide-react';
 import { useReducer, useState } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
@@ -18,20 +21,10 @@ import { AssetPicker } from '@app/pickers/AssetPicker';
 import { postedPayload } from '@app/widgets/authoring/authoringEnvelope';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
-import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { initialTokenMemory, TokenEditor, TokenProof, tokenDraftWarnings } from '@app/widgets/token-editor/TokenEditor';
 import type { TokenWarning, TokenChapter, TokenDraft, TokenMemory } from '@app/widgets/token-editor/TokenEditor';
-import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
-import {
-  AssetEditorMessage,
-  DriftedAssetPage,
-  SaveErrorAlert,
-  useAssetDeletion,
-  useAssetGroupActions,
-  assetNameField,
-  AssetEditorViewerPending,
-} from '../../../assetEditorStates';
+import { AssetEditChecks, useAssetDeletion, useAssetGroupActions, assetNameField } from '../../../assetEditorStates';
 import { LoadedTokenDraft, tokenLoad } from '../../../loadedDrafts';
 import { referencedTokenBackFace } from './referencedBackFace';
 import { referencedBackProof } from './ReferencedBackProof';
@@ -49,68 +42,31 @@ export function TokenEditPage({
   const data = query.data;
   const label = isAssetType(type) ? ASSET_TYPES[type].shortLabel.toLowerCase() : 'token';
 
-  if (data === null) {
-    return (
-      <AssetEditorMessage title="Edit token" type={type}>
-        <NotAvailable title="Token not found">{`No ${label} token lives at this address.`}</NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerResolved) {
-    return <AssetEditorViewerPending name={data.asset.name} type={type} />;
-  }
-
-  if (data.viewerAccess.viewer.kind === 'anonymous') {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <LoginGate action="edit tokens" />
-      </AssetEditorMessage>
-    );
-  }
-
-  if (!data.viewerAccess.capabilities.edit) {
-    return (
-      <AssetEditorMessage title={`Edit ${data.asset.name}`} type={type}>
-        <NotAvailable title="You cannot edit this token">
-          {data.viewerAccess.assignedGroup
-            ? 'Only the token owner or an active member of its group can edit this token.'
-            : 'Only the token owner can edit this token.'}
-        </NotAvailable>
-      </AssetEditorMessage>
-    );
-  }
-
-  const parsed = TokenAsset.safeParse(data.asset.data);
-  if (!parsed.success) {
-    return (
-      <DriftedAssetPage asset={data.asset} noun="token" canDelete={data.viewerAccess.capabilities.delete}>
-        {`This token's stored data no longer matches the token schema, so it cannot be edited here.`}
-      </DriftedAssetPage>
-    );
-  }
-
-  const initialBack = parsed.data.back;
-
   return (
-    <BackgroundLibrary presets={data.backgrounds ?? []} fronts={data.cardFrontPresets}>
-      <TokenEditSession
-        key={data.asset.id}
-        access={{ viewerAccess: data.viewerAccess, assignableGroups: data.assignableGroups }}
-        type={type}
-        asset={data.asset}
-        backToken={data.backToken}
-        danglingBack={data.resolvedBack?.mode === 'dangling'}
-        initialDraft={{ ...parsed.data, back: initialBack }}
-      />
-    </BackgroundLibrary>
+    <AssetEditChecks
+      type={type}
+      noun="token"
+      schemaName={`${label} token`}
+      schema={TokenAsset}
+      data={data}
+      session={({ page, asset, access, initialDraft }) => (
+        <TokenEditSession
+          access={access}
+          type={type}
+          asset={asset}
+          backToken={page.backToken}
+          danglingBack={page.resolvedBack?.mode === 'dangling'}
+          initialDraft={initialDraft}
+        />
+      )}
+    />
   );
 }
 
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored token has no room for (D3): the face and target kept across mode flips, the declared Custom intents, the picked token the label and proof draw, and whether a save has already complained.
  * Rebuilding the whole state on `replace` is what makes a discarded pick actually discarded: while the face and target were refs in the widget, a Reset left them standing and the next save could write a reference the page never showed.
  */
@@ -262,24 +218,20 @@ function TokenEditSession({
           statuses={[groupActions.status]}
           destructiveActions={
             access.viewerAccess.capabilities.delete ? (
-              <ConfirmDeleteAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
+              <HoldAction label="Delete token" pending={deletion.pending} onConfirm={deletion.confirm} />
             ) : null
           }
         />
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <WorkbenchLayout gap="sm">
-          <SaveErrorAlert error={updateAsset.error} />
-          {deletion.error ? (
-            <Alert color="red" variant="light" role="alert" title="Could not delete">
-              {deletion.error.message}
-            </Alert>
-          ) : null}
+          <ActionError verb="save" subject="token" error={updateAsset.error} />
+          <ActionError subject="Token" verb="delete" error={deletion.error} />
           {groupActions.error}
           {state.memory.pickBlocked && pickless ? (
-            <Alert color="yellow" variant="light" role="alert" title="No token picked">
+            <Notice tone="caution" title="No token picked" live>
               Pick a token whose back this one wears, or choose another back mode.
-            </Alert>
+            </Notice>
           ) : null}
           <TokenEditor
             nameField={nameField}
@@ -291,7 +243,7 @@ function TokenEditSession({
             chapter={chapter}
             onChapterChange={setChapter}
             onSettle={header.settle}
-            backPicker={(disabled) => (
+            backPicker={() => (
               <Group gap="xs" wrap="nowrap">
                 <TruncatedText size="sm" flex={1}>
                   {state.memory.pickedBack ? state.memory.pickedBack.name : 'No token chosen yet'}
@@ -299,16 +251,13 @@ function TokenEditSession({
                 {/* Gated by the popover: the picker subscribes on mount, so it must not mount until asked for. */}
                 <Popover opened={pickerOpen} onChange={setPickerOpen} width={340} position="bottom-start" withinPortal>
                   <Popover.Target>
-                    <Button
-                      variant="default"
-                      color="gray"
+                    <LabeledAction
                       size="compact-sm"
-                      style={{ flexShrink: 0 }}
-                      disabled={disabled}
+                      icon={<Replace size={14} />}
                       onClick={() => setPickerOpen((open) => !open)}
                     >
                       {state.memory.pickedBack ? 'Change' : 'Choose'}
-                    </Button>
+                    </LabeledAction>
                   </Popover.Target>
                   <Popover.Dropdown>
                     <AssetPicker

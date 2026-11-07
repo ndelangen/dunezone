@@ -1,16 +1,9 @@
-import {
-  Button,
-  Center,
-  Combobox,
-  Group,
-  Loader,
-  ScrollArea,
-  Stack,
-  Text,
-  TextInput,
-  useCombobox,
-} from '@mantine/core';
+import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { Pending } from '@ui/content/Pending';
 import { matchAsset, searchTerms } from '@ui/control/assetSearch';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
@@ -121,9 +114,7 @@ export function AssetPicker({
   return (
     <Stack gap="md">
       {catalogue.isPending ? (
-        <Center py="md">
-          <Loader size="sm" aria-label={copy.searchLabel} />
-        </Center>
+        <Pending>{copy.searchLabel}</Pending>
       ) : availableRows.length === 0 ? (
         <Text size="sm" c="dimmed">
           {copy.emptyMessage}
@@ -147,29 +138,30 @@ export function AssetPicker({
             });
           }}
         >
-          <Combobox.EventsTarget>
-            <TextInput
-              ref={focusSearchInput}
-              label={copy.searchLabel}
-              placeholder={copy.searchPlaceholder}
-              value={search}
-              /*
-               * Safari and password-manager extensions ignore autoComplete="off" alone.
-               * The search type, neutral name and vendor opt-outs keep credential autofill prompts off this field.
-               */
-              type="search"
-              name="asset-search"
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-              data-bwignore
-              data-form-type="other"
-              onChange={(event) => {
-                setSearch(event.currentTarget.value);
-                combobox.selectFirstOption();
-              }}
-            />
-          </Combobox.EventsTarget>
+          <ControlBlock
+            title={copy.searchLabel}
+            input={(fieldProps) => (
+              <Combobox.EventsTarget>
+                <TextInput
+                  {...fieldProps}
+                  ref={focusSearchInput}
+                  placeholder={copy.searchPlaceholder}
+                  value={search}
+                  type="search"
+                  name="asset-search"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
+                  data-bwignore
+                  data-form-type="other"
+                  onChange={(event) => {
+                    setSearch(event.currentTarget.value);
+                    combobox.selectFirstOption();
+                  }}
+                />
+              </Combobox.EventsTarget>
+            )}
+          />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
               {filteredRows.length === 0 ? (
@@ -188,9 +180,9 @@ export function AssetPicker({
 
       {onCancel ? (
         <Group justify="flex-end">
-          <Button type="button" variant="default" size="compact-sm" onClick={onCancel}>
+          <LabeledAction size="compact-sm" icon={<X size={14} />} onClick={onCancel}>
             {copy.cancelLabel ?? 'Cancel'}
-          </Button>
+          </LabeledAction>
         </Group>
       ) : null}
     </Stack>

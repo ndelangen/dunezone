@@ -1,25 +1,18 @@
 import { arrayMove } from '@dnd-kit/sortable';
-import { Alert, Badge, Box, Grid, Group, Stack, Text, TextInput } from '@mantine/core';
-import { LEADERS } from '@shared/assetIds';
+import { Grid, Stack } from '@mantine/core';
 import { SUPPORTING_LEADER_LIMIT } from '@shared/factions/schema';
-import { stockAssetOptions } from '@ui/content/stockAssetOptions';
-import { AssetSelect } from '@ui/control/AssetSelect';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
-import { ListLengthActions } from '@ui/control/ListLengthActions';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
-import type { Faction } from '@db/factions';
 import { LeaderStrengthInput } from '@app/widgets/leader-strength/LeaderStrengthInput';
-import { LeaderToken } from '@game/assets/faction/leader/Leader';
 
-import { FactionCollectionShelf } from './FactionCollectionShelf';
-import { assetOptionToPreviewSrc } from './factionFormAssetUtils';
 import { nextLeaderFromLast } from './factionFormDefaults';
 import type { FactionFormApi } from './factionFormTypes';
+import { FactionListSection, useListSelection } from './FactionListSection';
+import { LeaderNameField, LeaderPortraitField, LeaderRow, LeaderTokenPreview } from './LeaderFields';
 
 const CONVENTIONAL_SUPPORTING_LEADER_COUNT = 5;
-
-const leaderImageOptions = stockAssetOptions(LEADERS.options);
 
 /** Strength text a leader's field could not take, owned by the authoring session so replacing the draft clears it. */
 export type StrengthRefusal = { leader: number; text: string } | null;
@@ -51,38 +44,21 @@ function SupportingLeaderCard({
 
   return (
     <Stack gap="md">
-      <Grid gap="xl" align="center">
-        <Grid.Col span={{ base: 12, sm: showPreview ? 8 : 12 }}>
-          <Stack gap="md">
+      <LeaderRow
+        fields={
+          <>
             <form.Field name={`leaders[${index}].name`}>
-              {(field) => {
-                const value = field.state.value ?? '';
-                const blank = value.trim().length === 0;
-                const warningId = `leader-${index}-name-warning`;
-                return (
-                  <Stack gap="md">
-                    <ControlBlock
-                      title="Leader name"
-                      description="Printed around this leader token."
-                      input={
-                        <TextInput
-                          id={`leader-${index}-name`}
-                          aria-label="Leader name"
-                          value={value}
-                          aria-describedby={blank ? warningId : undefined}
-                          onBlur={field.handleBlur}
-                          onChange={(event) => field.handleChange(event.currentTarget.value)}
-                        />
-                      }
-                    />
-                    {blank ? (
-                      <Text id={warningId} c="var(--color-caution)" size="xs" role="status">
-                        This leader has no name. This is advisory and does not prevent saving.
-                      </Text>
-                    ) : null}
-                  </Stack>
-                );
-              }}
+              {(field) => (
+                <LeaderNameField
+                  title="Leader name"
+                  description="Printed around this leader token."
+                  inputId={`leader-${index}-name`}
+                  blankWarning="This leader has no name. This is advisory and does not prevent saving."
+                  value={field.state.value ?? ''}
+                  onBlur={field.handleBlur}
+                  onChange={field.handleChange}
+                />
+              )}
             </form.Field>
 
             <Grid>
@@ -111,63 +87,45 @@ function SupportingLeaderCard({
               <Grid.Col span={{ base: 12, xs: 8 }}>
                 <form.Field name={`leaders[${index}].image`}>
                   {(field) => (
-                    <ControlBlock
+                    <LeaderPortraitField
                       title="Leader portrait"
-                      input={
-                        <AssetSelect
-                          id={`leader-${index}-img`}
-                          aria-label="Leader portrait"
-                          allowDeselect={false}
-                          data={leaderImageOptions}
-                          previewShape="disc"
-                          getPreviewSrc={assetOptionToPreviewSrc}
-                          value={field.state.value}
-                          onChange={(value) => {
-                            if (value) {
-                              field.handleChange(value as Faction['leaders'][number]['image']);
-                            }
-                          }}
-                        />
-                      }
+                      inputId={`leader-${index}-img`}
+                      value={field.state.value}
+                      onChange={field.handleChange}
                     />
                   )}
                 </form.Field>
               </Grid.Col>
             </Grid>
-          </Stack>
-        </Grid.Col>
-
-        {showPreview ? (
-          <Grid.Col span={4} visibleFrom="sm">
+          </>
+        }
+        preview={
+          showPreview ? (
             <form.Subscribe
               selector={(state) => ({
                 background: state.values.background,
                 leader: state.values.leaders[index],
-                logo: state.values.logo,
+                emblem: state.values.emblem,
               })}
             >
-              {({ background, leader: currentLeader, logo }) =>
+              {({ background, leader: currentLeader, emblem }) =>
                 currentLeader ? (
-                  <Stack align="center" gap="sm">
-                    <Text size="xs" fw={700} tt="uppercase" c="dimmed" ta="center">
-                      Used as: leader token
-                    </Text>
-                    <Box w={132} aria-label={`Token preview for supporting leader ${index + 1}`}>
-                      <LeaderToken
-                        background={background}
-                        image={currentLeader.image}
-                        logo={logo}
-                        name={currentLeader.name}
-                        strength={currentLeader.strength}
-                      />
-                    </Box>
-                  </Stack>
+                  <LeaderTokenPreview
+                    caption="Used as: leader token"
+                    width={132}
+                    label={`Token preview for supporting leader ${index + 1}`}
+                    background={background}
+                    image={currentLeader.image}
+                    emblem={emblem}
+                    name={currentLeader.name}
+                    strength={currentLeader.strength}
+                  />
                 ) : null
               }
             </form.Subscribe>
-          </Grid.Col>
-        ) : null}
-      </Grid>
+          ) : null
+        }
+      />
     </Stack>
   );
 }
@@ -185,9 +143,7 @@ export function FactionFormSectionLeaders({
   selectedIndex?: number;
   onSelectedIndexChange?: (index: number) => void;
 } & StrengthRefusalProps) {
-  const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
-  const currentSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const setSelectedIndex = onSelectedIndexChange ?? setInternalSelectedIndex;
+  const [selected, setSelectedIndex] = useListSelection(selectedIndex, onSelectedIndexChange);
   /* Moving to another leader drops text the last one refused, so coming back shows its saved strength. */
   const selectIndex = (index: number) => {
     if (strengthRefusal !== null) {
@@ -213,83 +169,54 @@ export function FactionFormSectionLeaders({
   });
 
   return (
-    <Stack component="section" gap="md" aria-label="Supporting leaders">
-      <form.Field name="leaders" mode="array">
-        {(field) => {
-          const sortablePrefix = 'leaders-';
-          const count = field.state.value.length;
-          const canAdd = canAddSupportingLeader(count);
-          const safeSelectedIndex = Math.min(Math.max(currentSelectedIndex, 0), Math.max(count - 1, 0));
-          return (
-            <Stack gap="md">
-              <Group justify="flex-end" gap={4} wrap="nowrap">
-                <Badge variant="light" color="gray">
-                  {count} / {SUPPORTING_LEADER_LIMIT}
-                </Badge>
-                <ListLengthActions
-                  removeLabel="Remove last supporting leader"
-                  addLabel="Add supporting leader"
-                  removeDisabled={count === 0}
-                  addDisabled={!canAdd}
-                  onRemove={() => {
-                    const lastIndex = count - 1;
-                    if (lastIndex < 0) {
-                      return;
-                    }
-                    if (currentSelectedIndex >= lastIndex) {
-                      selectIndex(Math.max(0, lastIndex - 1));
-                    }
-                    field.removeValue(lastIndex);
-                  }}
-                  onAdd={() => {
-                    if (!canAdd) {
-                      return;
-                    }
-                    const newIndex = count;
-                    field.pushValue(nextLeaderFromLast(field.state.value[newIndex - 1]));
-                    pendingLeaderFocus.current = `leader-${newIndex}-name`;
-                    selectIndex(newIndex);
-                  }}
-                />
-              </Group>
-
-              {count === 0 ? (
-                <Alert color="yellow" variant="light" title="No supporting leaders">
-                  Zero is valid, but unusual. Most factions use five supporting leaders.
-                </Alert>
-              ) : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT ? (
-                <Alert color="gray" variant="light">
-                  Most factions use five supporting leaders; this roster is still valid.
-                </Alert>
-              ) : null}
-
-              {field.state.value.length > 0 ? (
-                <>
-                  <FactionCollectionShelf
-                    label="Ordered supporting leaders"
-                    sortablePrefix={sortablePrefix}
-                    selectedIndex={safeSelectedIndex}
-                    onSelectedIndexChange={selectIndex}
-                    items={field.state.value.map((leader, index) => ({
-                      id: `${sortablePrefix}${index}`,
-                      label: leader.name.trim() || 'Unnamed leader',
-                      description: leader.strength === undefined ? 'No strength' : `Strength ${leader.strength}`,
-                    }))}
-                    onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
-                  />
-                  <SupportingLeaderCard
-                    form={form}
-                    index={safeSelectedIndex}
-                    showPreview={showPreview}
-                    strengthRefusal={strengthRefusal}
-                    onStrengthRefusalChange={onStrengthRefusalChange}
-                  />
-                </>
-              ) : null}
-            </Stack>
-          );
-        }}
-      </form.Field>
-    </Stack>
+    <form.Field name="leaders" mode="array">
+      {(field) => {
+        const count = field.state.value.length;
+        return (
+          <FactionListSection
+            title="Supporting leaders"
+            help={'The leaders this faction fields besides its faction leader.\nMost factions use five.'}
+            note={
+              count === 0
+                ? {
+                    tone: 'caution',
+                    title: 'No supporting leaders',
+                    text: 'Zero is valid, but unusual. Most factions use five supporting leaders.',
+                  }
+                : count !== CONVENTIONAL_SUPPORTING_LEADER_COUNT
+                  ? { text: 'Most factions use five supporting leaders; this roster is still valid.' }
+                  : null
+            }
+            badge={<StatusBadge>{`${count} / ${SUPPORTING_LEADER_LIMIT}`}</StatusBadge>}
+            noun="supporting leader"
+            sortablePrefix="leaders-"
+            values={field.state.value}
+            describe={(leader) => ({
+              label: leader.name.trim() || 'Unnamed leader',
+              description: leader.strength === undefined ? 'No strength' : `Strength ${leader.strength}`,
+            })}
+            selected={selected}
+            onSelect={selectIndex}
+            addDisabled={!canAddSupportingLeader(count)}
+            onAdd={() => {
+              field.pushValue(nextLeaderFromLast(field.state.value[count - 1]));
+              pendingLeaderFocus.current = `leader-${count}-name`;
+            }}
+            onRemoveLast={() => field.removeValue(count - 1)}
+            onMove={(from, to) => field.handleChange(arrayMove(field.state.value, from, to))}
+          >
+            {(index) => (
+              <SupportingLeaderCard
+                form={form}
+                index={index}
+                showPreview={showPreview}
+                strengthRefusal={strengthRefusal}
+                onStrengthRefusalChange={onStrengthRefusalChange}
+              />
+            )}
+          </FactionListSection>
+        );
+      }}
+    </form.Field>
   );
 }

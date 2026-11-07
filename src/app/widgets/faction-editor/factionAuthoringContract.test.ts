@@ -157,7 +157,7 @@ describe('faction authoring contract', () => {
     faction.rules.alliance.text = '';
     faction.decals = [
       {
-        id: faction.logo,
+        id: faction.emblem,
         muted: false,
         outline: true,
         scale: 0.73,

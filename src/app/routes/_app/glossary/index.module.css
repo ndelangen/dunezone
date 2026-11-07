@@ -4,10 +4,6 @@
   scroll-margin-top: var(--space-xl);
 }
 
-.avoided {
-  text-decoration: line-through;
-}
-
 /* The picture stays in view beside a long run of terms. */
 .visual {
   position: sticky;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { tableCountSchema } from './schema';
+import { tableCountSchema, tableIdSchema } from './schema';
 
 /**
  * The retained public log of a real game, as every viewer reads it: one sentence per public event with its classification and the turn or stage it happened in.
@@ -19,6 +19,8 @@ const logClassSchema = z.enum([
   'prediction',
   'alliance',
   'deletion',
+  'restore',
+  'chat',
   'seat',
   'vote',
   'bug-report',
@@ -33,6 +35,8 @@ export const LOG_CLASS_TABS = {
   prediction: 'game',
   alliance: 'game',
   deletion: 'game',
+  restore: 'game',
+  chat: 'game',
   seat: 'audit',
   vote: 'audit',
   'bug-report': 'game',
@@ -54,5 +58,7 @@ export const logEntrySchema = z.object({
     .string()
     .regex(/^https:\/\/github\.com\/ndelangen\/dunezone\/issues\/\d+$/u)
     .optional(),
+  /* A deletion the table can still undo names it here, for the restore command; gone once restored (#2132). */
+  restore: tableIdSchema.optional(),
 });
 export type LogEntry = z.infer<typeof logEntrySchema>;

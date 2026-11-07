@@ -1,12 +1,11 @@
 import { z } from 'zod';
 
 import { componentGeometrySchema } from '../asset-publishing/componentGeometry';
-import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, LOGO, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
+import { BACKGROUND, DECAL, GENERIC, ICON, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { GEAR_CLIP, POINTER_CLIP } from '../assets/tokenOutline';
 import { FactionMemberIdSchema } from '../factions/memberIdentity';
 import { CanonicalFactionStoredObject } from '../factions/schema';
 import { FactionTroopIdSchema } from '../factions/troopIdentity';
-import { RULEBOOK_BOARD_DEFINITIONS } from './boardDefinitions';
 
 export const rulebookCardSourceReferenceSchema = z.strictObject({
   kind: z.literal('asset'),
@@ -43,7 +42,7 @@ export type RulebookSourceReference = z.infer<typeof rulebookSourceReferenceSche
 export const rulebookFactionSheetSchema = CanonicalFactionStoredObject.pick({
   name: true,
   themeColor: true,
-  logo: true,
+  emblem: true,
   background: true,
   leaders: true,
   troops: true,
@@ -90,7 +89,7 @@ export const RULEBOOK_STOCK_ARTWORK = [
     ...GENERIC.options,
     ...ICON.options,
     ...LEADERS.options,
-    ...LOGO.options,
+    ...EMBLEM.options,
     ...PLANET.options,
     ...TEXTURE.options,
     ...TROOP.options,
@@ -98,7 +97,11 @@ export const RULEBOOK_STOCK_ARTWORK = [
   ]),
 ];
 const stockArtworkIds = new Set<string>(RULEBOOK_STOCK_ARTWORK);
-export const RULEBOOK_BOARD_ARTWORK = RULEBOOK_BOARD_DEFINITIONS;
+
+/** A board takes Sector lines. */
+export function rulebookSourceTakesSectorLines(source: RulebookSourceReference | undefined) {
+  return source?.kind === 'board';
+}
 
 export function rulebookArtworkName(path: string): string {
   return path
@@ -109,27 +112,12 @@ export function rulebookArtworkName(path: string): string {
     .replaceAll('_', ' ');
 }
 
-/** Maintained artwork resolves locally; database-backed sources, saved boards among them, resolve in the owning route query. */
+/** Maintained artwork resolves locally; database-backed sources, boards among them, resolve in the owning route query. */
 export function resolveRulebookArtworkSource(reference: RulebookSourceReference): RulebookResolvedSource | null {
   if (reference.kind === 'stock') {
     return stockArtworkIds.has(reference.artworkId)
       ? { status: 'ready', reference, name: rulebookArtworkName(reference.artworkId), imageUrl: reference.artworkId }
       : { status: 'unavailable', reference };
-  }
-  if (reference.kind === 'board') {
-    const board = RULEBOOK_BOARD_ARTWORK.find(({ id }) => id === reference.boardId);
-    return board
-      ? {
-          status: 'ready',
-          reference,
-          name: board.name,
-          imageUrl: board.imageUrl,
-          width: board.geometry.width,
-          height: board.geometry.height,
-          geometry: board.geometry,
-          publicationRevision: board.revision,
-        }
-      : null;
   }
   return null;
 }

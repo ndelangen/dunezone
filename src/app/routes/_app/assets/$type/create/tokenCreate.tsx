@@ -1,10 +1,13 @@
-import { Alert, Select } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { TokenAsset } from '@shared/assets/schema';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
 import type { AssetType } from '@shared/assets/types';
 import { useNavigate } from '@tanstack/react-router';
-import { LoadPending } from '@ui/block/LoadPending';
+import { ActionError } from '@ui/block/ActionError';
+import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { WorkbenchLayout } from '@ui/layout/WorkbenchLayout';
 import { useReducer, useState } from 'react';
@@ -29,13 +32,13 @@ import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { referencedTokenBackFace } from '../$slug/edit/referencedBackFace';
 import { CreateBackNote, referencedBackProof } from '../$slug/edit/ReferencedBackProof';
-import { AssetEditorMessage, SaveErrorAlert, assetNameField } from '../../assetEditorStates';
+import { AssetEditorMessage, assetNameField } from '../../assetEditorStates';
 import { LoadedTokenDraft, tokenLoad } from '../../loadedDrafts';
 
 /**
  * This page's authoring state, and the four things that happen to it.
  *
- * Written here rather than shared, per D7 on «Work the editors wave»: the pattern repeats across the editors and that repetition is the design.
+ * Written here rather than on the shared card session (`$type/cardSession.tsx`), because this page keeps side-state the card config has no slot for.
  * `memory` is what the session needs and the stored token has no room for (D3): the face and target kept across mode flips, the declared Custom intents, and whether a save has already complained.
  * `baseline` is what a reset returns to, and rebuilding the whole state on `replace` is what makes a discarded pick actually discarded.
  */
@@ -112,7 +115,9 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
     case 'pending':
       return (
         <AssetEditorMessage title={`New ${label} token`} type={type}>
-          <LoadPending title="Loading your profile">Checking whether you are signed in.</LoadPending>
+          <PageState kind="pending" title="Loading your profile">
+            Checking whether you are signed in.
+          </PageState>
         </AssetEditorMessage>
       );
     case 'signed-out':
@@ -168,32 +173,37 @@ export function TokenCreatePage({ type }: { type: AssetType }) {
         </PageLayout.Toolbar>
         <PageLayout.Content>
           <WorkbenchLayout gap="sm">
-            <SaveErrorAlert error={createAsset.error} />
+            <ActionError subject="token" verb="create" error={createAsset.error} />
             {state.memory.pickBlocked && pickless ? (
-              <Alert color="yellow" variant="light" role="alert" title="No token picked">
+              <Notice tone="caution" title="No token picked" live>
                 Picking a token's back happens on the edit page; save with another back mode first.
-              </Alert>
+              </Notice>
             ) : null}
             {type === 'token-disc' ? (
-              <Select
-                label="Discovery preset"
-                placeholder="Choose a standard"
-                value={null}
-                data={(standards?.discovery ?? []).map((preset) => ({ value: preset.key, label: preset.label }))}
-                onChange={(key) => {
-                  const preset = standards?.discovery.find((entry) => entry.key === key);
-                  if (preset) {
-                    dispatch({
-                      kind: 'replace',
-                      data: {
-                        ...state.data,
-                        front: { ...preset.front, image: state.data.front.image },
-                        back: { mode: 'custom', face: preset.back },
-                      },
-                      pick: null,
-                    });
-                  }
-                }}
+              <ControlBlock
+                title="Discovery preset"
+                input={(fieldProps) => (
+                  <Select
+                    {...fieldProps}
+                    placeholder="Choose a standard"
+                    value={null}
+                    data={(standards?.discovery ?? []).map((preset) => ({ value: preset.key, label: preset.label }))}
+                    onChange={(key) => {
+                      const preset = standards?.discovery.find((entry) => entry.key === key);
+                      if (preset) {
+                        dispatch({
+                          kind: 'replace',
+                          data: {
+                            ...state.data,
+                            front: { ...preset.front, image: state.data.front.image },
+                            back: { mode: 'custom', face: preset.back },
+                          },
+                          pick: null,
+                        });
+                      }
+                    }}
+                  />
+                )}
               />
             ) : null}
             <TokenEditor

@@ -1,11 +1,16 @@
-import { Alert, Anchor, Button, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
+import { Anchor, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
 import { changes } from '@shared/jsonDiff';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { CodeExample } from '@ui/content/CodeExample';
+import { ControlBlock } from '@ui/control/ControlBlock';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import { X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { pageHead } from '@app/routes/pageTitle';
@@ -74,7 +79,7 @@ function GameDebugger() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Game debugger" subtitle="Inspect a reported game and the browser that reported it." />
+        <PageTitle title="Game debugger" lede="Inspect a reported game and the browser that reported it." />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
@@ -83,27 +88,30 @@ function GameDebugger() {
         <Stack gap="lg">
           <Surface padding="lg">
             <Stack gap="sm">
-              <FileInput
-                label="Bug report file"
-                description="Download state.json from a reported-bug issue. The file stays in this browser tab and is not uploaded or saved."
-                accept="application/json,.json"
-                placeholder="Choose a report"
-                value={null}
-                onChange={(file) => void load(file)}
-                disabled={state.loading}
+              <ControlBlock
+                title="Bug report file"
+                description={
+                  'Download state.json from a reported-bug issue.\nThe file stays in this browser tab and is not uploaded or saved.'
+                }
+                input={(fieldProps) => (
+                  <FileInput
+                    {...fieldProps}
+                    accept="application/json,.json"
+                    placeholder="Choose a report"
+                    value={null}
+                    onChange={(file) => void load(file)}
+                    disabled={state.loading}
+                  />
+                )}
               />
               {state.loading && <Text role="status">Opening {state.name}…</Text>}
-              {state.error && (
-                <Alert color="negative" title="Cannot open report" role="alert">
-                  {state.error}
-                </Alert>
-              )}
+              {state.error && <FormError title="Cannot open report">{state.error}</FormError>}
               {report && (
                 <Group justify="space-between">
                   <Text>{state.name}</Text>
-                  <Button variant="default" onClick={() => dispatch({ kind: 'clear' })}>
+                  <LabeledAction icon={<X size={16} />} onClick={() => dispatch({ kind: 'clear' })}>
                     Close report
-                  </Button>
+                  </LabeledAction>
                 </Group>
               )}
             </Stack>
@@ -143,15 +151,16 @@ function ReportContents({
   };
   return (
     <>
-      <Section title="Captured game" description={`Game ${report.server.gameId}`}>
+      <Section title="Captured game">
         <Text>
-          Captured {report.server.capturedAt}. Server revision {summary(report.server.state.revision)}.
+          Game {report.server.gameId}, captured {report.server.capturedAt}. Server revision{' '}
+          {summary(report.server.state.revision)}.
         </Text>
         <Text size="sm">Code version: {report.server.gitSha || 'unknown'}</Text>
-        <Alert color="caution" title="One captured moment">
+        <Notice tone="caution" title="One captured moment">
           This report does not contain replay checkpoints or a complete action history. Events below describe what
           happened, but selecting one cannot reconstruct the table at that time.
-        </Alert>
+        </Notice>
       </Section>
       <Tabs defaultValue="state" keepMounted={false}>
         <Tabs.List>
@@ -166,11 +175,16 @@ function ReportContents({
         </Tabs.Panel>
         <Tabs.Panel value="state" pt="md">
           <Stack gap="md">
-            <Select
-              label="Inspect"
-              data={Object.keys(sections)}
-              value={section}
-              onChange={(value) => value && onSection(value)}
+            <ControlBlock
+              title="Inspect"
+              input={(fieldProps) => (
+                <Select
+                  {...fieldProps}
+                  data={Object.keys(sections)}
+                  value={section}
+                  onChange={(value) => value && onSection(value)}
+                />
+              )}
             />
             <JsonFields value={sections[section]} />
           </Stack>
@@ -194,14 +208,19 @@ function CapturedTable({ report }: { report: Report }) {
   const snapshot = renderSnapshot(report, source);
   return (
     <Stack gap="md">
-      <Select
-        label="Table capture"
-        value={source}
-        data={[
-          { value: 'browser', label: 'Reporting browser' },
-          { value: 'server', label: 'Server' },
-        ]}
-        onChange={(value) => value && select(value as 'server' | 'browser')}
+      <ControlBlock
+        title="Table capture"
+        input={(fieldProps) => (
+          <Select
+            {...fieldProps}
+            value={source}
+            data={[
+              { value: 'browser', label: 'Reporting browser' },
+              { value: 'server', label: 'Server' },
+            ]}
+            onChange={(value) => value && select(value as 'server' | 'browser')}
+          />
+        )}
       />
       <Text size="sm">
         A static table preview using the current renderer. Artwork loads from Dune Zone. The original game is never
@@ -212,10 +231,10 @@ function CapturedTable({ report }: { report: Report }) {
           <ReportTable key={`${report.server.gameId}:${report.server.capturedAt}:${source}`} snapshot={snapshot} />
         </Suspense>
       ) : (
-        <Alert color="caution">
+        <Notice tone="caution">
           This capture cannot be rendered with the current schema or contains unsupported artwork addresses. Its data
           remains available in State.
-        </Alert>
+        </Notice>
       )}
     </Stack>
   );

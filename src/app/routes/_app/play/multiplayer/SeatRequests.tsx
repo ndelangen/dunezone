@@ -1,4 +1,4 @@
-import { Button, Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
+import { Group, Menu, Popover, Select, Slider, Stack, Text } from '@mantine/core';
 import { idleBidding } from '@shared/play/bidding';
 import type { PublicControls } from '@shared/play/inventory';
 import { seatLabel, seatSubject } from '@shared/play/participation';
@@ -7,9 +7,10 @@ import { rosterSeat } from '@shared/play/schema';
 import { Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Eyebrow } from '@ui/content/Eyebrow';
-import { ConfirmDeleteMenuItem } from '@ui/control/ConfirmDeleteMenuItem';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
-import { Armchair, Settings } from 'lucide-react';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Armchair, ChevronLeft, ChevronRight, Radio, Settings, X } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -22,6 +23,7 @@ import {
 } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import type { BoardSkin } from '../../../../widgets/tabletop/boardSkins';
+import { setCameraFollowsPhase, useCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import {
   setTableLighting,
   TABLE_LIGHTING_MAX,
@@ -34,19 +36,25 @@ import {
   TABLE_PAN_SPEED_MIN,
   useTablePanSpeed,
 } from '../../../../widgets/tabletop/tablePanSpeed';
+import { setShortcutsButton, useShortcutsButton } from '../compass/shortcutsButton';
 import { TABLE_LABEL_OPTIONS, useTableLabels } from '../tableLabels';
+import { setAutoClearChats, useAutoClearChats } from './autoClearChats';
 import { publicControlsOf } from './publicControls';
 import { isSpectator, offersActions } from './tableFactions';
 
 /*
  * Participation without a bar between the board and the controls (Norbert, 2026-10-11): a spectator asks from the
- * Seats popover in the header (or the (+) in the drafting roster), a player approves where the seat is shown (the
- * drafting roster, or the vacant seat's Info in play), and giving up a seat is held in the game menu.
+ * Seats popover in the header (or the (+) in the drafting roster), every player approves in Seats & spectators (or the
+ * drafting roster), and giving up a seat is held in the game menu.
  */
 
 type BarProps = Readonly<{ client: TableSession; table: TableProjection }>;
 
-function seatWords(table: TableProjection, seat: string | null, label: (seat: string) => string = seatLabel): string {
+export function seatWords(
+  table: TableProjection,
+  seat: string | null,
+  label: (seat: string) => string = seatLabel
+): string {
   if (seat === null) {
     return 'a seat';
   }
@@ -55,7 +63,7 @@ function seatWords(table: TableProjection, seat: string | null, label: (seat: st
 }
 
 /** The seats nobody holds, once the seating is fixed; while drafting a request names no seat. */
-function openSeats(table: TableProjection): string[] {
+export function openSeats(table: TableProjection): string[] {
   const controls = publicControlsOf(table);
   return (table.snapshot.roster?.seats ?? []).map((seat) => seat.id).filter((seat) => !controls.seats.includes(seat));
 }
@@ -65,27 +73,25 @@ function SeatButton({
   client,
   table,
   action,
-  disabled = false,
-  variant,
-  color,
+  emphasis,
+  icon,
   children,
 }: BarProps &
   Readonly<{
     action: SeatAction;
-    disabled?: boolean;
-    variant?: 'default' | 'subtle';
-    color?: string;
+    emphasis?: 'standard' | 'strong';
+    icon: ReactNode;
     children: string;
   }>) {
   return (
-    <Button
-      variant={variant}
-      color={color}
-      disabled={disabled || seatLocked(table)}
+    <LabeledAction
+      emphasis={emphasis}
+      icon={icon}
+      disabledReason={seatLockedReason(table)}
       onClick={() => client.command(action)}
     >
       {children}
-    </Button>
+    </LabeledAction>
   );
 }
 
@@ -151,7 +157,14 @@ function seatOffer(
           />
         )}
         {/* Keyed by the seat it asks for, so a press that began before that seat was taken never requests another. */}
-        <SeatButton key={request.seat ?? 'any'} client={client} table={table} action={request}>
+        <SeatButton
+          key={request.seat ?? 'any'}
+          client={client}
+          table={table}
+          action={request}
+          emphasis="strong"
+          icon={<Armchair size={16} />}
+        >
           {drafting || open.length !== 1 ? 'Request a seat' : `Request ${seatWords(table, open[0]!)}`}
         </SeatButton>
       </Group>
@@ -172,7 +185,7 @@ function useSpectatorSeat(client: TableSession, table: TableProjection): SeatNot
       eyebrow: 'Seat requested',
       ...ownRequestCopy(table, own),
       action: (
-        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} variant="default">
+        <SeatButton client={client} table={table} action={{ kind: 'seat-withdraw' }} icon={<X size={16} />}>
           Withdraw
         </SeatButton>
       ),
@@ -252,57 +265,9 @@ function leavingLabel(table: TableProjection): string {
   }
 }
 
-/** A player approves a spectator's request for this vacant seat from the seat's Info, where the seat is shown. */
-export function VacantSeatRequests({
-  client,
-  table,
-  seat,
-}: Readonly<{ client: TableSession; table: TableProjection; seat: string }>) {
-  const controls = publicControlsOf(table);
-  if (!approvable(table) || !openSeats(table).includes(seat)) {
-    return null;
-  }
-  const requests = controls.seatRequests.filter((request) => request.seat === seat);
-  return requests.length ? (
-    <Stack gap="xs" component="section" aria-label="Seat requests">
-      {requests.map((request) => (
-        <Group key={request.id} gap="sm" justify="space-between" wrap="nowrap">
-          <Text size="sm">
-            <strong>{request.requesterName}</strong> asks for {seatWords(table, seat)}.
-          </Text>
-          {/* Keyed by the request, so a press that began on one request never approves the next. */}
-          <SeatButton
-            key={request.id}
-            client={client}
-            table={table}
-            action={{ kind: 'seat-approve', requestId: request.id }}
-            color="confirm"
-          >
-            Approve
-          </SeatButton>
-        </Group>
-      ))}
-    </Stack>
-  ) : null;
-}
-
 /** A player approves while the game runs live; a finished game takes no one until it continues. */
-function approvable(table: TableProjection): boolean {
+export function approvable(table: TableProjection): boolean {
   return !isSpectator(table) && !table.playback && table.snapshot.stage !== 'finished';
-}
-
-/** The vacant seats a spectator is asking for, so the player rail can mark them. */
-export function requestedSeats(table: TableProjection): ReadonlySet<string> {
-  if (!approvable(table)) {
-    return new Set();
-  }
-  const controls = publicControlsOf(table);
-  const open = openSeats(table);
-  return new Set(
-    controls.seatRequests.flatMap((request) =>
-      request.seat !== null && open.includes(request.seat) ? [request.seat] : []
-    )
-  );
 }
 
 /* This viewer's table brightness; it stays in this browser and never reaches the game. */
@@ -330,7 +295,7 @@ function TableLightingSlider() {
 }
 
 /*
- * How fast this viewer's pan keys slide a close look; it stays in this browser and never reaches the game.
+ * How fast this viewer's pan keys slide the view; it stays in this browser and never reaches the game.
  * The slider runs on a log scale, so halving and doubling the speed are the same distance either side of the table's own.
  */
 function TablePanSpeedSlider() {
@@ -376,14 +341,33 @@ function BoardSkinItems() {
   );
 }
 
-/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim; it stays in this browser. */
-function PlanetShadingItem() {
-  const planet = usePlanetShading();
+/* A choice this viewer turns on or off; it stays in this browser and never reaches the game. */
+function ViewerToggleItem({ label, on, set }: Readonly<{ label: string; on: boolean; set: (on: boolean) => void }>) {
   return (
-    <Menu.CheckboxItem checked={planet} closeMenuOnClick={false} onChange={() => setPlanetShading(!planet)}>
-      Planet shading
+    <Menu.CheckboxItem checked={on} closeMenuOnClick={false} onChange={() => set(!on)}>
+      {label}
     </Menu.CheckboxItem>
   );
+}
+
+/* Shades this viewer's board like a lit planet, bright in the middle and dark at the rim. */
+function PlanetShadingItem() {
+  return <ViewerToggleItem label="Planet shading" on={usePlanetShading()} set={setPlanetShading} />;
+}
+
+/* Off, a new phase leaves the view this viewer set up instead of moving to the phase's own view. */
+function CameraFollowsPhaseItem() {
+  return <ViewerToggleItem label="Camera follows phase" on={useCameraFollowsPhase()} set={setCameraFollowsPhase} />;
+}
+
+/* Keeps the keyboard shortcuts button in the bar at the bottom of the table, or takes it off. */
+function ShortcutsButtonItem() {
+  return <ViewerToggleItem label="Keyboard shortcuts button" on={useShortcutsButton()} set={setShortcutsButton} />;
+}
+
+/* The viewer's own chats clear at the start of each turn, logged as a clear by hand is; off unless turned on (#2674). */
+function AutoClearChatsItem() {
+  return <ViewerToggleItem label="Clear chats each new turn" on={useAutoClearChats()} set={setAutoClearChats} />;
 }
 
 /* Pins the stack counts or piece names on; holding the key shows them for a moment. */
@@ -444,9 +428,17 @@ export function GameMenu({
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
+        <CameraFollowsPhaseItem />
         <BoardSkinItems />
         <PlanetShadingItem />
         <TableLabelItems />
+        <ShortcutsButtonItem />
+        {!isSpectator(table) && (
+          <>
+            <Menu.Divider />
+            <AutoClearChatsItem />
+          </>
+        )}
         {table.snapshot.stage === 'play' && offersActions(table) && (
           <Menu.CheckboxItem
             checked={table.snapshot.bidding?.timed ?? idleBidding().timed}
@@ -470,10 +462,11 @@ export function GameMenu({
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
         {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
         {!isSpectator(table) && (
-          <ConfirmDeleteMenuItem
+          <HoldAction
+            shape="menu-item"
             key={table.viewer.viewerSeat}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
-            holdingVerb="Leaving"
+            verb="leave"
             closeMenuOnClick={false}
             disabled={!seated || seatLocked(table)}
             onConfirm={() => client.command({ kind: 'seat-depart' })}
@@ -486,7 +479,18 @@ export function GameMenu({
 
 /** A seat command waits for the last one and for the live table; history is read only, so it would be refused there. */
 export function seatLocked(table: TableProjection): boolean {
-  return Boolean(table.seatCommandPending || table.reconnecting || table.playback || table.historyPending);
+  return seatLockedReason(table) !== undefined;
+}
+
+/** Why a seat action waits, in the words its disabled button gives; nothing while it can run. */
+export function seatLockedReason(table: TableProjection): string | undefined {
+  if (table.seatCommandPending) {
+    return 'Your last seat action is still on its way.';
+  }
+  if (table.reconnecting) {
+    return 'Reconnecting to the table.';
+  }
+  return table.playback || table.historyPending ? 'Return to the live table first.' : undefined;
 }
 
 /**
@@ -509,21 +513,31 @@ export function StagePlayback({
           <Text size="sm" c="dimmed" role="status">
             Playback checkpoint {playback.step} of {playback.lastStep}
           </Text>
-          <Button
-            variant="default"
-            disabled={historyPending || playback.step === 0}
+          <LabeledAction
+            icon={<ChevronLeft size={16} />}
+            disabledReason={
+              historyPending ? 'Playback is loading.' : playback.step === 0 ? 'This is the first phase.' : undefined
+            }
             onClick={() => client.requestHistory(playback.step - 1)}
           >
             Earlier phase
-          </Button>
-          <Button
-            variant="default"
-            disabled={historyPending || playback.step === playback.lastStep}
+          </LabeledAction>
+          <LabeledAction
+            icon={<ChevronRight size={16} />}
+            disabledReason={
+              historyPending
+                ? 'Playback is loading.'
+                : playback.step === playback.lastStep
+                  ? 'This is the last phase.'
+                  : undefined
+            }
             onClick={() => client.requestHistory(playback.step + 1)}
           >
             Later phase
-          </Button>
-          <Button onClick={client.resumeLive}>Return to live</Button>
+          </LabeledAction>
+          <LabeledAction emphasis="strong" icon={<Radio size={16} />} onClick={client.resumeLive}>
+            Return to live
+          </LabeledAction>
         </Group>
       </Popover.Target>
       <Popover.Dropdown maw={320}>{error && <FormError title="From the table">{error}</FormError>}</Popover.Dropdown>

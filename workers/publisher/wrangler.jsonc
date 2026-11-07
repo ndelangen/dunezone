@@ -50,7 +50,7 @@
       "/image/*",
       "/web",
       "/web/*",
-      "/vector/emblem/*",
+      "/vector/logo/*",
       "/__play",
       "/__play/*",
       "/sitemap*",
@@ -80,7 +80,8 @@
       "/tutorial",
       "/tutorial/*",
       "/media",
-      "/media/*"
+      "/media/*",
+      "/public/*"
     ]
   },
   "browser": { "binding": "BROWSER" },

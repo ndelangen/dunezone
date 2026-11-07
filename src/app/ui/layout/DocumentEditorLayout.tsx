@@ -1,14 +1,8 @@
-import { Children, isValidElement, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties, PropsWithChildren, ReactNode } from 'react';
 
+import { collectSlots } from './collectSlots';
 import styles from './DocumentEditorLayout.module.css';
-import { warnDroppedChild } from './warnDroppedChild';
-
-const DOCUMENTEDITOR_SLOTS = [
-  'DocumentEditorLayout.Sidebar',
-  'DocumentEditorLayout.Preview',
-  'DocumentEditorLayout.PreviewTools',
-] as const;
 
 export type DocumentEditorFit = 'height' | 'width';
 
@@ -45,29 +39,10 @@ function paneHeight(element: HTMLElement) {
 }
 
 function readLayoutSlots(children: ReactNode): LayoutSlots {
-  let sidebar: ReactNode = null;
-  let preview: ReactNode = null;
-  let previewTools: ReactNode = null;
-
-  Children.forEach(children, (child) => {
-    if (!isValidElement(child)) {
-      warnDroppedChild('DocumentEditorLayout', DOCUMENTEDITOR_SLOTS, child);
-      return;
-    }
-    if (child.type === Sidebar) {
-      sidebar = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === Preview) {
-      preview = (child.props as PropsWithChildren).children;
-      return;
-    }
-    if (child.type === PreviewTools) {
-      previewTools = (child.props as PropsWithChildren).children;
-      return;
-    }
-    warnDroppedChild('DocumentEditorLayout', DOCUMENTEDITOR_SLOTS, child);
-  });
+  const slots = collectSlots('DocumentEditorLayout', { Sidebar, Preview, PreviewTools }, children);
+  const sidebar = slots.Sidebar?.children;
+  const preview = slots.Preview?.children;
+  const previewTools = slots.PreviewTools?.children;
 
   return { sidebar, preview, previewTools };
 }

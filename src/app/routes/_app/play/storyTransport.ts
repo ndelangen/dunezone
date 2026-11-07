@@ -64,6 +64,7 @@ export function storyTransport(
     holdLogHistory = false,
     logEntries = {},
     conversationMessages = [],
+    conversationSummaries,
     factions = {},
     admitView,
     answerCommand,
@@ -80,11 +81,32 @@ export function storyTransport(
     /* Takes every message but admission and the history pages first, as a live table does; true means it answered. */
     receive?: (message: ClientMessage) => boolean;
     conversationMessages?: Extract<ServerMessage, { type: 'conversation-history' }>['entries'];
+    /* Sent with the first view, as the Worker sends a faction its conversations; a clear sends them again with what it cleared. */
+    conversationSummaries?: Omit<Extract<ServerMessage, { type: 'conversations' }>, 'type' | 'generation'>;
     /* The seated factions' captured sheets by faction id; one not listed answers as a game without its capture. */
     factions?: Readonly<Partial<Record<string, PublicFaction>>>;
   } = {}
 ) {
   const messages: ClientMessage[] = [];
+  /* How far the viewer cleared each conversation; every conversation answers with the same scripted messages. */
+  const clearedThrough = new Map<string, number>();
+  /* Each clear's Game log line, newest first, ahead of the scripted entries, as the Worker logs it. */
+  const clearLog: LogEntry[] = [];
+  const gameLog = (): LogEntry[] => [
+    ...clearLog,
+    ...((typeof logEntries === 'function' ? logEntries() : logEntries).game ?? []),
+  ];
+  const summaries = (): Extract<ServerMessage, { type: 'conversations' }> | undefined =>
+    conversationSummaries && {
+      type: 'conversations',
+      generation: 0,
+      factionId: conversationSummaries.factionId,
+      entries: conversationSummaries.entries.map((entry) => ({
+        ...entry,
+        cleared: clearedThrough.get(entry.peerId) ?? entry.cleared,
+        unread: clearedThrough.has(entry.peerId) ? 0 : entry.unread,
+      })),
+    };
   const sockets: StorySocket[] = [];
   const viewer: Viewer = {
     connectionId: 'story-connection',
@@ -148,28 +170,23 @@ export function storyTransport(
         }
       }
       if (message.type === 'admit' && !holdView) {
-        queueMicrotask(() => this.deliver(admitView?.() ?? view(snapshot)));
+        queueMicrotask(() => this.admitted());
+      }
+      if (message.type === 'conversation-clear') {
+        this.cleared(message);
       }
       if (message.type === 'faction') {
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
       }
       if (message.type === 'conversation-history') {
-        const entries = conversationMessages.filter((entry) => entry.sequence < message.before);
+        const after = clearedThrough.get(message.peerId) ?? 0;
+        const entries = conversationMessages.filter(
+          (entry) => entry.sequence < message.before && entry.sequence > after
+        );
         queueMicrotask(() => this.deliver({ ...message, entries: entries.slice(-50), more: entries.length > 50 }));
       }
       if (message.type === 'log-history' && !holdLogHistory) {
-        const entries = ((typeof logEntries === 'function' ? logEntries() : logEntries)[message.tab] ?? []).filter(
-          (entry) => entry.sequence < message.before
-        );
-        queueMicrotask(() =>
-          this.deliver({
-            type: 'log-history',
-            tab: message.tab,
-            before: message.before,
-            entries: entries.slice(0, LOG_PAGE_SIZE),
-            more: entries.length > LOG_PAGE_SIZE,
-          })
-        );
+        queueMicrotask(() => this.deliverLog(message.tab, message.before));
       }
       if (message.type === 'command' && answerCommand) {
         queueMicrotask(() => this.deliver(answerCommand(message)));
@@ -179,6 +196,55 @@ export function storyTransport(
       if (message.type === 'command' && (isSeatAction(message.action) || isSwapAction(message.action))) {
         queueMicrotask(() => this.deliver(view(snapshot, message.commandId)));
       }
+    }
+
+    /* The first view, then the faction's conversations when the story has them, as the Worker admits a seat. */
+    admitted() {
+      this.deliver(admitView?.() ?? view(snapshot));
+      const summary = summaries();
+      if (summary) {
+        this.deliver(summary);
+      }
+    }
+
+    /* A clear moves the conversation's position, sends the summaries again, and logs it as the Worker does. */
+    cleared(message: Extract<ClientMessage, { type: 'conversation-clear' }>) {
+      const before = clearedThrough.get(message.peerId) ?? 0;
+      clearedThrough.set(message.peerId, Math.max(before, message.through));
+      const summary = summaries();
+      if (summary) {
+        queueMicrotask(() => this.deliver(summary));
+      }
+      /* As in the Worker, a clear that covers nothing new is not logged. */
+      if (message.through <= before) {
+        return;
+      }
+      const name = (id: string) => snapshot.roster?.seats.find((seat) => seat.faction?.id === id)?.faction?.name ?? id;
+      clearLog.unshift({
+        sequence: 10_000 + clearLog.length,
+        class: 'chat',
+        text:
+          message.peerId === '@table'
+            ? `${name(message.factionId)} cleared the table chat.`
+            : `${name(message.factionId)} cleared its private chats.`,
+        context: 'Turn 1 · Storm',
+        at: STORYBOOK_NOW,
+      });
+      queueMicrotask(() => this.deliverLog('game', Number.MAX_SAFE_INTEGER));
+    }
+
+    /* A page of a log tab before `before`, newest first. */
+    deliverLog(tab: LogTab, before: number) {
+      const scripted = typeof logEntries === 'function' ? logEntries() : logEntries;
+      const all = tab === 'game' ? gameLog() : (scripted.audit ?? []);
+      const entries = all.filter((entry) => entry.sequence < before);
+      this.deliver({
+        type: 'log-history',
+        tab,
+        before,
+        entries: entries.slice(0, LOG_PAGE_SIZE),
+        more: entries.length > LOG_PAGE_SIZE,
+      });
     }
 
     /* Answered as the Worker's auto-response does, so an idle story keeps its socket. */

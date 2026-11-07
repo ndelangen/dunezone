@@ -15,7 +15,7 @@ import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
 import type { ServerMessage } from '../../src/shared/play/protocol';
 import type { PieceAction, GameSnapshot, ClientMessage } from '../../src/shared/play/protocol';
 import { BOARD_RADIUS } from '../../src/shared/play/tableGeometry';
-import board from '../../src/shared/rulebooks/boards/arrakis.json';
+import { ARRAKIS_OFFICIAL as board } from '../../src/shared/rulebooks/fixtures/arrakisOfficial';
 import { TUTORIAL_PLAYERS } from '../../src/shared/tutorial/players';
 import { cardPage, deckPage, slot, spiceCardPage } from './native-catalogue.fixture.ts';
 import type { NativePeer, NativeRuntime, NativeConnection, NativeView } from './native-runtime.fixture.ts';
@@ -99,7 +99,7 @@ function draftable({ slug, data }: FactionFixture): DraftFaction {
     id: slug,
     slug,
     name: data.name,
-    logo: data.logo,
+    emblem: data.emblem,
     background: data.background,
     color: data.themeColor,
     linked: true,
@@ -146,7 +146,7 @@ async function journeyRuntime() {
       id: 'ixians',
       slug: 'ixians',
       name: 'Ixians',
-      logo: '/vector/logo/ixian.svg',
+      emblem: '/vector/emblem/ixian.svg',
       background: {
         image: '/image/texture/022.jpg',
         colors: ['#b29b54', '#d1be82'],

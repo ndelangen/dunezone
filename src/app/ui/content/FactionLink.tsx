@@ -1,10 +1,9 @@
 import { Link } from '@tanstack/react-router';
-import clsx from 'clsx';
 import type { ComponentProps, CSSProperties } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
-import styles from './EntityLink.module.css';
+import { EntityLink } from './EntityLink';
 
 type FactionTokenProps = ComponentProps<typeof FactionToken>;
 
@@ -12,7 +11,7 @@ export interface FactionLinkProps {
   slug: string;
   name: string;
   /** The faction's own mark, the same pair its detail page renders. */
-  logo: FactionTokenProps['logo'];
+  emblem: FactionTokenProps['emblem'];
   background: FactionTokenProps['background'];
   className?: string;
   style?: CSSProperties;
@@ -26,11 +25,12 @@ export interface FactionLinkProps {
  * this owns how a faction is cited inline anywhere in the app, so every mention looks and navigates identically.
  * The destination is hardcoded because it is the component's name.
  */
-export const FactionLink = ({ slug, name, logo, background, className, style }: FactionLinkProps) => (
-  <Link to="/factions/$factionId" params={{ factionId: slug }} className={clsx(styles.link, className)} style={style}>
-    <span className={styles.media} aria-hidden>
-      <FactionToken logo={logo} background={background} />
-    </span>
-    <span className={styles.name}>{name}</span>
-  </Link>
+export const FactionLink = ({ slug, name, emblem, background, className, style }: FactionLinkProps) => (
+  <EntityLink
+    name={name}
+    disc={<FactionToken emblem={emblem} background={background} />}
+    className={className}
+    style={style}
+    renderRoot={(props) => <Link to="/factions/$factionId" params={{ factionId: slug }} {...props} />}
+  />
 );

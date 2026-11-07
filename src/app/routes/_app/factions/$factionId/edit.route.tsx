@@ -1,13 +1,12 @@
-import { Alert, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { isRouteNoticeCode } from '@shared/routeNotices';
 import type { RouteNoticeCode } from '@shared/routeNotices';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { LoadError } from '@ui/block/LoadError';
-import { LoadPending } from '@ui/block/LoadPending';
-import { NotAvailable } from '@ui/block/NotAvailable';
-import { errorMessage } from '@ui/content/errorMessage';
-import { ConfirmDeleteAction } from '@ui/control/ConfirmDeleteAction';
+import { ActionError } from '@ui/block/ActionError';
+import { Notice } from '@ui/block/Notice';
+import { PageState } from '@ui/block/PageState';
+import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { UserRoundMinus } from 'lucide-react';
@@ -17,9 +16,9 @@ import { useAuthoringAccountKey } from '@db/authoring';
 import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
 import { loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
-import { isStaleClientData } from '@app/db/core/clientBoundary';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
+import { RouteLoadError } from '@app/routes/routeStates';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -32,6 +31,7 @@ import { factionPublicationStatus } from '@app/widgets/faction-editor/factionPub
 import { useFactionAuthoring } from '@app/widgets/faction-editor/useFactionAuthoring';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { RoutePending } from '@app/widgets/page-message/RoutePending';
 import { BackgroundLibrary } from '@game/assets/utils/BackgroundLibrary';
 
 import { factionNameField } from '../factionNameField';
@@ -56,15 +56,13 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
  */
 function FactionEditError({ error }: ErrorComponentProps) {
   return (
-    <PageMessage
+    <RouteLoadError
       size="compact"
       title="Edit faction"
       back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
-    >
-      <LoadError title="Faction could not be loaded" stale={isStaleClientData(error)}>
-        {errorMessage(error)}
-      </LoadError>
-    </PageMessage>
+      what="Faction could not be loaded"
+      error={error}
+    />
   );
 }
 
@@ -117,9 +115,9 @@ function FactionEditPage() {
 
   if (!viewerResolved) {
     return (
-      <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
-        <LoadPending title="Loading faction">Checking what you can edit.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title={`Edit ${faction.data.name}`} back={backToFaction} loading="Loading faction">
+        Checking what you can edit.
+      </RoutePending>
     );
   }
 
@@ -135,20 +133,20 @@ function FactionEditPage() {
 
   if (!faction) {
     return (
-      <PageMessage size="compact" title="Edit faction" back={backToFaction}>
-        <LoadPending title="Loading faction">The faction is still loading.</LoadPending>
-      </PageMessage>
+      <RoutePending size="compact" title="Edit faction" back={backToFaction} loading="Loading faction">
+        The faction is still loading.
+      </RoutePending>
     );
   }
 
   if (!viewerAccess.capabilities.edit) {
     return (
       <PageMessage size="compact" title={`Edit ${faction.data.name}`} back={backToFaction}>
-        <NotAvailable title="You cannot edit this faction">
+        <PageState kind="absent" title="You cannot edit this faction">
           {faction.group_id
             ? 'Only the faction owner or an active member of its group can edit this faction.'
             : 'Only the faction owner can edit this faction.'}
-        </NotAvailable>
+        </PageState>
       </PageMessage>
     );
   }
@@ -232,7 +230,7 @@ function FactionEditPage() {
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
               canDelete ? (
-                <ConfirmDeleteAction
+                <HoldAction
                   label="Delete faction"
                   pending={deleteFaction.isPending}
                   onConfirm={() =>
@@ -246,21 +244,11 @@ function FactionEditPage() {
         <PageLayout.Content>
           <Stack gap="sm">
             {routeNotice ? (
-              <Alert
-                color={routeNotice.color}
-                title={routeNotice.title}
-                role="alert"
-                withCloseButton
-                onClose={dismissRouteNotice}
-              >
+              <Notice tone={routeNotice.tone} title={routeNotice.title} live onDismiss={dismissRouteNotice}>
                 {routeNotice.message}
-              </Alert>
+              </Notice>
             ) : null}
-            {deleteFaction.error ? (
-              <Alert color="red" variant="light" role="alert" title="Could not delete">
-                {deleteFaction.error.message}
-              </Alert>
-            ) : null}
+            <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
             <FactionEditor
               nameField={nameField}
               key={faction._id}

@@ -170,7 +170,7 @@ describe('Play account deletion', () => {
     expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('acknowledged');
   });
 
-  test('retiring the hosted fixture settles its deletions, drops its routing and retries until its room retires', async () => {
+  test('retiring the expired hosted fixture room settles its deletions, drops its routing and retries until its room retires', async () => {
     const subject = await fixture();
     await subject.t.run(
       async (ctx) =>
@@ -179,6 +179,7 @@ describe('Play account deletion', () => {
           ruleset_id: undefined,
           minimum_players: undefined,
           creator_id: undefined,
+          state: 'expired',
         })
     );
     const { event } = await startDeletion(subject);
@@ -188,7 +189,7 @@ describe('Play account deletion', () => {
     );
     vi.stubGlobal('fetch', fetch);
 
-    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
+    await subject.t.action(internal.playDeletion.retireFixtureRoom, { gameId: subject.game._id, attempt: 0 });
     await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
 
     const stored = await subject.t.run(async (ctx) => ({
@@ -216,6 +217,7 @@ describe('Play account deletion', () => {
           ruleset_id: undefined,
           minimum_players: undefined,
           creator_id: undefined,
+          state: 'expired',
         })
     );
     const { event } = await startDeletion(subject);
@@ -223,7 +225,7 @@ describe('Play account deletion', () => {
     vi.stubGlobal('fetch', fetch);
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
+    await subject.t.action(internal.playDeletion.retireFixtureRoom, { gameId: subject.game._id, attempt: 0 });
     await subject.t.finishAllScheduledFunctions(vi.runAllTimers);
 
     expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toHaveLength(17);
@@ -245,20 +247,6 @@ describe('Play account deletion', () => {
     expect(stored?.attempts).toBe(event.attempts + 1);
     expect(stored?.next_attempt_at).toBeGreaterThan(Date.now());
     expect(fetch).not.toHaveBeenCalled();
-  });
-
-  test('retiring the hosted fixture leaves every real game as it was', async () => {
-    const subject = await fixture();
-    const { event } = await startDeletion(subject);
-    const fetch = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 200 }));
-    vi.stubGlobal('fetch', fetch);
-
-    await subject.t.mutation(internal.migrations.play_hosted_fixture_retire_v1, {});
-
-    expect(await subject.t.run(async (ctx) => (await ctx.db.get(subject.game._id))?.state)).toBe('ready');
-    expect(await subject.t.run(async (ctx) => (await ctx.db.get(event._id))?.state)).toBe('pending');
-    expect(await subject.t.run(async (ctx) => await ctx.db.query('play_game_accounts').collect())).toHaveLength(1);
-    expect(fetch.mock.calls.filter(([url]) => String(url).endsWith('/retire'))).toEqual([]);
   });
 
   test('settles a deletion queued for a game that never opened only once its room has emptied', async () => {
