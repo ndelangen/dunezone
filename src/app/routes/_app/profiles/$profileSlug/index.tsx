@@ -41,6 +41,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 import { profileDescription } from './profileDescription';
+import { ProfileInvitations } from './ProfileInvitations';
 
 const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
 
@@ -178,6 +179,48 @@ function ProfileFaqActivity({
       </Section>
     );
   });
+}
+
+/** The side column: the viewer's own invitations, the BoardGameGeek link, the proposed bio, and the Groups the person belongs to. */
+function ProfileSidebar({ page, isSelf }: { page: ProfilePageData; isSelf: boolean }) {
+  return (
+    <aside className={styles.sidebar} aria-label="Profile details">
+      <Stack gap="sm">
+        {isSelf ? <ProfileInvitations /> : null}
+        {page.profile.bgg_profile_url ? (
+          <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
+            <Group gap="sm">
+              <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
+                View BGG profile
+              </Anchor>
+              <StatusBadge>Unverified</StatusBadge>
+            </Group>
+          </Card>
+        ) : null}
+        <Card icon={<Link2 size={20} aria-hidden />} title="About">
+          <ProposedContent label="Proposed profile fields">
+            <Text size="sm" c="dimmed">
+              A short bio and a small set of relevant external links could live here.
+            </Text>
+          </ProposedContent>
+        </Card>
+
+        <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
+          {page.groupSummaries.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              Not a member of any groups.
+            </Text>
+          ) : (
+            <Stack gap="xs" align="flex-start">
+              {page.groupSummaries.map((group) => (
+                <GroupLink key={group.id} slug={group.slug} name={group.name} />
+              ))}
+            </Stack>
+          )}
+        </Card>
+      </Stack>
+    </aside>
+  );
 }
 
 function ProfileDetailPage() {
@@ -363,41 +406,7 @@ function ProfileDetailPage() {
             />
           </Stack>
 
-          <aside className={styles.sidebar} aria-label="Profile details">
-            <Stack gap="sm">
-              {page.profile.bgg_profile_url ? (
-                <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
-                  <Group gap="sm">
-                    <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
-                      View BGG profile
-                    </Anchor>
-                    <StatusBadge>Unverified</StatusBadge>
-                  </Group>
-                </Card>
-              ) : null}
-              <Card icon={<Link2 size={20} aria-hidden />} title="About">
-                <ProposedContent label="Proposed profile fields">
-                  <Text size="sm" c="dimmed">
-                    A short bio and a small set of relevant external links could live here.
-                  </Text>
-                </ProposedContent>
-              </Card>
-
-              <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
-                {page.groupSummaries.length === 0 ? (
-                  <Text size="sm" c="dimmed">
-                    Not a member of any groups.
-                  </Text>
-                ) : (
-                  <Stack gap="xs" align="flex-start">
-                    {page.groupSummaries.map((group) => (
-                      <GroupLink key={group.id} slug={group.slug} name={group.name} />
-                    ))}
-                  </Stack>
-                )}
-              </Card>
-            </Stack>
-          </aside>
+          <ProfileSidebar page={page} isSelf={isSelf} />
         </div>
       </PageLayout.Content>
     </PageLayout>

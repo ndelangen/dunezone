@@ -125,6 +125,20 @@ async function seedOwnedRows(t: ReturnType<typeof setup>, ownerId: Id<'users'>, 
   });
 }
 
+/** Puts a person into a Group as an active member, which is what makes them a possible replacement owner. */
+async function joinGroup(t: ReturnType<typeof setup>, groupId: Id<'groups'>, userId: Id<'users'>) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert('group_members', {
+      group_id: groupId,
+      user_id: userId,
+      status: 'active',
+      requested_at: now,
+      approved_at: now,
+      approved_by: userId,
+    });
+  });
+}
+
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
@@ -134,7 +148,9 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'source');
     const replacement = await seedAccount(t, 'replacement');
     await seedAccount(t, 'pending', { state: 'deletion_pending' });
-    await seedOwnedRows(t, source.userId, 'summary');
+    await seedAccount(t, 'stranger');
+    const rows = await seedOwnedRows(t, source.userId, 'summary');
+    await joinGroup(t, rows.groupId, replacement.userId);
     const asSource = t.withIdentity({ subject: source.subject });
 
     await expect(asSource.query(api.accountDeletion.page, { profileSlug: 'source' })).resolves.toMatchObject({
@@ -172,6 +188,7 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'transfer-source');
     const replacement = await seedAccount(t, 'transfer-target');
     const rows = await seedOwnedRows(t, source.userId, 'transfer');
+    await joinGroup(t, rows.groupId, replacement.userId);
     const asSource = t.withIdentity({ subject: source.subject });
 
     const first = await asSource.mutation(api.accountDeletion.confirm, { replacementUserId: replacement.userId });
@@ -354,7 +371,8 @@ describe('account deletion', () => {
     const source = await seedAccount(t, 'repair-source');
     const replacement = await seedAccount(t, 'repair-target');
     const admin = await seedAccount(t, 'repair-admin', { admin: true });
-    await seedOwnedRows(t, source.userId, 'repair');
+    const rows = await seedOwnedRows(t, source.userId, 'repair');
+    await joinGroup(t, rows.groupId, replacement.userId);
     const asSource = t.withIdentity({ subject: source.subject });
     const { operationId } = await asSource.mutation(api.accountDeletion.confirm, {
       replacementUserId: replacement.userId,

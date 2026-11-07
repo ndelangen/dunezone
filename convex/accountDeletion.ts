@@ -10,9 +10,12 @@ import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './l
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { revokeAccountSessions } from './lib/authSessionLifecycle';
+import { pickableProfileValidator } from './lib/collaborativeAccessValidators';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
+import { pickableProfileForUser } from './lib/groupInvitations';
+import type { PickableProfile } from './lib/groupInvitations';
 import { requireAdminUserId, requireAuthUserId } from './lib/policy';
 import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
@@ -26,13 +29,14 @@ const TRANSACTION_RESERVE = {
   documentsWritten: 500,
 };
 
-const replacementProfileValidator = v.object({
-  profileId: v.id('profiles'),
-  userId: v.id('users'),
-  slug: v.string(),
-  username: v.string(),
-  avatarUrl: v.union(v.string(), v.null()),
-});
+/**
+ * How far the co-member search reaches: the deleting account's live Groups, and each one's active members.
+ * Both are read to a bound so the picker's query stays inside one transaction's reads;
+ * a person who shares several Groups is listed once.
+ * At 100 members the worst case (50 Groups of 100 members, two reads per distinct person) came near Convex's documents-per-query limit.
+ */
+const REPLACEMENT_GROUP_LIMIT = 50;
+const REPLACEMENT_GROUP_MEMBER_LIMIT = 50;
 
 type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'> | Id<'assets'>;
 type AnyCtx = QueryCtx | MutationCtx;
@@ -62,6 +66,72 @@ async function requireActiveReplacement(ctx: AnyCtx, sourceUserId: Id<'users'>, 
     throw new Error('The replacement profile is no longer available');
   }
   return profile;
+}
+
+/** The live Groups the deleting account is an active member of: where a replacement owner may be found. */
+async function sourceGroupIds(ctx: AnyCtx, sourceUserId: Id<'users'>) {
+  const memberships = await ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', sourceUserId).eq('status', 'active'))
+    .take(REPLACEMENT_GROUP_LIMIT);
+  const groups = await Promise.all(memberships.map((membership) => ctx.db.get('groups', membership.group_id)));
+  return groups.flatMap((group) => (group && !group.is_deleted ? [group._id] : []));
+}
+
+/**
+ * The replacement must share a Group with the deleting account: an active member of a live Group the account is also an active member of (Norbert, 2026-11-07).
+ * User ids are public, so without this anyone could hand their content to a stranger and lock that stranger's settings while it ran.
+ * An invitation or a pending request is not membership.
+ * Checked at confirm alone;
+ * `requireActiveReplacement` keeps watching the account itself while the operation runs.
+ */
+async function requireCoMember(ctx: AnyCtx, sourceUserId: Id<'users'>, replacementUserId: Id<'users'>) {
+  /* Every active membership, not the picker's bounded first Groups: the check stops at the first shared live Group, so an eligible choice is never refused for where its Group falls. */
+  const memberships = ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', sourceUserId).eq('status', 'active'));
+  for await (const sourceMembership of memberships) {
+    const [group, membership] = await Promise.all([
+      ctx.db.get('groups', sourceMembership.group_id),
+      ctx.db
+        .query('group_members')
+        .withIndex('by_group_user', (q) => q.eq('group_id', sourceMembership.group_id).eq('user_id', replacementUserId))
+        .unique(),
+    ]);
+    if (group && !group.is_deleted && membership?.status === 'active') {
+      return;
+    }
+  }
+  throw new Error('The replacement owner must be a member of a group you are also a member of');
+}
+
+/**
+ * Everyone who shares a Group with the deleting account, each once, as the picker offers them: by name, then slug.
+ * Read whole and bounded (`REPLACEMENT_GROUP_LIMIT` Groups of `REPLACEMENT_GROUP_MEMBER_LIMIT` members) rather than paged by the database, because one person recurs across Groups and a page of one Group's members could not know what an earlier page already listed.
+ * `seen` is checked before the profile lookup, so each distinct person costs their profile and user reads once however many Groups they share.
+ */
+async function coMemberProfiles(ctx: QueryCtx, sourceUserId: Id<'users'>, searchSlug: string) {
+  const seen = new Set<Id<'users'>>([sourceUserId]);
+  const profiles: PickableProfile[] = [];
+  for (const groupId of await sourceGroupIds(ctx, sourceUserId)) {
+    const members = await ctx.db
+      .query('group_members')
+      .withIndex('by_group_status', (q) => q.eq('group_id', groupId).eq('status', 'active'))
+      .take(REPLACEMENT_GROUP_MEMBER_LIMIT);
+    for (const member of members) {
+      if (seen.has(member.user_id)) {
+        continue;
+      }
+      seen.add(member.user_id);
+      const profile = await pickableProfileForUser(ctx, member.user_id);
+      if (profile && profile.slug.startsWith(searchSlug)) {
+        profiles.push(profile);
+      }
+    }
+  }
+  return profiles.sort(
+    (a, b) => a.username.localeCompare(b.username, 'en', { sensitivity: 'base' }) || a.slug.localeCompare(b.slug)
+  );
 }
 
 async function findNonterminalSourceOperation(ctx: AnyCtx, userId: Id<'users'>) {
@@ -161,40 +231,25 @@ export const page = viewerQuery({
   },
 });
 
-/** Lightweight, indexed replacement-owner projection. The picker mounts this query lazily. */
+/**
+ * The replacement owners the picker may offer: the people who share a Group with the viewer, by slug prefix.
+ * The picker mounts this query lazily.
+ * Paged by offset over the whole co-member list, which `coMemberProfiles` reads bounded and deduplicated;
+ * the cursor is that offset, so the shape every deployed picker pages with stays the same.
+ */
 export const listReplacementProfiles = viewerQuery({
   args: { paginationOpts: paginationOptsValidator, search: v.string() },
-  returns: paginationResultValidator(replacementProfileValidator),
+  returns: paginationResultValidator(pickableProfileValidator),
   handler: async (ctx, args) => {
     const sourceUserId = await requireAuthUserId(ctx);
-    const searchSlug = slugify(args.search);
-    const result = searchSlug
-      ? await ctx.db
-          .query('profiles')
-          .withIndex('by_slug', (q) => q.gte('slug', searchSlug).lt('slug', `${searchSlug}\uffff`))
-          .paginate(args.paginationOpts)
-      : await ctx.db
-          .query('profiles')
-          .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
-          .paginate(args.paginationOpts);
-    const page = [];
-    for (const profile of result.page) {
-      if (profile.user_id === sourceUserId || profile.account_state !== 'active' || !profile.username) {
-        continue;
-      }
-      const user = await ctx.db.get('users', profile.user_id);
-      if (!user || accountStateOf(user) !== 'active') {
-        continue;
-      }
-      page.push({
-        profileId: profile._id,
-        userId: profile.user_id,
-        slug: profile.slug,
-        username: profile.username,
-        avatarUrl: profile.avatar?.url ?? profile.avatar_url,
-      });
-    }
-    return { ...result, page };
+    const profiles = await coMemberProfiles(ctx, sourceUserId, slugify(args.search));
+    /* Anything but a plain offset, such as a database cursor from a picker opened before this paged by offset, starts again from the top. */
+    const cursor = args.paginationOpts.cursor ?? '0';
+    const offset = /^\d+$/.test(cursor) ? Number(cursor) : 0;
+    const size = Math.max(1, Math.floor(args.paginationOpts.numItems));
+    const page = profiles.slice(offset, offset + size);
+    const end = offset + page.length;
+    return { page, isDone: end >= profiles.length, continueCursor: String(end) };
   },
 });
 
@@ -226,6 +281,7 @@ export const confirm = mutation({
 
     if (args.replacementUserId) {
       await requireActiveReplacement(ctx, sourceUserId, args.replacementUserId);
+      await requireCoMember(ctx, sourceUserId, args.replacementUserId);
     }
 
     const now = nowIso();
