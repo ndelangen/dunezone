@@ -442,7 +442,8 @@ function LobbyContent({
   gameLink: PlayLobbyLinks['gameLink'];
 }>) {
   if (!ready) {
-    return <Surface padding="xl">{waiting}</Surface>;
+    /* A line while there is nothing to list, never a box: an empty pane reads like a field waiting for input (Norbert, 2026-11-07). */
+    return waiting;
   }
   if (ready.ongoing.length + ready.past.length === 0) {
     return <EmptyView title="No games yet">Create a game to set the first table.</EmptyView>;

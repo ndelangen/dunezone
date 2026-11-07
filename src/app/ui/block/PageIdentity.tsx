@@ -1,9 +1,5 @@
-import { Anchor, Group, Stack, Text } from '@mantine/core';
-import { createLink } from '@tanstack/react-router';
-import clsx from 'clsx';
-import { ChevronLeft } from 'lucide-react';
-import { forwardRef } from 'react';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import { Group, Stack, Text } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 import { GroupLink } from '../content/GroupLink';
 import { ProfileLink } from '../content/ProfileLink';
@@ -14,18 +10,6 @@ import { Stats } from '../list/Stats';
 import type { StatsItem } from '../list/Stats';
 import styles from './PageIdentity.module.css';
 import { PageTitle } from './PageTitle';
-
-const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BreadcrumbAnchor(
-  { className, children, ...props },
-  ref
-) {
-  return (
-    <Anchor ref={ref} size="xs" underline="hover" className={clsx(styles.breadcrumb, className)} {...props}>
-      <ChevronLeft size={13} strokeWidth={2.5} aria-hidden />
-      {children}
-    </Anchor>
-  );
-});
 
 /** A person the band cites, in `ProfileLink`'s own fields. */
 interface PageIdentityPerson {
@@ -68,7 +52,7 @@ export interface PageIdentityProps {
    * this owns only the column's size scale, matched to the text block the way the pattern always did by design.
    */
   media?: ReactNode;
-  /** The way up one level, as a `PageIdentity.Breadcrumb`. Above the name, where the collection label reads as context. */
+  /** The way up one level, as a `Breadcrumb`. Above the name, where the collection label reads as context. */
   breadcrumb?: ReactNode;
   /** Who holds this: the owner, and the maintaining group where the kind has one. */
   maintainers?: PageIdentityMaintainers;
@@ -117,8 +101,7 @@ export function PageIdentity({ title, media, breadcrumb, maintainers, standing, 
     <Group wrap="nowrap" align="center" gap="lg" className={styles.band}>
       {media === undefined ? null : <div className={styles.media}>{media}</div>}
       <Stack gap={6} className={styles.text}>
-        {breadcrumb}
-        <PageTitle title={title} />
+        <PageTitle title={title} breadcrumb={breadcrumb} />
         {/*
           The sizes are level on purpose: this row centres its children, and a 12px label among 14-16px text reads as
           misaligned even when every box is perfectly centred.
@@ -139,10 +122,3 @@ export function PageIdentity({ title, media, breadcrumb, maintainers, standing, 
     </Group>
   );
 }
-
-/**
- * The way up one level, taking the same route props as the router's own `Link`, the `PageMessage.Back` idiom.
- * It wears the inverse eyebrow treatment with a leading chevron, so it reads as the page's label and as the way back at once;
- * detail pages carry no separate Back action.
- */
-PageIdentity.Breadcrumb = createLink(BreadcrumbAnchor);

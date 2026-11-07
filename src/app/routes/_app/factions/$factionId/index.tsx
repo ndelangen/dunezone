@@ -8,6 +8,7 @@ import { FormError } from '@ui/block/FormError';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
@@ -480,7 +481,7 @@ function FactionDetailContent({
               <FactionToken emblem={data.emblem} background={data.background} />
             </div>
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/factions">Factions</Breadcrumb>}
           maintainers={{
             owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
             group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
@@ -561,11 +562,8 @@ function FactionDetailContent({
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
             </FormError>
           ) : null}
-          <Flex
-            direction={{ base: 'column-reverse', md: 'row' }}
-            gap="xl"
-            align={{ base: 'stretch', md: 'flex-start' }}
-          >
+          {/* On a phone the faction itself (leaders, troops, advantages) comes first and the details follow it (Norbert, 2026-11-07). */}
+          <Flex direction={{ base: 'column', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
             <Box miw={0} style={{ flex: '1 1 auto' }}>
               <Stack gap="xl">
                 <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">

@@ -6,10 +6,12 @@ import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
+import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
-import { NameDisc } from '@ui/content/NameDisc';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -233,8 +235,21 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={group.name}
-          media={<Avatar name={group.name} radius="md" size="100%" color="dune" className={styles.groupAvatar} />}
-          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+          media={
+            <Avatar
+              radius="md"
+              size="100%"
+              variant="filled"
+              color={nameDiscColor(group.name)}
+              className={styles.groupAvatar}
+              /* The name is the h1 beside it, so the letter is not read out again. Inline, so the size outranks Mantine's own placeholder rule whatever the stylesheet order. */
+              aria-hidden
+              styles={{ placeholder: { fontSize: '48cqi', fontWeight: 600 } }}
+            >
+              {group.name.trim().slice(0, 1).toUpperCase()}
+            </Avatar>
+          }
+          breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           maintainers={{
             label: 'Owned by',
             owner: ownerProfile?.slug
@@ -323,8 +338,8 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>
-          <Stack gap="lg">
-            <Card
+          <Stack gap="xl">
+            <Section
               icon={<FremenIcon />}
               title="Factions maintained"
               action={
@@ -339,8 +354,8 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
               }
             >
               <FactionList factions={factions} />
-            </Card>
-            <Card
+            </Section>
+            <Section
               icon={<BookOpen size={18} aria-hidden />}
               title="Rulesets maintained"
               action={
@@ -355,7 +370,7 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
               }
             >
               <RulesetList rulesets={rulesets} />
-            </Card>
+            </Section>
           </Stack>
 
           <Stack gap="lg">

@@ -21,12 +21,6 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     ...actual,
     createFileRoute: () => (options: unknown) => ({ options, useParams: () => ({ profileSlug: 'source' }) }),
     Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
-    /* `PageMessage.Back` is built with `createLink`, whose `useLinkProps` reads router context and
-       throws without a `RouterProvider`. Mocking it to the same plain anchor `Link` already gets
-       keeps this a unit test of the page rather than of the router. */
-    createLink:
-      () =>
-      ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
     /* `LoginGate` reads the page it is on so sign-in can return there. */
     useLocation: ({ select }: { select: (location: { href: string }) => unknown }) =>
       select({ href: '/profiles/source/delete' }),

@@ -22,6 +22,7 @@ import { PageIdentity } from '@ui/block/PageIdentity';
 import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { errorMessage } from '@ui/content/errorMessage';
@@ -134,7 +135,7 @@ function AssetDetailMessage({ children }: { children: ReactNode }) {
       title={label}
       back={
         <PageMessage.Back to="/assets/$type" params={{ type }}>
-          Back to {label.toLowerCase()}
+          {`Back to ${label.toLowerCase()}`}
         </PageMessage.Back>
       }
     >
@@ -616,9 +617,9 @@ function LoadedAssetDetail({
             </div>
           }
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/assets/$type" params={{ type: asset.type }}>
+            <Breadcrumb to="/assets/$type" params={{ type: asset.type }}>
               {collectionLabel}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
           maintainers={{
             owner: asset.owner

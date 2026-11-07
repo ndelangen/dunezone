@@ -2,6 +2,7 @@ import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -79,9 +80,9 @@ function RulebookEditionHistoryPage() {
         <PageIdentity
           title={data.rulebook.name}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
           stats={[
             {

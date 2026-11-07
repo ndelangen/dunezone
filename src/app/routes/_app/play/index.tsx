@@ -1,10 +1,13 @@
-import { Anchor, Stack, Text } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useState } from 'react';
 
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { hasLobbyGames, PlayLobbyGames, PlayLobbyHeader, PlayLobbyToolbar } from '@app/widgets/play-lobby/PlayLobby';
 import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
@@ -58,19 +61,17 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
   const unreachable = useServerUnreachable(status === undefined);
   switch (status) {
     case 'sign_in_required':
-      return <Text c="dimmed">Ongoing and past games appear here once you sign in.</Text>;
+      return <LoginGate action="see your ongoing and past games" />;
     case undefined:
       break;
   }
   if (!unreachable) {
-    return <Text c="dimmed">Loading games.</Text>;
+    return <EmptyNote>Loading games.</EmptyNote>;
   }
   return (
-    <Stack gap="xs" role="status">
-      <Text c="dimmed">{SERVER_UNREACHABLE}</Text>
-      <Anchor component={Link} to="/">
-        Go back home
-      </Anchor>
+    <Stack gap="sm" align="flex-start" role="status">
+      <EmptyNote>{SERVER_UNREACHABLE}</EmptyNote>
+      <PageMessage.Home />
     </Stack>
   );
 }

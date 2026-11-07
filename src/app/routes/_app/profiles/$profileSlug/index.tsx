@@ -6,6 +6,7 @@ import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstac
 import { FactionCard } from '@ui/block/FactionCard';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -327,7 +328,7 @@ function ProfileDetailPage() {
               <span className={styles.avatarPlaceholder}>{initials}</span>
             )
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           standing={isSelf ? { tone: 'brand', label: 'You' } : null}
           stats={headerStats}
         >
