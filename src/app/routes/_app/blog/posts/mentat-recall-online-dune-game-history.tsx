@@ -20,10 +20,10 @@ export default function Post() {
       <Paragraph>
         Mentat recall is how dune.zone handles both: the whole table looks back together, or nobody does.
       </Paragraph>
-      <WideFigure caption="The tutorial's practice table, live, in Mentat recall. Drag the Shared history slider to move through two turns of its game.">
+      <WideFigure caption="A live practice table in Mentat recall. Drag the Shared history slider to move through two turns of its game.">
         <TutorialEmbed
-          src="/tutorial/mentat-recall?step=9"
-          title="The Mentat recall chapter of the dune.zone tutorial, at its Shared history task"
+          src="/tutorial/mentat-recall?step=9&table=only"
+          title="The dune.zone practice table in Mentat recall, with its Shared history slider"
         />
       </WideFigure>
       <NotesSection />

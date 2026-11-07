@@ -261,3 +261,15 @@ export const SlideThroughTime = meta.story({
     await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuetext', 'Turn 3, Spice Blow'));
   },
 });
+
+/** The table alone with `?table=only`, as the Mentat recall blog post embeds it: no rail, the recall running and the slider live. */
+export const TableOnly = meta.story({
+  args: { path: '/tutorial/mentat-recall?step=9&table=only' },
+  play: async ({ canvasElement }) => {
+    const driver = chapterDriver(canvasElement);
+    await driver.recallStarts();
+    const slider = await driver.recall().findByRole('slider', { name: 'Checkpoint' });
+    await expect(slider).toHaveAttribute('aria-valuetext', 'Turn 1, Storm');
+    await expect(driver.page.queryByRole('banner', { name: 'Chapter 20: Mentat recall' })).toBeNull();
+  },
+});

@@ -25,6 +25,7 @@ export default function ChapterPlay({
   nextLink,
   exit,
   viewer,
+  tableOnly = false,
 }: Readonly<{
   chapter: TutorialChapter;
   script: ChapterScript;
@@ -34,6 +35,8 @@ export default function ChapterPlay({
   nextLink?: ((props: object) => ReactNode) | undefined;
   exit: ReactNode;
   viewer: TutorialViewer;
+  /** The table alone, without the rail and its tasks, as the chapter's opening leaves it. */
+  tableOnly?: boolean;
 }>) {
   /* Reset starts the controls afresh as well, so a pinned window from the last run cannot do a task for the player. */
   const [controlsEpoch, setControlsEpoch] = useState(0);
@@ -46,6 +49,19 @@ export default function ChapterPlay({
     script.opening && ((players) => script.opening?.(players, firstTask))
   );
   const [tasks] = useState(() => script.tasks(control.snapshot, control.players, fixedPlayers ? () => 0 : Math.random));
+  const identity = { rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` };
+  if (tableOnly) {
+    /* With no rail to lead the eye, the table opens on the whole map, as Reset leaves it. */
+    return (
+      <PracticeTable
+        runtime={runtime}
+        title={chapter.title}
+        exit={exit}
+        identity={identity}
+        onReady={() => document.querySelector<HTMLButtonElement>('[aria-label^="Focus on map"]')?.click()}
+      />
+    );
+  }
   return (
     <TutorialGuide
       number={chapter.number}
@@ -67,7 +83,7 @@ export default function ChapterPlay({
         title={chapter.title}
         exit={exit}
         controlsEpoch={controlsEpoch}
-        identity={{ rulesetName: 'Dreamrules', address: 'tutorial', page: `/tutorial/${chapter.slug}` }}
+        identity={identity}
       />
     </TutorialGuide>
   );

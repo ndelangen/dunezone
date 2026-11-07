@@ -57,10 +57,16 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       trail: [{ name: 'Learn to play', pathname: '/tutorial' }],
     });
   },
-  /* `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it. */
-  validateSearch: (params: Record<string, unknown>): { step?: number } => {
+  /*
+   * `?step=4` opens a chapter at its fourth task, so a later task can be tried without playing the ones before it.
+   * `?table=only` shows the chapter's table without its rail, as a blog post embeds it (Norbert, 2026-11-07).
+   */
+  validateSearch: (params: Record<string, unknown>): { step?: number; table?: 'only' } => {
     const step = Number(params['step']);
-    return Number.isInteger(step) && step > 1 ? { step } : {};
+    return {
+      ...(Number.isInteger(step) && step > 1 ? { step } : {}),
+      ...(params['table'] === 'only' ? { table: 'only' as const } : {}),
+    };
   },
   component: SeededChapterPage,
 });
@@ -97,7 +103,7 @@ function ChapterPage() {
   /* The table opens on the saved Arrakis, so no move is made before its territories are known. */
   const arrakis = useArrakisBoard();
   const { chapter: slug } = Route.useParams();
-  const { step } = Route.useSearch();
+  const { step, table } = Route.useSearch();
   const chapter = chapterAt(slug);
   const script = CHAPTER_SCRIPTS[slug];
   if (!chapter || !script) {
@@ -152,6 +158,7 @@ function ChapterPage() {
             chaptersLink={chaptersLink}
             nextLink={nextLinkAfter(slug)}
             exit={exit}
+            tableOnly={table === 'only'}
           />
         )}
       </Suspense>
