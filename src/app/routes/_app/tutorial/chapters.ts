@@ -97,7 +97,7 @@ const CHAPTERS: readonly Omit<TutorialChapter, 'number'>[] = [
   {
     slug: 'what-goes-where',
     title: 'What goes where',
-    goal: 'Use the decks, Tanks and reserves through a turn',
+    goal: 'Use the decks, Tleilaxu Tanks and reserves through a turn',
     minutes: 4,
     part: 'Using the table',
   },

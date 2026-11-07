@@ -159,7 +159,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'One full pass through all nine phases. A game lasts a set number of turns.',
     reason: 'The rulebook only ever says turn. Round means the same thing, so it is not used.',
     source: 'rulebook',
-    avoid: [{ word: 'rounds' }, { word: 'round', hint: false }],
+    avoid: [
+      /* Bidding goes in rounds, one card at a time, which is not a turn. */
+      { word: 'rounds', exceptions: [/bidding\s+rounds/i, /rounds\s+of\s+bidding/i, /sit\s+rounds\s+out/i] },
+      { word: 'round', hint: false },
+    ],
   },
   {
     id: 'phase',
@@ -394,7 +398,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       {
         word: 'zone',
         forms: ['zones'],
-        exceptions: [/dune\s+zone/i],
+        exceptions: [/dune(?:\s+|\.)zone/i],
         fixes: { zone: 'territory', zones: 'territories' },
       },
       { word: 'area', forms: ['areas'], hint: false },
@@ -523,9 +527,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'melange', hint: false },
-      { word: 'credit', forms: ['credits'], fixes: { credits: 'spice' } },
+      /* No automatic fix: credits for artwork is ordinary English. */
+      { word: 'credit', forms: ['credits'] },
       { word: 'solari', forms: ['solaris'], fixes: { solari: 'spice', solaris: 'spice' } },
-      { word: 'money', fixes: { money: 'spice' } },
+      /* No automatic fix: value for money is ordinary English. */
+      { word: 'money' },
     ],
   },
   {
