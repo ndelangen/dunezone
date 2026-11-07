@@ -11904,33 +11904,12 @@
     "credit": "blog-picture",
     "sourceHash": "64330a1aed131e81fb52ea11430ab4a2a34dcb706b20cdb33ad687e6ddaa614d"
   },
-  "/web/blog/learn-to-play-dune-online/chapter-tiles.jpg": {
-    "description": "The Learn to play page of the dune.zone tutorial, with chapter tiles for getting into a game and using the table.",
-    "tags": ["dune.zone", "tutorial", "blog"],
-    "subjects": ["places", "symbols"],
-    "credit": "blog-picture",
-    "sourceHash": "2100c6d1ed458844dd33036212ed81c810bd18f83fa101b7783698ac3baedf3d"
-  },
-  "/web/blog/learn-to-play-dune-online/move-a-troop.jpg": {
-    "description": "The Moving pieces chapter of the dune.zone tutorial, with an arrow pointing at the learner's troop reserves.",
-    "tags": ["dune.zone", "tutorial", "game table", "blog"],
-    "subjects": ["places", "symbols"],
-    "credit": "blog-picture",
-    "sourceHash": "b6060b3b1e1d69200e35f3ab83304a971cb4db8e3d08b9a14c98cdddd37823be"
-  },
   "/web/blog/learn-to-play-dune-online/chat-reply.jpg": {
     "description": "A private chat in the dune.zone tutorial, where a practice player has replied to the learner's message.",
     "tags": ["dune.zone", "tutorial", "chat", "blog"],
     "subjects": ["places", "symbols"],
     "credit": "blog-picture",
     "sourceHash": "2875c647ff065fab0f6c25c24d0e0f034c3990b686a6c9cab6b80c24093c874a"
-  },
-  "/web/blog/learn-to-play-dune-online/create-a-faction.jpg": {
-    "description": "The Create a faction tutorial on dune.zone, with an arrow pointing at the faction name field of the editor.",
-    "tags": ["dune.zone", "tutorial", "faction editor", "blog"],
-    "subjects": ["places", "symbols"],
-    "credit": "blog-picture",
-    "sourceHash": "d033d17e357d17c54f81c04c0f659bf817330dc0728c5ac525bd83f3c03b1a6a"
   },
   "/web/blog/learn-to-play-dune-online/meet-in-arrakeen.jpg": {
     "description": "The Battle chapter of the dune.zone tutorial, asking the learner to bring troops into Arrakeen.",

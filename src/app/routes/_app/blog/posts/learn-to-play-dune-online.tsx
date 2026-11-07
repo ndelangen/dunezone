@@ -1,6 +1,8 @@
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
+import { TutorialEmbed } from '../TutorialEmbed';
+import { ChapterTiles } from './tutorial/ChapterTiles';
 import { ConfettiButton } from './tutorial/ConfettiButton';
 import { LocalTable } from './tutorial/LocalTable';
 
@@ -16,12 +18,9 @@ export default function Post() {
         It lives at <PostLink to="/tutorial">dune.zone/tutorial</PostLink>, it&rsquo;s free, and you don&rsquo;t need an
         account. Here is what&rsquo;s in it, and how it works.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/learn-to-play-dune-online/meet-arrakis.jpg"
-        alt="The first chapter of the dune.zone tutorial: a list of tasks on the left, and an arrow pointing at the centre of the Arrakis board"
-        aspect={1280 / 2048}
-        caption="The Welcome chapter. The task is on the left, and the arrow shows where to look."
-      />
+      <WideFigure caption="The Welcome chapter, live. Click into it and press Enter to start.">
+        <TutorialEmbed src="/tutorial/welcome" title="The Welcome chapter of the tutorial" />
+      </WideFigure>
       <ChaptersSection />
       <DoingSection />
       <BrowserSection />
@@ -49,12 +48,9 @@ function ChaptersSection() {
         You can follow them in order, or jump straight to the one you need. Each chapter teaches how the table works,
         never the rules of Dune. The table is a sandbox, so the rules are whatever your group plays with.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/learn-to-play-dune-online/chapter-tiles.jpg"
-        alt="The Learn to play page: chapter tiles in rows, each with a picture, a number, a title, a one-line goal and the minutes it takes"
-        aspect={1036 / 2048}
-        caption="The first two parts of the Learn to play page. Every tile says what you&rsquo;ll be able to do and how long it takes."
-      />
+      <WideFigure caption="The chapters, as the Learn to play page lists them. Every tile says what you&rsquo;ll be able to do and how long it takes, and opens its chapter.">
+        <ChapterTiles />
+      </WideFigure>
     </Section>
   );
 }
@@ -79,12 +75,9 @@ function DoingSection() {
         the arrow, and missed the text. So the tasks moved to a list down the left, in large type, where you read them
         before your eyes go to the board.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/learn-to-play-dune-online/move-a-troop.jpg"
-        alt="The Moving pieces chapter: the task Move a troop on the left, with an arrow reaching across the board to the blue troop reserves"
-        aspect={1280 / 2048}
-        caption="Moving pieces starts with one troop. The arrow points at your reserves."
-      />
+      <WideFigure caption="Moving pieces, live. It starts with one troop, and the arrow points at your reserves.">
+        <TutorialEmbed src="/tutorial/moving-pieces" title="The Moving pieces chapter of the tutorial" />
+      </WideFigure>
       <Paragraph>
         An arrow runs from the task to the thing you need, whether that&rsquo;s a troop on the board, a button or a
         window. When the target is out of view, the arrow points the way. Done tasks stay in the list, so you can open
@@ -200,12 +193,9 @@ function CreatingSection() {
         one runs on a practice copy of dune.zone that lives in your browser, with its own little database. You&rsquo;re
         on the real faction editor, with every button working, and when you close the page the copy is gone.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/learn-to-play-dune-online/create-a-faction.jpg"
-        alt="The Create a faction tutorial: the task Name your faction on the left, and an arrow pointing at the empty Faction name field of the faction editor"
-        aspect={1280 / 2048}
-        caption="The Create a faction tutorial runs on the real editor, in a practice copy of the site."
-      />
+      <WideFigure caption="The Create a faction tutorial, live, on the real editor in a practice copy of the site.">
+        <TutorialEmbed src="/create/faction" title="The Create a faction tutorial" />
+      </WideFigure>
       <Paragraph>
         Fourteen more creator tutorials are planned, from making a card to laying out a rulebook. They&rsquo;ll go up
         one at a time.

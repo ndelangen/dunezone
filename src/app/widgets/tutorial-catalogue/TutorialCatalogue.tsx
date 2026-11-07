@@ -113,15 +113,21 @@ function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   );
 }
 
-/* The tiles, one row per part; the first row's pictures load at once. */
-function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+/**
+ * The tiles alone, one row per part, each row named by its part.
+ * The catalogue page mounts them under its title band, and a blog post shows the same rows in its column.
+ * The rows step from one tile across to five by the width of the `page-frame` container they sit in, so a page that gives them less room than the frame names its own.
+ * `eager` loads the first row's pictures at once, for a page whose rows open above the fold;
+ * a list further down a page leaves them lazy.
+ */
+export function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly CatalogueRow[]; eager?: boolean }>) {
   return (
     <Stack gap="xl">
       {rows.map((row, index) => (
         <Section key={row.part} title={row.part}>
           <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
             {row.tiles.map((tile) => (
-              <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
+              <CatalogueTileView key={tile.slug} tile={tile} eager={eager && index === 0} />
             ))}
           </ol>
         </Section>
@@ -159,7 +165,7 @@ export function TutorialCatalogue({
         <TutorialTracks track={track} />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <TutorialRows rows={rows} />
+        <TutorialTiles rows={rows} />
       </PageLayout.Content>
     </PageLayout>
   );

@@ -1,0 +1,8 @@
+/*
+ * The post's own page frame around the chapter tiles.
+ * The rows step across by the `page-frame` they sit in, the whole page on the Learn to play page; in the post they sit in a figure wider than the reading column and narrower than the page, so the figure's width is the frame they should read.
+ */
+.frame {
+  container: page-frame / inline-size;
+  width: 100%;
+}
