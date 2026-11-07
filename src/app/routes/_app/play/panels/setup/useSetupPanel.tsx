@@ -60,7 +60,7 @@ function predictionRows(table: TableProjection, setup: SetupState): PredictionRo
             }
           : own && current.id === step.id && table.snapshot.stage === 'setup'
             ? { kind: 'choosing' as const, options: factionOptions(table) }
-            : { kind: 'waiting' as const },
+            : { kind: 'waiting' as const, faction: step.factionId ? factionName(table, step.factionId) : null },
       };
     });
 }

@@ -33,7 +33,8 @@ type PredictionState =
     }>
   /** The viewer locks this prediction now. */
   | Readonly<{ kind: 'choosing'; options: readonly FactionOption[] }>
-  | Readonly<{ kind: 'waiting' }>;
+  /** Another faction locks it; its name, so the wait says whose it is even where the step's heading is hidden. */
+  | Readonly<{ kind: 'waiting'; faction: string | null }>;
 
 export type PredictionRow = Readonly<{
   stepId: string;
@@ -197,7 +198,7 @@ function Prediction({
             onLock={(choice) => onLockPrediction(row.stepId, choice)}
           />
         ) : (
-          <Text size="sm">Waiting for the faction player to lock a prediction.</Text>
+          <Text size="sm">{`Waiting for ${state.faction ?? 'its player'} to lock a prediction.`}</Text>
         )}
       </Stack>
     </Section>
