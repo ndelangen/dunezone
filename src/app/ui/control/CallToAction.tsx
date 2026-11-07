@@ -1,7 +1,7 @@
 import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
-import { useId } from 'react';
+import { useCallback, useId } from 'react';
 import type { ReactNode } from 'react';
 
 import { useInsidePageHeader } from '../layout/PageLayout';
@@ -50,6 +50,36 @@ const TrailingArrow: Partial<Record<NonNullable<CallToActionBaseProps['direction
   down: ArrowDown,
 };
 
+/* The first pulse comes four seconds in and then one every five, the rhythm of the five-second animation it replaces. */
+const FIRST_PULSE_MS = 4000;
+const PULSE_EVERY_MS = 5000;
+
+/**
+ * A ref that starts one pulse at a time on the button, by setting `data-pulse` until its animation ends.
+ * Between pulses the button has no running animation, so an idle page does no style or paint work for it.
+ */
+function useAttentionPulse(on: boolean) {
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (!on || !element) {
+        return undefined;
+      }
+      const settle = () => element.removeAttribute('data-pulse');
+      let timer = setTimeout(function pulse() {
+        element.setAttribute('data-pulse', '');
+        timer = setTimeout(pulse, PULSE_EVERY_MS);
+      }, FIRST_PULSE_MS);
+      element.addEventListener('animationend', settle);
+      return () => {
+        clearTimeout(timer);
+        element.removeEventListener('animationend', settle);
+        settle();
+      };
+    },
+    [on]
+  );
+}
+
 /**
  * The button that starts a page's primary journey, or a section's on a page made of sections, such as the homepage.
  *
@@ -69,6 +99,7 @@ export function CallToAction({
   busy = false,
 }: CallToActionProps) {
   const reasonId = useId();
+  const pulseRef = useAttentionPulse(attention && disabledReason == null);
   const insideHeader = useInsidePageHeader();
   const resolvedSize = insideHeader ? 'md' : size;
   const iconSize = resolvedSize === 'sm' ? 15 : 17;
@@ -102,6 +133,7 @@ export function CallToAction({
         <Button
           color="cta"
           variant={variant}
+          ref={pulseRef}
           className={attention && !disabled ? styles.attention : undefined}
           size={resolvedSize}
           {...sections}
