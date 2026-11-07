@@ -12,7 +12,15 @@ import {
   playFromHandSettled,
   settleCarryAtPosition,
 } from './tableState';
-import { fitsInside, innermostPoint, tableTerritories, territoryContains } from './territoryFit';
+import {
+  currentSectorLineMargin,
+  fitsInside,
+  innermostPoint,
+  restingParts,
+  tableSectorAt,
+  tableTerritories,
+  territoryContains,
+} from './territoryFit';
 import type { TableTerritory } from './territoryFit';
 import { keepsInsideTerritory, territoryLanding } from './territoryPlacement';
 
@@ -189,5 +197,74 @@ describe('stacks dropped into a territory', () => {
     expect(inside(stack, straddling)).toBe(false);
     expect(inside(stack, SHELF)).toBe(true);
     expect(inside({ ...cardBase, id: 'card' }, straddling)).toBe(true);
+  });
+});
+
+/* How far a stack's edge stands from the nearer of its sector's two lines, and the sector it is in. */
+function sectorClearance(piece: TablePiece) {
+  const [x, , z] = piece.position;
+  const sector = tableSectorAt([x, z]);
+  const angle = (Math.PI * 2) / 18;
+  const lines = [sector * angle, (sector + 1) * angle];
+  const toLine = (line: number) => Math.abs(Math.cos(line) * z - Math.sin(line) * x);
+  return { sector, clear: Math.min(...lines.map(toLine)) - footprintReach(piece) };
+}
+
+describe('stacks dropped across a sector line', () => {
+  /* The line at 160° runs through the Habbanya erg, between sectors 7 and 8; a nudge either way picks the side. */
+  const line = (8 * Math.PI * 2) / 18;
+  const across = (r: number, side: number): Vector3Tuple => [
+    r * Math.cos(line) - Math.sin(line) * side,
+    0,
+    r * Math.sin(line) + Math.cos(line) * side,
+  ];
+  const onTheLine = across(2.75, 0.001);
+
+  test('step into the sector they were let go in, clear of the line', () => {
+    const state = tableWith(troop('mover', 'atreides', SHELF));
+    const moved = at(dropAt(state, 'mover', onTheLine)!, 'mover');
+    const { sector, clear } = sectorClearance(moved);
+    expect(sector).toBe(8);
+    expect(clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+    expect(insideTerritory(territoryNamed('Habbanya erg'), moved)).toBe(true);
+    expect(Math.hypot(moved.position[0] - onTheLine[0], moved.position[2] - onTheLine[2])).toBeLessThan(0.3);
+  });
+
+  test('let go just over the line, rest in the other sector', () => {
+    const state = tableWith(troop('mover', 'atreides', SHELF));
+    const moved = at(dropAt(state, 'mover', across(2.75, -0.001))!, 'mover');
+    expect(sectorClearance(moved).sector).toBe(7);
+    expect(sectorClearance(moved).clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+  });
+
+  test('already standing clear in a sector, stay where they were let go', () => {
+    const [x, z] = innermostPoint(restingParts(territoryNamed('Habbanya erg'), [onTheLine[0], onTheLine[2]])[0]!);
+    const spot: Vector3Tuple = [x, 0, z];
+    const state = tableWith(troop('mover', 'atreides', SHELF));
+    const moved = at(dropAt(state, 'mover', spot)!, 'mover');
+    expect(Math.hypot(moved.position[0] - spot[0], moved.position[2] - spot[2])).toBeLessThan(1e-6);
+  });
+
+  test('the stacks already in a sector make room there, none crossing the line', () => {
+    let state = tableWith(
+      troop('first', 'atreides', SHELF),
+      troop('second', 'harkonnen', SHELF),
+      troop('third', 'fremen', SHELF)
+    );
+    for (const id of ['first', 'second', 'third']) {
+      state = dropAt(state, id, onTheLine)!;
+    }
+    for (const id of ['first', 'second', 'third']) {
+      const { sector, clear } = sectorClearance(at(state, id));
+      expect(sector).toBe(8);
+      expect(clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+    }
+  });
+
+  test('the polar sink lies in no sector, so a stack rests where it was let go', () => {
+    const spot: Vector3Tuple = [0.05, 0, 0.001];
+    const state = tableWith(troop('mover', 'atreides', SHELF));
+    const moved = at(dropAt(state, 'mover', spot)!, 'mover');
+    expect(Math.hypot(moved.position[0] - spot[0], moved.position[2] - spot[2])).toBeLessThan(1e-6);
   });
 });

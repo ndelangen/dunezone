@@ -6,7 +6,13 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { fitsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
+import {
+  DEFAULT_SECTOR_LINE_MARGIN,
+  fitsInside,
+  innermostPoint,
+  setSectorLineMargin,
+  tableTerritories,
+} from '@shared/play/territoryFit';
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
@@ -453,3 +459,80 @@ export const SpiceBlowTopCardOnly = meta.story({
     await expect(blows).toEqual([['broken_land']]);
   },
 });
+
+/* Where a sector line runs through a territory, by the line's number and how far out from the centre. */
+const SECTOR_LINE_DROPS = [
+  { line: 8, out: 2.75 },
+  { line: 4, out: 2.3 },
+  { line: 12, out: 2.65 },
+  { line: 14, out: 1.35 },
+  { line: 15, out: 3.55 },
+  { line: 17, out: 1.05 },
+] as const;
+
+/* A point on a sector line, a hair to the clockwise or counterclockwise side of it. */
+function onSectorLine({ line, out }: { line: number; out: number }, side: number): [number, number, number] {
+  const angle = (line * Math.PI * 2) / 18;
+  return [out * Math.cos(angle) - Math.sin(angle) * side, 0.4, out * Math.sin(angle) + Math.cos(angle) * side];
+}
+
+/**
+ * The sandbox at Shipment and Movement, with the sector lines kept `margin` clear (null: as before, lines ignored).
+ * Its play carries a troop onto six sector lines that run through territories, letting go right on each line.
+ */
+function sectorStory(margin: number | null) {
+  return {
+    args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
+      setSectorLineMargin(margin);
+      const cleanup = install(() =>
+        sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') })
+      )();
+      return () => {
+        cleanup();
+        setSectorLineMargin(DEFAULT_SECTOR_LINE_MARGIN);
+      };
+    },
+    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+      await sandboxReady(within(canvasElement.ownerDocument.body));
+      const table = sandbox.table!;
+      const factions = shown()
+        .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
+        .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
+      for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
+        const source = troopsOf(shown().table.pieces, factions[index % factions.length]!)[0]!;
+        const carryId = `sector-line-${index}`;
+        table.receive({
+          type: 'begin',
+          carryId,
+          sourcePieceId: source.id,
+          expectedVersion: shown().versions[source.id]!,
+          pickup: 'top',
+        });
+        table.receive({
+          type: 'drop',
+          commandId: `${carryId}-drop`,
+          carryId,
+          position: onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001),
+          orientation: 0,
+        });
+        await expect(table.refusal).toBeUndefined();
+      }
+    },
+  };
+}
+
+/**
+ * Before: a troop let go on a sector line rests right across it, half in each sector.
+ * Six troops are let go on sector lines through the Habbanya erg, Cielago depression, Tsimpo, Imperial basin, Old gap and the Minor erg.
+ */
+export const SectorLinesBefore = meta.story(sectorStory(null));
+
+/** Just clear: each troop steps into the sector it was let go in, its edge just off the line. */
+export const SectorLinesJustClear = meta.story(sectorStory(0));
+
+/** A clear gap: each troop steps into its sector and keeps a sliver of board between its edge and the line. */
+export const SectorLinesClearGap = meta.story(sectorStory(DEFAULT_SECTOR_LINE_MARGIN));
+
+/** A wide gap: each troop keeps well away from the line, about half its own radius. */
+export const SectorLinesWideGap = meta.story(sectorStory(0.09));

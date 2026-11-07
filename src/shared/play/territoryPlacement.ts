@@ -3,7 +3,14 @@ import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
-import { fitIntoTerritory, fitsInside, territoryBounds, territoryShapeAt, territoryContains } from './territoryFit';
+import {
+  fitIntoTerritory,
+  fitsInside,
+  restingParts,
+  territoryBounds,
+  territoryShapeAt,
+  territoryContains,
+} from './territoryFit';
 import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
 
 /*
@@ -98,33 +105,29 @@ function nudgesFrom(settled: readonly TablePiece[], fitted: Map<string, readonly
 }
 
 /**
- * Packs `piece` into the territory under `at` together with the stacks already there, which `others` lists along with everything else on the table.
- * Undefined when the point lies in no territory or the piece does not pack, so the caller places it as any other piece;
- * null when the territory has no room for it.
+ * Packs `piece` into one part of the territory, the stretch of it within one sector, together with the stacks already resting there.
+ * `others` lists them along with everything else on the table.
+ * Null when that part has no room for it.
  * With `pinned`, the landing stack keeps its spot and only the others move.
  */
-function territoryLayout(
-  state: Pick<TableState, 'board'>,
+function partLayout(
+  territory: TableTerritory,
+  part: TableTerritory,
   drop: TerritoryDrop,
   pinned: boolean
-): TerritoryLayout | null | undefined {
+): TerritoryLayout | null {
   const { piece, at, others } = drop;
-  const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
-  /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
-  if (!territory || onAnyPlate(others, at)) {
-    return undefined;
-  }
   const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
   const inside = (candidate: TablePiece) =>
     packsInTerritory(candidate) &&
     !onAnyPlate(others, candidate.position) &&
-    territoryContains(territory, [candidate.position[0], candidate.position[2]]);
+    territoryContains(part, [candidate.position[0], candidate.position[2]]);
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
   /* A plate such as the HMS is in the way by its outline, so no stack is shifted onto it without riding it. */
   const obstacles = relevant.filter((candidate) => !inside(candidate)).map(obstacle);
   const fitted = fitIntoTerritory({
-    territory,
+    territory: part,
     bodies: [body(piece, at), ...settled.map((candidate) => body(candidate))],
     pinFirst: pinned,
     obstacles,
@@ -151,9 +154,22 @@ export function territoryLanding(
   others: readonly TablePiece[]
 ): TerritoryLayout | null | undefined {
   const drop = { piece, at, others };
-  const held = territoryLayout(state, drop, true);
-  /* Held where it was let go, the stack may still step in from the border; failing that, it gives way to the others too. */
-  return held === null ? territoryLayout(state, drop, false) : held;
+  const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
+  /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
+  if (!territory || onAnyPlate(others, at)) {
+    return undefined;
+  }
+  /*
+   * It rests in the sector it was let go in, clear of the sector lines; held where it was let go it may still step in from the border, and failing that it gives way to the others too.
+   * A sector part with no room hands it on to the territory's next sector.
+   */
+  for (const [index, part] of restingParts(territory, [at[0], at[2]]).entries()) {
+    const layout = (index === 0 && partLayout(territory, part, drop, true)) || partLayout(territory, part, drop, false);
+    if (layout) {
+      return layout;
+    }
+  }
+  return null;
 }
 
 /** The table's pieces with the stacks a landing shifted moved to their new spots. */
