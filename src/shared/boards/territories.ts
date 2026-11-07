@@ -1,22 +1,16 @@
-import { derive } from './geometry';
+import { derivedBoard } from './geometry';
 import type { Board, Point } from './schema';
 
-/* Definitions retained by a game are immutable; geometry follows that lifetime. */
-const cache = new WeakMap<Board, ReturnType<typeof derive>>();
 export function boardTerritories(board: Board) {
-  let result = cache.get(board);
-  if (!result) {
-    result = derive(board);
-    if (!result.faces.length) {
-      throw new Error('The saved board has no territories');
-    }
-    if (result.unrecoveredSegments) {
-      throw new Error('The saved board has incomplete territory boundaries');
-    }
-    if (result.faces.some((face) => !board.properties[face.key])) {
-      throw new Error('The saved board has territories without properties');
-    }
-    cache.set(board, result);
+  const result = derivedBoard(board);
+  if (!result.faces.length) {
+    throw new Error('The saved board has no territories');
+  }
+  if (result.unrecoveredSegments) {
+    throw new Error('The saved board has incomplete territory boundaries');
+  }
+  if (result.faces.some((face) => !board.properties[face.key])) {
+    throw new Error('The saved board has territories without properties');
   }
   return result.faces;
 }

@@ -293,6 +293,33 @@ export function derive(board: Board) {
   };
 }
 
+type Derived = ReturnType<typeof derive>;
+const derivedByBoard = new WeakMap<Board, Derived>();
+const derivedByLinework = new Map<string, Derived>();
+/* A few boards are drawn at once; editors make a new linework on every change, so old ones are let go. */
+const LINEWORK_KEPT = 8;
+
+/**
+ * `derive` for a board that is drawn rather than edited, kept per board object and per linework.
+ * Faces depend only on nodes and edges, and a page receives the same board as several objects (its loader's copy, then the live query's), so an equal linework is derived once.
+ * The result is shared: callers must not change it.
+ */
+export function derivedBoard(board: Board): Derived {
+  let result = derivedByBoard.get(board);
+  if (result) {
+    return result;
+  }
+  const key = JSON.stringify([board.nodes, board.edges]);
+  result = derivedByLinework.get(key) ?? derive(board);
+  derivedByLinework.delete(key);
+  derivedByLinework.set(key, result);
+  if (derivedByLinework.size > LINEWORK_KEPT) {
+    derivedByLinework.delete(derivedByLinework.keys().next().value!);
+  }
+  derivedByBoard.set(board, result);
+  return result;
+}
+
 export function contourPath(board: Board, contour: AppearanceContour): string | null {
   const edges = new Map(board.edges.map((edge) => [edge.id, edge]));
   if (
