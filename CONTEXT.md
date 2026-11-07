@@ -145,7 +145,7 @@ What one troop face contributes to a battle plan: its strength, its supported st
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
 
 **Faction Special Karama**:
-The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the rule title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions.
+The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the rule title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions. Players use a Fate section by playing the faction's one-time fate card, not a Karama card (Norbert, 2026-11-07; see the glossary's Fate entry).
 
 **Background definition**:
 How soft or crisp the selected pattern appears in a faction's composed background.
