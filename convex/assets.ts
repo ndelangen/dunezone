@@ -930,6 +930,21 @@ async function requireLiveContainerMember(
   }
 }
 
+/** Every reader stops at this many members (`membersOf`, copies, imports), so a container never grows past it. */
+async function requireRoomForMember(
+  ctx: MutationCtx,
+  container: Doc<'assets'>,
+  rules: NonNullable<(typeof CONTAINER_KINDS)[string]>
+) {
+  const held = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', container._id).eq('kind', rules.kind))
+    .take(DECK_CARD_LIMIT);
+  if (held.length >= DECK_CARD_LIMIT) {
+    throw new ConvexError(`A ${container.type} holds at most ${DECK_CARD_LIMIT} different ${rules.noun}.`);
+  }
+}
+
 /**
  * How many of one member a container holds.
  * Zero removes it.
@@ -961,14 +976,7 @@ export const setMemberCount = mutation({
     } else if (existing) {
       await ctx.db.patch(existing._id, { count: args.count });
     } else {
-      /* Every reader stops at this many members (`membersOf`, copies, imports), so a container never grows past it. */
-      const held = await ctx.db
-        .query('asset_relations')
-        .withIndex('by_from_kind', (q) => q.eq('from_asset_id', args.container_id).eq('kind', rules.kind))
-        .take(DECK_CARD_LIMIT);
-      if (held.length >= DECK_CARD_LIMIT) {
-        throw new ConvexError(`A ${container.type} holds at most ${DECK_CARD_LIMIT} different ${rules.noun}.`);
-      }
+      await requireRoomForMember(ctx, container, rules);
       await ctx.db.insert('asset_relations', {
         from_asset_id: args.container_id,
         to_asset_id: args.member_id,
