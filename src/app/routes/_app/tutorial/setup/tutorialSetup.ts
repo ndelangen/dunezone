@@ -86,7 +86,15 @@ export function startAt(
     ];
   }
   if (chapter.withoutTroops) {
+    /* The draft deals each faction's troop reserves after the table opens, so there is nothing to take off yet. */
+    if (stored.stage === 'drafting') {
+      throw new Error(`A chapter without troops cannot start at ${checkpoint}, before the deal`);
+    }
+    /* The versions list exactly the table's pieces, so a troop stack leaves both. */
     stored.table.pieces = stored.table.pieces.filter((piece) => !isTroopStack(piece));
+    stored.versions = Object.fromEntries(
+      stored.table.pieces.map((piece) => [piece.id, stored.versions[piece.id] ?? stored.revision])
+    );
   }
   return {
     stored,

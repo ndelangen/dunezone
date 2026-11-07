@@ -10,6 +10,7 @@ import { sceneTableLens } from '@app/widgets/tutorial-guide/tableLens';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { waitForPlayCamera } from '../play/mapView.stories.fixture';
+import { welcome } from './chapterScripts/welcome';
 import { chapterGlobals, chapterParameters } from './chapterStory';
 import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
@@ -216,7 +217,7 @@ export const PlayedThrough = meta.story({
       const clientY = bounds.top + ((1 - projected.y) * bounds.height) / 2;
       await clickCanvas(clientX, clientY);
     };
-    const { stored } = startAt(setup as unknown as TutorialSetup, 'turn-1-storm', window.location.origin);
+    const { stored } = startAt(setup as unknown as TutorialSetup, welcome.checkpoint, window.location.origin, welcome);
     const token = stored.table.pieces.filter(isFactionToken).sort((a, b) => b.position[2] - a.position[2])[0]!;
     const tokenPoint = [token.position[0], token.position[1] + stackTopHeight(token), token.position[2]] as const;
     await waitForPlayCamera(document);

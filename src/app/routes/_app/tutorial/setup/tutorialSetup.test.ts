@@ -1,4 +1,3 @@
-import { isFactionToken } from '@shared/play/factionToken';
 import { isTroopStack } from '@shared/play/troop';
 import { TUTORIAL_CHECKPOINTS, TUTORIAL_RECIPE } from '@shared/tutorial/recipe';
 import { describe, expect, test } from 'vite-plus/test';
@@ -25,16 +24,20 @@ describe('the tutorial setup', () => {
     table.dispose();
   });
 
-  test('opens a chapter without troops with only the table’s other pieces', () => {
+  test('takes only the troop stacks off a chapter without troops', () => {
     const recorded = setup as unknown as TutorialSetup;
-    const full = new LocalTable(startAt(recorded, 'turn-1-storm', 'https://dune.zone'));
-    const bare = new LocalTable(startAt(recorded, 'turn-1-storm', 'https://dune.zone', { withoutTroops: true }));
-    const troops = (table: LocalTable) => table.frame().snapshot.table.pieces.filter(isTroopStack);
-    expect(troops(full).length).toBeGreaterThan(0);
-    expect(troops(bare)).toEqual([]);
-    expect(bare.frame().snapshot.table.pieces.some(isFactionToken)).toBe(true);
-    full.dispose();
-    bare.dispose();
+    const full = startAt(recorded, 'turn-1-storm', 'https://dune.zone').stored;
+    const bare = startAt(recorded, 'turn-1-storm', 'https://dune.zone', { withoutTroops: true }).stored;
+    const others = full.table.pieces.filter((piece) => !isTroopStack(piece));
+    expect(full.table.pieces.length).toBeGreaterThan(others.length);
+    expect(bare.table.pieces).toEqual(others);
+    expect(Object.keys(bare.versions).sort()).toEqual(others.map((piece) => piece.id).sort());
+  });
+
+  test('refuses a chapter without troops before the deal', () => {
+    expect(() =>
+      startAt(setup as unknown as TutorialSetup, 'drafting', 'https://dune.zone', { withoutTroops: true })
+    ).toThrow(/before the deal/);
   });
 
   test('shows only the site’s own published images', () => {
