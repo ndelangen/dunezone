@@ -1,7 +1,8 @@
-import { Anchor, Group, Stack, Table } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Group, Stack, Table } from '@mantine/core';
+import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
@@ -23,7 +24,9 @@ function formatDate(timestamp?: number) {
   return new Date(timestamp).toLocaleString();
 }
 
-const migrationsHeader = <PageTitle title="Migration activity" />;
+const migrationsHeader = (
+  <PageTitle breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>} title="Migration activity" />
+);
 
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
 function MigrationDashboard() {
@@ -37,9 +40,6 @@ function MigrationDashboard() {
   return (
     <PageLayout>
       <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="sm">
           <Section title="Live migration status">

@@ -1,6 +1,7 @@
 import { Anchor, List, SimpleGrid, Stack, Text } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
 
@@ -44,8 +45,9 @@ function PrivacyPage() {
         </SimpleGrid>
       </PageLayout.Header>
       <PageLayout.Content>
+        {/* A policy is read, not picked from, so its parts are open sections like a post's; only the two promises in the band stay framed, so they still stand out. */}
         <Stack gap="xl">
-          <Card padding="xl" title="Who is responsible for your data">
+          <Section title="Who is responsible for your data">
             <Stack gap="md">
               <Text>
                 Dune Zone is operated by Norbert de Langen, who is the controller responsible for the personal data
@@ -56,10 +58,10 @@ function PrivacyPage() {
                 <Anchor href="mailto:support@dune.zone">support@dune.zone</Anchor>.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
-            <Card padding="xl" title="What we keep private">
+            <Section title="What we keep private">
               <Stack gap="md">
                 <Text>We need a small amount of private information to run your account:</Text>
                 <List spacing="sm">
@@ -79,9 +81,9 @@ function PrivacyPage() {
                   anywhere else on the public website.
                 </Text>
               </Stack>
-            </Card>
+            </Section>
 
-            <Card padding="xl" title="What everyone can see">
+            <Section title="What everyone can see">
               <Stack gap="md">
                 <Text>Your public profile can show:</Text>
                 <List spacing="sm">
@@ -97,10 +99,10 @@ function PrivacyPage() {
                   up your public profile.
                 </Text>
               </Stack>
-            </Card>
+            </Section>
           </SimpleGrid>
 
-          <Card padding="xl" title="Your choices">
+          <Section title="Your choices">
             <Stack gap="md">
               <List spacing="sm">
                 <List.Item>You can change your screen name and profile picture in your profile settings.</List.Item>
@@ -108,9 +110,9 @@ function PrivacyPage() {
                 <List.Item>Do not share anything here that you want to keep private.</List.Item>
               </List>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="Your data rights">
+          <Section title="Your data rights">
             <Stack gap="md">
               <Text>The GDPR gives you rights over your personal data.</Text>
               <Text>
@@ -142,9 +144,9 @@ function PrivacyPage() {
                 data protection authority, or the data protection authority where you live or work in the EU.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="What we do with the data">
+          <Section title="What we do with the data">
             <Stack gap="md">
               <Text>
                 We only use the data to let you sign in, run the website, show who made each contribution, keep the
@@ -165,9 +167,9 @@ function PrivacyPage() {
                 access to them.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="Website analytics">
+          <Section title="Website analytics">
             <Stack gap="md">
               <Text>
                 We use Cloudflare Web Analytics to understand which pages people visit and how quickly the website
@@ -190,9 +192,9 @@ function PrivacyPage() {
                 and its <Anchor href="https://developers.cloudflare.com/web-analytics/faq/">data history</Anchor>.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="How long data stays">
+          <Section title="How long data stays">
             <Stack gap="md">
               <Text>
                 We keep account and contribution records while they are needed to run your account and the work you
@@ -206,9 +208,9 @@ function PrivacyPage() {
                 We will explain any exception that affects an erasure request.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="Providers and international processing">
+          <Section title="Providers and international processing">
             <Stack gap="md">
               <Text>
                 Our providers may process information outside the European Economic Area, including in the United
@@ -222,9 +224,9 @@ function PrivacyPage() {
                 or contact us for information about the safeguards used for your data.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="Code of conduct">
+          <Section title="Code of conduct">
             <Stack gap="md">
               <Text>Be kind and treat other people with respect.</Text>
               <Text>We do not allow:</Text>
@@ -243,9 +245,9 @@ function PrivacyPage() {
                 allow a violation to remain on Dune Zone.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="Copyright">
+          <Section title="Copyright">
             <Stack gap="md">
               <Text>
                 Do not upload or publish something if doing so would infringe another person&apos;s copyright.
@@ -264,9 +266,9 @@ function PrivacyPage() {
                 changes is not allowed unless you have permission or another clear legal right to use it.
               </Text>
             </Stack>
-          </Card>
+          </Section>
 
-          <Card padding="xl" title="A free hobby project">
+          <Section title="A free hobby project">
             <Stack gap="md">
               <Text>Dune Zone is a hobby project. You can use it free of charge.</Text>
               <Text>
@@ -275,7 +277,7 @@ function PrivacyPage() {
               </Text>
               <Text>Please do not use Dune Zone as the only place where you keep something important.</Text>
             </Stack>
-          </Card>
+          </Section>
 
           <Text c="dimmed" size="sm">
             Last updated 13 October 2026. If anything changes, we will update this page.

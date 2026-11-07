@@ -1,6 +1,6 @@
 import { pageHead } from '../../pageTitle';
 import { publicPageHead } from '../../publicPage';
-import { mediaKinds } from './mediaSearchParams';
+import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 
 type GallerySlug = (typeof mediaKinds)[number]['slug'];
 
@@ -20,7 +20,7 @@ const social = { kind: 'Media library', shape: 'portrait' } as const;
 
 /**
  * The overview and each game gallery are public pages, and every filter or opened item on them points Google at the gallery.
- * The icon libraries keep the plain title.
+ * The icon libraries are titled by their own names, as their headings are, but stay out of the public page set.
  * An unknown library or gallery is a 404, so it leaves the title to the not-found page.
  */
 export function mediaHead(params: { source?: string; kind?: string }, match?: { status: string }) {
@@ -36,7 +36,7 @@ export function mediaHead(params: { source?: string; kind?: string }, match?: { 
   }
   const gallery = mediaKinds.find((kind) => kind.slug === params.kind);
   if (params.source === 'topics' || params.source === 'lucide') {
-    return pageHead('Media catalogue', { match });
+    return pageHead(iconLibraryLabels[params.source], { match });
   }
   if (params.source !== 'game' || !gallery) {
     return {};

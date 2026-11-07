@@ -12,7 +12,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowRight, Image as ImageIcon, Images, Info, X } from 'lucide-react';
+import { ArrowRight, Image as ImageIcon, Info, X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
@@ -21,7 +21,7 @@ import { mediaHead } from './mediaHead';
 import { indexGalleries } from './mediaIndex';
 import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavigation';
 import { filterCatalogue } from './mediaSearch';
-import { mediaKinds } from './mediaSearchParams';
+import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 import type { MediaSearch } from './mediaSearchParams';
 import { MediaShowcase } from './MediaShowcase';
 import { mediaTiles, variantLabel } from './mediaTiles';
@@ -78,9 +78,11 @@ function MediaPage() {
   );
 }
 
-/** A game gallery names the page, so its heading matches the document title. */
+/** Every view but the overview is a gallery and names the page, so its heading matches the document title (see mediaHead). */
 function galleryLabel(search: MediaSearch) {
-  return search.source === 'media' ? mediaKinds.find((kind) => kind.value === search.kind)?.label : undefined;
+  return search.source === 'media'
+    ? mediaKinds.find((kind) => kind.value === search.kind)?.label
+    : iconLibraryLabels[search.source];
 }
 
 function focusedMedia(search: MediaSearch) {
@@ -126,11 +128,11 @@ function MediaResults({
   if (search.source === 'lucide') {
     return (
       <Stack gap="xl">
-        <Suspense fallback={<MediaBreadcrumb search={search} matches={catalogue.matches} />}>
+        <Suspense fallback={<MediaResultCount search={search} matches={catalogue.matches} />}>
           <LucideIcons
             query={query}
             heading={(lucideTotal) => (
-              <MediaBreadcrumb search={search} matches={catalogue.matches} total={lucideTotal} />
+              <MediaResultCount search={search} matches={catalogue.matches} total={lucideTotal} />
             )}
             empty={noMatches}
           />
@@ -141,7 +143,7 @@ function MediaResults({
   const total = search.source === 'media' ? catalogue.matches.length : topicMatchCount(query);
   return (
     <Stack gap="xl">
-      <MediaBreadcrumb search={search} matches={catalogue.matches} total={total} />
+      <MediaResultCount search={search} matches={catalogue.matches} total={total} />
       {focused && <FocusedMedia focused={focused} onClose={onClose} />}
       {search.source === 'media' ? (
         <>
@@ -166,25 +168,16 @@ function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) 
   return `${total} matches`;
 }
 
-function MediaBreadcrumb({
+/* The gallery's name and the way back to every gallery sit above the title (see MediaShowcase), so this line only counts what the filters left. */
+function MediaResultCount({
   search,
   matches,
   total,
 }: Readonly<{ search: MediaSearch; matches: MediaEntry[]; total?: number }>) {
-  const iconLabels = { topics: 'Topic icons', lucide: 'Lucide icons' };
-  const label =
-    search.source === 'media'
-      ? mediaKinds.find((kind) => kind.value === search.kind)?.label
-      : iconLabels[search.source];
   return (
-    <Group gap="xs">
-      <Images size={16} aria-hidden />
-      <Anchor renderRoot={(props) => <Link {...props} to="/media" />}>All media</Anchor>
-      <Text size="sm">/ {label}</Text>
-      <Text size="sm" c="dimmed" role="status">
-        {total === undefined ? null : resultCount(search, matches, total)}
-      </Text>
-    </Group>
+    <Text size="sm" c="dimmed" role="status">
+      {total === undefined ? null : resultCount(search, matches, total)}
+    </Text>
   );
 }
 

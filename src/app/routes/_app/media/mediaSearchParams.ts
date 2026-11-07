@@ -32,6 +32,9 @@ export const mediaKinds = indexedMediaKinds.filter(
   (kind): kind is BrowsedKind => !(unbrowsedKinds as readonly string[]).includes(kind.value)
 );
 
+/** The two icon libraries are galleries too, titled by these names on the page and in the document title. */
+export const iconLibraryLabels = { topics: 'Topic icons', lucide: 'Lucide icons' } as const;
+
 export interface MediaSearch {
   source: 'media' | 'topics' | 'lucide';
   kind: MediaKind | 'all';

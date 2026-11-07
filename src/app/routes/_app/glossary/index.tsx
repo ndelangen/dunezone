@@ -245,8 +245,8 @@ function GlossaryPage() {
               className={styles.topic}
               icon={<TopicIcon topic={TOPIC_ICONS[topic.id]} size={20} />}
               title={topic.label}
+              help={topic.summary}
             >
-              <Text>{topic.summary}</Text>
               <TopicPane topic={topic.id} terms={terms} flip={index % 2 === 1} />
             </Section>
           ))}

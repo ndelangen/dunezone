@@ -1,9 +1,11 @@
 import { testingPreview } from '@sb/preview';
 import { waitForFrame } from '@sb/storyWaits';
+import { install } from '@sinonjs/fake-timers';
+import { HOLD_SECONDS } from '@ui/control/useHoldToConfirm';
 import { expectFactionColumns } from '@ui/list/factionListPlay';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { db, ref, faction } from '@db/storybook';
+import { db, ref, faction, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
 import { strangerOwnsTheGroups, viewerStandsAs } from './groups.stories.fixture';
@@ -104,6 +106,23 @@ export const DeleteAccountReplacementPicker = meta.story({
   },
 });
 
+/** The viewer with Google connected and Discord not, as the Sign-in methods tab shows them. */
+function googleConnected(baseline: StorybookDatabase) {
+  /* Central's public profile fields, copied from production on 2026-10-10. */
+  const profile = baseline.profiles.find((row) => row.slug === 'central');
+  if (profile) {
+    profile.username = 'Central';
+    profile.slug = 'central';
+    profile.avatar_url =
+      'https://dune.zone/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg';
+  }
+  baseline.authAccounts.push({
+    userId: ref('storybook-viewer'),
+    provider: 'google',
+    providerAccountId: 'google-story',
+  });
+}
+
 /**
  * The invitations waiting on the viewer sit on their own profile, where accepting one moves the Group into their list.
  * Only the viewer sees the card: the public page carries no invitations, since the invited have agreed to nothing yet.
@@ -133,23 +152,7 @@ export const DetailOwnInvitationAccepted = meta.story({
 
 export const SignInMethods = meta.story({
   args: { path: '/profiles/central/edit' },
-  parameters: {
-    database: db((baseline) => {
-      /* Central's public profile fields, copied from production on 2026-10-10. */
-      const profile = baseline.profiles.find((row) => row.slug === 'central');
-      if (profile) {
-        profile.username = 'Central';
-        profile.slug = 'central';
-        profile.avatar_url =
-          'https://dune.zone/user-images/135c0f3ded60c3943f4acb17448c5258a53229f4d6f7f02aab7710610059b0fa.jpg';
-      }
-      baseline.authAccounts.push({
-        userId: ref('storybook-viewer'),
-        provider: 'google',
-        providerAccountId: 'google-story',
-      });
-    }),
-  },
+  parameters: { database: db(googleConnected) },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await userEvent.click(await page.findByRole('tab', { name: 'Sign-in methods' }, { timeout: 30_000 }));
@@ -160,6 +163,74 @@ export const SignInMethods = meta.story({
     await expect(page.getByRole('button', { name: 'Sign out on all devices' })).toBeEnabled();
     await userEvent.click(page.getByRole('tab', { name: 'Account' }));
     await expect(page.getByRole('link', { name: /^Delete account$/ })).toBeVisible();
+  },
+});
+
+/**
+ * Connecting a method is refused unless the session signed in minutes ago, and the Storybook viewer's session never signed in, so the backend refuses it the way it refuses a stale one.
+ * The refusal keeps the server's words and carries the way through: the sign-in page's re-sign-in mode, returning to this tab, which the address names so the return lands on it.
+ */
+export const SignInMethodsNeedARecentSignIn = meta.story({
+  args: { path: '/profiles/central/edit?tab=sign-in' },
+  parameters: { database: db(googleConnected) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const connect = await page.findByRole('button', { name: 'Connect Discord' }, { timeout: 30_000 });
+    await expect(page.getByRole('tab', { name: 'Sign-in methods' })).toHaveAttribute('aria-selected', 'true');
+    await userEvent.click(connect);
+    const alert = await page.findByRole('alert', {}, { timeout: 30_000 });
+    await expect(alert).toHaveTextContent('Sign-in methods could not be changed');
+    await expect(alert).toHaveTextContent('Sign in again to confirm it is you, then try again.');
+    await expect(within(alert).getByRole('link', { name: 'Sign in again' })).toHaveAttribute(
+      'href',
+      '/auth/login?redirect=%2Fprofiles%2Fcentral%2Fedit%3Ftab%3Dsign-in&reauthenticate=true'
+    );
+    await expect(connect).toBeEnabled();
+  },
+});
+
+const HOUR = 60 * 60_000;
+
+/**
+ * The same refusal on the deletion page, after the held delete: the form stays for the retry, and the way through returns to this page.
+ * Deleting needs a session, so the viewer signs in at the seeding and opens the page an hour later, past the ten minutes a sign-in counts for.
+ */
+export const DeleteAccountNeedsARecentSignIn = meta.story({
+  args: { path: '/profiles/central/delete' },
+  parameters: {
+    identity: { ...storybookViewer, sessionKey: 'viewer-session' },
+    database: db(
+      (baseline) => {
+        baseline.authSessions.push({
+          $key: 'viewer-session',
+          userId: ref('storybook-viewer'),
+          expirationTime: STORYBOOK_NOW + 30 * 24 * HOUR,
+        });
+      },
+      { elapsedMs: HOUR }
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const page = await findDeletionPage(canvasElement);
+    await userEvent.click(page.getByRole('checkbox'));
+    const hold = page.getByRole('button', { name: 'Delete account' });
+    await expect(hold).toBeEnabled();
+    const clock = install({ toFake: ['setInterval', 'clearInterval'], shouldClearNativeTimers: true });
+    try {
+      await userEvent.pointer([{ keys: '[MouseLeft>]', target: hold }]);
+      await clock.tickAsync(HOLD_SECONDS * 1000);
+    } finally {
+      await userEvent.pointer([{ keys: '[/MouseLeft]', target: canvasElement.ownerDocument.body }]);
+      clock.uninstall();
+    }
+    const alert = await page.findByRole('alert', {}, { timeout: 30_000 });
+    await expect(alert).toHaveTextContent('Account deletion could not start');
+    await expect(alert).toHaveTextContent('Sign in again to confirm it is you, then try again.');
+    await expect(within(alert).getByRole('link', { name: 'Sign in again' })).toHaveAttribute(
+      'href',
+      '/auth/login?redirect=%2Fprofiles%2Fcentral%2Fdelete&reauthenticate=true'
+    );
+    await expect(page.getByRole('checkbox')).toBeChecked();
   },
 });
 

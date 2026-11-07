@@ -17,10 +17,10 @@ import {
   requireUnlockedAccount,
   signInProviders,
 } from './lib/accountMethods';
-import { revokeAccountSessions } from './lib/authSessionLifecycle';
+import { expirePendingConnections, revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
-import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+import { requireAdminUserId, requireAuthUserId, requireRecentSignIn } from './lib/policy';
 import schema from './schema';
 
 export const providers = publicQuery({
@@ -161,6 +161,7 @@ export const beginConnection = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     await requireUnlockedAccount(ctx, userId);
+    await requireRecentSignIn(ctx);
     const sessionId = await getAuthSessionId(ctx);
     const session = sessionId ? await ctx.db.get(sessionId) : null;
     const profile = await profileForAccount(ctx, userId);
@@ -174,6 +175,7 @@ export const beginConnection = mutation({
     if (method.connected) {
       throw new Error('This sign-in method is already connected.');
     }
+    await expirePendingConnections(ctx, userId);
     const token = playCredential();
     const expiresAt = Math.min(Date.now() + 10 * 60_000, session.expirationTime);
     const connectionId = await ctx.db.insert('account_connections', {
@@ -335,6 +337,7 @@ export const disconnect = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
     await requireUnlockedAccount(ctx, userId);
+    await requireRecentSignIn(ctx);
     const methods = await accountMethods(ctx, userId);
     if (!methods.some((method) => method.provider !== args.provider && method.connected && method.available)) {
       throw new Error('Keep at least one sign-in method connected.');
