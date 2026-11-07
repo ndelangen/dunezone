@@ -14564,21 +14564,14 @@
     "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
     "subjects": ["places"],
     "credit": "blog-picture",
-    "sourceHash": "a450a4870f9a536ffb1f9eca00ff20f19c9e0a75d5b84cde360a1107f3bc54f1"
+    "sourceHash": "3d70e58cbee7539d37383e7943180cfde1243ae9957a846ad778f8b15018e5ad"
   },
   "/web/blog/dune-board-editor/cut-split.jpg": {
     "description": "The dune.zone board editor after a cut splits Hagga basin: the lower half is selected and named Hagga basin 2.",
     "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
     "subjects": ["places"],
     "credit": "blog-picture",
-    "sourceHash": "51e9ad75155436c9aed06353288a9f87ee11d3a5f33d2c3f5be7c110a61c03ab"
-  },
-  "/web/blog/dune-board-editor/cut-merged.jpg": {
-    "description": "The dune.zone board editor after the cut is removed: Hagga basin is one territory again.",
-    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
-    "subjects": ["places"],
-    "credit": "blog-picture",
-    "sourceHash": "f7fbaac93a7de1b172fc94e71d8b39722b3cd9edd3b96b54c6d68b9c041a80e3"
+    "sourceHash": "809f033636cb4f7f6f76dd394330d103f9c37fd54f6d25426715a298c714f48e"
   },
   "/web/blog/dune-board-editor/spice-cards.jpg": {
     "description": "Twelve Spice cards from dune.zone, each with a small Arrakis map and its territory lit.",

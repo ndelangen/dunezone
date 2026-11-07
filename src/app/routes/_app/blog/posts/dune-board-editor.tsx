@@ -43,23 +43,23 @@ function DrawingSection() {
         there.
       </Paragraph>
       <Paragraph>Here is a cut through Hagga basin on Arrakis.</Paragraph>
-      <Figure
-        imageKey="/web/blog/dune-board-editor/cut-unfinished.jpg"
-        alt="The board editor with Hagga basin selected: a new line runs from its left border and stops halfway, and Hagga basin is still one territory"
-        aspect={1034 / 2048}
-        caption="Halfway through the cut, Hagga basin is still one territory. An unfinished line is allowed, and it shows on the board."
-      />
-      <Figure
-        imageKey="/web/blog/dune-board-editor/cut-split.jpg"
-        alt="The board editor after the cut reaches the other border: the lower half is selected and named Hagga basin 2"
-        aspect={1034 / 2048}
-        caption="Once the cut reaches the other border, there are two territories. The top keeps the name Hagga basin, and the bottom becomes Hagga basin 2."
-      />
-      <Figure
-        imageKey="/web/blog/dune-board-editor/cut-merged.jpg"
-        alt="The board editor after the new line is removed: Hagga basin is one territory again"
-        aspect={1034 / 2048}
-        caption="Remove the line, and it's one Hagga basin again."
+      <FigureRow
+        figures={[
+          {
+            imageKey: '/web/blog/dune-board-editor/cut-unfinished.jpg',
+            alt: 'The board editor with Hagga basin selected: a new line runs from its left border and stops halfway, and Hagga basin is still one territory',
+            aspect: 1040 / 1120,
+            caption:
+              'Halfway through, Hagga basin is still one territory. An unfinished line is allowed, and it shows on the board.',
+          },
+          {
+            imageKey: '/web/blog/dune-board-editor/cut-split.jpg',
+            alt: 'The board editor after the cut reaches the other border: the lower half is selected and named Hagga basin 2',
+            aspect: 1040 / 1120,
+            caption:
+              'Once the cut reaches the other border, the top keeps the name Hagga basin and the bottom becomes Hagga basin 2.',
+          },
+        ]}
       />
     </Section>
   );
