@@ -23,31 +23,21 @@ import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { AssetLink } from '@ui/content/AssetLink';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { errorMessage } from '@ui/content/errorMessage';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { AsymmetricSplitLayout } from '@ui/layout/AsymmetricSplitLayout';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Links } from '@ui/list/Links';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  Boxes,
-  CalendarPlus,
-  Copy,
-  Download,
-  FlipHorizontal2,
-  History,
-  Layers3,
-  Pencil,
-  Replace,
-} from 'lucide-react';
+import { Boxes, CalendarPlus, Copy, Download, FlipHorizontal2, History, Layers3, Pencil, Replace } from 'lucide-react';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 
@@ -208,23 +198,18 @@ function ContainerSection({
   return (
     <Section id={id} icon={icon} title={title}>
       {containers.length === 0 ? (
-        <Surface padding="lg">
-          <Text size="sm" c="dimmed">
-            {empty}
-          </Text>
-        </Surface>
+        <EmptyNote>{empty}</EmptyNote>
       ) : (
-        <Links>
+        <Stack gap="xs" align="flex-start">
           {containers.map((container) => (
-            <Links.Item
+            <AssetLink
               key={container.id}
-              to="/assets/$type/$slug"
-              params={{ type: container.type, slug: container.slug }}
-            >
-              {container.count > 1 ? `${container.name} ×${container.count}` : container.name}
-            </Links.Item>
+              type={container.type}
+              slug={container.slug}
+              name={container.count > 1 ? `${container.name} ×${container.count}` : container.name}
+            />
           ))}
-        </Links>
+        </Stack>
       )}
     </Section>
   );
@@ -381,15 +366,13 @@ function FaceTextSection({ type, entries }: { type: string; entries: FaceTextEnt
 function AboutSection({ about }: { about: string }) {
   return (
     <Section id="about" icon={<TopicIcon topic="about" size={20} />} title="About">
-      <Surface padding="lg">
-        {about.trim() ? (
+      {about.trim() ? (
+        <Surface padding="lg">
           <FormattedTextSource source={about} />
-        ) : (
-          <Text size="sm" c="dimmed">
-            Nothing written about this yet.
-          </Text>
-        )}
-      </Surface>
+        </Surface>
+      ) : (
+        <EmptyNote>Nothing written about this yet.</EmptyNote>
+      )}
     </Section>
   );
 }
@@ -434,11 +417,7 @@ function Composition({
       help={`The ${noun} in here and how many of each.`}
     >
       {members.length === 0 ? (
-        <Surface padding="lg">
-          <Text size="sm" c="dimmed">
-            No {noun} yet.
-          </Text>
-        </Surface>
+        <EmptyNote>{`No ${noun} yet.`}</EmptyNote>
       ) : (
         <>
           <TileGrid>
@@ -478,13 +457,11 @@ function ShippedByCard({ rulesets }: { rulesets: AssetPage['linkingRulesets'] })
   }
   return (
     <Card title="Shipped by" icon={<TopicIcon topic="rulesets" size={18} />}>
-      <Links>
+      <Stack gap="xs" align="flex-start">
         {rulesets.map((ruleset) => (
-          <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-            {`${ruleset.name} · ${slotLabel(ruleset.slot)}`}
-          </Links.Item>
+          <RulesetLink key={ruleset.id} slug={ruleset.slug} name={`${ruleset.name} · ${slotLabel(ruleset.slot)}`} />
         ))}
-      </Links>
+      </Stack>
     </Card>
   );
 }
@@ -690,14 +667,6 @@ function LoadedAssetDetail({
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label={`Back to ${collectionLabel.toLowerCase()}`}
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type" params={{ type: asset.type }} />}
-            />
             {capabilities.edit ? (
               <IconAction
                 label={`Edit ${asset.name}`}

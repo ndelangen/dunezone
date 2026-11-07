@@ -70,6 +70,7 @@ function Cluster({ children }: ToolbarClusterProps) {
  *
  * Every page toolbar reads the same way (Norbert, 2026-09-29).
  * `Left` is where you go: Back to the page above first, then the switch between reading and editing this thing (Edit on a detail page), and nothing else.
+ * A detail page whose `PageIdentity` carries a breadcrumb leaves Back out: the breadcrumb above the title is the way up, and a second arrow below it repeated it (Norbert, 2026-11-07).
  * `Center` holds the controls that shape what the page lists, as one `SearchRefine`, or an editor's one live indicator, and is empty otherwise.
  * `Right` is what you can do here, handed over as `Toolbar.Cluster`s: the kit stands them in the order `ToolbarClusterKind` states with a wider gap between them, so a page cannot put delete before create.
  * One thin divider stands before the commit run alone, since keeping the work is the one step apart from the rest.

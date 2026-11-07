@@ -4,6 +4,7 @@ import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
 import { useId } from 'react';
 import type { ReactNode } from 'react';
 
+import { useInsidePageHeader } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
 import styles from './CallToAction.module.css';
 
@@ -17,6 +18,7 @@ interface CallToActionBaseProps {
   direction?: 'start' | 'forward' | 'down';
   /** `artwork` is the near-black, cream-lettered fill for a call that sits on the sandy header art, where the bright yellow would sink into the sand. */
   tone?: 'bright' | 'artwork';
+  /** Ignored inside `PageLayout.Header`, where every call is `md` so the band reads the same on every page (Norbert, 2026-11-07). */
   size?: ButtonProps['size'];
   /**
    * Pulses periodically to draw the eye.
@@ -67,7 +69,9 @@ export function CallToAction({
   busy = false,
 }: CallToActionProps) {
   const reasonId = useId();
-  const iconSize = size === 'sm' ? 15 : 17;
+  const insideHeader = useInsidePageHeader();
+  const resolvedSize = insideHeader ? 'md' : size;
+  const iconSize = resolvedSize === 'sm' ? 15 : 17;
   const Arrow = TrailingArrow[direction];
   const variant = tone === 'artwork' ? 'artwork' : undefined;
   const sections = {
@@ -99,7 +103,7 @@ export function CallToAction({
           color="cta"
           variant={variant}
           className={attention && !disabled ? styles.attention : undefined}
-          size={size}
+          size={resolvedSize}
           {...sections}
           {...destination}
           data-disabled={disabled || undefined}

@@ -7,6 +7,7 @@ import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
 import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -18,7 +19,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
+import { BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -188,14 +189,6 @@ function GroupDetailPage() {
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to profiles"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
             {capabilities?.rename ? (
               <IconAction
                 label="Edit group"
@@ -490,11 +483,7 @@ function MemberRoster({
   removingMembershipId: string | null;
 }) {
   if (members.length === 0) {
-    return (
-      <Text size="sm" c="dimmed">
-        No members yet.
-      </Text>
-    );
+    return <EmptyNote>No members yet.</EmptyNote>;
   }
   return (
     <Stack gap="xs">
