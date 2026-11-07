@@ -63,6 +63,11 @@
     "source": "Command & Conquer Brotherhood of Nod character art (Westwood Studios and EA)",
     "style": "the GF9 Dune leader portraits"
   },
+  "gary-portrait": {
+    "method": "ai-adapted",
+    "source": "portraits by Gary [MCDM]",
+    "style": "the GF9 Dune leader portraits"
+  },
   "brainfood-portrait": {
     "method": "official",
     "artist": "Brainfood",

@@ -5193,6 +5193,31 @@
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"]
   },
+  "/image/leader/gary/blonde-officer.png": {
+    "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
+    "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/crimson-masked-figure.png": {
+    "description": "Crimson Masked Figure. Fully masked face in red wrappings with round bronze goggles and two breathing tubes. Tall red collar over brown armour with shoulder hoses.",
+    "tags": ["portrait", "mask", "goggles", "breathing tubes", "armour", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/haughty-nobleman.png": {
+    "description": "Haughty Nobleman. Bearded man with brown hair, chin raised, looking down sideways. Purple robe with gold trim and a gold ceremonial chain with a purple gem.",
+    "tags": ["portrait", "man", "noble", "beard", "chain", "jewel", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/scarred-commander.png": {
+    "description": "Scarred Commander. Man with wavy red-brown hair, curled moustache, goatee and a scar through one brow. Gold earring, crimson high collar and dark armour.",
+    "tags": ["portrait", "man", "moustache", "scar", "earring", "armour", "illustration"],
+    "subjects": ["people"]
+  },
+  "/image/leader/gary/stoic-officer.png": {
+    "description": "Stoic Officer. Clean-shaven man with brown hair and blue eyes, gazing upward. Purple high collar and robes with gold trim, gold chain and blue-lit shoulder fixtures.",
+    "tags": ["portrait", "man", "officer", "robe", "chain", "illustration"],
+    "subjects": ["people"]
+  },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "description": "Hiver Amber Pendant. Insect-like figure with antennae and large compound eyes. Amber pendant.",
     "tags": ["portrait", "figure", "eyes", "insect", "illustration"],

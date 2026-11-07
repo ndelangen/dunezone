@@ -4562,6 +4562,51 @@
     "isOpaque": true,
     "color": "#c8b878"
   },
+  "/image/leader/gary/blonde-officer.png": {
+    "sha256": "6fe1e269416c2041ec1803dd5544b0ad4fe7708ec55c9e52f9cc00093dcbdfe6",
+    "bytes": 414067,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/crimson-masked-figure.png": {
+    "sha256": "4b0d8ed013d3fffb4f89304528a0f9be2d6519c0601580f485206abd5663c22c",
+    "bytes": 445855,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/haughty-nobleman.png": {
+    "sha256": "9d1c52a23fcd0b1489d2f3cfc52edc7b7274517a6866be763c0bc5e6f9abcbbe",
+    "bytes": 435061,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/scarred-commander.png": {
+    "sha256": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e",
+    "bytes": 445826,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
+  "/image/leader/gary/stoic-officer.png": {
+    "sha256": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17",
+    "bytes": 426601,
+    "width": 640,
+    "height": 640,
+    "format": "png",
+    "isOpaque": true,
+    "color": "#c8b878"
+  },
   "/image/leader/gf9-second-edition/anirul-corrino.png": {
     "sha256": "66fa79b3efdebcda6fb979e60c87fdcaaaeab31c5034937ab5be315bff492d27",
     "bytes": 496341,
@@ -7775,15 +7820,6 @@
     "isOpaque": true,
     "color": "#c8c8c8"
   },
-  "/web/blog/building-a-dune-sandbox/game-table.jpg": {
-    "sha256": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8",
-    "bytes": 199638,
-    "width": 2048,
-    "height": 1019,
-    "format": "jpeg",
-    "isOpaque": true,
-    "color": "#080808"
-  },
   "/web/blog/anatomy-of-a-dune-faction-atreides/atreides-table-spread.jpg": {
     "sha256": "13f00b3582d81614dc5682b39a0961cbc4b49c3c8455ddb091e54f0f5dd86a24",
     "bytes": 227171,
@@ -7792,6 +7828,15 @@
     "format": "jpeg",
     "isOpaque": true,
     "color": "#281818"
+  },
+  "/web/blog/building-a-dune-sandbox/game-table.jpg": {
+    "sha256": "a341b95b962cd947a2e2564c5f3a53a06ba84d24d26f6a3ce49d907291ac4ab8",
+    "bytes": 199638,
+    "width": 2048,
+    "height": 1019,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
   },
   "/web/blog/drawing-dune-tokens-and-cards/atreides-leaders.jpg": {
     "sha256": "ebb942756691887e5cc052071f1378942bd59c51d37bf777e206be33ea884afc",

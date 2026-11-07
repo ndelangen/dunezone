@@ -646,6 +646,15 @@
       "/image/leader/custom/": ["lieto.png", "thurn.png"],
       "/image/leader/official/": ["jammo.png", "smuggler2.png"]
     },
+    "gary-portrait": {
+      "/image/leader/gary/": [
+        "blonde-officer.png",
+        "crimson-masked-figure.png",
+        "haughty-nobleman.png",
+        "scarred-commander.png",
+        "stoic-officer.png"
+      ]
+    },
     "gf9-second-edition-portrait": {
       "/image/leader/gf9-second-edition/": [
         "anirul-corrino.png",

@@ -1,0 +1,37 @@
+{
+  "artist": "Gary [MCDM]",
+  "permission": "Gary gave permission to add these portraits to Dune Zone on Discord on 7 November 2026 (\"ye you can throw them on there, more stuff for the community the better\"). Norbert relayed it and asked for them to be added.",
+  "originals": "Gary's portraits are his own AI-generated characters.",
+  "generation": "Built-in imagegen style transfer of Gary's transparent originals, with three original GF9 leader portraits as style references, asking for the loose pen lines and colour washes of the GF9 leaders.",
+  "backgroundRgb": [205, 186, 120],
+  "sourceSize": [1254, 1254],
+  "gameSize": [640, 640],
+  "processing": "The transparent redraw is composited onto the GF9 leader tan without cropping, then resized with Pillow Lanczos to a lossless RGB PNG.",
+  "portraits": [
+    {
+      "asset": "/image/leader/gary/blonde-officer.png",
+      "generatedSourceSha256": "8d564ba7b7f4bf85263dd5b9f53bb7fb8971e86067e883c6620f6fd535b6ac5e",
+      "gamePngSha256": "6fe1e269416c2041ec1803dd5544b0ad4fe7708ec55c9e52f9cc00093dcbdfe6"
+    },
+    {
+      "asset": "/image/leader/gary/crimson-masked-figure.png",
+      "generatedSourceSha256": "38a6f2628c6fc8c83ef35d4590c70a8d389c9b147d54ca0cdce2cefb4dab2023",
+      "gamePngSha256": "4b0d8ed013d3fffb4f89304528a0f9be2d6519c0601580f485206abd5663c22c"
+    },
+    {
+      "asset": "/image/leader/gary/haughty-nobleman.png",
+      "generatedSourceSha256": "06803227beeb0a95bd33b5c2500a63e654b4452598d0d0a5e21fce046019ded6",
+      "gamePngSha256": "9d1c52a23fcd0b1489d2f3cfc52edc7b7274517a6866be763c0bc5e6f9abcbbe"
+    },
+    {
+      "asset": "/image/leader/gary/scarred-commander.png",
+      "generatedSourceSha256": "c431e568ddffd9b707caa01643bf61f27ec2207812e7111162b520256ad6bda2",
+      "gamePngSha256": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e"
+    },
+    {
+      "asset": "/image/leader/gary/stoic-officer.png",
+      "generatedSourceSha256": "530d06df3a79671f94a82ad83fd286d2f2cc9db0d5ab84fe5098f959fae2c074",
+      "gamePngSha256": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17"
+    }
+  ]
+}

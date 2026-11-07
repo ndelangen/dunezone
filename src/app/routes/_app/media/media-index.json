@@ -7442,6 +7442,41 @@
     "credit": "gf9-ilya-portrait",
     "sourceHash": "ac3d511288cc50771d8c4fff89d75c7eacee892f8b2ef70e95ec927ebc68d4bf"
   },
+  "/image/leader/gary/blonde-officer.png": {
+    "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
+    "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "6fe1e269416c2041ec1803dd5544b0ad4fe7708ec55c9e52f9cc00093dcbdfe6"
+  },
+  "/image/leader/gary/crimson-masked-figure.png": {
+    "description": "Crimson Masked Figure. Fully masked face in red wrappings with round bronze goggles and two breathing tubes. Tall red collar over brown armour with shoulder hoses.",
+    "tags": ["portrait", "mask", "goggles", "breathing tubes", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "4b0d8ed013d3fffb4f89304528a0f9be2d6519c0601580f485206abd5663c22c"
+  },
+  "/image/leader/gary/haughty-nobleman.png": {
+    "description": "Haughty Nobleman. Bearded man with brown hair, chin raised, looking down sideways. Purple robe with gold trim and a gold ceremonial chain with a purple gem.",
+    "tags": ["portrait", "man", "noble", "beard", "chain", "jewel", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "9d1c52a23fcd0b1489d2f3cfc52edc7b7274517a6866be763c0bc5e6f9abcbbe"
+  },
+  "/image/leader/gary/scarred-commander.png": {
+    "description": "Scarred Commander. Man with wavy red-brown hair, curled moustache, goatee and a scar through one brow. Gold earring, crimson high collar and dark armour.",
+    "tags": ["portrait", "man", "moustache", "scar", "earring", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e"
+  },
+  "/image/leader/gary/stoic-officer.png": {
+    "description": "Stoic Officer. Clean-shaven man with brown hair and blue eyes, gazing upward. Purple high collar and robes with gold trim, gold chain and blue-lit shoulder fixtures.",
+    "tags": ["portrait", "man", "officer", "robe", "chain", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17"
+  },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "description": "Hiver Amber Pendant. Insect-like figure with antennae and large compound eyes. Amber pendant.",
     "tags": ["portrait", "figure", "eyes", "insect", "illustration"],
