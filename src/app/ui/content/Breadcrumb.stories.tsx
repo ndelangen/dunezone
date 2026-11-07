@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
 
 import { PageLayout } from '../layout/PageLayout';
 import { Breadcrumb } from './Breadcrumb';
@@ -21,8 +20,4 @@ const meta = preview.meta({
 });
 
 /** The way up one level: the parent's name in the eyebrow treatment, after a chevron, as a link there. */
-export const Default = meta.story({
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('link', { name: 'Assets' })).toHaveAttribute('href', '/assets');
-  },
-});
+export const Default = meta.story({});

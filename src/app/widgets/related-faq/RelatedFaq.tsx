@@ -18,7 +18,7 @@ export function RelatedFaq({
   onOpenQuestion: (questionSlug: string, rulesetSlug: string) => void;
 }) {
   /* A page with nothing related says nothing about it, rather than a heading over an empty line; it also stays away while the first page loads, so it never flashes empty. */
-  if (items.length === 0) {
+  if (items.length === 0 && status !== 'CanLoadMore' && status !== 'LoadingMore') {
     return null;
   }
   return (

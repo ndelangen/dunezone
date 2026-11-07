@@ -466,7 +466,7 @@ it in one line too, with the way onward as a boxed `LabeledAction`, never a bare
 *Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
 line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.
 `PageMessage` takes a `lede` for a message short enough to need no pane, which is how
-`RouteNotFound` draws every missing page; its `Back` and `Home` are `LabeledAction`s, and
+`RouteNotFound` and the site's 404 say a missing page; its `Back` and `Home` are `LabeledAction`s, and
 `LoginGate` puts its Log in under its sentence as one.*
 
 ### A bar states its statuses as glyphs and stays one line

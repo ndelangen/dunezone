@@ -6,6 +6,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import clsx from 'clsx';
 import { ArrowLeft, House } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -32,7 +33,13 @@ function Back<
   return (
     <LabeledAction
       icon={<ArrowLeft size={16} />}
-      renderRoot={(rootProps) => <Link {...rootProps} {...(link as LinkComponentProps<'a'>)} />}
+      renderRoot={(rootProps) => (
+        <Link
+          {...rootProps}
+          {...(link as LinkComponentProps<'a'>)}
+          className={clsx(rootProps.className, (link as { className?: string }).className)}
+        />
+      )}
     >
       {children}
     </LabeledAction>
