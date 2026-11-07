@@ -29,16 +29,16 @@ export const Start = meta.story({
   play: async ({ args, canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.getByRole('button', { name: 'Save group' })).toBeDisabled();
-    await userEvent.type(page.getByRole('textbox', { name: 'Group name' }), 'Fremen of Sietch Tabr');
+    await userEvent.type(page.getByRole('textbox', { name: 'Group name' }), 'SietchTabr');
     await userEvent.click(page.getByRole('button', { name: 'Save group' }));
-    await expect(args.onSubmit).toHaveBeenCalledWith({ name: 'Fremen of Sietch Tabr' });
+    await expect(args.onSubmit).toHaveBeenCalledWith({ name: 'SietchTabr' });
   },
 });
 
 /** Editing a group: its current name, and the save that failed under the field. */
 export const EditFailed = meta.story({
   args: {
-    initialName: 'Spice Guild',
+    initialName: 'SpiceGuild',
     verb: 'save' as const,
     back: {
       label: 'Back to group',
