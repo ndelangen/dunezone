@@ -804,18 +804,21 @@ export function GameTable({
   return (
     <PointerSessionContext value={pointerSession}>
       <TableLabelsContext value={tableLabels}>
-        <DarkSchemeIsland>
-          {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
-          <div
-            className="dune-play-stage"
-            data-scene-ready={viewState.sceneReady}
-            data-voyage={arrival === 'opening' ? 'arrived' : undefined}
-          >
-            {arrival === 'open' ? null : (
-              <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
-                <TableWait status="Opening the table...">{waitControls}</TableWait>
-              </div>
-            )}
+        {/*
+          The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris.
+          The waiting frame is its own island, so only the shell sits in this one: an island inside another lost the tooltip host of the frame's Lobby button.
+        */}
+        <div
+          className="dune-play-stage"
+          data-scene-ready={viewState.sceneReady}
+          data-voyage={arrival === 'opening' ? 'arrived' : undefined}
+        >
+          {arrival === 'open' ? null : (
+            <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
+              <TableWait status="Opening the table...">{waitControls}</TableWait>
+            </div>
+          )}
+          <DarkSchemeIsland>
             <div
               className="dune-play-shell"
               {...darkSchemeIslandAttributes}
@@ -846,8 +849,8 @@ export function GameTable({
                 focus={focus}
               />
             </div>
-          </div>
-        </DarkSchemeIsland>
+          </DarkSchemeIsland>
+        </div>
       </TableLabelsContext>
     </PointerSessionContext>
   );
