@@ -60,14 +60,18 @@
   animation: dune-play-enter 1500ms ease-in-out;
 }
 
-/* The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it. */
+/*
+ * The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it.
+ * The clipped shell itself never fades: an opacity animation on the element whose clip-path animates let Chromium paint its
+ * ground outside the circle for some rows. Its ground eases in from clear instead, and its contents fade on their own.
+ */
 @keyframes dune-play-enter {
   from {
-    opacity: 0;
+    background-color: transparent;
     clip-path: circle(calc(var(--voyage-planet-size) / 2) at 50% var(--voyage-planet-y));
   }
   30% {
-    opacity: 1;
+    background-color: var(--color-ground);
     clip-path: circle(calc(var(--voyage-planet-size) * 0.62) at 50% var(--voyage-planet-y));
   }
   to {
@@ -75,14 +79,29 @@
   }
 }
 
+.dune-play-stage[data-scene-ready="true"] .dune-play-shell > * {
+  animation: dune-play-enter-contents 1500ms ease-in-out;
+}
+
+@keyframes dune-play-enter-contents {
+  from {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
 /* The stage's own rules carry the stage class and the ready attribute, so these repeat the stage class to outrank them. */
-html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell,
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   animation: none;
   clip-path: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell {
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell,
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell > * {
     animation: none;
     clip-path: none;
   }
