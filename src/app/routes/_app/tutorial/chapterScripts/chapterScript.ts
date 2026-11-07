@@ -39,8 +39,11 @@ export type ChapterScript = Readonly<{
   watch?: boolean;
   /** Pieces the learner holds in this chapter besides what the setup dealt, with their images under `{{origin}}` as the setup names them. */
   hand?: readonly StoredPiece[];
-  /** What the other players do as the table opens, before the learner sees it, such as moving the game on to the chapter's phase. */
-  opening?: (players: TablePlayers) => void;
+  /**
+   * What the other players do as the table opens, before the learner sees it, such as moving the game on to the chapter's phase.
+   * `firstTask` is the task the chapter opens at, counted from 0, so a chapter opened part way through can set up what the earlier tasks would have.
+   */
+  opening?: (players: TablePlayers, firstTask: number) => void;
   /** The chapter's tasks, in order, reading the table as the learner sees it. */
   tasks: (snapshot: () => GameSnapshot, players: TablePlayers, random?: () => number) => GuideTask[];
   /** What the learner can do once the chapter is done, one short line each, listed on its end screen. */

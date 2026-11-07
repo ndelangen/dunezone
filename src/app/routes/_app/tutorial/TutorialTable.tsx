@@ -43,7 +43,7 @@ export default function ChapterPlay({
   const { runtime, control } = useTutorialTable(
     seated,
     () => startAt(seated, script.checkpoint, window.location.origin, script),
-    script.opening
+    script.opening && ((players) => script.opening?.(players, firstTask))
   );
   const [tasks] = useState(() => script.tasks(control.snapshot, control.players, fixedPlayers ? () => 0 : Math.random));
   return (

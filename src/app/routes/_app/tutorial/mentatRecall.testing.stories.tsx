@@ -163,12 +163,15 @@ async function returnAndRecallLatest({ step, page, document, recall, recallStart
 }
 
 /* A recall asked for mid-chapter, which the task's practice players agree to. */
+/* A chapter opened inside the recall finds it running at Turn 1, Storm, as the earlier tasks would have left it. */
 async function recallStormMidChapter(driver: ChapterDriver) {
-  const { step, askToRecallStorm, recallStarts } = driver;
+  const { step, recallStarts, recall } = driver;
   await step('Inspect your recalled hand');
-  await pinLiveHand(driver);
-  await askToRecallStorm();
   await recallStarts();
+  await expect(await recall().findByRole('slider', { name: 'Checkpoint' })).toHaveAttribute(
+    'aria-valuetext',
+    'Turn 1, Storm'
+  );
 }
 
 async function compareInventory(
@@ -193,6 +196,7 @@ async function compareInventory(
   await expect(recall().getByRole('slider', { name: 'Checkpoint' })).toHaveAttribute('aria-valuetext', 'Turn 3, Storm');
 }
 
+/* Opened mid chapter, the recall was already running, so no live hand was pinned for the return to restore; RecallStorm covers that. */
 async function chatAndReturn({ step, recall, page, document }: ChapterDriver) {
   await userEvent.click(recall().getByRole('button', { name: /^Recall chat/ }));
   const field = await recall().findByRole('textbox', { name: 'Message' });
@@ -209,7 +213,6 @@ async function chatAndReturn({ step, recall, page, document }: ChapterDriver) {
   await page.findByRole('dialog', {}, { timeout: 30_000 });
   await expect(page.getByRole('button', { name: 'Next phase', hidden: true })).toBeVisible();
   await expect(page.getByText('Spice Blow', { exact: true })).toBeVisible();
-  await expect(document.querySelector('[data-side="left"][data-window="hand"]')).toBeVisible();
   await expect(document.querySelector('[data-recall-controls="true"]')).toBeNull();
 }
 
@@ -230,7 +233,7 @@ export const RecallStorm = meta.story({
   },
 });
 
-/** The chapter opened at its seventh task with `?step=7`: a new recall, the inventories at two checkpoints, the chat and the return. */
+/** The chapter opened at its seventh task with `?step=7`: the recall already running, the inventories at two checkpoints, the chat and the return. */
 export const FromTheRecalledHand = meta.story({
   args: { path: '/tutorial/mentat-recall?step=7' },
   play: async ({ canvasElement }) => {
@@ -240,5 +243,21 @@ export const FromTheRecalledHand = meta.story({
     const firstCounter = await inspectFirstInventory(driver);
     await compareInventory(driver, firstCounter);
     await chatAndReturn(driver);
+  },
+});
+
+/** The chapter opened at Slide through time with `?step=9`, as the blog post embeds it: the recall runs and the slider moves the table. */
+export const SlideThroughTime = meta.story({
+  args: { path: '/tutorial/mentat-recall?step=9' },
+  play: async ({ canvasElement }) => {
+    const driver = chapterDriver(canvasElement);
+    await driver.page.findByRole('banner', { name: 'Chapter 20: Mentat recall' }, { timeout: 60_000 });
+    await driver.step('Slide through time');
+    await driver.recallStarts();
+    const slider = await driver.recall().findByRole('slider', { name: 'Checkpoint' });
+    await expect(slider).toHaveAttribute('aria-valuetext', 'Turn 1, Storm');
+    slider.focus();
+    await userEvent.keyboard('{End}');
+    await waitForFrame(() => expect(slider).toHaveAttribute('aria-valuetext', 'Turn 3, Spice Blow'));
   },
 });
