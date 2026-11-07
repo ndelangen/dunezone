@@ -525,47 +525,30 @@ export const probe = <Text tt="uppercase">Phase</Text>;
 });
 
 describe('empty-note', { timeout: TEST_BUDGET_MS }, () => {
-  const reports = (output: string) => output.split('local(empty-note)').length - 1;
-
-  test('reports a dimmed Mantine Text worded as an absence', async () => {
-    const output = await lintDiagnostics(
-      'probe.tsx',
-      `import { Text } from '@mantine/core';
-export const probe = [
-  <Text size="sm" c="dimmed">No factions yet.</Text>,
-  <Text c="dimmed">
-    This table has no rows yet.
-  </Text>,
-  <Text size="xs" c="dimmed">Nothing beyond the faction's own components.</Text>,
-];
-`,
-      'src/app/routes'
-    );
-    expect(reports(output)).toBe(3);
-  });
-
-  test('leaves other dimmed lines, computed text, stories and the kit alone', async () => {
-    const quiet = await lintDiagnostics(
-      'probe.tsx',
-      `import { Text } from '@mantine/core';
-const label = 'No messages yet.';
-export const probe = [
-  <Text c="dimmed">A development preview. Play is not available yet.</Text>,
-  <Text c="dimmed">{label}</Text>,
-  <Text>No factions yet.</Text>,
-];
-`,
-      'src/app/routes'
-    );
-    expect(reports(quiet)).toBe(0);
-    const kit = await lintDiagnostics(
-      'probe.tsx',
-      `import { Text } from '@mantine/core';
-export const probe = <Text c="dimmed">No factions yet.</Text>;
-`,
-      'src/app/ui/content'
-    );
-    expect(reports(kit)).toBe(0);
+  const mantine = "import { Text } from '@mantine/core';\n";
+  /* Each case: the JSX probed, the folder it sits in, and how many lines the rule should report. */
+  test.each([
+    ['a dimmed absence line', '<Text size="sm" c="dimmed">No factions yet.</Text>', 'src/app/routes', 1],
+    ['an absence wrapped over lines', '<Text c="dimmed">\n  This table has no rows yet.\n</Text>', 'src/app/routes', 1],
+    [
+      'a line that opens with Nothing',
+      '<Text size="xs" c="dimmed">Nothing beyond its own parts.</Text>',
+      'src/app/routes',
+      1,
+    ],
+    ['dimmed given as an expression', "<Text c={'dimmed'}>No factions yet</Text>", 'src/app/routes', 1],
+    [
+      'a dimmed line that is no absence',
+      '<Text c="dimmed">A preview. Play is not available yet.</Text>',
+      'src/app/routes',
+      0,
+    ],
+    ['computed text', "<Text c=\"dimmed\">{'No messages ' + 'yet.'}</Text>", 'src/app/routes', 0],
+    ['an undimmed absence', '<Text>No factions yet.</Text>', 'src/app/routes', 0],
+    ['the kit itself', '<Text c="dimmed">No factions yet.</Text>', 'src/app/ui/content', 0],
+  ] as const)('%s', async (_name, jsx, folder, expected) => {
+    const output = await lintDiagnostics('probe.tsx', `${mantine}export const probe = ${jsx};\n`, folder);
+    expect(output.split('local(empty-note)').length - 1).toBe(expected);
   });
 });
 
