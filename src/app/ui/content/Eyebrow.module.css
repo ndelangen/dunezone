@@ -1,0 +1,18 @@
+/*
+ * The one small-caps, letter-spaced treatment every category label shares.
+ * `Breadcrumb` wears the same two classes, so a way up reads as the page's label and cannot drift from it.
+ */
+.eyebrow {
+  margin: 0;
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* Pure white with a drop shadow: the one treatment for text over header artwork. */
+.inverse {
+  color: var(--color-inverse);
+  text-shadow: var(--text-shadow-inverse);
+}

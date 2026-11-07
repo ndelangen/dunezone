@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { useId } from 'react';
 import type { MouseEventHandler, ReactNode, Ref } from 'react';
 
-import { useInsidePageHeader } from '../layout/PageLayout';
+import { useHeaderActionSize } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
@@ -98,7 +98,7 @@ export function LabeledAction({
   ...buttonProps
 }: LabeledActionProps) {
   const reasonId = useId();
-  const insideHeader = useInsidePageHeader();
+  const size = useHeaderActionSize('LabeledAction', buttonProps.size);
   const renderRoot: RenderRoot | undefined =
     href == null
       ? routerRoot
@@ -123,7 +123,7 @@ export function LabeledAction({
       <Tooltip label={disabledReason} disabled={!disabled}>
         <Button
           {...buttonProps}
-          size={insideHeader ? 'md' : buttonProps.size}
+          size={size}
           color={color}
           variant={variant}
           vars={vars}

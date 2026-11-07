@@ -172,6 +172,12 @@
       "rules": { "local/eyebrow": "error" }
     },
     {
+      /* A "nothing here yet" line is the kit EmptyNote, so every empty section says it at one size; stories may still stage the raw text. */
+      "files": ["src/**"],
+      "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx"],
+      "rules": { "local/empty-note": "error" }
+    },
+    {
       /* A field is captioned by the kit ControlBlock; stories may still stage the raw input. */
       "files": ["src/**"],
       "excludeFiles": ["src/app/ui/**", "src/**/*.stories.tsx", "src/**/*.stories.fixture.tsx", "src/**/*.test.tsx"],

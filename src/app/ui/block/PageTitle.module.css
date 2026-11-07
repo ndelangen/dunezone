@@ -84,7 +84,7 @@
   font-variant: small-caps;
   letter-spacing: 0.18em;
   text-wrap: balance;
-  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+  text-shadow: var(--text-shadow-inverse);
 }
 
 .subtitle::before,

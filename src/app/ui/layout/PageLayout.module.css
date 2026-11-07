@@ -67,7 +67,7 @@
 @media (width < 62rem) {
   .headerContent {
     aspect-ratio: auto;
-    height: calc(100% - 51px);
+    height: calc(100% - var(--app-navigation-height, 51px));
   }
 
   /* Sits below the navigation strip and sizes the row (see the AppHeader stylesheet), so a long title grows the band instead of overlapping the strip. */
@@ -75,7 +75,7 @@
     /* The wide rule's ratio outranks the plain reset above; with no fixed height it would size the box and the title would overflow it again. */
     aspect-ratio: auto;
     height: auto;
-    min-height: calc(220px - var(--app-navigation-height, 51px));
+    min-height: calc(var(--app-band-floor-compact, 220px) - var(--app-navigation-height, 51px));
     margin-top: var(--app-navigation-height, 51px);
   }
 
@@ -83,7 +83,7 @@
   .layout[data-page-layout-header-size="default"] .headerContent,
   .layout[data-page-layout-header-size="hero"] .headerContent {
     height: auto;
-    min-height: calc(319px - var(--app-navigation-height, 51px));
+    min-height: calc(var(--app-band-floor, 319px) - var(--app-navigation-height, 51px));
     margin-top: var(--app-navigation-height, 51px);
   }
 }

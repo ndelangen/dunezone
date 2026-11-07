@@ -524,6 +524,51 @@ export const probe = <Text tt="uppercase">Phase</Text>;
   });
 });
 
+describe('empty-note', { timeout: TEST_BUDGET_MS }, () => {
+  const reports = (output: string) => output.split('local(empty-note)').length - 1;
+
+  test('reports a dimmed Mantine Text worded as an absence', async () => {
+    const output = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = [
+  <Text size="sm" c="dimmed">No factions yet.</Text>,
+  <Text c="dimmed">
+    This table has no rows yet.
+  </Text>,
+  <Text size="xs" c="dimmed">Nothing beyond the faction's own components.</Text>,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(output)).toBe(3);
+  });
+
+  test('leaves other dimmed lines, computed text, stories and the kit alone', async () => {
+    const quiet = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+const label = 'No messages yet.';
+export const probe = [
+  <Text c="dimmed">A development preview. Play is not available yet.</Text>,
+  <Text c="dimmed">{label}</Text>,
+  <Text>No factions yet.</Text>,
+];
+`,
+      'src/app/routes'
+    );
+    expect(reports(quiet)).toBe(0);
+    const kit = await lintDiagnostics(
+      'probe.tsx',
+      `import { Text } from '@mantine/core';
+export const probe = <Text c="dimmed">No factions yet.</Text>;
+`,
+      'src/app/ui/content'
+    );
+    expect(reports(kit)).toBe(0);
+  });
+});
+
 describe('control-block-label', { timeout: TEST_BUDGET_MS }, () => {
   const reports = (output: string) => output.split('local(control-block-label)').length - 1;
 

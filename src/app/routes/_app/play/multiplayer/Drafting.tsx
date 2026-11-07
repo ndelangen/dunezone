@@ -28,6 +28,7 @@ import type { PublicControls } from '@shared/play/inventory';
 import type { SeatRequest } from '@shared/play/participation';
 import { SPECTATOR_SEAT } from '@shared/play/schema';
 import { FormError } from '@ui/block/FormError';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -632,9 +633,7 @@ export function DraftingPanel({ client, table, error }: Props & Readonly<{ error
         ))}
         {rows.length === 0 && (
           <li>
-            <Text size="sm" c="dimmed">
-              No faction matches.
-            </Text>
+            <EmptyNote>No faction matches.</EmptyNote>
           </li>
         )}
       </ul>

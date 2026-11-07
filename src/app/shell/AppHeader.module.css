@@ -1,6 +1,11 @@
 .frame {
   --app-navigation-height: 51px;
 
+  /* The narrow-screen band floors (below 62rem): the default and hero band, and the compact one.
+     The band and the page header that sizes it (PageLayout) both read these, so the two cannot drift apart. */
+  --app-band-floor: 319px;
+  --app-band-floor-compact: 220px;
+
   position: relative;
 
   /* Named, so a component whose layout is the page's rhythm asks the page and not a column it sits in. */
@@ -100,7 +105,7 @@
 
 @media (width < 62rem) {
   .band {
-    height: 319px;
+    height: var(--app-band-floor);
   }
 
   .band {

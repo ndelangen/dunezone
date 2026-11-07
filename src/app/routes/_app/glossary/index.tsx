@@ -4,6 +4,7 @@ import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import type { TopicIconTopic } from '@ui/content/TopicIcon';
@@ -237,7 +238,7 @@ function GlossaryPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {topics.length === 0 && !hasProductMatches ? <Text c="dimmed">No term matches that search.</Text> : null}
+          {topics.length === 0 && !hasProductMatches ? <EmptyNote>No term matches that search.</EmptyNote> : null}
           {topics.map(({ topic, terms }, index) => (
             <Section
               key={topic.id}

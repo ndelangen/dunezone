@@ -237,6 +237,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
       {planned ? (
         <StatusBadge>Planned</StatusBadge>
       ) : (
+        /* oxlint-disable-next-line local/empty-note -- A pile caption under an empty pile, centred in the pile's width, not a section line. */
         <Text size="xs" c="dimmed" ta="center" px={6}>
           none yet
         </Text>
