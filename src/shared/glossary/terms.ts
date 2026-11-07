@@ -361,9 +361,9 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     term: 'Spice dialing',
     topic: 'battle',
     explanation:
-      'The advanced battle rule in which a faction pays spice to support its dialed troops. Under it a supported troop counts at full strength and an unsupported one at half.',
+      'The advanced battle rule in which a faction pays spice to support its dialed troops. Under it a supported troop counts at full strength and an unsupported one at its lower strength, usually half.',
     reason:
-      'The name of the rule, as the battle rules picker shows it beside basic, KISS and GF9 2.0. Supported is the word for a troop under this rule.',
+      'The name the battle rules picker gives the Advanced option, next to Basic, KISS and GF9 2.0. Supported is the word for a troop under this rule.',
     source: 'house',
     avoid: [],
   },
@@ -693,7 +693,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     searchTerms: ['fate card'],
     topic: 'factions',
     explanation:
-      'A one-time card a faction holds, and the rule printed for it in the Fate section of its faction sheet. Playing the fate card uses that rule, once per game.',
+      'A one-time card a faction holds, and the rule printed for it in the special rule section of its faction sheet. Playing the fate card uses that rule, once per game.',
     reason:
       'A Dune Zone faction can give its once-per-game rule a fate card of its own instead of tying it to a Karama card, as the special Karama power does. The faction editor offers Fate as that section’s name.',
     source: 'house',
