@@ -1,6 +1,7 @@
 import { Section } from '@ui/block/Section';
 
-import { BulletList, Figure, FigureRow, Lead, Paragraph } from '../postContent';
+import { BulletList, Figure, FigureRow, Lead, Paragraph, WideFigure } from '../postContent';
+import { SpiceCards } from './board/SpiceCards';
 
 export default function Post() {
   return (
@@ -98,12 +99,9 @@ function ArrakisSection() {
         the curved borders of the printed map. Every place on dune.zone that shows Arrakis now draws this one saved
         board.
       </Paragraph>
-      <Figure
-        imageKey="/web/blog/dune-board-editor/spice-cards.jpg"
-        alt="Twelve Spice cards from dune.zone, each with a small Arrakis map and its territory lit: The Great Flat, Hagga Basin, Gaia Kulon, Cielago West and more"
-        aspect={924 / 2048}
-        caption="Spice cards light their territories on it. Save a change to the board, and every card on it is drawn again."
-      />
+      <WideFigure caption="Spice cards light their territories on it. These are the real cards: save a change to the board, and every one of them is drawn again.">
+        <SpiceCards />
+      </WideFigure>
       <FigureRow
         figures={[
           {

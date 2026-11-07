@@ -14573,13 +14573,6 @@
     "credit": "blog-picture",
     "sourceHash": "809f033636cb4f7f6f76dd394330d103f9c37fd54f6d25426715a298c714f48e"
   },
-  "/web/blog/dune-board-editor/spice-cards.jpg": {
-    "description": "Twelve Spice cards from dune.zone, each with a small Arrakis map and its territory lit.",
-    "tags": ["dune.zone", "spice card", "Arrakis", "blog"],
-    "subjects": ["places", "symbols"],
-    "credit": "blog-picture",
-    "sourceHash": "bcd08705a90a0ed5ed3e787a49fd0d751bb0ec3c52d1fa5a6d4442d4619dfad2"
-  },
   "/web/blog/dune-board-editor/glossary-board.jpg": {
     "description": "The board section of the dune.zone glossary: territory, sector and stronghold entries beside the Arrakis map, with one stronghold lit.",
     "tags": ["dune.zone", "glossary", "Arrakis", "blog"],
