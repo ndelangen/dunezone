@@ -5193,62 +5193,62 @@
     "tags": ["portrait", "head", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/helmeted-soldier.png": {
+  "/image/leader/custom/house-lindaren/helmeted-soldier.png": {
     "description": "Helmeted Soldier. Fully helmeted figure with a dark opaque visor and a round ear piece. Gray angular helmet and chest plates with blue shoulder armour.",
     "tags": ["portrait", "helmet", "visor", "soldier", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/paired-officers.png": {
+  "/image/leader/custom/house-lindaren/paired-officers.png": {
     "description": "Paired Officers. Two men back to back in blue uniforms with gold trim. An older man with a topknot, hair stick, moustache and goatee, and a younger clean-shaven man with shoulder-length brown hair.",
     "tags": ["portrait", "two people", "men", "officer", "topknot", "uniform", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/skeptical-officer.png": {
+  "/image/leader/custom/house-lindaren/skeptical-officer.png": {
     "description": "Skeptical Officer. Woman with a brown updo, hair stick and a beauty mark, looking sideways. Royal blue high-collared uniform with gold trim.",
     "tags": ["portrait", "woman", "officer", "updo", "uniform", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/veteran-officer.png": {
+  "/image/leader/custom/house-lindaren/veteran-officer.png": {
     "description": "Veteran Officer. Older man with long swept-back brown hair streaked with white and a gray beard, looking aside. Royal blue high-collared uniform with gold trim.",
     "tags": ["portrait", "man", "officer", "gray hair", "beard", "uniform", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/warrior.png": {
+  "/image/leader/custom/house-lindaren/warrior.png": {
     "description": "Warrior. Young man with short dark brown hair and a stern sideways look. Gray segmented chest armour, blue collar and blue shoulder plates.",
     "tags": ["portrait", "man", "soldier", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/marked-leader.png": {
+  "/image/leader/custom/house-mikarrol/marked-leader.png": {
     "description": "Marked Leader. Bearded man with short brown hair and a black marking over one eye and three bars above the other brow. Heavy brown, plum and gray armour.",
     "tags": ["portrait", "man", "beard", "face paint", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/resolute-officer.png": {
+  "/image/leader/custom/house-lindaren/resolute-officer.png": {
     "description": "Resolute Officer. Woman with voluminous curly brown hair, looking resolutely aside. Gray chest armour with blue shoulder plates.",
     "tags": ["portrait", "woman", "officer", "curly hair", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/blonde-officer.png": {
+  "/image/leader/custom/house-mikarrol/blonde-officer.png": {
     "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
     "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/crimson-masked-figure.png": {
+  "/image/leader/custom/house-mikarrol/crimson-masked-figure.png": {
     "description": "Crimson Masked Figure. Fully masked face in red wrappings with round bronze goggles and two breathing tubes. Tall red collar over brown armour with shoulder hoses.",
     "tags": ["portrait", "mask", "goggles", "breathing tubes", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/haughty-nobleman.png": {
+  "/image/leader/custom/house-mikarrol/haughty-nobleman.png": {
     "description": "Haughty Nobleman. Bearded man with brown hair, chin raised, looking down sideways. Purple robe with gold trim and a gold ceremonial chain with a purple gem.",
     "tags": ["portrait", "man", "noble", "beard", "chain", "jewel", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/scarred-commander.png": {
+  "/image/leader/custom/house-mikarrol/scarred-commander.png": {
     "description": "Scarred Commander. Man with wavy red-brown hair, curled moustache, goatee and a scar through one brow. Gold earring, crimson high collar and dark armour.",
     "tags": ["portrait", "man", "moustache", "scar", "earring", "armour", "illustration"],
     "subjects": ["people"]
   },
-  "/image/leader/gary/stoic-officer.png": {
+  "/image/leader/custom/house-mikarrol/stoic-officer.png": {
     "description": "Stoic Officer. Clean-shaven man with brown hair and blue eyes, gazing upward. Purple high collar and robes with gold trim, gold chain and blue-lit shoulder fixtures.",
     "tags": ["portrait", "man", "officer", "robe", "chain", "illustration"],
     "subjects": ["people"]
