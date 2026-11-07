@@ -6,6 +6,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -651,9 +652,9 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
         <PageIdentity
           title={data.rulebook.name}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
           stats={headerStats}
         >

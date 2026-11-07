@@ -447,8 +447,9 @@ breadcrumb above its title instead of a toolbar arrow. A catalogue page offers i
 the header, never also as a `+` in the toolbar. A toolbar with no action left for this reader draws
 nothing, and its slot steps aside.
 
-*Convention. The kit carries it: `PageIdentity.Breadcrumb` is the way up, in `PageIdentity` or in
-`PageTitle`'s `breadcrumb`, `Toolbar` renders nothing
+*Convention. The kit carries it:
+[`Breadcrumb`](../../src/app/ui/content/Breadcrumb.tsx) is the way up, given to `PageTitle` or
+`PageIdentity` as their `breadcrumb`, `Toolbar` renders nothing
 when none of its edges holds an action, and `CallToAction` and `LabeledAction` take the `md` size
 inside `PageLayout.Header` whatever size a caller passes, so every header button is one size.*
 
@@ -464,8 +465,9 @@ it in one line too, with the way onward as a boxed `LabeledAction`, never a bare
 
 *Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
 line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.
-`PageMessage` takes a `lede` for a message short enough to need no pane, and its `Back` is a
-`LabeledAction`.*
+`PageMessage` takes a `lede` for a message short enough to need no pane, which is how
+`RouteNotFound` draws every missing page; its `Back` and `Home` are `LabeledAction`s, and
+`LoginGate` puts its Log in under its sentence as one.*
 
 ### A bar states its statuses as glyphs and stays one line
 

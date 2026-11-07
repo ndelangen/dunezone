@@ -24,7 +24,7 @@
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
-   The band's Mantine anchor is an error frame's way back (PageMessage's Back link); the breadcrumb wears its own treatment and opts out. */
+   It is for a Mantine anchor in a sentence on the band; the band's ways out are boxed actions and the breadcrumb is its own plain link, so neither meets it. */
 .headerContent :where(:global(.mantine-Anchor-root)) {
   font-weight: 700;
   text-decoration: underline;

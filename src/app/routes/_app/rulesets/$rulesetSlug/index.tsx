@@ -14,6 +14,7 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
@@ -537,7 +538,7 @@ function RulesetDetailPage() {
               className={styles.coverAvatar}
             />
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/rulesets">Rulesets</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/rulesets">Rulesets</Breadcrumb>}
           maintainers={{
             owner: page.owner
               ? { slug: page.owner.slug, name: page.owner.username, image: page.owner.avatar_url }

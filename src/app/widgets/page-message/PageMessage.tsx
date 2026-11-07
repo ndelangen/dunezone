@@ -1,43 +1,52 @@
 import { Stack } from '@mantine/core';
-import { createLink } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
+import type { LinkComponentProps, RegisteredRouter } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import clsx from 'clsx';
-import { ArrowLeft } from 'lucide-react';
-import { forwardRef } from 'react';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import { ArrowLeft, House } from 'lucide-react';
+import type { ReactElement, ReactNode } from 'react';
 
-type BackAnchorProps = Omit<ComponentPropsWithoutRef<'a'>, 'children'> & {
-  /** Where it goes, in words: "Back to rulesets", "Go home". */
-  children?: string;
-  /** The glyph before the words. Defaults to a back arrow; the way home wears a house. */
-  icon?: ReactNode;
+type BackProps<
+  TFrom extends string = string,
+  TTo extends string | undefined = undefined,
+  TMaskFrom extends string = TFrom,
+  TMaskTo extends string = '',
+> = LinkComponentProps<'a', RegisteredRouter, TFrom, TTo, TMaskFrom, TMaskTo> & {
+  /** Where it goes, in words: "Back to rulesets". */
+  children: string;
 };
 
 /**
  * The way out as a boxed worded action, since a worded link standing alone in the band is the unframed button the app does not use (Norbert, 2026-11-07).
- * The router's anchor props land on the action's own root, so the press, the active state and the address stay the router's.
+ * The router's own `Link` is the action's root, so it composes the press, the ref and the active state with the button's.
  */
-const BackAnchor = forwardRef<HTMLAnchorElement, BackAnchorProps>(function BackAnchor(
-  { children = '', icon, className, ...anchorProps },
-  ref
-) {
+function Back<
+  const TFrom extends string = string,
+  const TTo extends string | undefined = undefined,
+  const TMaskFrom extends string = TFrom,
+  const TMaskTo extends string = '',
+>({ children, ...link }: BackProps<TFrom, TTo, TMaskFrom, TMaskTo>): ReactElement {
   return (
     <LabeledAction
-      icon={icon ?? <ArrowLeft size={16} />}
-      renderRoot={({ children: content, ...rootProps }) => (
-        <a {...rootProps} {...anchorProps} ref={ref} className={clsx(rootProps.className, className)}>
-          {content}
-        </a>
-      )}
+      icon={<ArrowLeft size={16} />}
+      renderRoot={(rootProps) => <Link {...rootProps} {...(link as LinkComponentProps<'a'>)} />}
     >
       {children}
     </LabeledAction>
   );
-});
+}
+
+/** The way home, for a page with no nearer place to go back to: one glyph and one wording wherever it is offered. */
+function Home(): ReactElement {
+  return (
+    <LabeledAction icon={<House size={16} />} renderRoot={(rootProps) => <Link {...rootProps} to="/" />}>
+      Go home
+    </LabeledAction>
+  );
+}
 
 export interface PageMessageProps {
   /** The page's own name, the same one it wears when it has its content: "Faction", "Ruleset", "Edit group". */
@@ -49,7 +58,7 @@ export interface PageMessageProps {
   size?: PageHeaderSize;
   /** One sentence under the name, for a message short enough to be said in the band alone: the 404 says everything there. */
   lede?: string;
-  /** The way out, as a `PageMessage.Back`. Omit it on a page that is already the top of its own branch. */
+  /** The way out, as a `PageMessage.Back` or `PageMessage.Home`. Omit it on a page that is already the top of its own branch. */
   back?: ReactNode;
   /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. Omit it when the lede says it all, and the page has no pane. */
   children?: ReactNode;
@@ -65,7 +74,7 @@ export interface PageMessageProps {
  * The message never says which state it is showing;
  * the caller has already decided that by choosing which block to hand it.
  *
- * Testing contract: `PageMessage.Back` is built with `createLink`, whose `useLinkProps` reads router context and throws outside a `RouterProvider`, so a unit test rendering one of these frames must supply a router or mock `createLink` alongside `Link`.
+ * Testing contract: `PageMessage.Back` renders the router's `Link`, which reads router context and throws outside a `RouterProvider`, so a unit test rendering one of these frames must supply a router or mock `Link`.
  * It surfaces as `Cannot read properties of null (reading 'isServer')` rather than as a failed assertion, which is why it is written down here rather than left to be rediscovered.
  *
  * It exists because about seventeen sites framed these messages themselves, and the frames drifted apart while nobody was comparing them: some centred the header and some did not, some offered a way back inside the pane and some in a toolbar and some not at all, and the pane came at two paddings depending on which page you had reached.
@@ -88,5 +97,7 @@ export function PageMessage({ title, size = 'default', lede, back, children }: P
   );
 }
 
-/** The way back out, taking the same route props as the router's own `Link`. Rendered as a boxed `LabeledAction` in the band. */
-PageMessage.Back = createLink(BackAnchor);
+/** The way back out, taking the same route props as the router's own `Link`, rendered as a boxed `LabeledAction` in the band. */
+PageMessage.Back = Back;
+/** The way home, as a boxed `LabeledAction`. */
+PageMessage.Home = Home;

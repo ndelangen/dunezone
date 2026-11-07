@@ -6,6 +6,7 @@ import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-ro
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
@@ -169,9 +170,9 @@ function RulesetFaqPage() {
         <PageIdentity
           title="Community FAQ"
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
         />
       </PageLayout.Header>

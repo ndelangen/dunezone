@@ -1,6 +1,8 @@
-import { Anchor, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import { signInReturnFrom } from '@shared/authDestination';
 import { Link, useLocation } from '@tanstack/react-router';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { LogIn } from 'lucide-react';
 
 export interface LoginGateProps {
   /** What signing in would let the reader do, as the tail of "Log in to ...": "create a faction", "start a group", "view migration activity". */
@@ -17,16 +19,21 @@ export interface LoginGateProps {
  * The link carries the page the reader is on, so signing in brings them back to it;
  * reading the route is why this is a widget rather than a kit block.
  *
+ * The sentence says what signing in is for and the boxed action under it goes there, since a worded link inside a sentence is the unframed button the app does not use (Norbert, 2026-11-07).
+ *
  * It exists because nine routes wrote this sentence and three of them spelled the link as a themed anchor while six left it as the browser's default blue one, so the same offer looked like two different things depending on where you met it.
  */
 export function LoginGate({ action }: LoginGateProps) {
   const here = useLocation({ select: (location) => location.href });
   return (
-    <Text>
-      <Anchor renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" search={signInReturnFrom(here)} />}>
+    <Stack gap="sm" align="flex-start">
+      <Text>Log in to {action}.</Text>
+      <LabeledAction
+        icon={<LogIn size={16} />}
+        renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" search={signInReturnFrom(here)} />}
+      >
         Log in
-      </Anchor>{' '}
-      to {action}.
-    </Text>
+      </LabeledAction>
+    </Stack>
   );
 }

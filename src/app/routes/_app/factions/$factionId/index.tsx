@@ -8,6 +8,7 @@ import { FormError } from '@ui/block/FormError';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
 import { EmptyNote } from '@ui/content/EmptyNote';
@@ -480,7 +481,7 @@ function FactionDetailContent({
               <FactionToken emblem={data.emblem} background={data.background} />
             </div>
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/factions">Factions</Breadcrumb>}
           maintainers={{
             owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
             group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,

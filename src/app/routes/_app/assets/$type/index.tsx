@@ -6,8 +6,8 @@ import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
-import { PageIdentity } from '@ui/block/PageIdentity';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { CallToAction } from '@ui/control/CallToAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
@@ -175,7 +175,7 @@ function AssetTypePage() {
       <PageLayout.Header>
         <Stack gap="xs" align="center">
           <PageTitle
-            breadcrumb={<PageIdentity.Breadcrumb to="/assets">Assets</PageIdentity.Breadcrumb>}
+            breadcrumb={<Breadcrumb to="/assets">Assets</Breadcrumb>}
             title={definition.label}
             lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
           />

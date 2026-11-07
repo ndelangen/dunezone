@@ -1,13 +1,13 @@
 import { Stack } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { EmptyNote } from '@ui/content/EmptyNote';
-import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { House, LogIn } from 'lucide-react';
 import { useState } from 'react';
 
 import { useLobbyGames } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { hasLobbyGames, PlayLobbyGames, PlayLobbyHeader, PlayLobbyToolbar } from '@app/widgets/play-lobby/PlayLobby';
 import type { LobbyView } from '@app/widgets/play-lobby/PlayLobby';
 
@@ -61,17 +61,7 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
   const unreachable = useServerUnreachable(status === undefined);
   switch (status) {
     case 'sign_in_required':
-      return (
-        <Stack gap="sm" align="flex-start">
-          <EmptyNote>Sign in to see your ongoing and past games.</EmptyNote>
-          <LabeledAction
-            icon={<LogIn size={16} />}
-            renderRoot={(rootProps) => <Link {...rootProps} to="/auth/login" search={{ redirect: '/play' }} />}
-          >
-            Log in
-          </LabeledAction>
-        </Stack>
-      );
+      return <LoginGate action="see your ongoing and past games" />;
     case undefined:
       break;
   }
@@ -81,9 +71,7 @@ function LobbyWait({ status }: Readonly<{ status: 'sign_in_required' | undefined
   return (
     <Stack gap="sm" align="flex-start" role="status">
       <EmptyNote>{SERVER_UNREACHABLE}</EmptyNote>
-      <LabeledAction icon={<House size={16} />} renderRoot={(rootProps) => <Link {...rootProps} to="/" />}>
-        Go home
-      </LabeledAction>
+      <PageMessage.Home />
     </Stack>
   );
 }

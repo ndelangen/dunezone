@@ -1,5 +1,3 @@
-import { House } from 'lucide-react';
-
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import { ApplicationChrome } from './ApplicationChrome';
@@ -19,11 +17,7 @@ export function AppNotFound() {
       <PageMessage
         title="Page not found"
         lede="The address may be mistyped, or whatever lived here has since been removed."
-        back={
-          <PageMessage.Back to="/" icon={<House size={16} />}>
-            Go home
-          </PageMessage.Back>
-        }
+        back={<PageMessage.Home />}
       />
     </ApplicationChrome>
   );

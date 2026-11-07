@@ -7,6 +7,7 @@ import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
@@ -182,12 +183,14 @@ function GroupDetailPage() {
               variant="filled"
               color={nameDiscColor(group.name)}
               className={styles.groupAvatar}
-              classNames={{ placeholder: styles.groupInitial }}
+              /* The name is the h1 beside it, so the letter is not read out again. Inline, so the size outranks Mantine's own placeholder rule whatever the stylesheet order. */
+              aria-hidden
+              styles={{ placeholder: { fontSize: '48cqi', fontWeight: 600 } }}
             >
               {group.name.trim().slice(0, 1).toUpperCase()}
             </Avatar>
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           maintainers={{
             label: 'Owned by',
             owner: ownerProfile?.slug

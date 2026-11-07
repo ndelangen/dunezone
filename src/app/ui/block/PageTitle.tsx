@@ -5,22 +5,30 @@ import { Eyebrow } from '../content/Eyebrow';
 import { useInsidePageHeader } from '../layout/PageLayout';
 import styles from './PageTitle.module.css';
 
-export interface PageTitleProps {
+/** What sits above the name: a classifier, or the way up. Both take the same place, so a page gives one or the other. */
+type PageTitleKicker =
+  | {
+      /** Classifier above the name: what kind of thing this page is. Words, not a node. */
+      eyebrow?: string;
+      breadcrumb?: never;
+    }
+  | {
+      eyebrow?: never;
+      /**
+       * The way up one level, as a `Breadcrumb`, worn where the eyebrow sits.
+       * A page under another names its parent here instead of carrying a Back action.
+       */
+      breadcrumb?: ReactNode;
+    };
+
+export type PageTitleProps = PageTitleKicker & {
   /** The page's name. A string, not a node: the words are the data this renders. */
   title: string;
-  /** Classifier above the name: what kind of thing this page is. Words, not a node. */
-  eyebrow?: string;
-  /**
-   * The way up one level, as a `PageIdentity.Breadcrumb`, worn where the eyebrow sits.
-   * A catalogue that lives under another names its parent here instead of carrying a Back action;
-   * give one or the other, not both.
-   */
-  breadcrumb?: ReactNode;
   /** Welcome line under the name, framed between two thin gilt rules like a title card. Words, not a node. */
   subtitle?: string;
   /** One sentence under the name that says what the page is for. Words, not a node. */
   lede?: string;
-}
+};
 
 /**
  * The page's own name, and the one thing on a page allowed to be an `h1`.

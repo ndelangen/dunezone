@@ -43,7 +43,7 @@ export function AssetEditorMessage({
       back={
         isAssetType(type) ? (
           <PageMessage.Back to="/assets/$type" params={{ type }}>
-            Back to {ASSET_TYPES[type].label.toLowerCase()}
+            {`Back to ${ASSET_TYPES[type].label.toLowerCase()}`}
           </PageMessage.Back>
         ) : (
           <PageMessage.Back to="/assets">Back to assets</PageMessage.Back>

@@ -2,7 +2,6 @@ import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { PageState } from '@ui/block/PageState';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { House } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 
@@ -18,12 +17,7 @@ import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
-import {
-  SERVER_RETRYING,
-  SERVER_UNREACHABLE,
-  SERVER_UNREACHABLE_TITLE,
-  useServerUnreachable,
-} from './useServerUnreachable';
+import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
   head: () => pageHead('Create a game', { noindex: true }),
@@ -55,17 +49,11 @@ function CreateGamePage() {
         <PageMessage
           size="compact"
           title={TITLE}
-          back={
-            <PageMessage.Back to="/" icon={<House size={16} />}>
-              Go home
-            </PageMessage.Back>
-          }
+          back={<PageMessage.Home />}
+          lede={unreachable ? SERVER_UNREACHABLE : undefined}
         >
-          {unreachable ? (
-            <PageState kind="pending" title={SERVER_UNREACHABLE_TITLE}>
-              {SERVER_RETRYING}
-            </PageState>
-          ) : (
+          {/* A server that does not answer is said once, in the band, as the lobby says it in one line. */}
+          {unreachable ? null : (
             <PageState kind="pending" title="Loading rulesets">
               The rulesets you can start a game with are still loading.
             </PageState>

@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 /** How long a page waits on its first Convex answer before it says the server cannot be reached. */
 export const SERVER_WAIT_MS = 10_000;
 /* One wording for every Play page, split for a page that shows a heading over a line. */
-export const SERVER_UNREACHABLE_TITLE = "Can't reach the server";
-export const SERVER_RETRYING = 'Retrying...';
+const SERVER_UNREACHABLE_TITLE = "Can't reach the server";
+const SERVER_RETRYING = 'Retrying...';
 export const SERVER_UNREACHABLE = `${SERVER_UNREACHABLE_TITLE}. ${SERVER_RETRYING}`;
 
 /**

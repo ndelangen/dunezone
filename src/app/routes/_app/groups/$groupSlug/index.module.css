@@ -10,11 +10,6 @@
   aspect-ratio: 1;
 }
 
-.groupInitial {
-  font-size: 48cqi;
-  font-weight: 600;
-}
-
 .twoColumnGrid {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);

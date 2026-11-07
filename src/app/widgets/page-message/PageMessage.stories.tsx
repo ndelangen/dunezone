@@ -23,14 +23,18 @@ const meta = preview.meta({
 /** Waiting for the route's data. The band carries the name the loaded page will carry, so nothing moves when it arrives. */
 export const Loading = meta.story({});
 
-/** The slug resolves to nothing, or to something the reader may not open. */
+/** The slug resolves to nothing, or to something the reader may not open: one sentence in the band and no pane, as `RouteNotFound` draws it. */
 export const Absent = meta.story({
+  args: { lede: 'This faction does not exist or was deleted.', children: undefined },
+});
+
+/** A page with no nearer place to send the reader offers the way home, with its own glyph and words. */
+export const WayHome = meta.story({
   args: {
-    children: (
-      <PageState kind="absent" title="Faction not found">
-        This faction does not exist or was deleted.
-      </PageState>
-    ),
+    title: 'Page not found',
+    lede: 'The address may be mistyped, or whatever lived here has since been removed.',
+    back: <PageMessage.Home />,
+    children: undefined,
   },
 });
 
