@@ -812,6 +812,7 @@ export function GameTable({
           className="dune-play-stage"
           data-scene-ready={viewState.sceneReady}
           data-voyage={arrival === 'opening' ? 'arrived' : undefined}
+          data-arrival={arrival}
         >
           {arrival === 'open' ? null : (
             <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>

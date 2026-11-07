@@ -62,20 +62,39 @@
 
 /*
  * The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it.
- * The clipped shell itself never fades: an opacity animation on the element whose clip-path animates let Chromium paint its
- * ground outside the circle for some rows. Its ground eases in from clear instead, and its contents fade on their own.
+ * The circle's radius is a registered property the keyframes animate, not the clip-path itself: Chromium runs a clip-path
+ * animation on the compositor and there clipped the WebGL canvas only to the circle's bounding box, so its dark edges showed
+ * outside the circle. A property animation reruns the clip on every frame instead.
+ * The clipped shell never fades either; its ground eases in from clear, and its contents fade on their own.
  */
+@property --dune-play-iris {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.dune-play-stage[data-scene-ready="true"] .dune-play-shell {
+  --dune-play-iris: 150vmax;
+
+  clip-path: circle(var(--dune-play-iris) at 50% var(--voyage-planet-y));
+}
+
+/* Once open, the shell drops its clip altogether. */
+.dune-play-stage[data-arrival="open"] .dune-play-shell {
+  clip-path: none;
+}
+
 @keyframes dune-play-enter {
   from {
+    --dune-play-iris: calc(var(--voyage-planet-size) / 2);
     background-color: transparent;
-    clip-path: circle(calc(var(--voyage-planet-size) / 2) at 50% var(--voyage-planet-y));
   }
   30% {
+    --dune-play-iris: calc(var(--voyage-planet-size) * 0.62);
     background-color: var(--color-ground);
-    clip-path: circle(calc(var(--voyage-planet-size) * 0.62) at 50% var(--voyage-planet-y));
   }
   to {
-    clip-path: circle(150vmax at 50% var(--voyage-planet-y));
+    --dune-play-iris: 150vmax;
   }
 }
 
