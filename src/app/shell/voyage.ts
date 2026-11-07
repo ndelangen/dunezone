@@ -5,10 +5,14 @@
  */
 const LANDING_GRACE_MS = 1500;
 let release: number | undefined;
+/* The planet's rise takes as long as AppBackground's transform transition. */
+const RISE_MS = 1600;
+let riseEndsAt = Number.NEGATIVE_INFINITY;
 
 /** Marks the document as departing for a table (AppBackground and AppRoot read it alongside any `data-voyage` element). */
 export function beginDeparture() {
   window.clearTimeout(release);
+  riseEndsAt = performance.now() + RISE_MS;
   document.documentElement.dataset.voyage = 'departing';
 }
 
@@ -41,4 +45,9 @@ export function arriveDirectly() {
   window.setTimeout(() => {
     delete root.dataset.voyageArrival;
   }, DIRECT_ARRIVAL_MS);
+}
+
+/** How long the planet's rise still runs, so a table can hold its first build until the planet is at rest. */
+export function riseRemaining() {
+  return Math.max(0, riseEndsAt - performance.now());
 }

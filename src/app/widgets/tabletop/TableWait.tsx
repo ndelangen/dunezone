@@ -1,7 +1,7 @@
 import { Group, Text } from '@mantine/core';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
-import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { arriveDirectly, endDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
@@ -10,10 +10,19 @@ import styles from './TableWait.module.css';
 
 /*
  * Every wait mounts its own frame (the access answer, the table chunk, the connection, the renderer), so the moons key their
- * orbits to the page's clock rather than to their own mount: the next frame picks the motion up where the last one left it.
+ * orbits to the document's own timeline rather than to their mount: every frame's orbits share one start, at the timeline's
+ * origin, so the next frame shows them exactly where the last one left them, however long its render took to reach the screen.
  */
 const now = () => (typeof performance === 'undefined' ? 0 : performance.now());
-const pageClock = () => -Math.round(now());
+const ORBITING = /table-wait-(orbit|moon)/;
+
+function keepOrbitsOnPageClock(frame: HTMLElement | null) {
+  for (const animation of frame?.getAnimations({ subtree: true }) ?? []) {
+    if (animation instanceof CSSAnimation && ORBITING.test(animation.animationName)) {
+      animation.startTime = 0;
+    }
+  }
+}
 
 /*
  * The frames the waits mount one after another read as one: a frame that follows another (still mounted, or gone within a moment)
@@ -37,7 +46,7 @@ export function TableWait({
   children,
 }: Readonly<{ status: ReactNode; connection?: string; children?: ReactNode }>) {
   const motion = useMotionAllowed();
-  const [clock] = useState(pageClock);
+  const frame = useRef<HTMLDivElement>(null);
   const [carriesOn] = useState(followsAnotherFrame);
   const [repeated] = useState(() => carriesOn && typeof status === 'string' && status === frames.status);
   /*
@@ -51,6 +60,8 @@ export function TableWait({
       arriveDirectly();
     }
   }, [carriesOn]);
+  /* Before the frame's first paint, so its moons never show a frame away from the shared orbit. */
+  useLayoutEffect(() => keepOrbitsOnPageClock(frame.current), [motion]);
   useEffect(() => {
     frames.mounted += 1;
     return () => {
@@ -64,13 +75,13 @@ export function TableWait({
   return (
     <DarkSchemeIsland>
       <div
+        ref={frame}
         className={styles.loading}
         {...darkSchemeIslandAttributes}
         data-voyage="waiting"
         data-connection={connection}
         data-still={!motion || undefined}
         data-carries-on={carriesOn || undefined}
-        style={{ '--wait-clock': `${clock}ms` } as CSSProperties}
       >
         <div className={styles.orrery} aria-hidden>
           <div className={styles.orbit} data-orbit="near">

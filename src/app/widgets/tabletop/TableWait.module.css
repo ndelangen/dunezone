@@ -1,11 +1,9 @@
 /* The frame a table loads in. It paints no ground of its own: the app's starfield shows through, and the app's planet,
    which rises to the frame's centre while the page is on its way to a table (AppBackground reads `data-voyage`).
    The frame draws only what circles that planet, its two moons, and the status line below it, so the waits read as
-   one scene filling in. Every orbit starts from the page's clock (--wait-clock), so the frames the waits mount one
-   after another carry one motion through. The planet's place is shared through --voyage-planet-* (tokens.css). */
+   one scene filling in. Every orbit starts at the document timeline's origin (TableWait sets it), so the frames the
+   waits mount one after another carry one motion through. The planet's place is shared through --voyage-planet-* (tokens.css). */
 .loading {
-  --wait-clock: 0ms;
-
   position: relative;
   display: grid;
   height: 100%;
@@ -113,7 +111,6 @@
   border: 1px dashed rgb(from var(--ui-brass) r g b / 0.28);
   transform-style: preserve-3d;
   animation: table-wait-orbit 14s linear infinite;
-  animation-delay: var(--wait-clock);
 }
 
 .orbit[data-orbit="near"] {
@@ -154,7 +151,6 @@
   /* Turns back against its orbit and stands back up, so it always faces the viewer as a ball rather than a coin on its edge. */
   transform: rotateX(calc(-1 * var(--tilt)));
   animation: table-wait-moon 14s linear infinite;
-  animation-delay: var(--wait-clock);
 }
 
 .orbit[data-orbit="far"] .moon {

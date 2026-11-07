@@ -21,6 +21,7 @@ import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { riseRemaining } from '@app/shell/voyage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
@@ -794,8 +795,10 @@ export default function HostedTable({
   /*
    * The table's first render is the page's largest: it is deferred, so React renders it in slices that yield to the browser,
    * and the waiting frame keeps its motion while the table is built behind it. Later views render as they arrive.
+   * A table that answers while the planet is still rising (a game opened from the lobby) waits for it to come to rest first.
    */
-  const tableBuilt = useDeferredValue(Boolean(view.table));
+  const risen = usePlanetRisen();
+  const tableBuilt = useDeferredValue(Boolean(view.table) && risen);
   if (!view.table || !tableBuilt) {
     return (
       <TableWait
@@ -832,4 +835,17 @@ export default function HostedTable({
       />
     </ServerClockContext.Provider>
   );
+}
+
+/* Whether the planet's rise into the waiting frame has ended; a table reached without a departure has none to wait for. */
+function usePlanetRisen() {
+  const [risen, setRisen] = useState(() => riseRemaining() === 0);
+  useEffect(() => {
+    if (risen) {
+      return;
+    }
+    const timer = window.setTimeout(() => setRisen(true), riseRemaining());
+    return () => window.clearTimeout(timer);
+  }, [risen]);
+  return risen;
 }
