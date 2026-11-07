@@ -1,4 +1,5 @@
 import { Stack, Title } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 import { Eyebrow } from '../content/Eyebrow';
 import { useInsidePageHeader } from '../layout/PageLayout';
@@ -9,6 +10,12 @@ export interface PageTitleProps {
   title: string;
   /** Classifier above the name: what kind of thing this page is. Words, not a node. */
   eyebrow?: string;
+  /**
+   * The way up one level, as a `PageIdentity.Breadcrumb`, worn where the eyebrow sits.
+   * A catalogue that lives under another names its parent here instead of carrying a Back action;
+   * give one or the other, not both.
+   */
+  breadcrumb?: ReactNode;
   /** Welcome line under the name, framed between two thin gilt rules like a title card. Words, not a node. */
   subtitle?: string;
   /** One sentence under the name that says what the page is for. Words, not a node. */
@@ -29,7 +36,7 @@ export interface PageTitleProps {
  *
  * It exists because the page title had three spellings and no legal home: a Content component holding an `h1`, a `Title order={1}`, and a bare `h1`, so every page picked one and the outline drifted.
  */
-export function PageTitle({ title, eyebrow, subtitle, lede }: PageTitleProps) {
+export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede }: PageTitleProps) {
   const insideHeader = useInsidePageHeader();
 
   if (import.meta.env.DEV && !insideHeader) {
@@ -43,7 +50,7 @@ export function PageTitle({ title, eyebrow, subtitle, lede }: PageTitleProps) {
 
   return (
     <Stack gap="var(--space-xs)" className={styles.root}>
-      {eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>}
+      {breadcrumb ?? (eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>)}
       <Title order={1} className={styles.title}>
         {title}
       </Title>

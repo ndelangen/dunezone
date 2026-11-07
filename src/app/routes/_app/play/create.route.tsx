@@ -2,6 +2,7 @@ import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { PageState } from '@ui/block/PageState';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { House } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { Dispatch } from 'react';
 
@@ -51,7 +52,15 @@ function CreateGamePage() {
   switch (data?.access) {
     case undefined:
       return (
-        <PageMessage size="compact" title={TITLE} back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
+        <PageMessage
+          size="compact"
+          title={TITLE}
+          back={
+            <PageMessage.Back to="/" icon={<House size={16} />}>
+              Go home
+            </PageMessage.Back>
+          }
+        >
           {unreachable ? (
             <PageState kind="pending" title={SERVER_UNREACHABLE_TITLE}>
               {SERVER_RETRYING}

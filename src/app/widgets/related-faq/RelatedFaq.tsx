@@ -17,6 +17,10 @@ export function RelatedFaq({
   onLoadMore: () => void;
   onOpenQuestion: (questionSlug: string, rulesetSlug: string) => void;
 }) {
+  /* A page with nothing related says nothing about it, rather than a heading over an empty line; it also stays away while the first page loads, so it never flashes empty. */
+  if (items.length === 0) {
+    return null;
+  }
   return (
     <Section icon={<CircleHelp size={20} aria-hidden />} title="Related FAQ">
       <Stack gap="md">

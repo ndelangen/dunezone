@@ -561,11 +561,8 @@ function FactionDetailContent({
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
             </FormError>
           ) : null}
-          <Flex
-            direction={{ base: 'column-reverse', md: 'row' }}
-            gap="xl"
-            align={{ base: 'stretch', md: 'flex-start' }}
-          >
+          {/* On a phone the faction itself (leaders, troops, advantages) comes first and the details follow it (Norbert, 2026-11-07). */}
+          <Flex direction={{ base: 'column', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
             <Box miw={0} style={{ flex: '1 1 auto' }}>
               <Stack gap="xl">
                 <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">

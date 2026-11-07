@@ -1,14 +1,42 @@
-import { Anchor, Stack } from '@mantine/core';
+import { Stack } from '@mantine/core';
 import { createLink } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
+import clsx from 'clsx';
+import { ArrowLeft } from 'lucide-react';
 import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
-const BackAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BackAnchor(props, ref) {
-  return <Anchor ref={ref} {...props} />;
+type BackAnchorProps = Omit<ComponentPropsWithoutRef<'a'>, 'children'> & {
+  /** Where it goes, in words: "Back to rulesets", "Go home". */
+  children?: string;
+  /** The glyph before the words. Defaults to a back arrow; the way home wears a house. */
+  icon?: ReactNode;
+};
+
+/**
+ * The way out as a boxed worded action, since a worded link standing alone in the band is the unframed button the app does not use (Norbert, 2026-11-07).
+ * The router's anchor props land on the action's own root, so the press, the active state and the address stay the router's.
+ */
+const BackAnchor = forwardRef<HTMLAnchorElement, BackAnchorProps>(function BackAnchor(
+  { children = '', icon, className, ...anchorProps },
+  ref
+) {
+  return (
+    <LabeledAction
+      icon={icon ?? <ArrowLeft size={16} />}
+      renderRoot={({ children: content, ...rootProps }) => (
+        <a {...rootProps} {...anchorProps} ref={ref} className={clsx(rootProps.className, className)}>
+          {content}
+        </a>
+      )}
+    >
+      {children}
+    </LabeledAction>
+  );
 });
 
 export interface PageMessageProps {
@@ -19,10 +47,12 @@ export interface PageMessageProps {
    * Match the loaded page so the header does not resize under the reader the moment the data lands.
    */
   size?: PageHeaderSize;
+  /** One sentence under the name, for a message short enough to be said in the band alone: the 404 says everything there. */
+  lede?: string;
   /** The way out, as a `PageMessage.Back`. Omit it on a page that is already the top of its own branch. */
   back?: ReactNode;
-  /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. */
-  children: ReactNode;
+  /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. Omit it when the lede says it all, and the page has no pane. */
+  children?: ReactNode;
 }
 
 /**
@@ -40,21 +70,23 @@ export interface PageMessageProps {
  *
  * It exists because about seventeen sites framed these messages themselves, and the frames drifted apart while nobody was comparing them: some centred the header and some did not, some offered a way back inside the pane and some in a toolbar and some not at all, and the pane came at two paddings depending on which page you had reached.
  */
-export function PageMessage({ title, size = 'default', back, children }: PageMessageProps) {
+export function PageMessage({ title, size = 'default', lede, back, children }: PageMessageProps) {
   return (
     <PageLayout>
       <PageLayout.Header size={size}>
-        <Stack align="center" gap="xs">
-          <PageTitle title={title} />
+        <Stack align="center" gap="md">
+          <PageTitle title={title} lede={lede} />
           {back}
         </Stack>
       </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="xl">{children}</Surface>
-      </PageLayout.Content>
+      {children == null ? null : (
+        <PageLayout.Content>
+          <Surface padding="xl">{children}</Surface>
+        </PageLayout.Content>
+      )}
     </PageLayout>
   );
 }
 
-/** The way back out, taking the same route props as the router's own `Link`. Rendered as the themed anchor, in the band, wherever the message puts it. */
+/** The way back out, taking the same route props as the router's own `Link`. Rendered as a boxed `LabeledAction` in the band. */
 PageMessage.Back = createLink(BackAnchor);

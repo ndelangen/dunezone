@@ -442,11 +442,13 @@ labelled. (`StatusBadge`'s scale is for state, not actions.)*
 A detail page whose band carries a breadcrumb has no Back action in its toolbar: the breadcrumb
 above the title already says where the page sits and goes there, and a second arrow below it
 repeated it (Norbert, 2026-11-07). Pages without a breadcrumb (an editor, an FAQ question) keep the
-toolbar Back. A catalogue page offers its one create action as a `CallToAction` under the title in
+toolbar Back. A catalogue that sits under another (an asset type under Assets) wears the same
+breadcrumb above its title instead of a toolbar arrow. A catalogue page offers its one create action as a `CallToAction` under the title in
 the header, never also as a `+` in the toolbar. A toolbar with no action left for this reader draws
 nothing, and its slot steps aside.
 
-*Convention. The kit carries it: `PageIdentity.Breadcrumb` is the way up, `Toolbar` renders nothing
+*Convention. The kit carries it: `PageIdentity.Breadcrumb` is the way up, in `PageIdentity` or in
+`PageTitle`'s `breadcrumb`, `Toolbar` renders nothing
 when none of its edges holds an action, and `CallToAction` and `LabeledAction` take the `md` size
 inside `PageLayout.Header` whatever size a caller passes, so every header button is one size.*
 
@@ -454,10 +456,16 @@ inside `PageLayout.Header` whatever size a caller passes, so every header button
 
 An empty section says so in one dimmed line, with no pane around it, so every empty state on a
 detail page looks the same. A placeholder for a feature that does not exist yet is not shown at all.
-A list of entities named as links is a real list, so its count is announced.
+A list of entities named as links is a real list, so its count is announced. A block that only
+points elsewhere, such as Related FAQ, is left out entirely when it has nothing to point at. A page
+that cannot show what was asked for (a 404, a server that does not answer, a signed-out lobby) says
+it in one line too, with the way onward as a boxed `LabeledAction`, never a bare link
+(Norbert, 2026-11-07).
 
 *Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
-line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.*
+line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.
+`PageMessage` takes a `lede` for a message short enough to need no pane, and its `Back` is a
+`LabeledAction`.*
 
 ### A bar states its statuses as glyphs and stays one line
 

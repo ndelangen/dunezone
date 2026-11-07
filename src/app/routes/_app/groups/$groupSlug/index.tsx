@@ -6,10 +6,11 @@ import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
+import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
-import { NameDisc } from '@ui/content/NameDisc';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -174,7 +175,18 @@ function GroupDetailPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={group.name}
-          media={<Avatar name={group.name} radius="md" size="100%" color="dune" className={styles.groupAvatar} />}
+          media={
+            <Avatar
+              radius="md"
+              size="100%"
+              variant="filled"
+              color={nameDiscColor(group.name)}
+              className={styles.groupAvatar}
+              classNames={{ placeholder: styles.groupInitial }}
+            >
+              {group.name.trim().slice(0, 1).toUpperCase()}
+            </Avatar>
+          }
           breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
           maintainers={{
             label: 'Owned by',
@@ -231,8 +243,8 @@ function GroupDetailPage() {
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>
-          <Stack gap="lg">
-            <Card
+          <Stack gap="xl">
+            <Section
               icon={<FremenIcon />}
               title="Factions maintained"
               action={
@@ -247,8 +259,8 @@ function GroupDetailPage() {
               }
             >
               <FactionList factions={factions} />
-            </Card>
-            <Card
+            </Section>
+            <Section
               icon={<BookOpen size={18} aria-hidden />}
               title="Rulesets maintained"
               action={
@@ -263,7 +275,7 @@ function GroupDetailPage() {
               }
             >
               <RulesetList rulesets={rulesets} />
-            </Card>
+            </Section>
           </Stack>
 
           <Stack gap="lg">

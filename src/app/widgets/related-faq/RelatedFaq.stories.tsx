@@ -36,4 +36,9 @@ export const OneListWithRulesetLabels = meta.story({
     await expect(args.onLoadMore).toHaveBeenCalledOnce();
   },
 });
-export const Empty = meta.story({ args: { items: [], status: 'Exhausted' as const } });
+export const EmptyRendersNothing = meta.story({
+  args: { items: [], status: 'Exhausted' as const },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).queryByRole('region', { name: 'Related FAQ' })).toBeNull();
+  },
+});

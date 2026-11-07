@@ -6,17 +6,16 @@ import type { AssetTypeDefinition } from '@shared/assets/types';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
+import { PageIdentity } from '@ui/block/PageIdentity';
 import { PageTitle } from '@ui/block/PageTitle';
 import { CallToAction } from '@ui/control/CallToAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -176,7 +175,7 @@ function AssetTypePage() {
       <PageLayout.Header>
         <Stack gap="xs" align="center">
           <PageTitle
-            eyebrow="Community assets"
+            breadcrumb={<PageIdentity.Breadcrumb to="/assets">Assets</PageIdentity.Breadcrumb>}
             title={definition.label}
             lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
           />
@@ -193,17 +192,6 @@ function AssetTypePage() {
       {definition.status === 'live' ? (
         <PageLayout.Toolbar>
           <Toolbar>
-            <Toolbar.Left label="Navigation">
-              {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
-              <IconAction
-                label="Back to all assets"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
-              />
-            </Toolbar.Left>
             <Toolbar.Center>
               <SearchRefine
                 label={`${definition.label} filters`}
@@ -284,13 +272,11 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
       noun={plural}
       noMatches={`No ${singularLabel(plural)} matches this search.`}
       renderEntries={(entries) => (
-        <Surface padding="xl">
-          <TileGrid>
-            {entries.map((entry) => (
-              <AssetCatalogueTile key={entry.id} entry={entry} />
-            ))}
-          </TileGrid>
-        </Surface>
+        <TileGrid>
+          {entries.map((entry) => (
+            <AssetCatalogueTile key={entry.id} entry={entry} />
+          ))}
+        </TileGrid>
       )}
       ref={ref}
     />

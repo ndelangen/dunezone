@@ -21,8 +21,9 @@ export const SignedOut = meta.story({
       page.findByRole('heading', { name: 'Play Dune!', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(
-      page.findByText('Ongoing and past games appear here once you sign in.', {}, { timeout: 30_000 })
+      page.findByText('Sign in to see your ongoing and past games.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'Log in' })).toHaveAttribute('href', '/auth/login?redirect=%2Fplay');
     await expect(page.getByRole('link', { name: 'Login' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Learn to play' })).toHaveAttribute('href', '/tutorial');
     await expect(page.queryByRole('group', { name: 'Table view' })).toBeNull();

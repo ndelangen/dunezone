@@ -1,4 +1,4 @@
-import { PageState } from '@ui/block/PageState';
+import { House } from 'lucide-react';
 
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -15,11 +15,16 @@ import { ApplicationChrome } from './ApplicationChrome';
 export function AppNotFound() {
   return (
     <ApplicationChrome>
-      <PageMessage title="Page not found" back={<PageMessage.Back to="/">Go back home</PageMessage.Back>}>
-        <PageState kind="absent" title="This page does not exist">
-          The address may be mistyped, or whatever lived here has since been removed.
-        </PageState>
-      </PageMessage>
+      {/* One message, said once in the band: a pane repeating "not found" under the title told the reader nothing new (Norbert, 2026-11-07). */}
+      <PageMessage
+        title="Page not found"
+        lede="The address may be mistyped, or whatever lived here has since been removed."
+        back={
+          <PageMessage.Back to="/" icon={<House size={16} />}>
+            Go home
+          </PageMessage.Back>
+        }
+      />
     </ApplicationChrome>
   );
 }
