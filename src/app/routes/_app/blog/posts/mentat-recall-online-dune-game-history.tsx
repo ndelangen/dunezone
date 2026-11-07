@@ -1,7 +1,10 @@
+import { Anchor } from '@mantine/core';
 import { Section } from '@ui/block/Section';
 
 import { Figure, FigureRow, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
 import { TutorialEmbed } from '../TutorialEmbed';
+
+const WBC_DUNE = 'https://www.boardgamers.org/wbc25/Previews/dun.html';
 
 const FOLDER = '/web/blog/mentat-recall-online-dune-game-history';
 
@@ -42,9 +45,13 @@ function NotesSection() {
   return (
     <Section title="No notes at the table">
       <Paragraph>
-        Tournament Dune is strict about this. The house rules at the World Boardgaming Championships say no player may
-        record notes, with one exception: Atreides may write down who holds which card, which is their faction&rsquo;s
-        power. The Gale Force Nine rulebook adds that discard piles are not public and may not be searched.
+        Tournament Dune is strict about this. The house rules at the{' '}
+        <Anchor href={WBC_DUNE} inherit>
+          World Boardgaming Championships
+        </Anchor>{' '}
+        say no player may record notes, with one exception: Atreides may write down who holds which card, which is their
+        faction&rsquo;s power. The Gale Force Nine rulebook adds that discard piles are not public and may not be
+        searched.
       </Paragraph>
       <Paragraph>
         A replay you can open during a game breaks both rules at once. You could step back through the bidding to see
