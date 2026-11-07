@@ -1,8 +1,9 @@
 import { Group, Text } from '@mantine/core';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
 import type { CSSProperties, ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 
+import { endDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import styles from './TableWait.module.css';
@@ -39,6 +40,8 @@ export function TableWait({
   const [clock] = useState(pageClock);
   const [carriesOn] = useState(followsAnotherFrame);
   const [repeated] = useState(() => carriesOn && typeof status === 'string' && status === frames.status);
+  /* The frame carries the voyage from here on, so the departing page's document mark can go. */
+  useLayoutEffect(endDeparture, []);
   useEffect(() => {
     frames.mounted += 1;
     return () => {

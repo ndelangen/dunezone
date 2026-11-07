@@ -89,7 +89,8 @@ html:has(.container [data-page-layout-height="fullscreen"]) {
 }
 
 /* A table's waiting frame is see-through: the planet and stars it circles stay up until the table has opened over them. */
-.container:has([data-page-layout-height="fullscreen"]):has([data-voyage]) > [data-app-background] {
+.container:has([data-page-layout-height="fullscreen"]):has([data-voyage]) > [data-app-background],
+:global(:root[data-voyage]) .container:has([data-page-layout-height="fullscreen"]) > [data-app-background] {
   visibility: visible;
 }
 
@@ -99,8 +100,8 @@ html:has(.container [data-page-layout-height="fullscreen"]) {
   transition: opacity 0.7s ease-in;
 }
 
-:global(:root:has([data-voyage="departing"])) .main,
-:global(:root:has([data-voyage="departing"])) .footer {
+:global(:root:is([data-voyage="departing"], :has([data-voyage="departing"]))) .main,
+:global(:root:is([data-voyage="departing"], :has([data-voyage="departing"]))) .footer {
   opacity: 0;
 }
 

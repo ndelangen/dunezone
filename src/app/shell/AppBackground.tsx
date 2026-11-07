@@ -52,7 +52,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
     let timer: number | undefined;
     let suspended: boolean | undefined;
     const synchronize = () => {
-      if (suspended) {
+      /* On the way to a table the planet is mid-flight on the compositor: turning it or the stars would repaint those huge layers mid-animation. */
+      if (suspended || document.documentElement.dataset.voyage || document.querySelector('[data-voyage]')) {
         return;
       }
       const now = new Date();

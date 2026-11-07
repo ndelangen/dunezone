@@ -85,7 +85,7 @@
  * On the way to a table (a departing page, a table's waiting frame, an opened table: anything marked `data-voyage`), the planet
  * rises from the foot of the page to the centre and shrinks to a world the table's moons can circle.
  */
-:global(:root:has([data-voyage])) .planetFrame {
+:global(:root:is([data-voyage], :has([data-voyage]))) .planetFrame {
   /* From its centre at the foot of the window (its top plus half its width) to the resting place, at the resting scale. */
   transform: translate(-50%, calc(var(--voyage-planet-y) - 100lvh - var(--planet-diameter) * 0.3))
     scale(var(--voyage-planet-scale));
