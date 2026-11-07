@@ -7,10 +7,10 @@ import { IconAction } from './IconAction';
 import { useHoldToConfirm } from './useHoldToConfirm';
 
 /** What the hold does for good. Each verb only changes the words (and, for convert and publish, the glyph and colour); the five-second hold is the same. */
-export type HoldVerb = 'delete' | 'remove' | 'sign out' | 'clear' | 'convert' | 'publish' | 'leave';
+type HoldVerb = 'delete' | 'remove' | 'sign out' | 'clear' | 'convert' | 'publish' | 'leave';
 
 /** How the hold is drawn: a toolbar glyph, a full-width labelled button, or an item in a menu. */
-export type HoldShape = 'icon' | 'button' | 'menu-item';
+type HoldShape = 'icon' | 'button' | 'menu-item';
 
 /** The countdown per verb: a noun for the hover text and the button ("deletion in 4.."), a participle for a menu item ("Deleting in 4.."). */
 const WORDS: Record<HoldVerb, { noun: string; doing: string }> = {
@@ -65,6 +65,93 @@ export interface HoldActionProps {
   closeMenuOnClick?: boolean;
 }
 
+/** What every shape needs from the hold, worked out once. */
+interface HoldState {
+  props: HoldActionProps;
+  hold: ReturnType<typeof useHoldToConfirm>;
+  blocked: boolean;
+  busy: boolean;
+  countdown: string;
+  atRest: string;
+  publish: boolean;
+  color: string;
+}
+
+function HoldMenuItem({ props, hold, blocked, color }: HoldState) {
+  const { holding, remaining, handlers } = hold;
+  const { doing } = WORDS[props.verb ?? 'delete'];
+  return (
+    <Menu.Item
+      color={color}
+      closeMenuOnClick={props.closeMenuOnClick ?? true}
+      disabled={blocked || (props.pending ?? false)}
+      {...handlers}
+      onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
+        /* Mantine keeps a pressed item from taking focus, so the hold focuses it: focus moving elsewhere then blurs it and cancels. */
+        event.currentTarget.focus();
+        handlers.onPointerDown(event);
+      }}
+    >
+      <span style={{ display: 'inline-grid' }}>
+        <span style={{ ...CELL, visibility: holding ? 'hidden' : undefined }} aria-hidden={holding}>
+          {props.label}
+        </span>
+        <span style={{ ...CELL, visibility: holding ? undefined : 'hidden' }} aria-hidden={!holding}>
+          {doing} in {remaining ?? 5}..
+        </span>
+      </span>
+    </Menu.Item>
+  );
+}
+
+function HoldButton({ props, hold, blocked, busy, countdown, atRest, color }: HoldState) {
+  const { holding, handlers } = hold;
+  return (
+    <Tooltip label={holding ? countdown : (props.disabledReason ?? atRest)} opened={holding ? true : undefined}>
+      <Button color={color} variant="light" disabled={blocked} loading={busy} {...handlers}>
+        {holding ? countdown : props.label}
+      </Button>
+    </Tooltip>
+  );
+}
+
+function HoldIcon({ props, hold, busy, countdown, atRest, publish }: HoldState) {
+  const { holding, remaining, handlers } = hold;
+  const { label, disabledReason, size = 'lg', className } = props;
+  const glyph = props.icon ?? defaultGlyph(props.verb ?? 'delete');
+  const look = {
+    label,
+    intent: publish ? 'publish' : 'negative',
+    emphasis: publish ? 'strong' : 'standard',
+    size,
+    className,
+  } as const;
+  if (disabledReason != null && !busy) {
+    return <IconAction {...look} disabledReason={disabledReason} icon={glyph} />;
+  }
+  return (
+    <IconAction
+      {...look}
+      tooltip={holding ? countdown : atRest}
+      tooltipOpened={holding ? true : undefined}
+      disabled={props.disabled ?? false}
+      loading={busy}
+      {...handlers}
+      icon={
+        holding ? (
+          <Text size="sm" fw={700} aria-hidden>
+            {remaining}
+          </Text>
+        ) : (
+          glyph
+        )
+      }
+    />
+  );
+}
+
+const SHAPES = { 'menu-item': HoldMenuItem, button: HoldButton, icon: HoldIcon } as const;
+
 /**
  * Does something for good, if you mean it for five seconds.
  *
@@ -77,101 +164,24 @@ export interface HoldActionProps {
  * every other verb is red.
  * See docs/technical/ui-design-decisions.md, "Destructive actions are held, not asked twice".
  */
-export function HoldAction({
-  label,
-  onConfirm,
-  pending = false,
-  verb = 'delete',
-  shape = 'icon',
-  icon,
-  disabled = false,
-  disabledReason,
-  hint,
-  size = 'lg',
-  className,
-  closeMenuOnClick = true,
-}: HoldActionProps) {
+export function HoldAction(props: HoldActionProps) {
+  const { onConfirm, pending = false, verb = 'delete', shape = 'icon', disabled = false, disabledReason, hint } = props;
   const blocked = disabled || disabledReason != null;
-  const { holding, remaining, submitted, handlers } = useHoldToConfirm({ pending, onConfirm, blocked });
-  const { noun, doing } = WORDS[verb];
-  const countdown = `${noun} in ${remaining}..`;
-  const atRest = hint ?? `hold to ${verb}`;
-  /* A hold already fired keeps its spinner until the page settles, whatever the page now says about the hold. */
-  const busy = pending || submitted;
+  const hold = useHoldToConfirm({ pending, onConfirm, blocked });
   const publish = verb === 'publish';
-  /* Publishing is violet so it never reads as a second Save; every other verb is a loss, so red. */
-  const color = publish ? INTENT_COLOR.publish : INTENT_COLOR.negative;
-
-  if (shape === 'menu-item') {
-    return (
-      <Menu.Item
-        color={color}
-        closeMenuOnClick={closeMenuOnClick}
-        disabled={blocked || pending}
-        {...handlers}
-        onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
-          /* Mantine keeps a pressed item from taking focus, so the hold focuses it: focus moving elsewhere then blurs it and cancels. */
-          event.currentTarget.focus();
-          handlers.onPointerDown(event);
-        }}
-      >
-        <span style={{ display: 'inline-grid' }}>
-          <span style={{ ...CELL, visibility: holding ? 'hidden' : undefined }} aria-hidden={holding}>
-            {label}
-          </span>
-          <span style={{ ...CELL, visibility: holding ? undefined : 'hidden' }} aria-hidden={!holding}>
-            {doing} in {remaining ?? 5}..
-          </span>
-        </span>
-      </Menu.Item>
-    );
-  }
-
-  if (shape === 'button') {
-    return (
-      <Tooltip label={holding ? countdown : (disabledReason ?? atRest)} opened={holding ? true : undefined}>
-        <Button color={color} variant="light" disabled={blocked} loading={busy} {...handlers}>
-          {holding ? countdown : label}
-        </Button>
-      </Tooltip>
-    );
-  }
-
-  const glyph = icon ?? defaultGlyph(verb);
-  if (disabledReason != null && !busy) {
-    return (
-      <IconAction
-        label={label}
-        disabledReason={disabledReason}
-        intent={publish ? 'publish' : 'negative'}
-        emphasis={publish ? 'strong' : 'standard'}
-        size={size}
-        className={className}
-        icon={glyph}
-      />
-    );
-  }
+  const Shape = SHAPES[shape];
   return (
-    <IconAction
-      label={label}
-      tooltip={holding ? countdown : atRest}
-      tooltipOpened={holding ? true : undefined}
-      intent={publish ? 'publish' : 'negative'}
-      emphasis={publish ? 'strong' : 'standard'}
-      size={size}
-      className={className}
-      disabled={disabled}
-      loading={busy}
-      {...handlers}
-      icon={
-        holding ? (
-          <Text size="sm" fw={700} aria-hidden>
-            {remaining}
-          </Text>
-        ) : (
-          glyph
-        )
-      }
+    <Shape
+      props={props}
+      hold={hold}
+      blocked={blocked}
+      /* A hold already fired keeps its spinner until the page settles, whatever the page now says about the hold. */
+      busy={pending || hold.submitted}
+      countdown={`${WORDS[verb].noun} in ${hold.remaining}..`}
+      atRest={hint ?? `hold to ${verb}`}
+      publish={publish}
+      /* Publishing is violet so it never reads as a second Save; every other verb is a loss, so red. */
+      color={publish ? INTENT_COLOR.publish : INTENT_COLOR.negative}
     />
   );
 }

@@ -7,7 +7,7 @@ import styles from './TileGrid.module.css';
  * How big each tile is, which is all that sets the columns:
  * `tile` for catalogue previews, `compact` for previews in a context rail, `card` for faction cards (two, three, then as many as fit at 11.5rem), `wide` for titled cards with a figure and caption (one, two from 30rem, three from 62rem).
  */
-export type TileSize = 'tile' | 'compact' | 'card' | 'wide';
+type TileSize = 'tile' | 'compact' | 'card' | 'wide';
 
 export interface TileGridProps {
   /** The tiles, in reading order. Each becomes one list item. */

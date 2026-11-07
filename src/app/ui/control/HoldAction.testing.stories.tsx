@@ -21,6 +21,18 @@ const meta = testingPreview.meta({
   },
 });
 
+/** Hovering names the hold, and a plain click on the trigger fires nothing. */
+function saysHoldOnHover(verb: string) {
+  return async ({ args, canvasElement }: { args: HoldActionProps; canvasElement: HTMLElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = page.getByRole('button', { name: args.label });
+    await userEvent.hover(trigger);
+    await expect(await page.findByRole('tooltip')).toHaveTextContent(`hold to ${verb}`);
+    await userEvent.click(trigger);
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+  };
+}
+
 /** While the deletion is in flight the trigger latches, so an impatient second hold cannot fire it twice. */
 export const Pending = meta.story({
   args: { pending: true },
@@ -33,14 +45,7 @@ export const Pending = meta.story({
 
 /** Resting the pointer says the trigger is held, and a plain click fires nothing: the words that explain a click's silence. */
 export const SaysHoldOnHover = meta.story({
-  play: async ({ args, canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = page.getByRole('button', { name: 'Delete faction' });
-    await userEvent.hover(trigger);
-    await expect(await page.findByRole('tooltip')).toHaveTextContent('hold to delete');
-    await userEvent.click(trigger);
-    await expect(args.onConfirm).not.toHaveBeenCalled();
-  },
+  play: saysHoldOnHover('delete'),
 });
 
 /** A conversion in flight latches like a deletion. */
@@ -76,27 +81,13 @@ export const ButtonDisabled = meta.story({
 /** The button shape says it is held too. */
 export const ButtonSaysHoldOnHover = meta.story({
   args: { label: 'Delete account', shape: 'button' },
-  play: async ({ args, canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = page.getByRole('button', { name: 'Delete account' });
-    await userEvent.hover(trigger);
-    await expect(await page.findByRole('tooltip')).toHaveTextContent('hold to delete');
-    await userEvent.click(trigger);
-    await expect(args.onConfirm).not.toHaveBeenCalled();
-  },
+  play: saysHoldOnHover('delete'),
 });
 
 /** Publishing says it is held. */
 export const PublishSaysHoldOnHover = meta.story({
   args: { label: 'Publish Edition 4', verb: 'publish' },
-  play: async ({ args, canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    const trigger = page.getByRole('button', { name: 'Publish Edition 4' });
-    await userEvent.hover(trigger);
-    await expect(await page.findByRole('tooltip')).toHaveTextContent('hold to publish');
-    await userEvent.click(trigger);
-    await expect(args.onConfirm).not.toHaveBeenCalled();
-  },
+  play: saysHoldOnHover('publish'),
 });
 
 /* Publishing becomes impossible a second into the hold, as when a collaborator's save lands mid-countdown. */
