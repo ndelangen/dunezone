@@ -48,7 +48,7 @@ function ChaptersSection() {
         You can follow them in order, or jump straight to the one you need. Each chapter teaches how the table works,
         never the rules of Dune. The table is a sandbox, so the rules are whatever your group plays with.
       </Paragraph>
-      <WideFigure caption="The chapters, as the Learn to play page lists them. Every tile says what you&rsquo;ll be able to do and how long it takes, and opens its chapter.">
+      <WideFigure caption="All 21 chapters, as the Learn to play page draws them. Scroll sideways through them; every tile opens its chapter.">
         <ChapterTiles />
       </WideFigure>
     </Section>

@@ -23,7 +23,7 @@ import styles from './TutorialCatalogue.module.css';
  */
 
 /** One tile, whichever catalogue it belongs to. */
-type CatalogueTile = Readonly<{
+export type CatalogueTile = Readonly<{
   slug: string;
   number: number;
   title: string;
@@ -133,6 +133,25 @@ export function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly 
         </Section>
       ))}
     </Stack>
+  );
+}
+
+/**
+ * The same tiles on one line that scrolls sideways, for a page that shows the catalogue in passing (Norbert, 2026-11-07: a blog post needs one line, not every row).
+ * Every tile keeps the width it has on the catalogue page at five across, so the line shows the first few and the edge of the next, and the list scrolls and snaps tile by tile.
+ * The list takes the focus so a keyboard moves it, and `label` names it to a reader.
+ * The pictures stay lazy: the line sits down a page, never above its fold.
+ */
+export function TutorialTileStrip({ tiles, label }: Readonly<{ tiles: readonly CatalogueTile[]; label: string }>) {
+  return (
+    <div className={styles.stripFrame}>
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- A list that scrolls is reached by the keyboard only when it can take the focus. */}
+      <ol className={styles.strip} aria-label={label} start={tiles[0]?.number} tabIndex={0}>
+        {tiles.map((tile) => (
+          <CatalogueTileView key={tile.slug} tile={tile} eager={false} />
+        ))}
+      </ol>
+    </div>
   );
 }
 
