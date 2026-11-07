@@ -105,36 +105,28 @@ function GroupDetail() {
       </RoutePending>
     );
   }
-  /* The viewer's own invitations answer a signed-in viewer alone, so the read is mounted for one alone; everyone else holds no invitation. */
-  return page.viewerResolved && page.viewerAccess.viewer.kind === 'authenticated' ? (
-    <SignedInGroupDetail page={page} />
-  ) : (
-    <GroupDetailPage page={page} viewerInvitation={null} />
-  );
+  return <GroupDetailPage page={page} />;
+}
+
+/** The invitation this Group holds for the viewer: undefined until both the viewer and their invitations have arrived. */
+function invitationFor(
+  page: GroupDetailPageData,
+  membershipStatus: string,
+  invitations: ViewerInvitation[] | undefined
+): ViewerInvitation | null | undefined {
+  if (!page.viewerResolved || invitations === undefined) {
+    return undefined;
+  }
+  return membershipStatus === 'none'
+    ? (invitations.find((invitation) => invitation.group.id === page.group._id) ?? null)
+    : null;
 }
 
 /**
- * The page for a signed-in viewer, with the invitation this Group holds for them, if any: it decides whether the band and the toolbar offer to accept it or to ask to join.
- * While the invitations are on their way the page carries `undefined`, so the toolbar offers nothing the answer may take back.
+ * The page itself, one component however the viewer resolves, so the shared page is never torn down and rebuilt when the viewer arrives.
+ * The viewer's own invitations are read for everyone: a signed-out viewer is answered with an empty list and no read.
  */
-function SignedInGroupDetail({ page }: { page: GroupDetailPageData }) {
-  const viewerInvitations = useViewerInvitations();
-  const groupId = page.group._id;
-  const viewerInvitation =
-    viewerInvitations.data === undefined
-      ? undefined
-      : (viewerInvitations.data.find((invitation) => invitation.group.id === groupId) ?? null);
-  return <GroupDetailPage page={page} viewerInvitation={viewerInvitation} />;
-}
-
-/** `viewerInvitation` is null when the viewer holds none and undefined while a signed-in viewer's invitations are still loading. */
-function GroupDetailPage({
-  page,
-  viewerInvitation: invitation,
-}: {
-  page: GroupDetailPageData;
-  viewerInvitation: ViewerInvitation | null | undefined;
-}) {
+function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
   const { groupSlug } = Route.useParams();
   const navigate = Route.useNavigate();
   const membershipWorkflow = useGroupMembershipWorkflow();
@@ -142,6 +134,7 @@ function GroupDetailPage({
   const setFactionGroup = useSetFactionGroup();
   const setRulesetGroup = useSetRulesetGroup();
   const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
+  const viewerInvitations = useViewerInvitations();
 
   const group = page.group;
   const groupId = group._id;
@@ -152,8 +145,11 @@ function GroupDetailPage({
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = page.viewerResolved && membershipStatus === 'active';
-  /* On the wire an invited viewer reads as `none`; the invitation itself says otherwise. */
-  const viewerInvitation = membershipStatus === 'none' ? invitation : null;
+  /*
+   * On the wire an invited viewer reads as `none`; the invitation itself says otherwise.
+   * Undefined while the viewer or their invitations are on their way, so the toolbar offers nothing the answer may take back.
+   */
+  const viewerInvitation = invitationFor(page, membershipStatus, viewerInvitations.data);
   const factions = page.factions;
   const rulesets = page.rulesets;
   const roster = page.roster;
