@@ -17,6 +17,7 @@ import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { loadHostedTable } from './hostedTableChunk';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -168,6 +169,18 @@ function CreateGameForm({
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
+  /* The table this page departs for loads while the form is filled in, so its evaluation does not freeze the planet's rise. */
+  useEffect(() => {
+    const load = () => {
+      loadHostedTable().catch(() => {});
+    };
+    if (typeof requestIdleCallback !== 'function') {
+      const timer = window.setTimeout(load, 1000);
+      return () => window.clearTimeout(timer);
+    }
+    const handle = requestIdleCallback(load, { timeout: 3000 });
+    return () => cancelIdleCallback(handle);
+  }, []);
   /*
    * The live manifest changes as the ruleset's slots do; a fix to a deck's members, made in another tab, is checked again when this one regains focus,
    * and Check again asks at any time.
