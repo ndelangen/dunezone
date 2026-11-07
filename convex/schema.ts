@@ -607,7 +607,9 @@ export default defineSchema({
     expires_at: v.number(),
     operation_id: v.optional(v.id('account_merge_operations')),
     verified_user_id: v.optional(v.id('users')),
-  }).index('by_digest', ['digest']),
+  })
+    .index('by_digest', ['digest'])
+    .index('by_user_id_and_state', ['user_id', 'state']),
   account_merge_operations: defineTable({
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),

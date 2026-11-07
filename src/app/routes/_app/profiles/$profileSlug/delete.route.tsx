@@ -1,6 +1,6 @@
 /* oxlint-disable-next-line no-restricted-imports -- This page has no header band, so its h1 heads the confirmation pane. */
 import { Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useLocation } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { Notice } from '@ui/block/Notice';
@@ -17,11 +17,14 @@ import { useState } from 'react';
 
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
+import { needsRecentSignIn } from '@db/accounts';
 import { ProfilePicker } from '@app/pickers/ProfilePicker';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
+
+import { SignInAgainAction } from './SignInAgainAction';
 
 const kindLabels = { group: 'Groups', faction: 'Factions', ruleset: 'Rulesets', asset: 'Assets' } as const;
 
@@ -32,6 +35,8 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/delete')({
 
 function AccountDeletionPage() {
   const { profileSlug } = Route.useParams();
+  /* A refused deletion can ask for a fresh sign-in, and that sign-in comes back to this page. */
+  const here = useLocation({ select: (location) => location.href });
   const page = useAccountDeletionPage(profileSlug);
   const confirm = useConfirmAccountDeletion();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -203,7 +208,10 @@ function AccountDeletionPage() {
             </Section>
 
             {confirm.isError ? (
-              <FormError title="Account deletion could not start">
+              <FormError
+                title="Account deletion could not start"
+                action={needsRecentSignIn(confirm.error) ? <SignInAgainAction returnTo={here} /> : undefined}
+              >
                 {confirm.error?.message ?? 'The operation could not be started.'}
               </FormError>
             ) : null}

@@ -303,7 +303,7 @@ function LoginPage() {
             />
             <Text className={styles.lead}>
               {reauthenticate
-                ? 'Sign in to reconnect to your game.'
+                ? 'Sign in once more to carry on where you were.'
                 : 'Build factions, write your own rulesets and play Dune with friends.'}
             </Text>
             <SignInPanel

@@ -27,6 +27,12 @@ reads until removal; mutations and Play enforce their deadlines independently. A
 retains ordinary account access when its refresh branch has been invalidated, until session cleanup
 or JWT expiry. Play requires an unused refresh token.
 
+Connecting or disconnecting a sign-in method, and starting account deletion, need a session that
+signed in within the last ten minutes (`requireRecentSignIn` in `convex/lib/policy.ts`). Refreshing
+keeps a session's creation time, so only a real sign-in counts. An older session gets a "Sign in again"
+prompt, which goes through `/auth/login?reauthenticate=true` and comes back. This stops a stolen or
+forgotten session from adding a sign-in method that would outlast "Sign out on all devices".
+
 Disconnecting a provider revokes every existing session for the account. A revocation checkpoint
 blocks private reads, writes and token refresh before asynchronous cleanup finishes. A later sign-in
 with a remaining provider creates a usable session. The profile edit page clears its local tokens
@@ -133,7 +139,8 @@ The profile owner manages Google and Discord in the Sign-in methods tab on the p
 They can connect an available provider, or disconnect one while another configured provider remains connected. Disconnection uses the kit's hold-to-remove action. The last-method check runs in the disconnect transaction. Disconnecting signs the account out on every device. Account
 deletion remains on the profile's deletion page.
 
-Connecting starts with an authenticated, unexpired session. The server issues a random connection
+Connecting starts with an authenticated session that signed in within the last ten minutes.
+Starting a new connection, signing out on all devices, or disconnecting ends any pending one. The server issues a random connection
 credential, stores only its digest, and caps its lifetime at ten minutes and the session's expiration.
 After OAuth, a fresh session proves control of the other account. Convex Auth replaces the original
 session during this login, so the saved intent carries the first proof. The original account must

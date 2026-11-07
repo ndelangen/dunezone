@@ -13,15 +13,44 @@ const mocks = vi.hoisted(() => ({
   pickerMount: vi.fn(),
   pending: false,
   error: null as Error | null,
+  /* The backend's refusal for a stale sign-in, as the doorway tells it apart; the words are what the page shows. */
+  staleSignIn: new Error('Sign in again to confirm it is you, then try again.'),
 }));
+
+vi.mock('@db/accounts', () => ({ needsRecentSignIn: (error: unknown) => error === mocks.staleSignIn }));
 
 vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof TanStackRouter>();
   return {
     ...actual,
     createFileRoute: () => (options: unknown) => ({ options, useParams: () => ({ profileSlug: 'source' }) }),
-    Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
-    /* `LoginGate` reads the page it is on so sign-in can return there. */
+    /* The link's search lands in its address, so a test can read where a link sends the reader. */
+    Link: ({
+      children,
+      to,
+      search,
+    }: {
+      children?: ReactNode;
+      to: string;
+      search?: Record<string, string | boolean>;
+    }) => (
+      <a
+        href={
+          search
+            ? `${to}?${new URLSearchParams(Object.entries(search).map(([key, value]) => [key, String(value)]))}`
+            : to
+        }
+      >
+        {children}
+      </a>
+    ),
+    /* `PageMessage.Back` is built with `createLink`, whose `useLinkProps` reads router context and
+       throws without a `RouterProvider`. Mocking it to the same plain anchor `Link` already gets
+       keeps this a unit test of the page rather than of the router. */
+    createLink:
+      () =>
+      ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+    /* `LoginGate` and the sign-in-again action read the page they are on so sign-in can return there. */
     useLocation: ({ select }: { select: (location: { href: string }) => unknown }) =>
       select({ href: '/profiles/source/delete' }),
   };
@@ -185,6 +214,27 @@ describe('account deletion page', () => {
     const view = await renderPage();
     expect(view.getByText(heading)).not.toBeNull();
     expect(view.queryByRole('checkbox')).toBeNull();
+  });
+
+  it('offers to sign in again when the deletion needs a recent sign-in', async () => {
+    mocks.error = mocks.staleSignIn;
+    const view = await renderPage();
+    const alert = view.getByRole('alert');
+    expect(alert.textContent).toContain('Account deletion could not start');
+    expect(alert.textContent).toContain(mocks.staleSignIn.message);
+    /* The way through comes back to this page. */
+    expect(view.getByRole('link', { name: 'Sign in again' }).getAttribute('href')).toBe(
+      '/auth/login?redirect=%2Fprofiles%2Fsource%2Fdelete&reauthenticate=true'
+    );
+    /* The form stays, so the deletion can be retried once signed in. */
+    expect(view.getByRole('checkbox')).not.toBeNull();
+  });
+
+  it('shows any other refusal in its own words, with no sign-in offer', async () => {
+    mocks.error = new Error('The replacement profile is no longer available');
+    const view = await renderPage();
+    expect(view.getByRole('alert').textContent).toContain('The replacement profile is no longer available');
+    expect(view.queryByRole('link', { name: 'Sign in again' })).toBeNull();
   });
 
   it('keeps a failed operation fail-closed and exposes its fixed recovery state', async () => {

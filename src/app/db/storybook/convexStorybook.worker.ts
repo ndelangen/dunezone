@@ -29,8 +29,17 @@ import type {
   WorkerResponse,
 } from './protocol';
 
-Object.assign(globalThis, { global: globalThis, process: { env: {} } });
+/* Both sign-in providers are configured, as they are in production, so the pages that offer them show them as available; the values never reach a provider, since no story signs in. */
+const STORYBOOK_ENV = {
+  AUTH_GOOGLE_ID: 'storybook',
+  AUTH_GOOGLE_SECRET: 'storybook',
+  AUTH_DISCORD_ID: 'storybook',
+  AUTH_DISCORD_SECRET: 'storybook',
+};
+Object.assign(globalThis, { global: globalThis, process: { env: STORYBOOK_ENV } });
 const NativeDate = Date;
+/* The story clock: the seeding runs at `STORYBOOK_NOW`, and a reset may open the story some time later, so seeded rows have aged by then. */
+let storyNow = STORYBOOK_NOW;
 class DeterministicStorybookDate extends NativeDate {
   constructor(
     ...args:
@@ -47,7 +56,7 @@ class DeterministicStorybookDate extends NativeDate {
         ]
   ) {
     if (args.length === 0) {
-      super(STORYBOOK_NOW);
+      super(storyNow);
     } else if (args.length === 1) {
       super(args[0]);
     } else {
@@ -56,7 +65,7 @@ class DeterministicStorybookDate extends NativeDate {
   }
 
   static override now() {
-    return STORYBOOK_NOW;
+    return storyNow;
   }
 }
 Object.defineProperty(globalThis, 'Date', {
@@ -367,8 +376,10 @@ async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown> 
     return null;
   }
   if (request.operation === 'reset') {
+    storyNow = STORYBOOK_NOW;
     world = createWorld(request.seed);
     await world;
+    storyNow = STORYBOOK_NOW + (request.elapsedMs ?? 0);
     return null;
   }
   if (request.operation === 'networkProbe') {

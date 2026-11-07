@@ -1,4 +1,4 @@
-import { INACTIVE_ACCOUNT_SIGN_IN } from '@shared/authDestination';
+import { INACTIVE_ACCOUNT_SIGN_IN, RECENT_SIGN_IN_REQUIRED } from '@shared/authDestination';
 import { useMutation, useQuery } from 'convex/react';
 import { ConvexError } from 'convex/values';
 import { useState, useSyncExternalStore } from 'react';
@@ -128,4 +128,9 @@ export function useConfirmAuthConnection() {
 /** Whether a sign-in was refused because its account is being deleted or merged. */
 export function refusedAsInactiveAccount(error: unknown): boolean {
   return error instanceof ConvexError && error.data === INACTIVE_ACCOUNT_SIGN_IN;
+}
+
+/** Whether a sign-in method change or an account deletion was refused because this session's sign-in is too old, so signing in again is the way through. */
+export function needsRecentSignIn(error: unknown): boolean {
+  return error instanceof ConvexError && error.data === RECENT_SIGN_IN_REQUIRED;
 }

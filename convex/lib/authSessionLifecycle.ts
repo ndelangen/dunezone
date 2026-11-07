@@ -5,6 +5,8 @@ import { queueAccountCutoffs } from './playSessionCutoffQueue';
 
 const TOKEN_BATCH = 32;
 const SESSION_BATCH = 8;
+/* Pending connections live ten minutes, so an account holds only the few it started recently. */
+const CONNECTION_BATCH = 64;
 
 export function newestUnusedRefresh(ctx: QueryCtx, sessionId: Id<'authSessions'>) {
   return ctx.db
@@ -57,6 +59,7 @@ export async function revokeAccountSessions(ctx: MutationCtx, userId: Id<'users'
     .first();
   /* A session created in this same millisecond has a fractional creation time above the clock, so the cutoff covers it explicitly. */
   await queueAccountCutoffs(ctx, userId, Math.max(Date.now(), newest?._creationTime ?? 0));
+  await expirePendingConnections(ctx, userId);
   if (!newest) {
     return;
   }
@@ -64,6 +67,17 @@ export async function revokeAccountSessions(ctx: MutationCtx, userId: Id<'users'
   const through = Math.max(newest._creationTime, user?.auth_sessions_revoked_through ?? -1);
   await ctx.db.patch(userId, { auth_sessions_revoked_through: through });
   await removeRevokedSessions(ctx, userId, through);
+}
+
+/**
+ * Ends the account's pending connections: a connection started from a session that is now revoked must not finish later from that tab, and a new connection replaces any earlier one, so an account holds at most one.
+ */
+export async function expirePendingConnections(ctx: MutationCtx, userId: Id<'users'>) {
+  const pending = await ctx.db
+    .query('account_connections')
+    .withIndex('by_user_id_and_state', (q) => q.eq('user_id', userId).eq('state', 'pending'))
+    .take(CONNECTION_BATCH);
+  await Promise.all(pending.map((connection) => ctx.db.patch(connection._id, { state: 'expired' as const })));
 }
 
 export async function removeRevokedSessions(ctx: MutationCtx, userId: Id<'users'>, through: number) {
