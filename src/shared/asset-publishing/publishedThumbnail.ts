@@ -33,9 +33,10 @@ export function publishedThumbnailSrc(src: string, pixels: number): string {
     return src;
   }
   const url = new URL(src, 'https://published.invalid');
-  const target = publishedImageTarget(url.pathname);
-  const width = PUBLISHED_THUMBNAIL_WIDTHS.find((candidate) => candidate >= pixels);
-  if (!target || width === undefined || width >= target.widthPx) {
+  const captured = publishedImageTarget(url.pathname)?.widthPx ?? 0;
+  /* Only a copy smaller than the capture is worth asking for. */
+  const width = PUBLISHED_THUMBNAIL_WIDTHS.find((candidate) => candidate >= pixels && candidate < captured);
+  if (width === undefined) {
     return src;
   }
   url.searchParams.set(PUBLISHED_THUMBNAIL_PARAM, String(width));

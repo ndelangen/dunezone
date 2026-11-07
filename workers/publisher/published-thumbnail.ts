@@ -1,3 +1,4 @@
+import type { PublishedThumbnailWidth } from '../../src/shared/asset-publishing/publishedThumbnail';
 import {
   PUBLISHED_THUMBNAIL_PARAM,
   publishedImageTarget,
@@ -44,6 +45,72 @@ function deliver(request: Request, body: ArrayBuffer, headers: Headers): Respons
   return new Response(request.method === 'HEAD' ? null : body, { status: 200, headers });
 }
 
+/** The width a request asks for, a 400 for an unlisted one, or null for a request this handler does not own. */
+function requestedWidth(request: Request, url: URL): PublishedThumbnailWidth | Response | null {
+  const owned =
+    url.searchParams.has(PUBLISHED_THUMBNAIL_PARAM) &&
+    publishedImageTarget(url.pathname) !== null &&
+    (request.method === 'GET' || request.method === 'HEAD');
+  if (!owned) {
+    return null;
+  }
+  return (
+    publishedThumbnailWidth(url.searchParams.get(PUBLISHED_THUMBNAIL_PARAM)) ??
+    new Response('Unsupported Width', { status: 400, headers: { 'Cache-Control': 'no-store' } })
+  );
+}
+
+/** The original's ETag without its weak marker, when the original answered with a whole body to resize. */
+function resizableTag(source: Response | null): string | null {
+  if (source?.status !== 200 || !source.body) {
+    return null;
+  }
+  return source.headers.get('ETag')?.replace(/^W\//, '') ?? null;
+}
+
+/** The resize's own headers, carrying over the original's date and cross-origin allowance. */
+function thumbnailHeaders(source: Response, width: number, sourceTag: string): Headers {
+  const headers = new Headers({
+    'Cache-Control': CLIENT_CACHE_CONTROL,
+    'Content-Type': 'image/webp',
+    ETag: `"${width}-${sourceTag.replaceAll('"', '')}"`,
+    'X-Content-Type-Options': 'nosniff',
+  });
+  for (const name of ['Last-Modified', 'Access-Control-Allow-Origin']) {
+    const value = source.headers.get(name);
+    if (value) {
+      headers.set(name, value);
+    }
+  }
+  return headers;
+}
+
+/** The WebP resize, or null when the Images binding refuses, which is logged. */
+async function resize(
+  images: ThumbnailDependencies['images'],
+  bytes: ArrayBuffer,
+  width: number,
+  path: string
+): Promise<ArrayBuffer | null> {
+  try {
+    const result = await images
+      .input(new Response(bytes).body!)
+      .transform({ width, fit: 'scale-down' })
+      .output({ format: 'image/webp', quality: THUMBNAIL_QUALITY });
+    return await new Response(result.image()).arrayBuffer();
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        event: 'publisher.thumbnail_failed',
+        path,
+        width,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    );
+    return null;
+  }
+}
+
 /**
  * A published image resized to one of the listed widths, for `?w=` on its public URL;
  * null for any other request.
@@ -58,67 +125,28 @@ export async function handlePublishedThumbnailRequest(
   dependencies: ThumbnailDependencies
 ): Promise<Response | null> {
   const url = new URL(request.url);
-  if (!url.searchParams.has(PUBLISHED_THUMBNAIL_PARAM) || !publishedImageTarget(url.pathname)) {
-    return null;
+  const width = requestedWidth(request, url);
+  if (width === null || width instanceof Response) {
+    return width;
   }
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    return null;
-  }
-  const width = publishedThumbnailWidth(url.searchParams.get(PUBLISHED_THUMBNAIL_PARAM));
-  if (width === null) {
-    return new Response('Unsupported Width', { status: 400, headers: { 'Cache-Control': 'no-store' } });
-  }
-
   const source = await original(originalRequest(url));
-  const sourceTag = source?.headers.get('ETag')?.replace(/^W\//, '');
-  if (!source || source.status !== 200 || !source.body || !sourceTag) {
+  const sourceTag = resizableTag(source);
+  if (!source || sourceTag === null) {
     return source;
   }
-
-  const headers = new Headers({
-    'Cache-Control': CLIENT_CACHE_CONTROL,
-    'Content-Type': 'image/webp',
-    ETag: `"${width}-${sourceTag.replaceAll('"', '')}"`,
-    'X-Content-Type-Options': 'nosniff',
-  });
-  const lastModified = source.headers.get('Last-Modified');
-  if (lastModified) {
-    headers.set('Last-Modified', lastModified);
-  }
-  const allowOrigin = source.headers.get('Access-Control-Allow-Origin');
-  if (allowOrigin) {
-    headers.set('Access-Control-Allow-Origin', allowOrigin);
-  }
-
+  const headers = thumbnailHeaders(source, width, sourceTag);
   const cache = dependencies.cache ?? caches.default;
   const cacheKey = thumbnailCacheKey(url, width, sourceTag);
   const hit = await cache.match(cacheKey).catch(() => undefined);
   if (hit) {
-    await source.body.cancel().catch(() => undefined);
+    await source.body?.cancel().catch(() => undefined);
     return deliver(request, await hit.arrayBuffer(), headers);
   }
-
   const bytes = await source.arrayBuffer();
-  let resized: ArrayBuffer;
-  try {
-    const input = new Response(bytes).body!;
-    const result = await dependencies.images
-      .input(input)
-      .transform({ width, fit: 'scale-down' })
-      .output({ format: 'image/webp', quality: THUMBNAIL_QUALITY });
-    resized = await new Response(result.image()).arrayBuffer();
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        event: 'publisher.thumbnail_failed',
-        path: url.pathname,
-        width,
-        message: error instanceof Error ? error.message : String(error),
-      })
-    );
+  const resized = await resize(dependencies.images, bytes, width, url.pathname);
+  if (!resized) {
     return deliver(request, bytes, new Headers(source.headers));
   }
-
   const stored = new Response(resized, {
     headers: { 'Cache-Control': INTERNAL_CACHE_CONTROL, 'Content-Type': 'image/webp' },
   });
