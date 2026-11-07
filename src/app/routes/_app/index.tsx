@@ -1,5 +1,6 @@
 import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { publishedPath } from '@shared/asset-publishing/publicationTargets';
+import { signInReturnFrom } from '@shared/authDestination';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -11,7 +12,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Compass, GraduationCap, Hand, PenLine, Plus, UsersRound } from 'lucide-react';
+import { Compass, GraduationCap, Hand, LogIn, PenLine, Plus, UsersRound } from 'lucide-react';
 import {
   lazy,
   Suspense,
@@ -270,7 +271,13 @@ function PreviewCopy({
                 {viewer.kind === 'profile' && !handling ? 'Connecting the pieces…' : 'Try moving one of the pieces!'}
               </Text>
               {viewer.kind === 'signed-out' && (
-                <Anchor renderRoot={(props) => <Link {...props} to="/auth/login" />}>Sign in to join in.</Anchor>
+                <LabeledAction
+                  size="sm"
+                  icon={<LogIn size={16} />}
+                  renderRoot={(props) => <Link {...props} to="/auth/login" search={signInReturnFrom('/')} />}
+                >
+                  Log in
+                </LabeledAction>
               )}
             </Group>
           </Surface>

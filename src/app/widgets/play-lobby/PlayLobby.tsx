@@ -17,7 +17,6 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
 import { TileGrid } from '@ui/list/TileGrid';
-import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
@@ -267,15 +266,14 @@ const EMPTY_WORDS: Record<LobbyView, string> = {
   finished: 'No game has finished yet.',
 };
 
+/* Open, without a frame: a frame is for something you pick, and an empty lobby has nothing to pick yet (Norbert, 2026-11-07). */
 function EmptyView({ title, children }: Readonly<{ title: string; children: string }>) {
   return (
-    <Surface padding="xl">
-      <Stack align="center" ta="center">
-        <PageState kind="absent" title={title}>
-          {children}
-        </PageState>
-      </Stack>
-    </Surface>
+    <Stack align="center" ta="center" py="xl">
+      <PageState kind="absent" title={title}>
+        {children}
+      </PageState>
+    </Stack>
   );
 }
 
