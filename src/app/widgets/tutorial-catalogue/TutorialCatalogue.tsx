@@ -7,6 +7,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ScrollLane } from '@ui/list/ScrollLane';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -139,18 +140,18 @@ export function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly 
 /**
  * The same tiles on one line that scrolls sideways, for a page that shows the catalogue in passing (Norbert, 2026-11-07: a blog post needs one line, not every row).
  * Every tile keeps the width it has on the catalogue page at five across, so the line shows the first few and the edge of the next, and the list scrolls and snaps tile by tile.
+ * The line is the kit's `ScrollLane`, the masked lane the leaders on a faction's page scroll in.
  * The list takes the focus so a keyboard moves it, and `label` names it to a reader.
  * The pictures stay lazy: the line sits down a page, never above its fold.
  */
 export function TutorialTileStrip({ tiles, label }: Readonly<{ tiles: readonly CatalogueTile[]; label: string }>) {
   return (
     <div className={styles.stripFrame}>
-      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- A list that scrolls is reached by the keyboard only when it can take the focus. */}
-      <ol className={styles.strip} aria-label={label} start={tiles[0]?.number} tabIndex={0}>
+      <ScrollLane as="ol" aria-label={label} start={tiles[0]?.number} focusable>
         {tiles.map((tile) => (
           <CatalogueTileView key={tile.slug} tile={tile} eager={false} />
         ))}
-      </ol>
+      </ScrollLane>
     </div>
   );
 }

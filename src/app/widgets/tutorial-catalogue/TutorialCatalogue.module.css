@@ -115,58 +115,27 @@
 }
 
 /*
- * The strip: the same tiles on one line that scrolls sideways.
+ * The strip: the same tiles on one line that scrolls sideways, in the kit's masked lane.
  * A tile keeps about the width it has on the catalogue page at five across, and comes down a step where the line has less than a phone's width of room, so the next tile always shows its edge and says the line scrolls.
  * The frame is the strip's own container, so the step reads the room the strip is given rather than the page.
  */
 .stripFrame {
+  --surface-backdrop: none;
+
   container: tile-strip / inline-size;
   width: 100%;
 }
 
-/* The scrollbar stays thin and faint, in view so a reader sees the line scrolls, with room below the tiles so it never sits on their edge. */
-.strip {
+/* A tile in the strip holds its width and snaps to the lane's edge. */
+.stripFrame .cell {
   --strip-tile: 15.5rem;
-  --surface-backdrop: none;
 
-  display: flex;
-  gap: var(--space-md);
-  margin: 0;
-  padding: 4px 4px var(--space-sm);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: inline mandatory;
-  scroll-padding-inline: 4px;
-  scrollbar-color: color-mix(in srgb, currentColor 38%, transparent) transparent;
-  scrollbar-width: thin;
-  list-style: none;
-}
-
-.strip::-webkit-scrollbar {
-  height: 0.3rem;
-}
-
-.strip::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.strip::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 38%, transparent);
-}
-
-.strip:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
-}
-
-.strip .cell {
   flex: 0 0 var(--strip-tile);
   scroll-snap-align: start;
 }
 
 @container tile-strip (width < 30rem) {
-  .strip {
+  .stripFrame .cell {
     --strip-tile: 13rem;
   }
 }

@@ -1,0 +1,79 @@
+/*
+ * One line of items that scrolls sideways under a fading mask.
+ * The lane bleeds past its frame by the page's gutter on both sides, up to a large space, and fades out over that bleed,
+ * so an item half out of view dissolves instead of being cut, and one that is scrolled right up to the edge still sits where the frame's content does.
+ * The scrollbar stays thin and faint, in view so a reader sees the line scrolls.
+ * The mask is a paint of the lane's own box, so the ring for keyboard focus goes on the frame around it, where nothing fades it.
+ */
+.frame {
+  min-width: 0;
+}
+
+.frame:has(> .lane:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * The lane clips what an item paints past its own box in the block direction, so it keeps room for that: 4px above, a ring of 2px at 2px offset, and a small space below so the scrollbar never sits on the items' edge.
+ * Items that ask to snap (`scroll-snap-align`) snap to the frame's content edge, which the bleed-wide scroll padding puts in line; items that do not, scroll freely.
+ * Outside the shell nothing sets the gutter, so the bleed falls back to the shell's wide-window value.
+ */
+.lane {
+  --lane-bleed: min(var(--space-xl), var(--app-shell-inline-gutter, 20px));
+
+  display: flex;
+  flex-flow: row nowrap;
+  gap: var(--space-md);
+  min-width: 0;
+  margin: 0 calc(-1 * var(--lane-bleed));
+  padding: 4px var(--lane-bleed) var(--space-sm);
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-padding-inline: var(--lane-bleed);
+  scroll-snap-type: inline proximity;
+  scrollbar-color: color-mix(in srgb, currentColor 38%, transparent) transparent;
+  scrollbar-width: thin;
+  list-style: none;
+}
+
+.lane:focus-visible {
+  outline: none;
+}
+
+/*
+ * Room for a drop shadow: the lane pads by a large space on both sides and folds most of it back with its margin,
+ * so the shadow has its blur to spread into while the lane takes only a small space of the page beyond its items.
+ */
+.lane[data-room="shadow"] {
+  margin-block: calc(var(--space-xs) - var(--space-xl));
+  padding-block: var(--space-xl);
+}
+
+.lane::-webkit-scrollbar {
+  height: 0.3rem;
+}
+
+.lane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lane::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 38%, transparent);
+}
