@@ -81,16 +81,20 @@ async function imageInput(
   if (source.status === 'image') {
     const maxBytes = imageMaxBytes(source.assetType);
     const object = await bucket.get(publishedR2Key(source.assetType, source.assetId));
-    /* An image too large to embed draws the illustration's unavailable placeholder rather than failing the request. */
-    if (object && 'body' in object && object.size > maxBytes) {
-      return { source: unavailableSource, publicationIdentity: `too-large:${source.revision}` };
-    }
     if (
       !object ||
       !('body' in object) ||
       object.customMetadata?.[PUBLISHER_CACHE_TOKEN_METADATA_KEY] !== source.revision
     ) {
+      if (object && 'body' in object) {
+        await object.body.cancel();
+      }
       throw new Error('Annotated image publication is unavailable');
+    }
+    /* An image too large to embed draws the illustration's unavailable placeholder rather than failing the request. */
+    if (object.size > maxBytes) {
+      await object.body.cancel();
+      return { source: unavailableSource, publicationIdentity: `too-large:${source.revision}` };
     }
     const bytes = new Uint8Array(await object.arrayBuffer());
     if (bytes.byteLength > maxBytes) {

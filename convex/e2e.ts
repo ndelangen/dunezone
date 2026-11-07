@@ -244,7 +244,8 @@ export const seedBaseline = mutation({
     await ctx.db.insert('publication_assets', {
       asset_type: 'board',
       asset_id: arrakisId,
-      cache_token: 'e2e-arrakis-official',
+      /* A real token: the publisher's illustration answer parses it as a UUID. */
+      cache_token: crypto.randomUUID(),
       published_at: Date.now(),
       component_geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),
     });
