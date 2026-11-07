@@ -11918,6 +11918,20 @@
     "credit": "blog-picture",
     "sourceHash": "06ab2554a5c9390e0a817b285ab6fdf04c54d2126d03ec8c95274fa9f8b47a42"
   },
+  "/web/blog/mentat-recall-online-dune-game-history/checkpoints-during.jpg": {
+    "description": "The checkpoint picker during a game, offering only the 30 most recent checkpoints at the end of Turn 10 and Turn 11.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "checkpoint", "blog"],
+    "subjects": ["symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "470fa9c1a8a97a6029e8b273b1619ea8bf78dfe7db3aedff3b091c2684b7b615"
+  },
+  "/web/blog/mentat-recall-online-dune-game-history/checkpoints-after.jpg": {
+    "description": "The checkpoint picker after a finished game, offering every checkpoint from Turn 1 to Turn 11.",
+    "tags": ["dune.zone", "game table", "Mentat recall", "checkpoint", "blog"],
+    "subjects": ["symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "7008faa2c92ab2b69d154b8b93d3d8c339956fdd2417ed34ac71020d054ec6c9"
+  },
   "/web/blog/mentat-recall-online-dune-game-history/recalled-hand.jpg": {
     "description": "The recalled hand panel during a Mentat recall, showing spice, leaders, an alliance card and traitor cards.",
     "tags": ["dune.zone", "game table", "Mentat recall", "hand", "blog"],

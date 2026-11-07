@@ -1,7 +1,6 @@
 import { Section } from '@ui/block/Section';
 
-import { Figure, FigureRow, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
-import { CheckpointTimeline } from './recall/CheckpointTimeline';
+import { Figure, FigureRow, Lead, Paragraph, PostLink } from '../postContent';
 
 const FOLDER = '/web/blog/mentat-recall-online-dune-game-history';
 
@@ -138,13 +137,30 @@ function CheckpointSection() {
       <Paragraph>
         The room doesn&rsquo;t save a checkpoint for every move. It saves one when the table enters a phase or setup
         step, when a battle is settled, when a faction finishes its Shipment and Movement, and when a result is declared
-        or continued. That gives a few dozen points in a typical game, each named the way the game log names it, like
-        &ldquo;Turn 2, Battle&rdquo; or &ldquo;Turn 3, Shipment and Movement, after Fremen&rdquo;. The slider marks the
-        start of each turn, so you can find your way back quickly.
+        or continued. Each one is named the way the game log names it, like &ldquo;Turn 2, Battle&rdquo; or &ldquo;Turn
+        3, Shipment and Movement, after Fremen&rdquo;, and the slider marks the start of each turn.
       </Paragraph>
-      <WideFigure caption="Every checkpoint of a sample four-turn game. Switch between during and after the game to see which ones a recall can show.">
-        <CheckpointTimeline />
-      </WideFigure>
+      <Paragraph>
+        That adds up to more than a dozen checkpoints a turn, so the 30 a recall offers during a game reach back a turn
+        or two. Here is the same eleven-turn game in the checkpoint picker, first while it is being played and then once
+        it is over.
+      </Paragraph>
+      <FigureRow
+        figures={[
+          {
+            imageKey: `${FOLDER}/checkpoints-during.jpg`,
+            alt: 'The checkpoint picker during a game: the slider covers only the end of Turn 10 and Turn 11, ending at Turn 11, Battle, after battle 1',
+            aspect: 270 / 820,
+            caption: 'During the game: the 30 most recent checkpoints.',
+          },
+          {
+            imageKey: `${FOLDER}/checkpoints-after.jpg`,
+            alt: 'The checkpoint picker after the game: the slider runs from Turn 1 to Turn 11 with a mark at every turn',
+            aspect: 270 / 820,
+            caption: 'After the game: every checkpoint, Turn 1 to 11.',
+          },
+        ]}
+      />
     </Section>
   );
 }
