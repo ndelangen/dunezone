@@ -62,9 +62,9 @@
 
 /*
  * The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it.
- * The circle's radius is a registered property the keyframes animate, not the clip-path itself: Chromium runs a clip-path
- * animation on the compositor and there clipped the WebGL canvas only to the circle's bounding box, so its dark edges showed
- * outside the circle. A property animation reruns the clip on every frame instead.
+ * The circle is a radial-gradient mask whose radius is a registered property the keyframes animate. A circular clip-path,
+ * animated or not, let Chromium clip the WebGL canvas inside only to the circle's bounding box, so the canvas's dark edges
+ * showed outside the circle; a mask makes the shell one surface, canvas included, and its edge can be feathered.
  * The clipped shell never fades either; its ground eases in from clear, and its contents fade on their own.
  */
 @property --dune-play-iris {
@@ -76,12 +76,17 @@
 .dune-play-stage[data-scene-ready="true"] .dune-play-shell {
   --dune-play-iris: 150vmax;
 
-  clip-path: circle(var(--dune-play-iris) at 50% var(--voyage-planet-y));
+  clip-path: none;
+  mask-image: radial-gradient(
+    circle at 50% var(--voyage-planet-y),
+    var(--ui-black) calc(var(--dune-play-iris) - 1.5px),
+    transparent var(--dune-play-iris)
+  );
 }
 
-/* Once open, the shell drops its clip altogether. */
+/* Once open, the shell drops its mask altogether. */
 .dune-play-stage[data-arrival="open"] .dune-play-shell {
-  clip-path: none;
+  mask-image: none;
 }
 
 @keyframes dune-play-enter {
@@ -116,6 +121,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell,
 html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   animation: none;
   clip-path: none;
+  mask-image: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -123,6 +129,7 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell > * {
     animation: none;
     clip-path: none;
+    mask-image: none;
   }
 }
 
