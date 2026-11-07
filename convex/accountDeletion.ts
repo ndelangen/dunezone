@@ -33,9 +33,10 @@ const TRANSACTION_RESERVE = {
  * How far the co-member search reaches: the deleting account's live Groups, and each one's active members.
  * Both are read to a bound so the picker's query stays inside one transaction's reads;
  * a person who shares several Groups is listed once.
+ * At 100 members the worst case (50 Groups of 100 members, two reads per distinct person) came near Convex's documents-per-query limit.
  */
 const REPLACEMENT_GROUP_LIMIT = 50;
-const REPLACEMENT_GROUP_MEMBER_LIMIT = 100;
+const REPLACEMENT_GROUP_MEMBER_LIMIT = 50;
 
 type OwnedEntityId = Id<'groups'> | Id<'factions'> | Id<'rulesets'> | Id<'assets'>;
 type AnyCtx = QueryCtx | MutationCtx;
@@ -100,6 +101,7 @@ async function requireCoMember(ctx: AnyCtx, sourceUserId: Id<'users'>, replaceme
 /**
  * Everyone who shares a Group with the deleting account, each once, as the picker offers them: by name, then slug.
  * Read whole and bounded (`REPLACEMENT_GROUP_LIMIT` Groups of `REPLACEMENT_GROUP_MEMBER_LIMIT` members) rather than paged by the database, because one person recurs across Groups and a page of one Group's members could not know what an earlier page already listed.
+ * `seen` is checked before the profile lookup, so each distinct person costs their profile and user reads once however many Groups they share.
  */
 async function coMemberProfiles(ctx: QueryCtx, sourceUserId: Id<'users'>, searchSlug: string) {
   const seen = new Set<Id<'users'>>([sourceUserId]);

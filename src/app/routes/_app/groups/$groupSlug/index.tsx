@@ -84,21 +84,13 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
       trail: [],
       match,
     }),
-  component: GroupDetailPage,
+  component: GroupDetail,
 });
 
-function GroupDetailPage() {
+function GroupDetail() {
   const { groupSlug } = Route.useParams();
-  const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
-  const membershipWorkflow = useGroupMembershipWorkflow();
-  /* The viewer's own invitations: the one for this Group, if any, decides whether the band and the toolbar offer to accept it or to ask to join. A signed-out viewer is answered without a read. */
-  const viewerInvitations = useViewerInvitations();
-  const deleteGroup = useDeleteGroup();
-  const setFactionGroup = useSetFactionGroup();
-  const setRulesetGroup = useSetRulesetGroup();
-  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
 
   /* The failed case is the route's `errorComponent` now, since the branch that used to sit here
      could not run. What is left is the wait, which every other page in the tree spells this way:
@@ -113,6 +105,43 @@ function GroupDetailPage() {
       </RoutePending>
     );
   }
+  /* The viewer's own invitations answer a signed-in viewer alone, so the read is mounted for one alone; everyone else holds no invitation. */
+  return page.viewerResolved && page.viewerAccess.viewer.kind === 'authenticated' ? (
+    <SignedInGroupDetail page={page} />
+  ) : (
+    <GroupDetailPage page={page} viewerInvitation={null} />
+  );
+}
+
+/**
+ * The page for a signed-in viewer, with the invitation this Group holds for them, if any: it decides whether the band and the toolbar offer to accept it or to ask to join.
+ * While the invitations are on their way the page carries `undefined`, so the toolbar offers nothing the answer may take back.
+ */
+function SignedInGroupDetail({ page }: { page: GroupDetailPageData }) {
+  const viewerInvitations = useViewerInvitations();
+  const groupId = page.group._id;
+  const viewerInvitation =
+    viewerInvitations.data === undefined
+      ? undefined
+      : (viewerInvitations.data.find((invitation) => invitation.group.id === groupId) ?? null);
+  return <GroupDetailPage page={page} viewerInvitation={viewerInvitation} />;
+}
+
+/** `viewerInvitation` is null when the viewer holds none and undefined while a signed-in viewer's invitations are still loading. */
+function GroupDetailPage({
+  page,
+  viewerInvitation: invitation,
+}: {
+  page: GroupDetailPageData;
+  viewerInvitation: ViewerInvitation | null | undefined;
+}) {
+  const { groupSlug } = Route.useParams();
+  const navigate = Route.useNavigate();
+  const membershipWorkflow = useGroupMembershipWorkflow();
+  const deleteGroup = useDeleteGroup();
+  const setFactionGroup = useSetFactionGroup();
+  const setRulesetGroup = useSetRulesetGroup();
+  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
 
   const group = page.group;
   const groupId = group._id;
@@ -124,10 +153,7 @@ function GroupDetailPage() {
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = page.viewerResolved && membershipStatus === 'active';
   /* On the wire an invited viewer reads as `none`; the invitation itself says otherwise. */
-  const viewerInvitation =
-    page.viewerResolved && membershipStatus === 'none'
-      ? (viewerInvitations.data?.find((invitation) => invitation.group.id === groupId) ?? null)
-      : null;
+  const viewerInvitation = membershipStatus === 'none' ? invitation : null;
   const factions = page.factions;
   const rulesets = page.rulesets;
   const roster = page.roster;
@@ -249,7 +275,7 @@ function GroupDetailPage() {
           </Toolbar.Left>
           <Toolbar.Right label="Group actions">
             <Toolbar.Cluster kind="access">
-              {capabilities?.requestMembership && !viewerInvitation ? (
+              {capabilities?.requestMembership && viewerInvitation === null ? (
                 <IconAction
                   label="Request membership"
                   emphasis="standard"

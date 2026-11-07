@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { peekSeatPass } from '../src/shared/play/seatPass';
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
@@ -111,6 +112,56 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
   ).toBeNull();
   await admin.mutation(api.accounts.disconnect, { provider: 'discord' });
   await expect(admin.mutation(api.accounts.disconnect, { provider: 'google' })).rejects.toThrow('Not authenticated');
+});
+
+test('a merge joins a request on one account to an invitation on the other, whichever side holds which', async () => {
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  const source = await account(t, 'asker', 'discord');
+  const target = await account(t, 'kept', 'google', true);
+  const host = await account(t, 'host', 'google');
+  const groups = await t.run(async (raw) => {
+    const ctx = applicationTriggers.wrapDB(raw);
+    const ids: Id<'groups'>[] = [];
+    for (const slug of ['asked-in', 'invited-in']) {
+      const id = await ctx.db.insert('groups', {
+        created_by: host.userId,
+        created_at: new Date().toISOString(),
+        name: slug,
+        slug,
+        is_deleted: false,
+      });
+      ids.push(id);
+    }
+    const membership = (groupIndex: number, userId: typeof source.userId, status: 'pending' | 'invited') =>
+      ctx.db.insert('group_members', {
+        group_id: ids[groupIndex]!,
+        user_id: userId,
+        status,
+        requested_at: new Date().toISOString(),
+        approved_at: null,
+        approved_by: status === 'invited' ? host.userId : null,
+      });
+    await membership(0, source.userId, 'pending');
+    await membership(0, target.userId, 'invited');
+    await membership(1, source.userId, 'invited');
+    await membership(1, target.userId, 'pending');
+    return ids;
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  await t.run(async (ctx) => {
+    for (const id of groups) {
+      const rows = await ctx.db
+        .query('group_members')
+        .withIndex('by_group', (q) => q.eq('group_id', id))
+        .collect();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ user_id: target.userId, status: 'active', approved_by: host.userId });
+      expect(rows[0]?.approved_at).toEqual(expect.any(String));
+    }
+  });
 });
 
 test('a failed partial transfer resumes without undoing completed writes and unlocks the kept account', async () => {

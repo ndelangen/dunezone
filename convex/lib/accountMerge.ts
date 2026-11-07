@@ -234,6 +234,29 @@ async function moveRulesets(ctx: MutationCtx, operation: Doc<'account_merge_oper
   return rows.length;
 }
 
+/* A request and an invitation are each one side's consent, so neither outranks the other. */
+const MEMBERSHIP_RANK = { removed: 0, pending: 1, invited: 1, active: 2 };
+
+/**
+ * What the kept account's row of a Group becomes when the merged account held one too, or null to leave it as it is.
+ * One account asked and the other was invited: both halves of the agreement exist, so the merged person is a member, approved by whoever invited them.
+ * Otherwise the higher standing wins.
+ */
+function mergedMembershipPatch(
+  moving: Doc<'group_members'>,
+  kept: Doc<'group_members'>
+): Pick<Doc<'group_members'>, 'status' | 'approved_at' | 'approved_by'> | null {
+  const statuses = [moving.status, kept.status];
+  if (statuses.includes('pending') && statuses.includes('invited')) {
+    const invited = moving.status === 'invited' ? moving : kept;
+    return { status: 'active', approved_at: nowIso(), approved_by: invited.approved_by };
+  }
+  if (MEMBERSHIP_RANK[moving.status] > MEMBERSHIP_RANK[kept.status]) {
+    return { status: moving.status, approved_at: moving.approved_at, approved_by: moving.approved_by };
+  }
+  return null;
+}
+
 async function moveMemberships(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const target = operation.target_user_id;
@@ -241,20 +264,15 @@ async function moveMemberships(ctx: MutationCtx, operation: Doc<'account_merge_o
     .query('group_members')
     .withIndex('by_user', (q) => q.eq('user_id', source))
     .take(BATCH);
-  /* A request and an invitation are each one side's consent, so neither outranks the other. */
-  const rank = { removed: 0, pending: 1, invited: 1, active: 2 };
   for (const row of rows) {
     const existing = await ctx.db
       .query('group_members')
       .withIndex('by_group_user', (q) => q.eq('group_id', row.group_id).eq('user_id', target))
       .unique();
     if (existing) {
-      if (rank[row.status] > rank[existing.status]) {
-        await ctx.db.patch(existing._id, {
-          status: row.status,
-          approved_at: row.approved_at,
-          approved_by: row.approved_by,
-        });
+      const patch = mergedMembershipPatch(row, existing);
+      if (patch) {
+        await ctx.db.patch(existing._id, patch);
       }
       await ctx.db.delete(row._id);
     } else {

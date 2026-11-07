@@ -39,6 +39,7 @@ import { useState } from 'react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { useGroupMembershipWorkflow, useViewerInvitations } from '@db/members';
+import type { ViewerInvitation } from '@db/members';
 import { forgetStoredPlayTables } from '@db/playTables';
 import type { ProfilePageData } from '@db/profiles';
 import { loadProfileBySlug, profileAvatarUrl, useCurrentProfile, useProfileBySlug } from '@db/profiles';
@@ -195,14 +196,11 @@ function ProfileFaqActivity({
 function ProfileInvitations() {
   const invitations = useViewerInvitations();
   const workflow = useGroupMembershipWorkflow();
-  const [answering, setAnswering] = useState<string | null>(null);
+  /* The Group last answered, so only its own button reads as busy; whether anything is busy is the workflow's to say. */
+  const [answeredGroupId, setAnsweredGroupId] = useState<string | null>(null);
   const busy = workflow.accept.isPending || workflow.decline.isPending;
-  /* Which invitation is being answered, so only its own buttons read as busy; cleared during render when the round trip ends. */
-  if (!busy && answering !== null) {
-    setAnswering(null);
-  }
   const answer = (groupId: string, command: typeof workflow.accept) => {
-    setAnswering(groupId);
+    setAnsweredGroupId(groupId);
     void command.run(groupId).catch(() => undefined);
   };
   const rows = invitations.data ?? [];
@@ -215,41 +213,113 @@ function ProfileInvitations() {
       <Stack gap="sm">
         {error ? <FormError title="Could not answer the invitation">{error.message}</FormError> : null}
         {rows.map((invitation) => (
-          <Group key={invitation.membershipId} justify="space-between" wrap="wrap" gap="sm">
-            <Stack gap={2} miw={0}>
-              <GroupLink slug={invitation.group.slug} name={invitation.group.name} />
-              <Text size="xs" c="dimmed">
-                {invitation.invitedBy?.username
-                  ? `Invited by ${invitation.invitedBy.username}, ${formatStableDate(invitation.invitedAt)}`
-                  : `Invited ${formatStableDate(invitation.invitedAt)}`}
-              </Text>
-            </Stack>
-            <Group gap={4} wrap="nowrap">
-              <IconAction
-                label={`Accept invitation to ${invitation.group.name}`}
-                tooltip="Accept"
-                intent="positive"
-                emphasis="standard"
-                loading={answering === invitation.group.id && workflow.accept.isPending}
-                disabled={busy}
-                onClick={() => answer(invitation.group.id, workflow.accept)}
-                icon={<Check size={15} aria-hidden />}
-              />
-              <IconAction
-                label={`Decline invitation to ${invitation.group.name}`}
-                tooltip="Decline"
-                intent="negative"
-                emphasis="standard"
-                loading={answering === invitation.group.id && workflow.decline.isPending}
-                disabled={busy}
-                onClick={() => answer(invitation.group.id, workflow.decline)}
-                icon={<X size={15} aria-hidden />}
-              />
-            </Group>
-          </Group>
+          <ProfileInvitationRow
+            key={invitation.membershipId}
+            invitation={invitation}
+            busy={busy}
+            accepting={answeredGroupId === invitation.group.id && workflow.accept.isPending}
+            declining={answeredGroupId === invitation.group.id && workflow.decline.isPending}
+            onAccept={() => answer(invitation.group.id, workflow.accept)}
+            onDecline={() => answer(invitation.group.id, workflow.decline)}
+          />
         ))}
       </Stack>
     </Card>
+  );
+}
+
+/** One invitation: the Group, who asked and when, and the two answers. */
+function ProfileInvitationRow({
+  invitation,
+  busy,
+  accepting,
+  declining,
+  onAccept,
+  onDecline,
+}: {
+  invitation: ViewerInvitation;
+  busy: boolean;
+  accepting: boolean;
+  declining: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  const invitedAt = formatStableDate(invitation.invitedAt);
+  return (
+    <Group justify="space-between" wrap="wrap" gap="sm">
+      <Stack gap={2} miw={0}>
+        <GroupLink slug={invitation.group.slug} name={invitation.group.name} />
+        <Text size="xs" c="dimmed">
+          {invitation.invitedBy?.username
+            ? `Invited by ${invitation.invitedBy.username}, ${invitedAt}`
+            : `Invited ${invitedAt}`}
+        </Text>
+      </Stack>
+      <Group gap={4} wrap="nowrap">
+        <IconAction
+          label={`Accept invitation to ${invitation.group.name}`}
+          tooltip="Accept"
+          intent="positive"
+          emphasis="standard"
+          loading={accepting}
+          disabled={busy}
+          onClick={onAccept}
+          icon={<Check size={15} aria-hidden />}
+        />
+        <IconAction
+          label={`Decline invitation to ${invitation.group.name}`}
+          tooltip="Decline"
+          intent="negative"
+          emphasis="standard"
+          loading={declining}
+          disabled={busy}
+          onClick={onDecline}
+          icon={<X size={15} aria-hidden />}
+        />
+      </Group>
+    </Group>
+  );
+}
+
+/** The side column: the viewer's own invitations, the BoardGameGeek link, the proposed bio, and the Groups the person belongs to. */
+function ProfileSidebar({ page, isSelf }: { page: ProfilePageData; isSelf: boolean }) {
+  return (
+    <aside className={styles.sidebar} aria-label="Profile details">
+      <Stack gap="sm">
+        {isSelf ? <ProfileInvitations /> : null}
+        {page.profile.bgg_profile_url ? (
+          <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
+            <Group gap="sm">
+              <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
+                View BGG profile
+              </Anchor>
+              <StatusBadge>Unverified</StatusBadge>
+            </Group>
+          </Card>
+        ) : null}
+        <Card icon={<Link2 size={20} aria-hidden />} title="About">
+          <ProposedContent label="Proposed profile fields">
+            <Text size="sm" c="dimmed">
+              A short bio and a small set of relevant external links could live here.
+            </Text>
+          </ProposedContent>
+        </Card>
+
+        <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
+          {page.groupSummaries.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              Not a member of any groups.
+            </Text>
+          ) : (
+            <Stack gap="xs" align="flex-start">
+              {page.groupSummaries.map((group) => (
+                <GroupLink key={group.id} slug={group.slug} name={group.name} />
+              ))}
+            </Stack>
+          )}
+        </Card>
+      </Stack>
+    </aside>
   );
 }
 
@@ -436,42 +506,7 @@ function ProfileDetailPage() {
             />
           </Stack>
 
-          <aside className={styles.sidebar} aria-label="Profile details">
-            <Stack gap="sm">
-              {isSelf ? <ProfileInvitations /> : null}
-              {page.profile.bgg_profile_url ? (
-                <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
-                  <Group gap="sm">
-                    <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
-                      View BGG profile
-                    </Anchor>
-                    <StatusBadge>Unverified</StatusBadge>
-                  </Group>
-                </Card>
-              ) : null}
-              <Card icon={<Link2 size={20} aria-hidden />} title="About">
-                <ProposedContent label="Proposed profile fields">
-                  <Text size="sm" c="dimmed">
-                    A short bio and a small set of relevant external links could live here.
-                  </Text>
-                </ProposedContent>
-              </Card>
-
-              <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
-                {page.groupSummaries.length === 0 ? (
-                  <Text size="sm" c="dimmed">
-                    Not a member of any groups.
-                  </Text>
-                ) : (
-                  <Stack gap="xs" align="flex-start">
-                    {page.groupSummaries.map((group) => (
-                      <GroupLink key={group.id} slug={group.slug} name={group.name} />
-                    ))}
-                  </Stack>
-                )}
-              </Card>
-            </Stack>
-          </aside>
+          <ProfileSidebar page={page} isSelf={isSelf} />
         </div>
       </PageLayout.Content>
     </PageLayout>

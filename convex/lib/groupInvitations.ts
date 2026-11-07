@@ -20,6 +20,14 @@ export type PickableProfile = Infer<typeof pickableProfileValidator>;
 /** How many open invitations one person or one Group is shown; a list on a page, capped like every other. */
 const INVITATION_LIST_LIMIT = 200;
 
+/** A live account that was not merged away: the only kind a picker may offer. */
+function isOfferableAccount(user: Doc<'users'> | null): user is Doc<'users'> {
+  if (!user || user.merged_into_user_id) {
+    return false;
+  }
+  return accountStateOf(user) === 'active';
+}
+
 /**
  * A person as a picker offers them: a live account with a public profile, or null.
  * The same test `members.addMember` applies, so a picker never offers someone the mutation would refuse.
@@ -28,8 +36,7 @@ export async function pickableProfile(ctx: AnyCtx, profile: Doc<'profiles'>): Pr
   if (!isPublicProfile(profile) || !profile.username) {
     return null;
   }
-  const user = await ctx.db.get('users', profile.user_id);
-  if (!user || accountStateOf(user) !== 'active' || user.merged_into_user_id) {
+  if (!isOfferableAccount(await ctx.db.get('users', profile.user_id))) {
     return null;
   }
   return {
