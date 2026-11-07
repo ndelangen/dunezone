@@ -6,13 +6,17 @@ const ORIGIN = 'https://dune.zone';
 
 function assets(response: Response) {
   const requests: string[] = [];
+  const conditionals: (string | null)[] = [];
   return {
     requests,
+    conditionals,
     fetch: async (input: RequestInfo | URL) => {
-      requests.push(new Request(input).url);
+      const request = new Request(input);
+      requests.push(request.url);
+      conditionals.push(request.headers.get('If-None-Match'));
       return response.clone();
     },
-  } as unknown as Fetcher & { requests: string[] };
+  } as unknown as Fetcher & { requests: string[]; conditionals: (string | null)[] };
 }
 
 async function get(path: string, fetcher: Fetcher) {
@@ -55,8 +59,30 @@ describe('hashed bundle files', () => {
     expect(response?.headers.get('Cache-Control')).toBe('no-store');
   });
 
-  test('passes a revalidation answer through', async () => {
-    const response = await get('/public/Tabs-abc.js', assets(new Response(null, { status: 304 })));
+  test('answers a revalidation of a stored chunk from its own ETag', async () => {
+    const fetcher = assets(
+      new Response('export {}', { headers: { 'Content-Type': 'text/javascript', ETag: '"chunk"' } })
+    );
+    const request = new Request(`${ORIGIN}/public/Tabs-abc.js`, { headers: { 'If-None-Match': 'W/"chunk"' } });
+    const response = await handleBundleAssetRequest(request, new URL(request.url), fetcher);
     expect(response?.status).toBe(304);
+    expect(response?.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable');
+    expect(fetcher.conditionals).toEqual([null]);
+  });
+
+  test('never confirms HTML a browser kept at a missing chunk address', async () => {
+    /* The binding would compare the conditional against the fallback document and answer 304; it never sees one. */
+    const fetcher = assets(
+      new Response('<!doctype html><html></html>', {
+        headers: { 'Content-Type': 'text/html; charset=utf-8', ETag: '"index"' },
+      })
+    );
+    const request = new Request(`${ORIGIN}/public/useLocation-OLDHASH0.js`, {
+      headers: { 'If-None-Match': '"index"' },
+    });
+    const response = await handleBundleAssetRequest(request, new URL(request.url), fetcher);
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get('Cache-Control')).toBe('no-store');
+    expect(fetcher.conditionals).toEqual([null]);
   });
 });

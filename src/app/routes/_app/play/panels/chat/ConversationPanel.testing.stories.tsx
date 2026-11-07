@@ -178,7 +178,9 @@ export const NamedSeatOpensOnFocus = meta.story({
       await userEvent.tab();
     }
     await expect(named).toHaveFocus();
-    await expect(await suggestions().findByRole('button', { name: 'Info' })).toBeVisible();
+    const info = await suggestions().findByRole('button', { name: 'Info' });
+    /* The card is in the DOM as its fade-in starts, so it is waited on until shown. */
+    await waitFor(() => expect(info).toBeVisible());
   },
 });
 

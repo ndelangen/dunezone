@@ -5,14 +5,14 @@
  * the server's answer is the authoritative one.
  */
 
-/** What a viewer's membership of a Group is, as the client sees it. `StoredMembershipState` is the same plus the state the database keeps and the client never receives. */
+/** What a viewer's membership of a Group is, as the client sees it. `StoredMembershipState` is the same plus the states the database keeps and the client never receives. */
 export type MembershipState = 'none' | 'pending' | 'active';
 
 /**
- * Membership as the `group_members` row stores it, including `removed`.
- * `evaluateCollaborativeAccess` flattens `removed` to `none` for membership-derived capabilities.
+ * Membership as the `group_members` row stores it, including `removed` and `invited`.
+ * `evaluateCollaborativeAccess` flattens both to `none` for membership-derived capabilities: a removed member is a stranger again, and an invited person is a stranger until they accept, since consent is theirs to give.
  */
-export type StoredMembershipState = MembershipState | 'removed';
+export type StoredMembershipState = MembershipState | 'removed' | 'invited';
 
 /** The viewer as a page is told about them: signed in with a membership, or anonymous. Never carries an id, which is why it is safe on the wire. */
 type PublicViewer = { kind: 'anonymous' } | { kind: 'authenticated'; membership: MembershipState };
@@ -87,12 +87,13 @@ type ViewerStanding = {
   outsider: boolean;
 };
 
-/** What the rules need to know about the viewer, with `removed` already flattened to `none`. */
+/** What the rules need to know about the viewer, with `removed` and `invited` already flattened to `none`. */
 function viewerStanding(facts: ViewerFacts): ViewerStanding {
   if (facts.kind === 'anonymous') {
     return { viewer: facts, owner: false, activeMember: false, outsider: false };
   }
-  const membership: MembershipState = facts.membership === 'removed' ? 'none' : facts.membership;
+  const membership: MembershipState =
+    facts.membership === 'removed' || facts.membership === 'invited' ? 'none' : facts.membership;
   return {
     viewer: { kind: 'authenticated', membership },
     owner: facts.ownsSubject,

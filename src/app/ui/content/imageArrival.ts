@@ -20,17 +20,18 @@ const STAGGER_MS = 40;
 const ROW_PX = 24;
 
 /*
- * Every src decoded during this page session.
+ * Every src decoded during this page session, with the URL it was drawn from, which can be a resized copy.
  * Module scope survives client navigation, so returning to a page shows its images at once instead of replaying their arrival.
  */
-const decoded = new Set<string>();
+const decoded = new Map<string, string>();
 
-export function wasDecoded(src: string) {
-  return decoded.has(src);
+/** The URL a src was drawn from earlier in this page session, or undefined when it has not been drawn. */
+export function decodedFrom(src: string) {
+  return decoded.get(src);
 }
 
-export function markDecoded(src: string) {
-  decoded.add(src);
+export function markDecoded(src: string, drawn: string = src) {
+  decoded.set(src, drawn);
 }
 
 const unordered = new Map<HTMLElement, (order: number) => void>();

@@ -555,7 +555,8 @@ export async function loadViewerMembership(ctx: QueryCtx, groupId: Id<'groups'> 
     liveGroupOrNull(groupId ? await ctx.db.get('groups', groupId) : null)?._id ?? null,
     viewerId
   );
-  return !membership || membership.status === 'removed' ? 'none' : membership.status;
+  /* An invitation is the viewer's own business, carried by `members.viewerInvitations`; on the wire this stays the three states every bundle knows. */
+  return !membership || membership.status === 'removed' || membership.status === 'invited' ? 'none' : membership.status;
 }
 
 /**
@@ -600,16 +601,25 @@ export type GroupRosterMember = {
   isGroupOwner: boolean;
 };
 
+const ROSTER_LIMIT = 500;
+
 /**
  * The Group page's owner and roster, the same for every viewer.
- * Members are read to a bounded 500, and soft-deleted or inactive profiles never reach the roster;
+ * Members and requests are each read to a bounded 500, and soft-deleted or inactive profiles never reach the roster;
  * a dangling membership cannot become a visible member (ADR-0003).
+ * An invited person is not on it either: they have not agreed to be named with this Group, so only its active members see the invitation (`members.groupInvitations`).
  */
 export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
-  const members = await ctx.db
-    .query('group_members')
-    .withIndex('by_group', (q) => q.eq('group_id', group._id))
-    .take(500);
+  /* By status, so invitations and removed rows never crowd members or requests out of the bound. */
+  const [active, pending] = await Promise.all(
+    (['active', 'pending'] as const).map((status) =>
+      ctx.db
+        .query('group_members')
+        .withIndex('by_group_status', (q) => q.eq('group_id', group._id).eq('status', status))
+        .take(ROSTER_LIMIT)
+    )
+  );
+  const members = [...active, ...pending];
   const profileByUserId = new Map<Id<'users'>, Doc<'profiles'>>();
   const userIds = new Set<Id<'users'>>([group.created_by]);
   for (const membership of members) {
@@ -632,7 +642,7 @@ export async function loadGroupRoster(ctx: QueryCtx, group: Doc<'groups'>) {
   }
 
   const roster: GroupRosterMember[] = members.flatMap((membership) => {
-    if (membership.status === 'removed') {
+    if (membership.status === 'removed' || membership.status === 'invited') {
       return [];
     }
     const profile = profileByUserId.get(membership.user_id);

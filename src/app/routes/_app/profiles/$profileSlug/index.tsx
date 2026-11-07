@@ -5,21 +5,20 @@ import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import { createFileRoute, notFound, redirect, Link, useNavigate } from '@tanstack/react-router';
 import { FactionCard } from '@ui/block/FactionCard';
 import { PageIdentity } from '@ui/block/PageIdentity';
-import { ProposedContent } from '@ui/block/ProposedContent';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { GroupLink } from '@ui/content/GroupLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
-import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
-  ArrowLeft,
   CheckCircle2,
   CircleHelp,
   Link2,
@@ -41,6 +40,7 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import styles from './index.module.css';
 import { profileDescription } from './profileDescription';
+import { ProfileInvitations } from './ProfileInvitations';
 
 const backToProfiles = <PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>;
 
@@ -95,13 +95,7 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/')({
 function ProfileFactions({ page }: { page: ProfilePageData }) {
   const { factionCount } = page;
   if (factionCount === 0) {
-    return (
-      <Surface padding="lg">
-        <Text size="sm" c="dimmed">
-          No factions created yet.
-        </Text>
-      </Surface>
-    );
+    return <EmptyNote>No factions created yet.</EmptyNote>;
   }
   return (
     <Stack gap="md">
@@ -180,6 +174,38 @@ function ProfileFaqActivity({
   });
 }
 
+/** The side column: the viewer's own invitations, the BoardGameGeek link, the proposed bio, and the Groups the person belongs to. */
+function ProfileSidebar({ page, isSelf }: { page: ProfilePageData; isSelf: boolean }) {
+  return (
+    <aside className={styles.sidebar} aria-label="Profile details">
+      <Stack gap="sm">
+        {isSelf ? <ProfileInvitations /> : null}
+        {page.profile.bgg_profile_url ? (
+          <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
+            <Group gap="sm">
+              <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
+                View BGG profile
+              </Anchor>
+              <StatusBadge>Unverified</StatusBadge>
+            </Group>
+          </Card>
+        ) : null}
+        <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
+          {page.groupSummaries.length === 0 ? (
+            <EmptyNote>Not a member of any groups.</EmptyNote>
+          ) : (
+            <EntityLinkList>
+              {page.groupSummaries.map((group) => (
+                <GroupLink key={group.id} slug={group.slug} name={group.name} />
+              ))}
+            </EntityLinkList>
+          )}
+        </Card>
+      </Stack>
+    </aside>
+  );
+}
+
 function ProfileDetailPage() {
   const { profileSlug } = Route.useParams();
   const loaderData = Route.useLoaderData();
@@ -249,14 +275,6 @@ function ProfileDetailPage() {
   const toolbar = (
     <Toolbar>
       <Toolbar.Left label="Navigation">
-        <IconAction
-          label="Back to profiles"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-          icon={<ArrowLeft size={17} aria-hidden />}
-        />
         {isSelf ? (
           <IconAction
             label="Edit profile"
@@ -333,16 +351,6 @@ function ProfileDetailPage() {
               <ProfileFactions page={page} />
             </Section>
 
-            <Section icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets maintained">
-              <Surface padding="lg">
-                <ProposedContent label="Proposed content · page query required">
-                  <Text size="sm" c="dimmed">
-                    Rulesets owned or maintained by this contributor would appear here.
-                  </Text>
-                </ProposedContent>
-              </Surface>
-            </Section>
-
             <ProfileFaqActivity
               lists={page.faqLists}
               profileSlug={profileSlug}
@@ -363,41 +371,7 @@ function ProfileDetailPage() {
             />
           </Stack>
 
-          <aside className={styles.sidebar} aria-label="Profile details">
-            <Stack gap="sm">
-              {page.profile.bgg_profile_url ? (
-                <Card icon={<Link2 size={20} aria-hidden />} title="BoardGameGeek">
-                  <Group gap="sm">
-                    <Anchor href={page.profile.bgg_profile_url} target="_blank" rel="noopener noreferrer">
-                      View BGG profile
-                    </Anchor>
-                    <StatusBadge>Unverified</StatusBadge>
-                  </Group>
-                </Card>
-              ) : null}
-              <Card icon={<Link2 size={20} aria-hidden />} title="About">
-                <ProposedContent label="Proposed profile fields">
-                  <Text size="sm" c="dimmed">
-                    A short bio and a small set of relevant external links could live here.
-                  </Text>
-                </ProposedContent>
-              </Card>
-
-              <Card icon={<UsersRound size={20} aria-hidden />} title="Groups">
-                {page.groupSummaries.length === 0 ? (
-                  <Text size="sm" c="dimmed">
-                    Not a member of any groups.
-                  </Text>
-                ) : (
-                  <Stack gap="xs" align="flex-start">
-                    {page.groupSummaries.map((group) => (
-                      <GroupLink key={group.id} slug={group.slug} name={group.name} />
-                    ))}
-                  </Stack>
-                )}
-              </Card>
-            </Stack>
-          </aside>
+          <ProfileSidebar page={page} isSelf={isSelf} />
         </div>
       </PageLayout.Content>
     </PageLayout>

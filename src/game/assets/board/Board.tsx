@@ -1,4 +1,4 @@
-import { derive, defaults, contourPath, edgePath, referenceSectors } from '@shared/boards/geometry';
+import { derivedBoard, defaults, contourPath, edgePath, referenceSectors } from '@shared/boards/geometry';
 import type { Board, Decal, Face } from '@shared/boards/geometry';
 import { useId } from 'react';
 
@@ -171,7 +171,7 @@ export function BoardArtwork({
 }
 
 export function BoardMap({ board }: { board: Board }) {
-  const { faces, unrecoveredSegments } = derive(board);
+  const { faces, unrecoveredSegments } = derivedBoard(board);
   if (unrecoveredSegments || !faces.length) {
     throw new Error('The saved board geometry could not be rendered');
   }

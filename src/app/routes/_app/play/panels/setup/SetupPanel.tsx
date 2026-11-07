@@ -33,7 +33,8 @@ type PredictionState =
     }>
   /** The viewer locks this prediction now. */
   | Readonly<{ kind: 'choosing'; options: readonly FactionOption[] }>
-  | Readonly<{ kind: 'waiting' }>;
+  /** Another faction locks it; its name, so the wait says whose it is even where the step's heading is hidden. */
+  | Readonly<{ kind: 'waiting'; faction: string | null }>;
 
 export type PredictionRow = Readonly<{
   stepId: string;
@@ -162,6 +163,14 @@ function lockedPredictionText(revealed: boolean, byCard: boolean) {
   return byCard ? 'Prediction locked. Place your prediction card on the table to reveal it.' : 'Prediction locked';
 }
 
+/* The step the table is on waits on its faction, named since that step's heading is hidden; a later step only has not been locked yet. */
+function waitingText(current: boolean, faction: string | null) {
+  if (!current) {
+    return 'Not locked yet.';
+  }
+  return `Waiting for ${faction ?? 'the faction player'} to lock a prediction.`;
+}
+
 function Prediction({
   row,
   hiddenHeading,
@@ -197,7 +206,7 @@ function Prediction({
             onLock={(choice) => onLockPrediction(row.stepId, choice)}
           />
         ) : (
-          <Text size="sm">Waiting for the faction player to lock a prediction.</Text>
+          <Text size="sm">{waitingText(row.current, state.faction)}</Text>
         )}
       </Stack>
     </Section>

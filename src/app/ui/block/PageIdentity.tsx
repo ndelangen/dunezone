@@ -1,6 +1,7 @@
 import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { createLink } from '@tanstack/react-router';
 import clsx from 'clsx';
+import { ChevronLeft } from 'lucide-react';
 import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 
@@ -15,10 +16,15 @@ import styles from './PageIdentity.module.css';
 import { PageTitle } from './PageTitle';
 
 const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, ComponentPropsWithoutRef<'a'>>(function BreadcrumbAnchor(
-  { className, ...props },
+  { className, children, ...props },
   ref
 ) {
-  return <Anchor ref={ref} size="sm" className={clsx(styles.breadcrumb, className)} {...props} />;
+  return (
+    <Anchor ref={ref} size="xs" underline="hover" className={clsx(styles.breadcrumb, className)} {...props}>
+      <ChevronLeft size={13} strokeWidth={2.5} aria-hidden />
+      {children}
+    </Anchor>
+  );
 });
 
 /** A person the band cites, in `ProfileLink`'s own fields. */
@@ -134,5 +140,9 @@ export function PageIdentity({ title, media, breadcrumb, maintainers, standing, 
   );
 }
 
-/** The way up one level, taking the same route props as the router's own `Link`, the `PageMessage.Back` idiom. */
+/**
+ * The way up one level, taking the same route props as the router's own `Link`, the `PageMessage.Back` idiom.
+ * It wears the inverse eyebrow treatment with a leading chevron, so it reads as the page's label and as the way back at once;
+ * detail pages carry no separate Back action.
+ */
 PageIdentity.Breadcrumb = createLink(BreadcrumbAnchor);

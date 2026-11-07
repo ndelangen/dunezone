@@ -375,10 +375,10 @@ export function PlayLobbyHeader({
         Take a seat, choose your faction, and fight for Arrakis.
       </Text>
       <Group gap="sm" justify="center">
-        <LabeledAction size="lg" icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
+        <LabeledAction icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
           Learn to play
         </LabeledAction>
-        <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
+        <CallToAction direction="start" renderRoot={createLink} disabledReason={createDisabledReason}>
           Create a game
         </CallToAction>
       </Group>
