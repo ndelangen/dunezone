@@ -13,17 +13,16 @@ export const DEPARTURE_MS = 700;
  * A link into a game's table that departs the way Create game does: the page fades away while the app's planet rises, then the table's waiting frame takes it over.
  * A click that opens a new tab, or any click with motion off, is left to the link as it is.
  */
-export function TableDepartureLink({
-  gameId,
-  onClick,
-  ...rootProps
-}: Readonly<{ gameId: string; onClick?: (event: MouseEvent<HTMLAnchorElement>) => void }>) {
+export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: string }>) {
   const navigate = useNavigate();
   const motion = useMotionAllowed();
   const [departing, setDeparting] = useState(false);
   useEffect(() => leaveDeparture, []);
+  /*
+   * The departure takes the click before the link does: once it is prevented, the link leaves the navigation to the departure's own timer.
+   * It listens in the capture phase so a link that owns its click handler (Storybook's router mock) still departs.
+   */
   const depart = (event: MouseEvent<HTMLAnchorElement>) => {
-    onClick?.(event);
     if (
       event.defaultPrevented ||
       !motion ||
@@ -42,7 +41,7 @@ export function TableDepartureLink({
   };
   return (
     <>
-      <Link {...rootProps} to="/play/$gameId" params={{ gameId }} onClick={depart} />
+      <Link {...rootProps} to="/play/$gameId" params={{ gameId }} onClickCapture={depart} />
       {departing ? <DepartureCover /> : null}
     </>
   );
