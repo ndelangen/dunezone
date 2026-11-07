@@ -16,8 +16,8 @@ export const Login = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(
       page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 })
-    ).resolves.toBeDisabled();
-    await expect(page.getByRole('button', { name: 'Continue with Discord' })).toBeDisabled();
+    ).resolves.toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Continue with Discord' })).toBeEnabled();
     await expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(2);
   },
 });

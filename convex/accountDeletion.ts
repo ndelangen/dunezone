@@ -13,7 +13,7 @@ import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
-import { requireAdminUserId, requireAuthUserId } from './lib/policy';
+import { requireAdminUserId, requireAuthUserId, requireRecentSignIn } from './lib/policy';
 import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
 
@@ -218,6 +218,7 @@ export const confirm = mutation({
       throw new Error('Not authenticated');
     }
     await requireUnlockedAccount(ctx, sourceUserId, false);
+    await requireRecentSignIn(ctx);
     await assertNotActiveReplacement(ctx, sourceUserId);
     const sourceProfile = await profileForUser(ctx, sourceUserId);
     if (!sourceProfile || sourceProfile.account_state !== 'active') {
