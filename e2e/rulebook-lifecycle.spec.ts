@@ -137,7 +137,9 @@ test('members create clean Rulebooks and owners manage the saved Ruleset list', 
   await expect(page.getByRole('region', { name: 'Member copy contents' })).toBeVisible();
   await expect(page.getByRole('article', { name: 'Rulebook page: Saved source title' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
-  await page.getByRole('link', { name: 'Back to ruleset', exact: true }).click();
+  /* The breadcrumb above the title is the way back to the ruleset; it comes before any other link to it on the page. */
+  await page.locator(`a[href="${rulesetPath}"]`).first().click();
+  await expect(page).toHaveURL(new RegExp(`${rulesetPath}/?$`));
   await page.getByRole('button', { name: 'Actions for Member copy', exact: true }).click();
   await page.getByRole('menuitem', { name: 'Edit', exact: true }).click();
   const moreActions = page.getByRole('button', { name: 'More actions', exact: true });
