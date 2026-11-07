@@ -29,9 +29,10 @@
   overflow: hidden;
 }
 
+/* Sized and shaped like `SearchRefine`, the search every catalogue toolbar uses, so the two read as one control. */
 .faqFilterWrapper {
-  border-radius: var(--mantine-radius-md);
-  box-shadow: var(--mantine-shadow-sm);
+  border-radius: var(--mantine-radius-sm);
+  box-shadow: var(--mantine-shadow-xs);
 }
 
 .faqTagSelect,
@@ -48,7 +49,7 @@
      mismatched patch over it in either scheme. */
   background: transparent;
   border-left: 1px solid var(--mantine-color-default-border);
-  border-radius: 0 var(--mantine-radius-md) var(--mantine-radius-md) 0;
+  border-radius: 0 var(--mantine-radius-sm) var(--mantine-radius-sm) 0;
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;
 }

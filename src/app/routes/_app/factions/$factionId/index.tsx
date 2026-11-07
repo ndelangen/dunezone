@@ -8,21 +8,24 @@ import { FormError } from '@ui/block/FormError';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
 import { factionAssetPublishingCopy } from '@ui/content/assetPublishingStatus';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { complexityOutOfTen, complexityTier, effectiveComplexity } from '@ui/content/complexity';
 import { COMPLEXITY_TIER_PRESENTATION, ComplexityGlyph } from '@ui/content/ComplexityGlyph';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
+import { RulesetLink } from '@ui/content/RulesetLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import type { StatusBadgeTone } from '@ui/content/StatusBadge';
 import { StatusMark } from '@ui/content/StatusMark';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Links } from '@ui/list/Links';
+import { EntityLinkList } from '@ui/list/EntityLinkList';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
+import { Download, Eye, FileText, Pencil, UserPlus } from 'lucide-react';
 import { Fragment, useId } from 'react';
 import type { ReactNode } from 'react';
 
@@ -351,9 +354,7 @@ function FactionAdvantages({ advantages }: { advantages: FactionData['rules']['a
           ))}
         </SimpleGrid>
       ) : (
-        <Surface padding="lg">
-          <Text c="dimmed">No faction advantages have been added yet.</Text>
-        </Surface>
+        <EmptyNote>No faction advantages have been added yet.</EmptyNote>
       )}
     </Section>
   );
@@ -480,7 +481,7 @@ function FactionDetailContent({
               <FactionToken emblem={data.emblem} background={data.background} />
             </div>
           }
-          breadcrumb={<PageIdentity.Breadcrumb to="/factions">Factions</PageIdentity.Breadcrumb>}
+          breadcrumb={<Breadcrumb to="/factions">Factions</Breadcrumb>}
           maintainers={{
             owner: owner ? { slug: owner.slug, name: owner.username, image: profileAvatarUrl(owner) } : null,
             group: assignedGroup ? { slug: assignedGroup.slug, name: assignedGroup.name } : null,
@@ -492,14 +493,6 @@ function FactionDetailContent({
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to factions"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/factions" />}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
             {canEdit ? (
               <IconAction
                 label="Edit faction"
@@ -569,11 +562,8 @@ function FactionDetailContent({
               {membershipWorkflow.request.error?.message || 'Try again in a moment.'}
             </FormError>
           ) : null}
-          <Flex
-            direction={{ base: 'column-reverse', md: 'row' }}
-            gap="xl"
-            align={{ base: 'stretch', md: 'flex-start' }}
-          >
+          {/* On a phone the faction itself (leaders, troops, advantages) comes first and the details follow it (Norbert, 2026-11-07). */}
+          <Flex direction={{ base: 'column', md: 'row' }} gap="xl" align={{ base: 'stretch', md: 'flex-start' }}>
             <Box miw={0} style={{ flex: '1 1 auto' }}>
               <Stack gap="xl">
                 <Section icon={<TopicIcon topic="leaders" size={20} />} title="Leaders">
@@ -641,9 +631,7 @@ function FactionDetailContent({
                           ))}
                         </Group>
                       ) : (
-                        <Text size="sm" c="dimmed">
-                          None specified.
-                        </Text>
+                        <EmptyNote>None specified.</EmptyNote>
                       )}
                     </Section>
                     <Divider />
@@ -700,17 +688,13 @@ function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
 
       <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
         {rulesets.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            Not in a ruleset yet.
-          </Text>
+          <EmptyNote>Not in a ruleset yet.</EmptyNote>
         ) : (
-          <Links>
+          <EntityLinkList>
             {rulesets.map((ruleset) => (
-              <Links.Item key={ruleset.id} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: ruleset.slug }}>
-                {ruleset.name}
-              </Links.Item>
+              <RulesetLink key={ruleset.id} slug={ruleset.slug} name={ruleset.name} />
             ))}
-          </Links>
+          </EntityLinkList>
         )}
       </Card>
     </>

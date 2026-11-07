@@ -239,21 +239,31 @@ describe('ruleset cover rehosting', () => {
     );
   });
 
-  test('a legacy update clears the stored cover and clearing wipes both channels', async () => {
+  test('a cover address from elsewhere is refused and clearing wipes both channels', async () => {
     const { t, owner, ruleset } = await coverFixture();
     await t.run(async (ctx) => {
       await ctx.db.patch(ruleset._id, { cover: STORED_COVER, image_cover: DELIVERY_URL });
     });
 
-    await owner.mutation(api.rulesets.update, {
-      id: ruleset._id,
-      name: ruleset.name,
-      about: ABOUT,
-      image_cover: 'https://elsewhere.example/other.jpg',
-    });
-    const afterLegacyWrite = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
-    expect(afterLegacyWrite?.cover).toBeNull();
-    expect(afterLegacyWrite?.image_cover).toBe('https://elsewhere.example/other.jpg');
+    /* A cover only enters through the rehost, so readers never contact a host the author chose. */
+    await expect(
+      owner.mutation(api.rulesets.update, {
+        id: ruleset._id,
+        name: ruleset.name,
+        about: ABOUT,
+        image_cover: 'https://elsewhere.example/other.jpg',
+      })
+    ).rejects.toThrow('cover picker');
+    await expect(
+      owner.mutation(api.rulesets.create, {
+        name: 'ElsewhereCover',
+        about: ABOUT,
+        image_cover: 'https://elsewhere.example/other.jpg',
+      })
+    ).rejects.toThrow('cover picker');
+    const afterRefusal = await t.run(async (ctx) => await ctx.db.get(ruleset._id));
+    expect(afterRefusal?.cover).toEqual(STORED_COVER);
+    expect(afterRefusal?.image_cover).toBe(DELIVERY_URL);
 
     await owner.mutation(api.rulesets.update, {
       id: ruleset._id,

@@ -375,10 +375,10 @@ export function PlayLobbyHeader({
         Take a seat, choose your faction, and fight for Arrakis.
       </Text>
       <Group gap="sm" justify="center">
-        <LabeledAction size="lg" icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
+        <LabeledAction icon={<GraduationCap size={17} />} renderRoot={tutorialLink}>
           Learn to play
         </LabeledAction>
-        <CallToAction direction="start" size="lg" renderRoot={createLink} disabledReason={createDisabledReason}>
+        <CallToAction direction="start" renderRoot={createLink} disabledReason={createDisabledReason}>
           Create a game
         </CallToAction>
       </Group>
@@ -442,7 +442,8 @@ function LobbyContent({
   gameLink: PlayLobbyLinks['gameLink'];
 }>) {
   if (!ready) {
-    return <Surface padding="xl">{waiting}</Surface>;
+    /* A line while there is nothing to list, never a box: an empty pane reads like a field waiting for input (Norbert, 2026-11-07). */
+    return waiting;
   }
   if (ready.ongoing.length + ready.past.length === 0) {
     return <EmptyView title="No games yet">Create a game to set the first table.</EmptyView>;

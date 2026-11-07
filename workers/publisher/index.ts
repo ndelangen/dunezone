@@ -18,6 +18,7 @@ import { handleMediaPackRequest } from './media-pack';
 import { handleMediaReleaseRequest } from './media-release';
 import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
+import { handlePublishedThumbnailRequest } from './published-thumbnail';
 import { RENDERER_IDENTITY } from './renderer-identity';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
@@ -147,14 +148,20 @@ const publisherWorker = {
     if (socialImage) {
       return socialImage;
     }
-    const publicAsset = await handlePublicAssetRequest(request, env, ctx, {
-      publicBaseUrl: env.PUBLIC_BASE_URL,
-      rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      illustrationAssets: mediaFetcher(env, { ctx }),
-      rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-    });
+    const publicAssetRequest = (assetRequest: Request) =>
+      handlePublicAssetRequest(assetRequest, env, ctx, {
+        publicBaseUrl: env.PUBLIC_BASE_URL,
+        rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+        rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+        illustrationAssets: mediaFetcher(env, { ctx }),
+        rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+        componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      });
+    const thumbnail = await handlePublishedThumbnailRequest(request, ctx, publicAssetRequest, { images: env.IMAGES });
+    if (thumbnail) {
+      return thumbnail;
+    }
+    const publicAsset = await publicAssetRequest(request);
     if (publicAsset) {
       return publicAsset;
     }

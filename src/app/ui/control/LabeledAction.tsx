@@ -4,11 +4,13 @@ import clsx from 'clsx';
 import { useId } from 'react';
 import type { MouseEventHandler, ReactNode, Ref } from 'react';
 
+import { useInsidePageHeader } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
 import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 import styles from './LabeledAction.module.css';
 
+/** `size` is ignored inside `PageLayout.Header`, where every worded action is `md` beside the page's `CallToAction` (Norbert, 2026-11-07). */
 interface LabeledActionCommonProps extends Pick<ButtonProps, 'size' | 'justify'> {
   /** What the action does, as a short verb phrase on the button: "Reset filters". */
   children: string;
@@ -96,6 +98,7 @@ export function LabeledAction({
   ...buttonProps
 }: LabeledActionProps) {
   const reasonId = useId();
+  const insideHeader = useInsidePageHeader();
   const renderRoot: RenderRoot | undefined =
     href == null
       ? routerRoot
@@ -120,6 +123,7 @@ export function LabeledAction({
       <Tooltip label={disabledReason} disabled={!disabled}>
         <Button
           {...buttonProps}
+          size={insideHeader ? 'md' : buttonProps.size}
           color={color}
           variant={variant}
           vars={vars}

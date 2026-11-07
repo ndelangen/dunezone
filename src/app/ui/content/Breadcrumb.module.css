@@ -1,0 +1,32 @@
+/*
+ * The `Eyebrow`'s inverse treatment, as a link.
+ * The width fits the words: in a stretched column the anchor would otherwise take the whole row,
+ * 628px of hit area for one word on the ruleset band, all of it looking like empty band (#853).
+ * The chevron says "link", so the line only comes on hover.
+ */
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--color-inverse);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+  text-decoration: none;
+}
+
+.breadcrumb:hover {
+  text-decoration: underline;
+}
+
+/* The chevron's glyph has side bearing; pulling it in lines its ink up with the title below. */
+.breadcrumb svg {
+  flex: none;
+  margin-inline-start: -0.2rem;
+  filter: drop-shadow(0 2px 4px rgb(from var(--color-shadow) r g b / 85%));
+}

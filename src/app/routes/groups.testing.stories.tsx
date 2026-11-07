@@ -1,8 +1,9 @@
 import { testingPreview } from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db, ref } from '@db/storybook';
 
+import { invitedGuest, strangerOwnsTheGroups, viewerStandsAs } from './groups.stories.fixture';
 import { expectFieldValue } from './pagePlay';
 import { pageStoryMeta } from './storybookConfig';
 
@@ -35,25 +36,8 @@ export const CreateSignedOut = meta.story({
 export const DetailNotAMember = meta.story({
   args: { path: '/groups/arrakeen-rules-council' },
   parameters: {
-    database: db((baseline) => {
-      /* Someone else owns the group, so the viewer is a stranger to it rather than its owner. */
-      baseline.users.push({ $key: 'other-owner', name: 'Reverend Mother' });
-      baseline.profiles.push({
-        $key: 'other-owner-profile',
-        user_id: ref('other-owner'),
-        username: 'reverend-mother',
-        avatar_url: null,
-        account_state: 'active',
-        slug: 'reverend-mother',
-        created_at: '2026-01-01T12:00:00.000Z',
-        updated_at: '2026-01-01T12:00:00.000Z',
-      });
-      for (const group of baseline.groups) {
-        group.created_by = ref('other-owner');
-      }
-      /* And holds no membership of it, which is what puts the ladder on its `none` rung. */
-      baseline.group_members = [];
-    }),
+    /* Someone else owns the group, and the viewer holds no membership of it, which is what puts the ladder on its `none` rung. */
+    database: db(strangerOwnsTheGroups),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -62,6 +46,119 @@ export const DetailNotAMember = meta.story({
     await expect(page.queryByText('Not a member')).toBeNull();
     await expect(page.queryByText('Owner')).toBeNull();
     await expect(page.findByRole('button', { name: 'Request membership' })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Leave group' })).toBeNull();
+  },
+});
+
+/**
+ * The group as the person it invited sees it: the band says so, the notice carries both answers, and the toolbar no longer offers to ask.
+ * Accepting is the simplest gesture the notice owns, and the band's badge is where the answer shows.
+ */
+export const DetailInvitedAccepts = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      strangerOwnsTheGroups(baseline);
+      viewerStandsAs(baseline, 'invited');
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('You are invited to this group', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByText('Invited', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Request membership' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Decline invitation' })).toBeVisible();
+    await userEvent.click(page.getByRole('button', { name: 'Accept invitation' }));
+    await expect(page.findByText('Active member', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByText('You are invited to this group')).toBeNull();
+    await expect(page.findByRole('button', { name: 'Leave group' }, { timeout: 30_000 })).resolves.toBeVisible();
+  },
+});
+
+/** A requester may take their ask back; withdrawing returns the toolbar to the stranger's offer to ask. */
+export const DetailRequesterWithdraws = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      strangerOwnsTheGroups(baseline);
+      viewerStandsAs(baseline, 'pending');
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Pending approval', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await userEvent.click(await page.findByRole('button', { name: 'Withdraw request' }, { timeout: 30_000 }));
+    await expect(page.findByRole('button', { name: 'Request membership' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByText('Pending approval')).toBeNull();
+  },
+});
+
+/**
+ * A member who is not the owner may leave, and only they see the hold for it: the owner's toolbar carries the delete instead.
+ * The hold itself is `HoldAction`'s to prove (ADR-0005);
+ * this story proves the member gets one and the stranger's offer is gone.
+ */
+export const DetailMemberMayLeave = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      strangerOwnsTheGroups(baseline);
+      viewerStandsAs(baseline, 'active');
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Active member', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('button', { name: 'Leave group' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Delete group' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Request membership' })).toBeNull();
+    await expect(page.getByRole('button', { name: 'Invite a member' })).toBeVisible();
+  },
+});
+
+/**
+ * The owner's view of an invitation they sent: the invited person is named in the invitations panel, not on the roster, and the invitation can be taken back.
+ */
+export const DetailOwnerWithdrawsAnInvitation = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: { database: db(invitedGuest) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const title = await page.findByText('Invitations sent (1)', {}, { timeout: 30_000 });
+    const panel = within(title.closest('[role="note"]') ?? canvasElement);
+    await expect(panel.getByRole('link', { name: 'liet-kynes' })).toHaveAttribute('href', '/profiles/liet-kynes');
+    const roster = within(page.getByRole('heading', { name: 'Members' }).closest('section') ?? canvasElement);
+    await expect(roster.queryByRole('link', { name: 'liet-kynes' })).toBeNull();
+    await userEvent.click(panel.getByRole('button', { name: 'Withdraw invitation' }));
+    await waitFor(() => expect(page.queryByText('Invitations sent (1)')).toBeNull(), { timeout: 30_000 });
+  },
+});
+
+/** Picking someone in the invite pane sends them an invitation, which the panel then lists; nobody joins the roster. */
+export const DetailInviteSendsAnInvitation = meta.story({
+  args: { path: '/groups/arrakeen-rules-council' },
+  parameters: {
+    database: db((baseline) => {
+      baseline.users.push({ $key: 'guest', name: 'Liet Kynes' });
+      baseline.profiles.push({
+        $key: 'guest-profile',
+        user_id: ref('guest'),
+        username: 'liet-kynes',
+        avatar_url: null,
+        account_state: 'active',
+        slug: 'liet-kynes',
+        created_at: '2026-01-01T12:00:00.000Z',
+        updated_at: '2026-01-01T12:00:00.000Z',
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Invite a member' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('option', { name: /liet-kynes/ }, { timeout: 30_000 }));
+    await expect(page.findByText('Invitations sent (1)', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    const roster = within(page.getByRole('heading', { name: 'Members' }).closest('section') ?? canvasElement);
+    await expect(roster.queryByRole('link', { name: 'liet-kynes' })).toBeNull();
   },
 });
 /** A group editor at rest is mounted once its Name field reads what the page loaded. */

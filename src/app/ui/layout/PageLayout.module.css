@@ -24,8 +24,8 @@
 }
 
 /* With the ink no longer a link colour, the weight and a permanent underline are what still say "link".
-   The band's only Mantine anchors are its way back and its breadcrumb. */
-.headerContent :global(.mantine-Anchor-root) {
+   It is for a Mantine anchor in a sentence on the band; the band's ways out are boxed actions and the breadcrumb is its own plain link, so neither meets it. */
+.headerContent :where(:global(.mantine-Anchor-root)) {
   font-weight: 700;
   text-decoration: underline;
 }
@@ -54,6 +54,11 @@
   min-width: 0;
 }
 
+/* The Toolbar draws nothing when no action applies to this reader (a visitor on a profile, say), so its slot steps aside too. */
+.toolbar:empty {
+  display: none;
+}
+
 .pageContent[data-page-layout-content-width="viewport"] {
   width: calc(100vw - 2 * var(--app-shell-inline-gutter, 20px));
   margin-inline: calc(50% - 50vw + var(--app-shell-inline-gutter, 20px));
@@ -71,6 +76,14 @@
     aspect-ratio: auto;
     height: auto;
     min-height: calc(220px - var(--app-navigation-height, 51px));
+    margin-top: var(--app-navigation-height, 51px);
+  }
+
+  /* The default and hero bands start below the strip too and grow with their content from the band's 319px floor, so nothing they carry reaches up into the navigation. */
+  .layout[data-page-layout-header-size="default"] .headerContent,
+  .layout[data-page-layout-header-size="hero"] .headerContent {
+    height: auto;
+    min-height: calc(319px - var(--app-navigation-height, 51px));
     margin-top: var(--app-navigation-height, 51px);
   }
 }

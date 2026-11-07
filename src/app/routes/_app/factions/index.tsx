@@ -21,14 +21,13 @@ import { CallToAction } from '@ui/control/CallToAction';
 import { catalogueCountLabel } from '@ui/control/CataloguePager';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowDownAZ, ChevronsDown, Filter, FilterX, Plus, RotateCcw, UsersRound } from 'lucide-react';
+import { ArrowDownAZ, ChevronsDown, Filter, FilterX, RotateCcw, UsersRound } from 'lucide-react';
 import { useId, useMemo, useRef, useState } from 'react';
 import type { Ref } from 'react';
 
@@ -602,16 +601,6 @@ function CatalogueToolbar({
           {sortSelect(undefined, true)}
         </SearchRefine>
       </Toolbar.Center>
-      <Toolbar.Right label="Faction actions">
-        <IconAction
-          label="Create new faction"
-          emphasis="strong"
-          intent="positive"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/factions/create" />}
-          icon={<Plus size={17} aria-hidden />}
-        />
-      </Toolbar.Right>
     </Toolbar>
   );
 }

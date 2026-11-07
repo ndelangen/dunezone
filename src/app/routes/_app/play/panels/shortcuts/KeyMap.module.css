@@ -124,6 +124,11 @@
     font-size: 1.05rem;
   }
 
+  /* A cap with a word on it (Esc, Tab, Ctrl) shrinks to stay inside its narrow key. */
+  .letter[data-word] {
+    font-size: 0.7rem;
+  }
+
   .caption {
     display: none;
   }

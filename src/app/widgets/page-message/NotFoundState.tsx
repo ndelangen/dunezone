@@ -9,11 +9,16 @@ export interface NotFoundStateProps {
   renamed?: boolean;
 }
 
+/** The one sentence for a thing that is not there, which `RouteNotFound` says in the band. */
+export function notFoundSentence(noun: string, renamed = false): string {
+  return `This ${noun} does not exist or was deleted.${renamed ? ' Its address may have changed after a rename.' : ''}`;
+}
+
 /** The one wording for a thing that is not there, for a page that draws its own frame (the asset editors). */
 export function NotFoundState({ noun, renamed = false }: NotFoundStateProps) {
   return (
     <PageState kind="absent" title={`${capitalised(noun)} not found`}>
-      {`This ${noun} does not exist or was deleted.${renamed ? ' Its address may have changed after a rename.' : ''}`}
+      {notFoundSentence(noun, renamed)}
     </PageState>
   );
 }

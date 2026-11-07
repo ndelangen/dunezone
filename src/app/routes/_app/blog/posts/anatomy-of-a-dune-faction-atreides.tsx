@@ -34,7 +34,7 @@ export default function Post() {
         </Paragraph>
         <Paragraph>
           Then there are the rules: ten troops in Arrakeen and ten in reserve at the start, two free revivals, ten
-          spice, six advantages, five of them with a Karama effect, the alliance ability and the fate card.
+          spice, six advantages, five of them with a Karama effect, the alliance advantage and the fate card.
         </Paragraph>
       </Section>
       <Section title="Everything is drawn from it">

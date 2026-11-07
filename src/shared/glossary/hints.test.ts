@@ -157,6 +157,17 @@ describe('fixTermWording', () => {
     expect(fixTermWording(text)).toBe(text);
   });
 
+  test('leaves the site address, artwork credits and value for money alone', () => {
+    const text = 'Play on dune.zone. Image credits are in the gallery, and it is great value for money.';
+    expect(fixTermWording(text)).toBe(text);
+    expect(findTermHints('Play on dune.zone today.')).toEqual([]);
+  });
+
+  test('does not read rounds of bidding as turns', () => {
+    expect(findTermHints('Bidding rounds go fast. Three rounds of bidding. Sit rounds out.')).toEqual([]);
+    expect(findTermHints('The game lasts ten rounds.').map((hint) => hint.term.id)).toEqual(['turn']);
+  });
+
   test('capitalises a fix at the start of a sentence and keeps lower case elsewhere', () => {
     expect(fixTermWording('Combat, then combat.')).toBe('Battle, then battle.');
   });

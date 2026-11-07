@@ -225,10 +225,16 @@ export default defineSchema({
     .index('by_slug', ['slug'])
     .index('by_created_by', ['created_by'])
     .index('by_created_by_deleted', ['created_by', 'is_deleted']),
+  /**
+   * One row per person and Group.
+   * `pending` is the person's ask, `invited` is the Group's;
+   * either becomes `active` once the other side agrees.
+   * An invited row grants nothing and reaches no public read until the person accepts it.
+   */
   group_members: defineTable({
     group_id: v.id('groups'),
     user_id: v.id('users'),
-    status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed')),
+    status: v.union(v.literal('pending'), v.literal('active'), v.literal('removed'), v.literal('invited')),
     requested_at: v.string(),
     approved_at: v.union(v.string(), v.null()),
     approved_by: v.union(v.id('users'), v.null()),

@@ -270,7 +270,9 @@ export const EditionHistoryDeleted = meta.story({
   args: { path: '/rulesets/classicrules/rulebooks/book-2/editions' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByText('Rulebook not found', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByText('This Rulebook does not exist or was deleted.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
     await expect(page.queryByRole('list', { name: 'Editions' })).not.toBeInTheDocument();
   },
 });

@@ -5,7 +5,7 @@ import type { PageHeaderSize } from '@ui/layout/PageLayout';
 import type { ReactNode } from 'react';
 
 import { isStaleClientData } from '@app/db/core/clientBoundary';
-import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
+import { notFoundSentence } from '@app/widgets/page-message/NotFoundState';
 import type { NotFoundStateProps } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
@@ -29,7 +29,7 @@ export interface RouteLoadErrorProps extends RouteStateFrame {
 
 /*
  * Route glue rather than a widget: these read the loader's error (whether the client is stale) and the tab title, which a widget may not.
- * The words for a missing thing are the widget's `NotFoundState`, which a page that draws its own frame uses directly.
+ * The words for a missing thing are the widget's `notFoundSentence`; `NotFoundState` wears them for a page that draws its own frame.
  */
 
 /**
@@ -60,11 +60,8 @@ export interface RouteNotFoundProps extends RouteStateFrame, NotFoundStateProps 
  */
 export function RouteNotFound({ title, size, back, noun, renamed }: RouteNotFoundProps) {
   useLivePageTitle(`${capitalised(noun)} not found`);
-  return (
-    <PageMessage size={size} title={title} back={back}>
-      <NotFoundState noun={noun} renamed={renamed} />
-    </PageMessage>
-  );
+  /* One message, said once in the band, as the site's own 404 says it: a pane repeating "not found" under the name told the reader nothing new. */
+  return <PageMessage size={size} title={title} lede={notFoundSentence(noun, renamed)} back={back} />;
 }
 
 export interface DetailErrorOptions {

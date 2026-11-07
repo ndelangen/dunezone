@@ -40,7 +40,7 @@ export const ServerUnreachable = meta.story({
     await expect(
       page.findByText("Can't reach the server. Retrying...", {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'Go back home' })).toHaveAttribute('href', '/');
+    await expect(page.getByRole('link', { name: 'Go home' })).toHaveAttribute('href', '/');
     await expect(page.queryByText('Loading games.')).toBeNull();
   },
 });

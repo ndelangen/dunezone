@@ -2,14 +2,14 @@ import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, BookOpen, History } from 'lucide-react';
+import { BookOpen, History } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
@@ -80,9 +80,9 @@ function RulebookEditionHistoryPage() {
         <PageIdentity
           title={data.rulebook.name}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
           stats={[
             {
@@ -94,22 +94,6 @@ function RulebookEditionHistoryPage() {
           ]}
         />
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to ruleset"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(props) => (
-                <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
-              )}
-            />
-          </Toolbar.Left>
-        </Toolbar>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="md" role="list" aria-label="Editions">
           {data.editions.map((edition) => {
