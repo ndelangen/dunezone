@@ -36,19 +36,30 @@ function proseFields(data: Record<string, any>): Field[] {
 /* A special rule played with the faction's fate card belongs under the Fate heading (Norbert, 2026-11-07). */
 const PLAYS_FATE_CARD = /\bplay your fate\b/i;
 
-function repairData(data: Record<string, any>) {
-  const next = structuredClone(data);
+function fixProse(data: Record<string, any>): Change[] {
   const changes: Change[] = [];
-  for (const [holder, key, path] of proseFields(next)) {
+  for (const [holder, key, path] of proseFields(data)) {
     const before = holder?.[key];
-    const after = typeof before === 'string' ? fixTermWording(before) : before;
+    if (typeof before !== 'string') {
+      continue;
+    }
+    const after = fixTermWording(before);
     if (after !== before) {
       holder![key] = after;
       changes.push({ path, before, after });
     }
   }
+  return changes;
+}
+
+const playsFateCard = (fate: Record<string, any> | undefined) =>
+  fate?.label === undefined && PLAYS_FATE_CARD.test(String(fate?.text ?? ''));
+
+function repairData(data: Record<string, any>) {
+  const next = structuredClone(data);
+  const changes = fixProse(next);
   const fate = next.rules?.fate;
-  if (fate && fate.label === undefined && typeof fate.text === 'string' && PLAYS_FATE_CARD.test(fate.text)) {
+  if (fate && playsFateCard(fate)) {
     fate.label = 'fate';
     changes.push({ path: 'rules.fate.label', before: '', after: 'fate' });
   }
