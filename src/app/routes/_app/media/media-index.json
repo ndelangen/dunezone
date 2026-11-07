@@ -11939,6 +11939,13 @@
     "credit": "blog-picture",
     "sourceHash": "d26fc679a53acb3dffb7bf29d48e68758c3831935da0e635c2a78c45f4de242a"
   },
+  "/web/blog/learn-to-play-dune-online/chapter-complete.jpg": {
+    "description": "The end of the Welcome chapter of the dune.zone tutorial: a Chapter complete card listing what the player learned.",
+    "tags": ["dune.zone", "tutorial", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "0a917925f9b072ce66ee6ce473ac76293cf6101052034b05011e682a2d661900"
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
     "tags": ["factions", "colours", "blog"],

@@ -1,6 +1,7 @@
 import { Section } from '@ui/block/Section';
 
 import { Figure, Lead, Paragraph, PostLink, WideFigure } from '../postContent';
+import { ConfettiButton } from './tutorial/ConfettiButton';
 import { LocalTable } from './tutorial/LocalTable';
 
 export default function Post() {
@@ -26,6 +27,7 @@ export default function Post() {
       <BrowserSection />
       <PlayersSection />
       <AloudSection />
+      <ConfettiSection />
       <CreatingSection />
       <TestedSection />
       <ClosingSection />
@@ -59,16 +61,23 @@ function ChaptersSection() {
 
 function DoingSection() {
   return (
-    <Section title="Learning by doing">
+    <Section title="Stop, read, act">
       <Paragraph>
-        There is no Next button. Each chapter is a list of small tasks, and a task is done when you&rsquo;ve actually
-        done it on the table. Drag a troop from your reserves onto the board, and the chapter sees that troop land and
-        moves on. Hold a stack before you drag it, and it checks that the whole stack went with you.
+        I wanted the tutorial to actually teach. Reading about a key you&rsquo;ve never pressed doesn&rsquo;t stick. So
+        I went looking for every place where the tutorial could make you stop, read and act.
       </Paragraph>
       <Paragraph>
-        An arrow runs from the task to the thing you need, whether that&rsquo;s a troop on the board, a button or a
-        window. When the target is out of view, the arrow points the way. Done tasks stay in the list, so you can open
-        one again and reread it. Reset starts the chapter over on a fresh table.
+        That&rsquo;s why there is no Next button. Each chapter is a list of small tasks, and a task is done when
+        you&rsquo;ve actually done it on the table. Drag a troop from your reserves onto the board, and the chapter sees
+        that troop land and moves on. Hold a stack before you drag it, and it checks that the whole stack went with you.
+        When a task is only there to explain something, it waits for you to press Enter, so it never runs ahead of your
+        reading. And every action gets a task of its own: opening the game menu is one step, copying the game link is
+        the next.
+      </Paragraph>
+      <Paragraph>
+        The first version showed the task in a thin band across the top of the screen. Testers looked at the board and
+        the arrow, and missed the text. So the tasks moved to a list down the left, in large type, where you read them
+        before your eyes go to the board.
       </Paragraph>
       <Figure
         imageKey="/web/blog/learn-to-play-dune-online/move-a-troop.jpg"
@@ -77,8 +86,9 @@ function DoingSection() {
         caption="Moving pieces starts with one troop. The arrow points at your reserves."
       />
       <Paragraph>
-        Every chapter ends with a short list of what you just learned, with the keys you used, so you can come back to
-        it later.
+        An arrow runs from the task to the thing you need, whether that&rsquo;s a troop on the board, a button or a
+        window. When the target is out of view, the arrow points the way. Done tasks stay in the list, so you can open
+        one again and reread it. Reset starts the chapter over on a fresh table.
       </Paragraph>
     </Section>
   );
@@ -120,8 +130,9 @@ function PlayersSection() {
     <Section title="You&rsquo;re not alone at the table">
       <Paragraph>
         The other seats are taken by practice players. They borrow the names and pictures of real public profiles on
-        dune.zone, and they play their part. In the Bidding chapter they raise and pass. Their moves go through the same
-        table code as yours.
+        dune.zone, and they play their part. In the Bidding chapter they raise and pass, and in a playtest that turned
+        out to matter: a player who didn&rsquo;t follow the steps exactly got the round stuck. Now the practice players
+        keep the bidding going whatever you do. Their moves go through the same table code as yours.
       </Paragraph>
       <Paragraph>
         They answer you too. People who tried an early version typed messages into the chat and waited, and the message
@@ -147,6 +158,30 @@ function AloudSection() {
         Keys are read by name, so you hear &ldquo;the H key&rdquo; or &ldquo;left arrow&rdquo; instead of a symbol.
         Press Z again and it&rsquo;s quiet.
       </Paragraph>
+    </Section>
+  );
+}
+
+function ConfettiSection() {
+  return (
+    <Section title="A little confetti">
+      <Paragraph>
+        Finishing a chapter should feel good. When you complete the last task, the table goes quiet and confetti flies
+        in from both corners of the screen. A card lists what you just learned, one line at a time, each line hopping in
+        like a token dropped on the board. The button to the next chapter only drops in after the last line.
+      </Paragraph>
+      <Paragraph>
+        The confetti is there to reward you, and to spark a bit of joy. If learning is fun, you keep going to the next
+        chapter.
+      </Paragraph>
+      <Figure
+        imageKey="/web/blog/learn-to-play-dune-online/chapter-complete.jpg"
+        alt="The end of the Welcome chapter: a Chapter complete card listing six things the player learned, above a button to the next chapter"
+        aspect={1280 / 2048}
+        caption="The end of the Welcome chapter, with everything you learned in it."
+      />
+      <Paragraph>You don&rsquo;t have to finish a chapter to see it. Go on:</Paragraph>
+      <ConfettiButton />
     </Section>
   );
 }
