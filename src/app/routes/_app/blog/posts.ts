@@ -37,7 +37,7 @@ export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
     date: '2026-11-07',
     author: 'Central419',
     summary:
-      'The dune.zone tutorial teaches the game table by letting you use it: 21 short chapters, practice players who answer, and a real table running in your browser.',
+      "The dune.zone tutorial won't let you click Next, on purpose. It's 21 short chapters on the real game table, running in your browser, with practice players who talk back and confetti at the end.",
     cover: {
       key: '/web/blog/learn-to-play-dune-online/meet-arrakis.jpg',
       alt: 'The first chapter of the dune.zone tutorial: a list of tasks on the left, and an arrow pointing at the centre of the Arrakis board',

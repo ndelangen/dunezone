@@ -10,15 +10,18 @@ export default function Post() {
   return (
     <>
       <Lead>
-        A game table that can do a lot is also a table with a lot to learn. Which key lifts a whole stack? Where did my
-        hand go? How do I put a leader in my battle plan? The dune.zone game table now has a tutorial that answers those
-        questions by letting you try them.
+        The tutorial on dune.zone is a little bossy. There&rsquo;s no Next button to click through. It won&rsquo;t move
+        on until you&rsquo;ve actually picked up the troop, dealt the cards or sent the message.
       </Lead>
       <Paragraph>
-        It lives at <PostLink to="/tutorial">dune.zone/tutorial</PostLink>, it&rsquo;s free, and you don&rsquo;t need an
-        account. Here is what&rsquo;s in it, and how it works.
+        That&rsquo;s on purpose. I wanted a tutorial that really teaches, so I went looking for every place where it
+        could make you stop, read and act. And at the end of every chapter there&rsquo;s confetti. That&rsquo;s on
+        purpose too.
       </Paragraph>
-      <WideFigure caption="The Welcome chapter, live. Click into it and press Enter to start.">
+      <Paragraph>
+        You don&rsquo;t have to take my word for it. This is the first chapter, running right here in the post:
+      </Paragraph>
+      <WideFigure caption="Chapter 1, Welcome. Click into it and press Enter.">
         <TutorialEmbed src="/tutorial/welcome" title="The Welcome chapter of the tutorial" />
       </WideFigure>
       <ChaptersSection />
@@ -36,19 +39,17 @@ export default function Post() {
 
 function ChaptersSection() {
   return (
-    <Section title="Twenty-one short chapters">
+    <Section title="Twenty-one bite-sized chapters">
       <Paragraph>
-        The tutorial has 21 chapters, and each one takes between two and six minutes. They follow the path a new player
-        takes. First you get into a game: create one or join a friend&rsquo;s, take a seat and draft a faction. Then you
-        learn the table itself: looking around, moving pieces, windows, your hand, decks and what goes where. After that
-        come the parts of a game, from setup and bidding to battle and declaring a winner. The last few chapters cover
-        the extras, like the private side-table, bringing your own pieces and Mentat recall.
+        There are 21 chapters, and none of them takes more than six minutes. Together they follow a new player from
+        finding a game to declaring a winner, with moving pieces, dealing cards, bidding and battles along the way. Play
+        them in order, or jump to the one that&rsquo;s bugging you. Battle plans a mystery? That&rsquo;s chapter 16.
       </Paragraph>
       <Paragraph>
-        You can follow them in order, or jump straight to the one you need. Each chapter teaches how the table works,
-        never the rules of Dune. The table is a sandbox, so the rules are whatever your group plays with.
+        What the tutorial never teaches is the rules of Dune. The table is a sandbox, and the rules are whatever your
+        group plays with. The tutorial only teaches the table.
       </Paragraph>
-      <WideFigure caption="All 21 chapters, as the Learn to play page draws them. Scroll sideways through them; every tile opens its chapter.">
+      <WideFigure caption="All 21 of them. Scroll sideways, and click any tile to play that chapter.">
         <ChapterTiles />
       </WideFigure>
     </Section>
@@ -57,31 +58,29 @@ function ChaptersSection() {
 
 function DoingSection() {
   return (
-    <Section title="Stop, read, act">
+    <Section title="No Next button">
       <Paragraph>
-        I wanted the tutorial to actually teach. Reading about a key you&rsquo;ve never pressed doesn&rsquo;t stick. So
-        I went looking for every place where the tutorial could make you stop, read and act.
+        Every chapter is a short list of tasks, and the only way to tick one off is to do it. Drag a troop onto the
+        board and the chapter sees it land. If it asked you to carry the whole stack and you only took the top troop, it
+        waits. Even when a task just wants to tell you something, you press Enter to go on, so it never runs ahead of
+        your reading.
       </Paragraph>
       <Paragraph>
-        That&rsquo;s why there is no Next button. Each chapter is a list of small tasks, and a task is done when
-        you&rsquo;ve actually done it on the table. Drag a troop from your reserves onto the board, and the chapter sees
-        that troop land and moves on. Hold a stack before you drag it, and it checks that the whole stack went with you.
-        When a task is only there to explain something, it waits for you to press Enter, so it never runs ahead of your
-        reading. And every action gets a task of its own: opening the game menu is one step, copying the game link is
-        the next.
+        I also split things up more than you might expect. Opening the game menu is one task. Copying the game link is
+        the next one. One action at a time, so each one sticks.
       </Paragraph>
       <Paragraph>
-        The first version showed the task in a thin band across the top of the screen. Testers looked at the board and
-        the arrow, and missed the text. So the tasks moved to a list down the left, in large type, where you read them
-        before your eyes go to the board.
+        Getting people to read turned out to be the hard part. The first version put each task in a thin band across the
+        top of the screen, with a long arrow down to the target. Testers looked straight at the board and never read the
+        band, and that long arrow looked comical. So the tasks moved to a checklist down the left, in big type, where
+        you read them before your eyes go to the board.
       </Paragraph>
-      <WideFigure caption="Moving pieces, live. It starts with one troop, and the arrow points at your reserves.">
+      <WideFigure caption="Chapter 7, Moving pieces. Your first job is a single troop.">
         <TutorialEmbed src="/tutorial/moving-pieces" title="The Moving pieces chapter of the tutorial" />
       </WideFigure>
       <Paragraph>
-        An arrow runs from the task to the thing you need, whether that&rsquo;s a troop on the board, a button or a
-        window. When the target is out of view, the arrow points the way. Done tasks stay in the list, so you can open
-        one again and reread it. Reset starts the chapter over on a fresh table.
+        If the thing it wants is off screen, the arrow points the way. Forgot what a step said? Click it and read it
+        again. Made a mess of the board? Reset gives you a fresh table.
       </Paragraph>
     </Section>
   );
@@ -89,30 +88,29 @@ function DoingSection() {
 
 function BrowserSection() {
   return (
-    <Section title="A real game table, inside your browser">
+    <Section title="The real table, in your tab">
       <Paragraph>
-        In a{' '}
+        A tutorial could get away with a fake table that only knows the moves it&rsquo;s about to teach. This one runs
+        the real thing. The table code that referees every{' '}
         <PostLink to="/blog/$postSlug" params={{ postSlug: 'playing-dune-online-in-real-time' }}>
-          real game
-        </PostLink>
-        , every move goes to that game&rsquo;s room on Cloudflare, which checks it, saves it and tells everyone at the
-        table. A tutorial could fake all of that with a pretend table. Instead, the tutorial runs the room&rsquo;s own
-        table code right inside your browser tab.
+          online game
+        </PostLink>{' '}
+        on the server runs inside your browser tab instead.
       </Paragraph>
       <Paragraph>
-        Your browser talks to it just as it would talk to the real room. The difference is that the answer comes from
-        the same tab, and the table keeps its saved state in memory instead of a database. Nothing goes over the
-        internet. So the pieces you move in a chapter behave exactly like the pieces in a real game, because the same
-        code decides what happens to them.
+        Your moves go to it exactly the way they would go to the server. It just happens to live in the same tab, and it
+        keeps the game in memory instead of in a database. Nothing goes over the internet, and you don&rsquo;t need an
+        account. So when a stack splits or a card flips in a chapter, it behaves exactly like it will in your first real
+        game. Same code, same call.
       </Paragraph>
-      <WideFigure caption="The same table code runs in both. In a real game it sits in the room on Cloudflare. In the tutorial it sits in your tab.">
+      <WideFigure caption="The same table code in both. In a real game it sits in the room on Cloudflare. In the tutorial it sits in your tab.">
         <LocalTable />
       </WideFigure>
       <Paragraph>
-        Every chapter starts from the same game: the six original factions, playing the Dreamrules. That game was
-        recorded by playing a short script on the real game server and saving the table at three stops: the draft, setup
-        and the first turn. A chapter opens at the stop it needs, and the other players can move it along from there. In
-        the Battle chapter, they play the game forward to the battle phase before you see the table.
+        Every chapter starts from one recorded game: the six original factions, playing the Dreamrules. We recorded it
+        by playing a script against the real game server and saving the table at three moments: the draft, setup and
+        turn one. Some chapters go further. Before you even see the table in the Battle chapter, the other players have
+        already played the game forward to the battle phase.
       </Paragraph>
     </Section>
   );
@@ -120,17 +118,17 @@ function BrowserSection() {
 
 function PlayersSection() {
   return (
-    <Section title="You&rsquo;re not alone at the table">
+    <Section title="Your practice opponents">
       <Paragraph>
-        The other seats are taken by practice players. They borrow the names and pictures of real public profiles on
-        dune.zone, and they play their part. In the Bidding chapter they raise and pass, and in a playtest that turned
-        out to matter: a player who didn&rsquo;t follow the steps exactly got the round stuck. Now the practice players
-        keep the bidding going whatever you do. Their moves go through the same table code as yours.
+        You&rsquo;re never alone at the table. The other seats are filled by practice players wearing the names and
+        faces of real dune.zone profiles. They bid, they pass, they move the game on. One playtester went off script in
+        the Bidding chapter and got the round stuck, so now the practice players keep the bidding going whatever you do.
       </Paragraph>
       <Paragraph>
-        They answer you too. People who tried an early version typed messages into the chat and waited, and the message
-        just sat there. Now a message you send is marked as sent, and a moment later the player you wrote to replies. In
-        the Talking &amp; Alliances chapter, Atreides even accepts your alliance.
+        They also talk back. Testers kept typing into the chat, and their messages just sat there, pending forever. A
+        chat that never answers isn&rsquo;t much of a lesson, so now whoever you message replies a moment later. Say hi
+        to House Atreides in the Talking &amp; Alliances chapter and they&rsquo;ll say hi back. Offer them an alliance
+        and they&rsquo;ll take it.
       </Paragraph>
       <Figure
         imageKey="/web/blog/learn-to-play-dune-online/chat-reply.jpg"
@@ -144,12 +142,11 @@ function PlayersSection() {
 
 function AloudSection() {
   return (
-    <Section title="Read aloud">
+    <Section title="Eyes on the board">
       <Paragraph>
-        It&rsquo;s easier to follow a task when your eyes can stay on the table. Press Z and the tutorial reads each
-        task aloud as it comes up. It uses the voice built into your browser, so it costs nothing and needs no server.
-        Keys are read by name, so you hear &ldquo;the H key&rdquo; or &ldquo;left arrow&rdquo; instead of a symbol.
-        Press Z again and it&rsquo;s quiet.
+        Press Z and the tutorial reads every task out loud, so you can keep your eyes on the board. It uses your
+        browser&rsquo;s own voice, so it costs nothing. It even says the keys properly: you hear &ldquo;the H key&rdquo;
+        or &ldquo;left arrow&rdquo;, not a pair of curly brackets. Turn it on once and it stays on for every chapter.
       </Paragraph>
     </Section>
   );
@@ -157,15 +154,15 @@ function AloudSection() {
 
 function ConfettiSection() {
   return (
-    <Section title="A little confetti">
+    <Section title="Confetti, obviously">
       <Paragraph>
-        Finishing a chapter should feel good. When you complete the last task, the table goes quiet and confetti flies
-        in from both corners of the screen. A card lists what you just learned, one line at a time, each line hopping in
-        like a token dropped on the board. The button to the next chapter only drops in after the last line.
+        Finish a chapter and the table goes quiet, confetti fires in from both corners of the screen, and a card lists
+        what you just learned. The lines hop in one at a time, like tokens dropped on the board. The button to the next
+        chapter shows up last, so you read the list before you move on.
       </Paragraph>
       <Paragraph>
-        The confetti is there to reward you, and to spark a bit of joy. If learning is fun, you keep going to the next
-        chapter.
+        Why confetti? A little reward goes a long way. I added it to spark some joy, so learning feels good and you keep
+        going to the next chapter.
       </Paragraph>
       <Figure
         imageKey="/web/blog/learn-to-play-dune-online/chapter-complete.jpg"
@@ -173,7 +170,7 @@ function ConfettiSection() {
         aspect={1280 / 2048}
         caption="The end of the Welcome chapter, with everything you learned in it."
       />
-      <Paragraph>You don&rsquo;t have to finish a chapter to see it. Go on:</Paragraph>
+      <Paragraph>You don&rsquo;t have to finish a chapter to get some, though. Go on, press it:</Paragraph>
       <ConfettiButton />
     </Section>
   );
@@ -181,24 +178,22 @@ function ConfettiSection() {
 
 function CreatingSection() {
   return (
-    <Section title="A tutorial for making things, too">
+    <Section title="Make a faction, safely">
       <Paragraph>
-        dune.zone is also where people make their own factions, cards and rulebooks, so there&rsquo;s a second set of
-        tutorials for that at <PostLink to="/create">dune.zone/create</PostLink>. The first one is ready: Create a
-        faction. In 29 small tasks you name a faction, pick its emblem, give it leaders and troops, write its rules,
-        save it and visit its page.
+        dune.zone isn&rsquo;t only for playing. People make their own factions, cards and rulebooks here, so
+        there&rsquo;s a second set of tutorials at <PostLink to="/create">dune.zone/create</PostLink>. The first one is
+        Create a faction: 29 small steps from an empty sheet to a saved faction with its own page.
       </Paragraph>
       <Paragraph>
-        Creating a faction means saving to the site&rsquo;s database, which a tutorial shouldn&rsquo;t touch. So this
-        one runs on a practice copy of dune.zone that lives in your browser, with its own little database. You&rsquo;re
-        on the real faction editor, with every button working, and when you close the page the copy is gone.
+        Saving a faction writes to the site&rsquo;s real database, and a tutorial shouldn&rsquo;t fill that up with
+        practice Sand Wardens. So this one runs on a practice copy of the whole site, inside your browser, with its own
+        little database. Every button works. Close the tab and your practice faction is gone.
       </Paragraph>
-      <WideFigure caption="The Create a faction tutorial, live, on the real editor in a practice copy of the site.">
+      <WideFigure caption="Create a faction, live. Go ahead, give it a name.">
         <TutorialEmbed src="/create/faction" title="The Create a faction tutorial" />
       </WideFigure>
       <Paragraph>
-        Fourteen more creator tutorials are planned, from making a card to laying out a rulebook. They&rsquo;ll go up
-        one at a time.
+        Fourteen more creator tutorials are on the way, from making a card to laying out a rulebook.
       </Paragraph>
     </Section>
   );
@@ -206,12 +201,12 @@ function CreatingSection() {
 
 function TestedSection() {
   return (
-    <Section title="Kept working">
+    <Section title="Played on every change">
       <Paragraph>
-        The table changes often, and a tutorial that points at a button that moved is worse than no tutorial. So every
-        chapter is also an automated test. On every change to dune.zone, a browser plays each chapter from start to end,
-        doing every task the way a player would. If a chapter can no longer be finished, the change doesn&rsquo;t go
-        out.
+        The table changes a lot, and a tutorial pointing at a button that moved last week is worse than no tutorial. So
+        every chapter doubles as an automated test. On every change to dune.zone, a browser plays each chapter from
+        start to finish, doing every task the way you would. If a chapter breaks, the change waits until it&rsquo;s
+        fixed.
       </Paragraph>
     </Section>
   );
@@ -219,23 +214,24 @@ function TestedSection() {
 
 function ClosingSection() {
   return (
-    <Section title="Pick a chapter">
+    <Section title="Your seat is ready">
       <Paragraph>
-        If you&rsquo;ve been meaning to try a game on dune.zone, the tutorial is the quickest way in. Start with{' '}
+        If you&rsquo;ve been meaning to try a game on dune.zone, this is the quickest way in, and you don&rsquo;t even
+        need an account. Start with{' '}
         <PostLink to="/tutorial/$chapter" params={{ chapter: 'welcome' }}>
           Welcome
         </PostLink>
-        , or go straight to{' '}
+        . Or skip straight to{' '}
         <PostLink to="/tutorial/$chapter" params={{ chapter: 'battle' }}>
           Battle
         </PostLink>
-        , where you play Fremen and Atreides is waiting for you in Arrakeen.
+        , where you play the Fremen and Atreides is already waiting for you in Arrakeen.
       </Paragraph>
       <Figure
         imageKey="/web/blog/learn-to-play-dune-online/meet-in-arrakeen.jpg"
         alt="The Battle chapter: the task Meet in Arrakeen on the left, with an arrow pointing at troops beside the board"
         aspect={1280 / 2048}
-        caption="The Battle chapter starts here: bring your troops to Arrakeen."
+        caption="The Battle chapter starts here. Bring your troops to Arrakeen."
       />
     </Section>
   );
