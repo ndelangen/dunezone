@@ -5,16 +5,8 @@ import { isPointerToken, POINTER_TOKEN_TYPE } from '@shared/play/pointerToken';
 import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
-import { TABLE_SECTOR_COUNT } from '@shared/play/tableSettings';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import {
-  innermostPoint,
-  restingParts,
-  restsInside,
-  tableSectorAt,
-  tableTerritories,
-  territoryShapeAt,
-} from '@shared/play/territoryFit';
+import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
@@ -459,77 +451,5 @@ export const SpiceBlowTopCardOnly = meta.story({
     await sandboxReady(within(canvasElement.ownerDocument.body));
     const blows = revealedSpiceBlows(shown().table.pieces).map(({ blow }) => blow.territories);
     await expect(blows).toEqual([['broken_land']]);
-  },
-});
-
-/* Where a sector line runs through a territory, by the line's number and how far out from the centre. */
-const SECTOR_LINE_DROPS = [
-  { line: 8, out: 2.75 },
-  { line: 4, out: 2.3 },
-  { line: 12, out: 2.65 },
-  { line: 14, out: 1.35 },
-  { line: 15, out: 3.55 },
-  { line: 17, out: 1.05 },
-] as const;
-
-/* A point on a sector line, a hair to the clockwise or counterclockwise side of it. */
-function onSectorLine({ line, out }: { line: number; out: number }, side: number): [number, number, number] {
-  const angle = (line * Math.PI * 2) / TABLE_SECTOR_COUNT;
-  return [out * Math.cos(angle) - Math.sin(angle) * side, 0.4, out * Math.sin(angle) + Math.cos(angle) * side];
-}
-
-/**
- * Six troops are let go right on sector lines through the Habbanya erg, Cielago depression, Tsimpo, Imperial basin, Old gap and the Minor erg.
- * Each steps into the sector it was let go in: no more than 30% of it hangs over the line, as no more than 30% may hang over a territory's border.
- * By hand: drag troops onto any sector line or border and let go.
- */
-export const TroopsSitInOneSector = meta.story({
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
-    install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
-  play: async ({ canvasElement }) => {
-    await sandboxReady(within(canvasElement.ownerDocument.body));
-    const table = sandbox.table!;
-    const before = new Set(shown().table.pieces.map((candidate) => candidate.id));
-    const factions = shown()
-      .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
-      .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
-    for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
-      const source = troopsOf(shown().table.pieces, factions[index % factions.length]!)[0]!;
-      const carryId = `sector-line-${index}`;
-      table.receive({
-        type: 'begin',
-        carryId,
-        sourcePieceId: source.id,
-        expectedVersion: shown().versions[source.id]!,
-        pickup: 'top',
-      });
-      table.receive({
-        type: 'drop',
-        commandId: `${carryId}-drop`,
-        carryId,
-        position: onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001),
-        orientation: 0,
-      });
-      await expect(table.refusal).toBeUndefined();
-    }
-    /* Each troop let go on a line rests in the sector on the side it was let go, no more than 30% of it outside that sector's part of its territory. */
-    const board = arrakisBoardCapture.definition;
-    for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
-      const [x, , z] = onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001);
-      const sector = tableSectorAt([x, z]);
-      const placed = shown().table.pieces.filter(
-        (candidate) =>
-          !before.has(candidate.id) &&
-          packsInTerritory(candidate) &&
-          Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.5
-      );
-      await expect(placed).toHaveLength(1);
-      const point: [number, number] = [placed[0]!.position[0], placed[0]!.position[2]];
-      const radius = footprintReach(placed[0]!);
-      const territory = territoryShapeAt(board, [x, z])!;
-      await expect(tableSectorAt(point)).toBe(sector);
-      await expect(restingParts(territory, point, radius).some((part) => restsInside(part, point, radius))).toBe(true);
-    }
   },
 });

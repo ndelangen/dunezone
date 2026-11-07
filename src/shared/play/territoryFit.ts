@@ -337,7 +337,7 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     if (clearAt(input, at, i, at[i]!)) {
       return;
     }
-    const spot = nearestClearSpot(input.territory, borderReach(input.bodies[i]!.radius) + GAP / 2, at[i]!, (point) =>
+    const spot = nearestClearSpot(input.territory, input.bodies[i]!.radius, at[i]!, (point) =>
       clearAt(input, at, i, point)
     );
     if (spot) {
@@ -349,13 +349,25 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
 }
 
 const SPOT_STEP = 0.04;
-/* Every grid point of a territory with room for a footprint of a given radius, kept per territory and radius, so a search only checks what is in the way. */
-const roomySpots = new WeakMap<TableTerritory, Map<number, Plane[]>>();
+/* Every point of a territory a footprint of a given radius may rest at, kept per territory and radius, so a search only checks what is in the way. */
+const restingSpotsBy = new WeakMap<TableTerritory, Map<number, Plane[]>>();
 
 /* How far a point lies inside the territory's border; negative outside it. */
 function roomAt(territory: TableTerritory, at: Plane): number {
   const distance = nearestBorder(territory, at).distance;
   return territoryContains(territory, at) ? distance : -distance;
+}
+
+/*
+ * How much leeway a footprint of `radius` has at `at`, in table units: at least zero exactly where it may rest, its centre stepped in from the border and no more than 30% of it outside.
+ * Both terms change no faster than the distance moved: room by definition, and the share outside by at most 2/(πr) per unit, as a moving circle sweeps at most its diameter.
+ */
+function leewayAt(territory: TableTerritory, at: Plane, radius: number): number {
+  const room = roomAt(territory, at) - (borderReach(radius) + GAP / 2);
+  if (room < 0) {
+    return room;
+  }
+  return Math.min(room, ((MOST_OUTSIDE - shareOutside(territory, at, radius)) * Math.PI * radius) / 2);
 }
 
 const CLIMB_DIRECTIONS = Array.from({ length: 8 }, (_, k): Plane => [
@@ -366,25 +378,25 @@ const CLIMB_ROUNDS = 24;
 /* Steps halve from half the grid's spacing down to well under a millimetre of table. */
 const CLIMB_HALVINGS = 9;
 
+type Climb = { at: Plane; leeway: number };
+
 /*
- * A point near `start` with room for `radius`, found by stepping towards more room in ever smaller steps, or null when there is none nearby.
+ * A point near `start` where the footprint may rest, found by stepping towards more leeway in ever smaller steps, or null when there is none nearby.
  * A pocket narrower than the grid lies between grid points; climbing from the nearest of them finds it.
  */
-function climbToRoom(territory: TableTerritory, start: Plane, radius: number): Plane | null {
-  let best: Climb = { at: start, room: roomAt(territory, start) };
-  for (let halving = 1; halving <= CLIMB_HALVINGS && best.room < radius; halving += 1) {
-    best = climbAtStep(territory, best, radius, SPOT_STEP / 2 ** halving);
+function climbToRest(leeway: (at: Plane) => number, start: Plane): Plane | null {
+  let best: Climb = { at: start, leeway: leeway(start) };
+  for (let halving = 1; halving <= CLIMB_HALVINGS && best.leeway < 0; halving += 1) {
+    best = climbAtStep(leeway, best, SPOT_STEP / 2 ** halving);
   }
-  return best.room >= radius ? best.at : null;
+  return best.leeway >= 0 ? best.at : null;
 }
 
-type Climb = { at: Plane; room: number };
-
-/* Steps of one length towards more room, until there is enough or no step gains any. */
-function climbAtStep(territory: TableTerritory, from: Climb, radius: number, step: number): Climb {
+/* Steps of one length towards more leeway, until there is enough or no step gains any. */
+function climbAtStep(leeway: (at: Plane) => number, from: Climb, step: number): Climb {
   let current = from;
-  for (let round = 0; round < CLIMB_ROUNDS && current.room < radius; round += 1) {
-    const next = bestStep(territory, current, step);
+  for (let round = 0; round < CLIMB_ROUNDS && current.leeway < 0; round += 1) {
+    const next = bestStep(leeway, current, step);
     if (next === current) {
       break;
     }
@@ -393,46 +405,45 @@ function climbAtStep(territory: TableTerritory, from: Climb, radius: number, ste
   return current;
 }
 
-/* The step of this length with the most room, or `from` itself when none has more. */
-function bestStep(territory: TableTerritory, from: Climb, step: number): Climb {
+/* The step of this length with the most leeway, or `from` itself when none has more. */
+function bestStep(leeway: (at: Plane) => number, from: Climb, step: number): Climb {
   let best = from;
   for (const [dx, dz] of CLIMB_DIRECTIONS) {
     const at: Plane = [from.at[0] + dx * step, from.at[1] + dz * step];
-    const room = roomAt(territory, at);
-    if (room > best.room) {
-      best = { at, room };
+    const value = leeway(at);
+    if (value > best.leeway) {
+      best = { at, leeway: value };
     }
   }
   return best;
 }
 
 /**
- * The points a footprint of `radius` fits inside the territory's border at: one for each point of a grid over it, a step apart, that has room or is within a step of having it.
- * Room changes no faster than the distance moved, so no place with room lies farther than a step from such a grid point.
+ * The points a footprint of `radius` may rest at in the territory: one for each point of a grid over it, a step apart, that has leeway or is within a step of having it.
+ * Leeway changes no faster than the distance moved, so no place a footprint may rest lies farther than a step from such a grid point, whether the border's distance or the share over it is what limits it.
  */
-function spotsWithRoom(territory: TableTerritory, radius: number): Plane[] {
+function restingSpots(territory: TableTerritory, radius: number): Plane[] {
   const key = Math.round(radius * 1000);
-  let byRadius = roomySpots.get(territory);
+  let byRadius = restingSpotsBy.get(territory);
   if (!byRadius) {
     byRadius = new Map();
-    roomySpots.set(territory, byRadius);
+    restingSpotsBy.set(territory, byRadius);
   }
   const known = byRadius.get(key);
   if (known) {
     return known;
   }
+  const leeway = (at: Plane) => leewayAt(territory, at, radius);
   const { minX, maxX, minZ, maxZ } = territoryBounds(territory);
   const spots: Plane[] = [];
   const columns = Math.ceil((maxX - minX) / SPOT_STEP);
   const rows = Math.ceil((maxZ - minZ) / SPOT_STEP);
   for (let column = 0; column < columns; column += 1) {
     for (let row = 0; row < rows; row += 1) {
-      const x = minX + (column + 0.5) * SPOT_STEP;
-      const z = minZ + (row + 0.5) * SPOT_STEP;
-      const room = roomAt(territory, [x, z]);
-      const spot =
-        room >= radius ? ([x, z] as Plane) : room >= radius - SPOT_STEP && climbToRoom(territory, [x, z], radius);
-      if (spot) {
+      const at: Plane = [minX + (column + 0.5) * SPOT_STEP, minZ + (row + 0.5) * SPOT_STEP];
+      const value = leeway(at);
+      const spot = value >= 0 ? at : value >= -SPOT_STEP && climbToRest(leeway, at);
+      if (spot && restsInside(territory, spot, radius)) {
         spots.push(spot);
       }
     }
@@ -453,7 +464,7 @@ export function territoryBounds(territory: TableTerritory) {
 }
 
 /*
- * The free spot nearest `from`: every grid point with room inside the territory, nearest first, until one is clear of everything in the way.
+ * The free spot nearest `from` for a footprint of `radius`: every spot it may rest at in the territory, nearest first, until one is clear of everything in the way.
  * The grid covers the whole territory, so a pocket a stack fits in is never skipped, and the work is bounded by the territory's size.
  */
 function nearestClearSpot(
@@ -463,7 +474,7 @@ function nearestClearSpot(
   clear: (point: Plane) => boolean
 ): Plane | null {
   const distance = (point: Plane) => (point[0] - from[0]) ** 2 + (point[1] - from[1]) ** 2;
-  const nearestFirst = [...spotsWithRoom(territory, radius)].sort((a, b) => distance(a) - distance(b));
+  const nearestFirst = [...restingSpots(territory, radius)].sort((a, b) => distance(a) - distance(b));
   return nearestFirst.find(clear) ?? null;
 }
 
@@ -559,8 +570,6 @@ function partsOf(territory: TableTerritory): (TableTerritory | undefined)[] {
   return parts;
 }
 
-const holds = new WeakMap<TableTerritory, Map<number, boolean>>();
-
 /* Whether a stack with a footprint of `radius` could rest at `at` in an empty part, as the packing's own check would take it. */
 function holdsAt(part: TableTerritory, at: Plane, radius: number): boolean {
   return fitsInside(part, at, borderReach(radius) + GAP / 2) && restsInside(part, at, radius);
@@ -568,19 +577,7 @@ function holdsAt(part: TableTerritory, at: Plane, radius: number): boolean {
 
 /* Whether an empty part has room anywhere for a stack with a footprint of `radius`. */
 function canHold(part: TableTerritory, radius: number): boolean {
-  let byRadius = holds.get(part);
-  if (!byRadius) {
-    byRadius = new Map();
-    holds.set(part, byRadius);
-  }
-  const key = Math.round(radius * 1000);
-  if (!byRadius.has(key)) {
-    byRadius.set(
-      key,
-      spotsWithRoom(part, borderReach(radius) + GAP / 2).some((spot) => holdsAt(part, spot, radius))
-    );
-  }
-  return byRadius.get(key)!;
+  return restingSpots(part, radius).length > 0;
 }
 
 /**

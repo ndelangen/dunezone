@@ -14,6 +14,7 @@ import {
   settleCarryAtPosition,
 } from './tableState';
 import {
+  fitIntoTerritory,
   restsInside,
   innermostPoint,
   restingParts,
@@ -278,11 +279,14 @@ describe('stacks dropped across a sector line', () => {
     const [x, z] = innermostPoint(territory);
     const many = Array.from({ length: 8 }, (_, index) => troop(`f${index}`, `faction-${index}`, SHELF));
     let state = tableWith(...many);
-    for (const piece of many) {
+    for (const [index, piece] of many.entries()) {
       const before = new Map(
         state.pieces.map((candidate) => [candidate.id, tableSectorAt([candidate.position[0], candidate.position[2]])])
       );
       const next = dropAt(state, piece.id, [x, 0, z]);
+      if (index === 0) {
+        expect(next).not.toBeNull();
+      }
       if (!next) {
         break;
       }
@@ -391,6 +395,19 @@ describe('stacks dropped across a sector line', () => {
     };
     const [part] = restingParts(pocket, [2, 0.36], 0.175);
     expect(part!.id).toBe('pocket@0');
+    /* Let go a hair off the spot it rests at, it still finds the pocket, though the grid's spots step it in from the border short of the 30% that allows. */
+    for (const x of [1.95, 2.01, 2.05, 2.1]) {
+      const [near] = restingParts(pocket, [x, 0.36], 0.175);
+      expect(near!.id).toBe('pocket@0');
+    }
+    const landing = fitIntoTerritory({
+      territory: part!,
+      bodies: [{ id: 'troop', radius: 0.175, at: [2.1, 0.36] }],
+      pinFirst: false,
+      obstacles: [],
+    });
+    const at = landing!.get('troop')!;
+    expect(restsInside(part!, at, 0.175)).toBe(true);
   });
 
   test('the polar sink lies in no sector, so a stack rests where it was let go', () => {
