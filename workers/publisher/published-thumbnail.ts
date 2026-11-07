@@ -111,6 +111,26 @@ async function resize(
   }
 }
 
+/** The resize kept at the edge, with the original's unread body released. */
+async function keptThumbnail(source: Response, kept: Response): Promise<ArrayBuffer> {
+  await source.body?.cancel().catch(() => undefined);
+  return kept.arrayBuffer();
+}
+
+/** A new resize of the original, handed to `keep` for the edge; null when it fails, with the original left unread. */
+async function freshThumbnail(
+  source: Response,
+  target: { width: number; path: string; images: ThumbnailDependencies['images'] },
+  keep: (resized: Response) => void
+): Promise<ArrayBuffer | null> {
+  const resized = await resize(target.images, await source.clone().arrayBuffer(), target.width, target.path);
+  if (resized) {
+    await source.body?.cancel().catch(() => undefined);
+    keep(new Response(resized, { headers: { 'Cache-Control': INTERNAL_CACHE_CONTROL, 'Content-Type': 'image/webp' } }));
+  }
+  return resized;
+}
+
 /**
  * A published image resized to one of the listed widths, for `?w=` on its public URL;
  * null for any other request.
@@ -134,22 +154,15 @@ export async function handlePublishedThumbnailRequest(
   if (!source || sourceTag === null) {
     return source;
   }
-  const headers = thumbnailHeaders(source, width, sourceTag);
   const cache = dependencies.cache ?? caches.default;
   const cacheKey = thumbnailCacheKey(url, width, sourceTag);
-  const hit = await cache.match(cacheKey).catch(() => undefined);
-  if (hit) {
-    await source.body?.cancel().catch(() => undefined);
-    return deliver(request, await hit.arrayBuffer(), headers);
-  }
-  const bytes = await source.arrayBuffer();
-  const resized = await resize(dependencies.images, bytes, width, url.pathname);
-  if (!resized) {
-    return deliver(request, bytes, new Headers(source.headers));
-  }
-  const stored = new Response(resized, {
-    headers: { 'Cache-Control': INTERNAL_CACHE_CONTROL, 'Content-Type': 'image/webp' },
-  });
-  ctx.waitUntil(cache.put(cacheKey, stored).catch(() => undefined));
-  return deliver(request, resized, headers);
+  const kept = await cache.match(cacheKey).catch(() => undefined);
+  const thumbnail = kept
+    ? await keptThumbnail(source, kept)
+    : await freshThumbnail(source, { width, path: url.pathname, images: dependencies.images }, (resized) =>
+        ctx.waitUntil(cache.put(cacheKey, resized).catch(() => undefined))
+      );
+  return thumbnail
+    ? deliver(request, thumbnail, thumbnailHeaders(source, width, sourceTag))
+    : deliver(request, await source.arrayBuffer(), new Headers(source.headers));
 }
