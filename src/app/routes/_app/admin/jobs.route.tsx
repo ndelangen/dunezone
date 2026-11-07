@@ -1,7 +1,8 @@
-import { Anchor, Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { Code, Group, Select, Stack, Switch, Table, Text } from '@mantine/core';
+import { createFileRoute } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -66,14 +67,12 @@ function PublicationJobsDashboard() {
         <Stack align="center" gap="xs">
           <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
           <PageTitle
+            breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
             title="Publication jobs"
             lede="Inspect the durable work queue and control whether the next scheduled run may pick up pending work."
           />
         </Stack>
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
           <Surface padding="lg">

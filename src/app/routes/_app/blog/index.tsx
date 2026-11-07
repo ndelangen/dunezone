@@ -1,9 +1,8 @@
 /* oxlint-disable-next-line no-restricted-imports -- Each post title is itself the link to the post, which a Section title cannot be. */
-import { Anchor, Grid, SimpleGrid, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
+import { Anchor, Grid, Stack, Text, Title, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 import { ArrowRight } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -31,16 +30,13 @@ function BlogPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <SimpleGrid className={styles.hero} cols={{ base: 1, md: 2 }} spacing="xl">
-          <div className={styles.title}>
-            <PageTitle eyebrow="Developer blog" title="Building Dune Zone" />
-          </div>
-          <Surface padding="lg" className={styles.intro}>
-            <Text size="lg">
-              The ideas, experiments and decisions behind the site, and what we learned along the way.
-            </Text>
-          </Surface>
-        </SimpleGrid>
+        <div className={`${styles.hero} ${styles.title}`}>
+          <PageTitle
+            eyebrow="Developer blog"
+            title="Building Dune Zone"
+            lede="The ideas, experiments and decisions behind the site, and what we learned along the way."
+          />
+        </div>
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap={0} className={styles.list}>

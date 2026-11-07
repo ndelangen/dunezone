@@ -1,8 +1,9 @@
-import { Anchor, Group, Select, Stack, Table, Text } from '@mantine/core';
+import { Group, Select, Stack, Table, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
@@ -83,11 +84,12 @@ function AccountManagement() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Accounts" lede="Combine profiles and keep their sign-in methods, content and access." />
+        <PageTitle
+          breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
+          title="Accounts"
+          lede="Combine profiles and keep their sign-in methods, content and access."
+        />
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
           <MergeProfiles

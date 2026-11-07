@@ -8,6 +8,7 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
@@ -52,6 +53,7 @@ import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, publicDescription, useLivePageTitle } from '@app/routes/publicPage';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AssetCatalogueTile } from '@app/widgets/asset-face/AssetCatalogueTile';
+import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
@@ -330,9 +332,7 @@ function FaqDetailPage() {
                     ))}
                   </ul>
                 ) : (
-                  <Text c="dimmed" size="sm">
-                    No answers yet. Be the first to answer.
-                  </Text>
+                  <EmptyNote>No answers yet. Be the first to answer.</EmptyNote>
                 )}
                 {showAddAnswerForm ? (
                   <Card title="Your answer">
@@ -343,35 +343,27 @@ function FaqDetailPage() {
                     You have already answered. You can update your answer above.
                   </Text>
                 ) : page.viewerResolved ? (
-                  <Anchor
-                    size="sm"
-                    renderRoot={(rootProps) => (
-                      <Link
-                        {...rootProps}
-                        to="/auth/login"
-                        search={{ redirect: `/rulesets/${page.ruleset.slug}/faq/${item.slug}` }}
-                      />
-                    )}
-                  >
-                    Sign in to answer
-                  </Anchor>
+                  <LoginGate action="answer this question" />
                 ) : null}
               </Section>
             </div>
-            <div className={styles.related}>
-              <Section title="Related questions" help="More questions about the same factions and assets.">
-                <FaqList
-                  items={page.relatedQuestions}
-                  emptyLabel="No related questions yet."
-                  onOpenQuestion={(questionSlug, rulesetSlug) =>
-                    void navigate({
-                      to: '/rulesets/$rulesetSlug/faq/$questionSlug',
-                      params: { rulesetSlug, questionSlug },
-                    })
-                  }
-                />
-              </Section>
-            </div>
+            {/* Left out while nothing relates, as Related FAQ is on detail pages: an empty heading says nothing a reader can act on. */}
+            {page.relatedQuestions.length > 0 ? (
+              <div className={styles.related}>
+                <Section title="Related questions" help="More questions about the same factions and assets.">
+                  <FaqList
+                    items={page.relatedQuestions}
+                    emptyLabel="No related questions yet."
+                    onOpenQuestion={(questionSlug, rulesetSlug) =>
+                      void navigate({
+                        to: '/rulesets/$rulesetSlug/faq/$questionSlug',
+                        params: { rulesetSlug, questionSlug },
+                      })
+                    }
+                  />
+                </Section>
+              </div>
+            ) : null}
           </div>
         </div>
       </PageLayout.Content>
@@ -811,6 +803,10 @@ function FaqReferenceTile({ reference, action }: { reference: FaqReferencePrevie
 }
 
 function FaqReferencesSection({ faq }: { faq: FaqQuestionCommands }) {
+  /* A reader who cannot add references meets the section only once there is one; a maintainer keeps it for its Add action. */
+  if (faq.references.length === 0 && !faq.canManageReferences) {
+    return null;
+  }
   return (
     <Section title="Relates to" action={faq.canManageReferences ? <FaqReferenceAdd faq={faq} /> : undefined}>
       <Stack gap="md">
@@ -906,9 +902,7 @@ function FaqReferenceList({ faq }: { faq: FaqQuestionCommands }) {
       ))}
     </TileGrid>
   ) : (
-    <Text size="sm" c="dimmed">
-      No references yet.
-    </Text>
+    <EmptyNote>No references yet.</EmptyNote>
   );
 }
 

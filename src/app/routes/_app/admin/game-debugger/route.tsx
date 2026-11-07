@@ -1,10 +1,11 @@
-import { Anchor, FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
+import { FileInput, Group, Select, Stack, Table, Tabs, Text } from '@mantine/core';
 import { changes } from '@shared/jsonDiff';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { CodeExample } from '@ui/content/CodeExample';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -79,11 +80,12 @@ function GameDebugger() {
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
-        <PageTitle title="Game debugger" lede="Inspect a reported game and the browser that reported it." />
+        <PageTitle
+          breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
+          title="Game debugger"
+          lede="Inspect a reported game and the browser that reported it."
+        />
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <Anchor renderRoot={(props) => <Link {...props} to="/admin" />}>All admin tools</Anchor>
-      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="lg">
           <Surface padding="lg">

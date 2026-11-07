@@ -21,9 +21,9 @@ export const Catalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = storyPage(canvasElement);
     await page.findByRole('heading', { name: 'Assets', level: 1 }, { timeout: 30_000 });
-    /* Each row's label also names a pile inside it, so the first match is the row's own. */
-    for (const row of ['Cards & decks', 'Tokens', 'Boards']) {
-      await expect((await page.findAllByText(row))[0]).toBeVisible();
+    /* Each group is a section under its own heading; "Tokens" and "Boards" also name piles, so ask for the headings. */
+    for (const group of ['Cards and decks', 'Tokens', 'Boards']) {
+      await expect(await page.findByRole('heading', { name: group, level: 2 })).toBeVisible();
     }
   },
 });

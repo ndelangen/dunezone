@@ -4,6 +4,7 @@ import { DECAL, LEADERS } from '@shared/assetIds';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { IconAction } from '@ui/control/IconAction';
 import { Pause, Play } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
@@ -90,7 +91,7 @@ export function MediaShowcase({
     <div className={styles.header}>
       <Stack gap="sm">
         {gallery ? (
-          <PageTitle eyebrow="Media catalogue" title={gallery} />
+          <PageTitle breadcrumb={<Breadcrumb to="/media">Media</Breadcrumb>} title={gallery} />
         ) : (
           <PageTitle eyebrow={compact ? undefined : 'Artwork for your creations'} title="Media catalogue" />
         )}
