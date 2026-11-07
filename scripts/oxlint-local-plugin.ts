@@ -783,7 +783,8 @@ const emptyNoteRule: Rule = {
   meta: {
     name: EMPTY_NOTE_RULE_NAME,
     messages: {
-      emptyNote: 'A dimmed "nothing here" line is an EmptyNote. Use EmptyNote from @ui/content/EmptyNote.',
+      emptyNote:
+        'A dimmed "nothing here" line is an EmptyNote under a section heading (@ui/content/EmptyNote), or EmptyResults for a search or list page that came back empty (@ui/block/EmptyResults).',
     },
   },
   create(context) {

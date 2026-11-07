@@ -68,18 +68,6 @@ function FaqCreatePage() {
   const { question, answer } = draft;
   const rulesetRow = ruleset.data?.ruleset;
 
-  /* The way up is the ruleset's FAQ, named after the ruleset, so it also says which ruleset the question is for. */
-  const header = (
-    <PageTitle
-      breadcrumb={
-        <Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }}>
-          {rulesetRow ? `${rulesetRow.name} FAQ` : 'Ruleset FAQ'}
-        </Breadcrumb>
-      }
-      title="Ask a question"
-    />
-  );
-
   /* The message frames (loading, missing ruleset) keep a boxed Back: they have no header band to carry the breadcrumb. */
   const backToRuleset = (
     <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
@@ -94,6 +82,18 @@ function FaqCreatePage() {
       </RoutePending>
     );
   }
+
+  /* The way up is the ruleset's FAQ, named after the ruleset, so it also says which ruleset the question is for. */
+  const header = (
+    <PageTitle
+      breadcrumb={
+        <Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }}>
+          {`${rulesetRow.name} FAQ`}
+        </Breadcrumb>
+      }
+      title="Ask a question"
+    />
+  );
   const rulesetId = rulesetRow._id;
 
   if (!profile?.data?._id) {
