@@ -13,8 +13,8 @@ import {
   settleCarryAtPosition,
 } from './tableState';
 import {
-  currentSectorLineMargin,
-  fitsInside,
+  borderReach,
+  restsInside,
   innermostPoint,
   restingParts,
   tableSectorAt,
@@ -60,7 +60,7 @@ function dropAt(state: TableState, id: string, position: Vector3Tuple) {
 }
 
 function insideTerritory(territory: TableTerritory, piece: TablePiece) {
-  return fitsInside(territory, [piece.position[0], piece.position[2]], footprintReach(piece));
+  return restsInside(territory, [piece.position[0], piece.position[2]], footprintReach(piece));
 }
 
 /* A point a tenth of the way from the territory's first border corner towards its middle: a stack there straddles the border. */
@@ -200,14 +200,14 @@ describe('stacks dropped into a territory', () => {
   });
 });
 
-/* How far a stack's edge stands from the nearer of its sector's two lines, and the sector it is in. */
+/* How far a stack's centre stands inside the nearer of its sector's two lines, beyond the 30% of it that may hang over, and the sector it is in. */
 function sectorClearance(piece: TablePiece) {
   const [x, , z] = piece.position;
   const sector = tableSectorAt([x, z]);
   const angle = (Math.PI * 2) / 18;
   const lines = [sector * angle, (sector + 1) * angle];
   const toLine = (line: number) => Math.abs(Math.cos(line) * z - Math.sin(line) * x);
-  return { sector, clear: Math.min(...lines.map(toLine)) - footprintReach(piece) };
+  return { sector, clear: Math.min(...lines.map(toLine)) - borderReach(footprintReach(piece)) };
 }
 
 describe('stacks dropped across a sector line', () => {
@@ -220,12 +220,12 @@ describe('stacks dropped across a sector line', () => {
   ];
   const onTheLine = across(2.75, 0.001);
 
-  test('step into the sector they were let go in, clear of the line', () => {
+  test('step into the sector they were let go in, no more than 30% of them over the line', () => {
     const state = tableWith(troop('mover', 'atreides', SHELF));
     const moved = at(dropAt(state, 'mover', onTheLine)!, 'mover');
     const { sector, clear } = sectorClearance(moved);
     expect(sector).toBe(8);
-    expect(clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+    expect(clear).toBeGreaterThanOrEqual(0);
     expect(insideTerritory(territoryNamed('Habbanya erg'), moved)).toBe(true);
     expect(Math.hypot(moved.position[0] - onTheLine[0], moved.position[2] - onTheLine[2])).toBeLessThan(0.3);
   });
@@ -234,7 +234,7 @@ describe('stacks dropped across a sector line', () => {
     const state = tableWith(troop('mover', 'atreides', SHELF));
     const moved = at(dropAt(state, 'mover', across(2.75, -0.001))!, 'mover');
     expect(sectorClearance(moved).sector).toBe(7);
-    expect(sectorClearance(moved).clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+    expect(sectorClearance(moved).clear).toBeGreaterThanOrEqual(0);
   });
 
   test('already standing clear in a sector, stay where they were let go', () => {
@@ -245,7 +245,7 @@ describe('stacks dropped across a sector line', () => {
     expect(Math.hypot(moved.position[0] - spot[0], moved.position[2] - spot[2])).toBeLessThan(1e-6);
   });
 
-  test('the stacks already in a sector make room there, none crossing the line', () => {
+  test('the stacks already in a sector make room there, none more than 30% over the line', () => {
     let state = tableWith(
       troop('first', 'atreides', SHELF),
       troop('second', 'harkonnen', SHELF),
@@ -257,7 +257,7 @@ describe('stacks dropped across a sector line', () => {
     for (const id of ['first', 'second', 'third']) {
       const { sector, clear } = sectorClearance(at(state, id));
       expect(sector).toBe(8);
-      expect(clear).toBeGreaterThanOrEqual(currentSectorLineMargin());
+      expect(clear).toBeGreaterThanOrEqual(0);
     }
   });
 

@@ -5,7 +5,7 @@ import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
 import {
   fitIntoTerritory,
-  fitsInside,
+  restsInside,
   restingParts,
   territoryBounds,
   territoryShapeAt,
@@ -78,7 +78,7 @@ export function keepsInsideTerritory(
 ) {
   return (at: Readonly<Vector3Tuple>) => {
     const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
-    return !territory || onAnyPlate(others, at) || fitsInside(territory, [at[0], at[2]], footprintReach(piece));
+    return !territory || onAnyPlate(others, at) || restsInside(territory, [at[0], at[2]], footprintReach(piece));
   };
 }
 

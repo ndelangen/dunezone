@@ -99,6 +99,22 @@ function nearestBorder(territory: Pick<TableTerritory, 'rings'>, [x, z]: Plane):
   return best;
 }
 
+/*
+ * Up to 30% of a stack's footprint may hang over a territory's border or a sector line, so stacks pack more closely and still read as standing in one place.
+ * A circle cut by a line 0.32 of its radius from its centre leaves 30% of its area on the far side.
+ */
+const BORDER_REACH = 0.32;
+
+/** How far inside a border the centre of a footprint of `radius` keeps. */
+export function borderReach(radius: number): number {
+  return radius * BORDER_REACH;
+}
+
+/** Whether a stack with a footprint of `radius` rests in the territory: its centre inside, and no more than 30% of it hanging over the border. */
+export function restsInside(territory: TableTerritory, at: Plane, radius: number): boolean {
+  return fitsInside(territory, at, borderReach(radius));
+}
+
 /** Whether a round footprint lies wholly inside the territory, clear of its border. */
 export function fitsInside(territory: TableTerritory, at: Plane, radius: number): boolean {
   return territoryContains(territory, at) && nearestBorder(territory, at).distance >= radius;
@@ -211,7 +227,7 @@ function relaxRound(input: FitInput, at: Spot[]): number {
     }
   }
   bodies.forEach((body, i) => {
-    const kept = keptInside(territory, at[i]!, body.radius);
+    const kept = keptInside(territory, at[i]!, borderReach(body.radius));
     moved = Math.max(moved, Math.hypot(kept[0] - at[i]![0], kept[1] - at[i]![1]));
     at[i] = [kept[0], kept[1]];
   });
@@ -227,7 +243,7 @@ function clearAt({ territory, bodies, obstacles }: FitInput, at: readonly Spot[]
   return (
     bodies.every((other, j) => j === i || apart(at[j]!, other.radius)) &&
     obstacles.every((obstacle) => standoff(point, obstacle, i).clear >= radius) &&
-    fitsInside(territory, point, radius)
+    fitsInside(territory, point, borderReach(bodies[i]!.radius) + GAP / 2)
   );
 }
 
@@ -251,7 +267,7 @@ export function fitIntoTerritory(input: FitInput): Map<string, Plane> | null {
     if (clearAt(input, at, i, at[i]!)) {
       return;
     }
-    const spot = nearestClearSpot(input.territory, input.bodies[i]!.radius + GAP / 2, at[i]!, (point) =>
+    const spot = nearestClearSpot(input.territory, borderReach(input.bodies[i]!.radius) + GAP / 2, at[i]!, (point) =>
       clearAt(input, at, i, point)
     );
     if (spot) {
@@ -403,21 +419,8 @@ export function innermostPoint(territory: TableTerritory, step = 0.02): Plane {
 
 /*
  * Sectors: the storm's sector lines run from the board's centre to its rim and split a territory into the parts a stack can rest in.
- * A stack keeps to one part, clear of the line beside it, so which sector it stands in is never in doubt.
+ * A stack keeps to one part, with no more of it over the line than over a border, so which sector it stands in is never in doubt.
  */
-
-/** How far a stack's edge keeps from a sector line beyond the usual clearance, in table units; null leaves the sector lines out. */
-export const DEFAULT_SECTOR_LINE_MARGIN = 0.04;
-let sectorLineMargin: number | null = DEFAULT_SECTOR_LINE_MARGIN;
-
-/** The sector line clearance; stories compare a few. */
-export function setSectorLineMargin(margin: number | null) {
-  sectorLineMargin = margin;
-}
-
-export function currentSectorLineMargin() {
-  return sectorLineMargin ?? 0;
-}
 
 const SECTOR_ANGLE = (Math.PI * 2) / TABLE_SECTOR_COUNT;
 
@@ -454,13 +457,13 @@ function ringArea(ring: readonly Plane[]): number {
   return Math.abs(area) / 2;
 }
 
-/* The part of a territory within sector `index`, kept `margin` clear of both its lines; undefined when nothing of it is left. */
-function sectorPart(territory: TableTerritory, index: number, margin: number): TableTerritory | undefined {
+/* The part of a territory within sector `index`; undefined when nothing of it is left. */
+function sectorPart(territory: TableTerritory, index: number): TableTerritory | undefined {
   const from = index * SECTOR_ANGLE;
   const to = from + SECTOR_ANGLE;
   /* Signed distances from the two lines, positive on the sector's side. */
-  const afterFrom = ([x, z]: Plane) => Math.cos(from) * z - Math.sin(from) * x - margin;
-  const beforeTo = ([x, z]: Plane) => Math.sin(to) * x - Math.cos(to) * z - margin;
+  const afterFrom = ([x, z]: Plane) => Math.cos(from) * z - Math.sin(from) * x;
+  const beforeTo = ([x, z]: Plane) => Math.sin(to) * x - Math.cos(to) * z;
   const rings = territory.rings
     .map((ring) => clipRing(clipRing(ring, afterFrom), beforeTo))
     .filter((ring) => ring.length >= 3 && ringArea(ring) > 1e-6);
@@ -469,20 +472,16 @@ function sectorPart(territory: TableTerritory, index: number, margin: number): T
     : undefined;
 }
 
-const sectorParts = new WeakMap<TableTerritory, Map<string, TableTerritory | null>>();
+const sectorParts = new WeakMap<TableTerritory, (TableTerritory | undefined)[]>();
 
-/* Cached per territory, sector and margin, so the packing's grids of roomy spots are kept too. */
-function cachedSectorPart(territory: TableTerritory, index: number, margin: number): TableTerritory | undefined {
+/* Cached per territory, so the packing's grids of roomy spots are kept too. */
+function partsOf(territory: TableTerritory): (TableTerritory | undefined)[] {
   let parts = sectorParts.get(territory);
   if (!parts) {
-    parts = new Map();
+    parts = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) => sectorPart(territory, index));
     sectorParts.set(territory, parts);
   }
-  const key = `${index}:${margin}`;
-  if (!parts.has(key)) {
-    parts.set(key, sectorPart(territory, index, margin) ?? null);
-  }
-  return parts.get(key) ?? undefined;
+  return parts;
 }
 
 /**
@@ -490,14 +489,11 @@ function cachedSectorPart(territory: TableTerritory, index: number, margin: numb
  * A territory the sector lines do not divide is its own single part.
  */
 export function restingParts(territory: TableTerritory, at: Plane): TableTerritory[] {
-  const margin = sectorLineMargin;
-  if (!territory.sectored || margin === null) {
+  if (!territory.sectored) {
     return [territory];
   }
   const home = tableSectorAt(at);
-  const parts = Array.from({ length: TABLE_SECTOR_COUNT }, (_, index) =>
-    cachedSectorPart(territory, index, margin)
-  ).flatMap((part, index) => (part ? [{ part, index }] : []));
+  const parts = partsOf(territory).flatMap((part, index) => (part ? [{ part, index }] : []));
   const distance = ({ part, index }: { part: TableTerritory; index: number }) =>
     index === home ? -1 : territoryContains(part, at) ? 0 : nearestBorder(part, at).distance;
   /* A territory too narrow for the stack in any one sector takes it across a line rather than refuse it. */

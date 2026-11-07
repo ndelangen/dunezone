@@ -6,13 +6,7 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import {
-  DEFAULT_SECTOR_LINE_MARGIN,
-  fitsInside,
-  innermostPoint,
-  setSectorLineMargin,
-  tableTerritories,
-} from '@shared/play/territoryFit';
+import { restsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
@@ -260,7 +254,7 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
     (candidate) =>
       packsInTerritory(candidate) &&
       Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9 &&
-      !fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
+      !restsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
   );
   /* Set down left and right of the middle, so from the map camera the stacks stand side by side, not one behind another. */
   for (const [index, stack] of straddling.entries()) {
@@ -323,7 +317,7 @@ export const TroopsMakeRoom = meta.story({
     const table = sandbox.table!;
     const { territory, x, z } = arrakeen();
     const inside = (candidate: TablePiece) =>
-      fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate));
+      restsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate));
     const held = shown()
       .table.pieces.filter(inside)
       .map((candidate) => candidate.id);
@@ -400,7 +394,7 @@ export const BattleMarkerLightsTerritory = meta.story({
       );
       await expect(nearby.length).toBeGreaterThan(1);
       const outside = nearby.filter(
-        (stack) => !fitsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))
+        (stack) => !restsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))
       );
       await expect(outside.map(({ id }) => id)).toEqual([]);
     });
@@ -477,62 +471,38 @@ function onSectorLine({ line, out }: { line: number; out: number }, side: number
 }
 
 /**
- * The sandbox at Shipment and Movement, with the sector lines kept `margin` clear (null: as before, lines ignored).
- * Its play carries a troop onto six sector lines that run through territories, letting go right on each line.
+ * Six troops are let go right on sector lines through the Habbanya erg, Cielago depression, Tsimpo, Imperial basin, Old gap and the Minor erg.
+ * Each steps into the sector it was let go in: no more than 30% of it hangs over the line, as no more than 30% may hang over a territory's border.
+ * By hand: drag troops onto any sector line or border and let go.
  */
-function sectorStory(margin: number | null) {
-  return {
-    args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
-    beforeEach: ({ args }: { args: { step?: number; seat?: string } }) => {
-      setSectorLineMargin(margin);
-      const cleanup = install(() =>
-        sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') })
-      )();
-      return () => {
-        cleanup();
-        setSectorLineMargin(DEFAULT_SECTOR_LINE_MARGIN);
-      };
-    },
-    play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
-      await sandboxReady(within(canvasElement.ownerDocument.body));
-      const table = sandbox.table!;
-      const factions = shown()
-        .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
-        .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
-      for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
-        const source = troopsOf(shown().table.pieces, factions[index % factions.length]!)[0]!;
-        const carryId = `sector-line-${index}`;
-        table.receive({
-          type: 'begin',
-          carryId,
-          sourcePieceId: source.id,
-          expectedVersion: shown().versions[source.id]!,
-          pickup: 'top',
-        });
-        table.receive({
-          type: 'drop',
-          commandId: `${carryId}-drop`,
-          carryId,
-          position: onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001),
-          orientation: 0,
-        });
-        await expect(table.refusal).toBeUndefined();
-      }
-    },
-  };
-}
-
-/**
- * Before: a troop let go on a sector line rests right across it, half in each sector.
- * Six troops are let go on sector lines through the Habbanya erg, Cielago depression, Tsimpo, Imperial basin, Old gap and the Minor erg.
- */
-export const SectorLinesBefore = meta.story(sectorStory(null));
-
-/** Just clear: each troop steps into the sector it was let go in, its edge just off the line. */
-export const SectorLinesJustClear = meta.story(sectorStory(0));
-
-/** A clear gap: each troop steps into its sector and keeps a sliver of board between its edge and the line. */
-export const SectorLinesClearGap = meta.story(sectorStory(DEFAULT_SECTOR_LINE_MARGIN));
-
-/** A wide gap: each troop keeps well away from the line, about half its own radius. */
-export const SectorLinesWideGap = meta.story(sectorStory(0.09));
+export const TroopsSitInOneSector = meta.story({
+  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
+    install(() => sandboxTransport({ start: Number(args.step ?? 1) - 1, seat: String(args.seat ?? 'seat-1') }))(),
+  play: async ({ canvasElement }) => {
+    await sandboxReady(within(canvasElement.ownerDocument.body));
+    const table = sandbox.table!;
+    const factions = shown()
+      .roster!.seats.flatMap((seat) => (seat.faction ? [seat.faction.id] : []))
+      .filter((faction) => troopsOf(shown().table.pieces, faction).length > 0);
+    for (const [index, drop] of SECTOR_LINE_DROPS.entries()) {
+      const source = troopsOf(shown().table.pieces, factions[index % factions.length]!)[0]!;
+      const carryId = `sector-line-${index}`;
+      table.receive({
+        type: 'begin',
+        carryId,
+        sourcePieceId: source.id,
+        expectedVersion: shown().versions[source.id]!,
+        pickup: 'top',
+      });
+      table.receive({
+        type: 'drop',
+        commandId: `${carryId}-drop`,
+        carryId,
+        position: onSectorLine(drop, index % 2 === 0 ? 0.001 : -0.001),
+        orientation: 0,
+      });
+      await expect(table.refusal).toBeUndefined();
+    }
+  },
+});
