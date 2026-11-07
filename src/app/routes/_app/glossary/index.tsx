@@ -2,6 +2,7 @@ import { Group, Select, Stack, Text } from '@mantine/core';
 import { GLOSSARY, GLOSSARY_TOPICS } from '@shared/glossary/terms';
 import type { GlossaryTerm, GlossaryTopic } from '@shared/glossary/terms';
 import { createFileRoute } from '@tanstack/react-router';
+import { EmptyResults } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -237,7 +238,9 @@ function GlossaryPage() {
       </PageLayout.Toolbar>
       <PageLayout.Content>
         <Stack gap="xl">
-          {topics.length === 0 && !hasProductMatches ? <Text c="dimmed">No term matches that search.</Text> : null}
+          {topics.length === 0 && !hasProductMatches ? (
+            <EmptyResults title="Nothing matches">No term matches that search.</EmptyResults>
+          ) : null}
           {topics.map(({ topic, terms }, index) => (
             <Section
               key={topic.id}

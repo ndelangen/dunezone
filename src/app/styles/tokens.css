@@ -27,6 +27,10 @@
   --action-neutral-hover-bg: var(--button-neutral-hover-bg);
   --action-neutral-fg: var(--button-neutral-fg);
 
+  /* White text over header artwork: the one drop shadow that keeps it legible on light and dark patches alike.
+     Eyebrows, breadcrumbs, inverse entity names and the hero subtitle and lede all read it. */
+  --text-shadow-inverse: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+
   --glass-blur-md: 10px;
 
   --panel-bg: var(--glass-surface-1);

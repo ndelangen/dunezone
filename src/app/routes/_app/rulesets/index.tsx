@@ -1,4 +1,4 @@
-import { Select, Stack } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { RULESET_CATALOGUE_PAGE_SIZE, parseRulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import type { RulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -156,12 +156,14 @@ function RulesetsPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Stack gap="xs" align="center">
-          <PageTitle title="Rulesets" />
-          <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/create" />}>
-            Create a ruleset
-          </CallToAction>
-        </Stack>
+        <PageTitle
+          title="Rulesets"
+          action={
+            <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/create" />}>
+              Create a ruleset
+            </CallToAction>
+          }
+        />
       </PageLayout.Header>
       {data.rulesetTotal > 0 ? (
         <PageLayout.Toolbar>

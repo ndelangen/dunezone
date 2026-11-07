@@ -237,6 +237,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
       {planned ? (
         <StatusBadge>Planned</StatusBadge>
       ) : (
+        /* oxlint-disable-next-line local/empty-note -- A pile caption under an empty pile, centred in the pile's width, not a section line. */
         <Text size="xs" c="dimmed" ta="center" px={6}>
           none yet
         </Text>
@@ -308,6 +309,7 @@ function AssetsLandingPage() {
       <PageLayout.Content>
         {/* No width cap: the sections span the content column, so their edges align with the masthead band. */}
         <Stack gap="md">
+          {/* Not a PageTitle: the band here is the card fan, and it is absent while there are no treachery cards, so the name sits on the paper under it. */}
           <Stack gap={2} align="center">
             <Eyebrow>Community assets</Eyebrow>
             <Title order={1}>Assets</Title>

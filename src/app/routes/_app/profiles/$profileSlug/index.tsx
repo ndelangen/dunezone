@@ -19,17 +19,7 @@ import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  CheckCircle2,
-  CircleHelp,
-  Link2,
-  LogOut,
-  MessageCircleReply,
-  Pencil,
-  Shield,
-  UserPlus,
-  UsersRound,
-} from 'lucide-react';
+import { CheckCircle2, Link2, LogOut, MessageCircleReply, Pencil, Shield, UserPlus, UsersRound } from 'lucide-react';
 
 import { isPublicPageNotFound, loadPublicPage } from '@db/core/publicPage';
 import { forgetStoredPlayTables } from '@db/playTables';
@@ -147,7 +137,7 @@ function ProfileFaqActivity({
       key: 'asked' as const,
       searchKey: 'askedPage' as const,
       title: 'Questions asked',
-      icon: <CircleHelp size={20} aria-hidden />,
+      icon: <TopicIcon topic="faq" size={20} />,
       emptyLabel: 'No questions asked yet.',
     },
   ];
@@ -267,7 +257,7 @@ function ProfileDetailPage() {
     },
     {
       key: 'questions',
-      icon: <CircleHelp size={17} aria-hidden />,
+      icon: <TopicIcon topic="faq" size={17} />,
       value: page.faqAsked.length,
       label: count(page.faqAsked.length, 'question', 'questions'),
     },

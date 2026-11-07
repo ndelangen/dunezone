@@ -573,8 +573,8 @@ export async function verifyHomepage({
   await until(() => requireView(member).viewer.viewerSeat !== spectator, 'Signing in did not grant table handling.');
   assert.equal(requireView(guest).viewer.viewerSeat, spectator);
   assert.ok(member.sent.some((message) => message.type === 'authenticate' && message.credentialLength === 64));
-  assert.equal(await member.page.getByRole('link', { name: 'Sign in to join in.' }).count(), 0);
-  await guest.page.getByRole('link', { name: 'Sign in to join in.' }).waitFor();
+  assert.equal(await member.page.getByRole('link', { name: 'Log in', exact: true }).count(), 0);
+  await guest.page.getByRole('link', { name: 'Log in', exact: true }).waitFor();
   for (const who of [member, guest]) {
     assert.equal(await who.page.locator('.scene-piece-name, .scene-piece-count').count(), 0);
   }

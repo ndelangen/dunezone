@@ -1,4 +1,5 @@
 import { Combobox, Group, ScrollArea, Stack, Text, TextInput, useCombobox } from '@mantine/core';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { Pending } from '@ui/content/Pending';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -43,9 +44,9 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
       {unsearched && loading ? (
         <Pending>Loading profiles</Pending>
       ) : unsearched && rows.length === 0 ? (
-        <Text size="sm" c="dimmed">
+        <EmptyNote>
           Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.
-        </Text>
+        </EmptyNote>
       ) : (
         <Combobox
           store={combobox}

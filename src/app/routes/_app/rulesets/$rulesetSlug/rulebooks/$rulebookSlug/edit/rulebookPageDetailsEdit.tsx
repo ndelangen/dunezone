@@ -556,6 +556,7 @@ function BlockRegionSummary({
             />
           ))}
           {region.blocks.length === 0 ? (
+            /* oxlint-disable-next-line local/empty-note -- The empty region is itself a list item of the region list, so it keeps the li and the region frame. */
             <Text component="li" size="sm" c="dimmed" className={styles.emptyRegion}>
               No Blocks in this region.
             </Text>

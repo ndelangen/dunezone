@@ -3,13 +3,7 @@
   padding: clamp(1rem, 3vw, 2.5rem);
 }
 
-/* The title and its lede sit straight on the hero artwork, so they carry their own contrast. */
-.title {
-  color: var(--color-inverse);
-  text-shadow: 0 2px 16px rgb(from var(--color-shadow) r g b / 65%);
-}
-
-.title h1 {
+.hero h1 {
   max-width: 800px;
 }
 

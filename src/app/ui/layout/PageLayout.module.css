@@ -67,7 +67,7 @@
 @media (width < 62rem) {
   .headerContent {
     aspect-ratio: auto;
-    height: calc(100% - 51px);
+    height: calc(100% - var(--app-navigation-height, 51px));
   }
 
   /* Sits below the navigation strip and sizes the row (see the AppHeader stylesheet), so a long title grows the band instead of overlapping the strip. */
@@ -79,11 +79,11 @@
     margin-top: var(--app-navigation-height, 51px);
   }
 
-  /* The default and hero bands start below the strip too and grow with their content from the band's 319px floor, so nothing they carry reaches up into the navigation. */
+  /* The default and hero bands start below the strip too and grow with their content from the band's floor (`--app-band-floor`, set by the shell), so nothing they carry reaches up into the navigation. */
   .layout[data-page-layout-header-size="default"] .headerContent,
   .layout[data-page-layout-header-size="hero"] .headerContent {
     height: auto;
-    min-height: calc(319px - var(--app-navigation-height, 51px));
+    min-height: calc(var(--app-band-floor, 319px) - var(--app-navigation-height, 51px));
     margin-top: var(--app-navigation-height, 51px);
   }
 }

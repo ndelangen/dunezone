@@ -4,7 +4,7 @@ import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
 import { useCallback, useId } from 'react';
 import type { ReactNode } from 'react';
 
-import { useInsidePageHeader } from '../layout/PageLayout';
+import { useHeaderActionSize } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
 import styles from './CallToAction.module.css';
 
@@ -100,7 +100,7 @@ export function CallToAction({
   children,
   direction = 'start',
   tone = 'bright',
-  size = 'md',
+  size,
   attention = false,
   disabledReason,
   renderRoot,
@@ -110,8 +110,7 @@ export function CallToAction({
 }: CallToActionProps) {
   const reasonId = useId();
   const pulseRef = useAttentionPulse(attention && disabledReason == null);
-  const insideHeader = useInsidePageHeader();
-  const resolvedSize = insideHeader ? 'md' : size;
+  const resolvedSize = useHeaderActionSize('CallToAction', size) ?? 'md';
   const iconSize = resolvedSize === 'sm' ? 15 : 17;
   const Arrow = TrailingArrow[direction];
   const variant = tone === 'artwork' ? 'artwork' : undefined;

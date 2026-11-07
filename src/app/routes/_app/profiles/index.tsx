@@ -6,6 +6,7 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { ProfileLink } from '@ui/content/ProfileLink';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { SearchRefine } from '@ui/control/SearchRefine';
@@ -13,7 +14,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Stats } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { CircleHelp, MessageCircleReply, Shield, UsersRound } from 'lucide-react';
+import { MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -255,7 +256,7 @@ function ProfileRow({ entry }: { entry: ProfileDirectoryEntry }) {
             },
             {
               key: 'questions',
-              icon: <CircleHelp size={16} aria-hidden />,
+              icon: <TopicIcon topic="faq" size={16} />,
               value: activity.questionCount,
               label: `Questions asked: ${activity.questionCount}`,
             },

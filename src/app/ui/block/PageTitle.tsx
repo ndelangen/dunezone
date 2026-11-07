@@ -28,6 +28,11 @@ export type PageTitleProps = PageTitleKicker & {
   subtitle?: string;
   /** One sentence under the name that says what the page is for. Words, not a node. */
   lede?: string;
+  /**
+   * The page's one primary action, such as a catalogue's create `CallToAction`, set under the name and lede.
+   * It takes the title group's alignment, so a centred band centres it and a left-aligned one keeps it on the title's edge.
+   */
+  action?: ReactNode;
 };
 
 /**
@@ -44,7 +49,7 @@ export type PageTitleProps = PageTitleKicker & {
  *
  * It exists because the page title had three spellings and no legal home: a Content component holding an `h1`, a `Title order={1}`, and a bare `h1`, so every page picked one and the outline drifted.
  */
-export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede }: PageTitleProps) {
+export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede, action }: PageTitleProps) {
   const insideHeader = useInsidePageHeader();
 
   if (import.meta.env.DEV && !insideHeader) {
@@ -64,6 +69,7 @@ export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede }: PageTi
       </Title>
       {subtitle === undefined ? null : <p className={styles.subtitle}>{subtitle}</p>}
       {lede === undefined ? null : <p className={styles.lede}>{lede}</p>}
+      {action ?? null}
     </Stack>
   );
 }

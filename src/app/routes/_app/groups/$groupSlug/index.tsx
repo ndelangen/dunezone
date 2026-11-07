@@ -1,5 +1,4 @@
-/* oxlint-disable-next-line no-restricted-imports -- The group's page mark is a rounded square filling its header slot, not a name disc. */
-import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
+import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
@@ -236,18 +235,8 @@ function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
         <PageIdentity
           title={group.name}
           media={
-            <Avatar
-              radius="md"
-              size="100%"
-              variant="filled"
-              color={nameDiscColor(group.name)}
-              className={styles.groupAvatar}
-              /* The name is the h1 beside it, so the letter is not read out again. Inline, so the size outranks Mantine's own placeholder rule whatever the stylesheet order. */
-              aria-hidden
-              styles={{ placeholder: { fontSize: '48cqi', fontWeight: 600 } }}
-            >
-              {group.name.trim().slice(0, 1).toUpperCase()}
-            </Avatar>
+            /* A group has no picture: its mark is its initial on the colour its name hashes to, the colour its citations wear. */
+            <NameDisc name={group.name} color={nameDiscColor(group.name)} shape="tile" size="fill" />
           }
           breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           maintainers={{

@@ -686,17 +686,16 @@ function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
         </Text>
       </Card>
 
-      <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
-        {rulesets.length === 0 ? (
-          <EmptyNote>Not in a ruleset yet.</EmptyNote>
-        ) : (
+      {/* Left out when empty, like the asset page's Shipped by card: an empty card only makes a new faction look unfinished. */}
+      {rulesets.length > 0 ? (
+        <Card icon={<TopicIcon topic="rulesets" size={20} />} title="Rulesets">
           <EntityLinkList>
             {rulesets.map((ruleset) => (
               <RulesetLink key={ruleset.id} slug={ruleset.slug} name={ruleset.name} />
             ))}
           </EntityLinkList>
-        )}
-      </Card>
+        </Card>
+      ) : null}
     </>
   );
 }

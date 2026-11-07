@@ -97,6 +97,12 @@ export const AskQuestion = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('textbox', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
+    /* One way up, above the title, named after the ruleset's FAQ. */
+    await expect(page.getByRole('link', { name: 'ClassicRules FAQ' })).toHaveAttribute(
+      'href',
+      '/rulesets/classicrules/faq'
+    );
+    await expect(page.queryByRole('link', { name: 'Back to rulesets' })).toBeNull();
   },
 });
 

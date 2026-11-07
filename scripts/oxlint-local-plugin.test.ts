@@ -524,6 +524,34 @@ export const probe = <Text tt="uppercase">Phase</Text>;
   });
 });
 
+describe('empty-note', { timeout: TEST_BUDGET_MS }, () => {
+  const mantine = "import { Text } from '@mantine/core';\n";
+  /* Each case: the JSX probed, the folder it sits in, and how many lines the rule should report. */
+  test.each([
+    ['a dimmed absence line', '<Text size="sm" c="dimmed">No factions yet.</Text>', 'src/app/routes', 1],
+    ['an absence wrapped over lines', '<Text c="dimmed">\n  This table has no rows yet.\n</Text>', 'src/app/routes', 1],
+    [
+      'a line that opens with Nothing',
+      '<Text size="xs" c="dimmed">Nothing beyond its own parts.</Text>',
+      'src/app/routes',
+      1,
+    ],
+    ['dimmed given as an expression', "<Text c={'dimmed'}>No factions yet</Text>", 'src/app/routes', 1],
+    [
+      'a dimmed line that is no absence',
+      '<Text c="dimmed">A preview. Play is not available yet.</Text>',
+      'src/app/routes',
+      0,
+    ],
+    ['computed text', "<Text c=\"dimmed\">{'No messages ' + 'yet.'}</Text>", 'src/app/routes', 0],
+    ['an undimmed absence', '<Text>No factions yet.</Text>', 'src/app/routes', 0],
+    ['the kit itself', '<Text c="dimmed">No factions yet.</Text>', 'src/app/ui/content', 0],
+  ] as const)('%s', async (_name, jsx, folder, expected) => {
+    const output = await lintDiagnostics('probe.tsx', `${mantine}export const probe = ${jsx};\n`, folder);
+    expect(output.split('local(empty-note)').length - 1).toBe(expected);
+  });
+});
+
 describe('control-block-label', { timeout: TEST_BUDGET_MS }, () => {
   const reports = (output: string) => output.split('local(control-block-label)').length - 1;
 

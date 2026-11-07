@@ -9,6 +9,7 @@ import {
 import { Stack, Text, TextInput } from '@mantine/core';
 import { createRulebookLocalId } from '@shared/rulebooks/contents';
 import { ListChapter } from '@ui/block/ListChapter';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
 import { IconAction } from '@ui/control/IconAction';
@@ -133,9 +134,7 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
         }
       >
         {value.columnOrder.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            This table has no columns yet.
-          </Text>
+          <EmptyNote>This table has no columns yet.</EmptyNote>
         ) : (
           <SortableEntries
             order={value.columnOrder}
@@ -191,9 +190,7 @@ export function ReferenceTableEdit({ value, onChange }: RulebookBlockEditorProps
         }
       >
         {value.rowOrder.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            This table has no rows yet.
-          </Text>
+          <EmptyNote>This table has no rows yet.</EmptyNote>
         ) : (
           <SortableEntries
             order={value.rowOrder}
@@ -287,9 +284,7 @@ export function CreditsEdit({ value, onChange }: RulebookBlockEditorProps<'credi
         }
       >
         {value.groupOrder.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            These credits have no groups yet.
-          </Text>
+          <EmptyNote>These credits have no groups yet.</EmptyNote>
         ) : (
           <SortableEntries
             order={value.groupOrder}

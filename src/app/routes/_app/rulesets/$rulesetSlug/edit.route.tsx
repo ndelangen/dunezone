@@ -23,6 +23,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import type { AuthoringSaveState } from '@ui/content/assetPublishingStatus';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
 import { helpLines } from '@ui/content/helpLines';
 import { RULESET_ABOUT_HELP, rulesetAboutCount } from '@ui/content/rulesetAboutHint';
@@ -739,7 +740,7 @@ function RulesetFactions({
             />
           </Group>
           {ordered && factions.length === 0 ? (
-            <Text c="dimmed">No factions have been added to this ruleset yet.</Text>
+            <EmptyNote>No factions have been added to this ruleset yet.</EmptyNote>
           ) : null}
           {factions.length > 0 ? (
             <DndContext
@@ -894,7 +895,7 @@ function RulesetRulebooks({
       <Surface padding="lg">
         <Stack gap="md">
           <ActionError subject="Rulebooks" verb="update" error={error} />
-          {rulebooks.length === 0 ? <Text c="dimmed">No Rulebooks yet.</Text> : null}
+          {rulebooks.length === 0 ? <EmptyNote>No Rulebooks yet.</EmptyNote> : null}
           <Stack component="ol" aria-label="Rulebooks" gap="sm" m={0} p={0} style={{ listStyle: 'none' }}>
             {rulebooks.map((book, index) => (
               <Group component="li" key={book._id} gap="sm" wrap="nowrap">
