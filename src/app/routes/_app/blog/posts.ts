@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'editable-dune-board-arrakis': {
+    slug: 'editable-dune-board-arrakis',
+    title: 'One editable Dune board for the whole site: how Arrakis became a map you can redraw',
+    date: '2026-11-09',
+    author: 'Central419',
+    summary:
+      'Spice cards, Rulebooks, the glossary and the game table each kept their own copy of Arrakis. Now they all draw one saved board, made in the dune.zone board editor.',
+    cover: {
+      key: '/web/blog/editable-dune-board-arrakis/homepage-table.jpg',
+      alt: "The homepage game table on dune.zone: the Arrakis board with troops, faction tokens and another player's hand",
+      aspect: 606 / 2048,
+    },
+  },
   'dune-homebrew-art-ai-and-credits': {
     slug: 'dune-homebrew-art-ai-and-credits',
     title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',
