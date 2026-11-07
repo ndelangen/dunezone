@@ -34,6 +34,7 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
           DRY_RUN: ${{ inputs.dry_run }}
+        shell: bash
         run: |
           args="{\"factionSlugs\":[\"house-atreides\",\"house-harkonnen\",\"emperor\",\"spacing-guild\",\"fremen\",\"bene-gesserit\"],\"dryRun\":${DRY_RUN}}"
           bunx convex run glossaryFactionRepair:run "$args" | tee repair-result.json
