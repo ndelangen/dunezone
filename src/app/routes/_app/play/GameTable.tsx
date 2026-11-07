@@ -63,8 +63,10 @@ import { MentatRecallBackdrop } from './multiplayer/MentatRecall';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 
-/* How long the shell waits for the renderer before opening anyway. */
+/* How long the shell waits for the renderer's first frame before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
+/* Once the renderer draws, how long the shell waits for the board's paint before opening anyway. */
+const SCENE_PAINT_FALLBACK_MS = 10_000;
 
 /** One panel of the table's controls, which the compass opens as a window: its name, its glyph from the topic map, and what it shows. */
 export type TablePanel = Readonly<{
@@ -639,11 +641,19 @@ function useTableViewController(
     dispatchView({ type: 'scene.ready' });
     onSceneReady?.();
   }, [onSceneReady]);
-  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
+  const [sceneStarted, setSceneStarted] = useState(false);
+  const handleSceneStarted = useCallback(() => setSceneStarted(true), []);
+  /*
+   * A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing.
+   * A renderer that draws has its board on the way, so the clock gives the board's paint longer before the shell opens without it.
+   */
   useEffect(() => {
-    const timer = setTimeout(() => dispatchView({ type: 'scene.ready' }), SCENE_READY_FALLBACK_MS);
+    const timer = setTimeout(
+      () => dispatchView({ type: 'scene.ready' }),
+      sceneStarted ? SCENE_PAINT_FALLBACK_MS : SCENE_READY_FALLBACK_MS
+    );
     return () => clearTimeout(timer);
-  }, [handleSceneReady]);
+  }, [handleSceneReady, sceneStarted]);
 
   return {
     viewPhase,
@@ -652,6 +662,7 @@ function useTableViewController(
     cameraView,
     sceneEvents: {
       onInteractionActiveChange: handleInteractionActiveChange,
+      onSceneStarted: handleSceneStarted,
       onSceneReady: handleSceneReady,
       onSceneUnavailable: handleSceneUnavailable,
     },

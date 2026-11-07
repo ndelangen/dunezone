@@ -135,7 +135,15 @@ type BoardSkinMaterialProps = Readonly<{
  * a new look is baked and compiled off the frame, and the board keeps its current look, bake and all, until the new one is ready, so choosing a skin never stalls the table.
  * Meshes take it as their `material` prop: swapping an attached child material can restore a stale one.
  */
-export function useBoardSkinMaterial({
+export function useBoardSkinMaterial(props: BoardSkinMaterialProps) {
+  return useBoardSkinPaint(props).material;
+}
+
+/**
+ * The board paint's material, and whether a prepared look over the current artwork is on the board yet.
+ * The table's opening waits on `ready`, so the board is painted in full before the frame lifts.
+ */
+export function useBoardSkinPaint({
   geometry,
   bakeGeometry = geometry,
   board = null,
@@ -161,6 +169,8 @@ export function useBoardSkinMaterial({
     }),
     invalidate
   );
+  /* The artwork the last prepared look was made over; the board is ready once that is the artwork it has now. */
+  const [preparedOver, setPreparedOver] = useState<{ map: Texture | null } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,7 +183,17 @@ export function useBoardSkinMaterial({
       polygonOffset,
     };
     prepareLook({ renderer, scene, camera }, { skin, planet }, paint, controller.signal).then(
-      (next) => next && (controller.signal.aborted ? drop(next) : setShown(next)),
+      (next) => {
+        if (!next) {
+          return;
+        }
+        if (controller.signal.aborted) {
+          drop(next);
+          return;
+        }
+        setShown(next);
+        setPreparedOver({ map });
+      },
       (error: unknown) => {
         if (!controller.signal.aborted) {
           /* The board keeps its current look; say why the new one never came. */
@@ -197,5 +217,5 @@ export function useBoardSkinMaterial({
     setShown,
   ]);
 
-  return shown.material;
+  return { material: shown.material, ready: preparedOver !== null && preparedOver.map === map };
 }

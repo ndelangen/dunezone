@@ -32,6 +32,7 @@ const PROVIDED_ELSEWHERE = [
   ['--rulebook-aspect', 'RulesetRulebooks in routes/_app/rulesets/$rulesetSlug/index.tsx, via inline style'],
   ['--document-editor-', 'DocumentEditorLayout, via setProperty'],
   ['--editor-plane-width', 'the faction editor plane, via setProperty'],
+  ['--wait-', 'TableWaitArt, which places and staggers its grains, stars and sectors, via inline style'],
   ['--brush-cursor', 'TabletopScene while the territory paintbrush is on, via inline style'],
   ['--page-layout-fullscreen-left', 'TutorialGuide, which puts its rail beside a fullscreen page, via inline style'],
   ['--rail-width', 'TutorialGuide, which sizes its rail, via inline style'],
