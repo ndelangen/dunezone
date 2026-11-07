@@ -437,6 +437,28 @@ import with a `--` reason; the disable covers the whole file, so the reason must
 `Button` in it. Which variant each takes is the section above; this one is about how many and how
 labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
+### The breadcrumb is the way up, and a catalogue's create lives in its header
+
+A detail page whose band carries a breadcrumb has no Back action in its toolbar: the breadcrumb
+above the title already says where the page sits and goes there, and a second arrow below it
+repeated it (Norbert, 2026-11-07). Pages without a breadcrumb (an editor, an FAQ question) keep the
+toolbar Back. A catalogue page offers its one create action as a `CallToAction` under the title in
+the header, never also as a `+` in the toolbar. A toolbar with no action left for this reader draws
+nothing, and its slot steps aside.
+
+*Convention. The kit carries it: `PageIdentity.Breadcrumb` is the way up, `Toolbar` renders nothing
+when none of its edges holds an action, and `CallToAction` and `LabeledAction` take the `md` size
+inside `PageLayout.Header` whatever size a caller passes, so every header button is one size.*
+
+### Nothing here yet is one dimmed line
+
+An empty section says so in one dimmed line, with no pane around it, so every empty state on a
+detail page looks the same. A placeholder for a feature that does not exist yet is not shown at all.
+A list of entities named as links is a real list, so its count is announced.
+
+*Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
+line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.*
+
 ### A bar states its statuses as glyphs and stays one line
 
 A toolbar that runs out of room drops or iconifies; it never wraps. Status stated as prose made the

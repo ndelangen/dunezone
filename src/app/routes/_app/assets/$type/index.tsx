@@ -16,7 +16,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -222,18 +222,6 @@ function AssetTypePage() {
                 {sortSelect()}
               </SearchRefine>
             </Toolbar.Center>
-            <Toolbar.Right label={`${definition.label} actions`}>
-              <IconAction
-                label={`Create a ${noun.toLowerCase()}`}
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />
-                )}
-                icon={<Plus size={17} aria-hidden />}
-              />
-            </Toolbar.Right>
           </Toolbar>
         </PageLayout.Toolbar>
       ) : null}

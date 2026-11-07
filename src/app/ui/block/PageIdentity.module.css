@@ -51,7 +51,30 @@
  * The text column is a flex column, so its children stretch to its width by default. This anchor
  * took all of it: 628px of hit area for one word on the ruleset band, and every pixel of it looked
  * like empty band. Same shape as the chip stretch fixed in #853.
+ * Two classes, so the eyebrow treatment outranks the band's rule that underlines every anchor in it at rest.
+ * The chevron says "link" here, and the line comes back on hover.
  */
-.breadcrumb {
+.text > .breadcrumb {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-inverse);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+  text-decoration: none;
+}
+
+.text > .breadcrumb:hover {
+  text-decoration: underline;
+}
+
+/* The chevron's glyph has side bearing; pulling it in lines its ink up with the title below. */
+.text > .breadcrumb svg {
+  flex: none;
+  margin-inline-start: -0.2rem;
+  filter: drop-shadow(0 2px 4px rgb(from var(--color-shadow) r g b / 85%));
 }

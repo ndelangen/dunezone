@@ -363,7 +363,10 @@ export const FaqFormerSearchLink = meta.story({
   args: { path: '/rulesets/classicrules?q=storm&tag=rules' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('link', { name: 'Back to ClassicRules' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('heading', { name: 'Community FAQ', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'ClassicRules' })).toHaveAttribute('href', '/rulesets/classicrules');
     await expect(page.getByRole('textbox', { name: 'Search FAQ questions' })).toHaveValue('storm');
     await expect(
       within(page.getByRole('main')).findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })

@@ -36,8 +36,11 @@ export const DetailFaqPreview = meta.story({
     );
 
     await userEvent.type(faq.getByRole('textbox', { name: 'Search FAQ questions' }), 'storm{Enter}');
-    /* The FAQ's own page, which only it has a way back from. */
-    await expect(page.findByRole('link', { name: 'Back to ClassicRules' }, { timeout: 30_000 })).resolves.toBeVisible();
+    /* The FAQ's own page, whose breadcrumb is the way back to the ruleset. */
+    await expect(
+      page.findByRole('heading', { name: 'Community FAQ', level: 1 }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('link', { name: 'ClassicRules' })).toHaveAttribute('href', '/rulesets/classicrules');
     const main = within(page.getByRole('main'));
     await expect(
       main.findByRole('link', { name: 'When does the storm move?' }, { timeout: 30_000 })

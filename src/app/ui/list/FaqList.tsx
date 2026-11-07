@@ -1,6 +1,7 @@
 import { Anchor, Badge, Group, Text } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -46,11 +47,7 @@ export function FaqList(props: FaqListProps) {
       : props.items.map((item) => ({ item, rulesetSlug: props.rulesetSlug, ruleset: undefined }));
 
   if (!rows.length) {
-    return (
-      <Text size="sm" c="dimmed">
-        {emptyLabel}
-      </Text>
-    );
+    return <EmptyNote>{emptyLabel}</EmptyNote>;
   }
 
   return (

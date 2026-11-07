@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 
+import { Toolbar } from '../surface/Toolbar';
 import { PageLayout } from './PageLayout';
 
 afterEach(() => {
@@ -149,5 +150,27 @@ describe('PageLayout', () => {
 
     expect(markup).not.toContain('data-page-layout-toolbar');
     expect(markup).toContain('Page content');
+  });
+
+  it('leaves the toolbar slot empty when no action in the Toolbar applies to the reader', () => {
+    const canEdit = false;
+    const markup = renderToStaticMarkup(
+      <PageLayout>
+        <PageLayout.Toolbar>
+          <Toolbar>
+            <Toolbar.Left>{canEdit ? <button type="button">Edit</button> : null}</Toolbar.Left>
+            <Toolbar.Right>
+              <Toolbar.Cluster kind="content">{canEdit && <button type="button">Delete</button>}</Toolbar.Cluster>
+            </Toolbar.Right>
+          </Toolbar>
+        </PageLayout.Toolbar>
+        <PageLayout.Content>
+          <p>Page content</p>
+        </PageLayout.Content>
+      </PageLayout>
+    );
+
+    /* The wrapper stays (the slot was given an element) and is empty, which the stylesheet hides with `:empty`. */
+    expect(markup).toMatch(/<div class="[^"]*" data-page-layout-toolbar="true"><\/div>/);
   });
 });

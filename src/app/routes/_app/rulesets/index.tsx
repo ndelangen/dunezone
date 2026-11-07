@@ -1,4 +1,4 @@
-import { Select } from '@mantine/core';
+import { Select, Stack } from '@mantine/core';
 import { RULESET_CATALOGUE_PAGE_SIZE, parseRulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import type { RulesetCatalogueSearch } from '@shared/rulesets/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -6,15 +6,14 @@ import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { OpenableTile } from '@ui/block/OpenableTile';
 import { PageTitle } from '@ui/block/PageTitle';
+import { CallToAction } from '@ui/control/CallToAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { Plus } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -157,14 +156,12 @@ function RulesetsPage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <div>
+        <Stack gap="xs" align="center">
           <PageTitle title="Rulesets" />
-          <p>
-            <Link to="/rulesets/create" activeProps={{ style: { fontWeight: 'bold' } }}>
-              Create a new ruleset
-            </Link>
-          </p>
-        </div>
+          <CallToAction attention renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/create" />}>
+            Create a ruleset
+          </CallToAction>
+        </Stack>
       </PageLayout.Header>
       {data.rulesetTotal > 0 ? (
         <PageLayout.Toolbar>
@@ -184,16 +181,6 @@ function RulesetsPage() {
                 {sortSelect()}
               </SearchRefine>
             </Toolbar.Center>
-            <Toolbar.Right label="Ruleset actions">
-              <IconAction
-                label="Create a new ruleset"
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/create" />}
-                icon={<Plus size={17} aria-hidden />}
-              />
-            </Toolbar.Right>
           </Toolbar>
         </PageLayout.Toolbar>
       ) : null}
