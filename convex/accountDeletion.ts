@@ -86,12 +86,19 @@ async function sourceGroupIds(ctx: AnyCtx, sourceUserId: Id<'users'>) {
  * `requireActiveReplacement` keeps watching the account itself while the operation runs.
  */
 async function requireCoMember(ctx: AnyCtx, sourceUserId: Id<'users'>, replacementUserId: Id<'users'>) {
-  for (const groupId of await sourceGroupIds(ctx, sourceUserId)) {
-    const membership = await ctx.db
-      .query('group_members')
-      .withIndex('by_group_user', (q) => q.eq('group_id', groupId).eq('user_id', replacementUserId))
-      .unique();
-    if (membership?.status === 'active') {
+  /* Every active membership, not the picker's bounded first Groups: the check stops at the first shared live Group, so an eligible choice is never refused for where its Group falls. */
+  const memberships = ctx.db
+    .query('group_members')
+    .withIndex('by_user_status', (q) => q.eq('user_id', sourceUserId).eq('status', 'active'));
+  for await (const sourceMembership of memberships) {
+    const [group, membership] = await Promise.all([
+      ctx.db.get('groups', sourceMembership.group_id),
+      ctx.db
+        .query('group_members')
+        .withIndex('by_group_user', (q) => q.eq('group_id', sourceMembership.group_id).eq('user_id', replacementUserId))
+        .unique(),
+    ]);
+    if (group && !group.is_deleted && membership?.status === 'active') {
       return;
     }
   }
@@ -236,7 +243,9 @@ export const listReplacementProfiles = viewerQuery({
   handler: async (ctx, args) => {
     const sourceUserId = await requireAuthUserId(ctx);
     const profiles = await coMemberProfiles(ctx, sourceUserId, slugify(args.search));
-    const offset = Math.max(0, Number.parseInt(args.paginationOpts.cursor ?? '0', 10) || 0);
+    /* Anything but a plain offset, such as a database cursor from a picker opened before this paged by offset, starts again from the top. */
+    const cursor = args.paginationOpts.cursor ?? '0';
+    const offset = /^\d+$/.test(cursor) ? Number(cursor) : 0;
     const size = Math.max(1, Math.floor(args.paginationOpts.numItems));
     const page = profiles.slice(offset, offset + size);
     const end = offset + page.length;

@@ -28,6 +28,9 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
   const rows = picker.data;
   const selected = selectedUserId ? rowsById.get(selectedUserId) : undefined;
+  /* Only an unsearched list speaks for everyone; a search that matches nobody keeps its field so the reader can change it. */
+  const unsearched = search.trim() === '';
+  const loading = picker.status === 'LoadingFirstPage';
 
   return (
     <Stack gap="md">
@@ -37,9 +40,9 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
           Only people who share a group with you can receive your direct ownership.
         </Text>
       </div>
-      {picker.status === 'LoadingFirstPage' ? (
+      {unsearched && loading ? (
         <Pending>Loading profiles</Pending>
-      ) : picker.data.length === 0 ? (
+      ) : unsearched && rows.length === 0 ? (
         <Text size="sm" c="dimmed">
           Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.
         </Text>
@@ -68,7 +71,9 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
           />
           <ScrollArea.Autosize mah={260} type="auto">
             <Combobox.Options>
-              {rows.length === 0 ? (
+              {loading ? (
+                <Combobox.Empty>Loading profiles…</Combobox.Empty>
+              ) : rows.length === 0 ? (
                 <Combobox.Empty>No matching profiles</Combobox.Empty>
               ) : (
                 rows.map((profile) => (

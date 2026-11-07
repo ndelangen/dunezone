@@ -245,14 +245,20 @@ const MEMBERSHIP_RANK = { removed: 0, pending: 1, invited: 1, active: 2 };
 function mergedMembershipPatch(
   moving: Doc<'group_members'>,
   kept: Doc<'group_members'>
-): Pick<Doc<'group_members'>, 'status' | 'approved_at' | 'approved_by'> | null {
+): Partial<Pick<Doc<'group_members'>, 'status' | 'approved_at' | 'approved_by' | 'requested_at'>> | null {
   const statuses = [moving.status, kept.status];
   if (statuses.includes('pending') && statuses.includes('invited')) {
     const invited = moving.status === 'invited' ? moving : kept;
     return { status: 'active', approved_at: nowIso(), approved_by: invited.approved_by };
   }
   if (MEMBERSHIP_RANK[moving.status] > MEMBERSHIP_RANK[kept.status]) {
-    return { status: moving.status, approved_at: moving.approved_at, approved_by: moving.approved_by };
+    /* The moving row's own date too: an invitation that replaces a removed row was sent when the moving row says. */
+    return {
+      status: moving.status,
+      approved_at: moving.approved_at,
+      approved_by: moving.approved_by,
+      requested_at: moving.requested_at,
+    };
   }
   return null;
 }

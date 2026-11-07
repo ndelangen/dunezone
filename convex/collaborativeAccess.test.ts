@@ -605,7 +605,8 @@ describe('collaborative access public projections', () => {
     });
     expect(faction.assignableGroups).toHaveLength(200);
     expect(ruleset?.assignableGroups).toHaveLength(200);
-    expect(group.roster.some((entry) => entry.membershipId === capped.membershipId)).toBe(false);
+    /* The roster reads by status, so the 500 removed rows no longer push a later member out of it. */
+    expect(group.roster.some((entry) => entry.membershipId === capped.membershipId)).toBe(true);
   });
 });
 
