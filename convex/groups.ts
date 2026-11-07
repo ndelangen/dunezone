@@ -1,9 +1,10 @@
 import { ConvexError, v } from 'convex/values';
 
 import { groupInputSchema } from '../src/shared/groups/validation';
+import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, publicQuery, viewerQuery } from './functions';
+import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
 import { resolveBackgrounds } from './lib/backgroundPresets';
 import {
   liveGroupOrNull,
@@ -19,6 +20,7 @@ import {
 } from './lib/collaborativeAccessValidators';
 import { factionRowForClient } from './lib/factionInput';
 import { recordFormerSlug } from './lib/formerSlugs';
+import { retireGroupInvitations } from './lib/groupInvitations';
 import { requireAuthUserId } from './lib/policy';
 import { allocateCounterSlug } from './lib/slugCounters';
 import { nowIso, slugify } from './lib/utils';
@@ -210,6 +212,20 @@ export const softDelete = mutation({
   handler: async (ctx, args) => {
     const { subject: group } = await requireGroupCapability(ctx, args.id, 'delete');
     await ctx.db.patch(group._id, { is_deleted: true });
+    if (await retireGroupInvitations(ctx, group._id)) {
+      await ctx.scheduler.runAfter(0, internal.groups.retireDeletedGroupInvitations, { groupId: group._id });
+    }
     return args.id;
+  },
+});
+
+/** The rest of a deleted Group's invitations, a batch per run, for a Group that held more than one transaction retires. */
+export const retireDeletedGroupInvitations = internalMutation({
+  args: { groupId: v.id('groups') },
+  handler: async (ctx, args) => {
+    if (await retireGroupInvitations(ctx, args.groupId)) {
+      await ctx.scheduler.runAfter(0, internal.groups.retireDeletedGroupInvitations, args);
+    }
+    return null;
   },
 });

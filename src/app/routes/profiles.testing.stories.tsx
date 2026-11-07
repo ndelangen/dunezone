@@ -6,6 +6,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { db, ref, faction } from '@db/storybook';
 import type { StorybookDatabase } from '@db/storybook';
 
+import { strangerOwnsTheGroups, viewerStandsAs } from './groups.stories.fixture';
 import { findDeletionPage } from './profiles.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
@@ -79,7 +80,7 @@ export const SettingsInvalidNameOpensTheBand = meta.story({
   },
 });
 
-/** With nobody to hand ownership to, the page says what will be soft-deleted and still waits for the acknowledgement. */
+/** With nobody sharing a Group to hand ownership to, the page says so, says what will be soft-deleted, and still waits for the acknowledgement. */
 export const DeleteAccountReplacementPicker = meta.story({
   args: { path: '/profiles/central/delete' },
   play: async ({ canvasElement }) => {
@@ -89,9 +90,44 @@ export const DeleteAccountReplacementPicker = meta.story({
       await expect(ownership.getByText(new RegExp(`^${kind}: active ownership`))).toBeVisible();
     }
     await userEvent.click(page.getByRole('button', { name: 'Choose a replacement owner' }));
-    await waitForFrame(() => page.getByText('No other active profiles are available.'), { timeout: 30_000 });
+    await waitForFrame(() => page.getByText(/^Nobody shares a group with you yet/), { timeout: 30_000 });
+    /* The pane is still fading in when its empty state first exists, so the hint is awaited rather than asserted at once. */
+    await waitFor(
+      () =>
+        expect(
+          page.getByText('Only people who share a group with you can receive your direct ownership.')
+        ).toBeVisible(),
+      { timeout: 30_000 }
+    );
     await expect(page.getByText('No replacement selected')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete account' })).toBeDisabled();
+  },
+});
+
+/**
+ * The invitations waiting on the viewer sit on their own profile, where accepting one moves the Group into their list.
+ * Only the viewer sees the card: the public page carries no invitations, since the invited have agreed to nothing yet.
+ */
+export const DetailOwnInvitationAccepted = meta.story({
+  args: { path: '/profiles/central' },
+  parameters: {
+    database: db((baseline) => {
+      strangerOwnsTheGroups(baseline);
+      viewerStandsAs(baseline, 'invited');
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const invitations = within(await page.findByRole('region', { name: 'Invitations' }, { timeout: 30_000 }));
+    await expect(invitations.getByRole('link', { name: 'Arrakeen Rules Council' })).toBeVisible();
+    await expect(invitations.getByText(/^Invited by reverend-mother/)).toBeVisible();
+    const groups = within(page.getByRole('region', { name: 'Groups' }));
+    await expect(groups.getByText('Not a member of any groups.')).toBeVisible();
+    await userEvent.click(invitations.getByRole('button', { name: 'Accept invitation to Arrakeen Rules Council' }));
+    await expect(
+      groups.findByRole('link', { name: 'Arrakeen Rules Council' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await waitFor(() => expect(page.queryByRole('region', { name: 'Invitations' })).toBeNull(), { timeout: 30_000 });
   },
 });
 
