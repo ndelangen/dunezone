@@ -153,13 +153,13 @@ function FuturePlansPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <div className={styles.hero}>
+        <Stack gap="md" miw={0} align="center" ta="center">
           <PageTitle
-            eyebrow="Our ambitions"
-            title="A map of what Dune Zone could become"
+            title="Future plans"
+            subtitle="What Dune Zone could become"
             lede="These are promises, not release dates. Explore the territory, then tell us where we should go next."
           />
-        </div>
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
         <AtlasLayout className={styles.atlasFrame}>

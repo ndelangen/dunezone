@@ -61,7 +61,10 @@ const rulesetSummaryValidator = v.object({
  * How a cover is stored stays a server concern, so retiring the legacy column changes the fold and not this shape.
  * The plain summary above stays as it is: the faction catalogue uses it and cites no cover.
  */
-const rulesetCitationValidator = v.object({
+/** A ruleset's question count and how many of them have an accepted answer. */
+export const rulesetFaqCountsValidator = v.object({ questions: v.number(), answered: v.number() });
+
+export const rulesetCitationValidator = v.object({
   id: v.id('rulesets'),
   name: v.string(),
   slug: v.string(),
@@ -281,7 +284,7 @@ export const rulesetPublicDetailPageValidator = v.union(
     factionCount: v.number(),
     /** The newest few questions; the rest are on the ruleset's FAQ page. */
     faqPreview: v.array(faqListItemValidator),
-    faqCounts: v.object({ questions: v.number(), answered: v.number() }),
+    faqCounts: rulesetFaqCountsValidator,
     owner: v.union(profileSummaryValidator, v.null()),
     assetSlots: v.array(rulesetAssetSlotValidator),
     board: v.union(

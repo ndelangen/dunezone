@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
+import { rulesetCoverThumbUrl } from '../src/shared/rulesets/cover';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
@@ -12,8 +13,10 @@ import {
   assignedGroupSummaryValidator,
   relatedFaqItemValidator,
   docValidator,
+  rulesetCitationValidator,
+  rulesetFaqCountsValidator,
 } from './lib/collaborativeAccessValidators';
-import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
+import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqCounts, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
   globalFaqRulesetOptionsValidator,
@@ -123,11 +126,12 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
-const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() });
+/** The ruleset a FAQ page belongs to, with what its header shows: the cover and the question counts, as on the ruleset page. */
+const rulesetFaqCitationValidator = rulesetCitationValidator.extend({ faqCounts: rulesetFaqCountsValidator });
 
 /** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
 const rulesetFaqBrowseValidator = v.object({
-  ruleset: rulesetCitationValidator,
+  ruleset: rulesetFaqCitationValidator,
   items: v.array(faqListItemValidator),
   /** Questions carrying the tag, or all of them, across every page. */
   total: v.number(),
@@ -142,7 +146,7 @@ const rulesetFaqBrowseValidator = v.object({
 /** A searched FAQ: the best matches first, no count and no pages, and more by asking for a larger limit. */
 const rulesetFaqSearchValidator = v.object({
   mode: v.literal('search'),
-  ruleset: rulesetCitationValidator,
+  ruleset: rulesetFaqCitationValidator,
   items: v.array(faqListItemValidator),
   /** Whether a larger limit would show more questions. */
   hasMore: v.boolean(),
@@ -171,7 +175,13 @@ export const rulesetFaq = publicQuery({
     if (!ruleset) {
       return null;
     }
-    const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
+    const citation = {
+      id: ruleset._id,
+      name: ruleset.name,
+      slug: ruleset.slug,
+      coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+      faqCounts: await rulesetFaqCounts(ctx, ruleset._id),
+    };
     /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
     const list = rulesetFaqSearchText(args.q)
       ? await loadRulesetFaqSearch(ctx, ruleset._id, args)

@@ -79,7 +79,7 @@ function GameDebugger() {
   };
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
+      <PageLayout.Header size="compact" align="start">
         <PageTitle
           breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
           title="Game debugger"

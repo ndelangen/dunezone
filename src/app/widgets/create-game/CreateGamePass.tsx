@@ -50,7 +50,7 @@ const MARKS = [2, 6, 10, 14, 18].map((value) => ({
 
 /** The create page's title, which the page puts in its header above the pass. */
 export function CreateGamePassTitle() {
-  return <PageTitle title="Create a game" subtitle="From dune.zone to the table" />;
+  return <PageTitle title="Create a game" />;
 }
 
 /** The pass as it is being filled in, owned by the page; a refusal from the server is held with it, and the next change clears it. */
