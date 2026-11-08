@@ -112,7 +112,7 @@ For each traffic class, misses equal requests × one minus hit ratio. Worker CPU
 
 A visitor's live subscriptions are separate. Existing shell and page queries still subscribe after hydration and can re-execute on updates. As a scale example, 10,000 additional subscribed query executions would cost $0.0286 in function usage at the Starter Ireland rate, plus their actual database I/O and egress. One page load is not necessarily one subscription execution. The table does not claim to price the whole existing application, publication pipeline or stored artwork.
 
-No prepared R2 snapshots or stored social PNGs are required. Cache API contents do not add R2 storage or writes. Existing artwork storage and publication costs remain. At the linear rate, another 1 GB-month of artwork is $0.015 after allowance, subject to rounding. Retained browser chunks use Workers Static Assets and have file-count and per-file limits. The rehearsal did not introduce permanent storage or logging services.
+No prepared R2 snapshots or stored social PNGs are required. Cache API contents do not add R2 storage or writes. Existing artwork storage and publication costs remain. At the linear rate, another 1 GB-month of artwork is $0.015 after allowance, subject to rounding. Browser chunks use Workers Static Assets and have file-count and per-file limits. The rehearsal did not introduce permanent storage or logging services.
 
 ## Limits and remaining work
 

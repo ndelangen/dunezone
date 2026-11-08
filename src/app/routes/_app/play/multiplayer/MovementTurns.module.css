@@ -18,6 +18,11 @@
   gap: 0.3rem;
 }
 
+/* A sortable tile is a block around its token; as a flex box it takes the token's height, so the factions still to go line up with the ones done. */
+.row > * {
+  display: flex;
+}
+
 .token {
   position: relative;
   display: inline-flex;
@@ -69,4 +74,32 @@ button.token:focus-visible {
   border-radius: 50%;
   background: var(--color-positive);
   color: var(--ui-ground);
+}
+
+/* A faction marked done while the row is shown: its tick pops onto the token. */
+.turns[data-motion] .tick[data-fresh] {
+  animation: done-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+@keyframes done-pop {
+  from {
+    scale: 0;
+  }
+}
+
+/* The token's position in the row, written inline by MovementTurns.tsx. */
+.place {
+  --place: 0;
+}
+
+/* Every faction done: a pop runs along the row from the first to finish to the last, so the table sees the phase is complete. */
+.turns[data-motion][data-complete] .place {
+  animation: complete-wave 320ms cubic-bezier(0.2, 0.9, 0.3, 1.4) calc(var(--place) * 70ms + 260ms) backwards;
+}
+
+@keyframes complete-wave {
+  50% {
+    scale: 1.25;
+    translate: 0 -3px;
+  }
 }
