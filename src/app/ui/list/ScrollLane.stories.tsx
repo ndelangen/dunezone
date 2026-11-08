@@ -2,7 +2,7 @@ import preview from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { Card } from '../surface/Card';
-import { ScrollLane } from './ScrollLane';
+import { ScrollLane, fadingItemClass } from './ScrollLane';
 
 const CHAPTERS = [
   'The board',
@@ -16,9 +16,9 @@ const CHAPTERS = [
 ];
 
 /* A tile at a fixed width, as the catalogue's chapter tiles are, asking to snap to the lane's edge. */
-const tile = (name: string, number: number) => (
+const tile = (name: string, number: number, className?: string) => (
   <li key={name} style={{ flex: '0 0 12rem', scrollSnapAlign: 'start' }}>
-    <Card title={name} padding="md">
+    <Card title={name} padding="md" className={className}>
       <div style={{ aspectRatio: '16 / 10', background: '#574b2a' }} aria-hidden>
         <span style={{ padding: '0.5rem', display: 'inline-block' }}>{number}</span>
       </div>
@@ -48,6 +48,26 @@ export const Default = meta.story({
     await expect(within(list).getAllByRole('listitem')).toHaveLength(CHAPTERS.length);
     list.scrollLeft = 120;
     await expect(list.scrollLeft).toBeGreaterThan(0);
+  },
+});
+
+/**
+ * The fade on the tiles instead of the line: each tile dissolves at the lane's ends on its own, so the pane's blur still sees the page behind it.
+ * Scrolled a little in, as the default is, so a tile stands in each fade.
+ */
+export const FadingItems = meta.story({
+  args: {
+    fade: 'items',
+    children: CHAPTERS.map((name, index) => tile(name, index + 1, fadingItemClass)),
+  },
+  play: async ({ canvasElement }) => {
+    const list = within(canvasElement).getByRole('list', { name: 'Chapters' });
+    list.scrollLeft = 120;
+    await expect(list.scrollLeft).toBeGreaterThan(0);
+    /* The line itself carries no mask; the fade is each tile's own, where the browser drives it from the scroll position. */
+    await expect(getComputedStyle(list).maskImage).toBe('none');
+    const [first] = canvasElement.getElementsByClassName(fadingItemClass);
+    await expect(getComputedStyle(first!).maskImage).not.toBe('none');
   },
 });
 

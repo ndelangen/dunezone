@@ -12,6 +12,19 @@ type LaneElement = 'div' | 'ol' | 'ul';
  */
 type LaneRoom = 'outline' | 'shadow';
 
+/**
+ * Where the fade at the lane's ends is painted.
+ * `lane` masks the whole line, the default.
+ * `items` leaves the line unmasked and lets each item fade itself, for items that blur the page behind them (see `fadingItemClass`).
+ */
+type LaneFade = 'lane' | 'items';
+
+/**
+ * The class an item puts on the element that fades, in a lane with `fade="items"`: the very element that carries the blur, never one above it.
+ * A mask on an ancestor would make that ancestor the blur's backdrop, and the blur would see the empty lane instead of the page.
+ */
+export const fadingItemClass: string = styles.fadingItem;
+
 export interface ScrollLaneProps {
   /** The items, in reading order, each at its own fixed width. In a list lane each is an `li`. */
   children: ReactNode;
@@ -28,6 +41,11 @@ export interface ScrollLaneProps {
   focusable?: boolean;
   /** The room the lane keeps above and below its items, `outline` by default. */
   room?: LaneRoom;
+  /**
+   * Where the fade is painted, `lane` by default.
+   * `items` for items that blur the page behind them, such as `Surface` panes: each puts `fadingItemClass` on the element that blurs.
+   */
+  fade?: LaneFade;
 }
 
 /**
@@ -45,6 +63,7 @@ export function ScrollLane({
   start,
   focusable = false,
   room = 'outline',
+  fade = 'lane',
 }: ScrollLaneProps) {
   return (
     <div className={styles.frame}>
@@ -52,6 +71,7 @@ export function ScrollLane({
       <Tag
         className={styles.lane}
         data-room={room}
+        data-fade={fade}
         aria-label={ariaLabel}
         start={Tag === 'ol' ? start : undefined}
         tabIndex={focusable ? 0 : undefined}

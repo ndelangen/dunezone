@@ -7,7 +7,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ScrollLane } from '@ui/list/ScrollLane';
+import { ScrollLane, fadingItemClass } from '@ui/list/ScrollLane';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -50,7 +50,11 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
  * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
  * A built tile's title is a link that covers the whole tile, so the tile opens the tutorial and reads as one link.
  */
-function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
+function CatalogueTileView({
+  tile,
+  eager,
+  className,
+}: Readonly<{ tile: CatalogueTile; eager: boolean; className?: string }>) {
   const titleId = useId();
   const title = (
     <>
@@ -63,7 +67,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
-        className={clsx(styles.tile, tile.link && styles.built)}
+        className={clsx(styles.tile, tile.link && styles.built, className)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
@@ -140,16 +144,18 @@ export function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly 
 /**
  * The same tiles on one line that scrolls sideways, for a page that shows the catalogue in passing (Norbert, 2026-11-07: a blog post needs one line, not every row).
  * Every tile keeps the width it has on the catalogue page at five across, so the line shows the first few and the edge of the next, and the list scrolls and snaps tile by tile.
- * The line is the kit's `ScrollLane`, the masked lane the leaders on a faction's page scroll in.
+ * The line is the kit's `ScrollLane`, the fading lane the leaders on a faction's page scroll in.
+ * Unlike the catalogue's rows, the strip keeps the panes' live blur of the page (Norbert, 2026-11-08: blur like surfaces): only a few tiles are in view at once.
+ * A blurred pane cannot fade under the lane's mask, which would make the lane its backdrop, so each tile fades itself (`fade="items"`).
  * The list takes the focus so a keyboard moves it, and `label` names it to a reader.
  * The pictures stay lazy: the line sits down a page, never above its fold.
  */
 export function TutorialTileStrip({ tiles, label }: Readonly<{ tiles: readonly CatalogueTile[]; label: string }>) {
   return (
     <div className={styles.stripFrame}>
-      <ScrollLane as="ol" aria-label={label} start={tiles[0]?.number} focusable>
+      <ScrollLane as="ol" aria-label={label} start={tiles[0]?.number} focusable fade="items">
         {tiles.map((tile) => (
-          <CatalogueTileView key={tile.slug} tile={tile} eager={false} />
+          <CatalogueTileView key={tile.slug} tile={tile} eager={false} className={fadingItemClass} />
         ))}
       </ScrollLane>
     </div>

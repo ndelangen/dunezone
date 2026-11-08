@@ -115,13 +115,12 @@
 }
 
 /*
- * The strip: the same tiles on one line that scrolls sideways, in the kit's masked lane.
+ * The strip: the same tiles on one line that scrolls sideways, in the kit's fading lane.
  * A tile keeps about the width it has on the catalogue page at five across, and comes down a step where the line has less than a phone's width of room, so the next tile always shows its edge and says the line scrolls.
  * The frame is the strip's own container, so the step reads the room the strip is given rather than the page.
+ * Unlike the catalogue's rows, the strip sets no `--surface-backdrop`: its tiles keep the panes' live blur, and the lane fades them one by one.
  */
 .stripFrame {
-  --surface-backdrop: none;
-
   container: tile-strip / inline-size;
   width: 100%;
 }
