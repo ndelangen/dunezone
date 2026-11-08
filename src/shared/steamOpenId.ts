@@ -47,13 +47,17 @@ type OpenIdField = (name: string) => string | null;
 const SIGNED_FIELDS = ['op_endpoint', 'claimed_id', 'identity', 'return_to', 'response_nonce', 'assoc_handle'];
 
 /** A positive answer from Steam's own endpoint, for one Steam account, carrying its `steamId`. */
+const POSITIVE_ANSWER: Record<string, string> = {
+  ns: OPENID_NS,
+  mode: 'id_res',
+  op_endpoint: STEAM_OPENID_ENDPOINT,
+};
+
 function positiveSteamId(field: OpenIdField): string | null {
-  const positive =
-    field('ns') === OPENID_NS && field('mode') === 'id_res' && field('op_endpoint') === STEAM_OPENID_ENDPOINT;
-  if (!positive || field('claimed_id') !== field('identity')) {
-    return null;
-  }
-  return CLAIMED_ID.exec(field('claimed_id') ?? '')?.[1] ?? null;
+  const positive = Object.entries(POSITIVE_ANSWER).every(([name, expected]) => field(name) === expected);
+  const claimed = field('claimed_id');
+  const sameIdentity = positive && claimed === field('identity');
+  return sameIdentity ? (CLAIMED_ID.exec(claimed ?? '')?.[1] ?? null) : null;
 }
 
 /** Whether the answer was sent back to this site's Steam return page. */
@@ -80,7 +84,8 @@ function recentNonce(field: OpenIdField, now: number): string | null {
 /** Whether Steam's signature covers every field this check relies on. */
 function signedOverEssentials(field: OpenIdField): boolean {
   const signed = new Set((field('signed') ?? '').split(','));
-  return SIGNED_FIELDS.every((name) => signed.has(name)) && !!field('sig') && !!field('assoc_handle');
+  const hasSignature = ['sig', 'assoc_handle'].every((name) => !!field(name));
+  return hasSignature && SIGNED_FIELDS.every((name) => signed.has(name));
 }
 
 /** The same fields, as the `check_authentication` request that asks Steam to confirm them. */
@@ -109,12 +114,10 @@ export function parseSteamAssertion(
     const value = fields[`openid.${name}`];
     return typeof value === 'string' ? value : null;
   };
-  const steamId = positiveSteamId(field);
-  const nonce = recentNonce(field, now);
-  if (!steamId || !nonce || !addressedToSite(field, siteUrl) || !signedOverEssentials(field)) {
-    return null;
-  }
-  return { steamId, nonce, checkBody: checkAuthenticationBody(fields) };
+  const trustworthy = addressedToSite(field, siteUrl) && signedOverEssentials(field);
+  const steamId = trustworthy ? positiveSteamId(field) : null;
+  const nonce = steamId ? recentNonce(field, now) : null;
+  return steamId && nonce ? { steamId, nonce, checkBody: checkAuthenticationBody(fields) } : null;
 }
 
 /** Whether Steam's `check_authentication` answer, in OpenID's key-value form, confirms the assertion. */
