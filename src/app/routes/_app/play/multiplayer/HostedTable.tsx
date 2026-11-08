@@ -814,7 +814,8 @@ export default function HostedTable({
             Sign in again
           </Anchor>
         )}
-        <OfflineConversations client={client} />
+        {/* Only while the table is out of reach: a table already answering is being built, and its chat reads the table's clock. */}
+        {view.table ? null : <OfflineConversations client={client} />}
         {exitControl}
       </TableWait>
     );
