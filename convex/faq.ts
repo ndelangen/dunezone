@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 
 import type { FAQ_TAG_VALUES } from '../src/shared/faq/tags';
 import { faqAnswerSchema, faqQuestionSchema, faqTagsSchema } from '../src/shared/faq/validation';
+import { rulesetCoverThumbUrl } from '../src/shared/rulesets/cover';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { internalMutation, mutation, publicQuery, viewerQuery } from './functions';
@@ -31,7 +32,7 @@ import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqRefe
 import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
-import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
+import { loadPublicRulesetBySlug, rulesetFaqCounts } from './lib/rulesetDetailPage';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -123,7 +124,14 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
   }
 }
 
-const rulesetCitationValidator = v.object({ id: v.id('rulesets'), name: v.string(), slug: v.string() });
+/** The ruleset a FAQ page belongs to, with what its header shows: the cover and the question counts, as on the ruleset page. */
+const rulesetCitationValidator = v.object({
+  id: v.id('rulesets'),
+  name: v.string(),
+  slug: v.string(),
+  coverThumbUrl: v.union(v.string(), v.null()),
+  faqCounts: v.object({ questions: v.number(), answered: v.number() }),
+});
 
 /** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
 const rulesetFaqBrowseValidator = v.object({
@@ -171,7 +179,13 @@ export const rulesetFaq = publicQuery({
     if (!ruleset) {
       return null;
     }
-    const citation = { id: ruleset._id, name: ruleset.name, slug: ruleset.slug };
+    const citation = {
+      id: ruleset._id,
+      name: ruleset.name,
+      slug: ruleset.slug,
+      coverThumbUrl: rulesetCoverThumbUrl(ruleset),
+      faqCounts: await rulesetFaqCounts(ctx, ruleset._id),
+    };
     /* Gated on the text the search runs, so a query that is blank once cut to length browses instead. */
     const list = rulesetFaqSearchText(args.q)
       ? await loadRulesetFaqSearch(ctx, ruleset._id, args)

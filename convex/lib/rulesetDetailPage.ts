@@ -134,7 +134,7 @@ async function firstLiveRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>
 }
 
 /** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
-async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+export async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
   const [questions = 0, answered = 0] = await countCataloguePartitions(ctx, 'faq', [
     faqRulesetPartition(rulesetId),
     faqAnsweredPartition(rulesetId),

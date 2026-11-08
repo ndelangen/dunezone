@@ -30,13 +30,13 @@ function BlogPage() {
   return (
     <PageLayout>
       <PageLayout.Header size="hero">
-        <div className={styles.hero}>
+        <Stack gap="md" miw={0} align="center" ta="center">
           <PageTitle
-            eyebrow="Developer blog"
             title="Building Dune Zone"
+            subtitle="The developer blog"
             lede="The ideas, experiments and decisions behind the site, and what we learned along the way."
           />
-        </div>
+        </Stack>
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap={0} className={styles.list}>

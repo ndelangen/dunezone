@@ -14,6 +14,13 @@ import styles from './PageLayout.module.css';
  */
 export type PageHeaderSize = 'default' | 'compact' | 'collapsed' | 'hero' | 'immersive';
 
+/**
+ * Where the header content sits across the band.
+ * `center` (the default) centres the title group;
+ * `start` sets it on the band's one left edge, the same inset on every page that asks for it, so left-aligned titles line up from page to page.
+ */
+export type PageHeaderAlign = 'center' | 'start';
+
 /** How much horizontal room the page content may claim. */
 type PageContentWidth = 'default' | 'viewport';
 
@@ -51,7 +58,7 @@ export function useHeaderActionSize<Size>(component: string, size: Size | undefi
   return 'md';
 }
 
-const Header: (props: PropsWithChildren<{ size?: PageHeaderSize }>) => null = () => null;
+const Header: (props: PropsWithChildren<{ size?: PageHeaderSize; align?: PageHeaderAlign }>) => null = () => null;
 
 const Toolbar: (props: PropsWithChildren) => null = () => null;
 
@@ -66,7 +73,8 @@ const Content: (props: PropsWithChildren<{ width?: PageContentWidth }>) => null 
  * Slots: `Header` (omit it to mark the page intentionally compact;
  * `size="compact"` shrinks the band;
  * `size="hero"` declares a page whose title takes the display treatment;
- * `size="immersive"` grows the band edge to edge over the whole window, for a page that is one invitation such as sign-in), `Toolbar`, and
+ * `size="immersive"` grows the band edge to edge over the whole window, for a page that is one invitation such as sign-in;
+ * `align="start"` sets the header content on the band's one shared left edge instead of centring it), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
  * The default `height="document"` keeps the shell's band and footer and scrolls the document.
  * `height="fullscreen"` removes the shell chrome and gives the content the whole viewport.
@@ -99,6 +107,7 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
   const hasHeader = slots.Header !== undefined;
   const header = slots.Header?.children;
   const headerSize: PageHeaderSize = slots.Header?.size ?? 'default';
+  const headerAlign: PageHeaderAlign = slots.Header?.align ?? 'center';
   const toolbar = slots.Toolbar?.children;
   const content = slots.Content?.children;
   const contentWidth: PageContentWidth = slots.Content?.width ?? 'default';
@@ -118,7 +127,11 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
       {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
           its light-scheme rendering in both schemes (see tokens.css). */}
       {hasHeader && (
-        <header className={styles.headerContent} data-scheme-paper>
+        <header
+          className={styles.headerContent}
+          data-scheme-paper
+          data-page-layout-header-align={headerAlign === 'start' ? 'start' : undefined}
+        >
           <InsidePageHeader.Provider value>{header}</InsidePageHeader.Provider>
         </header>
       )}

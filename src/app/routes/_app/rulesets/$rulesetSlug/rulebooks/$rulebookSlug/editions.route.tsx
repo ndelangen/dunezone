@@ -9,7 +9,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { BookOpen, History } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
@@ -74,6 +74,7 @@ function RulebookEditionHistoryPage() {
     );
   }
   const currentNumber = data.rulebook.current_edition_number;
+  const currentEdition = data.editions.find((edition) => edition.edition_number === currentNumber);
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
@@ -84,15 +85,9 @@ function RulebookEditionHistoryPage() {
               {data.ruleset.name}
             </Breadcrumb>
           }
-          stats={[
-            {
-              key: 'editions',
-              icon: <History size={17} aria-hidden />,
-              value: data.editions.length,
-              label: data.editions.length === 1 ? '1 Edition' : `${data.editions.length} Editions`,
-            },
-          ]}
-        />
+        >
+          <Text size="sm">{editionsSummary(data.editions.length, currentEdition)}</Text>
+        </PageIdentity>
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="md" role="list" aria-label="Editions">
@@ -140,4 +135,12 @@ function RulebookEditionHistoryPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/** The band's one line about the history, in words: how many editions, and which one is current and since when. */
+function editionsSummary(count: number, current: { edition_number: number; created_at: string } | undefined): string {
+  const total = count === 1 ? '1 Edition' : `${count} Editions`;
+  return current
+    ? `${total} · current: Edition ${current.edition_number}, ${formatStableDate(current.created_at)}`
+    : total;
 }

@@ -454,6 +454,19 @@ nothing, and its slot steps aside.
 when none of its edges holds an action, and `CallToAction` and `LabeledAction` take the `md` size
 inside `PageLayout.Header` whatever size a caller passes, so every header button is one size.*
 
+### Which band a page gets
+
+A form (create a ruleset, a Rulebook or a game, ask a question) has no band, like the editors: the
+title stays for readers and search, and the toolbar's back arrow is the way up. The reading pages
+(Glossary, Contributing, Privacy) and the admin tools take the short band with their title on the
+band's one left edge. The big-title pages (Home, Tutorials, Play, Blog, Future plans) centre a
+title card: the title, a gilt-ruled subtitle or a word above, and one line (Norbert, 2026-11-08).
+
+*Convention. The kit carries it: `PageLayout.Header size="collapsed"` keeps the title out of
+sight, [`BackToolbar`](../../src/app/widgets/back-toolbar/BackToolbar.tsx) is a form's way back,
+and `PageLayout.Header align="start"` sets the content on the one left edge, so no page pads its
+own title into place.*
+
 ### Nothing here yet is one dimmed line
 
 An empty section says so in one dimmed line, with no pane around it, so every empty state on a

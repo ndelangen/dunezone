@@ -8,6 +8,7 @@ import type { Dispatch } from 'react';
 import { useCreatableRulesets, useCreateGame, usePlayReadiness } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import { useMotionAllowed } from '@app/styles/motion';
+import { BackToolbar } from '@app/widgets/back-toolbar/BackToolbar';
 import {
   CreateGamePass,
   CreateGamePassTitle,
@@ -206,9 +207,12 @@ function CreateGameForm({
   );
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
+      <PageLayout.Header size="collapsed">
         <CreateGamePassTitle />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <BackToolbar label="Back to the lobby" renderRoot={(rootProps) => <Link {...rootProps} to="/play" />} />
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <CreateGamePass
           {...pass}

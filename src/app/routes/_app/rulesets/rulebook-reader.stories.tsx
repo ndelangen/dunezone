@@ -46,7 +46,7 @@ export const EditionHistory = meta.story({
     await expect(
       page.findByRole('heading', { name: 'Rules of Arrakis', level: 1 }, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await expect(page.getByText('2 Editions')).toBeVisible();
+    await expect(page.getByText(/^2 Editions · current: Edition 2, /)).toBeVisible();
     const list = within(page.getByRole('list', { name: 'Editions' }));
     const items = list.getAllByRole('listitem');
     await expect(items).toHaveLength(2);

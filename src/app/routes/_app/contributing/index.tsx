@@ -113,13 +113,12 @@ function ContributingPage() {
   const navigate = useNavigate();
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <Stack gap="sm">
-          <PageTitle
-            title="Contributing"
-            lede="A guide to the code, deployment, technical names and design decisions."
-          />
-        </Stack>
+      <PageLayout.Header size="compact" align="start">
+        <PageTitle
+          eyebrow="Open source"
+          title="Contributing"
+          lede="A guide to the code, deployment, technical names and design decisions."
+        />
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="xl">

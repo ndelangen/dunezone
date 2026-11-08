@@ -26,6 +26,7 @@ import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } 
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { pageHead } from '@app/routes/pageTitle';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
+import { BackToolbar } from '@app/widgets/back-toolbar/BackToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
@@ -423,9 +424,17 @@ function CreateRulebookPage() {
   }
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <PageTitle title="Create Rulebook" eyebrow={page.ruleset.name} />
+      <PageLayout.Header size="collapsed">
+        <PageTitle title="Create Rulebook" />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <BackToolbar
+          label={`Back to ${page.ruleset.name}`}
+          renderRoot={(rootProps) => (
+            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
+          )}
+        />
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Surface padding="lg">
           <CreateRulebookForm page={page} />

@@ -208,14 +208,12 @@ function GlossaryPage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <Stack gap="sm" maw="48rem">
-          <PageTitle
-            eyebrow="Words we use"
-            title="Glossary"
-            lede="Every game idea on Dune Zone has one name. We follow the 2019 rulebook, except that we say troops where it says forces. When you write on Dune Zone we point out the other words, and you can always keep your own."
-          />
-        </Stack>
+      <PageLayout.Header size="compact" align="start">
+        <PageTitle
+          eyebrow="Words we use"
+          title="Glossary"
+          lede="Every game idea on Dune Zone has one name. We follow the 2019 rulebook, except that we say troops where it says forces."
+        />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>

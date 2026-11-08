@@ -8,6 +8,7 @@ import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
+import { NameDisc } from '@ui/content/NameDisc';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
@@ -30,6 +31,7 @@ import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResult
 import { NotFoundState } from '@app/widgets/page-message/NotFoundState';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
+import { rulesetFaqStats } from '../faqStats';
 import styles from './index.module.css';
 
 const ALL_TAGS = '__all__';
@@ -169,6 +171,8 @@ function RulesetFaqPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title="Community FAQ"
+          media={<NameDisc name={data.ruleset.name} src={data.ruleset.coverThumbUrl} shape="tile" size="fill" />}
+          stats={rulesetFaqStats(data.ruleset.faqCounts)}
           breadcrumb={
             <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}

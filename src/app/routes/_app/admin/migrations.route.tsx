@@ -25,7 +25,11 @@ function formatDate(timestamp?: number) {
 }
 
 const migrationsHeader = (
-  <PageTitle breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>} title="Migration activity" />
+  <PageTitle
+    breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
+    title="Migration activity"
+    lede="Live status of every data migration."
+  />
 );
 
 /** Mounted only for an administrator, so the admin-only query is never asked by anyone else. */
@@ -39,7 +43,9 @@ function MigrationDashboard() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>{migrationsHeader}</PageLayout.Header>
+      <PageLayout.Header size="compact" align="start">
+        {migrationsHeader}
+      </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="sm">
           <Section title="Live migration status">
