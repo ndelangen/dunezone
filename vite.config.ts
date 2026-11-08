@@ -141,7 +141,18 @@ const config = defineConfig({
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/
+    /* browserBundleBudgets fails any client chunk over its budget, so Vite's 500 kB advisory only repeats it. */
+    chunkSizeWarningLimit: Number.POSITIVE_INFINITY,
     rollupOptions: {
+      /* The per-build plugin timing report printed on every build and every CI run; profile locally instead. */
+      checks: { bundlerTimings: false },
+      onLog(level, log, handler) {
+        /* linkedom's vendored worker build uses direct eval; the published reader only calls its parseHTML. */
+        if (log.code === 'EVAL' && log.id?.includes('/linkedom/')) {
+          return;
+        }
+        handler(level, log);
+      },
       output: { assetFileNames: publicAssetFileName },
     },
   },
@@ -178,6 +189,11 @@ const config = defineConfig({
     plugins: () => [...convexWorkerBuildPlugins(), sandboxAsyncHooksInBrowser()],
     /* The same file names as the client's chunks, which the Worker's asset manifest holds to one pattern. */
     rolldownOptions: {
+      /*
+       * convex-test takes lazy import.meta.glob loaders, and the worker also imports those modules statically, so
+       * every loader reported as an ineffective dynamic import. The worker is one bundle either way.
+       */
+      checks: { bundlerTimings: false, ineffectiveDynamicImport: false },
       output: {
         entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
         chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,

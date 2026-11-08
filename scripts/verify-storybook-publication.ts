@@ -457,6 +457,9 @@ async function verifyPublication() {
       'wrangler',
       'dev',
       '--local',
+      /* One request line per asset filled about 2,400 lines of every deploy log; failures still print. */
+      '--log-level',
+      'warn',
       '--ip',
       '127.0.0.1',
       '--port',
