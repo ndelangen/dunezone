@@ -59,6 +59,8 @@ const meta = preview.meta({
   ...gameMeta,
   title: 'Play/Battle panel arrives',
   globals: { motion: 'on' },
+  /* A timed motion demo: a capture lands on whichever frame the timers reached. */
+  parameters: { ...gameMeta.parameters, chromatic: { disableSnapshot: true } },
   beforeEach: install(() => productTransport('seat-2', quiet())),
 });
 

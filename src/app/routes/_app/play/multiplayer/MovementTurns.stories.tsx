@@ -63,5 +63,7 @@ function PlayedTurns(args: Parameters<typeof TableMovementTurns>[0]) {
 /** By hand: click a token to mark its faction done; its tick pops on, and it lines up with the ones still to go. */
 export const MarkingDone = meta.story({
   globals: { motion: 'on' },
+  /* By hand only: at rest it is the NobodyDone capture. */
+  parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => <PlayedTurns {...args} />,
 });

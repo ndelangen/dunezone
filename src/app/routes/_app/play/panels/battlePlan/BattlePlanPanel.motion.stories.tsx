@@ -6,7 +6,7 @@ import { BattlePlanPanel } from './BattlePlanPanel';
 import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.stories.fixture';
 
 /*
- * The trial's own stand-in for the table: each edit is applied at once and the strength moved by a rough count of the
+ * The story's own stand-in for the table: each edit is applied at once and the strength moved by a rough count of the
  * change (troops at their strength, spiced troops at their supported strength, plus the adjustment), so the total moves as you play.
  */
 function rough(plan: Pick<BattlePlan, 'faces' | 'troops' | 'adjustment'>) {
@@ -52,11 +52,12 @@ function PlayedPlan() {
 /* The battle strength's digits slide to each new total; change the troops, the spice, the leader or the adjustment to see it. */
 const meta = preview.meta({
   ...battlePlanPanelMeta,
-  title: 'Play/Animation trials/Battle strength',
-  parameters: { ...battlePlanPanelMeta.parameters, panelWindow: PLAN_WINDOW },
+  title: 'Play/Panels/Battle plan rolling strength',
+  /* A hand-driven motion demo: a capture would only catch the wheels at rest, as the Battle plan stories already do. */
+  parameters: { ...battlePlanPanelMeta.parameters, panelWindow: PLAN_WINDOW, chromatic: { disableSnapshot: true } },
   globals: { motion: 'on' },
   render: () => <PlayedPlan />,
 });
 
 /** By hand: each digit that changes slides through its own slot, up as the strength grows and down as it shrinks. */
-export const SlidingDigits = meta.story({});
+export const RollingStrength = meta.story({});
