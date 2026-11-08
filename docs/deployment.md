@@ -139,11 +139,8 @@ The live smoke normally makes one public Dream Rulebook request and requires pub
 
 ### Forward fixes
 
-Ship a corrected commit through the normal deployment workflow. Keep the retention step and the
-versioned HTML identity in place; do not replace the current release with an old asset directory.
-If retention fails, leave the current deployment serving traffic, inspect the manifest or failed
-asset digest, and fix the release input before deploying. Do not skip retention to turn a failed
-build green. Verify health's Git SHA and application version, then fetch a public document and one
+Ship a corrected commit through the normal deployment workflow. Keep the versioned HTML identity in
+place; do not replace the current release with an old asset directory. Verify health's Git SHA and application version, then fetch a public document and one
 of its scripts. The combined SEO release has its own live acceptance ticket.
 
 The release checks report both raw and compressed bundle size and measure local startup. Cloudflare's
@@ -420,7 +417,7 @@ deploying. In every other case the `deploy` job runs:
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
-8. Remove raster copies served from R2, then retain the previous browser bundles. Check the final
+8. Remove raster copies served from R2. Check the final
    Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
    raster copies because its buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
