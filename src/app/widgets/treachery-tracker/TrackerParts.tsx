@@ -174,7 +174,7 @@ export function SlotChip({
   children: ReactNode;
 }>) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<'menu' | 'give' | 'identify'>('menu');
+  const [mode, setMode] = useState<'menu' | 'give' | 'identify' | 'discard'>('menu');
   const card = slot.card ? copyOf(state, slot.card) : null;
   const close = () => {
     setOpen(false);
@@ -187,7 +187,7 @@ export function SlotChip({
       position="bottom"
       withinPortal
       shadow="md"
-      width={mode === 'identify' ? 300 : 'target'}
+      width={mode === 'identify' || mode === 'discard' ? 300 : 'target'}
     >
       <Popover.Target>
         <span>
@@ -213,14 +213,19 @@ export function SlotChip({
             <MenuLine icon={<ArrowRightLeft size={14} />} onClick={() => setMode('give')}>
               Given to…
             </MenuLine>
+            {/* A discarded card lands face up, so an unknown one is named as it goes. */}
             <MenuLine
               icon={<Trash2 size={14} />}
               onClick={() => {
-                onAction({ kind: 'discard', faction, slot: slot.id });
-                close();
+                if (card) {
+                  onAction({ kind: 'discard', faction, slot: slot.id });
+                  close();
+                } else {
+                  setMode('discard');
+                }
               }}
             >
-              {card ? 'Discarded' : 'Discarded, unseen'}
+              {card ? 'Discarded' : 'Discarded as…'}
             </MenuLine>
             <MenuLine
               icon={<Undo2 size={14} />}
@@ -241,6 +246,19 @@ export function SlotChip({
             label={(to) => `Given to ${to.name}`}
             onPick={(to) => {
               onAction({ kind: 'give', faction, slot: slot.id, to });
+              close();
+            }}
+          />
+        )}
+        {mode === 'discard' && (
+          <CardChooser
+            state={state}
+            allowUnknown={false}
+            onPick={(picked) => {
+              if (picked) {
+                onAction({ kind: 'identify', faction, slot: slot.id, card: picked });
+                onAction({ kind: 'discard', faction, slot: slot.id });
+              }
               close();
             }}
           />
