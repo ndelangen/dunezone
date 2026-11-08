@@ -57,7 +57,8 @@ import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSi
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
-import { ConnectedTreacheryTrackerPanel, useTrackerFaction } from '../panels/treacheryTracker/useTreacheryTracker';
+import { ConnectedTreacheryTrackerPanel, useTrackerSeat } from '../panels/treacheryTracker/useTreacheryTracker';
+import type { TrackerSeat } from '../panels/treacheryTracker/useTreacheryTracker';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
@@ -352,7 +353,11 @@ function resultPanels({ client, table, error, declare }: Omit<ControlPanelsProps
 }
 
 /** The private destinations are only installed for a viewer with a hand; the Treachery tracker only for a faction whose rules allow it. */
-function yoursGroup({ client, table, tracker }: TableControlProps & Readonly<{ tracker: string | null }>): TablePanel {
+function yoursGroup({
+  client,
+  table,
+  tracker,
+}: TableControlProps & Readonly<{ tracker: TrackerSeat | null }>): TablePanel {
   return {
     key: 'yours',
     label: 'Yours',
@@ -368,7 +373,7 @@ function yoursGroup({ client, table, tracker }: TableControlProps & Readonly<{ t
         ? [
             {
               ...PANEL_WINDOWS.treacheryTracker,
-              content: <ConnectedTreacheryTrackerPanel client={client} table={table} faction={tracker} />,
+              content: <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />,
             },
           ]
         : []),
@@ -513,7 +518,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
 }
 
 /** The left rail keeps personal resources first and omits groups with no stage content. */
-type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice; tracker: string | null }>;
+type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice; tracker: TrackerSeat | null }>;
 
 function controlPanels(
   props: ControlPanelsProps & Readonly<{ report: { enabled: boolean; content: ReactNode } }>
@@ -688,7 +693,7 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
-  const tracker = useTrackerFaction(client, table);
+  const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   /* The territory under the battle marker while it is carried, which the board lights. */

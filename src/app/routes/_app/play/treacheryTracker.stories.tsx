@@ -1,11 +1,10 @@
 import preview from '@sb/preview';
-import { rosterSeat } from '@shared/play/schema';
 import { expect, within } from 'storybook/test';
 
 import { DREAMRULES_DECK } from '../../../widgets/treachery-tracker/tracker.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
-import { capturedFactions, playingSnapshot, productTransport } from './product.stories.fixture';
+import { playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
@@ -18,14 +17,9 @@ const meta = preview.meta({
   ],
 });
 
-/* Seat 2's faction keeps the tracker by its rules; the game's Treachery deck is the Dreamrules deck. */
+/* The room answers seat 2's deck read, as it does for a faction whose rules keep the tracker; the deck is the Dreamrules deck. */
 function trackerTransport() {
-  const snapshot = playingSnapshot('seat-2');
-  const own = rosterSeat(snapshot.roster, 'seat-2')!.faction!.id;
-  const factions = capturedFactions();
-  const sheet = factions[own]!;
-  return productTransport('seat-2', snapshot, {
-    factions: { ...factions, [own]: { ...sheet, rules: { ...sheet.rules, treacheryTracker: true } } },
+  return productTransport('seat-2', playingSnapshot('seat-2'), {
     treacheryDeck: DREAMRULES_DECK.map(({ key, name, detail, face, count }) => ({ key, name, detail, face, count })),
   });
 }

@@ -10,7 +10,7 @@ import type { TrackerViewProps } from './TrackerParts';
 import styles from './TreacheryTracker.module.css';
 
 /** The deck and discard pile under a view: what is left to draw by kind, and the reshuffle. */
-export function DeckFooter({ factions, state, onAction, deckSize }: TrackerViewProps & Readonly<{ deckSize: number }>) {
+export function DeckFooter({ factions, state, onAction }: TrackerViewProps) {
   const deck = unplaced(state);
   const unknownInHands = Object.values(state.hands)
     .flat()
@@ -19,7 +19,7 @@ export function DeckFooter({ factions, state, onAction, deckSize }: TrackerViewP
     <div className={styles.footer}>
       <div className={styles.footerDeck}>
         <Text size="xs" className={styles.caption}>
-          Deck {deckSize - unknownInHands}
+          Deck {deck.length - unknownInHands}
         </Text>
         <KindBar copies={deck} />
         <Text size="xs" className={styles.dim}>

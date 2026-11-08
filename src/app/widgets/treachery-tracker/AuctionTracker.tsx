@@ -8,7 +8,7 @@ import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTok
 import styles from './AuctionTracker.module.css';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
 import { DeckFooter } from './DeckFooter';
-import { awaitingWinner, copyOf, currentTurn, sightingCard, unplaced } from './tracker';
+import { awaitingWinner, copyOf, currentTurn, onBid as cardOnBid, sightingCard } from './tracker';
 import type { Sighting } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
@@ -21,23 +21,33 @@ const GLYPH = 36;
  * Below it the cards of one turn's auction, then a row per faction: its token, the cards Atreides knows it holds, and a note.
  * Sections are split by rules, not boxed, so the window is the only panel.
  */
-export function AuctionTracker({ factions, state, onAction }: TrackerViewProps) {
+export function AuctionTracker({
+  factions,
+  state,
+  onAction,
+  tableTurn,
+}: TrackerViewProps & Readonly<{ tableTurn?: number | undefined }>) {
   return (
     <div className={styles.tracker}>
-      <OnBid factions={factions} state={state} onAction={onAction} />
+      <OnBid factions={factions} state={state} onAction={onAction} tableTurn={tableTurn} />
       <Auctions factions={factions} state={state} onAction={onAction} />
       <section className={styles.hands} aria-label="Hands">
         {factions.map((faction) => (
           <HandRow key={faction.id} faction={faction} factions={factions} state={state} onAction={onAction} />
         ))}
       </section>
-      <DeckFooter factions={factions} state={state} onAction={onAction} deckSize={unplaced(state).length} />
+      <DeckFooter factions={factions} state={state} onAction={onAction} />
     </div>
   );
 }
 
-function OnBid({ factions, state, onAction }: TrackerViewProps) {
-  const onBid = state.seen.find((sighting) => awaitingWinner(state, sighting));
+function OnBid({
+  factions,
+  state,
+  onAction,
+  tableTurn,
+}: TrackerViewProps & Readonly<{ tableTurn?: number | undefined }>) {
+  const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
   const name = card ? card.def.name : 'the unknown card';
   return (
@@ -52,7 +62,7 @@ function OnBid({ factions, state, onAction }: TrackerViewProps) {
             ?
           </span>
         ) : (
-          <EmptyBid state={state} onAction={onAction} />
+          <EmptyBid state={state} onAction={onAction} tableTurn={tableTurn} />
         )}
       </div>
       <div className={styles.bidSide}>
@@ -71,16 +81,18 @@ function OnBid({ factions, state, onAction }: TrackerViewProps) {
             Click the empty card to put the next one up for bid.
           </Text>
         )}
-        <NextUp state={state} onAction={onAction} />
+        <NextUp state={state} onAction={onAction} tableTurn={tableTurn} />
       </div>
     </section>
   );
 }
 
+type BidProps = Pick<TrackerViewProps, 'state' | 'onAction'> & Readonly<{ tableTurn?: number | undefined }>;
+
 /** The empty place of the card on bid: clicking it picks the card that comes up next, or an unknown one. */
-function EmptyBid({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'>) {
+function EmptyBid({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
-  const turn = currentTurn(state);
+  const turn = currentTurn(state, tableTurn);
   return (
     <Popover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={CHOOSER_WIDTH}>
       <Popover.Target>
@@ -106,9 +118,9 @@ function EmptyBid({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onActio
 }
 
 /** Putting the next card up for bid by hand: an unknown one, or one from the deck. In Play, peeking does this. */
-function NextUp({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'>) {
+function NextUp({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
-  const turn = currentTurn(state);
+  const turn = currentTurn(state, tableTurn);
   return (
     <div className={styles.nextUp}>
       <IconAction

@@ -8,14 +8,15 @@ import type { RulesetCapture } from './capture';
  * What the deck holds is public, as the printed deck list is at a physical table.
  */
 const treacheryDeckCardSchema = z.object({
-  key: z.string().min(1).max(160),
-  name: z.string().max(160),
-  detail: z.string().max(160),
+  /* As long as the capture's own fields: a check tighter than the capture would refuse a legal deck and drop the page from its table. */
+  key: z.string().min(1),
+  name: z.string(),
+  detail: z.string(),
   face: z.string().url(),
-  count: z.number().int().positive().max(100),
+  count: z.number().int().positive(),
 });
 export type TreacheryDeckCard = z.infer<typeof treacheryDeckCardSchema>;
-export const treacheryDeckSchema = z.array(treacheryDeckCardSchema).max(200);
+export const treacheryDeckSchema = z.array(treacheryDeckCardSchema);
 
 /** The captured Treachery deck's cards, one entry per distinct face with its copies; nothing when the game captured no deck. */
 export function treacheryDeckCards(capture: RulesetCapture | undefined): TreacheryDeckCard[] | null {

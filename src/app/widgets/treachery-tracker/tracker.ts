@@ -9,10 +9,18 @@ export type CardKind = 'weapon' | 'defense' | 'special' | 'worthless';
 
 export const CARD_KINDS: readonly CardKind[] = ['weapon', 'defense', 'special', 'worthless'];
 
-/** A group's name for a count of its cards: "1 poison defense", "2 poison defenses". */
+const GROUP_ONE: Readonly<Record<CardGroup, string>> = {
+  'weapon-poison': 'poison weapon',
+  'weapon-projectile': 'projectile weapon',
+  'defense-poison': 'poison defense',
+  'defense-projectile': 'projectile defense',
+  special: 'special',
+  worthless: 'worthless',
+};
+
+/** A group's name for a count of its cards: "1 poison defense", "2 poison defenses", "1 worthless". */
 export function groupCount(group: CardGroup, count: number): string {
-  const label = GROUP_LABEL[group].toLowerCase();
-  return `${count} ${count === 1 && label.endsWith('s') ? label.slice(0, -1) : label}`;
+  return `${count} ${count === 1 ? GROUP_ONE[group] : GROUP_LABEL[group].toLowerCase()}`;
 }
 
 /** One card of the deck as the ruleset defines it, with how many copies the deck holds. */
@@ -127,13 +135,46 @@ export function copyOf(state: TrackerState, card: string): CardCopy {
   return copy;
 }
 
-function withoutCard(state: TrackerState, card: string): TrackerState {
+/*
+ * A card on bid that was won into a slot names its card through that slot.
+ * When the slot leaves its hand, the sighting keeps the slot's card by name and lets go of the slot;
+ * a slot taken back as a mistake returns the card to waiting for its winner.
+ */
+function releaseSlots(state: TrackerState, slots: ReadonlySet<string>, mistake = false): TrackerState {
+  if (slots.size === 0 || !state.seen.some((sighting) => sighting.slot && slots.has(sighting.slot))) {
+    return state;
+  }
+  const cards = new Map(
+    Object.values(state.hands)
+      .flat()
+      .map((slot) => [slot.id, slot.card])
+  );
   return {
     ...state,
+    seen: state.seen.map((sighting) => {
+      if (!sighting.slot || !slots.has(sighting.slot)) {
+        return sighting;
+      }
+      const { slot, ...rest } = sighting;
+      return mistake ? rest : { ...rest, card: cards.get(slot) ?? sighting.card };
+    }),
+  };
+}
+
+function withoutCard(state: TrackerState, card: string): TrackerState {
+  const holding = new Set(
+    Object.values(state.hands)
+      .flat()
+      .filter((slot) => slot.card === card)
+      .map((slot) => slot.id)
+  );
+  const released = releaseSlots(state, holding);
+  return {
+    ...released,
     hands: Object.fromEntries(
-      Object.entries(state.hands).map(([faction, slots]) => [faction, slots.filter((slot) => slot.card !== card)])
+      Object.entries(released.hands).map(([faction, slots]) => [faction, slots.filter((slot) => slot.card !== card)])
     ),
-    discard: state.discard.filter((entry) => entry !== card),
+    discard: released.discard.filter((entry) => entry !== card),
   };
 }
 
@@ -164,7 +205,8 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'discard': {
       const slot = findSlot(state, action.faction, action.slot);
-      const next = updateHand(state, action.faction, (slots) => slots.filter((entry) => entry.id !== action.slot));
+      const released = releaseSlots(state, new Set([action.slot]));
+      const next = updateHand(released, action.faction, (slots) => slots.filter((entry) => entry.id !== action.slot));
       return slot.card ? { ...next, discard: [...next.discard, slot.card] } : next;
     }
     case 'give': {
@@ -173,7 +215,9 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       return updateHand(next, action.to, (slots) => [...slots, slot]);
     }
     case 'undo':
-      return updateHand(state, action.faction, (slots) => slots.filter((entry) => entry.id !== action.slot));
+      return updateHand(releaseSlots(state, new Set([action.slot]), true), action.faction, (slots) =>
+        slots.filter((entry) => entry.id !== action.slot)
+      );
     case 'place': {
       const cleared = withoutCard(state, action.card);
       return action.at === 'discard' ? { ...cleared, discard: [...cleared.discard, action.card] } : cleared;
@@ -230,9 +274,14 @@ export function awaitingWinner(state: TrackerState, sighting: Sighting): boolean
   return sighting.card === null || placeOf(state, sighting.card).at === 'deck';
 }
 
-/** The turn the tracker is in: the turn of the newest card on bid. */
-export function currentTurn(state: TrackerState): number {
-  return state.seen[0]?.turn ?? 1;
+/** The turn the tracker is in: the table's turn where a game supplies it, else the turn of the newest card on bid. */
+export function currentTurn(state: TrackerState, tableTurn?: number): number {
+  return tableTurn ?? state.seen[0]?.turn ?? 1;
+}
+
+/** The card on bid: the oldest card still waiting for its winner, since cards come up for bid in the order they were seen. */
+export function onBid(state: TrackerState): Sighting | undefined {
+  return state.seen.findLast((sighting) => awaitingWinner(state, sighting));
 }
 
 /** The groups the tracker sorts cards into: weapons and defenses split by what they kill or stop, then the rest by kind. */

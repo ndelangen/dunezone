@@ -59,6 +59,8 @@ export class TablePages {
   /* The game's Treachery deck, which never changes once captured; undefined until asked and answered. */
   private deck?: TreacheryDeckPage['cards'];
   private deckRequested = false;
+  /* The room answers the deck by the asking seat, so a page that changes seat asks again. */
+  private deckSeat: string | null = null;
 
   constructor(
     private readonly send: (message: PageRead) => boolean,
@@ -83,7 +85,12 @@ export class TablePages {
   }
 
   /* Asks once for the game's Treachery deck; a read that was never answered can be asked again. */
-  readTreacheryDeck() {
+  readTreacheryDeck(seat: string | null) {
+    if (seat !== this.deckSeat) {
+      this.deckSeat = seat;
+      this.deck = undefined;
+      this.deckRequested = false;
+    }
     if (this.deck === undefined && !this.deckRequested && this.send({ type: 'treachery-deck' })) {
       this.deckRequested = true;
     }

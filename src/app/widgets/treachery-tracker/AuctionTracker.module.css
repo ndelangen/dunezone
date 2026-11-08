@@ -15,8 +15,7 @@
 
 .section,
 .onBid,
-.hands,
-.configSection {
+.hands {
   padding-block: calc(var(--unit) * 1.5);
 }
 
@@ -29,8 +28,7 @@
 .section + .section,
 .onBid + .section,
 .section + .hands,
-.hands + .section,
-.configSection + .section {
+.hands + .section {
   border-top: 1px solid var(--edge, var(--ui-edge));
 }
 
@@ -204,32 +202,4 @@
 .note[data-text] {
   color: var(--ink-dim, var(--ui-muted));
   font-style: italic;
-}
-
-/* Config mode. */
-.configList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.configRow {
-  display: grid;
-  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
-  gap: var(--unit);
-  align-items: center;
-  min-height: 36px;
-}
-
-.configRow[data-playing="false"] > :not(:last-child) {
-  opacity: 0.45;
-}
-
-.configName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }

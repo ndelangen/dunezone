@@ -1640,7 +1640,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
-  private sendPage(socket: WebSocket, message: PageRead) {
+  private sendPage(socket: WebSocket, message: PageRead, viewerSeat: string | null) {
     switch (message.type) {
       case 'log-history':
         this.send(socket, {
@@ -1661,7 +1661,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         });
         return;
       case 'treachery-deck':
-        this.send(socket, { type: 'treachery-deck', cards: this.session.treacheryDeck() });
+        this.send(socket, { type: 'treachery-deck', cards: this.session.treacheryDeck(viewerSeat) });
         return;
     }
   }
@@ -1672,7 +1672,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Exclude<ClientMessage, { type: 'admit' | 'pass' | 'catalogue' | 'pointer' | 'pose' | 'telemetry' }>
   ) {
     if (isPageRead(message)) {
-      this.sendPage(socket, message);
+      this.sendPage(socket, message, connection.viewer?.viewerSeat ?? null);
       return;
     }
     if (isConversationRequest(message)) {

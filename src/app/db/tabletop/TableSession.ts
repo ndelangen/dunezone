@@ -1423,7 +1423,7 @@ export class TableSession {
   readLogHistory = (tab: LogTab, before?: number) => this.pages.readLog(tab, before);
   refreshLogHistory = (tab: LogTab) => this.pages.refreshLog(tab);
   readFaction = (factionId: string) => this.pages.readFaction(factionId);
-  readTreacheryDeck = () => this.pages.readTreacheryDeck();
+  readTreacheryDeck = (seat: string | null) => this.pages.readTreacheryDeck(seat);
   readSpiceHistory = (before?: number) => this.pages.readSpice(before);
   private expireHistoryRequest() {
     if (this.pendingHistory === null) {

@@ -1,5 +1,6 @@
 import { Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
+import { tableProgressFor } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
@@ -11,17 +12,23 @@ import type { CardDef, CardKind, TrackerState } from '../../../../../widgets/tre
 import { factionToken } from '../../multiplayer/FactionTokenFace';
 import { seatFaction } from '../../multiplayer/tableFactions';
 
-/** The viewer's own faction, when its captured rules let it keep the Treachery tracker; the faction's sheet is asked for once. */
-export function useTrackerFaction(client: TableSession, table: TableProjection): string | null {
-  const { factions } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const seat = table.viewer.viewerSeat;
-  const own = seat ? seatFaction(table, seat) : undefined;
+/** The tracker a seat may keep: its faction and the game's Treachery deck. */
+export type TrackerSeat = Readonly<{ faction: string; cards: readonly TreacheryDeckCard[] }>;
+
+/**
+ * The viewer's tracker, when the room answers its deck read: the room answers only a seat whose faction's captured rules keep the tracker.
+ * The read waits for an authorized connection and is asked again after a reconnect, as a faction's sheet is.
+ */
+export function useTrackerSeat(client: TableSession, table: TableProjection): TrackerSeat | null {
+  const { status, treacheryDeck } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const seat = table.viewer.viewerSeat ?? null;
+  const faction = seat ? seatFaction(table, seat) : undefined;
   useEffect(() => {
-    if (own) {
-      client.readFaction(own);
+    if (faction && status === 'authorized') {
+      client.readTreacheryDeck(seat);
     }
-  }, [client, own]);
-  return own && factions[own]?.rules.treacheryTracker ? own : null;
+  }, [client, faction, seat, status]);
+  return faction && treacheryDeck ? { faction, cards: treacheryDeck } : null;
 }
 
 /* A card's kind is the first word of the line under its name; a card without one counts as a special. */
@@ -42,16 +49,41 @@ function storageKey(game: string, faction: string) {
   return `dune-zone:treachery-tracker:${game}:${faction}`;
 }
 
-function restored(key: string, defs: readonly CardDef[], factions: readonly string[]): TrackerState {
-  try {
-    const stored = window.localStorage.getItem(key);
-    if (stored) {
-      return JSON.parse(stored) as TrackerState;
-    }
-  } catch {
-    /* Storage that cannot be read starts the tracker afresh. */
+/* A stored tracker is used only when every card it names is in this deck; anything else, such as an older shape, starts afresh. */
+function readable(value: unknown, fresh: TrackerState): value is TrackerState {
+  if (!value || typeof value !== 'object') {
+    return false;
   }
-  return newTracker(defs, factions);
+  const state = value as Partial<TrackerState>;
+  const ids = new Set(fresh.copies.map((copy) => copy.id));
+  const named = (card: unknown) => card === null || (typeof card === 'string' && ids.has(card));
+  return (
+    Array.isArray(state.copies) &&
+    state.copies.length === fresh.copies.length &&
+    state.copies.every((copy) => ids.has(copy?.id)) &&
+    Array.isArray(state.discard) &&
+    state.discard.every(named) &&
+    Array.isArray(state.seen) &&
+    state.seen.every((sighting) => typeof sighting?.id === 'string' && named(sighting.card)) &&
+    typeof state.hands === 'object' &&
+    state.hands !== null &&
+    Object.values(state.hands).every(
+      (slots) => Array.isArray(slots) && slots.every((slot) => typeof slot?.id === 'string' && named(slot.card))
+    ) &&
+    typeof state.notes === 'object' &&
+    typeof state.nextSlot === 'number'
+  );
+}
+
+function restored(key: string, defs: readonly CardDef[], factions: readonly string[]): TrackerState {
+  const fresh = newTracker(defs, factions);
+  try {
+    const stored: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null');
+    /* The stored copies carry the deck as it was saved; the game's own deck replaces them, card for card. */
+    return readable(stored, fresh) ? { ...stored, copies: fresh.copies } : fresh;
+  } catch {
+    return fresh;
+  }
 }
 
 function TrackerAtTable({
@@ -70,31 +102,25 @@ function TrackerAtTable({
   }, [storage, state]);
   const names = snapshotFactionLabels(table.snapshot);
   const factions = factionIds.map((id) => factionToken(table, id, names));
-  return <AuctionTracker factions={factions} state={state} onAction={dispatch} />;
+  const { turn } = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
+  return <AuctionTracker factions={factions} state={state} onAction={dispatch} tableTurn={turn} />;
 }
 
 /** The Treachery tracker at a table: the game's own Treachery deck, and the seated factions in seat order. */
 export function ConnectedTreacheryTrackerPanel({
   client,
   table,
-  faction,
-}: Readonly<{ client: TableSession; table: TableProjection; faction: string }>) {
-  const { treacheryDeck } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  useEffect(() => client.readTreacheryDeck(), [client]);
-  const defs = useMemo(() => (treacheryDeck ? cardDefs(treacheryDeck) : null), [treacheryDeck]);
-  if (treacheryDeck === undefined) {
-    return (
-      <Text size="sm" c="dimmed">
-        Reading the game's Treachery deck…
-      </Text>
-    );
-  }
-  if (!defs) {
+  tracker,
+}: Readonly<{ client: TableSession; table: TableProjection; tracker: TrackerSeat }>) {
+  const defs = useMemo(() => cardDefs(tracker.cards), [tracker.cards]);
+  if (defs.length === 0) {
     return (
       <Text size="sm" c="dimmed">
         This game has no Treachery deck to track.
       </Text>
     );
   }
-  return <TrackerAtTable storage={storageKey(client.game, faction)} defs={defs} table={table} />;
+  const storage = storageKey(client.game, tracker.faction);
+  /* Keyed by its storage, so a seat that changes faction never writes one faction's tracker under another's key. */
+  return <TrackerAtTable key={storage} storage={storage} defs={defs} table={table} />;
 }

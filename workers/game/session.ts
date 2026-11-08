@@ -41,7 +41,7 @@ import { isResultAction } from '../../src/shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { dealtTroopKeys } from '../../src/shared/play/setupSupply';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
@@ -341,9 +341,16 @@ export class GameSession {
     return capture ? publicFaction(capture) : null;
   }
 
-  /** The captured Treachery deck's cards, which are public; null when the game captured none. */
-  treacheryDeck() {
-    return treacheryDeckCards(this.captures.ruleset());
+  /**
+   * The captured Treachery deck's cards for the Treachery tracker, answered only to a seat whose faction's captured rules keep it (#150);
+   * null to any other viewer, or when the game captured no deck.
+   * The deck list itself is public.
+   */
+  treacheryDeck(viewerSeat: string | null) {
+    const factionId =
+      viewerSeat && this.room ? rosterSeat(this.room.snapshot.roster, viewerSeat)?.faction?.id : undefined;
+    const capture = factionId ? this.captures.faction(factionId) : undefined;
+    return capture?.definition.rules.treacheryTracker ? treacheryDeckCards(this.captures.ruleset()) : null;
   }
 
   retainedCaptures() {

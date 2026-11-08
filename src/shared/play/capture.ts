@@ -234,7 +234,9 @@ export const publicFactionSchema = HistoricalFactionPublicationObject.pick({
 export type PublicFaction = z.infer<typeof publicFactionSchema>;
 
 export function publicFaction(capture: FactionCapture): PublicFaction {
-  const { leaders, rules, background, emblem } = capture.definition;
+  const { leaders, background, emblem } = capture.definition;
+  /* The tracker rule reaches no page: the room answers the tracker's deck read by it, so a page one deploy behind never meets the key. */
+  const { treacheryTracker: _tracker, ...rules } = capture.definition.rules;
   return { leaders, rules, background, emblem };
 }
 
