@@ -10,6 +10,7 @@ import {
 } from '@shared/play/hiddenZone';
 import type { TablePiece } from '@shared/play/model';
 import { HIDDEN_ZONE_TURNS } from '@shared/play/schema';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { RotateCcw } from 'lucide-react';
 import { useId } from 'react';
@@ -153,9 +154,7 @@ function FrozenInventory({
   return (
     <Stack gap="sm">
       {pieces.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          Nothing was here at this checkpoint.
-        </Text>
+        <EmptyNote>Nothing was here at this checkpoint.</EmptyNote>
       ) : (
         <div className={styles.inventoryScroll}>
           <div className={styles.sideTable} style={layout.size}>

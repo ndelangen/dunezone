@@ -1,6 +1,5 @@
 /* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
-/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
-import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -19,6 +18,7 @@ import { formatStableDate } from '@ui/content/dates';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { NameDisc } from '@ui/content/NameDisc';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -32,7 +32,6 @@ import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
   CheckCircle2,
-  CircleHelp,
   EllipsisVertical,
   FileDown,
   FileText,
@@ -286,7 +285,7 @@ function RulesetFaqPreview({
   return (
     <Section
       id="faq"
-      icon={<CircleHelp size={20} aria-hidden />}
+      icon={<TopicIcon topic="faq" size={20} />}
       title="Community FAQ"
       help="Browse community questions and accepted answers."
     >
@@ -494,7 +493,7 @@ function RulesetDetailPage() {
     },
     {
       key: 'questions',
-      icon: <CircleHelp size={17} aria-hidden />,
+      icon: <TopicIcon topic="faq" size={17} />,
       value: faqCount,
       label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
     },
@@ -527,17 +526,7 @@ function RulesetDetailPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={r.name}
-          media={
-            <Avatar
-              src={r.coverThumbUrl}
-              alt={`Cover for ${r.name}`}
-              name={r.name}
-              radius="md"
-              size="100%"
-              color="dune"
-              className={styles.coverAvatar}
-            />
-          }
+          media={<NameDisc name={r.name} src={r.coverThumbUrl} shape="tile" size="fill" />}
           breadcrumb={<Breadcrumb to="/rulesets">Rulesets</Breadcrumb>}
           maintainers={{
             owner: page.owner

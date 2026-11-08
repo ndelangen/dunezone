@@ -642,6 +642,24 @@
       ]
     },
     "duke-leto-portrait": { "/image/leader/custom/": ["duke-leto.png"] },
+    "gary-portrait": {
+      "/image/leader/custom/house-lindaren/": [
+        "helmeted-soldier.png",
+        "paired-officers.png",
+        "resolute-officer.png",
+        "skeptical-officer.png",
+        "veteran-officer.png",
+        "warrior.png"
+      ],
+      "/image/leader/custom/house-mikarrol/": [
+        "blonde-officer.png",
+        "crimson-masked-figure.png",
+        "haughty-nobleman.png",
+        "marked-leader.png",
+        "scarred-commander.png",
+        "stoic-officer.png"
+      ]
+    },
     "gf9-portrait": {
       "/image/leader/custom/": ["lieto.png", "thurn.png"],
       "/image/leader/official/": ["jammo.png", "smuggler2.png"]
@@ -2327,6 +2345,8 @@
     "gf9-logo": { "/web/rulesets/": ["gf9-logo.png"] }
   },
   "details": {
+    "/image/leader/custom/house-lindaren/resolute-officer.png": "Gary based the original on a character from Dune: Awakening (Funcom).",
+    "/image/leader/custom/house-mikarrol/marked-leader.png": "Gary based the original on a character from Dune: Awakening (Funcom).",
     "/image/planet/familiar-worlds/alderaan.png": "Reference: Star Wars.",
     "/image/planet/familiar-worlds/argus.png": "Reference: Warcraft.",
     "/image/planet/familiar-worlds/callisto.png": "Reference image: NASA/JPL/DLR.",

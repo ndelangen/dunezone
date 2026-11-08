@@ -1,5 +1,8 @@
 import { Avatar } from '@mantine/core';
+import clsx from 'clsx';
 import type { ComponentPropsWithoutRef, Ref } from 'react';
+
+import styles from './NameDisc.module.css';
 
 /* An initial reads at two fifths of the disc, but never smaller than this, so a small disc's initial stays legible. */
 const MIN_INITIAL_PX = 9;
@@ -9,10 +12,17 @@ export interface NameDiscProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
   name: string;
   /** The picture: an avatar, a faction's token face. Absent or null shows the initial. */
   src?: string | null;
-  /** The diameter, in pixels or as any CSS length (`2.6rem`, a custom property). */
-  size: number | string;
+  /**
+   * The diameter, in pixels or as any CSS length (`2.6rem`, a custom property).
+   * `fill` takes the width of its slot as a square and scales the initial with it, for a page's own mark in its header.
+   */
+  size: number | `${number}${string}` | `var(${string})` | 'fill';
   /** A one-pixel ring in this colour, for a faction's token. */
   ring?: string;
+  /** The initial on this fill, for a thing with no picture of its own: a group, in the colour `nameDiscColor` gives its name. */
+  color?: string;
+  /** `tile` rounds the corners instead of the full circle: a group's page mark, so it does not read as a person. */
+  shape?: 'disc' | 'tile';
   /**
    * Names the disc for readers, for a disc with no name written beside it.
    * Without it the disc is decorative and hidden from readers, because the name already sits next to it.
@@ -28,8 +38,23 @@ export interface NameDiscProps extends Omit<ComponentPropsWithoutRef<'div'>, 'ch
  * One shape for every disc on the site, so a seat, a chat line, a lobby row and a byline draw the same person the same way: one capital letter, sized to the disc, never two.
  * Any further props, a tooltip's handlers and ref among them, reach the disc itself.
  */
-export function NameDisc({ name, src, size, ring, label, style, ref, ...rest }: NameDiscProps) {
-  const length = typeof size === 'number' ? `${size}px` : size;
+export function NameDisc({
+  name,
+  src,
+  size,
+  ring,
+  color,
+  shape = 'disc',
+  label,
+  className,
+  style,
+  ref,
+  ...rest
+}: NameDiscProps) {
+  const fill = size === 'fill';
+  const length = fill ? '100%' : typeof size === 'number' ? `${size}px` : size;
+  /* A filled square sizes its initial to its own width (`cqi`), since its length is only known once it is laid out. */
+  const initialSize = fill ? '48cqi' : `max(${MIN_INITIAL_PX}px, calc(${length} * 0.4))`;
   return (
     <Avatar
       role={label ? 'img' : undefined}
@@ -39,10 +64,13 @@ export function NameDisc({ name, src, size, ring, label, style, ref, ...rest }: 
       ref={ref}
       src={src || null}
       size={length}
-      radius="50%"
+      radius={shape === 'tile' ? 'md' : '50%'}
+      variant={color ? 'filled' : undefined}
+      color={color}
+      className={clsx(fill && styles.fill, className)}
       /* The image is decorative, but Mantine copies `alt` onto the initial's placeholder as a title, so only an image gets one. */
       alt={src ? '' : undefined}
-      styles={{ placeholder: { fontSize: `max(${MIN_INITIAL_PX}px, calc(${length} * 0.4))`, fontWeight: 600 } }}
+      styles={{ placeholder: { fontSize: initialSize, fontWeight: 600 } }}
       style={{ ...(ring ? { border: `1px solid ${ring}` } : null), flexShrink: 0, ...style }}
     >
       {name.trim().slice(0, 1).toUpperCase()}

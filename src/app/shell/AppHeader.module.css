@@ -1,6 +1,9 @@
 .frame {
   --app-navigation-height: 51px;
 
+  /* The band's height on narrow screens (below 62rem) while no page header sizes it, and the floor PageLayout's default and hero headers grow from. */
+  --app-band-floor: 319px;
+
   position: relative;
 
   /* Named, so a component whose layout is the page's rhythm asks the page and not a column it sits in. */
@@ -100,7 +103,7 @@
 
 @media (width < 62rem) {
   .band {
-    height: 319px;
+    height: var(--app-band-floor);
   }
 
   .band {

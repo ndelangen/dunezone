@@ -1,4 +1,4 @@
-import { Select, Stack } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
@@ -173,21 +173,23 @@ function AssetTypePage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Stack gap="xs" align="center">
-          <PageTitle
-            breadcrumb={<Breadcrumb to="/assets">Assets</Breadcrumb>}
-            title={definition.label}
-            lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
-          />
-          {definition.status === 'live' ? (
-            <CallToAction
-              attention
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />}
-            >
-              Create a {noun.toLowerCase()}
-            </CallToAction>
-          ) : null}
-        </Stack>
+        <PageTitle
+          breadcrumb={<Breadcrumb to="/assets">Assets</Breadcrumb>}
+          title={definition.label}
+          lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
+          action={
+            definition.status === 'live' ? (
+              <CallToAction
+                attention
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />
+                )}
+              >
+                Create a {noun.toLowerCase()}
+              </CallToAction>
+            ) : undefined
+          }
+        />
       </PageLayout.Header>
       {definition.status === 'live' ? (
         <PageLayout.Toolbar>

@@ -768,6 +768,71 @@ const formErrorRule: Rule = {
   },
 };
 
+const EMPTY_NOTE_RULE_NAME = 'empty-note';
+
+/* An absence said as one line: it opens with "No", "None", "Nothing" or "Nobody", or says something has no part yet. */
+const EMPTY_LINE = /^(?:No|None|Nothing|Nobody)\b|\bno\b.*\byet\.?$/i;
+
+/**
+ * Keeps every "nothing here yet" line on the kit's EmptyNote, which owns its size and ink.
+ * Hand-made dimmed lines had drifted to three sizes for the same message (the UI sweep, November 2026).
+ * The rule reads a Mantine `Text` with `c="dimmed"` whose only child is literal text worded as an absence;
+ * a computed message is out of its reach.
+ */
+const emptyNoteRule: Rule = {
+  meta: {
+    name: EMPTY_NOTE_RULE_NAME,
+    messages: {
+      emptyNote:
+        'A dimmed "nothing here" line is an EmptyNote under a section heading (@ui/content/EmptyNote), or EmptyResults for a search or list page that came back empty (@ui/block/EmptyResults).',
+    },
+  },
+  create(context) {
+    /* The local names bound to Mantine's Text. */
+    const texts = new Set<string>();
+    return {
+      ImportDeclaration(node) {
+        if (String(node.source.value) !== '@mantine/core') {
+          return;
+        }
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === 'ImportSpecifier' &&
+            specifier.imported.type === 'Identifier' &&
+            specifier.imported.name === 'Text'
+          ) {
+            texts.add(specifier.local.name);
+          }
+        }
+      },
+      JSXElement(node) {
+        const opening = node.openingElement;
+        if (opening.name.type !== 'JSXIdentifier' || !texts.has(opening.name.name)) {
+          return;
+        }
+        const dimmed = opening.attributes.some(
+          (attribute) =>
+            attribute.type === 'JSXAttribute' &&
+            attribute.name.type === 'JSXIdentifier' &&
+            attribute.name.name === 'c' &&
+            ((attribute.value?.type === 'Literal' && attribute.value.value === 'dimmed') ||
+              (attribute.value?.type === 'JSXExpressionContainer' &&
+                attribute.value.expression.type === 'Literal' &&
+                attribute.value.expression.value === 'dimmed'))
+        );
+        if (!dimmed) {
+          return;
+        }
+        const children = node.children.filter((child) => !(child.type === 'JSXText' && child.value.trim() === ''));
+        const only = children.length === 1 ? children[0] : undefined;
+        if (only?.type === 'JSXText' && EMPTY_LINE.test(only.value.replace(/\s+/g, ' ').trim())) {
+          context.report({ node: opening, messageId: 'emptyNote' });
+        }
+      },
+    };
+  },
+};
+
 const EYEBROW_RULE_NAME = 'eyebrow';
 
 /**
@@ -932,6 +997,7 @@ export default {
     [STORY_OWNERSHIP_RULE_NAME]: storyOwnsItsStatesRule,
     [FORM_ERROR_RULE_NAME]: formErrorRule,
     [EYEBROW_RULE_NAME]: eyebrowRule,
+    [EMPTY_NOTE_RULE_NAME]: emptyNoteRule,
     [CONTROL_LABEL_RULE_NAME]: controlBlockLabelRule,
   },
 };

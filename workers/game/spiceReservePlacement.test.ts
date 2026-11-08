@@ -26,11 +26,11 @@ function room() {
 
 test('a spice withdrawal lands at the chosen table point and deducts its amount once', () => {
   const table = room();
-  const next = table.command(player, { kind: 'bank-withdraw', amount: 7, position: [1, 20, 2] }, 0, Date.now());
+  const next = table.command(player, { kind: 'bank-withdraw', amount: 7, position: [-3.22, 20, -0.76] }, 0, Date.now());
   table.accept(next);
   const spice = table.snapshot.table.pieces.find((piece) => piece.stackKey === 'spice')!;
-  expect(spice.position[0]).toBe(1);
-  expect(spice.position[2]).toBe(2);
+  expect(spice.position[0]).toBe(-3.22);
+  expect(spice.position[2]).toBe(-0.76);
   expect(spice.position[1]).toBeLessThan(1);
   expect(spice.items).toHaveLength(7);
   expect(table.snapshot.factionBanks.atreides).toBe(30);

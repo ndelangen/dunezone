@@ -5,6 +5,7 @@ import { forwardRef } from 'react';
 import type { ComponentPropsWithoutRef } from 'react';
 
 import styles from './Breadcrumb.module.css';
+import eyebrow from './Eyebrow.module.css';
 
 type BreadcrumbAnchorProps = Omit<ComponentPropsWithoutRef<'a'>, 'children'> & {
   /** The page one level up, by its name: "Assets", "Rulesets", a ruleset's own name. */
@@ -16,7 +17,7 @@ const BreadcrumbAnchor = forwardRef<HTMLAnchorElement, BreadcrumbAnchorProps>(fu
   ref
 ) {
   return (
-    <a ref={ref} className={clsx(styles.breadcrumb, className)} {...props}>
+    <a ref={ref} className={clsx(eyebrow.eyebrow, eyebrow.inverse, styles.breadcrumb, className)} {...props}>
       <ChevronLeft size={13} strokeWidth={2.5} aria-hidden />
       {children}
     </a>

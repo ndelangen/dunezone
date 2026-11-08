@@ -34,6 +34,23 @@ export function useInsidePageHeader(): boolean {
   return useContext(InsidePageHeader);
 }
 
+/**
+ * The size a worded action renders at: every one in the band is `md`, beside the page's `CallToAction` (Norbert, 2026-11-07).
+ * A caller that asks for another size there is told so in development, since the band would otherwise drop the request without a word.
+ */
+export function useHeaderActionSize<Size>(component: string, size: Size | undefined): Size | 'md' | undefined {
+  const insideHeader = useInsidePageHeader();
+  if (!insideHeader) {
+    return size;
+  }
+  if (import.meta.env.DEV && size !== undefined && size !== 'md') {
+    console.warn(
+      `[${component}] size="${String(size)}" is ignored inside PageLayout.Header, where every worded action is md. Drop the size prop.`
+    );
+  }
+  return 'md';
+}
+
 const Header: (props: PropsWithChildren<{ size?: PageHeaderSize }>) => null = () => null;
 
 const Toolbar: (props: PropsWithChildren) => null = () => null;

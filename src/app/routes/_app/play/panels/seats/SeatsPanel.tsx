@@ -1,6 +1,7 @@
 import { Group, Stack, Text } from '@mantine/core';
 import type { PublicControls } from '@shared/play/inventory';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { NameDisc } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
@@ -117,11 +118,7 @@ function Spectators({ spectators, guests }: Pick<SeatsPanelProps, 'spectators' |
           {guestLine(guests, spectators.length)}
         </Text>
       )}
-      {count === 0 && (
-        <Text size="sm" c="dimmed">
-          Nobody is watching.
-        </Text>
-      )}
+      {count === 0 && <EmptyNote>Nobody is watching.</EmptyNote>}
     </Stack>
   );
 }

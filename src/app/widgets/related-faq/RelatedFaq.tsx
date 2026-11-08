@@ -1,8 +1,8 @@
 import { Stack } from '@mantine/core';
 import { Section } from '@ui/block/Section';
+import { TopicIcon } from '@ui/content/TopicIcon';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { FaqList } from '@ui/list/FaqList';
-import { CircleHelp } from 'lucide-react';
 
 import type { RelatedFaqItem } from '@db/faq';
 
@@ -22,7 +22,7 @@ export function RelatedFaq({
     return null;
   }
   return (
-    <Section icon={<CircleHelp size={20} aria-hidden />} title="Related FAQ">
+    <Section icon={<TopicIcon topic="faq" size={20} />} title="Related FAQ">
       <Stack gap="md">
         <FaqList items={items} onOpenQuestion={onOpenQuestion} emptyLabel="No related questions yet." />
         {status === 'CanLoadMore' || status === 'LoadingMore' ? (

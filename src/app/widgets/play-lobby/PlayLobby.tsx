@@ -2,7 +2,7 @@
 import { Avatar, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import type { playLobbyEntrySchema } from '@shared/play/directory';
 import { phaseAt, STANDARD_PHASES, tableProgressFor } from '@shared/play/phases';
-import { PageState } from '@ui/block/PageState';
+import { EmptyResults } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
 import { formatRelativeDate } from '@ui/content/dates';
 import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
@@ -17,7 +17,6 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { FigureCaptionLayout } from '@ui/layout/FigureCaptionLayout';
 import { TileGrid } from '@ui/list/TileGrid';
-import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Clock, GraduationCap, ListFilter, Plus, Trophy } from 'lucide-react';
@@ -267,15 +266,12 @@ const EMPTY_WORDS: Record<LobbyView, string> = {
   finished: 'No game has finished yet.',
 };
 
+/* Open, without a frame: a frame is for something you pick, and an empty lobby has nothing to pick yet (Norbert, 2026-11-07). */
 function EmptyView({ title, children }: Readonly<{ title: string; children: string }>) {
   return (
-    <Surface padding="xl">
-      <Stack align="center" ta="center">
-        <PageState kind="absent" title={title}>
-          {children}
-        </PageState>
-      </Stack>
-    </Surface>
+    <Stack py="xl">
+      <EmptyResults title={title}>{children}</EmptyResults>
+    </Stack>
   );
 }
 

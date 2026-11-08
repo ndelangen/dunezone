@@ -32,7 +32,6 @@ import type * as faq from "../faq.js";
 import type * as faqReferences from "../faqReferences.js";
 import type * as formerAddresses from "../formerAddresses.js";
 import type * as functions from "../functions.js";
-import type * as glossaryFactionRepair from "../glossaryFactionRepair.js";
 import type * as groups from "../groups.js";
 import type * as homepage from "../homepage.js";
 import type * as homepageAdmission from "../homepageAdmission.js";
@@ -209,7 +208,6 @@ const fullApi: ApiFromModules<{
   faqReferences: typeof faqReferences;
   formerAddresses: typeof formerAddresses;
   functions: typeof functions;
-  glossaryFactionRepair: typeof glossaryFactionRepair;
   groups: typeof groups;
   homepage: typeof homepage;
   homepageAdmission: typeof homepageAdmission;

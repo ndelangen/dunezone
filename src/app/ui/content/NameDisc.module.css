@@ -1,0 +1,7 @@
+/* A `fill` disc takes its slot's width as a square, and is the container its initial is sized against. */
+.fill {
+  container-type: inline-size;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}

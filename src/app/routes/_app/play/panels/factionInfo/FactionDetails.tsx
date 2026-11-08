@@ -2,6 +2,7 @@ import { Accordion, Box, Stack, Text, Tooltip } from '@mantine/core';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
 import type { PublicFaction } from '@shared/play/capture';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FormattedTextSource, InlineFormattedTextSource } from '@ui/content/FormattedText';
 import { TopicIcon } from '@ui/content/TopicIcon';
 
@@ -80,7 +81,7 @@ function Leaders({ faction }: Faction) {
 function Advantages({ faction }: Faction) {
   const { advantages } = faction.rules;
   if (!advantages.length) {
-    return <Text c="dimmed">No faction advantages have been added yet.</Text>;
+    return <EmptyNote>No faction advantages have been added yet.</EmptyNote>;
   }
   return (
     <Stack gap="md">

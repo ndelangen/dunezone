@@ -1,23 +1,30 @@
-.attention {
-  animation: attention 5s ease-in-out infinite;
+/*
+ * One pulse every five seconds, a second long, started by `useAttentionPulse`.
+ * A pulse that ran as an infinite five-second animation restyled the button every frame for the four idle seconds too (600 style recalculations per 10 s on an idle page);
+ * started per pulse, the page does nothing between them.
+ */
+.attention[data-pulse] {
+  animation: attention 1s;
 }
 
+/* Each step eases in and out on its own, as the five-second animation's 80%, 87% and 100% steps did. */
 @keyframes attention {
   0%,
-  80%,
   100% {
     box-shadow: none;
     transform: translateY(0);
+    animation-timing-function: ease-in-out;
   }
 
-  87% {
+  35% {
     box-shadow: 0 0 0 5px rgb(from var(--color-cta) r g b / 18%);
     transform: translateY(-1px);
+    animation-timing-function: ease-in-out;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .attention {
+  .attention[data-pulse] {
     animation: none;
   }
 }

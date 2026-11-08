@@ -2,6 +2,7 @@
 import { Anchor, Badge, Group, Stack, Text } from '@mantine/core';
 import type { LogClass, LogEntry, LogTab } from '@shared/play/log';
 import { Section } from '@ui/block/Section';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ChevronLeft, ChevronsRight, Undo2 } from 'lucide-react';
@@ -50,9 +51,7 @@ export function LogPanel({ tab, page, onEarlier, onLatest, onRestore }: LogPanel
         {!page ? (
           <Text size="sm">Loading the log...</Text>
         ) : page.entries.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No entries yet.
-          </Text>
+          <EmptyNote>No entries yet.</EmptyNote>
         ) : (
           <ol className={styles.list}>
             {page.entries.map((entry) => (
