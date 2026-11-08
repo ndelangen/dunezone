@@ -13,7 +13,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight, History } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
-import { FaSteam } from 'react-icons/fa';
+import { FaSteam } from 'react-icons/fa6';
 import { SiDiscord } from 'react-icons/si';
 
 import {
