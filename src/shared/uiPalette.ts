@@ -309,6 +309,7 @@ export const playUiColors = {
   battleTextStroke: coreColors.ground,
   battleText: coreColors.text,
   bidderGround: coreColors.ground,
+  bidderAccent: coreColors.brass,
   banMark: coreColors.negative,
   fallbackFaction: coreColors.recess,
   demoCard: coreColors.text,
