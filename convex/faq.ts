@@ -13,8 +13,10 @@ import {
   assignedGroupSummaryValidator,
   relatedFaqItemValidator,
   docValidator,
+  rulesetCitationValidator,
+  rulesetFaqCountsValidator,
 } from './lib/collaborativeAccessValidators';
-import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqSearchText } from './lib/faqCatalogue';
+import { loadRulesetFaqPage, loadRulesetFaqSearch, rulesetFaqCounts, rulesetFaqSearchText } from './lib/faqCatalogue';
 import {
   globalFaqPageValidator,
   globalFaqRulesetOptionsValidator,
@@ -32,7 +34,7 @@ import { faqReferencePreview, faqReferencePreviewValidator } from './lib/faqRefe
 import { loadFaqReferenceTargets } from './lib/faqReferences';
 import { faqTagValidator } from './lib/faqTags';
 import { requireAuthUserId } from './lib/policy';
-import { loadPublicRulesetBySlug, rulesetFaqCounts } from './lib/rulesetDetailPage';
+import { loadPublicRulesetBySlug } from './lib/rulesetDetailPage';
 import { nowIso } from './lib/utils';
 import type { MutationCtx, QueryCtx } from './types';
 
@@ -125,17 +127,11 @@ async function allocateNextFaqItemSlug(ctx: MutationCtx, rulesetId: Id<'rulesets
 }
 
 /** The ruleset a FAQ page belongs to, with what its header shows: the cover and the question counts, as on the ruleset page. */
-const rulesetCitationValidator = v.object({
-  id: v.id('rulesets'),
-  name: v.string(),
-  slug: v.string(),
-  coverThumbUrl: v.union(v.string(), v.null()),
-  faqCounts: v.object({ questions: v.number(), answered: v.number() }),
-});
+const rulesetFaqCitationValidator = rulesetCitationValidator.extend({ faqCounts: rulesetFaqCountsValidator });
 
 /** A browsed page of a ruleset's FAQ: newest first, counted, in numbered pages. */
 const rulesetFaqBrowseValidator = v.object({
-  ruleset: rulesetCitationValidator,
+  ruleset: rulesetFaqCitationValidator,
   items: v.array(faqListItemValidator),
   /** Questions carrying the tag, or all of them, across every page. */
   total: v.number(),
@@ -150,7 +146,7 @@ const rulesetFaqBrowseValidator = v.object({
 /** A searched FAQ: the best matches first, no count and no pages, and more by asking for a larger limit. */
 const rulesetFaqSearchValidator = v.object({
   mode: v.literal('search'),
-  ruleset: rulesetCitationValidator,
+  ruleset: rulesetFaqCitationValidator,
   items: v.array(faqListItemValidator),
   /** Whether a larger limit would show more questions. */
   hasMore: v.boolean(),

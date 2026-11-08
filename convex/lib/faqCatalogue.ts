@@ -8,6 +8,7 @@ import type { CatalogueKind } from './catalogueEntryShape';
 import {
   catalogueSearchLimit,
   catalogueSearchReach,
+  countCataloguePartitions,
   selectCataloguePage,
   selectCatalogueSearch,
 } from './catalogueOrder';
@@ -139,4 +140,13 @@ export async function loadRulesetFaqSearch(ctx: QueryCtx, rulesetId: Id<'ruleset
     ...catalogueSearchReach(selection, limit, FAQ_CATALOGUE_PAGE_SIZE),
     limit,
   };
+}
+
+/** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
+export async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
+  const [questions = 0, answered = 0] = await countCataloguePartitions(ctx, 'faq', [
+    faqRulesetPartition(rulesetId),
+    faqAnsweredPartition(rulesetId),
+  ]);
+  return { questions, answered };
 }

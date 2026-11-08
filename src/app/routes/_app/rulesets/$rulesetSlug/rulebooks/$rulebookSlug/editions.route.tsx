@@ -10,6 +10,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { BookOpen } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import { loadRulebookEditionHistory, useRulebookEditionHistory } from '@db/rulebooks';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
@@ -138,9 +139,17 @@ function RulebookEditionHistoryPage() {
 }
 
 /** The band's one line about the history, in words: how many editions, and which one is current and since when. */
-function editionsSummary(count: number, current: { edition_number: number; created_at: string } | undefined): string {
+function editionsSummary(
+  count: number,
+  current: { edition_number: number; created_at: string } | undefined
+): ReactNode {
   const total = count === 1 ? '1 Edition' : `${count} Editions`;
-  return current
-    ? `${total} · current: Edition ${current.edition_number}, ${formatStableDate(current.created_at)}`
-    : total;
+  return current ? (
+    <>
+      {total} · current: Edition {current.edition_number},{' '}
+      <time dateTime={current.created_at}>{formatStableDate(current.created_at)}</time>
+    </>
+  ) : (
+    total
+  );
 }

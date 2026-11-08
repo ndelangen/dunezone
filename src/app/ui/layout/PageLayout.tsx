@@ -18,6 +18,7 @@ export type PageHeaderSize = 'default' | 'compact' | 'collapsed' | 'hero' | 'imm
  * Where the header content sits across the band.
  * `center` (the default) centres the title group;
  * `start` sets it on the band's one left edge, the same inset on every page that asks for it, so left-aligned titles line up from page to page.
+ * It is for a `PageTitle` header: a `PageIdentity` band keeps its own centred column.
  */
 export type PageHeaderAlign = 'center' | 'start';
 

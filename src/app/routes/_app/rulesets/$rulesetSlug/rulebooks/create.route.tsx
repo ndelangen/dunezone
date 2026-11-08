@@ -11,6 +11,7 @@ import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rul
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -26,7 +27,6 @@ import { loadRulebookCreationPage, useCreateRulebook, useRulebookCreationPage } 
 import type { RulebookCreateSource, RulebookCreationPageData } from '@db/rulebooks';
 import { pageHead } from '@app/routes/pageTitle';
 import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
-import { BackToolbar } from '@app/widgets/back-toolbar/BackToolbar';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';

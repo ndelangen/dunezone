@@ -1,5 +1,6 @@
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageState } from '@ui/block/PageState';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useReducer, useRef, useState } from 'react';
@@ -8,7 +9,6 @@ import type { Dispatch } from 'react';
 import { useCreatableRulesets, useCreateGame, usePlayReadiness } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
 import { useMotionAllowed } from '@app/styles/motion';
-import { BackToolbar } from '@app/widgets/back-toolbar/BackToolbar';
 import {
   CreateGamePass,
   CreateGamePassTitle,

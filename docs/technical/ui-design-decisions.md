@@ -489,7 +489,7 @@ line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the l
 A long text a reader reads through, such as the privacy policy, is open sections like a blog post,
 and a group of tiles that are frames already (the Assets overview's piles, a catalogue's grid) sits
 on the page under a section heading, not inside a second frame. A frame is kept for one thing that
-must stand out, such as the privacy page's two promises in its band (Norbert, 2026-11-07).
+must stand out, such as the privacy page's two promises at the top of its content (Norbert, 2026-11-07).
 
 *Convention. The kit carries it: [`Section`](../../src/app/ui/block/Section.tsx) for the parts, and
 [`Card`](../../src/app/ui/surface/Card.tsx) only for the one item that stands apart. A header's line
