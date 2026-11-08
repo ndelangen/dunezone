@@ -3,6 +3,7 @@ import { nextToMove } from '@shared/play/movement';
 import type { MovementTurns as MovementTurnsState } from '@shared/play/movement';
 import { SortableRow } from '@ui/control/SortableRow';
 import { Check } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { useId } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -67,8 +68,18 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
       aria-label="Shipment and Movement turns"
       className={styles.turns}
       data-motion={motion || undefined}
+      data-complete={(rest.length === 0 && locked.length > 0) || undefined}
     >
-      {locked.length > 0 && <div className={styles.row}>{locked.map((id) => token(id))}</div>}
+      {locked.length > 0 && (
+        <div className={styles.row}>
+          {/* Each finished token knows its place, so the row's completion runs along it from first to last. */}
+          {locked.map((id, index) => (
+            <span key={id} className={styles.place} style={{ '--place': index } as CSSProperties}>
+              {token(id)}
+            </span>
+          ))}
+        </div>
+      )}
       <SortableRow
         items={rest.map((id) => ({ id }))}
         disabled={!canAct}

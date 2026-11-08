@@ -220,154 +220,34 @@
 }
 
 /*
- * Animation trials for the battle panel's arrival (motionTrials.stories.fixture.tsx picks one per story).
- * Every variant grows out of the battle marker: `--pop-x` and `--pop-y` put the origin on the pointer's tip.
+ * Animation trials for the battle panel's build-up (battles.motion.stories.tsx picks one per story).
+ * `--pop-x` and `--pop-y` put the origin on the pointer's tip, on the battle marker.
  */
 .callout {
   transform-origin: calc(50% + var(--pop-x, 0px)) calc(50% + var(--pop-y, 0px));
 }
 
-/* Spring: grows out of the marker, overshoots a hair, settles. */
-:global(html[data-motion="ok"][data-trial-battle-pop="spring"]) .callout {
-  animation: pop-spring 300ms cubic-bezier(0.2, 0.9, 0.3, 1);
+/* Stalk: a narrow stalk rises out of the marker, opens sideways into the panel, and the sides charge in. */
+:global(html[data-motion="ok"][data-trial-battle-pop="stalk"]) .callout {
+  animation: build-stalk 420ms cubic-bezier(0.3, 0.8, 0.3, 1);
 }
 
-@keyframes pop-spring {
+@keyframes build-stalk {
   0% {
     opacity: 0;
-    scale: 0.55;
+    scale: 0.06 0;
   }
 
-  45% {
+  10% {
     opacity: 1;
-  }
-
-  70% {
-    scale: 1.035;
-  }
-
-  100% {
-    scale: 1;
-  }
-}
-
-/* Drop: set down on the table from a little above, with the same two-step knock as a Panel's edge stopping. */
-:global(html[data-motion="ok"][data-trial-battle-pop="drop"]) .callout {
-  animation: pop-drop 400ms ease-out;
-}
-
-@keyframes pop-drop {
-  0% {
-    opacity: 0;
-    translate: 0 -16px;
   }
 
   40% {
-    opacity: 1;
-    translate: 0 0;
-  }
-
-  60% {
-    translate: 0 -4px;
+    scale: 0.06 1;
   }
 
   80% {
-    translate: 0 0;
-  }
-
-  90% {
-    translate: 0 -1px;
-  }
-}
-
-/* Clash: the panel opens, then the two sides charge in from the edges, meet in the middle and recoil once. */
-:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .callout {
-  animation: pop-clash-panel 180ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .side:first-child {
-  animation: pop-clash-left 420ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .side:nth-child(2) {
-  animation: pop-clash-right 420ms ease-out;
-}
-
-@keyframes pop-clash-panel {
-  from {
-    opacity: 0;
-    scale: 0.94;
-  }
-}
-
-@keyframes pop-clash-left {
-  0%,
-  15% {
-    opacity: 0;
-    translate: -48px 0;
-  }
-
-  55% {
-    opacity: 1;
-    translate: 0 0;
-  }
-
-  72% {
-    translate: -6px 0;
-  }
-
-  88% {
-    translate: 0 0;
-  }
-
-  94% {
-    translate: -2px 0;
-  }
-}
-
-@keyframes pop-clash-right {
-  0%,
-  15% {
-    opacity: 0;
-    translate: 48px 0;
-  }
-
-  55% {
-    opacity: 1;
-    translate: 0 0;
-  }
-
-  72% {
-    translate: 6px 0;
-  }
-
-  88% {
-    translate: 0 0;
-  }
-
-  94% {
-    translate: 2px 0;
-  }
-}
-
-/* Unroll: the capsule unrolls sideways out of the marker like a map, then its contents fade up. */
-:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .callout {
-  animation: pop-unroll 260ms cubic-bezier(0.25, 0.9, 0.35, 1);
-}
-
-:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .side,
-:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .centre {
-  animation: pop-unroll-contents 320ms ease-out;
-}
-
-@keyframes pop-unroll {
-  0% {
-    opacity: 0;
-    scale: 0.12 0.7;
-  }
-
-  35% {
-    opacity: 1;
+    scale: 1.03 1;
   }
 
   100% {
@@ -375,44 +255,100 @@
   }
 }
 
-@keyframes pop-unroll-contents {
-  0%,
-  45% {
+/* Reach: the panel springs up over the marker, then its pointer reaches down to it (BattleCallout grows it), and the sides charge in. */
+:global(html[data-motion="ok"][data-trial-battle-pop="reach"]) .callout {
+  animation: build-reach 240ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transform-origin: center bottom;
+}
+
+@keyframes build-reach {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+/* Both: the panel's contents wait for it, then each open side charges in from its edge, meets the middle and recoils once. */
+:global(html[data-motion="ok"][data-trial-battle-pop]) .side,
+:global(html[data-motion="ok"][data-trial-battle-pop]) .centre {
+  animation: build-contents 160ms ease-out 260ms backwards;
+}
+
+:global(html[data-motion="ok"][data-trial-battle-pop]) .side:first-child {
+  animation: build-left 420ms ease-out 260ms backwards;
+}
+
+:global(html[data-motion="ok"][data-trial-battle-pop]) .side:nth-child(2) {
+  animation: build-right 420ms ease-out 260ms backwards;
+}
+
+@keyframes build-contents {
+  from {
     opacity: 0;
   }
 }
 
-/* Thud: lands heavily, a touch too big, and the table shudders once under it. */
-:global(html[data-motion="ok"][data-trial-battle-pop="thud"]) .callout {
-  animation: pop-thud 340ms ease-in;
-}
-
-@keyframes pop-thud {
+@keyframes build-left {
   0% {
     opacity: 0;
-    scale: 1.12;
+    translate: -48px 0;
   }
 
-  40% {
+  45% {
     opacity: 1;
-    scale: 1;
     translate: 0 0;
-    animation-timing-function: ease-out;
   }
 
-  55% {
-    translate: 3px 1px;
-  }
-
-  70% {
-    translate: -2px 0;
+  65% {
+    translate: -6px 0;
   }
 
   85% {
-    translate: 1px 0;
+    translate: 0 0;
   }
 
-  100% {
+  93% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes build-right {
+  0% {
+    opacity: 0;
+    translate: 48px 0;
+  }
+
+  45% {
+    opacity: 1;
     translate: 0 0;
+  }
+
+  65% {
+    translate: 6px 0;
+  }
+
+  85% {
+    translate: 0 0;
+  }
+
+  93% {
+    translate: 2px 0;
+  }
+}
+
+/* A side claimed while the panel is up: its faction's token is slapped down where the claim was, with a quarter turn and a pop. */
+:global(html[data-motion="ok"]) .side[data-claimed-now] > :first-child {
+  animation: claim-slap 340ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+@keyframes claim-slap {
+  from {
+    opacity: 0;
+    scale: 0.4;
+    rotate: -90deg;
+  }
+
+  60% {
+    opacity: 1;
   }
 }

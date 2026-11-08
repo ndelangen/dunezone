@@ -169,7 +169,10 @@ export function DialRow({
   onChange: (value: number) => void;
   spice?: boolean;
 }) {
-  /* The slider's value follows the thumb and is sent once, when the thumb is let go; the stepper sends each step. */
+  /*
+   * The slider sends each step as the thumb crosses it, so the strength follows the drag live; the battle queue merges
+   * steps sent while one is still unanswered. The draft holds the thumb where it is until the plan catches up.
+   */
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
   return (
@@ -187,7 +190,12 @@ export function DialRow({
         disabled={disabled || max === 0}
         label={null}
         size="sm"
-        onChange={setDraft}
+        onChange={(next) => {
+          setDraft(next);
+          if (next !== shown) {
+            onChange(next);
+          }
+        }}
         onChangeEnd={(next) => {
           setDraft(null);
           if (next !== value) {

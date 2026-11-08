@@ -15,7 +15,7 @@ import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 
@@ -567,8 +567,19 @@ function SideContents({
     </Button>
   );
 }
+/* The sides this page has seen open in this battle, so a side claimed while the panel is up can mark its arrival. */
+function useClaimedNow(battle: PublicBattle) {
+  const open = battle.sides.flatMap((side, index) => (side ? [] : [index]));
+  const [seen, setSeen] = useState({ battleId: battle.id, open });
+  const fresh = seen.battleId !== battle.id;
+  if (fresh || open.some((index) => !seen.open.includes(index))) {
+    setSeen({ battleId: battle.id, open: fresh ? open : [...new Set([...seen.open, ...open])] });
+  }
+  return (index: number) => !fresh && Boolean(battle.sides[index]) && seen.open.includes(index);
+}
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
+  const claimedNow = useClaimedNow(battle);
   const active = new Set(
     table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
   );
@@ -577,7 +588,7 @@ function BattleSides(props: ActiveProps) {
       {([0, 1] as const).map((index) => {
         const side = battle.sides[index];
         return (
-          <div className={styles.side} key={index}>
+          <div className={styles.side} key={index} data-claimed-now={claimedNow(index) || undefined}>
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
@@ -593,6 +604,33 @@ function BattleSides(props: ActiveProps) {
     </Group>
   );
 }
+/*
+ * Trial: with the "reach" build-up the pointer grows from the panel down to the marker once the panel has sprung up.
+ * Read from <html data-trial-battle-pop> as the story pins it; any other page shows the pointer whole.
+ */
+function usePointerReach() {
+  const motion = useMotionAllowed();
+  /* The callout mounts with its battle, so the reach starts with it. */
+  const [grows] = useState(() => motion && document.documentElement.dataset.trialBattlePop === 'reach');
+  const [reach, setReach] = useState(grows ? 0 : 1);
+  useEffect(() => {
+    if (!grows) {
+      return;
+    }
+    const start = performance.now() + 140;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - start) / 200));
+      setReach(1 - (1 - t) ** 3);
+      if (t < 1) {
+        frame = requestAnimationFrame(step);
+      }
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [grows]);
+  return reach;
+}
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const canvas = useThree((state) => state.renderer.domElement);
@@ -600,6 +638,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   const props = { client, table, battle, own };
+  const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
     <Html
@@ -619,6 +658,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
           >
             <CalloutSurface
               pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
+              reach={reach}
               actions={
                 <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
                   <BattleActions {...props} />
