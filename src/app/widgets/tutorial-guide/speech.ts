@@ -28,6 +28,8 @@ const synthesis = (): SpeechSynthesis | null =>
   typeof window !== 'undefined' && 'speechSynthesis' in window ? window.speechSynthesis : null;
 
 const noChanges = () => () => {};
+
+type Reading = { utterances: readonly SpeechSynthesisUtterance[] };
 const hasVoice = () => synthesis() !== null;
 const noVoice = () => false;
 
@@ -37,6 +39,10 @@ const noVoice = () => false;
  */
 function naturalness(voice: SpeechSynthesisVoice): number {
   const name = voice.name.toLowerCase();
+  /* Edge's child voices sound natural, but not like someone teaching a game. */
+  if (/\b(ana|maisie)\b/.test(name)) {
+    return 0;
+  }
   /* Edge's online voices, such as "Microsoft Aria Online (Natural)". */
   if (/\b(natural|neural)\b/.test(name)) {
     return 3;
@@ -52,29 +58,86 @@ function naturalness(voice: SpeechSynthesisVoice): number {
   return 0;
 }
 
-/**
- * The tutorial is written in English, so it is read in an English voice whatever the machine's own language: the most natural one, and among equals the machine's default, then one on the machine itself.
- */
-export function englishVoice(voices: readonly SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
-  const english = voices.filter((voice) => voice.lang.toLowerCase().startsWith('en'));
-  const rank = (voice: SpeechSynthesisVoice) =>
-    naturalness(voice) * 4 + (voice.default ? 2 : 0) + (voice.localService ? 1 : 0);
-  return english.reduce<SpeechSynthesisVoice | undefined>(
-    (best, voice) => (best === undefined || rank(voice) > rank(best) ? voice : best),
-    undefined
-  );
+const isEnglish = (lang: string | undefined) => lang?.toLowerCase().startsWith('en') === true;
+
+/* The accent to read in: the learner's own English, else the machine's default English voice's, else American. */
+function preferredAccent(english: readonly SpeechSynthesisVoice[], language: string | undefined): string {
+  if (isEnglish(language)) {
+    return language!.toLowerCase();
+  }
+  return english.find((voice) => voice.default)?.lang.toLowerCase() ?? 'en-us';
 }
 
-/*
- * A text in parts of a sentence or so. Chrome's online voices fall silent partway through a long text,
- * and short parts keep each one well within what they read.
+/**
+ * The tutorial is written in English, so it is read in an English voice whatever the machine's own language.
+ * The most natural voice wins;
+ * among equals, one in the learner's accent, then the machine's default, then one on the machine itself.
+ * Only voices on the machine are offered once an online voice has failed.
  */
+export function englishVoice(
+  voices: readonly SpeechSynthesisVoice[],
+  {
+    language = typeof navigator === 'undefined' ? undefined : navigator.language,
+    localOnly = false,
+  }: { language?: string; localOnly?: boolean } = {}
+): SpeechSynthesisVoice | undefined {
+  const english = voices.filter((voice) => isEnglish(voice.lang) && (!localOnly || voice.localService));
+  const accent = preferredAccent(english, language);
+  const accentScore = (lang: string) => {
+    const lower = lang.toLowerCase().replace('_', '-');
+    if (lower === accent) {
+      return 2;
+    }
+    return lower === 'en-us' || lower === 'en-gb' ? 1 : 0;
+  };
+  const ranked = english.map((voice) => ({
+    voice,
+    rank:
+      naturalness(voice) * 16 + accentScore(voice.lang) * 4 + (voice.default ? 2 : 0) + (voice.localService ? 1 : 0),
+  }));
+  return ranked.reduce<(typeof ranked)[number] | undefined>(
+    (best, entry) => (best === undefined || entry.rank > best.rank ? entry : best),
+    undefined
+  )?.voice;
+}
+
+/* Chrome's online voices fall silent partway through a long text, so no part is longer than this. */
+const LONGEST_PART = 180;
+
+/* A long sentence in clauses, joined back up to parts no longer than they need be. */
+function clauses(sentence: string): string[] {
+  if (sentence.length <= LONGEST_PART) {
+    return [sentence];
+  }
+  const parts: string[] = [];
+  for (const clause of sentence.match(/[^,;:]+[,;:]*/g) ?? [sentence]) {
+    const last = parts.at(-1);
+    if (last !== undefined && last.length + clause.length <= LONGEST_PART) {
+      parts[parts.length - 1] = last + clause;
+    } else {
+      parts.push(clause);
+    }
+  }
+  return parts;
+}
+
+/** A text in the parts it is read in: each sentence, and a long one in clauses. */
 export function speechParts(text: string): string[] {
-  return text
-    .split(/(?<=[.!?])\s+/)
+  const sentences =
+    typeof Intl.Segmenter === 'function'
+      ? Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), ({ segment }) => segment)
+      : [text];
+  return sentences
+    .flatMap((sentence) => clauses(sentence.trim()))
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
 }
+
+/* What a voice that failed for want of a connection reports; the text is read again in a voice on the machine. */
+const OFFLINE_ERRORS = new Set(['network', 'synthesis-failed', 'synthesis-unavailable', 'voice-unavailable']);
+
+/* How long a text waits for a browser that lists its voices late, such as Chrome on its first ask. */
+const VOICES_WAIT_MS = 1000;
 
 /**
  * Speaks one text at a time and says whether it is speaking.
@@ -82,8 +145,8 @@ export function speechParts(text: string): string[] {
  */
 export function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
-  /* The utterances under way. The browser drops their events once nothing holds them, so they are held here until they end. */
-  const current = useRef<readonly SpeechSynthesisUtterance[] | null>(null);
+  /* The text under way, with the utterances reading it. The browser drops their events once nothing holds them, so they are held here until they end. */
+  const current = useRef<Reading | null>(null);
   const pending = useRef<string | null>(null);
   /* Known only in the browser; the server renders no voice, so the page it sends matches the first render. */
   const supported = useSyncExternalStore(noChanges, hasVoice, noVoice);
@@ -101,56 +164,80 @@ export function useSpeech() {
       return;
     }
     pending.current = null;
-    current.current = null;
     voice.cancel();
-    const chosen = englishVoice(voice.getVoices());
-    const utterances = speechParts(text).map((part) => {
-      const utterance = new SpeechSynthesisUtterance(part);
-      utterance.lang = chosen?.lang ?? 'en';
-      if (chosen) {
-        utterance.voice = chosen;
-      }
-      return utterance;
-    });
-    const last = utterances.at(-1);
-    if (!last) {
-      setSpeaking(false);
-      return;
-    }
-    /* A cancelled utterance ends too, sometimes after the next has begun; only the text under way may say speaking is over. */
+    const reading: Reading = { utterances: [] };
+    current.current = reading;
+    setSpeaking(true);
+
     const ended = () => {
-      if (current.current === utterances) {
+      if (current.current === reading) {
         current.current = null;
         setSpeaking(false);
       }
     };
-    last.addEventListener('end', ended);
-    for (const utterance of utterances) {
-      utterance.addEventListener('error', (event) => {
-        if (current.current !== utterances) {
-          return;
+    const read = (parts: readonly string[], localOnly: boolean) => {
+      const chosen = englishVoice(voice.getVoices(), { localOnly });
+      const utterances = parts.map((part) => {
+        const utterance = new SpeechSynthesisUtterance(part);
+        utterance.lang = chosen?.lang ?? 'en';
+        if (chosen) {
+          utterance.voice = chosen;
         }
-        ended();
-        voice.cancel();
-        /* A fresh page may require an interaction before speech; only the current step may retry. */
-        if (event.error === 'not-allowed') {
-          pending.current = text;
+        return utterance;
+      });
+      reading.utterances = utterances;
+      /* A cancelled utterance ends too, sometimes after the next has begun; only the reading under way may say speaking is over. */
+      const underWay = () => current.current === reading && reading.utterances === utterances;
+      utterances.at(-1)?.addEventListener('end', () => {
+        if (underWay()) {
+          ended();
         }
       });
+      utterances.forEach((utterance, index) => {
+        utterance.addEventListener('error', (event) => {
+          if (!underWay()) {
+            return;
+          }
+          if (chosen && !chosen.localService && OFFLINE_ERRORS.has(event.error)) {
+            voice.cancel();
+            read(parts.slice(index), true);
+            return;
+          }
+          ended();
+          voice.cancel();
+          /* A fresh page may require an interaction before speech; only the current step may retry. */
+          if (event.error === 'not-allowed') {
+            pending.current = text;
+          }
+        });
+      });
+      if (utterances.length === 0) {
+        ended();
+      }
+      for (const utterance of utterances) {
+        voice.speak(utterance);
+      }
+    };
+
+    if (voice.getVoices().length > 0) {
+      read(speechParts(text), false);
+      return;
     }
-    current.current = utterances;
-    setSpeaking(true);
-    for (const utterance of utterances) {
-      voice.speak(utterance);
-    }
+    /* Read as soon as the voices are listed, or in the browser's own voice if they never are. */
+    let started = false;
+    const start = () => {
+      if (!started && current.current === reading) {
+        started = true;
+        read(speechParts(text), false);
+      }
+    };
+    voice.addEventListener?.('voiceschanged', start, { once: true });
+    setTimeout(start, VOICES_WAIT_MS);
   }, []);
 
-  /* Chrome lists its voices only some time after it is first asked, so it is asked before the first text. */
   useEffect(() => {
+    /* Chrome lists its voices only some time after it is first asked, so it is asked before the first text. */
     synthesis()?.getVoices();
-  }, []);
-
-  useEffect(() => {
     const quiet = () => {
       pending.current = null;
       current.current = null;

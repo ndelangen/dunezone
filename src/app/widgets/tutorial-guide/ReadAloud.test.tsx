@@ -19,16 +19,20 @@ afterEach(() => {
 });
 
 /* The browser's voice, as far as the button uses it: what it was asked to say, and when it was stopped. */
-function fakeVoice() {
+function fakeVoice(
+  voices: readonly Partial<SpeechSynthesisVoice>[] = [
+    { name: 'Microsoft Frank', lang: 'nl-NL', default: true, localService: true },
+    { name: 'Microsoft Hazel', lang: 'en-GB', default: false, localService: true },
+  ]
+) {
   const said: SpeechSynthesisUtterance[] = [];
-  const voice = {
+  const listed = { voices };
+  const voice = Object.assign(new EventTarget(), {
     speak: vi.fn((utterance: SpeechSynthesisUtterance) => said.push(utterance)),
     cancel: vi.fn(),
-    getVoices: () => [
-      { lang: 'nl-NL', default: true },
-      { lang: 'en-GB', default: false, localService: true },
-    ],
-  };
+    getVoices: () => listed.voices,
+    listed,
+  });
   vi.stubGlobal('speechSynthesis', voice);
   vi.stubGlobal(
     'SpeechSynthesisUtterance',
@@ -239,6 +243,50 @@ test('speaking is over only once the last sentence ends', () => {
   expect(result.current.speaking).toBe(true);
   act(() => {
     said[1]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(false);
+});
+
+test('a browser that lists its voices late is waited for, so the first text has the natural voice too', () => {
+  const { voice, said } = fakeVoice([]);
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('Welcome.'));
+  expect(said).toHaveLength(0);
+  expect(result.current.speaking).toBe(true);
+  voice.listed.voices = [
+    { name: 'Microsoft David - English (United States)', lang: 'en-US', default: true, localService: true },
+    { name: 'Google US English', lang: 'en-US', default: false, localService: false },
+  ];
+  act(() => {
+    voice.dispatchEvent(new Event('voiceschanged'));
+  });
+  expect(said.map((utterance) => utterance.text)).toEqual(['Welcome.']);
+  expect((said[0]!.voice as SpeechSynthesisVoice).name).toBe('Google US English');
+});
+
+test('an online voice that fails offline is followed by a voice on the machine, from where it failed', () => {
+  const { said } = fakeVoice([
+    { name: 'Microsoft David - English (United States)', lang: 'en-US', default: true, localService: true },
+    { name: 'Google US English', lang: 'en-US', default: false, localService: false },
+  ]);
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('One. Two. Three.'));
+  expect(said).toHaveLength(3);
+  const failed = new Event('error') as SpeechSynthesisErrorEvent;
+  Object.defineProperty(failed, 'error', { value: 'network' });
+  act(() => {
+    said[1]!.dispatchEvent(failed);
+  });
+  const again = said.slice(3);
+  expect(again.map((utterance) => utterance.text)).toEqual(['Two.', 'Three.']);
+  expect(again.every((utterance) => (utterance.voice as SpeechSynthesisVoice).localService)).toBe(true);
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    said[2]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    again.at(-1)!.dispatchEvent(new Event('end'));
   });
   expect(result.current.speaking).toBe(false);
 });

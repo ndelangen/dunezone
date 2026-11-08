@@ -19,7 +19,9 @@ test("a natural voice is read with over the machine's robotic default", () => {
     voice('Microsoft Zira - English (United States)', 'en-US', { localService: true }),
     voice('Microsoft Aria Online (Natural) - English (United States)', 'en-US'),
   ];
-  expect(englishVoice(edge)?.name).toBe('Microsoft Aria Online (Natural) - English (United States)');
+  expect(englishVoice(edge, { language: 'en-US' })?.name).toBe(
+    'Microsoft Aria Online (Natural) - English (United States)'
+  );
 
   const chrome = [
     voice('Microsoft David - English (United States)', 'en-US', { default: true, localService: true }),
@@ -41,8 +43,28 @@ test("among equal voices the machine's default English voice is kept, and only a
     voice('Microsoft Zira', 'en-US', { localService: true }),
     voice('Microsoft David', 'en-US', { default: true, localService: true }),
   ];
-  expect(englishVoice(firefox)?.name).toBe('Microsoft David');
+  expect(englishVoice(firefox, { language: 'de-DE' })?.name).toBe('Microsoft David');
   expect(englishVoice([voice('Microsoft Hedda', 'de-DE')])).toBeUndefined();
+});
+
+test("among natural voices the learner's own accent is read with, and never a child's voice", () => {
+  const edge = [
+    voice('Microsoft Ana Online (Natural) - English (United States)', 'en-US'),
+    voice('Microsoft Natasha Online (Natural) - English (Australia)', 'en-AU'),
+    voice('Microsoft Libby Online (Natural) - English (United Kingdom)', 'en-GB'),
+    voice('Microsoft Aria Online (Natural) - English (United States)', 'en-US'),
+  ];
+  expect(englishVoice(edge, { language: 'en-GB' })?.name).toContain('Libby');
+  expect(englishVoice(edge, { language: 'en-US' })?.name).toContain('Aria');
+  expect(englishVoice(edge, { language: 'nl-NL' })?.name).toContain('Aria');
+});
+
+test('once an online voice has failed, only a voice on the machine is offered', () => {
+  const chrome = [
+    voice('Microsoft David - English (United States)', 'en-US', { default: true, localService: true }),
+    voice('Google US English', 'en-US'),
+  ];
+  expect(englishVoice(chrome, { localOnly: true })?.name).toBe('Microsoft David - English (United States)');
 });
 
 test('a text is read sentence by sentence', () => {
@@ -52,6 +74,18 @@ test('a text is read sentence by sentence', () => {
     'Ready?',
     'Go',
   ]);
-  expect(speechParts('Pay 1.5 spice...  then wait.')).toEqual(['Pay 1.5 spice...', 'then wait.']);
+  expect(speechParts('Pay 1.5 spice, e.g. to Paul. Then wait.')).toEqual([
+    'Pay 1.5 spice, e.g. to Paul.',
+    'Then wait.',
+  ]);
   expect(speechParts('   ')).toEqual([]);
+});
+
+test('a long sentence is read in clauses, none longer than an online voice reads', () => {
+  const clause = 'the spice blow lands in the desert and every faction may move there';
+  const sentence = `${clause}, ${clause}; ${clause}: ${clause}.`;
+  const parts = speechParts(sentence);
+  expect(parts.length).toBeGreaterThan(1);
+  expect(parts.every((part) => part.length <= 180)).toBe(true);
+  expect(parts.join(' ')).toBe(sentence);
 });
