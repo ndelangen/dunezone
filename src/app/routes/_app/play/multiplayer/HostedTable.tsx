@@ -775,7 +775,6 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const [diagnostics] = useState(() => new BrowserDiagnostics());
   useEffect(() => diagnostics.listen(window), [diagnostics]);
-  const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
     () =>
       new TableSession(
@@ -800,25 +799,7 @@ export default function HostedTable({
   const risen = usePlanetRisen();
   const tableBuilt = useDeferredValue(Boolean(view.table) && risen);
   if (!view.table || !tableBuilt) {
-    return (
-      <TableWait
-        status={view.error ?? (view.table ? 'Opening the table...' : 'Connecting to the hosted table...')}
-        connection={view.status}
-      >
-        {view.status === 'denied' && (
-          <Anchor
-            renderRoot={(props) => (
-              <Link {...props} to="/auth/login" search={{ ...signInReturnFrom(here), reauthenticate: true }} />
-            )}
-          >
-            Sign in again
-          </Anchor>
-        )}
-        {/* Only while the table is out of reach: a table already answering is being built, and its chat reads the table's clock. */}
-        {view.table ? null : <OfflineConversations client={client} />}
-        {exitControl}
-      </TableWait>
-    );
+    return <HostedTableWait client={client} view={view} exitControl={exitControl} />;
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
@@ -849,4 +830,32 @@ function usePlanetRisen() {
     return () => window.clearTimeout(timer);
   }, [risen]);
   return risen;
+}
+
+/* The waiting frame while the hosted table connects, or while its first answer is being built. */
+function HostedTableWait({
+  client,
+  view,
+  exitControl,
+}: Readonly<{ client: TableSession; view: ReturnType<TableSession['getSnapshot']>; exitControl: ReactNode }>) {
+  const here = useLocation({ select: (location) => location.href });
+  return (
+    <TableWait
+      status={view.error ?? (view.table ? 'Opening the table...' : 'Connecting to the hosted table...')}
+      connection={view.status}
+    >
+      {view.status === 'denied' && (
+        <Anchor
+          renderRoot={(props) => (
+            <Link {...props} to="/auth/login" search={{ ...signInReturnFrom(here), reauthenticate: true }} />
+          )}
+        >
+          Sign in again
+        </Anchor>
+      )}
+      {/* Only while the table is out of reach: a table already answering is being built, and its chat reads the table's clock. */}
+      {view.table ? null : <OfflineConversations client={client} />}
+      {exitControl}
+    </TableWait>
+  );
 }
