@@ -204,15 +204,21 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
 
-/** A sandbox at Shipment and Movement as seat 1, its troops in a mess for carrying back to their reserves. */
+/* The seat the recording's deal gave the Emperor, the faction with two kinds of troops; the deal is random, so it differs per recording. */
+const emperorSeat = () =>
+  journeySteps()
+    .at(-1)!
+    .views['seat-1']!.snapshot.roster!.seats.find((entry) => entry.faction?.id === 'emperor')!.id;
+
+/** A sandbox at Shipment and Movement as the Emperor's seat, its troops in a mess for carrying back to their reserves. */
 export const messyReservesSandbox = {
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  args: { step: chapter('Shipment and Movement'), seat: emperorSeat() },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
     install(() =>
       sandboxTransport({
         start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? 'seat-1'),
-        prepare: withMessyReserves,
+        seat: String(args.seat ?? emperorSeat()),
+        prepare: (stored) => withMessyReserves(stored, 'emperor'),
       })
     )(),
 };

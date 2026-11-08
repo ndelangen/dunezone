@@ -259,7 +259,8 @@ export async function tablePage(canvasElement: HTMLElement, phaseLabel: string =
       const canvas = document.querySelector('.dune-play-shell canvas');
       await expect(canvas).toBeVisible();
       await expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
-      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
+      /* The Dreamrules Treachery deck less the eight cards dealt and discarded (`playingSnapshot`). */
+      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('37');
       await expect(
         Array.from(document.fonts).some(
           (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
