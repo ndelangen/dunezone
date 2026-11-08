@@ -1201,16 +1201,10 @@ export class TableSession {
   private receiveAuthorizedUpdate(
     message: Exclude<TableSubscriptionEvent, { type: 'connection' | 'resync' | 'view' | 'ping' | 'card-draw' }>
   ) {
-    if (this.conversations.receive(message)) {
+    if (this.conversations.receive(message) || this.pages.receive(message)) {
       return;
     }
     switch (message.type) {
-      case 'log-history':
-      case 'spice-history':
-      case 'faction':
-      case 'treachery-deck':
-        this.pages.receive(message);
-        break;
       case 'catalogue':
         if (message.requestId === this.catalogueRequestId) {
           this.catalogueResult = message;

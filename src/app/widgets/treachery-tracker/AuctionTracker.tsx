@@ -9,7 +9,7 @@ import styles from './AuctionTracker.module.css';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
 import { DeckFooter } from './DeckFooter';
 import { awaitingWinner, copyOf, currentTurn, onBid as cardOnBid, sightingCard } from './tracker';
-import type { Sighting } from './tracker';
+import type { CardCopy, Sighting, TrackerAction } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
 
@@ -207,13 +207,32 @@ function Auctions({ factions, state, onAction }: TrackerViewProps) {
   );
 }
 
+/* A card as the tracker knows it: its glyph, or the unknown mark. */
+function KnownOrUnknown({ copy }: Readonly<{ copy: CardCopy | null }>) {
+  return copy ? <CardGlyph card={copy} size={GLYPH} /> : <UnknownGlyph size={GLYPH} />;
+}
+
+/* Who holds an auctioned card now: the holder's token on its corner, or a veil once it was discarded. */
+function HolderMark({ holder }: Readonly<{ holder: ReturnType<typeof holderOf> }>) {
+  if (!holder) {
+    return null;
+  }
+  return holder === 'discard' ? (
+    <span className={styles.discardedMark} aria-hidden />
+  ) : (
+    <span className={styles.holder}>
+      <FactionTokenFace token={holder} size={18} />
+    </span>
+  );
+}
+
 function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps & Readonly<{ sighting: Sighting }>) {
   const [open, setOpen] = useState(false);
   const card = sightingCard(state, sighting);
   const copy = card ? copyOf(state, card) : null;
   const holder = holderOf(state, factions, sighting);
   const waiting = awaitingWinner(state, sighting);
-  const name = copy ? copy.def.name : 'Unknown card';
+  const name = copy?.def.name ?? 'Unknown card';
   return (
     <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
       <Popover.Target>
@@ -225,15 +244,10 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
               aria-label={waiting ? `${name}: who won it?` : name}
               onClick={() => waiting && setOpen((was) => !was)}
             >
-              {copy ? <CardGlyph card={copy} size={GLYPH} /> : <UnknownGlyph size={GLYPH} />}
+              <KnownOrUnknown copy={copy} />
             </button>
           </CardPreview>
-          {holder && holder !== 'discard' && (
-            <span className={styles.holder}>
-              <FactionTokenFace token={holder} size={18} />
-            </span>
-          )}
-          {holder === 'discard' && <span className={styles.discardedMark} aria-hidden />}
+          <HolderMark holder={holder} />
         </span>
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown}>
@@ -243,7 +257,7 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
         <FactionPicker
           factions={factions}
           size={32}
-          label={(faction) => `${faction.name} won ${copy ? copy.def.name : 'the unknown card'}`}
+          label={(faction) => `${faction.name} won ${copy?.def.name ?? 'the unknown card'}`}
           onPick={(faction) => {
             onAction({ kind: 'win', sighting: sighting.id, faction });
             setOpen(false);
@@ -251,6 +265,52 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
         />
       </Popover.Dropdown>
     </Popover>
+  );
+}
+
+/* The line Atreides keeps on a faction: shown, or edited in place. */
+function HandNote({
+  faction,
+  note,
+  editing,
+  onDone,
+  onAction,
+}: Readonly<{
+  faction: FactionToken;
+  note: string;
+  editing: boolean;
+  onDone: () => void;
+  onAction: (action: TrackerAction) => void;
+}>) {
+  if (!editing) {
+    return note ? (
+      <Text size="xs" className={styles.note} data-text>
+        {note}
+      </Text>
+    ) : null;
+  }
+  return (
+    <TextInput
+      className={styles.note}
+      size="xs"
+      ref={(input) => input?.focus()}
+      defaultValue={note}
+      maxLength={120}
+      placeholder="Which cards they cannot have…"
+      aria-label={`Your note on ${faction.name}`}
+      onBlur={(event) => {
+        onAction({ kind: 'note', faction: faction.id, text: event.currentTarget.value.trim() });
+        onDone();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          event.currentTarget.blur();
+        }
+        if (event.key === 'Escape') {
+          onDone();
+        }
+      }}
+    />
   );
 }
 
@@ -262,21 +322,18 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
     <div className={styles.handRow}>
       <FactionTokenFace token={faction} size={GLYPH} />
       <div className={styles.handCards}>
-        {slots.map((slot) => {
-          const copy = slot.card ? copyOf(state, slot.card) : null;
-          return (
-            <SlotChip
-              key={slot.id}
-              faction={faction.id}
-              slot={slot}
-              factions={factions}
-              state={state}
-              onAction={onAction}
-            >
-              {copy ? <CardGlyph card={copy} size={GLYPH} /> : <UnknownGlyph size={GLYPH} />}
-            </SlotChip>
-          );
-        })}
+        {slots.map((slot) => (
+          <SlotChip
+            key={slot.id}
+            faction={faction.id}
+            slot={slot}
+            factions={factions}
+            state={state}
+            onAction={onAction}
+          >
+            <KnownOrUnknown copy={slot.card ? copyOf(state, slot.card) : null} />
+          </SlotChip>
+        ))}
         <AddCard faction={faction} state={state} onAction={onAction} />
       </div>
       <IconAction
@@ -288,39 +345,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
         pressed={editing}
         onClick={() => setEditing((was) => !was)}
       />
-      {editing ? (
-        <TextInput
-          className={styles.note}
-          size="xs"
-          ref={(input) => input?.focus()}
-          defaultValue={note}
-          maxLength={120}
-          placeholder="Which cards they cannot have…"
-          aria-label={`Your note on ${faction.name}`}
-          onBlur={(event) => {
-            onAction({
-              kind: 'note',
-              faction: faction.id,
-              text: event.currentTarget.value.trim(),
-            });
-            setEditing(false);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.currentTarget.blur();
-            }
-            if (event.key === 'Escape') {
-              setEditing(false);
-            }
-          }}
-        />
-      ) : (
-        note && (
-          <Text size="xs" className={styles.note} data-text>
-            {note}
-          </Text>
-        )
-      )}
+      <HandNote faction={faction} note={note} editing={editing} onDone={() => setEditing(false)} onAction={onAction} />
     </div>
   );
 }

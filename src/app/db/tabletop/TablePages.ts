@@ -4,7 +4,6 @@ import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 type SpicePage = Extract<ServerMessage, { type: 'spice-history' }>;
-type FactionPage = Extract<ServerMessage, { type: 'faction' }>;
 type TreacheryDeckPage = Extract<ServerMessage, { type: 'treachery-deck' }>;
 type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
 
@@ -144,7 +143,8 @@ export class TablePages {
   }
 
   /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
-  receive(message: LogPage | SpicePage | FactionPage | TreacheryDeckPage) {
+  /** Takes a page the room answered; any other message is not a page, and the caller handles it. */
+  receive(message: ServerMessage): boolean {
     switch (message.type) {
       case 'log-history': {
         const asked = message.before === this.logBefore[message.tab];
@@ -167,7 +167,10 @@ export class TablePages {
         this.deckRequested = false;
         this.deck = message.cards;
         break;
+      default:
+        return false;
     }
+    return true;
   }
 
   /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */

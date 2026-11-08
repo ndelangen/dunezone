@@ -18,33 +18,47 @@ const treacheryDeckCardSchema = z.object({
 export type TreacheryDeckCard = z.infer<typeof treacheryDeckCardSchema>;
 export const treacheryDeckSchema = z.array(treacheryDeckCardSchema);
 
-/** The captured Treachery deck's cards, one entry per distinct face with its copies; nothing when the game captured no deck. */
+type DeckContents = NonNullable<NonNullable<RulesetCapture['decks']['treachery']>['contents']>;
+
+type Definition = DeckContents['definitions'][number];
+
+/* A card definition's name and the line under it, when it has both. */
+function cardText(definition: Definition | undefined): { name: string; subName: string } | undefined {
+  const { name, subName } = (definition?.data ?? {}) as { name?: unknown; subName?: unknown };
+  return typeof name === 'string' && typeof subName === 'string' ? { name, subName } : undefined;
+}
+
+/*
+ * Each captured item's own definition: the capture names an item for the member it copies (`member-<index>-<copy>`),
+ * and that member names its asset, so two cards that share a name keep their own lines.
+ */
+function definitionOfItem(contents: DeckContents): (itemId: string) => Definition | undefined {
+  const byId = new Map(contents.definitions.map((definition) => [definition.id, definition]));
+  return (itemId) => {
+    const index = /^member-(\d+)-/u.exec(itemId)?.[1];
+    const assetId = index === undefined ? undefined : contents.members[Number(index)]?.assetId;
+    return assetId === undefined ? undefined : byId.get(assetId);
+  };
+}
+
+/** The captured Treachery deck's cards, one entry per distinct card with its copies; nothing when the game captured no deck. */
 export function treacheryDeckCards(capture: RulesetCapture | undefined): TreacheryDeckCard[] | null {
   const contents = capture?.decks.treachery?.contents;
   if (!contents) {
     return null;
   }
-  const details = new Map<string, string>();
-  for (const definition of contents.definitions) {
-    const data = definition.data as { name?: unknown; subName?: unknown } | null;
-    if (data && typeof data.name === 'string' && typeof data.subName === 'string') {
-      details.set(data.name, data.subName);
-    }
-  }
+  const definitionOf = definitionOfItem(contents);
   const cards = new Map<string, TreacheryDeckCard>();
-  for (const item of contents.pieces.flatMap((piece) => piece.items)) {
-    const front = item.artwork?.front;
-    if (!front) {
+  for (const { id, artwork } of contents.pieces.flatMap((piece) => piece.items)) {
+    const face = artwork?.front;
+    if (!face) {
       continue;
     }
-    const name = item.artwork?.name ?? '';
-    const known = cards.get(front);
-    cards.set(
-      front,
-      known
-        ? { ...known, count: known.count + 1 }
-        : { key: front, name, detail: details.get(name) ?? '', face: front, count: 1 }
-    );
+    const definition = definitionOf(id);
+    const key = definition?.id ?? face;
+    const name = artwork.name ?? '';
+    const count = (cards.get(key)?.count ?? 0) + 1;
+    cards.set(key, { key, name, detail: cardText(definition)?.subName ?? '', face, count });
   }
   return [...cards.values()];
 }

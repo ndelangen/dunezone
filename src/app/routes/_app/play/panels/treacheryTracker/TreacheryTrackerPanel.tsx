@@ -4,6 +4,7 @@ import { tableProgressFor } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useEffect, useMemo, useReducer } from 'react';
+import { z } from 'zod';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { AuctionTracker } from '../../../../../widgets/treachery-tracker/AuctionTracker';
@@ -31,29 +32,22 @@ function storageKey(game: string, faction: string) {
 }
 
 /* A stored tracker is used only when every card it names is in this deck; anything else, such as an older shape, starts afresh. */
-function readable(value: unknown, fresh: TrackerState): value is TrackerState {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-  const state = value as Partial<TrackerState>;
+function storedTracker(fresh: TrackerState) {
   const ids = new Set(fresh.copies.map((copy) => copy.id));
-  const named = (card: unknown) => card === null || (typeof card === 'string' && ids.has(card));
-  return (
-    Array.isArray(state.copies) &&
-    state.copies.length === fresh.copies.length &&
-    state.copies.every((copy) => ids.has(copy?.id)) &&
-    Array.isArray(state.discard) &&
-    state.discard.every(named) &&
-    Array.isArray(state.seen) &&
-    state.seen.every((sighting) => typeof sighting?.id === 'string' && named(sighting.card)) &&
-    typeof state.hands === 'object' &&
-    state.hands !== null &&
-    Object.values(state.hands).every(
-      (slots) => Array.isArray(slots) && slots.every((slot) => typeof slot?.id === 'string' && named(slot.card))
-    ) &&
-    typeof state.notes === 'object' &&
-    typeof state.nextSlot === 'number'
-  );
+  const known = z.string().refine((card) => ids.has(card));
+  const slot = z.object({ id: z.string(), card: known.nullable() });
+  return z.object({
+    copies: z.array(z.object({ id: known })).length(ids.size),
+    discard: z.array(known),
+    seen: z.array(slot),
+    hands: z.record(z.string(), z.array(slot)),
+    notes: z.record(z.string(), z.string()),
+    nextSlot: z.number(),
+  });
+}
+
+function readable(value: unknown, fresh: TrackerState): value is TrackerState {
+  return storedTracker(fresh).safeParse(value).success;
 }
 
 function restored(key: string, defs: readonly CardDef[], factions: readonly string[]): TrackerState {

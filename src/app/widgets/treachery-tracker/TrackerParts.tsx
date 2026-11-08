@@ -197,6 +197,80 @@ export function AddCard({
   );
 }
 
+type SlotMode = 'menu' | 'give' | 'identify' | 'discard';
+
+type SlotStepProps = Readonly<{
+  faction: string;
+  slot: Slot;
+  card: CardCopy | null;
+  factions: readonly FactionToken[];
+  state: TrackerState;
+  /** Sends the action and closes the popover. */
+  act: (action: TrackerAction) => void;
+  setMode: (mode: SlotMode) => void;
+}>;
+
+/* The first step: what happened to the card. */
+function SlotMenu({ faction, slot, card, act, setMode }: SlotStepProps) {
+  return (
+    <Stack gap={2}>
+      {!card && (
+        <MenuLine icon={<UnknownGlyph size={16} />} onClick={() => setMode('identify')}>
+          It's this card…
+        </MenuLine>
+      )}
+      <MenuLine icon={<ArrowRightLeft size={14} />} onClick={() => setMode('give')}>
+        Given to…
+      </MenuLine>
+      {/* A discarded card lands face up, so an unknown one is named as it goes. */}
+      <MenuLine
+        icon={<Trash2 size={14} />}
+        onClick={() => (card ? act({ kind: 'discard', faction, slot: slot.id }) : setMode('discard'))}
+      >
+        {card ? 'Discarded' : 'Discarded as…'}
+      </MenuLine>
+      <MenuLine icon={<Undo2 size={14} />} onClick={() => act({ kind: 'undo', faction, slot: slot.id })}>
+        Take back (a mistake)
+      </MenuLine>
+    </Stack>
+  );
+}
+
+/* The step a menu line opened: the faction it went to, or the card it turned out to be, discarded or not. */
+function SlotStep(props: SlotStepProps & Readonly<{ mode: SlotMode; close: () => void }>) {
+  const { mode, faction, slot, factions, state, act, close } = props;
+  if (mode === 'menu') {
+    return <SlotMenu {...props} />;
+  }
+  if (mode === 'give') {
+    return (
+      <FactionPicker
+        factions={factions}
+        except={faction}
+        size={26}
+        label={(to) => `Given to ${to.name}`}
+        onPick={(to) => act({ kind: 'give', faction, slot: slot.id, to })}
+      />
+    );
+  }
+  return (
+    <CardChooser
+      state={state}
+      allowUnknown={false}
+      onPick={(picked) => {
+        if (!picked) {
+          close();
+          return;
+        }
+        act({ kind: 'identify', faction, slot: slot.id, card: picked });
+        if (mode === 'discard') {
+          act({ kind: 'discard', faction, slot: slot.id });
+        }
+      }}
+    />
+  );
+}
+
 /** One card in a hand, and what can happen to it: name it, pass it on, discard it, or take it back. */
 export function SlotChip({
   faction,
@@ -214,11 +288,15 @@ export function SlotChip({
   children: ReactNode;
 }>) {
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<'menu' | 'give' | 'identify' | 'discard'>('menu');
+  const [mode, setMode] = useState<SlotMode>('menu');
   const card = slot.card ? copyOf(state, slot.card) : null;
   const close = () => {
     setOpen(false);
     setMode('menu');
+  };
+  const act = (action: TrackerAction) => {
+    onAction(action);
+    close();
   };
   return (
     <Popover
@@ -243,88 +321,17 @@ export function SlotChip({
         </span>
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown} miw={200}>
-        {mode === 'menu' && (
-          <Stack gap={2}>
-            {!card && (
-              <MenuLine icon={<UnknownGlyph size={16} />} onClick={() => setMode('identify')}>
-                It's this card…
-              </MenuLine>
-            )}
-            <MenuLine icon={<ArrowRightLeft size={14} />} onClick={() => setMode('give')}>
-              Given to…
-            </MenuLine>
-            {/* A discarded card lands face up, so an unknown one is named as it goes. */}
-            <MenuLine
-              icon={<Trash2 size={14} />}
-              onClick={() => {
-                if (card) {
-                  onAction({ kind: 'discard', faction, slot: slot.id });
-                  close();
-                } else {
-                  setMode('discard');
-                }
-              }}
-            >
-              {card ? 'Discarded' : 'Discarded as…'}
-            </MenuLine>
-            <MenuLine
-              icon={<Undo2 size={14} />}
-              onClick={() => {
-                onAction({ kind: 'undo', faction, slot: slot.id });
-                close();
-              }}
-            >
-              Take back (a mistake)
-            </MenuLine>
-          </Stack>
-        )}
-        {mode === 'give' && (
-          <FactionPicker
-            factions={factions}
-            except={faction}
-            size={26}
-            label={(to) => `Given to ${to.name}`}
-            onPick={(to) => {
-              onAction({ kind: 'give', faction, slot: slot.id, to });
-              close();
-            }}
-          />
-        )}
-        {mode === 'discard' && (
-          <CardChooser
-            state={state}
-            allowUnknown={false}
-            onPick={(picked) => {
-              if (picked) {
-                onAction({
-                  kind: 'identify',
-                  faction,
-                  slot: slot.id,
-                  card: picked,
-                });
-                onAction({ kind: 'discard', faction, slot: slot.id });
-              }
-              close();
-            }}
-          />
-        )}
-        {mode === 'identify' && (
-          <CardChooser
-            state={state}
-            allowUnknown={false}
-            onPick={(picked) => {
-              if (picked) {
-                onAction({
-                  kind: 'identify',
-                  faction,
-                  slot: slot.id,
-                  card: picked,
-                });
-              }
-              close();
-            }}
-          />
-        )}
+        <SlotStep
+          mode={mode}
+          faction={faction}
+          slot={slot}
+          card={card}
+          factions={factions}
+          state={state}
+          act={act}
+          setMode={setMode}
+          close={close}
+        />
       </Popover.Dropdown>
     </Popover>
   );
