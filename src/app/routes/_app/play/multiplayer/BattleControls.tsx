@@ -572,18 +572,28 @@ function SideContents({
  * not one already taken when the panel opened, and only for the drop itself, so later changes inside it do not replay it.
  */
 function useClaimDrops(battle: PublicBattle) {
+  const motion = useMotionAllowed();
   const claimed = battle.sides.map(Boolean);
-  const [seen, setSeen] = useState({ claimed, dropping: [] as number[] });
-  const arrived = claimed.flatMap((now, index) => (now && !seen.claimed[index] ? [index] : []));
-  if (claimed.some((now, index) => now !== seen.claimed[index])) {
+  const [seen, setSeen] = useState({ claimed, motion, dropping: [] as number[] });
+  /* With motion off no drop plays, so nothing would clear its mark: a claim then is not kept to drop later. */
+  const arrived = motion ? claimed.flatMap((now, index) => (now && !seen.claimed[index] ? [index] : [])) : [];
+  if (claimed.some((now, index) => now !== seen.claimed[index]) || motion !== seen.motion) {
     setSeen({
       claimed,
-      dropping: [...seen.dropping.filter((index) => claimed[index]), ...arrived],
+      motion,
+      dropping: motion ? [...seen.dropping.filter((index) => claimed[index]), ...arrived] : [],
     });
   }
-  const landed = (index: number) =>
-    setSeen((before) => ({ ...before, dropping: before.dropping.filter((other) => other !== index) }));
-  return { dropping: (index: number) => seen.dropping.includes(index) || arrived.includes(index), landed };
+  /* A drop that lands clears its side's mark; one cut short by motion turning off, or by the claim going, is cleared above. */
+  const settled = (index: number, animation: string) => {
+    if (animation.includes('claim-drop')) {
+      setSeen((before) => ({ ...before, dropping: before.dropping.filter((other) => other !== index) }));
+    }
+  };
+  return {
+    dropping: (index: number) => motion && (seen.dropping.includes(index) || arrived.includes(index)),
+    settled,
+  };
 }
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
@@ -600,11 +610,7 @@ function BattleSides(props: ActiveProps) {
             className={styles.side}
             key={index}
             data-claimed-now={claims.dropping(index) || undefined}
-            onAnimationEnd={(event) => {
-              if (event.animationName.includes('claim-drop')) {
-                claims.landed(index);
-              }
-            }}
+            onAnimationEnd={(event) => claims.settled(index, event.animationName)}
           >
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
@@ -621,14 +627,20 @@ function BattleSides(props: ActiveProps) {
     </Group>
   );
 }
-/* The panel's pointer grows from the panel down to the marker once the panel has sprung up. */
+/*
+ * The panel's pointer grows from the panel down to the marker once the panel has sprung up.
+ * The callout mounts with its battle, so the reach starts with it; it grows again when motion is turned back on, as the panel's
+ * own spring does, and stands at full reach as soon as motion is off.
+ */
 function usePointerReach() {
   const motion = useMotionAllowed();
-  /* The callout mounts with its battle, so the reach starts with it. */
-  const [grows] = useState(motion);
-  const [reach, setReach] = useState(grows ? 0 : 1);
+  const [run, setRun] = useState({ motion, count: motion ? 1 : 0 });
+  if (run.motion !== motion) {
+    setRun({ motion, count: motion ? run.count + 1 : run.count });
+  }
+  const [reach, setReach] = useState(motion ? 0 : 1);
   useEffect(() => {
-    if (!grows) {
+    if (!run.motion) {
       return;
     }
     const start = performance.now() + 140;
@@ -642,8 +654,8 @@ function usePointerReach() {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [grows]);
-  return reach;
+  }, [run]);
+  return motion ? reach : 1;
 }
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();

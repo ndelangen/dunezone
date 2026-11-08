@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
+import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 
 import { dragOnto } from '../sortable.stories.fixture';
@@ -143,5 +144,37 @@ export const ObserverOnlyLooks = meta.story({
       order.map((factionId) => names[factionId])
     );
     await expect(args.onOrder).not.toHaveBeenCalled();
+  },
+});
+
+/* The row as the table plays it: a click marks a faction done, another takes it back. */
+function PlayedTurns(args: Parameters<typeof TableMovementTurns>[0]) {
+  const [done, setDone] = useState<string[]>([]);
+  return (
+    <TableMovementTurns
+      {...args}
+      done={done}
+      onDone={(id) => setDone([...done, id])}
+      onUndo={(id) => setDone(done.filter((other) => other !== id))}
+    />
+  );
+}
+
+/** Each tick marked on pops in, and once every faction is done the completion runs along the row; open it to try by hand. */
+export const MarkingDone = meta.story({
+  globals: { motion: 'on' },
+  render: (args) => <PlayedTurns {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const row = canvas.getByRole('group', { name: 'Shipment and Movement turns' });
+    const tick = (id: string) => canvas.getByRole('button', { name: names[id] }).querySelector('[data-fresh]');
+    await userEvent.click(canvas.getByRole('button', { name: names[order[0]!] }));
+    await waitFor(() => expect(tick(order[0]!)).not.toBeNull());
+    await expect(row).not.toHaveAttribute('data-complete');
+    for (const id of order.slice(1)) {
+      await userEvent.click(canvas.getByRole('button', { name: names[id] }));
+    }
+    await waitFor(() => expect(row).toHaveAttribute('data-complete'));
+    await expect(tick(order.at(-1)!)).not.toBeNull();
   },
 });

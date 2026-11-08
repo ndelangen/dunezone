@@ -153,14 +153,19 @@ export class BattleQueue {
     return this.table.hasRoom() && this.table.canAct() && !planInFlight && this.queuedActions.length > 0;
   }
 
-  /* Plan edits not yet answered show at once, with the bank holding the spice they commit. */
+  /*
+   * Plan edits not yet answered show at once, with the bank holding the spice they commit: the one on its way, and the
+   * ones queued behind it or held back while the session cannot send, as during a resync.
+   */
   private withPendingPlan(authoritative: GameSnapshot): GameSnapshot {
     const pending = this.pendingPlan;
-    if (!pending || !authoritative.battlePlan || authoritative.battle?.id !== pending.battleId) {
+    const queued = this.queuedPlan;
+    const battleId = pending?.battleId ?? queued?.battleId;
+    if (!battleId || !authoritative.battlePlan || authoritative.battle?.id !== battleId) {
       return authoritative;
     }
     const was = authoritative.battlePlan;
-    return withPlan(authoritative, was, { ...was, ...pending.patch, ...this.queuedPlan?.patch });
+    return withPlan(authoritative, was, { ...was, ...pending?.patch, ...queued?.patch });
   }
 
   /*

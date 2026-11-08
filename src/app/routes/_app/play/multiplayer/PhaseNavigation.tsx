@@ -94,7 +94,15 @@ export function ReadyToggle({
           aria-describedby={countId}
           leftSection={ready ? <Check className={styles.check} size={16} aria-hidden /> : undefined}
           rightSection={
-            <Text key={count} span size="xs" fw={700} className={styles.count} style={{ opacity: 0.8 }} aria-hidden>
+            <Text
+              key={`${count}/${of}`}
+              span
+              size="xs"
+              fw={700}
+              className={styles.count}
+              style={{ opacity: 0.8 }}
+              aria-hidden
+            >
               {count}/{of}
             </Text>
           }

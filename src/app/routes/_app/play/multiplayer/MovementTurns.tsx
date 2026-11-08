@@ -51,13 +51,19 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
   const locked = order.filter((id) => done.includes(id));
   const rest = order.filter((id) => !done.includes(id));
   const complete = rest.length === 0 && locked.length > 0;
-  /* What changed while the row was shown, so a tick pops, and the completion runs, only for marks made since, not on every mount. */
-  const [seen, setSeen] = useState({ done, fresh: [] as string[], completed: false });
-  if (seen.done.join() !== done.join()) {
+  /*
+   * What changed while the row was shown, so a tick pops, and the completion runs, only for marks made since, not on every mount.
+   * Marks made with motion off are not kept, so turning motion back on does not replay them.
+   */
+  const [seen, setSeen] = useState({ done, motion, fresh: [] as string[], completed: false });
+  if (seen.done.join() !== done.join() || seen.motion !== motion) {
     setSeen({
       done,
-      fresh: [...seen.fresh.filter((id) => done.includes(id)), ...done.filter((id) => !seen.done.includes(id))],
-      completed: complete && seen.done.length < order.length,
+      motion,
+      fresh: motion
+        ? [...seen.fresh.filter((id) => done.includes(id)), ...done.filter((id) => !seen.done.includes(id))]
+        : [],
+      completed: motion && complete && seen.done.length < order.length,
     });
   }
   const token = (id: string) => (
