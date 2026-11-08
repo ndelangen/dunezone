@@ -656,6 +656,35 @@ function requestIdleCallbackOr(run: () => void, timeout: number) {
   return () => clearTimeout(handle);
 }
 
+/** The stage under the table's shell: the waiting frame stays on it until the table has opened out of the planet. */
+function TableArrivalStage({
+  sceneReady,
+  arrival,
+  waitControls,
+  children,
+}: Readonly<{
+  sceneReady: boolean;
+  arrival: ReturnType<typeof useTableArrival>;
+  waitControls: ReactNode;
+  children: ReactNode;
+}>) {
+  return (
+    <div
+      className="dune-play-stage"
+      data-scene-ready={sceneReady}
+      data-voyage={arrival === 'opening' ? 'arrived' : undefined}
+      data-arrival={arrival}
+    >
+      {arrival === 'open' ? null : (
+        <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
+          <TableWait status="Opening the table...">{waitControls}</TableWait>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 function useTableViewController(
   activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
   word: StageFrame['word'],
@@ -838,17 +867,7 @@ export function GameTable({
           The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris.
           The waiting frame is its own island, so only the shell sits in this one: an island inside another lost the tooltip host of the frame's Lobby button.
         */}
-        <div
-          className="dune-play-stage"
-          data-scene-ready={viewState.sceneReady}
-          data-voyage={arrival === 'opening' ? 'arrived' : undefined}
-          data-arrival={arrival}
-        >
-          {arrival === 'open' ? null : (
-            <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
-              <TableWait status="Opening the table...">{waitControls}</TableWait>
-            </div>
-          )}
+        <TableArrivalStage sceneReady={viewState.sceneReady} arrival={arrival} waitControls={waitControls}>
           <DarkSchemeIsland>
             <div
               className="dune-play-shell"
@@ -881,7 +900,7 @@ export function GameTable({
               />
             </div>
           </DarkSchemeIsland>
-        </div>
+        </TableArrivalStage>
       </TableLabelsContext>
     </PointerSessionContext>
   );
