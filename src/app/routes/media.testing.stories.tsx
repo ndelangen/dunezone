@@ -16,6 +16,7 @@ export const Leaders = meta.story({
     const page = within(canvasElement);
     await expect(page.findByRole('heading', { name: 'Alien portraits / Armored creatures' })).resolves.toBeVisible();
     await expect(page.getAllByRole('article')).toHaveLength(offeredLeaderCount);
+    await expect(page.getByRole('link', { name: 'Back to the media catalogue' })).toHaveAttribute('href', '/media');
   },
 });
 export const Decals = meta.story({
@@ -31,13 +32,30 @@ export const LeaderLink = meta.story({
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const detail = await page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 });
+    await expect(detail).toBeVisible();
+    /* The detail opens in the gallery, after the artwork it shows, not above the results. */
+    const articles = page.getAllByRole('article');
+    const opened = articles.indexOf(page.getByRole('article', { name: 'Aramsham' }));
+    const follows = (node: Node) => Boolean(node.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING);
+    await expect(follows(articles[opened]!)).toBe(true);
+    await expect(follows(articles[opened + 1]!)).toBe(false);
     await expect(page.getByRole('link', { name: 'Open image file' })).toHaveAttribute(
       'href',
       resolveAsset('/image/leader/official/aramsham.png', 'large')
     );
     await userEvent.click(page.getByRole('button', { name: 'Close preview' }));
     await expect(page.queryByRole('link', { name: 'Open image file' })).toBeNull();
+  },
+});
+
+/* Artwork the filters hide keeps its detail above the results. */
+export const HiddenLeaderLink = meta.story({
+  args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png&q=qqqqzzzz' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('article', { name: 'Aramsham' })).toBeNull();
   },
 });
 
@@ -61,7 +79,6 @@ export const DecalVersions = meta.story({
 
 export const Catalogue = meta.story({
   args: { path: '/media' },
-  globals: { motion: 'on' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement);
     await expect(page.findByRole('link', { name: 'Leaders' })).resolves.toBeVisible();
@@ -69,9 +86,8 @@ export const Catalogue = meta.story({
     await expect(page.queryByRole('textbox', { name: 'Search media' })).toBeNull();
     await expect(page.queryByRole('link', { name: 'Textures' })).toBeNull();
     await expect(page.queryByRole('article')).toBeNull();
-    /* The showcase rotates its artwork until the visitor pauses it. */
-    await userEvent.click(page.getByRole('button', { name: 'Pause artwork preview' }));
-    await expect(page.getByRole('button', { name: 'Play artwork preview' })).toBeVisible();
+    /* No band: the name is there for screen readers, and the page opens on its galleries. */
+    await expect(page.getByRole('heading', { level: 1, name: 'Media catalogue' })).toBeInTheDocument();
   },
 });
 export const VisualSearch = meta.story({

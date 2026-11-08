@@ -6,7 +6,7 @@ import { resolveBackgrounds } from './backgroundPresets';
 import { countCataloguePartitions } from './catalogueOrder';
 import { assignedGroupSummary } from './collaborativeAccess';
 import { catalogueFactionFromCard, toCatalogueFaction } from './factionCatalogue';
-import { faqAnsweredPartition, faqRulesetPartition } from './faqCatalogue';
+import { rulesetFaqCounts } from './faqCatalogue';
 import { loadNewestFaqItems } from './faqRulesetList';
 import { profileSummary } from './profileSummary';
 import { listRulesetRulebooks } from './rulebookList';
@@ -131,15 +131,6 @@ async function firstLiveRulesetFactions(ctx: QueryCtx, rulesetId: Id<'rulesets'>
     }
   }
   return preview;
-}
-
-/** How many questions a ruleset has, and how many of them have an accepted answer, from its FAQ lists' counts. */
-async function rulesetFaqCounts(ctx: QueryCtx, rulesetId: Id<'rulesets'>) {
-  const [questions = 0, answered = 0] = await countCataloguePartitions(ctx, 'faq', [
-    faqRulesetPartition(rulesetId),
-    faqAnsweredPartition(rulesetId),
-  ]);
-  return { questions, answered };
 }
 
 /** The ruleset detail page, the same for every viewer: behind `api.rulesets.detailPage`. Null for an unknown slug. */

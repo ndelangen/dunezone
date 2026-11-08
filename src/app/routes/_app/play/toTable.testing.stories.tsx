@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import type { Decorator } from '@storybook/tanstack-react';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { useEffect } from 'react';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { confirmStoryProvisioning, useStorybookDatabaseClient } from '@db/storybook';
 
@@ -11,6 +11,7 @@ import { pageStoryMeta } from '../../storybookConfig';
 import { chooseRuleset, creatable } from './create.route.stories.fixture';
 import { drafting, install, session } from './game.stories.fixture';
 import { signedIn } from './index.stories.fixture';
+import { waitForTableOpen } from './mapView.stories.fixture';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { productTransport } from './product.stories.fixture';
 
@@ -29,7 +30,8 @@ const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Play/Create to table',
   args: { path: '/play/create' },
-  parameters: { ...pageStoryMeta.parameters, ...creatable },
+  /* The journey ends in the table's arrival, so it plays it. */
+  parameters: { ...pageStoryMeta.parameters, ...creatable, tableArrival: 'play' },
   globals: { motion: 'on' },
   beforeEach: install(() => {
     history = createMemoryHistory({ initialEntries: ['/play/create'] });
@@ -51,9 +53,7 @@ const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /* The journey ends once the table has opened out of the planet and its scene is in view; a drafting table keeps its camera dial behind the draft. */
 async function seated(canvasElement: HTMLElement) {
   const document = canvasElement.ownerDocument;
-  await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
-    timeout: 60_000,
-  });
+  await waitForTableOpen(document, 60_000);
   await expect(await within(document.body).findByRole('img', { name: 'Game table' })).toBeVisible();
 }
 

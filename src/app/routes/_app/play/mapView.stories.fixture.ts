@@ -28,6 +28,16 @@ export async function waitForPlayCamera(document: Document) {
   );
 }
 
+/*
+ * The table's shell stays clipped shut over the waiting frame until the board has painted (up to ten seconds on a slow renderer),
+ * so a pointer let go over the board before then lands on the waiting frame. A story drives or reads the table once it is open.
+ */
+export async function waitForTableOpen(document: Document, timeout = 30_000) {
+  await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
+    timeout,
+  });
+}
+
 /** Where a point on the table lands in the viewport while the table shows the map view. */
 export function mapViewPoint(document: Document, point: readonly [number, number, number]): [number, number] {
   const scene = document.querySelector('canvas');

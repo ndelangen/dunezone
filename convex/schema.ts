@@ -408,6 +408,32 @@ export default defineSchema({
       'created_at',
       'job_creation_time',
     ]),
+  /**
+   * Standings: the leaderboards' read model, one row per person who has made a faction or asked or answered a question.
+   * Derived from the profile activity counts by `lib/standings.ts`;
+   * `faq` is questions asked plus answers given.
+   */
+  profile_standings: defineTable({
+    user_id: v.id('users'),
+    factions: v.number(),
+    faq: v.number(),
+  })
+    .index('by_user_id', ['user_id'])
+    .index('by_factions', ['factions'])
+    .index('by_faq', ['faq']),
+  /**
+   * The directory's Groups list, one row per live Group: its active members and what it maintains, for ordering.
+   * Derived by `lib/standings.ts`;
+   * `maintained` counts its factions and rulesets together.
+   */
+  group_standings: defineTable({
+    group_id: v.id('groups'),
+    members: v.number(),
+    factions: v.number(),
+    maintained: v.number(),
+  })
+    .index('by_group_id', ['group_id'])
+    .index('by_members_and_maintained', ['members', 'maintained']),
   admin_settings: defineTable({
     key: v.literal('publication'),
     publication_pickup_enabled: v.boolean(),

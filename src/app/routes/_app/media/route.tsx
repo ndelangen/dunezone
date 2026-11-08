@@ -1,6 +1,8 @@
 import { Anchor, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -13,7 +15,7 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Image as ImageIcon, Info, X } from 'lucide-react';
-import { lazy, Suspense, useReducer, useState } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useReducer, useRef, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
@@ -23,8 +25,7 @@ import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavig
 import { filterCatalogue } from './mediaSearch';
 import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 import type { MediaSearch } from './mediaSearchParams';
-import { MediaShowcase } from './MediaShowcase';
-import { mediaTiles, variantLabel } from './mediaTiles';
+import { holdsArtwork, mediaTiles, variantLabel } from './mediaTiles';
 import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
 
@@ -58,8 +59,9 @@ function MediaPage() {
   const focused = focusedMedia(search);
   return (
     <PageLayout>
-      <PageLayout.Header size={overview ? 'compact' : 'default'}>
-        <MediaShowcase overview={overview} compact={overview} gallery={galleryLabel(search)} />
+      {/* No band: the catalogue opens straight on its galleries and a gallery on its filters (Norbert, 2026-11-08). The name stays for screen readers and search engines. */}
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={galleryLabel(search) ?? 'Media catalogue'} />
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
@@ -141,14 +143,17 @@ function MediaResults({
     );
   }
   const total = search.source === 'media' ? catalogue.matches.length : topicMatchCount(query);
+  const groups = catalogue.groups.map((group) => ({ ...group, tiles: mediaTiles(group.entries) }));
+  const host = focused && groups.flatMap((group) => group.tiles).find((tile) => holdsArtwork(tile, focused.value));
   return (
     <Stack gap="xl">
       <MediaResultCount search={search} matches={catalogue.matches} total={total} />
-      {focused && <FocusedMedia focused={focused} onClose={onClose} />}
+      {/* The detail opens in the gallery, under the row of the artwork it shows. Only artwork the filters hide keeps it above the results. */}
+      {focused && !host && <FocusedMedia focused={focused} onClose={onClose} />}
       {search.source === 'media' ? (
         <>
           {catalogue.approximate && <Text size="sm">No exact matches. Showing close spellings.</Text>}
-          <MediaGroups groups={catalogue.groups} search={search} />
+          <MediaGroups groups={groups} search={search} focused={focused} hostKey={host?.key} onClose={onClose} />
         </>
       ) : (
         <TopicIcons query={query} />
@@ -168,7 +173,7 @@ function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) 
   return `${total} matches`;
 }
 
-/* The gallery's name and the way back to every gallery sit above the title (see MediaShowcase), so this line only counts what the filters left. */
+/* The gallery's name sits in the page title and the way back in the toolbar, so this line only counts what the filters left. */
 function MediaResultCount({
   search,
   matches,
@@ -301,14 +306,25 @@ function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onCl
   );
 }
 
-function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSearch }>) {
+function MediaCard({ tile, search, opened }: Readonly<{ tile: MediaTile; search: MediaSearch; opened?: string }>) {
   const [selected, setSelected] = useState<string>();
-  const entry = tile.variants.find((variant) => variant.value === selected) ?? tile.entry;
+  /* The opened version shows on the tile until the visitor picks another, so tile and detail agree. */
+  const entry = tile.variants.find((variant) => variant.value === (selected ?? opened)) ?? tile.entry;
   return (
     <article aria-label={tile.label} className={styles.card}>
       <Tooltip label={mediaDetails(entry)} multiline w={320} events={{ hover: true, focus: true, touch: false }}>
         <Anchor
-          renderRoot={(props) => <Link {...props} {...mediaLocation({ ...search, item: entry.value })} />}
+          renderRoot={(props) => (
+            <Link
+              {...props}
+              {...mediaLocation({ ...search, item: entry.value })}
+              resetScroll={false}
+              onClick={(event) => {
+                reveal.value = entry.value;
+                props.onClick?.(event);
+              }}
+            />
+          )}
           aria-label={`Open ${entry.label}`}
           rel="nofollow"
           className={styles.previewLink}
@@ -340,16 +356,44 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
   );
 }
 
+/* The artwork a visitor just clicked. Only that click brings the detail into view; filtering, a deep link or a restored scroll leave the page where it is. */
+const reveal: { value?: string } = {};
+
+/*
+ * Spans the whole grid row; the grid packs densely, so the artwork after the opened one fills its row
+ * first and the detail drops in under it. That artwork sits after the detail in reading and tab order.
+ */
+function InlineFocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (reveal.value === focused.value) {
+      reveal.value = undefined;
+      ref.current?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [focused.value]);
+  return (
+    <div ref={ref} className={styles.inlineDetail}>
+      <FocusedMedia focused={focused} onClose={onClose} />
+    </div>
+  );
+}
+
 function MediaGroups({
   groups,
   search,
+  focused,
+  hostKey,
+  onClose,
 }: Readonly<{
-  groups: ReturnType<typeof filterCatalogue>['groups'];
+  groups: (ReturnType<typeof filterCatalogue>['groups'][number] & { tiles: MediaTile[] })[];
   search: MediaSearch;
+  focused?: MediaEntry;
+  hostKey?: string;
+  onClose: () => void;
 }>) {
   return (
     <>
-      {groups.map(({ label, entries, total, collection, kind }) => (
+      {groups.map(({ label, entries, tiles, total, collection, kind }) => (
         <Card
           key={label}
           padding="md"
@@ -368,9 +412,15 @@ function MediaGroups({
           }
         >
           <div className={galleryGrid(kind)}>
-            {mediaTiles(entries).map((tile) => (
-              <MediaCard key={tile.key} tile={tile} search={search} />
-            ))}
+            {tiles.map((tile) => {
+              const opened = tile.key === hostKey ? focused : undefined;
+              return (
+                <Fragment key={tile.key}>
+                  <MediaCard tile={tile} search={search} opened={opened?.value} />
+                  {opened && <InlineFocusedMedia focused={opened} onClose={onClose} />}
+                </Fragment>
+              );
+            })}
           </div>
         </Card>
       ))}
@@ -406,8 +456,10 @@ function MediaFilters({
 }>) {
   const active = Number(Boolean(search.subject)) + Number(Boolean(search.group)) + Number(search.kind !== 'all');
   return (
-    <Toolbar>
-      <Toolbar.Center>
+    <BackToolbar
+      label="Back to the media catalogue"
+      renderRoot={(props) => <Link {...props} to="/media" />}
+      center={
         <SearchRefine
           label="Media catalogue filters"
           search={{
@@ -423,22 +475,24 @@ function MediaFilters({
             content: <MediaRefinements search={search} catalogue={catalogue} updateSearch={updateSearch} />,
           }}
         />
-      </Toolbar.Center>
-      <Toolbar.Right label="Catalogue actions">
-        <Toolbar.Cluster kind="content">
-          {(search.q || search.subject || search.group) && (
-            <IconAction
-              label="Clear filters"
-              size="lg"
-              intent="neutral"
-              emphasis="standard"
-              icon={<X size={17} aria-hidden />}
-              onClick={() => updateSearch({ q: '', group: '', subject: undefined, item: undefined })}
-            />
-          )}
-        </Toolbar.Cluster>
-      </Toolbar.Right>
-    </Toolbar>
+      }
+      right={
+        <Toolbar.Right label="Catalogue actions">
+          <Toolbar.Cluster kind="content">
+            {(search.q || search.subject || search.group) && (
+              <IconAction
+                label="Clear filters"
+                size="lg"
+                intent="neutral"
+                emphasis="standard"
+                icon={<X size={17} aria-hidden />}
+                onClick={() => updateSearch({ q: '', group: '', subject: undefined, item: undefined })}
+              />
+            )}
+          </Toolbar.Cluster>
+        </Toolbar.Right>
+      }
+    />
   );
 }
 function MediaRefinements({

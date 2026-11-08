@@ -446,7 +446,6 @@ function RulesetEditPage() {
   if (loaderData.notFound || !page?.ruleset) {
     return (
       <RouteNotFound
-        size="compact"
         title="Edit ruleset"
         back={<PageMessage.Back to="/rulesets">Back to rulesets</PageMessage.Back>}
         noun="ruleset"

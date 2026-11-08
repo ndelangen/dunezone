@@ -4,6 +4,7 @@ import { Button } from '@mantine/core';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { createFileRoute, notFound, Link, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { FactionCard } from '@ui/block/FactionCard';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -31,17 +32,7 @@ import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import { Toolbar } from '@ui/surface/Toolbar';
-import {
-  ArrowLeft,
-  BadgeCheck,
-  BadgeMinus,
-  ChevronDown,
-  EllipsisVertical,
-  MessageSquarePlus,
-  Pencil,
-  X,
-} from 'lucide-react';
+import { BadgeCheck, BadgeMinus, ChevronDown, EllipsisVertical, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -373,18 +364,10 @@ function FaqDetailPage() {
 
 function FaqNavigation({ rulesetSlug }: { rulesetSlug: string }) {
   return (
-    <Toolbar>
-      <Toolbar.Left label="Navigation">
-        <IconAction
-          label="Back to FAQ"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          icon={<ArrowLeft size={17} aria-hidden />}
-          renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
-        />
-      </Toolbar.Left>
-    </Toolbar>
+    <BackToolbar
+      label="Back to FAQ"
+      renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
+    />
   );
 }
 

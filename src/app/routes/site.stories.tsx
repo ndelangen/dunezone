@@ -11,32 +11,43 @@ const meta = preview.meta({
 });
 
 /**
- * The most-reached message in the application, and the last one to wear the shared frame.
- * It says its one message in the band, under the name, with the boxed way home beneath it.
+ * The most-reached message in the application.
+ * The band collapses and the message is dealt as a treachery card, with the boxed way home beneath it;
+ * the band keeps the name and the sentence for screen readers.
  */
 export const NotFound = meta.story({
   args: { path: '/a-page-that-does-not-exist' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(
-      page.findByText(
-        'The address may be mistyped, or whatever lived here has since been removed.',
-        {},
-        { timeout: 30_000 }
-      )
-    ).resolves.toBeVisible();
-    /* One message: the band says it all, with no pane repeating it under the title. */
+      page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+    const band = within(page.getByRole('banner'));
+    await expect(
+      band.getByText('The address may be mistyped, or whatever lived here has since been removed.')
+    ).toBeInTheDocument();
+    /* One message: the card says it all, with no pane repeating it. */
     await expect(page.queryByRole('heading', { name: 'This page does not exist' })).toBeNull();
     const back = await page.findByRole('link', { name: 'Go home' }, { timeout: 30_000 });
     await expect(back).toHaveAttribute('href', '/');
-    await expect(back.closest('main')).toBeNull();
+    await expect(back.closest('main')).not.toBeNull();
+  },
+});
+
+/** The same page at phone width: the dealt card narrows with the column, so its tilt never pushes the page sideways. */
+export const NotFoundPhone = meta.story({
+  args: { path: '/a-page-that-does-not-exist' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const back = await page.findByRole('link', { name: 'Go home' }, { timeout: 30_000 });
+    await expectWithinWidth(canvasElement, [back]);
   },
 });
 
 export const FuturePlans = meta.story({
   args: { path: '/future-plans' },
-  play: titled(/^A map of what Dune Zone could become$/),
+  play: titled(/^Future plans$/),
 });
 
 /** The blog's numbered list of posts, newest first, each title opening its post. */
@@ -51,7 +62,7 @@ export const Blog = meta.story({
   },
 });
 
-/** One post, "Why Dune?": its title and byline in the band, then a video that loads only when played, photographs, a link to the Dreamrules Workshop mod, and the Dream Rulebook cover to close. */
+/** One post, "Why Dune?", as a reading page: its title, byline and summary at the top of the column, then a video that loads only when played, photographs, a link to the Dreamrules Workshop mod, and the Dream Rulebook cover to close. */
 export const BlogPost = meta.story({
   args: { path: '/blog/why-dune' },
   play: async ({ canvasElement }) => {

@@ -26,10 +26,11 @@ slug, definition and update time.
   `.storybook/static/play-fixtures/dreamrules` as `tech-<slug>.jpg`. Every one prints its back
   the same as its front. `dreamrules-tech-tokens.json` preserves their ids, published URLs,
   revisions and checksums.
-- Treachery cards: the card back and the Snooper face, copied from the published Dreamrules deck
-  into `.storybook/static/play-fixtures/dreamrules`.
-- Spice card: `broken-land.jpg` in the same folder, a capture of the Game Assets / Cards / Spice
-  "Broken Land" story, so the journey recording (`../journey.recording`) can reveal a Spice card.
+- Treachery and Spice decks: every face and both backs of the published Dreamrules Treachery Deck and Dreamrules
+  Spice Deck, read on 8 November 2026 from the `/published/...` addresses the tutorial catalogue
+  (`../../tutorial/setup/catalogue.json`) names, and copied unchanged into `.storybook/static/play-fixtures/dreamrules`
+  as `<card>.jpg`, with `cardback.jpg` the Treachery back and `spice-back.jpg` the Spice back.
+  `src/shared/play/fixtures/dreamrulesDecks.json` records each card's name, count, file and published address, and each Spice card's amount.
 - Players: the public profile snapshot recorded in `drafting.stories.fixture.ts`. Their public
   avatar images are copied from `https://dune.zone/user-images/` into `play-fixtures/product`.
 
@@ -42,8 +43,7 @@ private messages. Production is never contacted while viewing a story.
 `product.stories.fixture.ts` builds the common game content. The setup supply comes from the game
 Worker's own builder in `src/shared/play/setupSupply.ts`, run over six captures made from
 `factions.json`, so reserves, leaders and Traitor decks carry the labels a real game deals. A
-stack whose cards change later, the gathered Traitor pile or the Treachery deck and the card drawn
-from it, takes its name from the table's own `labelForCount`, and a kept Traitor carries the name a
+stack whose cards change later, the gathered Traitor pile or a deck and its discard pile, takes its name from the table's own `labelForCount`, and a kept Traitor carries the name a
 deal gives it. Each story changes only the state needed for its scenario and passes the projected
 view through the existing game transport seam.
 The scripted transport records commands and supplies specified replies. It does not execute game
@@ -61,3 +61,7 @@ individual component publication has shipped. The game runtime and its rules rem
 player's selected cards in the private hand, and places starting troops using the copied starting
 instructions and the board's territory geometry. Undealt public cards have opaque ids and only a
 back image. Playing derives from this prepared state.
+
+Card piles lie where a game lays them: setup puts the Treachery deck in the left card bay and the Spice deck in the
+right (`cardBaySlotPositions`). Playing adds a discard beside each: a used Snooper next to the Treachery deck, and the
+last Spice Blow, Broken Land, below the Spice deck.

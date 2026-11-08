@@ -31,7 +31,6 @@ import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
-  CheckCircle2,
   EllipsisVertical,
   FileDown,
   FileText,
@@ -60,6 +59,7 @@ import { AssetFace } from '@app/widgets/asset-face/AssetFace';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
+import { rulesetFaqStats } from './faqStats';
 import styles from './index.module.css';
 
 function RulesetRulebooks({
@@ -451,7 +451,7 @@ function RulesetDetailPage() {
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
   if (!page) {
-    return <RouteNotFound size="compact" title="Ruleset" back={backToRulesets} noun="ruleset" />;
+    return <RouteNotFound title="Ruleset" back={backToRulesets} noun="ruleset" />;
   }
 
   /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */
@@ -491,18 +491,7 @@ function RulesetDetailPage() {
       value: factionCount,
       label: `${factionCount} ${factionCount === 1 ? 'faction' : 'factions'}`,
     },
-    {
-      key: 'questions',
-      icon: <TopicIcon topic="faq" size={17} />,
-      value: faqCount,
-      label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
-    },
-    {
-      key: 'answered',
-      icon: <CheckCircle2 size={17} aria-hidden />,
-      value: answeredFaqCount,
-      label: `${answeredFaqCount} answered ${answeredFaqCount === 1 ? 'question' : 'questions'}`,
-    },
+    ...rulesetFaqStats({ questions: faqCount, answered: answeredFaqCount }),
   ];
   const canChangeGroup = viewerAccess.capabilities.changeGroup;
   const hasAssignment = r.group_id != null;

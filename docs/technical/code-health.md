@@ -17,6 +17,12 @@ out through [`.semgrepignore`](../../.semgrepignore). Findings appear in
 `code-health` artifact retains the SARIF report. Fork PRs retain an artifact without trying to write
 to the repository's security dashboard.
 
+The scanner version lives in [semgrep.in](../../.github/requirements/semgrep.in). Its
+[requirements lock](../../.github/requirements/semgrep.txt) pins the full dependency set and SHA-256
+hashes. CI installs wheels only and requires every package to match a committed hash. Changes to
+either requirements file run the Code health workflow on pull requests and on `main`. The input also
+constrains installation, so a scanner version that differs from the lock fails CI.
+
 Rule-specific `nosemgrep` comments record reviewed exceptions beside the expression: fixed test
 fixtures, loopback publication probes, and the Rulebook reader's publisher-generated markup.
 The reader accepts only permanent Edition paths, rejects redirects, and checks the artifact for
@@ -41,6 +47,33 @@ Run `bun run test:mutation` locally with Node 24. The artifact includes `mutatio
 `mutation.json`, which identify the code changes the tests missed. The mutation score is advisory;
 an initial test failure or scanner failure still fails the reporting job. Mutation coverage stays
 in this report, while Codecov keeps ownership of ordinary code coverage.
+
+## Updating the scanner
+
+Edit `.github/requirements/semgrep.in`, then regenerate the lock with uv 0.13.7:
+
+```bash
+uv pip compile --python-version 3.14 --python-platform x86_64-manylinux_2_39 \
+  --only-binary :all: --generate-hashes \
+  --output-file .github/requirements/semgrep.txt .github/requirements/semgrep.in
+```
+
+The target matches the Ubuntu 24.04 runner's architecture, glibc and Python version. The existing
+lock keeps compatible dependency versions; use `--upgrade-package NAME` when deliberately updating
+a dependency. Review version changes under the repository's dependency policy.
+
+Verify the lock in a clean Linux x86_64 environment with Python 3.14:
+
+```bash
+python -m pip install --only-binary=:all: --require-hashes \
+  --constraint .github/requirements/semgrep.in \
+  --requirement .github/requirements/semgrep.txt
+python -m pip check
+semgrep --version
+```
+
+Commit the input and generated lock together. The Code health workflow exercises the scanner with
+the repository's security rules before publishing its findings.
 
 ## Repository security
 

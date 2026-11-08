@@ -11,7 +11,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { STORYBOOK_NOW } from '@db/storybook';
 
 import { openControl } from './controls.stories.fixture';
-import { SETTLE, mapViewPoint, settled, waitForPlayCamera } from './mapView.stories.fixture';
+import { SETTLE, mapViewPoint, settled, waitForPlayCamera, waitForTableOpen } from './mapView.stories.fixture';
 import { productTransport, playingSnapshot as initialSnapshot, SIX, factions } from './product.stories.fixture';
 
 export function phaseControls(canvasElement: HTMLElement) {
@@ -259,7 +259,8 @@ export async function tablePage(canvasElement: HTMLElement, phaseLabel: string =
       const canvas = document.querySelector('.dune-play-shell canvas');
       await expect(canvas).toBeVisible();
       await expect(canvas?.getBoundingClientRect().height).toBeGreaterThan(100);
-      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('10');
+      /* The Dreamrules Treachery deck less the eight cards dealt and discarded (`playingSnapshot`). */
+      await expect(document.querySelector('[data-piece-id="treachery-deck"]')).toHaveTextContent('37');
       await expect(
         Array.from(document.fonts).some(
           (font) => font.family.replaceAll('"', '') === 'Dune Play Table Label' && font.status === 'loaded'
@@ -273,9 +274,7 @@ export async function tablePage(canvasElement: HTMLElement, phaseLabel: string =
     throw new Error('The Play route did not mount its table.');
   }
   /* With motion on, the table opens out of the planet and fades its contents in; a story reads the table once it is open. */
-  await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
-    timeout: 30_000,
-  });
+  await waitForTableOpen(document);
   await waitForPlayCamera(document);
   await expect(document.querySelector('[data-page-layout-height="fullscreen"]')).not.toBeNull();
   const header = shell.querySelector('header');

@@ -16,6 +16,7 @@ import type { TableMessage } from '../tutorial/table/localTable';
 import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
 import { chapter, journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
+import { waitForTableOpen } from './mapView.stories.fixture';
 import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
@@ -44,38 +45,6 @@ const clampStart = (index: number) => {
   return steps.includes(index) ? index : (steps.find((candidate) => candidate >= index) ?? steps.at(-1)!);
 };
 
-/* The fixture faces a peek can tell apart: the story Traitor fronts, each a different leader. */
-const VARIED_FRONTS = [
-  ...[0, 1, 2, 3, 4].map((index) => `house-atreides-traitor-${index}`),
-  ...[0, 1, 2, 3].map((index) => `house-harkonnen-traitor-${index}`),
-];
-
-/*
- * The recording's Treachery deck is all Snooper cards, so a peek through it shows one face over and over.
- * The sandbox gives its hidden Treachery cards story faces that differ, so rearranging and pulling a card out can be seen.
- */
-function variedTreachery(stored: StoredSnapshot): StoredSnapshot {
-  let next = 0;
-  const vary = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) => {
-    const front = item.artwork?.front;
-    if (!front?.endsWith('/dreamrules/snooper.jpg') || item.faceUp) {
-      return item;
-    }
-    const face = VARIED_FRONTS[next++ % VARIED_FRONTS.length]!;
-    return {
-      ...item,
-      artwork: { ...item.artwork!, front: front.replace('dreamrules/snooper.jpg', `product/${face}.jpg`), name: face },
-    };
-  };
-  return {
-    ...stored,
-    table: {
-      ...stored.table,
-      pieces: stored.table.pieces.map((piece) => ({ ...piece, items: piece.items.map(vary) })),
-    },
-  };
-}
-
 /** The live table of a sandbox story, started from a recorded journey step. */
 export class SandboxTable extends LocalTable {
   /** The journey step the table started from. */
@@ -85,7 +54,7 @@ export class SandboxTable extends LocalTable {
   constructor({ start, seat, prepare }: SandboxStart) {
     const index = clampStart(start);
     const step = journeySteps()[index]!;
-    const recorded = variedTreachery(storedSnapshotSchema.parse(step.stored));
+    const recorded = storedSnapshotSchema.parse(step.stored);
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     const viewers = Object.fromEntries(
@@ -209,6 +178,7 @@ export async function sandboxReady(page: ReturnType<typeof within>) {
   await expect(
     page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
+  await waitForTableOpen(document);
 }
 
 /** What the page is shown of the room right now, in the ids it sends back. */
@@ -236,15 +206,21 @@ export function withTechTokens(stored: StoredSnapshot, drawn: readonly string[] 
   return { ...stored, table: { ...stored.table, pieces }, versions };
 }
 
-/** A sandbox at Shipment and Movement as seat 1, its troops in a mess for carrying back to their reserves. */
+/* The seat the recording's deal gave the Emperor, the faction with two kinds of troops; the deal is random, so it differs per recording. */
+const emperorSeat = () =>
+  journeySteps()
+    .at(-1)!
+    .views['seat-1']!.snapshot.roster!.seats.find((entry) => entry.faction?.id === 'emperor')!.id;
+
+/** A sandbox at Shipment and Movement as the Emperor's seat, its troops in a mess for carrying back to their reserves. */
 export const messyReservesSandbox = {
-  args: { step: chapter('Shipment and Movement'), seat: 'seat-1' },
+  args: { step: chapter('Shipment and Movement'), seat: emperorSeat() },
   beforeEach: ({ args }: { args: { step?: number; seat?: string } }) =>
     install(() =>
       sandboxTransport({
         start: Number(args.step ?? 1) - 1,
-        seat: String(args.seat ?? 'seat-1'),
-        prepare: withMessyReserves,
+        seat: String(args.seat ?? emperorSeat()),
+        prepare: (stored) => withMessyReserves(stored, 'emperor'),
       })
     )(),
 };

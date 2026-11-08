@@ -27,6 +27,25 @@ export const Catalogue = meta.story({
     }
   },
 });
+/** The overview at phone width: the fan drops under the title and scales to the column, inside the band's edges. */
+export const CataloguePhone = meta.story({
+  args: { path: '/assets' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const title = await page.findByRole('heading', { name: 'Assets', level: 1 }, { timeout: 30_000 });
+    const band = title.closest('header')!.getBoundingClientRect();
+    for (const part of title.closest('header')!.querySelectorAll(':scope > div > div > *')) {
+      const box = part.getBoundingClientRect();
+      await expect(box.left).toBeGreaterThanOrEqual(band.left);
+      await expect(box.right).toBeLessThanOrEqual(band.right);
+    }
+    /* The piles' leaning fan cards stay inside the screen, so the page never scrolls sideways (they reached 11px past it). */
+    await page.findAllByRole('link', { name: /^Browse / }, { timeout: 30_000 });
+    const doc = canvasElement.ownerDocument;
+    await expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(doc.documentElement.clientWidth);
+  },
+});
 export const TreacheryCards = meta.story({
   args: { path: '/assets/card-treachery' },
   play: async ({ canvasElement }) => {

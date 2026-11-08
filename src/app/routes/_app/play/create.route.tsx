@@ -1,5 +1,6 @@
 import { PLAY_SEAT_LIMIT_MESSAGE } from '@shared/play/seatLimit';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageState } from '@ui/block/PageState';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { useEffect, useReducer, useRef, useState } from 'react';
@@ -206,9 +207,12 @@ function CreateGameForm({
   );
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
+      <PageLayout.Header size="collapsed">
         <CreateGamePassTitle />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <BackToolbar label="Back to the lobby" renderRoot={(rootProps) => <Link {...rootProps} to="/play" />} />
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <CreateGamePass
           {...pass}

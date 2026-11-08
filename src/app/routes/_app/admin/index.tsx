@@ -15,7 +15,7 @@ export const Route = createFileRoute('/_app/admin/')({
 function AdminIndex() {
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
+      <PageLayout.Header size="compact" align="start">
         <PageTitle title="Admin tools" lede="Find the tool for the job and what it changes." />
       </PageLayout.Header>
       <PageLayout.Content>

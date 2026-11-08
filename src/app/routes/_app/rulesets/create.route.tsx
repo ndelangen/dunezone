@@ -85,9 +85,9 @@ function CreateRulesetForm() {
 
   return (
     <PageLayout>
-      {/* The layout keeps one masthead: the warnings band while complaints stand, the title otherwise, as on every authoring page. */}
+      {/* The layout keeps one masthead: the warnings band while complaints stand, otherwise a collapsed band that keeps the title for readers and search, as on every authoring page. */}
       {validationHeader.slot ?? (
-        <PageLayout.Header>
+        <PageLayout.Header size="collapsed">
           <PageTitle title="Create ruleset" />
         </PageLayout.Header>
       )}

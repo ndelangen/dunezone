@@ -22,15 +22,16 @@ export const Route = createFileRoute('/_app/privacy/')({
 function PrivacyPage() {
   return (
     <PageLayout>
-      <PageLayout.Header>
-        <SimpleGrid cols={{ base: 1, sm: 2 }} maw="58rem" spacing="xl" w="100%">
-          <Stack gap="sm" justify="center">
-            <PageTitle
-              eyebrow="Public and private"
-              title="Privacy"
-              lede="Signing in creates a public profile. Anything you publish can be seen and shared by anyone."
-            />
-          </Stack>
+      <PageLayout.Header size="compact" align="start">
+        <PageTitle
+          eyebrow="Public and private"
+          title="Privacy"
+          lede="Signing in creates a public profile. Anything you publish can be seen and shared by anyone."
+        />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        {/* A policy is read, not picked from, so its parts are open sections like a post's; only the two promises stay framed, so they still stand out. */}
+        <Stack gap="xl">
           <Card padding="lg" title="Two firm promises">
             <Stack gap="sm">
               <List spacing="xs">
@@ -42,11 +43,6 @@ function PrivacyPage() {
               </Text>
             </Stack>
           </Card>
-        </SimpleGrid>
-      </PageLayout.Header>
-      <PageLayout.Content>
-        {/* A policy is read, not picked from, so its parts are open sections like a post's; only the two promises in the band stay framed, so they still stand out. */}
-        <Stack gap="xl">
           <Section title="Who is responsible for your data">
             <Stack gap="md">
               <Text>

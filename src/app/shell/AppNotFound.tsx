@@ -13,11 +13,12 @@ import { ApplicationChrome } from './ApplicationChrome';
 export function AppNotFound() {
   return (
     <ApplicationChrome>
-      {/* One message, said once in the band: a pane repeating "not found" under the title told the reader nothing new (Norbert, 2026-11-07). */}
+      {/* One message, dealt as a treachery card under a collapsed band (Norbert, 2026-11-08). */}
       <PageMessage
         title="Page not found"
         lede="The address may be mistyped, or whatever lived here has since been removed."
         back={<PageMessage.Home />}
+        card={{ name: 'Page not found', code: 'Error 404' }}
       />
     </ApplicationChrome>
   );

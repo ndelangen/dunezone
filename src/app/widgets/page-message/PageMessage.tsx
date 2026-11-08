@@ -1,5 +1,5 @@
 import { Stack } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import type { LinkComponentProps, RegisteredRouter } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -10,6 +10,9 @@ import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { ArrowLeft } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
+
+import { ErrorCard } from './ErrorCard';
+import styles from './PageMessage.module.css';
 
 type BackProps<
   TFrom extends string = string,
@@ -59,21 +62,40 @@ function Home(): ReactElement {
   );
 }
 
-export interface PageMessageProps {
+interface PageMessageBase {
   /** The page's own name, the same one it wears when it has its content: "Faction", "Ruleset", "Edit group". */
   title: string;
+  /** The way out, as a `PageMessage.Back` or `PageMessage.Home`. Omit it on a page that is already the top of its own branch. */
+  back?: ReactNode;
+}
+
+/** A message said in the band, with an optional pane under it. */
+interface BandMessageProps extends PageMessageBase {
   /**
    * The band this page would have had.
    * Match the loaded page so the header does not resize under the reader the moment the data lands.
    */
   size?: PageHeaderSize;
-  /** One sentence under the name, for a message short enough to be said in the band alone: the 404 says everything there. */
+  /** One sentence under the name, for a message short enough to be said in the band alone. */
   lede?: string;
-  /** The way out, as a `PageMessage.Back` or `PageMessage.Home`. Omit it on a page that is already the top of its own branch. */
-  back?: ReactNode;
   /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. Omit it when the lede says it all, and the page has no pane. */
   children?: ReactNode;
+  card?: never;
 }
+
+/**
+ * A message dealt onto the page as a treachery card instead of said in the band: the band collapses, and the card carries `card.name`, the code as its type, and the lede as its text.
+ * For an error a reader hits rather than waits on, such as a missing page or a failed sign-in (Norbert, 2026-11-08).
+ * The card says it all, so there is no pane and no band size to match.
+ */
+interface CardMessageProps extends PageMessageBase {
+  lede: string;
+  card: { name: string; code: string };
+  size?: never;
+  children?: never;
+}
+
+export type PageMessageProps = BandMessageProps | CardMessageProps;
 
 /**
  * The page a route shows instead of its content: still loading, not there, not yours, not loaded, not signed in.
@@ -85,12 +107,17 @@ export interface PageMessageProps {
  * The message never says which state it is showing;
  * the caller has already decided that by choosing which block to hand it.
  *
- * Testing contract: `PageMessage.Back` renders the router's `Link`, which reads router context and throws outside a `RouterProvider`, so a unit test rendering one of these frames must supply a router or mock `Link`.
+ * Testing contract: `PageMessage.Back` renders the router's `Link`, and a `card` message reads the address through `useLocation`;
+ * both read router context and throw outside a `RouterProvider`, so a unit test rendering one of these frames must supply a router or mock them.
  * It surfaces as `Cannot read properties of null (reading 'isServer')` rather than as a failed assertion, which is why it is written down here rather than left to be rediscovered.
  *
  * It exists because about seventeen sites framed these messages themselves, and the frames drifted apart while nobody was comparing them: some centred the header and some did not, some offered a way back inside the pane and some in a toolbar and some not at all, and the pane came at two paddings depending on which page you had reached.
  */
-export function PageMessage({ title, size = 'default', lede, back, children }: PageMessageProps) {
+export function PageMessage(props: PageMessageProps) {
+  if (props.card) {
+    return <CardMessage {...props} />;
+  }
+  const { title, size = 'default', lede, back, children } = props;
   return (
     <PageLayout>
       <PageLayout.Header size={size}>
@@ -104,6 +131,24 @@ export function PageMessage({ title, size = 'default', lede, back, children }: P
           <Surface padding="xl">{children}</Surface>
         </PageLayout.Content>
       )}
+    </PageLayout>
+  );
+}
+
+/* The band keeps the name and the sentence for screen readers and search engines; the card, which says the same, is what the eye gets. */
+function CardMessage({ title, lede, back, card }: Readonly<CardMessageProps>) {
+  const { pathname } = useLocation();
+  return (
+    <PageLayout>
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={title} lede={lede} />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Stack align="center" gap="xl" className={styles.dealt}>
+          <ErrorCard name={card.name} code={card.code} text={lede} seed={pathname} />
+          {back}
+        </Stack>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

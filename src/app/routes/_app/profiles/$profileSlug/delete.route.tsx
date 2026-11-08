@@ -1,18 +1,17 @@
 /* oxlint-disable-next-line no-restricted-imports -- This page has no header band, so its h1 heads the confirmation pane. */
 import { Checkbox, Group, List, Popover, Stack, Text, Title } from '@mantine/core';
 import { createFileRoute, Link, useLocation } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { FormError } from '@ui/block/FormError';
 import { LoadError } from '@ui/block/LoadError';
 import { Notice } from '@ui/block/Notice';
 import { PageState } from '@ui/block/PageState';
 import { Section } from '@ui/block/Section';
 import { HoldAction } from '@ui/control/HoldAction';
-import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, UserRoundSearch, UserRoundX } from 'lucide-react';
+import { UserRoundSearch, UserRoundX } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAccountDeletionPage, useConfirmAccountDeletion } from '@db/accountDeletion';
@@ -44,18 +43,10 @@ function AccountDeletionPage() {
   const [acknowledged, setAcknowledged] = useState(false);
 
   const toolbar = (
-    <Toolbar>
-      <Toolbar.Left label="Navigation">
-        <IconAction
-          label="Back to profile settings"
-          emphasis="standard"
-          intent="neutral"
-          size="lg"
-          renderRoot={(rootProps) => <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />}
-          icon={<ArrowLeft size={17} aria-hidden />}
-        />
-      </Toolbar.Left>
-    </Toolbar>
+    <BackToolbar
+      label="Back to profile settings"
+      renderRoot={(rootProps) => <Link {...rootProps} to="/profiles/$profileSlug/edit" params={{ profileSlug }} />}
+    />
   );
 
   const backToSettings = (
