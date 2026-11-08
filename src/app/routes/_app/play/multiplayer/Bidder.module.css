@@ -7,8 +7,8 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
   background: var(--button-neutral-bg);
   border: 2px solid var(--panel-border);
@@ -90,7 +90,7 @@
   position: relative;
   z-index: 1;
   font-family: C_Advokat_Modern, sans-serif;
-  font-size: 26px;
+  font-size: 38px;
   line-height: 1;
   color: var(--play-white);
   text-shadow:
@@ -113,20 +113,20 @@
   white-space: nowrap;
 }
 
-/* The 72px ring clears the original 56px disc and its focus glow. */
+/* The 104px ring clears the 84px disc and its focus glow. */
 .clockWrap {
   position: relative;
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
+  width: 104px;
+  height: 104px;
 }
 
 .clockRing {
   position: absolute;
   inset: 0;
-  width: 72px;
-  height: 72px;
+  width: 104px;
+  height: 104px;
   overflow: visible;
   pointer-events: none;
   transform: rotate(-90deg);
@@ -147,4 +147,37 @@
   stroke: var(--color-error);
   stroke-width: 4;
   opacity: 0;
+}
+
+/* The turn's buttons share the disc's tile, so they read as part of the bidder's face. */
+.turnButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px 0 12px;
+  border-radius: 999px;
+  background: var(--button-neutral-bg);
+  border: 2px solid var(--panel-border);
+  box-shadow: 0 2px 6px rgb(from var(--play-black) r g b / 0.55);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.turnButton:hover:not(:disabled) {
+  border-color: var(--color-brand-strong);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-brand) 45%, transparent),
+    0 2px 6px rgb(from var(--play-black) r g b / 0.55);
+}
+
+.turnButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.turnSign {
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
 }

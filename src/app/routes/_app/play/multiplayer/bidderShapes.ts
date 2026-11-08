@@ -2,7 +2,7 @@ import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { PLAYER_RING_RADIUS } from '@shared/play/tableSettings';
 import { playUiColors } from '@shared/uiPalette';
 import { createContext } from 'react';
-import { ExtrudeGeometry, Path, Shape } from 'three';
+import { ExtrudeGeometry, Path, Shape, Vector2 } from 'three';
 import type { BufferGeometry } from 'three';
 
 /* The round base covers about a third of the planet's radius (Norbert, #1007). */
@@ -12,7 +12,16 @@ const TIP = PLAYER_RING_RADIUS - 0.5;
 const DEPTH = 0.08;
 
 /** The bidder shapes on trial: the current teardrop and six proposals (bidder shape exploration, Norbert 2026-11-08). */
-export const BIDDER_SHAPES = ['current', 'needle', 'clockHand', 'softDrop', 'chevron', 'bluntDrop', 'dial'] as const;
+export const BIDDER_SHAPES = [
+  'current',
+  'needle',
+  'clockHand',
+  'softDrop',
+  'chevron',
+  'bluntDrop',
+  'dial',
+  'hollowBluntDrop',
+] as const;
 export type BidderShape = (typeof BIDDER_SHAPES)[number];
 
 /** Which shape the bidder draws; only the shape exploration stories pick another. */
@@ -168,6 +177,34 @@ function dial(): BidderPart[] {
   ];
 }
 
+/*
+ * The blunt drop's outline: the round end and a small round nose joined along their common tangents.
+ * Shrinking both radii by the same amount keeps the tangent angle, so an inset outline runs parallel to this one.
+ */
+function bluntOutline(radius: number, nose: number, reach: number) {
+  const angle = Math.acos((radius - nose) / reach);
+  const path = new Path();
+  path.absarc(0, 0, radius, angle, Math.PI * 2 - angle, false);
+  path.absarc(reach, 0, nose, -angle, angle, false);
+  path.closePath();
+  return path.getPoints(64);
+}
+
+/* The blunt drop as an open band: the board shows through its middle, under the bidding face. */
+function hollowBluntDrop(): BidderPart[] {
+  const nose = 0.24;
+  const band = 0.22;
+  const reach = TIP - 0.3 - nose;
+  const shape = new Shape(bluntOutline(RADIUS, nose, reach));
+  const hole = new Path(
+    bluntOutline(RADIUS - band, nose - band, reach)
+      .reverse()
+      .map((point) => new Vector2(point.x, point.y))
+  );
+  shape.holes.push(hole);
+  return [{ geometry: slab(shape, DEPTH, 0.02), color: ground, lift: 0 }];
+}
+
 const BUILDERS: Record<BidderShape, () => BidderPart[]> = {
   current,
   needle,
@@ -176,6 +213,7 @@ const BUILDERS: Record<BidderShape, () => BidderPart[]> = {
   chevron,
   bluntDrop,
   dial,
+  hollowBluntDrop,
 };
 
 /** The slabs that make up the bidder in the given shape, pointing along +x. */

@@ -1,12 +1,14 @@
 import { Group, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
-import { BID_COUNTDOWN_MS, BID_WARNING_MS } from '@shared/play/bidding';
+import { BID_COUNTDOWN_MS, BID_WARNING_MS, canLowerBid } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
+import { Kbd } from '@ui/content/Kbd';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { useEffect, useRef } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import { SHORTCUTS } from '../compass/shortcuts';
 import styles from './Bidder.module.css';
 import { offersActions } from './tableFactions';
 
@@ -168,6 +170,66 @@ function ClockRing({ deadline, table, now }: { deadline: number | null; table: T
   );
 }
 
+/** One of the bidder's turn buttons: its sign and the key that does the same over the table. */
+function TurnButton({
+  sign,
+  name,
+  shortcut,
+  disabledReason,
+  onClick,
+}: {
+  sign: string;
+  name: string;
+  shortcut: string;
+  disabledReason?: string;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip label={disabledReason ?? name}>
+      <TooltipTarget>
+        <UnstyledButton
+          className={styles.turnButton}
+          aria-label={name}
+          aria-keyshortcuts={shortcut}
+          disabled={disabledReason !== undefined}
+          onClick={onClick}
+        >
+          <span className={styles.turnSign}>{sign}</span>
+          <Kbd>{shortcut}</Kbd>
+        </UnstyledButton>
+      </TooltipTarget>
+    </Tooltip>
+  );
+}
+
+/** The raise, the lowering and the pass of the faction the bidder points at, each with its keyboard shortcut. */
+function TurnButtons({ client, bidding }: { client: TableSession; bidding: BiddingState }) {
+  const { round, bid, turn } = bidding;
+  return (
+    <Group gap={6} justify="center" wrap="nowrap" role="group" aria-label="Your bid">
+      <TurnButton
+        sign="+"
+        name={bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}
+        shortcut={SHORTCUTS.raise}
+        onClick={() => client.command({ kind: 'bid-raise', round })}
+      />
+      <TurnButton
+        sign="−"
+        name="Take back your last raise"
+        shortcut={SHORTCUTS.lower}
+        disabledReason={canLowerBid(bidding, turn) ? undefined : 'Only a raise you made this turn can be taken back'}
+        onClick={() => client.command({ kind: 'bid-lower', round })}
+      />
+      <TurnButton
+        sign="Pass"
+        name="Pass"
+        shortcut={SHORTCUTS.pass}
+        onClick={() => client.command({ kind: 'bid-pass', round })}
+      />
+    </Group>
+  );
+}
+
 /** A round in progress: the faction the bidder points at raises with a click and passes with a right click. */
 export function OpenRound({
   bidding,
@@ -236,6 +298,7 @@ export function OpenRound({
           · {turnName}
         </Text>
       )}
+      {mine && <TurnButtons client={client} bidding={bidding} />}
     </Stack>
   );
 }
