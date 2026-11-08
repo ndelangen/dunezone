@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
-import { arriveDirectly, endDeparture } from '@app/widgets/voyage/voyage';
+import { arriveDirectly, endDeparture, riseRemaining } from '@app/widgets/voyage/voyage';
 
 import styles from './TableWait.module.css';
 
@@ -74,6 +74,12 @@ export function TableWait({
       arriveDirectly();
     }
   }, [carriesOn]);
+  /* Once the planet has risen the frame is only waiting, not travelling, so the background's slow turn and twinkle carry on behind it. */
+  const [resting, setResting] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setResting(true), riseRemaining());
+    return () => window.clearTimeout(timer);
+  }, []);
   /* Before the frame's first paint, so its moons never show a frame away from the shared orbit. */
   useLayoutEffect(() => keepOrbitsOnPageClock(frame.current, carriesOn), [motion, carriesOn]);
   useEffect(() => {
@@ -92,7 +98,7 @@ export function TableWait({
         ref={frame}
         className={styles.loading}
         {...darkSchemeIslandAttributes}
-        data-voyage="waiting"
+        data-voyage={resting ? 'resting' : 'waiting'}
         data-connection={connection}
         data-still={!motion || undefined}
         data-carries-on={carriesOn || undefined}

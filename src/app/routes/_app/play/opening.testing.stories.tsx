@@ -106,7 +106,7 @@ export const OpensThroughAnIris = meta.story({
       later: number;
       startMask: string;
       laterMask: string;
-    }>((resolve) => {
+    }>((resolve, reject) => {
       /* The phase is caught as React commits it, and the iris is read by seeking its paused animation, so no frame or clock has to keep up. */
       const check = () => {
         const stage = document.querySelector<HTMLElement>('.dune-play-stage');
@@ -114,6 +114,7 @@ export const OpensThroughAnIris = meta.story({
           return;
         }
         observer.disconnect();
+        window.clearTimeout(giveUp);
         const shell = document.querySelector<HTMLElement>('.dune-play-shell')!;
         const style = getComputedStyle(shell);
         const animation = shell
@@ -142,6 +143,12 @@ export const OpensThroughAnIris = meta.story({
         resolve(reading);
       };
       const observer = new MutationObserver(check);
+      /* The renderer's fallback clock opens the stage well inside this bound, even on a loaded runner. */
+      const giveUp = window.setTimeout(() => {
+        observer.disconnect();
+        const arrival = document.querySelector<HTMLElement>('.dune-play-stage')?.dataset.arrival ?? 'no stage';
+        reject(new Error(`The stage never reached its opening; it is at ${arrival}.`));
+      }, 30_000);
       observer.observe(document.body, {
         subtree: true,
         attributes: true,
@@ -228,7 +235,8 @@ export const Connecting = meta.story({
     await expect(frame).toHaveAttribute('data-connection', 'connecting');
     await expect(page.getByRole('link', { name: 'Lobby' })).toBeVisible();
     const view = canvasElement.ownerDocument.defaultView!;
-    await expect(frame).toHaveAttribute('data-voyage', 'waiting');
+    /* The frame marks the voyage, at rest once the planet has risen, so the background carries on turning behind it. */
+    await waitFor(() => expect(frame).toHaveAttribute('data-voyage', 'resting'));
     await expect(view.getComputedStyle(frame!.querySelector('[data-orbit]')!).animationName).toMatch(/orbit/);
     await expect(canvasElement.ownerDocument.querySelector('.dune-play-shell')).toBeNull();
   },

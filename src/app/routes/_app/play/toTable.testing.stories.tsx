@@ -48,13 +48,13 @@ const meta = testingPreview.meta({
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/* The journey ends once the table has opened out of the planet and its controls are in reach. */
+/* The journey ends once the table has opened out of the planet and its scene is in view; a drafting table keeps its camera dial behind the draft. */
 async function seated(canvasElement: HTMLElement) {
   const document = canvasElement.ownerDocument;
   await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
     timeout: 60_000,
   });
-  await expect(within(document.body).getByRole('group', { name: 'Table view' })).toBeVisible();
+  await expect(within(document.body).getByRole('img', { name: 'Game table' })).toBeVisible();
 }
 
 /* The page's own address, so the play function can find the game the page opened. */

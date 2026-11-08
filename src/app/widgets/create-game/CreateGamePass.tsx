@@ -23,7 +23,7 @@ import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 
 import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
@@ -166,8 +166,24 @@ export function CreateGamePass({
   onRecheck?: (() => void) | undefined;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
-  useEffect(() => (departing ? beginDeparture() : cancelDeparture()), [departing]);
-  useEffect(() => leaveDeparture, []);
+  const started = useRef(false);
+  useEffect(() => {
+    if (departing) {
+      started.current = true;
+      beginDeparture();
+    } else if (started.current) {
+      started.current = false;
+      cancelDeparture();
+    }
+  }, [departing]);
+  useEffect(
+    () => () => {
+      if (started.current) {
+        leaveDeparture();
+      }
+    },
+    []
+  );
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,

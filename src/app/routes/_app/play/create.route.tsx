@@ -89,13 +89,23 @@ function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraft
   useEffect(() => () => clearTimeout(opening.current), []);
   /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
   const stalled = useServerUnreachable(departing && createGame.isPending);
+  /* A game created after the page said the server was out of reach fades the page away afresh, so it opens after a whole fade. */
+  const wasStalled = useRef(false);
+  useEffect(() => {
+    if (stalled) {
+      wasStalled.current = true;
+    }
+  }, [stalled]);
   const depart = (input: CreateGameRequest) => {
     departedAt.current = performance.now();
+    wasStalled.current = false;
     setDeparting(true);
     createGame.mutate(input, {
       onSuccess: (result) => {
         if (result.ok) {
-          const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+          const remaining = wasStalled.current
+            ? DEPARTURE_MS
+            : Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
           opening.current = setTimeout(
             () =>
               void navigate({

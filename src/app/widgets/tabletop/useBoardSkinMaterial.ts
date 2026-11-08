@@ -162,6 +162,18 @@ export function useBoardSkinPaint({
     }),
     invalidate
   );
+  /* What the plain look on the board was made from, while it is the look on the board, so a failed preparation installs a new plain look only when that changed. */
+  const plainOver = useRef<{
+    map: Texture | null;
+    planet: typeof planet;
+    vertexColors: boolean;
+    polygonOffset: boolean;
+  } | null>({
+    map,
+    planet,
+    vertexColors,
+    polygonOffset,
+  });
   /* The artwork the last prepared look was made over; the board is ready once that is the artwork it has now. */
   const [preparedOver, setPreparedOver] = useState<{ map: Texture | null } | null>(null);
 
@@ -184,6 +196,7 @@ export function useBoardSkinPaint({
           drop(next);
           return;
         }
+        plainOver.current = null;
         setShown(next);
         setPreparedOver({ map });
       },
@@ -191,10 +204,19 @@ export function useBoardSkinPaint({
         if (!controller.signal.aborted) {
           /* The board falls back to the plain look over the current artwork, which is then the look it is painted in; say why the new one never came. */
           console.error('The board skin could not be prepared', error);
-          setShown({
-            material: createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked: null, planet }),
-            lease: null,
-          });
+          const plain = plainOver.current;
+          if (
+            plain?.map !== map ||
+            plain.planet !== planet ||
+            plain.vertexColors !== vertexColors ||
+            plain.polygonOffset !== polygonOffset
+          ) {
+            plainOver.current = { map, planet, vertexColors, polygonOffset };
+            setShown({
+              material: createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked: null, planet }),
+              lease: null,
+            });
+          }
           setPreparedOver({ map });
         }
       }

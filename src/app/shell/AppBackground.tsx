@@ -38,6 +38,9 @@ const stars = (() => {
   }));
 })();
 
+/* The widest catch-up the orbits glide through after a hold, five minutes of the planet's turn. */
+const MAX_GLIDE_DEGREES = 30;
+
 /** The shell's fixed planet and independently turning SVG stars. */
 const LAYOUT_MARKS = '[data-page-layout-height], [data-voyage]';
 
@@ -78,7 +81,12 @@ export function AppBackground({ motion }: { motion: boolean }) {
     };
     const synchronize = (initial = false) => {
       /* On the way to a table the planet is mid-flight on the compositor: turning it or the stars would repaint those huge layers mid-animation. */
-      if (!initial && (document.documentElement.dataset.voyage || document.querySelector('[data-voyage]'))) {
+      /* A waiting frame at rest holds nothing: only a planet in flight does. */
+      if (
+        !initial &&
+        (document.documentElement.dataset.voyage ||
+          document.querySelector('[data-voyage]:not([data-voyage="resting"])'))
+      ) {
         held = true;
         return;
       }
@@ -91,7 +99,12 @@ export function AppBackground({ motion }: { motion: boolean }) {
       const planetAngle = ((localTime % HOUR) / HOUR) * 360;
       const starsAngle = ((localTime % (2 * HOUR)) / (2 * HOUR)) * -360;
       /* A glide across the top of the hour would spin the long way round, so the orbits then take their place at once. */
-      const glides = held && planetAngle >= lastPlanetAngle && starsAngle <= lastStarsAngle;
+      /* Only a short hold glides back: after a long one the page has changed under the orbits, and a near-full turn in a moment would read as a spin. */
+      const glides =
+        held &&
+        planetAngle >= lastPlanetAngle &&
+        starsAngle <= lastStarsAngle &&
+        planetAngle - lastPlanetAngle <= MAX_GLIDE_DEGREES;
       if (glides) {
         glideToClock();
       }
