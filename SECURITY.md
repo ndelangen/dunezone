@@ -59,7 +59,7 @@ If a test would cross these limits, contact us privately first.
 
 We aim to acknowledge reports within seven calendar days. This is a best-effort target, not a
 guaranteed response or fix deadline. If you have not heard back after seven days, follow up in the
-private report or email support@dune.zone.
+private report or email us at the address above.
 
 We will discuss the impact and next steps in private. Please give us time to investigate and
 coordinate a disclosure date before publishing details. Include any disclosure deadline you already
