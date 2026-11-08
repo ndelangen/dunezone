@@ -1,3 +1,4 @@
+import { useAuthActions } from '@convex-dev/auth/react';
 import { INACTIVE_ACCOUNT_SIGN_IN, RECENT_SIGN_IN_REQUIRED } from '@shared/authDestination';
 import { useMutation, useQuery } from 'convex/react';
 import { ConvexError } from 'convex/values';
@@ -7,8 +8,23 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 import type { AuthProvider } from '../../../convex/lib/accountMethods';
 import { useLiveQuery } from './core/live';
+import { startSteamSignIn } from './steamSignIn';
 
-export const authProviderNames = { google: 'Google', discord: 'Discord' } satisfies Record<AuthProvider, string>;
+export const authProviderNames = { google: 'Google', discord: 'Discord', steam: 'Steam' } satisfies Record<
+  AuthProvider,
+  string
+>;
+
+/**
+ * Starts a sign-in with a provider.
+ * Google and Discord go through Convex Auth's OAuth round trip;
+ * Steam's OpenID sign-in leaves for Steam directly and finishes on the Steam return page.
+ */
+export function useProviderSignIn() {
+  const { signIn } = useAuthActions();
+  return async (provider: AuthProvider, { redirectTo }: { redirectTo: string }) =>
+    provider === 'steam' ? startSteamSignIn(redirectTo) : await signIn(provider, { redirectTo });
+}
 
 export function useSignInProviders() {
   return useLiveQuery(api.accounts.providers, {});

@@ -28,6 +28,7 @@ import { Route as AppAssetsIndexRouteImport } from './routes/_app/assets/index'
 import { Route as AppAuthIndexRouteImport } from './routes/_app/auth/index'
 import { Route as AppAuthErrorRouteRouteImport } from './routes/_app/auth/error.route'
 import { Route as AppAuthLoginRouteRouteImport } from './routes/_app/auth/login.route'
+import { Route as AppAuthSteamRouteRouteImport } from './routes/_app/auth/steam.route'
 import { Route as AppBlogIndexRouteImport } from './routes/_app/blog/index'
 import { Route as AppContributingIndexRouteImport } from './routes/_app/contributing/index'
 import { Route as AppContributingIntroRouteRouteImport } from './routes/_app/contributing/$intro.route'
@@ -176,6 +177,11 @@ const AppAuthErrorRouteRoute = AppAuthErrorRouteRouteImport.update({
 const AppAuthLoginRouteRoute = AppAuthLoginRouteRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAuthSteamRouteRoute = AppAuthSteamRouteRouteImport.update({
+  id: '/auth/steam',
+  path: '/auth/steam',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppBlogIndexRoute = AppBlogIndexRouteImport.update({
@@ -494,6 +500,7 @@ export interface FileRoutesByFullPath {
   '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -565,6 +572,7 @@ export interface FileRoutesByTo {
   '/admin/presets': typeof AppAdminPresetsRouteRoute
   '/auth/error': typeof AppAuthErrorRouteRoute
   '/auth/login': typeof AppAuthLoginRouteRoute
+  '/auth/steam': typeof AppAuthSteamRouteRoute
   '/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/create/faction': typeof AppCreateFactionRouteRoute
   '/factions/create': typeof AppFactionsCreateRouteRoute
@@ -641,6 +649,7 @@ export interface FileRoutesById {
   '/_app/admin/presets': typeof AppAdminPresetsRouteRoute
   '/_app/auth/error': typeof AppAuthErrorRouteRoute
   '/_app/auth/login': typeof AppAuthLoginRouteRoute
+  '/_app/auth/steam': typeof AppAuthSteamRouteRoute
   '/_app/contributing/$intro': typeof AppContributingIntroRouteRoute
   '/_app/create/faction': typeof AppCreateFactionRouteRoute
   '/_app/factions/create': typeof AppFactionsCreateRouteRoute
@@ -717,6 +726,7 @@ export interface FileRouteTypes {
     | '/admin/presets'
     | '/auth/error'
     | '/auth/login'
+    | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
     | '/factions/create'
@@ -788,6 +798,7 @@ export interface FileRouteTypes {
     | '/admin/presets'
     | '/auth/error'
     | '/auth/login'
+    | '/auth/steam'
     | '/contributing/$intro'
     | '/create/faction'
     | '/factions/create'
@@ -863,6 +874,7 @@ export interface FileRouteTypes {
     | '/_app/admin/presets'
     | '/_app/auth/error'
     | '/_app/auth/login'
+    | '/_app/auth/steam'
     | '/_app/contributing/$intro'
     | '/_app/create/faction'
     | '/_app/factions/create'
@@ -1061,6 +1073,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/login'
       fullPath: '/auth/login'
       preLoaderRoute: typeof AppAuthLoginRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/auth/steam': {
+      id: '/_app/auth/steam'
+      path: '/auth/steam'
+      fullPath: '/auth/steam'
+      preLoaderRoute: typeof AppAuthSteamRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/blog/': {
@@ -1528,6 +1547,7 @@ interface AppRouteRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
   AppAuthLoginRouteRoute: typeof AppAuthLoginRouteRoute
+  AppAuthSteamRouteRoute: typeof AppAuthSteamRouteRoute
   AppContributingIntroRouteRoute: typeof AppContributingIntroRouteRoute
   AppCreateFactionRouteRoute: typeof AppCreateFactionRouteRoute
   AppFactionsCreateRouteRoute: typeof AppFactionsCreateRouteRoute
@@ -1588,6 +1608,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
   AppAuthLoginRouteRoute: AppAuthLoginRouteRoute,
+  AppAuthSteamRouteRoute: AppAuthSteamRouteRoute,
   AppContributingIntroRouteRoute: AppContributingIntroRouteRoute,
   AppCreateFactionRouteRoute: AppCreateFactionRouteRoute,
   AppFactionsCreateRouteRoute: AppFactionsCreateRouteRoute,

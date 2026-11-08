@@ -59,6 +59,16 @@ cancellation callbacks redirect home without caching. These probes need no crede
 and create no accounts. A sign-in request with no verifier is unsuitable as a probe:
 the pinned library reports it as a server error.
 
+Steam signs people in with OpenID 2.0, which Convex Auth's OAuth round trip cannot carry. The
+browser leaves for Steam directly and returns to the app page `/auth/steam`, which the Worker does not
+proxy. The tab must hold the random state it left with. The page passes Steam's assertion to the
+`steam` credentials provider in `convex/auth.ts`. The backend accepts only a positive Steam answer
+addressed to `SITE_URL`'s `/auth/steam` page, under five minutes old and signed over the identity,
+return address and nonce. It then asks Steam to confirm it with `check_authentication` and spends the
+nonce once (`steam_openid_nonces`). Steam is offered whenever `SITE_URL` is set. With the optional
+`STEAM_WEB_API_KEY`, new accounts take the player's public Steam name and avatar; without it they start
+unnamed. The key is a Convex environment variable and is never committed.
+
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old
 callback registration for rollback. Removing the two `CUSTOM_AUTH_*` variables
