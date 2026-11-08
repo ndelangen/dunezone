@@ -184,6 +184,10 @@
   background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
 }
 
+.turnButtons[data-waiting] {
+  visibility: hidden;
+}
+
 .turnSign {
   font-weight: 700;
   font-size: 15px;

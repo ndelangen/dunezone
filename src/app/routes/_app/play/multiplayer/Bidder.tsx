@@ -18,11 +18,13 @@ import { ExtrudeGeometry, Path, Shape } from 'three';
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
 import styles from './Bidder.module.css';
 import { OpenRound, RoundResult } from './BidderFace';
+import type { TurnCommands } from './BidderFace';
 import { faceHalfHeight, faceHalfWidth, faceOnCanvas } from './bidderFacePosition';
 import { useBidderRotation } from './bidderRotation';
 import { ServerClockContext, useServerNow } from './useServerNow';
 
-type Props = { client: TableSession; table: TableProjection; faded?: boolean };
+/** `turn` holds the viewer's raise, lowering and pass while the bidder points at them, the same commands their keys run. */
+type Props = { client: TableSession; table: TableProjection; turn: TurnCommands; faded?: boolean };
 
 /* How much of the bidder a player who faded it still sees. */
 const FADED_OPACITY = 0.1;
@@ -33,7 +35,8 @@ const BIDDER_RADIUS = BOARD_RADIUS * 0.35;
 const BIDDER_NOSE = 0.24;
 const BIDDER_REACH = PLAYER_RING_RADIUS - 0.8 - BIDDER_NOSE;
 /* The band is hollow, so the board shows through under the bidder's face (Norbert, 2026-11-08). */
-const BIDDER_BAND = 0.22;
+/* The hole's nose keeps a radius larger than the bevel, which would otherwise fold it to a point. */
+const BIDDER_BAND = 0.2;
 const BIDDER_DEPTH = 0.08;
 const BIDDER_HOVER_Y = BOARD_SURFACE_Y + 0.35;
 
@@ -91,7 +94,7 @@ function pointedAngle(roster: TableRoster | undefined, pieces: readonly TablePie
   return seat && roster ? (tableSeatAngles(roster.seatCount)[seat.position] ?? null) : null;
 }
 
-function Bidder({ client, table, faded = false }: Props) {
+function Bidder({ client, table, turn, faded = false }: Props) {
   const roster = table.snapshot.roster;
   const bidding = table.snapshot.bidding ?? idleBidding();
   const order = useMemo(
@@ -142,6 +145,7 @@ function Bidder({ client, table, faded = false }: Props) {
           <div className={faded ? styles.faded : undefined}>
             {bidding.stage === 'open' ? (
               <OpenRound
+                commands={turn}
                 client={client}
                 table={table}
                 bidding={bidding}
