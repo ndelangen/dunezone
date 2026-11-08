@@ -37,11 +37,13 @@ function SteamReturnPage() {
       return;
     }
     handled = true;
-    const search = new URLSearchParams(window.location.search);
+    /* The router's history holds the address Steam returned to, in the browser and in a story's memory history alike. */
+    const { pathname, search: returnedSearch } = router.history.location;
+    const search = new URLSearchParams(returnedSearch);
     const destination = takeSteamSignIn(search.get('state'));
     const assertion = steamAssertionFrom(search);
     /* Steam's answer is single-use, and the address bar should not keep it. */
-    router.history.replace(window.location.pathname);
+    router.history.replace(pathname);
     const fail = (failed: SignInFailure) => {
       settleStartedSignIn(false);
       if (destination && explainsItsOwnResult(new URL(destination, window.location.origin).pathname)) {

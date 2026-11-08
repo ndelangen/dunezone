@@ -29,12 +29,16 @@ import type {
   WorkerResponse,
 } from './protocol';
 
-/* Both sign-in providers are configured, as they are in production, so the pages that offer them show them as available; the values never reach a provider, since no story signs in. */
+/*
+ * Every sign-in provider is configured, as they are in production, so the pages that offer them show them as available; the values never reach a provider, since no story signs in.
+ * Steam needs no secret, only the site its return page lives on.
+ */
 const STORYBOOK_ENV = {
   AUTH_GOOGLE_ID: 'storybook',
   AUTH_GOOGLE_SECRET: 'storybook',
   AUTH_DISCORD_ID: 'storybook',
   AUTH_DISCORD_SECRET: 'storybook',
+  SITE_URL: 'https://storybook.invalid',
 };
 Object.assign(globalThis, { global: globalThis, process: { env: STORYBOOK_ENV } });
 const NativeDate = Date;
