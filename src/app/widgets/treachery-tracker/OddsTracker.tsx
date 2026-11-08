@@ -25,7 +25,12 @@ const THREATS = [
     sample: 'crysknife',
     test: (detail: string, name: string) => detail.startsWith('Weapon - Projectile') || name === 'Weirding Way',
   },
-  { key: 'lasgun', label: 'Lasgun', sample: 'lasgun', test: (_: string, name: string) => name === 'Lasgun' },
+  {
+    key: 'lasgun',
+    label: 'Lasgun',
+    sample: 'lasgun',
+    test: (_: string, name: string) => name === 'Lasgun',
+  },
   {
     key: 'shield',
     label: 'Projectile defense',
@@ -58,7 +63,12 @@ export function OddsTracker({ factions, state, onAction }: TrackerViewProps) {
   return (
     <div className={styles.view}>
       <SeenStrip factions={factions} state={state} onAction={onAction} size={22} />
-      <div className={styles.odds} style={{ gridTemplateColumns: `30px repeat(${THREATS.length}, minmax(0, 1fr))` }}>
+      <div
+        className={styles.odds}
+        style={{
+          gridTemplateColumns: `30px repeat(${THREATS.length}, minmax(0, 1fr))`,
+        }}
+      >
         <span />
         {THREATS.map((threat) => {
           const sample = state.copies.find((copy) => copy.def.key === threat.sample)!;

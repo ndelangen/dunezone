@@ -31,7 +31,10 @@ const meta = preview.meta({
 function Live({
   view: View,
   initial,
-}: Readonly<{ view: ComponentType<TrackerViewProps>; initial: () => TrackerState }>) {
+}: Readonly<{
+  view: ComponentType<TrackerViewProps>;
+  initial: () => TrackerState;
+}>) {
   const [state, dispatch] = useReducer(trackerReducer, undefined, initial);
   return <View factions={FACTIONS} state={state} onAction={dispatch} />;
 }

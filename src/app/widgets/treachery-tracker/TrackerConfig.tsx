@@ -41,7 +41,9 @@ export function TrackerConfigPanel({
 }>) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
   const byId = new Map(factions.map((faction) => [faction.id, faction]));
   return (
@@ -68,7 +70,10 @@ export function TrackerConfigPanel({
             const from = config.order.indexOf(String(active.id));
             const to = over ? config.order.indexOf(String(over.id)) : -1;
             if (from >= 0 && to >= 0 && from !== to) {
-              onChange({ ...config, order: arrayMove([...config.order], from, to) });
+              onChange({
+                ...config,
+                order: arrayMove([...config.order], from, to),
+              });
             }
           }}
         >

@@ -8,7 +8,10 @@ import { TrackerWindow } from './TrackerWindow.stories.fixture';
  * The chosen option, Auction first, in its own pinned compass window with the config gear in the title bar.
  * Turn 2 of a six-faction Dreamrules game, with Hunter Seeker up for bid. Everything is live.
  */
-const meta = preview.meta({ title: 'Auction first', parameters: { layout: 'fullscreen' } });
+const meta = preview.meta({
+  title: 'Auction first',
+  parameters: { layout: 'fullscreen' },
+});
 
 /** The card on bid, whole, beside the tokens that record who won it; one turn's auction at a time; a row per faction. */
 export const Tracker = meta.story({

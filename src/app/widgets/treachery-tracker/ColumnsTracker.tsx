@@ -1,34 +1,22 @@
-import { Popover, Stack, Text, UnstyledButton } from "@mantine/core";
-import { LabeledAction } from "@ui/control/LabeledAction";
-import { ChevronLeft, Layers, RotateCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Popover, Stack, Text, UnstyledButton } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { ChevronLeft, Layers, RotateCcw, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
-import { FactionTokenFace } from "../../routes/_app/play/multiplayer/FactionTokenFace";
-import { CardGlyph, UnknownGlyph } from "./CardArt";
-import { SeenStrip } from "./SeenStrip";
-import { CARD_GROUPS, copyOf, groupOf, unplaced } from "./tracker";
-import type { CardCopy } from "./tracker";
-import {
-  AddCard,
-  FactionPicker,
-  GroupList,
-  KindBar,
-  MenuLine,
-  SlotChip,
-  kindSummary,
-} from "./TrackerParts";
-import type { TrackerViewProps } from "./TrackerParts";
-import styles from "./TreacheryTracker.module.css";
+import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
+import { CardGlyph, UnknownGlyph } from './CardArt';
+import { SeenStrip } from './SeenStrip';
+import { CARD_GROUPS, copyOf, groupOf, unplaced } from './tracker';
+import type { CardCopy } from './tracker';
+import { AddCard, FactionPicker, GroupList, KindBar, MenuLine, SlotChip, kindSummary } from './TrackerParts';
+import type { TrackerViewProps } from './TrackerParts';
+import styles from './TreacheryTracker.module.css';
 
 /**
  * Option A, Columns: a column per faction under its token, one line per card it holds, and a plus at the foot.
  * The cards Atreides saw run along the top, newest first, each wearing the token of whoever took it.
  */
-export function ColumnsTracker({
-  factions,
-  state,
-  onAction,
-}: TrackerViewProps) {
+export function ColumnsTracker({ factions, state, onAction }: TrackerViewProps) {
   const deck = unplaced(state);
   return (
     <div className={styles.view}>
@@ -59,11 +47,7 @@ export function ColumnsTracker({
                       state={state}
                       onAction={onAction}
                     >
-                      {card ? (
-                        <CardGlyph card={card} size={26} />
-                      ) : (
-                        <UnknownGlyph size={26} />
-                      )}
+                      {card ? <CardGlyph card={card} size={26} /> : <UnknownGlyph size={26} />}
                     </SlotChip>
                   );
                 })}
@@ -73,23 +57,13 @@ export function ColumnsTracker({
           );
         })}
       </div>
-      <DeckFooter
-        factions={factions}
-        state={state}
-        onAction={onAction}
-        deckSize={deck.length}
-      />
+      <DeckFooter factions={factions} state={state} onAction={onAction} deckSize={deck.length} />
     </div>
   );
 }
 
 /** The deck and discard pile under a view: what is left to draw by kind, and the reshuffle. */
-export function DeckFooter({
-  factions,
-  state,
-  onAction,
-  deckSize,
-}: TrackerViewProps & Readonly<{ deckSize: number }>) {
+export function DeckFooter({ factions, state, onAction, deckSize }: TrackerViewProps & Readonly<{ deckSize: number }>) {
   const deck = unplaced(state);
   const unknownInHands = Object.values(state.hands)
     .flat()
@@ -134,7 +108,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
       <Popover.Target>
         <UnstyledButton
           className={styles.discardButton}
-          aria-label={`Discard pile: ${pile.length} ${pile.length === 1 ? "card" : "cards"}`}
+          aria-label={`Discard pile: ${pile.length} ${pile.length === 1 ? 'card' : 'cards'}`}
           onClick={() => (open ? close() : setOpen(true))}
         >
           <Trash2 size={16} aria-hidden />
@@ -151,7 +125,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
               <MenuLine
                 icon={<Layers size={14} />}
                 onClick={() => {
-                  onAction({ kind: "place", card: moving.id, at: "deck" });
+                  onAction({ kind: 'place', card: moving.id, at: 'deck' });
                   close();
                 }}
               >
@@ -165,19 +139,14 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
               <FactionPicker
                 factions={factions}
                 size={28}
-                label={(faction) =>
-                  `${moving.def.name} into ${faction.name}'s hand`
-                }
+                label={(faction) => `${moving.def.name} into ${faction.name}'s hand`}
                 onPick={(faction) => {
-                  onAction({ kind: "add", faction, card: moving.id });
+                  onAction({ kind: 'add', faction, card: moving.id });
                   close();
                 }}
               />
             </Stack>
-            <MenuLine
-              icon={<ChevronLeft size={14} />}
-              onClick={() => setMoving(null)}
-            >
+            <MenuLine icon={<ChevronLeft size={14} />} onClick={() => setMoving(null)}>
               Back to the discard pile
             </MenuLine>
           </Stack>
@@ -188,16 +157,8 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
                 The discard pile is empty.
               </Text>
             ) : (
-              CARD_GROUPS.filter((group) =>
-                pile.some((copy) => groupOf(copy.def) === group),
-              ).map((group) => (
-                <GroupList
-                  key={group}
-                  group={group}
-                  copies={pile}
-                  suffix="discarded"
-                  onPick={setMoving}
-                />
+              CARD_GROUPS.filter((group) => pile.some((copy) => groupOf(copy.def) === group)).map((group) => (
+                <GroupList key={group} group={group} copies={pile} suffix="discarded" onPick={setMoving} />
               ))
             )}
             {pile.length > 0 && (
@@ -205,7 +166,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
                 size="xs"
                 icon={<RotateCcw size={14} />}
                 onClick={() => {
-                  onAction({ kind: "reshuffle" });
+                  onAction({ kind: 'reshuffle' });
                   close();
                 }}
               >

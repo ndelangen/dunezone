@@ -1,6 +1,5 @@
 import { Popover, Text, TextInput } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
-import { LabeledAction } from '@ui/control/LabeledAction';
 import { ChevronLeft, ChevronRight, CircleHelp, Layers, NotebookPen } from 'lucide-react';
 import { useState } from 'react';
 
@@ -82,19 +81,24 @@ function NextUp({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'
   const turn = currentTurn(state);
   return (
     <div className={styles.nextUp}>
-      <LabeledAction
-        size="xs"
-        icon={<CircleHelp size={14} />}
+      <IconAction
+        label="Unknown card up next"
+        icon={<CircleHelp size={15} />}
+        size="sm"
+        emphasis="quiet"
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
-      >
-        Unknown card up next
-      </LabeledAction>
+      />
       <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={300}>
         <Popover.Target>
           <span>
-            <LabeledAction size="xs" icon={<Layers size={14} />} onClick={() => setOpen((was) => !was)}>
-              Card up next…
-            </LabeledAction>
+            <IconAction
+              label="Card up next…"
+              icon={<Layers size={15} />}
+              size="sm"
+              emphasis="quiet"
+              pressed={open}
+              onClick={() => setOpen((was) => !was)}
+            />
           </span>
         </Popover.Target>
         <Popover.Dropdown className={styles.dropdown}>
@@ -250,7 +254,11 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
           placeholder="Which cards they cannot have…"
           aria-label={`Your note on ${faction.name}`}
           onBlur={(event) => {
-            onAction({ kind: 'note', faction: faction.id, text: event.currentTarget.value.trim() });
+            onAction({
+              kind: 'note',
+              faction: faction.id,
+              text: event.currentTarget.value.trim(),
+            });
             setEditing(false);
           }}
           onKeyDown={(event) => {

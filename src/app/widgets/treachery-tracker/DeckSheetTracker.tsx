@@ -48,7 +48,12 @@ export function DeckSheetTracker({ factions, state, onAction }: TrackerViewProps
                   emphasis="quiet"
                   disabledReason={lastUnknown ? undefined : 'No unknown cards to remove.'}
                   onClick={() =>
-                    lastUnknown && onAction({ kind: 'discard', faction: faction.id, slot: lastUnknown.id })
+                    lastUnknown &&
+                    onAction({
+                      kind: 'discard',
+                      faction: faction.id,
+                      slot: lastUnknown.id,
+                    })
                   }
                 />
               </span>
@@ -145,7 +150,12 @@ function SheetCard({
                 label={(faction) => `One of ${faction.name}'s unknown cards was ${copy.def.name}`}
                 onPick={(faction) => {
                   const slot = state.hands[faction]!.find((entry) => entry.card === null)!;
-                  onAction({ kind: 'identify', faction, slot: slot.id, card: copy.id });
+                  onAction({
+                    kind: 'identify',
+                    faction,
+                    slot: slot.id,
+                    card: copy.id,
+                  });
                   setOpen(false);
                 }}
               />
