@@ -1,11 +1,11 @@
 import { Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
-import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -83,15 +83,11 @@ function FaqCreatePage() {
     );
   }
 
-  /* The way up is the ruleset's FAQ, named after the ruleset, so it also says which ruleset the question is for. */
-  const header = (
-    <PageTitle
-      breadcrumb={
-        <Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }}>
-          {`${rulesetRow.name} FAQ`}
-        </Breadcrumb>
-      }
-      title="Ask a question"
+  /* The band is collapsed, as on the editors; the toolbar's back arrow is the way up, to the ruleset's FAQ, named after the ruleset. */
+  const toolbar = (
+    <BackToolbar
+      label={`Back to ${rulesetRow.name} FAQ`}
+      renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }} />}
     />
   );
   const rulesetId = rulesetRow._id;
@@ -112,7 +108,10 @@ function FaqCreatePage() {
 
   return (
     <PageLayout>
-      <PageLayout.Header>{header}</PageLayout.Header>
+      <PageLayout.Header size="collapsed">
+        <PageTitle title="Ask a question" />
+      </PageLayout.Header>
+      <PageLayout.Toolbar>{toolbar}</PageLayout.Toolbar>
       <PageLayout.Content>
         <Surface padding="lg">
           <Stack

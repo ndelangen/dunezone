@@ -23,6 +23,8 @@ import {
 const meta = testingPreview.meta({
   ...gameMeta,
   title: 'Play/Opening',
+  /* These stories are about the table's opening, so they replay it. */
+  parameters: { ...gameMeta.parameters, tableArrival: 'play' },
   /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
   loaders: [
     async () => {

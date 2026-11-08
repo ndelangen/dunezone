@@ -36,7 +36,7 @@ export const NotFound = meta.story({
 
 export const FuturePlans = meta.story({
   args: { path: '/future-plans' },
-  play: titled(/^A map of what Dune Zone could become$/),
+  play: titled(/^Future plans$/),
 });
 
 /** The blog's numbered list of posts, newest first, each title opening its post. */

@@ -9,7 +9,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
-import { BriefcaseBusiness, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { usePublicationJobsPage, useSetPublicationPickupEnabled } from '@db/publications';
@@ -63,15 +63,12 @@ function PublicationJobsDashboard() {
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <Stack align="center" gap="xs">
-          <BriefcaseBusiness size={32} strokeWidth={1.6} aria-hidden />
-          <PageTitle
-            breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
-            title="Publication jobs"
-            lede="Inspect the durable work queue and control whether the next scheduled run may pick up pending work."
-          />
-        </Stack>
+      <PageLayout.Header size="compact" align="start">
+        <PageTitle
+          breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
+          title="Publication jobs"
+          lede="Inspect the durable work queue and control whether the next scheduled run may pick up pending work."
+        />
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="lg">
