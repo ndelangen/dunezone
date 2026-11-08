@@ -36,4 +36,3 @@ export const OneListWithRulesetLabels = meta.story({
     await expect(args.onLoadMore).toHaveBeenCalledOnce();
   },
 });
-export const Empty = meta.story({ args: { items: [], status: 'Exhausted' as const } });

@@ -1,6 +1,9 @@
 .frame {
   --app-navigation-height: 51px;
 
+  /* The band's height on narrow screens (below 62rem) while no page header sizes it, and the floor PageLayout's default and hero headers grow from. */
+  --app-band-floor: 319px;
+
   position: relative;
 
   /* Named, so a component whose layout is the page's rhythm asks the page and not a column it sits in. */
@@ -100,7 +103,7 @@
 
 @media (width < 62rem) {
   .band {
-    height: 319px;
+    height: var(--app-band-floor);
   }
 
   .band {
@@ -112,8 +115,11 @@
    * (a blog post's does) never climbs over the navigation strip above it or spills onto the page below.
    * The band has no content height of its own (it is a size container), so the row takes the header's, which keeps the 220px floor, and the band fills the row.
    * A percentage, not `auto` with a minimum: when a minimum decides a size container's height, Chromium resolves `cqh` to zero and the artwork no longer covers the band.
+   * The default and hero bands grow the same way from their own 319px floor: a catalogue's eyebrow, title, lede and call ran over the navigation on a phone (Norbert, 2026-11-07).
    */
-  .frame:has([data-page-layout-header-size="compact"]) .band {
+  .frame:has([data-page-layout-header-size="compact"]) .band,
+  .frame:has([data-page-layout-header-size="default"]) .band,
+  .frame:has([data-page-layout-header-size="hero"]) .band {
     height: 100%;
   }
 }

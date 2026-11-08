@@ -7442,6 +7442,92 @@
     "credit": "gf9-ilya-portrait",
     "sourceHash": "ac3d511288cc50771d8c4fff89d75c7eacee892f8b2ef70e95ec927ebc68d4bf"
   },
+  "/image/leader/custom/house-lindaren/helmeted-soldier.png": {
+    "description": "Helmeted Soldier. Fully helmeted figure with a dark opaque visor and a round ear piece. Gray angular helmet and chest plates with blue shoulder armour.",
+    "tags": ["portrait", "helmet", "visor", "soldier", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "fe0a87944c5eb6f5aa7f3a828060a695983df184d9e3bc96ca281f8c190ae0cf"
+  },
+  "/image/leader/custom/house-lindaren/paired-officers.png": {
+    "description": "Paired Officers. Two men back to back in blue uniforms with gold trim. An older man with a topknot, hair stick, moustache and goatee, and a younger clean-shaven man with shoulder-length brown hair.",
+    "tags": ["portrait", "two people", "men", "officer", "topknot", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "584e5601f4c445a0e7e68d867d09b2d185015e7d6ead6e83d003579229b063e0"
+  },
+  "/image/leader/custom/house-lindaren/skeptical-officer.png": {
+    "description": "Skeptical Officer. Woman with a brown updo, hair stick and a beauty mark, looking sideways. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "woman", "officer", "updo", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "78c9013a1ed9cea6f7c32b45e6e81a0e957c88ab77a8f4425bde6663a4474bc2"
+  },
+  "/image/leader/custom/house-lindaren/veteran-officer.png": {
+    "description": "Veteran Officer. Older man with long swept-back brown hair streaked with white and a gray beard, looking aside. Royal blue high-collared uniform with gold trim.",
+    "tags": ["portrait", "man", "officer", "gray hair", "beard", "uniform", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "ac5e811a9853af3055fc7a1d5f996f8520b62b782b47b2e9cb2351a8a8d00dcc"
+  },
+  "/image/leader/custom/house-lindaren/warrior.png": {
+    "description": "Warrior. Young man with short dark brown hair and a stern sideways look. Gray segmented chest armour, blue collar and blue shoulder plates.",
+    "tags": ["portrait", "man", "soldier", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "4000639bf121315af12c559f3eb63ed6900fed43785bf5d7dd0fa9c40feba384"
+  },
+  "/image/leader/custom/house-mikarrol/marked-leader.png": {
+    "description": "Marked Leader. Bearded man with short brown hair and a black marking over one eye and three bars above the other brow. Heavy brown, plum and gray armour.",
+    "tags": ["portrait", "man", "beard", "face paint", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "creditDetail": "Gary based the original on a character from Dune: Awakening (Funcom).",
+    "sourceHash": "c7931a9894f5c17832332ab9912a94df9565d6b66134d2c8f9a8c6dd98962a47"
+  },
+  "/image/leader/custom/house-lindaren/resolute-officer.png": {
+    "description": "Resolute Officer. Woman with voluminous curly brown hair, looking resolutely aside. Gray chest armour with blue shoulder plates.",
+    "tags": ["portrait", "woman", "officer", "curly hair", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "creditDetail": "Gary based the original on a character from Dune: Awakening (Funcom).",
+    "sourceHash": "ca745b4f5cb421762885056025f771211c1d8515c7e206ff50bd92154a31da2a"
+  },
+  "/image/leader/custom/house-mikarrol/blonde-officer.png": {
+    "description": "Blonde Officer. Woman with blonde hair pinned up and loose strands, blue eyes, looking aside. Purple collar and cloak with gold trim, brown shoulder strap.",
+    "tags": ["portrait", "woman", "officer", "blonde", "cloak", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "6fe1e269416c2041ec1803dd5544b0ad4fe7708ec55c9e52f9cc00093dcbdfe6"
+  },
+  "/image/leader/custom/house-mikarrol/crimson-masked-figure.png": {
+    "description": "Crimson Masked Figure. Fully masked face in red wrappings with round bronze goggles and two breathing tubes. Tall red collar over brown armour with shoulder hoses.",
+    "tags": ["portrait", "mask", "goggles", "breathing tubes", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "4b0d8ed013d3fffb4f89304528a0f9be2d6519c0601580f485206abd5663c22c"
+  },
+  "/image/leader/custom/house-mikarrol/haughty-nobleman.png": {
+    "description": "Haughty Nobleman. Bearded man with brown hair, chin raised, looking down sideways. Purple robe with gold trim and a gold ceremonial chain with a purple gem.",
+    "tags": ["portrait", "man", "noble", "beard", "chain", "jewel", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "9d1c52a23fcd0b1489d2f3cfc52edc7b7274517a6866be763c0bc5e6f9abcbbe"
+  },
+  "/image/leader/custom/house-mikarrol/scarred-commander.png": {
+    "description": "Scarred Commander. Man with wavy red-brown hair, curled moustache, goatee and a scar through one brow. Gold earring, crimson high collar and dark armour.",
+    "tags": ["portrait", "man", "moustache", "scar", "earring", "armour", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "a6c12be6783d17989d6f4b0ba50bbea318fd0eb8231948fda79f25c0da44da8e"
+  },
+  "/image/leader/custom/house-mikarrol/stoic-officer.png": {
+    "description": "Stoic Officer. Clean-shaven man with brown hair and blue eyes, gazing upward. Purple high collar and robes with gold trim, gold chain and blue-lit shoulder fixtures.",
+    "tags": ["portrait", "man", "officer", "robe", "chain", "illustration"],
+    "subjects": ["people"],
+    "credit": "gary-portrait",
+    "sourceHash": "c1af518c28606e8a45ab826a90d514dc550f71c16add838debb374a9b4df5a17"
+  },
   "/image/leader/hivers/hiver-amber-pendant.png": {
     "description": "Hiver Amber Pendant. Insect-like figure with antennae and large compound eyes. Amber pendant.",
     "tags": ["portrait", "figure", "eyes", "insect", "illustration"],

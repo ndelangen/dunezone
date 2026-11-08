@@ -18,6 +18,7 @@ import { useId, useReducer, useRef, useState } from 'react';
 import { authProviderNames } from '@db/accounts';
 import {
   holdAuthConnection,
+  needsRecentSignIn,
   useBeginAuthConnection,
   useDisconnectAuthMethod,
   useSignOutEverywhere,
@@ -33,7 +34,19 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
 
-type ProfileTab = 'profile' | 'defaults' | 'appearance' | 'sign-in' | 'account';
+import { SignInAgainAction } from './SignInAgainAction';
+
+const PROFILE_TABS = ['profile', 'defaults', 'appearance', 'sign-in', 'account'] as const;
+type ProfileTab = (typeof PROFILE_TABS)[number];
+
+function isProfileTab(value: unknown): value is ProfileTab {
+  return typeof value === 'string' && (PROFILE_TABS as readonly string[]).includes(value);
+}
+
+/** The settings page open on one of its tabs, as a link names it: the return from a re-sign-in lands on Sign-in methods. */
+function settingsTabPath(profileSlug: string, tab: ProfileTab): string {
+  return `/profiles/${encodeURIComponent(profileSlug)}/edit?tab=${tab}`;
+}
 
 type ProfileDraft = {
   username: string;
@@ -186,7 +199,7 @@ function PreferenceChoices<Value extends string>({
   );
 }
 
-function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
+function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileEntry; initialTab: ProfileTab }) {
   const navigate = useNavigate();
   const update = useUpdateCurrentProfile();
   const formId = 'profile-settings-' + useId().replaceAll(':', '');
@@ -194,7 +207,8 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
   const avatarUrlRef = useRef<HTMLInputElement>(null);
   const bggProfileUrlRef = useRef<HTMLInputElement>(null);
   const defaultGroupRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<ProfileTab>('profile');
+  /* The address only chooses the opening tab; switching tabs stays on the page and leaves the address alone. */
+  const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [state, dispatch] = useReducer(
     reduceProfileEdit,
     {
@@ -460,7 +474,7 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
               Checking your connected accounts.
             </PageState>
           ) : settings.account ? (
-            <SignInMethods account={settings.account} />
+            <SignInMethods account={settings.account} returnTo={settingsTabPath(initial.slug, 'sign-in')} />
           ) : (
             <PageState kind="absent" title="Sign-in methods unavailable">
               Sign in again to manage your account.
@@ -554,11 +568,15 @@ function EditableProfilePage({ initial }: { initial: CurrentProfileEntry }) {
 
 export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
   head: () => pageHead('Profile settings'),
+  /* `tab` opens the page on one of its tabs, so a return from a re-sign-in lands where the reader was; anything else opens on Profile. */
+  validateSearch: (search: Record<string, unknown>): { tab?: ProfileTab } =>
+    isProfileTab(search.tab) ? { tab: search.tab } : {},
   component: ProfileSettingsPage,
 });
 
 function ProfileSettingsPage() {
   const { profileSlug } = Route.useParams();
+  const { tab = 'profile' } = Route.useSearch();
   const viewer = useSessionViewer();
 
   switch (viewer.kind) {
@@ -604,15 +622,16 @@ function ProfileSettingsPage() {
     );
   }
 
-  return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} />;
+  return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} initialTab={tab} />;
 }
 
 /* The tab's one busy action: a provider being connected or disconnected, or the sign-out of every session. */
 type SignInMethodsAction = AuthProvider | 'everywhere';
-type SignInMethodsState = { busy: SignInMethodsAction | null; error: string | null };
+/* The failure is kept as thrown, since a refusal that asks for a fresh sign-in is told apart by its data, not its words. */
+type SignInMethodsState = { busy: SignInMethodsAction | null; error: Error | string | null };
 type SignInMethodsEvent =
   | { kind: 'started'; provider: SignInMethodsAction }
-  | { kind: 'failed'; message: string }
+  | { kind: 'failed'; error: unknown; fallback: string }
   | { kind: 'settled' };
 
 function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEvent): SignInMethodsState {
@@ -620,13 +639,20 @@ function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEven
     case 'started':
       return { busy: event.provider, error: null };
     case 'failed':
-      return { ...state, error: event.message };
+      return { ...state, error: event.error instanceof Error ? event.error : event.fallback };
     case 'settled':
       return { ...state, busy: null };
   }
 }
 
-function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['account']> }) {
+function SignInMethods({
+  account,
+  returnTo,
+}: {
+  account: NonNullable<ProfileSettingsData['account']>;
+  /** This tab's address, for the re-sign-in a refused change can ask for. */
+  returnTo: string;
+}) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
   const revokeSessions = useSignOutEverywhere();
@@ -639,7 +665,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       holdAuthConnection(intent.token);
       await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
     } catch (error) {
-      dispatch({ kind: 'failed', message: error instanceof Error ? error.message : 'The sign-in could not start.' });
+      dispatch({ kind: 'failed', error, fallback: 'The sign-in could not start.' });
     }
     dispatch({ kind: 'settled' });
   };
@@ -649,10 +675,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       await disconnect({ provider });
       await signOut();
     } catch (error) {
-      dispatch({
-        kind: 'failed',
-        message: error instanceof Error ? error.message : 'The sign-in method could not be disconnected.',
-      });
+      dispatch({ kind: 'failed', error, fallback: 'The sign-in method could not be disconnected.' });
     }
     dispatch({ kind: 'settled' });
   };
@@ -663,10 +686,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       await revokeSessions({});
       await signOut();
     } catch (error) {
-      dispatch({
-        kind: 'failed',
-        message: error instanceof Error ? error.message : 'The sign-out could not finish.',
-      });
+      dispatch({ kind: 'failed', error, fallback: 'The sign-out could not finish.' });
     }
     dispatch({ kind: 'settled' });
   };
@@ -678,7 +698,12 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
           Profile merge in progress. Sign-in methods are locked.
         </StatusBadge>
       )}
-      <ActionError subject="Sign-in methods" verb="change" error={state.error} />
+      <ActionError
+        subject="Sign-in methods"
+        verb="change"
+        error={state.error}
+        action={needsRecentSignIn(state.error) ? <SignInAgainAction returnTo={returnTo} /> : undefined}
+      />
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
         const canDisconnect = account.methods.some(
@@ -735,7 +760,7 @@ function SignInMethods({ account }: { account: NonNullable<ProfileSettingsData['
       <ControlBlock
         title="Sign out on all devices"
         description={
-          'Signs this profile out everywhere, including here.\nUse it after losing a device or using a shared computer.'
+          'Signs this profile out everywhere, including here. Connected sign-in methods stay as they are.\nAfter a lost device or a suspected break-in, use it and also check the methods above.'
         }
         input={
           <Group justify="space-between">

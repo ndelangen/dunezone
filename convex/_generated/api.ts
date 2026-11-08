@@ -82,6 +82,7 @@ import type * as lib_faqRulesetList from "../lib/faqRulesetList.js";
 import type * as lib_faqTags from "../lib/faqTags.js";
 import type * as lib_formerSlugs from "../lib/formerSlugs.js";
 import type * as lib_groupAssignPicker from "../lib/groupAssignPicker.js";
+import type * as lib_groupInvitations from "../lib/groupInvitations.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
@@ -257,6 +258,7 @@ const fullApi: ApiFromModules<{
   "lib/faqTags": typeof lib_faqTags;
   "lib/formerSlugs": typeof lib_formerSlugs;
   "lib/groupAssignPicker": typeof lib_groupAssignPicker;
+  "lib/groupInvitations": typeof lib_groupInvitations;
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;

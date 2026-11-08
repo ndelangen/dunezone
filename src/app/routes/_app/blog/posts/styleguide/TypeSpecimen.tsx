@@ -58,7 +58,7 @@ const FACES: readonly Face[] = [
     glyphs: 'Aa',
     sample: 'At start of game, you may predict a winner.',
     printed:
-      'Rulebook and faction sheet body text, the back of the player shields, storm card and Kwisatz Haderach numerals',
+      'Rulebook and faction sheet body text, the back of the faction shields, storm card and Kwisatz Haderach numerals',
     site: 'Faction sheet text, traitor card names, rulebook body text',
   },
   {
@@ -78,7 +78,7 @@ const FACES: readonly Face[] = [
     glyphs: 'AT',
     sample: 'Atreides',
     uppercase: true,
-    printed: 'The faction name on the front of the player shields',
+    printed: 'The faction name on the front of the faction shields',
     site: 'Shield names, page titles',
   },
   {

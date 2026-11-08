@@ -58,11 +58,11 @@ describe('group collaboration permissions', () => {
         id: ruleset._id,
         name: ruleset.name,
         about: 'A test ruleset with an About long enough to satisfy the fifty character floor.',
-        image_cover: 'https://example.com/collaborative-cover.jpg',
+        image_cover: null,
       })
     ).resolves.toMatchObject({
       name: ruleset.name,
-      image_cover: 'https://example.com/collaborative-cover.jpg',
+      image_cover: null,
     });
     await expect(
       member.mutation(api.rulesets.update, {

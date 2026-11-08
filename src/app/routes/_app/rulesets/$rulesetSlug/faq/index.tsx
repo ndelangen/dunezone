@@ -6,6 +6,7 @@ import { createFileRoute, Link, notFound, useNavigate } from '@tanstack/react-ro
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
@@ -15,7 +16,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, MessageCircleQuestionMark } from 'lucide-react';
+import { MessageCircleQuestionMark } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -169,26 +170,14 @@ function RulesetFaqPage() {
         <PageIdentity
           title="Community FAQ"
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
         />
       </PageLayout.Header>
       <PageLayout.Toolbar>
         <Toolbar>
-          <Toolbar.Left label="Navigation">
-            <IconAction
-              label={`Back to ${data.ruleset.name}`}
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(rootProps) => (
-                <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }} />
-              )}
-            />
-          </Toolbar.Left>
           <Toolbar.Center>
             <SearchRefine
               label="FAQ filters"

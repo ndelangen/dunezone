@@ -31,8 +31,11 @@ describe('media page heads', () => {
     expect(descriptions.size).toBe(mediaKinds.length);
   });
 
-  test.each(['topics', 'lucide'])('the %s icon library keeps the plain title without a canonical', (source) => {
-    expect(mediaHead({ source })).toEqual({ meta: [{ title: 'Media catalogue · Dune Zone' }] });
+  test.each([
+    ['topics', 'Topic icons'],
+    ['lucide', 'Lucide icons'],
+  ])('the %s icon library is titled by its name, without a canonical', (source, name) => {
+    expect(mediaHead({ source })).toEqual({ meta: [{ title: `${name} · Dune Zone` }] });
   });
 
   test('an unknown gallery and a not-found match leave the title to the not-found page', () => {

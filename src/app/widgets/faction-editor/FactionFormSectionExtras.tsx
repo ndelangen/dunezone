@@ -3,6 +3,7 @@ import { ASSET_TYPES } from '@shared/assets/types';
 import { FACTION_EXTRA_TYPES, factionExtraKey } from '@shared/factions/extras';
 import type { FactionExtra } from '@shared/factions/extras';
 import { ListChapter } from '@ui/block/ListChapter';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { TitledLine } from '@ui/content/TitledLine';
 
 import { AssetList, AssetListAdd } from '@app/pickers/AssetListPicker';
@@ -63,9 +64,7 @@ export function FactionExtrasProof({ extras }: { extras: readonly FactionExtra[]
         Added at setup
       </Text>
       {extras.length === 0 ? (
-        <Text size="sm" c="dimmed">
-          Nothing beyond the faction&apos;s own components.
-        </Text>
+        <EmptyNote>Nothing beyond the faction&apos;s own components.</EmptyNote>
       ) : (
         extras.map((extra) => <ExtraLabel key={factionExtraKey(extra)} extra={extra} />)
       )}

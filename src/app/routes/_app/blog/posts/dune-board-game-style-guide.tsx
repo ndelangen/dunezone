@@ -48,7 +48,7 @@ function FontsSection() {
         Seven typefaces do almost all of the work. Copperplate Gothic is the voice of the game: card names, territory
         names on the board and every title. Candara carries the rules text, and Caladea the longer reading in the
         rulebook and on the faction sheets. The three display faces are used sparingly: Busorama on the card backs,
-        Desdemona for the names on the player shields, and Advokat Modern for nearly every number.
+        Desdemona for the names on the faction shields, and Advokat Modern for nearly every number.
       </Paragraph>
       <WideFigure caption="The seven faces, each set in itself. Where they appear in the box follows Pkfod's list.">
         <TypeSpecimen />
@@ -147,7 +147,7 @@ function TexturesSection() {
       <Paragraph>
         A handful of parts are still bitmaps rather than code: the parchment, the card frame with its black corner
         circle, the gold panel behind a card's picture, the gold border and medallion of the card backs, and the frame
-        of the player shields.
+        of the faction shields.
       </Paragraph>
       <WideFigure caption="The bitmap parts of the cards and shields, laid out flat with their pixel sizes.">
         <FrameParts />

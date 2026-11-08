@@ -11,6 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import type * as Accounts from '@db/accounts';
 
 const mocks = vi.hoisted(() => ({
+  search: {} as Record<string, unknown>,
+  /* The backend's refusal for a stale sign-in, as the doorway tells it apart; the words are what the page shows. */
+  staleSignIn: new Error('Sign in again to confirm it is you, then try again.'),
   navigate: vi.fn(),
   beginConnection: vi.fn(),
   signIn: vi.fn(),
@@ -31,9 +34,23 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     createFileRoute: () => (options: unknown) => ({
       options,
       useParams: () => ({ profileSlug: 'owner-profile' }),
+      useSearch: () => mocks.search,
     }),
-    Link: ({ children, to, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string }) => (
-      <a {...props} href={to}>
+    /* The link's search lands in its address, so a test can read where a link sends the reader. */
+    Link: ({
+      children,
+      to,
+      search,
+      ...props
+    }: AnchorHTMLAttributes<HTMLAnchorElement> & { to: string; search?: Record<string, string | boolean> }) => (
+      <a
+        {...props}
+        href={
+          search
+            ? `${to}?${new URLSearchParams(Object.entries(search).map(([key, value]) => [key, String(value)]))}`
+            : to
+        }
+      >
         {children}
       </a>
     ),
@@ -59,6 +76,7 @@ vi.mock('@db/profiles', () => ({
 vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn, signOut: mocks.signOut }) }));
 vi.mock('@db/accounts', async (importOriginal) => ({
   ...(await importOriginal<typeof Accounts>()),
+  needsRecentSignIn: (error: unknown) => error === mocks.staleSignIn,
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => mocks.disconnectMethod,
   useSignOutEverywhere: () => mocks.signOutEverywhere,
@@ -97,7 +115,8 @@ function setMutationState(state: typeof mocks.mutationState) {
   });
 }
 
-async function renderPage() {
+/* The page as the address opens it, on whichever tab the address names. */
+async function mountPage() {
   let view: ReturnType<typeof render> | undefined;
   await act(async () => {
     view = render(
@@ -109,6 +128,11 @@ async function renderPage() {
   if (!view) {
     throw new Error('Profile page did not render');
   }
+  return view;
+}
+
+async function renderPage() {
+  const view = await mountPage();
   await chooseTab(view, 'Profile');
   return view;
 }
@@ -122,6 +146,7 @@ async function chooseTab(view: ReturnType<typeof render>, name: string) {
 }
 
 beforeEach(() => {
+  mocks.search = {};
   mocks.navigate.mockReset();
   mocks.beginConnection.mockReset().mockResolvedValue({ slug: 'owner-profile', token: 'connection-token' });
   mocks.signIn.mockReset().mockResolvedValue(undefined);
@@ -264,6 +289,81 @@ describe('profile settings page', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('says that signing out everywhere leaves the connected methods in place', async () => {
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    expect(
+      view.getByText(
+        'Signs this profile out everywhere, including here. Connected sign-in methods stay as they are. After a lost device or a suspected break-in, use it and also check the methods above.'
+      )
+    ).not.toBeNull();
+  });
+
+  it('opens on the tab the address names', async () => {
+    mocks.search = { tab: 'sign-in' };
+    const view = await mountPage();
+    expect((await view.findByRole('tab', { name: 'Sign-in methods' })).getAttribute('aria-selected')).toBe('true');
+    expect(view.getByRole('button', { name: 'Connect Discord' })).not.toBeNull();
+  });
+
+  it('offers to sign in again when connecting a method needs a recent sign-in', async () => {
+    mocks.beginConnection.mockRejectedValue(mocks.staleSignIn);
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
+    });
+    expect(mocks.signIn).not.toHaveBeenCalled();
+    const alert = view.getByRole('alert');
+    expect(alert.textContent).toContain('Sign-in methods could not be changed');
+    expect(alert.textContent).toContain(mocks.staleSignIn.message);
+    /* The way through returns to this tab, not to the page's first one. */
+    expect(view.getByRole('link', { name: 'Sign in again' }).getAttribute('href')).toBe(
+      '/auth/login?redirect=%2Fprofiles%2Fowner-profile%2Fedit%3Ftab%3Dsign-in&reauthenticate=true'
+    );
+    expect(view.getByRole('button', { name: 'Connect Discord' })).toHaveProperty('disabled', false);
+  });
+
+  it('offers to sign in again when disconnecting a method needs a recent sign-in', async () => {
+    mocks.useProfileSettings.mockReturnValue({
+      data: {
+        account: {
+          merging: false,
+          methods: [
+            { provider: 'google', connected: true, available: true },
+            { provider: 'discord', connected: true, available: true },
+          ],
+        },
+      },
+    });
+    mocks.disconnectMethod.mockRejectedValue(mocks.staleSignIn);
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    vi.useFakeTimers();
+    try {
+      fireEvent.keyDown(view.getByRole('button', { name: 'Disconnect Discord' }), { key: 'Enter' });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(mocks.signOut).not.toHaveBeenCalled();
+    expect(view.getByRole('alert').textContent).toContain(mocks.staleSignIn.message);
+    expect(view.getByRole('link', { name: 'Sign in again' })).not.toBeNull();
+  });
+
+  it('shows any other refusal in its own words, with no sign-in offer', async () => {
+    mocks.beginConnection.mockRejectedValue(new Error('This sign-in method is not available.'));
+    const view = await renderPage();
+    await chooseTab(view, 'Sign-in methods');
+    await act(async () => {
+      fireEvent.click(view.getByRole('button', { name: 'Connect Discord' }));
+    });
+    expect(view.getByRole('alert').textContent).toContain('This sign-in method is not available.');
+    expect(view.queryByRole('link', { name: 'Sign in again' })).toBeNull();
   });
 
   it('keeps the sign-out everywhere control locked while a merge is in progress', async () => {

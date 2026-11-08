@@ -1,6 +1,5 @@
 /* oxlint-disable-next-line no-restricted-imports -- The edition number is printed on the cover thumbnail, not a status. */
-/* oxlint-disable-next-line no-restricted-imports -- The rulebook cover is a rounded-square picture, not a name disc. */
-import { Avatar, Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
+import { Badge, Box, Menu, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { parseFaqCatalogueSearch } from '@shared/faq/catalogueSearch';
 import { FAQ_TAG_VALUES } from '@shared/faq/tags';
 import type { FaqTag } from '@shared/faq/tags';
@@ -14,9 +13,12 @@ import { FactionCard } from '@ui/block/FactionCard';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FAQ_TAG_LABELS } from '@ui/content/faqTagLabels';
 import { FormattedTextSource } from '@ui/content/FormattedText';
+import { NameDisc } from '@ui/content/NameDisc';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignOptions, AssignPopover } from '@ui/control/AssignPopover';
@@ -29,9 +31,7 @@ import { FaqList } from '@ui/list/FaqList';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import {
-  ArrowLeft,
   CheckCircle2,
-  CircleHelp,
   EllipsisVertical,
   FileDown,
   FileText,
@@ -75,9 +75,7 @@ function RulesetRulebooks({
   return (
     <Section id="rulebooks" title="Rulebooks" icon={<TopicIcon topic="rules" size={20} />}>
       {rulebooks.length === 0 ? (
-        <Surface padding="lg">
-          <Text c="dimmed">No Rulebooks yet.{canEdit ? ' Add one from the toolbar.' : ''}</Text>
-        </Surface>
+        <EmptyNote>{canEdit ? 'No Rulebooks yet. Add one from the toolbar.' : 'No Rulebooks yet.'}</EmptyNote>
       ) : (
         <Box className={styles.rulebooks} role="list" aria-label="Rulebooks">
           {rulebooks.map((rulebook) => {
@@ -287,7 +285,7 @@ function RulesetFaqPreview({
   return (
     <Section
       id="faq"
-      icon={<CircleHelp size={20} aria-hidden />}
+      icon={<TopicIcon topic="faq" size={20} />}
       title="Community FAQ"
       help="Browse community questions and accepted answers."
     >
@@ -314,8 +312,8 @@ function RulesetFaqPreview({
           leftSectionPointerEvents="none"
           rightSectionWidth="8rem"
           rightSectionPointerEvents="all"
-          size="md"
-          radius="md"
+          size="sm"
+          radius="sm"
           classNames={{ wrapper: styles.faqFilterWrapper }}
           rightSection={
             <Select
@@ -495,7 +493,7 @@ function RulesetDetailPage() {
     },
     {
       key: 'questions',
-      icon: <CircleHelp size={17} aria-hidden />,
+      icon: <TopicIcon topic="faq" size={17} />,
       value: faqCount,
       label: `${faqCount} ${faqCount === 1 ? 'question' : 'questions'}`,
     },
@@ -528,18 +526,8 @@ function RulesetDetailPage() {
       <PageLayout.Header size="compact">
         <PageIdentity
           title={r.name}
-          media={
-            <Avatar
-              src={r.coverThumbUrl}
-              alt={`Cover for ${r.name}`}
-              name={r.name}
-              radius="md"
-              size="100%"
-              color="dune"
-              className={styles.coverAvatar}
-            />
-          }
-          breadcrumb={<PageIdentity.Breadcrumb to="/rulesets">Rulesets</PageIdentity.Breadcrumb>}
+          media={<NameDisc name={r.name} src={r.coverThumbUrl} shape="tile" size="fill" />}
+          breadcrumb={<Breadcrumb to="/rulesets">Rulesets</Breadcrumb>}
           maintainers={{
             owner: page.owner
               ? { slug: page.owner.slug, name: page.owner.username, image: page.owner.avatar_url }
@@ -553,14 +541,6 @@ function RulesetDetailPage() {
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to rulesets"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/rulesets" />}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
             {viewerAccess.capabilities.edit ? (
               <IconAction
                 label="Edit ruleset"
@@ -666,15 +646,13 @@ function RulesetDetailPage() {
               <ActionError subject="The change" verb="save" error={mutationError} />
 
               <Section id="overview" icon={<TopicIcon topic="about" size={20} />} title="About this ruleset">
-                <Surface padding="lg">
-                  {r.about.trim() ? (
+                {r.about.trim() ? (
+                  <Surface padding="lg">
                     <FormattedTextSource source={r.about} />
-                  ) : (
-                    <Text size="sm" c="dimmed" fs="italic">
-                      Nothing written about this yet.
-                    </Text>
-                  )}
-                </Surface>
+                  </Surface>
+                ) : (
+                  <EmptyNote>Nothing written about this yet.</EmptyNote>
+                )}
               </Section>
 
               <RulesetRulebooks
@@ -708,11 +686,7 @@ function RulesetDetailPage() {
                   ) : null}
                 </Stack>
               ) : (
-                <Surface padding="lg">
-                  <Text size="sm" c="dimmed">
-                    No factions have been added to this ruleset yet.
-                  </Text>
-                </Surface>
+                <EmptyNote>No factions have been added to this ruleset yet.</EmptyNote>
               )}
             </Section>
           </ColumnsWithRailLayout.Rail>

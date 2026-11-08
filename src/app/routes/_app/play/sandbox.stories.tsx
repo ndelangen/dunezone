@@ -6,7 +6,7 @@ import { revealedSpiceBlows } from '@shared/play/spiceBlowPlacement';
 import { restingPositionAt, troopScale } from '@shared/play/tableGeometry';
 import { footprintReach, nearestCollisionFreePosition, piecesOverlapAt } from '@shared/play/tablePhysics';
 import { drawableTechTokens, isTechToken } from '@shared/play/techToken';
-import { fitsInside, innermostPoint, tableTerritories } from '@shared/play/territoryFit';
+import { innermostPoint, restsInside, tableTerritories } from '@shared/play/territoryFit';
 import { packsInTerritory, territoryLanding, withNudges } from '@shared/play/territoryPlacement';
 import { expect, within } from 'storybook/test';
 
@@ -254,7 +254,7 @@ function withArrakeenPacked(stored: StoredSnapshot): StoredSnapshot {
     (candidate) =>
       packsInTerritory(candidate) &&
       Math.hypot(candidate.position[0] - x, candidate.position[2] - z) < 0.9 &&
-      !fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
+      !restsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate))
   );
   /* Set down left and right of the middle, so from the map camera the stacks stand side by side, not one behind another. */
   for (const [index, stack] of straddling.entries()) {
@@ -317,7 +317,7 @@ export const TroopsMakeRoom = meta.story({
     const table = sandbox.table!;
     const { territory, x, z } = arrakeen();
     const inside = (candidate: TablePiece) =>
-      fitsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate));
+      restsInside(territory, [candidate.position[0], candidate.position[2]], footprintReach(candidate));
     const held = shown()
       .table.pieces.filter(inside)
       .map((candidate) => candidate.id);
@@ -394,7 +394,7 @@ export const BattleMarkerLightsTerritory = meta.story({
       );
       await expect(nearby.length).toBeGreaterThan(1);
       const outside = nearby.filter(
-        (stack) => !fitsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))
+        (stack) => !restsInside(territory, [stack.position[0], stack.position[2]], footprintReach(stack))
       );
       await expect(outside.map(({ id }) => id)).toEqual([]);
     });

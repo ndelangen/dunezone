@@ -437,6 +437,52 @@ import with a `--` reason; the disable covers the whole file, so the reason must
 `Button` in it. Which variant each takes is the section above; this one is about how many and how
 labelled. (`StatusBadge`'s scale is for state, not actions.)*
 
+### The breadcrumb is the way up, and a catalogue's create lives in its header
+
+A detail page whose band carries a breadcrumb has no Back action in its toolbar: the breadcrumb
+above the title already says where the page sits and goes there, and a second arrow below it
+repeated it (Norbert, 2026-11-07). Pages without a breadcrumb (an editor, an FAQ question) keep the
+toolbar Back. A catalogue that sits under another (an asset type under Assets, a gallery under
+Media), a blog post under the Blog and an admin tool under Admin tools wear the same breadcrumb above the title instead of a toolbar
+arrow or a link below the band. A catalogue page offers its one create action as a `CallToAction` under the title in
+the header, never also as a `+` in the toolbar. A toolbar with no action left for this reader draws
+nothing, and its slot steps aside.
+
+*Convention. The kit carries it:
+[`Breadcrumb`](../../src/app/ui/content/Breadcrumb.tsx) is the way up, given to `PageTitle` or
+`PageIdentity` as their `breadcrumb`, `Toolbar` renders nothing
+when none of its edges holds an action, and `CallToAction` and `LabeledAction` take the `md` size
+inside `PageLayout.Header` whatever size a caller passes, so every header button is one size.*
+
+### Nothing here yet is one dimmed line
+
+An empty section says so in one dimmed line, with no pane around it, so every empty state on a
+detail page looks the same. A placeholder for a feature that does not exist yet is not shown at all.
+A list of entities named as links is a real list, so its count is announced. A block that only
+points elsewhere, such as Related FAQ or a question's Related questions, is left out entirely when
+it has nothing to point at; a list only a maintainer can add to stays for them, for its Add action. A page
+that cannot show what was asked for (a 404, a server that does not answer, a signed-out lobby) says
+it in one line too, with the way onward as a boxed `LabeledAction`, never a bare link
+(Norbert, 2026-11-07).
+
+*Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
+line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.
+`PageMessage` takes a `lede` for a message short enough to need no pane, which is how
+`RouteNotFound` and the site's 404 say a missing page; its `Back` and `Home` are `LabeledAction`s, and
+`LoginGate` puts its Log in under its sentence as one.*
+
+### A frame is for something you pick, not for prose or for a group of framed things
+
+A long text a reader reads through, such as the privacy policy, is open sections like a blog post,
+and a group of tiles that are frames already (the Assets overview's piles, a catalogue's grid) sits
+on the page under a section heading, not inside a second frame. A frame is kept for one thing that
+must stand out, such as the privacy page's two promises in its band (Norbert, 2026-11-07).
+
+*Convention. The kit carries it: [`Section`](../../src/app/ui/block/Section.tsx) for the parts, and
+[`Card`](../../src/app/ui/surface/Card.tsx) only for the one item that stands apart. A header's line
+about the page is [`PageTitle`](../../src/app/ui/block/PageTitle.tsx)'s `lede`, never a pane beside
+the title.*
+
 ### A bar states its statuses as glyphs and stays one line
 
 A toolbar that runs out of room drops or iconifies; it never wraps. Status stated as prose made the

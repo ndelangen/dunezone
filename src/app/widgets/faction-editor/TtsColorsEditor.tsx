@@ -9,6 +9,7 @@ import {
 import { Box, Group, Select, Stack, Text } from '@mantine/core';
 import { TTSColor } from '@shared/factions/schema';
 import { ListChapter } from '@ui/block/ListChapter';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { IconAction } from '@ui/control/IconAction';
 import { ListLengthActions } from '@ui/control/ListLengthActions';
 import { GripVertical } from 'lucide-react';
@@ -198,11 +199,7 @@ export function TtsColorsEditor({
           </SortableContext>
         </DndContext>
 
-        {value.length === 0 ? (
-          <Text size="xs" c="dimmed">
-            No preferred player colors selected.
-          </Text>
-        ) : null}
+        {value.length === 0 ? <EmptyNote>No preferred player colors selected.</EmptyNote> : null}
       </Stack>
     </ListChapter>
   );

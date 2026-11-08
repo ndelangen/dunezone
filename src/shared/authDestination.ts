@@ -50,3 +50,6 @@ function needsNoReturn(pathname: string): boolean {
 
 /** What the backend refuses a sign-in with while the account is being deleted or merged. */
 export const INACTIVE_ACCOUNT_SIGN_IN = 'This account is no longer active.';
+
+/** What the backend refuses a sensitive account change with when the session's sign-in is older than a few minutes. */
+export const RECENT_SIGN_IN_REQUIRED = 'Sign in again to confirm it is you, then try again.';

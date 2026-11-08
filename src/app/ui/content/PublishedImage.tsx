@@ -1,3 +1,4 @@
+import { publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
 import clsx from 'clsx';
 import { ImageOff } from 'lucide-react';
 import { useEffect, useLayoutEffect, useReducer, useRef, useSyncExternalStore } from 'react';
@@ -5,7 +6,7 @@ import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
-import { joinArrival, markDecoded, requestArrivalAnimation, requestOrder, wasDecoded } from './imageArrival';
+import { decodedFrom, joinArrival, markDecoded, requestArrivalAnimation, requestOrder } from './imageArrival';
 import styles from './PublishedImage.module.css';
 
 /** How long an image in fetch range draws nothing, so one the browser already holds appears at once instead of replacing a slot. */
@@ -65,6 +66,8 @@ type State = {
   arrival: 'animate' | 'instant';
   /** Whether the img element carries its src, which it does once the tile is in fetch range. */
   fetching: boolean;
+  /** The URL the img element draws: `src`, or a resized copy of it sized to the tile when the tile entered fetch range. */
+  drawn: string | null;
   /** Whether the loading slot is drawn, which waits out the grace window. */
   slot: boolean;
   order: number | null;
@@ -72,7 +75,7 @@ type State = {
 
 type Action =
   | { type: 'ordered'; order: number }
-  | { type: 'inRange' }
+  | { type: 'inRange'; drawn: string }
   | { type: 'graceOver' }
   | { type: 'decoded' }
   | { type: 'revealed' }
@@ -86,7 +89,7 @@ function reducer(state: State, action: Action): State {
     case 'ordered':
       return { ...state, order: action.order };
     case 'inRange':
-      return { ...state, fetching: true };
+      return { ...state, fetching: true, drawn: action.drawn };
     case 'graceOver':
       return state.phase === 'loading' ? { ...state, slot: true } : state;
     case 'decoded':
@@ -112,7 +115,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(src: string | null, priority: boolean): State {
-  const base = { arrival: 'animate', fetching: false, slot: false, order: null } as const;
+  const base = { arrival: 'animate', fetching: false, drawn: src, slot: false, order: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
   }
@@ -121,8 +124,9 @@ function initialState(src: string | null, priority: boolean): State {
     return { ...base, phase: 'shown', arrival: 'instant', fetching: true };
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
-  if (wasDecoded(src)) {
-    return { ...base, phase: 'loading', fetching: true };
+  const drawn = decodedFrom(src);
+  if (drawn !== undefined) {
+    return { ...base, phase: 'loading', fetching: true, drawn };
   }
   return { ...base, phase: 'loading' };
 }
@@ -158,7 +162,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
   const retriesRef = useRef(0);
   /* The probe that recovered the publication, held until the tile's own image settles, so the browser keeps its bytes for it. */
   const probeRef = useRef<HTMLImageElement | null>(null);
-  const { phase, fetching, order } = state;
+  const { phase, fetching, order, drawn } = state;
   const waiting = phase === 'loading' || phase === 'decoded' || phase === 'ready';
 
   useLayoutEffect(() => {
@@ -175,22 +179,28 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     if (!root || phase !== 'loading' || fetching) {
       return;
     }
+    /* Measured as the tile enters fetch range, so a 40px avatar asks for a small copy rather than the full capture. */
+    const inRange = () =>
+      dispatch({
+        type: 'inRange',
+        drawn: publishedThumbnailSrc(src!, root.getBoundingClientRect().width * window.devicePixelRatio),
+      });
     if (inFetchRange(root)) {
-      dispatch({ type: 'inRange' });
+      inRange();
       return;
     }
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           observer.disconnect();
-          dispatch({ type: 'inRange' });
+          inRange();
         }
       },
       { rootMargin: `${FETCH_MARGIN_PX}px 0px` }
     );
     observer.observe(root);
     return () => observer.disconnect();
-  }, [fetching, phase]);
+  }, [fetching, phase, src]);
 
   /*
    * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.
@@ -200,12 +210,12 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     const img = imgRef.current;
     const settled = fetching && src && img?.complete ? completeImageAction(img, phase) : null;
     if (settled?.type === 'decoded') {
-      markDecoded(src!);
+      markDecoded(src!, drawn ?? src!);
     }
     if (settled) {
       dispatch(settled);
     }
-  }, [fetching, phase, src]);
+  }, [drawn, fetching, phase, src]);
 
   useEffect(() => {
     if (!fetching || phase !== 'loading' || state.slot) {
@@ -283,7 +293,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     const probe = () => {
       retriesRef.current += 1;
       const image = new Image();
-      image.src = src;
+      image.src = drawn ?? src;
       /* Judged as onLoad judges the tile's own image: pixels present count, whatever decode() says. */
       void image
         .decode()
@@ -305,7 +315,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [phase, src]);
+  }, [drawn, phase, src]);
 
   const onLoad = () => {
     const img = imgRef.current;
@@ -322,7 +332,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
           dispatch({ type: 'failed' });
           return;
         }
-        markDecoded(src);
+        markDecoded(src, drawn ?? src);
         dispatch({ type: 'decoded' });
         /* An image that drew a slot waits its turn; one that drew nothing is already shown, and the reveal changes nothing. */
         const reveal = () => dispatch({ type: 'revealed' });
@@ -362,7 +372,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
               <img
                 ref={imgRef}
                 className={styles.img}
-                src={src}
+                src={drawn ?? src}
                 alt={name}
                 decoding="async"
                 fetchPriority={priority ? 'high' : undefined}

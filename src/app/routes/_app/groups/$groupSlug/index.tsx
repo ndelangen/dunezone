@@ -1,24 +1,40 @@
-/* oxlint-disable-next-line no-restricted-imports -- The group's page mark is a rounded square filling its header slot, not a name disc. */
-import { Avatar, Box, Group, Stack, Text } from '@mantine/core';
+import { Box, Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, notFound, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
 import type { PageIdentityStanding } from '@ui/block/PageIdentity';
+import { Section } from '@ui/block/Section';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { FactionLink } from '@ui/content/FactionLink';
-import { NameDisc } from '@ui/content/NameDisc';
+import { NameDisc, nameDiscColor } from '@ui/content/NameDisc';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { RulesetLink } from '@ui/content/RulesetLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { AssignPopover } from '@ui/control/AssignPopover';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, BookOpen, Check, Crown, Pencil, Plus, UserPlus, UserRoundMinus, UsersRound, X } from 'lucide-react';
+import {
+  BookOpen,
+  Check,
+  Crown,
+  LogOut,
+  MailPlus,
+  Pencil,
+  Plus,
+  Undo2,
+  UserPlus,
+  UserRoundMinus,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -27,11 +43,13 @@ import { useSetFactionGroup } from '@db/factions';
 import type { FactionEntry } from '@db/factions';
 import { loadGroupDetailBySlug, useDeleteGroup, useGroupDetailBySlug } from '@db/groups';
 import type { GroupDetailPageData, MembershipState } from '@db/groups';
-import { useGroupMembershipWorkflow } from '@db/members';
+import { useGroupInvitations, useGroupMembershipWorkflow, useViewerInvitationForGroup } from '@db/members';
+import type { GroupInvitation, ViewerInvitation } from '@db/members';
 import { useSetRulesetGroup } from '@db/rulesets';
 import type { RulesetEntry } from '@db/rulesets';
 import { OwnedFactionAssignPicker, OwnedRulesetAssignPicker } from '@app/pickers/GroupAssignPicker';
 import type { OwnedAssignItem } from '@app/pickers/GroupAssignPicker';
+import { GroupInvitePicker } from '@app/pickers/GroupInvitePicker';
 import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { publicPageHead, useLivePageTitle } from '@app/routes/publicPage';
 import { detailError } from '@app/routes/routeStates';
@@ -67,19 +85,13 @@ export const Route = createFileRoute('/_app/groups/$groupSlug/')({
       trail: [],
       match,
     }),
-  component: GroupDetailPage,
+  component: GroupDetail,
 });
 
-function GroupDetailPage() {
+function GroupDetail() {
   const { groupSlug } = Route.useParams();
-  const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
   const groupData = useGroupDetailBySlug(groupSlug, { initialData: loaderData.groupDetail });
-  const membershipWorkflow = useGroupMembershipWorkflow();
-  const deleteGroup = useDeleteGroup();
-  const setFactionGroup = useSetFactionGroup();
-  const setRulesetGroup = useSetRulesetGroup();
-  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
 
   /* The failed case is the route's `errorComponent` now, since the branch that used to sit here
      could not run. What is left is the wait, which every other page in the tree spells this way:
@@ -94,6 +106,34 @@ function GroupDetailPage() {
       </RoutePending>
     );
   }
+  return <GroupDetailPage page={page} />;
+}
+
+/** The invitation this Group holds for the viewer: undefined until both the viewer and their invitation have arrived. */
+function invitationFor(
+  page: GroupDetailPageData,
+  membershipStatus: string,
+  read: { data: ViewerInvitation | null | undefined; isPending: boolean }
+): ViewerInvitation | null | undefined {
+  if (!page.viewerResolved || read.isPending) {
+    return undefined;
+  }
+  return membershipStatus === 'none' ? (read.data ?? null) : null;
+}
+
+/**
+ * The page itself, one component however the viewer resolves, so the shared page is never torn down and rebuilt when the viewer arrives.
+ * The viewer's own invitation is read for everyone: a signed-out viewer is answered with null and no read.
+ */
+function GroupDetailPage({ page }: { page: GroupDetailPageData }) {
+  const { groupSlug } = Route.useParams();
+  const navigate = Route.useNavigate();
+  const membershipWorkflow = useGroupMembershipWorkflow();
+  const deleteGroup = useDeleteGroup();
+  const setFactionGroup = useSetFactionGroup();
+  const setRulesetGroup = useSetRulesetGroup();
+  const [removingMembershipId, setRemovingMembershipId] = useState<string | null>(null);
+  const viewerInvitationRead = useViewerInvitationForGroup(page.group._id);
 
   const group = page.group;
   const groupId = group._id;
@@ -104,6 +144,11 @@ function GroupDetailPage() {
   const membershipStatus = viewerAccess.viewer.kind === 'authenticated' ? viewerAccess.viewer.membership : 'none';
   const isOwner = viewerAccess.capabilities.rename;
   const isActiveMember = page.viewerResolved && membershipStatus === 'active';
+  /*
+   * On the wire an invited viewer reads as `none`; the invitation itself says otherwise.
+   * Undefined while the viewer or their invitations are on their way, so the toolbar offers nothing the answer may take back.
+   */
+  const viewerInvitation = invitationFor(page, membershipStatus, viewerInvitationRead);
   const factions = page.factions;
   const rulesets = page.rulesets;
   const roster = page.roster;
@@ -145,7 +190,9 @@ function GroupDetailPage() {
 
   const standing = isOwner
     ? { tone: 'brand' as const, label: 'Owner', icon: <Crown size={12} aria-hidden /> }
-    : membershipStandings[membershipStatus];
+    : viewerInvitation
+      ? { tone: 'pending' as const, label: 'Invited' }
+      : membershipStandings[membershipStatus];
   const headerStats = [
     {
       key: 'members',
@@ -166,15 +213,32 @@ function GroupDetailPage() {
       label: `${rulesets.length} ${rulesets.length === 1 ? 'ruleset' : 'rulesets'} maintained`,
     },
   ];
-  const requestError = membershipWorkflow.request.error?.message ?? null;
+  /* The viewer's own commands share one failure line, the newest of them, since each clears the others when it runs. */
+  const viewerCommandError = (
+    [
+      ['Membership request failed', membershipWorkflow.request],
+      ['Could not withdraw the request', membershipWorkflow.withdraw],
+      ['Could not accept the invitation', membershipWorkflow.accept],
+      ['Could not decline the invitation', membershipWorkflow.decline],
+      ['Could not leave the group', membershipWorkflow.leave],
+    ] as const
+  ).find(([, command]) => command.error);
+  const viewerCommandBusy =
+    membershipWorkflow.request.isPending ||
+    membershipWorkflow.withdraw.isPending ||
+    membershipWorkflow.accept.isPending ||
+    membershipWorkflow.decline.isPending;
 
   return (
     <PageLayout>
       <PageLayout.Header size="compact">
         <PageIdentity
           title={group.name}
-          media={<Avatar name={group.name} radius="md" size="100%" color="dune" className={styles.groupAvatar} />}
-          breadcrumb={<PageIdentity.Breadcrumb to="/profiles">Profiles</PageIdentity.Breadcrumb>}
+          media={
+            /* A group has no picture: its mark is its initial on the colour its name hashes to, the colour its citations wear. */
+            <NameDisc name={group.name} color={nameDiscColor(group.name)} shape="tile" size="fill" />
+          }
+          breadcrumb={<Breadcrumb to="/profiles">Profiles</Breadcrumb>}
           maintainers={{
             label: 'Owned by',
             owner: ownerProfile?.slug
@@ -188,14 +252,6 @@ function GroupDetailPage() {
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to profiles"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              renderRoot={(rootProps) => <Link {...rootProps} to="/profiles" />}
-              icon={<ArrowLeft size={17} aria-hidden />}
-            />
             {capabilities?.rename ? (
               <IconAction
                 label="Edit group"
@@ -209,20 +265,41 @@ function GroupDetailPage() {
           </Toolbar.Left>
           <Toolbar.Right label="Group actions">
             <Toolbar.Cluster kind="access">
-              {capabilities?.requestMembership ? (
+              {capabilities?.requestMembership && viewerInvitation === null ? (
                 <IconAction
                   label="Request membership"
                   emphasis="standard"
                   intent="neutral"
                   size="lg"
                   loading={membershipWorkflow.request.isPending}
-                  disabled={membershipWorkflow.request.isPending}
+                  disabled={viewerCommandBusy}
                   onClick={() => void membershipWorkflow.request.run(groupId).catch(() => undefined)}
                   icon={<UserPlus size={17} aria-hidden />}
                 />
               ) : null}
+              {page.viewerResolved && membershipStatus === 'pending' ? (
+                <IconAction
+                  label="Withdraw request"
+                  emphasis="standard"
+                  intent="neutral"
+                  size="lg"
+                  loading={membershipWorkflow.withdraw.isPending}
+                  disabled={viewerCommandBusy}
+                  onClick={() => void membershipWorkflow.withdraw.run(groupId).catch(() => undefined)}
+                  icon={<Undo2 size={17} aria-hidden />}
+                />
+              ) : null}
             </Toolbar.Cluster>
             <Toolbar.Cluster kind="discard">
+              {isActiveMember && !isOwner ? (
+                <HoldAction
+                  label="Leave group"
+                  verb="leave"
+                  pending={membershipWorkflow.leave.isPending}
+                  onConfirm={() => void membershipWorkflow.leave.run(groupId).catch(() => undefined)}
+                  icon={<LogOut size={17} aria-hidden />}
+                />
+              ) : null}
               {capabilities?.delete ? (
                 <HoldAction label="Delete group" pending={deleteGroup.isPending} onConfirm={handleDeleteGroup} />
               ) : null}
@@ -231,15 +308,27 @@ function GroupDetailPage() {
         </Toolbar>
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        {requestError || deleteGroup.error ? (
+        {viewerCommandError || deleteGroup.error || viewerInvitation ? (
           <Stack gap="lg" mb="lg">
-            {requestError ? <FormError title="Membership request failed">{requestError}</FormError> : null}
+            {viewerCommandError ? (
+              <FormError title={viewerCommandError[0]}>{viewerCommandError[1].error?.message ?? ''}</FormError>
+            ) : null}
             <ActionError subject="Group" verb="delete" error={deleteGroup.error} />
+            {viewerInvitation ? (
+              <ViewerInvitationNotice
+                invitation={viewerInvitation}
+                busy={viewerCommandBusy}
+                accepting={membershipWorkflow.accept.isPending}
+                declining={membershipWorkflow.decline.isPending}
+                onAccept={() => void membershipWorkflow.accept.run(groupId).catch(() => undefined)}
+                onDecline={() => void membershipWorkflow.decline.run(groupId).catch(() => undefined)}
+              />
+            ) : null}
           </Stack>
         ) : null}
         <Box className={styles.twoColumnGrid}>
-          <Stack gap="lg">
-            <Card
+          <Stack gap="xl">
+            <Section
               icon={<FremenIcon />}
               title="Factions maintained"
               action={
@@ -254,8 +343,8 @@ function GroupDetailPage() {
               }
             >
               <FactionList factions={factions} />
-            </Card>
-            <Card
+            </Section>
+            <Section
               icon={<BookOpen size={18} aria-hidden />}
               title="Rulesets maintained"
               action={
@@ -270,7 +359,7 @@ function GroupDetailPage() {
               }
             >
               <RulesetList rulesets={rulesets} />
-            </Card>
+            </Section>
           </Stack>
 
           <Stack gap="lg">
@@ -283,7 +372,27 @@ function GroupDetailPage() {
               onReject={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
             />
 
-            <Card icon={<UsersRound size={18} aria-hidden />} title="Members">
+            {isActiveMember ? (
+              <InvitationsPanel
+                groupId={groupId}
+                moderationBusy={membersModerationBusy}
+                onWithdraw={(membershipId) => void membershipWorkflow.reject.run(membershipId).catch(() => undefined)}
+              />
+            ) : null}
+
+            <Card
+              icon={<UsersRound size={18} aria-hidden />}
+              title="Members"
+              action={
+                isActiveMember ? (
+                  <InviteMemberPopover
+                    groupId={groupId}
+                    disabled={membershipWorkflow.add.isPending}
+                    onInvite={(userId) => membershipWorkflow.add.run({ groupId, userId })}
+                  />
+                ) : undefined
+              }
+            >
               <MemberRoster
                 members={activeMembers}
                 moderationBusy={membersModerationBusy}
@@ -370,6 +479,150 @@ function RulesetAssignPicker({ disabled, currentGroupId, currentGroupName, onAss
         onPick={(item) => confirmThenAssign(item, currentGroupName, onAssign)}
       />
     </AddOwnedPopover>
+  );
+}
+
+/**
+ * The way in for someone who has not asked: an active member picks them and an invitation goes out.
+ * Only mounted for active members (see call site): the candidate query answers nobody else.
+ * The popover's title says what the pane is;
+ * the trigger says what the reader is about to do.
+ */
+function InviteMemberPopover({
+  groupId,
+  disabled,
+  onInvite,
+}: {
+  groupId: string;
+  disabled: boolean;
+  onInvite: (userId: string) => Promise<void>;
+}) {
+  return (
+    <AssignPopover
+      noun="person"
+      size="sm"
+      icon={<MailPlus size={14} aria-hidden />}
+      title="Invite someone"
+      triggerLabel="Invite a member"
+      disabled={disabled}
+    >
+      <GroupInvitePicker groupId={groupId} onPick={(candidate) => onInvite(candidate.userId)} />
+    </AssignPopover>
+  );
+}
+
+/** The Group asked the viewer in: the one place the page says so, with both answers beside it. */
+function ViewerInvitationNotice({
+  invitation,
+  busy,
+  accepting,
+  declining,
+  onAccept,
+  onDecline,
+}: {
+  invitation: ViewerInvitation;
+  busy: boolean;
+  accepting: boolean;
+  declining: boolean;
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <Notice
+      tone="info"
+      title="You are invited to this group"
+      action={
+        <Group gap="xs" wrap="nowrap">
+          <LabeledAction
+            intent="positive"
+            emphasis="strong"
+            icon={<Check size={16} aria-hidden />}
+            busy={accepting}
+            disabledReason={busy && !accepting ? 'Another membership change is in progress.' : undefined}
+            onClick={onAccept}
+          >
+            Accept invitation
+          </LabeledAction>
+          <LabeledAction
+            intent="negative"
+            icon={<X size={16} aria-hidden />}
+            busy={declining}
+            disabledReason={busy && !declining ? 'Another membership change is in progress.' : undefined}
+            onClick={onDecline}
+          >
+            Decline invitation
+          </LabeledAction>
+        </Group>
+      }
+    >
+      {invitation.invitedBy?.username
+        ? `${invitation.invitedBy.username} invited you on ${formatStableDate(invitation.invitedAt)}. Accepting lists you as a member.`
+        : `Invited on ${formatStableDate(invitation.invitedAt)}. Accepting lists you as a member.`}
+    </Notice>
+  );
+}
+
+/**
+ * The invitations this Group has open, for its active members, each with the way to take it back.
+ * Its own component so the query mounts only for an active member, whom alone the server answers.
+ */
+function InvitationsPanel({
+  groupId,
+  moderationBusy,
+  onWithdraw,
+}: {
+  groupId: string;
+  moderationBusy: boolean;
+  onWithdraw: (membershipId: string) => void;
+}) {
+  const invitations = useGroupInvitations(groupId);
+  const rows = invitations.data ?? [];
+  if (rows.length === 0) {
+    return null;
+  }
+  return (
+    <Notice tone="neutral" title={`Invitations sent (${rows.length})`}>
+      <Stack gap="xs">
+        {rows.map((invitation) => (
+          <InvitationRow
+            key={invitation.membershipId}
+            invitation={invitation}
+            moderationBusy={moderationBusy}
+            onWithdraw={onWithdraw}
+          />
+        ))}
+      </Stack>
+    </Notice>
+  );
+}
+
+function InvitationRow({
+  invitation,
+  moderationBusy,
+  onWithdraw,
+}: {
+  invitation: GroupInvitation;
+  moderationBusy: boolean;
+  onWithdraw: (membershipId: string) => void;
+}) {
+  return (
+    <Group justify="space-between" wrap="wrap" gap="sm">
+      <Group gap="xs" wrap="nowrap" miw={0}>
+        <ProfileLink slug={invitation.user.slug} name={invitation.user.username} image={invitation.user.avatar_url} />
+        <Text size="xs" c="dimmed">
+          invited {formatStableDate(invitation.invitedAt)}
+        </Text>
+      </Group>
+      <IconAction
+        label="Withdraw invitation"
+        tooltip="Withdraw"
+        intent="negative"
+        emphasis="standard"
+        disabled={moderationBusy}
+        onClick={() => onWithdraw(invitation.membershipId)}
+        icon={<X size={15} aria-hidden />}
+      />
+    </Group>
   );
 }
 
@@ -490,11 +743,7 @@ function MemberRoster({
   removingMembershipId: string | null;
 }) {
   if (members.length === 0) {
-    return (
-      <Text size="sm" c="dimmed">
-        No members yet.
-      </Text>
-    );
+    return <EmptyNote>No members yet.</EmptyNote>;
   }
   return (
     <Stack gap="xs">
@@ -547,9 +796,7 @@ function PendingRequestsPanel({
 
 function FactionList({ factions }: { factions: FactionEntry[] }) {
   return factions.length === 0 ? (
-    <Text size="sm" c="dimmed">
-      No factions in this group yet.
-    </Text>
+    <EmptyNote>No factions in this group yet.</EmptyNote>
   ) : (
     <Stack gap="xs" align="flex-start">
       {factions.map((faction) => (
@@ -567,9 +814,7 @@ function FactionList({ factions }: { factions: FactionEntry[] }) {
 
 function RulesetList({ rulesets }: { rulesets: RulesetEntry[] }) {
   return rulesets.length === 0 ? (
-    <Text size="sm" c="dimmed">
-      No rulesets in this group yet.
-    </Text>
+    <EmptyNote>No rulesets in this group yet.</EmptyNote>
   ) : (
     <Stack gap="xs" align="flex-start">
       {rulesets.map((ruleset) => (

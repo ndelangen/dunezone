@@ -3,7 +3,14 @@ import type { TablePiece, TableState, Vector3Tuple } from './model';
 import { isPointerToken, pointerCovers } from './pointerToken';
 import { restingPositionAt } from './tableGeometry';
 import { footprintOutline, footprintReach, hasRoundFootprint } from './tablePhysics';
-import { fitIntoTerritory, fitsInside, territoryBounds, territoryShapeAt, territoryContains } from './territoryFit';
+import {
+  fitIntoTerritory,
+  restsInside,
+  restingParts,
+  territoryBounds,
+  territoryShapeAt,
+  territoryContains,
+} from './territoryFit';
 import type { FitBody, FitObstacle, TableTerritory } from './territoryFit';
 
 /*
@@ -71,7 +78,13 @@ export function keepsInsideTerritory(
 ) {
   return (at: Readonly<Vector3Tuple>) => {
     const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
-    return !territory || onAnyPlate(others, at) || fitsInside(territory, [at[0], at[2]], footprintReach(piece));
+    if (!territory || onAnyPlate(others, at)) {
+      return true;
+    }
+    /* In the sector it lands in, as a drop there would rest it. */
+    const point: [number, number] = [at[0], at[2]];
+    const radius = footprintReach(piece);
+    return restingParts(territory, point, radius).some((part) => restsInside(part, point, radius));
   };
 }
 
@@ -98,33 +111,35 @@ function nudgesFrom(settled: readonly TablePiece[], fitted: Map<string, readonly
 }
 
 /**
- * Packs `piece` into the territory under `at` together with the stacks already there, which `others` lists along with everything else on the table.
- * Undefined when the point lies in no territory or the piece does not pack, so the caller places it as any other piece;
- * null when the territory has no room for it.
+ * Packs `piece` into one part of the territory, the stretch of it within one sector, together with the stacks already resting there.
+ * `others` lists them along with everything else on the table.
+ * Null when that part has no room for it.
  * With `pinned`, the landing stack keeps its spot and only the others move.
  */
-function territoryLayout(
-  state: Pick<TableState, 'board'>,
+function partLayout(
+  territory: TableTerritory,
+  part: TableTerritory,
   drop: TerritoryDrop,
   pinned: boolean
-): TerritoryLayout | null | undefined {
+): TerritoryLayout | null {
   const { piece, at, others } = drop;
-  const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
-  /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
-  if (!territory || onAnyPlate(others, at)) {
-    return undefined;
-  }
   const relevant = piecesNear(territory, piece, others);
   /* Riders stay on their plate, so they are in the way rather than moved. */
+  /* Across a whole territory the sector lines divide, the stacks already there hold still, so none is moved into another sector. */
+  const movesOver = part !== territory || !territory.sectored;
   const inside = (candidate: TablePiece) =>
+    movesOver &&
     packsInTerritory(candidate) &&
     !onAnyPlate(others, candidate.position) &&
-    territoryContains(territory, [candidate.position[0], candidate.position[2]]);
+    territoryContains(part, [candidate.position[0], candidate.position[2]]) &&
+    /* A stack the whole territory took across a line, too big for this sector, holds still rather than be squeezed into it. */
+    (part === territory ||
+      restsInside(part, [candidate.position[0], candidate.position[2]], footprintReach(candidate)));
   const settled = relevant.filter(inside).sort((a, b) => a.id.localeCompare(b.id));
   /* A plate such as the HMS is in the way by its outline, so no stack is shifted onto it without riding it. */
   const obstacles = relevant.filter((candidate) => !inside(candidate)).map(obstacle);
   const fitted = fitIntoTerritory({
-    territory,
+    territory: part,
     bodies: [body(piece, at), ...settled.map((candidate) => body(candidate))],
     pinFirst: pinned,
     obstacles,
@@ -151,9 +166,22 @@ export function territoryLanding(
   others: readonly TablePiece[]
 ): TerritoryLayout | null | undefined {
   const drop = { piece, at, others };
-  const held = territoryLayout(state, drop, true);
-  /* Held where it was let go, the stack may still step in from the border; failing that, it gives way to the others too. */
-  return held === null ? territoryLayout(state, drop, false) : held;
+  const territory = packsInTerritory(piece) ? territoryAtTable(state, at) : undefined;
+  /* A stack set on a plate such as the HMS rides it, and the plate's own rules place it. */
+  if (!territory || onAnyPlate(others, at)) {
+    return undefined;
+  }
+  /*
+   * It rests in the sector it was let go in, so a full sector refuses it rather than move it into another.
+   * Held where it was let go it may still step in from the border, and failing that it gives way to the others too.
+   */
+  for (const part of restingParts(territory, [at[0], at[2]], footprintReach(piece))) {
+    const layout = partLayout(territory, part, drop, true) ?? partLayout(territory, part, drop, false);
+    if (layout) {
+      return layout;
+    }
+  }
+  return null;
 }
 
 /** The table's pieces with the stacks a landing shifted moved to their new spots. */

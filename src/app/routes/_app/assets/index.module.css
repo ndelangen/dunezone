@@ -1,28 +1,7 @@
-/*
- * The ledger rows measure the pane, not the window: a row is inset from the viewport by the page
- * gutter, the pane border and the cell padding, and the page frame caps its width besides. So the
- * reflow is a container query.
- */
+/* The piles measure their section, not the window, since the page frame caps the column; so the reflow is a container query. */
 .pileGroup {
   min-width: 0;
   container: assets-pile-group / inline-size;
-}
-
-/* The label sits beside its piles while the row is wide enough to seat two of them next to it. */
-.pileGroupLayout {
-  display: grid;
-  grid-template-areas: "label piles";
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: var(--space-xl);
-  align-items: center;
-}
-
-.pileGroupLayout > * {
-  min-width: 0;
-}
-
-.pileGroupLabel {
-  grid-area: label;
 }
 
 /*
@@ -34,7 +13,6 @@
   --pile-gap: var(--space-lg);
 
   display: grid;
-  grid-area: piles;
   grid-template-columns: repeat(auto-fill, minmax(0, var(--pile-slot)));
   gap: var(--pile-gap);
   align-items: end;
@@ -50,26 +28,11 @@
 }
 
 /*
- * Below two slots plus the label column, auto-fill would seat a single pile. The label moves above
- * instead, which hands the grid back the label column and the gap either side of it, enough for
- * two abreast, stated outright rather than left to auto-fill, which cannot be given a floor.
- *
- * 34rem is derived from those widths: a 150px label, a 2rem gap and two 150px slots either side of
- * their own gap. `--pile-gap` is now `--space-lg`, so that gap is 20px at desktop and narrows with
- * the window, and the pair needs 502px at its widest. 34rem clears that with room, and clears it by
- * more as the gap shrinks, so the threshold is a floor rather than an exact fit.
- * Re-derive it if the slot width changes, since a container query condition can read neither
- * `--pile-slot` nor the spacing token.
+ * Where auto-fill would seat only two piles anyway, the pair takes what the section has instead of holding the desktop slot, stated outright since auto-fill cannot be given a floor.
+ * 31rem is three 150px slots and two 20px gaps (490px) with room: below it auto-fill drops to two.
+ * A container query condition can read neither `--pile-slot` nor the spacing token, so re-derive it if the slot width changes.
  */
-@container assets-pile-group (width < 34rem) {
-  .pileGroupLayout {
-    grid-template-areas:
-      "label"
-      "piles";
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-md);
-  }
-
+@container assets-pile-group (width < 31rem) {
   /* A stacked row is on a narrow screen, where width is the scarce thing: the pair takes what the
      row has rather than holding the desktop slot and centring the remainder. The ceiling only
      stops the piles ballooning on the widest rows that still stack. */

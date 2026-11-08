@@ -27,6 +27,10 @@
   --action-neutral-hover-bg: var(--button-neutral-hover-bg);
   --action-neutral-fg: var(--button-neutral-fg);
 
+  /* White text over header artwork: the one drop shadow that keeps it legible on light and dark patches alike.
+     Eyebrows, breadcrumbs, inverse entity names and the hero subtitle and lede all read it. */
+  --text-shadow-inverse: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+
   --glass-blur-md: 10px;
 
   --panel-bg: var(--glass-surface-1);
@@ -50,6 +54,18 @@
   --space-xl: 2rem;
 
   --control-h-md: 2.2rem;
+
+  /*
+   * Where the app's planet rests while a page is on its way to a table: AppBackground moves it there, the table's waiting
+   * frame circles it with moons, and the table opens out of it. Measured against the window, as the planet is.
+   * The resting planet is a fixed fraction of the app's planet, so the rise is one transform the compositor runs alone.
+   */
+  --app-planet-diameter: max(140vw, 140vh);
+  --voyage-planet-scale: 0.14;
+  --voyage-planet-size: calc(var(--app-planet-diameter) * var(--voyage-planet-scale));
+  --voyage-planet-y: 42vh;
+  /* How far right of the window's centre the planet rests: beside a rail (a tutorial's), it centres on the page beside the rail. */
+  --voyage-planet-x: 0px;
 
   --transition-fast: 140ms ease;
 }

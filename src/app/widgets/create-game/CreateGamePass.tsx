@@ -23,12 +23,13 @@ import { TicketLayout } from '@ui/layout/TicketLayout';
 import { FactList } from '@ui/list/FactList';
 import { TicketMain, TicketStub } from '@ui/surface/TicketSurface';
 import { Dices } from 'lucide-react';
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import type { Dispatch, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
 import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
+import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
+import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './CreateGamePass.module.css';
 import { RulesetManifest } from './RulesetManifest';
@@ -125,7 +126,7 @@ export type CreateGameRequest = Parameters<ReturnType<typeof useCreateGame>['mut
 /**
  * The create page's pass: the game's name, ruleset, seats and last turn, and the button that creates it.
  * The page owns the draft, since its one query carries the chosen ruleset, and it creates the game and opens it;
- * the pass says what it is doing through `pending`, `departing` and `notice`, and fades to the table's ground while it departs.
+ * the pass says what it is doing through `pending`, `departing` and `notice`, and departs while the game is created: the page fades away and the app's planet rises to where the table's loading frame circles it.
  */
 export function CreateGamePass({
   rulesets,
@@ -164,6 +165,24 @@ export function CreateGamePass({
   /** Runs the check of the chosen ruleset again; absent when there is nothing to check here, such as a ruleset the server already refuses. */
   onRecheck?: (() => void) | undefined;
 }>) {
+  /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
+  const started = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (departing) {
+      started.current = beginDeparture();
+    } else if (started.current !== undefined) {
+      cancelDeparture(started.current);
+      started.current = undefined;
+    }
+  }, [departing]);
+  useEffect(
+    () => () => {
+      if (started.current !== undefined) {
+        leaveDeparture(started.current);
+      }
+    },
+    []
+  );
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
@@ -270,7 +289,7 @@ export function CreateGamePass({
           </TicketLayout.Stub>
         </TicketLayout>
       </form>
-      {departing ? createPortal(<div className={styles.departure} aria-hidden />, document.body) : null}
+      {departing ? <DepartureCover /> : null}
     </>
   );
 }

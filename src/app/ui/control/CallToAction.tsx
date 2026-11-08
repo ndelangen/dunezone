@@ -1,9 +1,10 @@
 import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
 import { ArrowDown, ArrowRight, Plus } from 'lucide-react';
-import { useId } from 'react';
+import { useCallback, useId } from 'react';
 import type { ReactNode } from 'react';
 
+import { useHeaderActionSize } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
 import styles from './CallToAction.module.css';
 
@@ -17,6 +18,7 @@ interface CallToActionBaseProps {
   direction?: 'start' | 'forward' | 'down';
   /** `artwork` is the near-black, cream-lettered fill for a call that sits on the sandy header art, where the bright yellow would sink into the sand. */
   tone?: 'bright' | 'artwork';
+  /** Ignored inside `PageLayout.Header`, where every call is `md` so the band reads the same on every page (Norbert, 2026-11-07). */
   size?: ButtonProps['size'];
   /**
    * Pulses periodically to draw the eye.
@@ -48,6 +50,46 @@ const TrailingArrow: Partial<Record<NonNullable<CallToActionBaseProps['direction
   down: ArrowDown,
 };
 
+/* The first pulse comes four seconds in and then one every five, the rhythm of the five-second animation it replaces. */
+const FIRST_PULSE_MS = 4000;
+const PULSE_EVERY_MS = 5000;
+
+/**
+ * A ref that starts one pulse at a time on the button, by setting `data-pulse` until its animation ends.
+ * Between pulses the button has no running animation, so an idle page does no style or paint work for it.
+ */
+function useAttentionPulse(on: boolean) {
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (!on || !element) {
+        return undefined;
+      }
+      /* Only the button's own pulse ends it; a child's animation, such as the spinner's, bubbles the same event. */
+      const settle = (event?: AnimationEvent) => {
+        if (!event || event.target === element) {
+          delete element.dataset.pulse;
+        }
+      };
+      const pulse = () => {
+        element.dataset.pulse = '';
+      };
+      let every: ReturnType<typeof setInterval> | undefined;
+      const first = setTimeout(() => {
+        pulse();
+        every = setInterval(pulse, PULSE_EVERY_MS);
+      }, FIRST_PULSE_MS);
+      element.addEventListener('animationend', settle);
+      return () => {
+        clearTimeout(first);
+        clearInterval(every);
+        element.removeEventListener('animationend', settle);
+        settle();
+      };
+    },
+    [on]
+  );
+}
+
 /**
  * The button that starts a page's primary journey, or a section's on a page made of sections, such as the homepage.
  *
@@ -58,7 +100,7 @@ export function CallToAction({
   children,
   direction = 'start',
   tone = 'bright',
-  size = 'md',
+  size,
   attention = false,
   disabledReason,
   renderRoot,
@@ -67,7 +109,9 @@ export function CallToAction({
   busy = false,
 }: CallToActionProps) {
   const reasonId = useId();
-  const iconSize = size === 'sm' ? 15 : 17;
+  const pulseRef = useAttentionPulse(attention && disabledReason == null);
+  const resolvedSize = useHeaderActionSize('CallToAction', size) ?? 'md';
+  const iconSize = resolvedSize === 'sm' ? 15 : 17;
   const Arrow = TrailingArrow[direction];
   const variant = tone === 'artwork' ? 'artwork' : undefined;
   const sections = {
@@ -98,8 +142,9 @@ export function CallToAction({
         <Button
           color="cta"
           variant={variant}
+          ref={pulseRef}
           className={attention && !disabled ? styles.attention : undefined}
-          size={size}
+          size={resolvedSize}
           {...sections}
           {...destination}
           data-disabled={disabled || undefined}

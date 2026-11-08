@@ -37,6 +37,8 @@
  */
 :global(:root):has(.frame) {
   --tutorial-rail-width: clamp(16rem, 100vw - 720px, 25rem);
+  /* The planet on the way to a chapter's table rests over the table beside the rail, not under the rail's edge. */
+  --voyage-planet-x: calc(var(--tutorial-rail-width) / 2);
 }
 
 /* The guide and the page it wraps share one box; only the custom properties it sets reach the page. */

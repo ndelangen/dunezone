@@ -115,6 +115,8 @@ type TabletopSceneProps = {
   onInteractionActiveChange?: (active: boolean) => void;
   seatCount?: TableSeatCount;
   tableProgress?: TableProgress;
+  /* Called when the renderer drew its first frame; the board may still be on its way. */
+  onSceneStarted?: () => void;
   /* Called when the renderer is ready to draw, the moment there is a table to open the shell onto. */
   onSceneReady?: () => void;
   onSceneUnavailable?: () => void;
@@ -1235,6 +1237,7 @@ export function TabletopScene({
   onInteractionActiveChange,
   seatCount = DEFAULT_TABLE_SEAT_COUNT,
   tableProgress: providedProgress,
+  onSceneStarted,
   onSceneReady,
   onSceneUnavailable,
   presentation = 'play',
@@ -1294,6 +1297,7 @@ export function TabletopScene({
         <TabletopCanvas
           camera={camera}
           presentation={presentation}
+          onSceneStarted={onSceneStarted}
           onSceneReady={onSceneReady}
           onSceneUnavailable={onSceneUnavailable}
         >

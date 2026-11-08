@@ -1,74 +1,197 @@
-/* The table's ground while it loads: the same near-black the shell paints, so the swap to the
-   mounted table does not flash. The element declares the dark-scheme island, so its text and
-   links read the island's tokens. A pool of light breathes behind the status line, the one moving
-   thing in the frame, so a long wait reads as alive rather than stuck (#1270). */
+/* The frame a table loads in. It paints no ground of its own: the app's starfield shows through, and the app's planet,
+   which rises to the frame's centre while the page is on its way to a table (AppBackground reads `data-voyage`).
+   The frame draws only what circles that planet, its two moons, and the status line below it, so the waits read as
+   one scene filling in. Every orbit starts at the document timeline's origin (TableWait sets it), so the frames the
+   waits mount one after another carry one motion through. The planet's place is shared through --voyage-planet-* (tokens.css). */
 .loading {
   position: relative;
   display: grid;
   height: 100%;
-  align-content: center;
+  align-content: start;
   justify-items: center;
   gap: var(--space-md);
-  overflow: hidden;
-  background: var(--color-ground);
-}
-
-.loading::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    38% 34% at 50% 46%,
-    color-mix(in srgb, var(--color-brand) 14%, transparent),
-    transparent 70%
-  );
-  animation: table-wait-breathe 2.6s ease-in-out infinite;
+  padding-bottom: var(--space-lg);
+  /* A short window scrolls the frame, so a notice and its way back stay reachable below the planet. */
+  overflow: hidden auto;
+  background: transparent;
 }
 
 .loading > * {
   position: relative;
 }
 
-/* A status line that changes eases in, so the waits read as one frame filling in. */
+/* The room the planet takes above the status line, as content rather than padding, so the frame itself stays the window's height and scrolls. */
+.loading::before {
+  content: "";
+  height: calc(var(--voyage-planet-y) + var(--voyage-planet-size) / 2 + 4.5rem - var(--space-md));
+}
+
+/* The status line reads like a title card's subtitle: small caps between two thin gilt rules. */
 .status {
-  max-width: 38rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  max-width: 40rem;
   padding-inline: var(--space-md);
+  color: var(--ui-highlight);
+  font-family: "C_Copperplate_Gothic", sans-serif;
+  font-size: 1.1rem;
+  font-variant: small-caps;
+  letter-spacing: 0.18em;
   text-align: center;
-  animation: table-wait-status 420ms ease-out;
+  text-wrap: balance;
+  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+  animation: table-wait-status 600ms ease-out;
+  animation-fill-mode: backwards;
 }
 
-@keyframes table-wait-breathe {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(0.92);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.06);
-  }
+.status::before,
+.status::after {
+  content: "";
+  flex: none;
+  width: 3.5rem;
+  height: 1px;
+  background: var(--ui-brass);
+  box-shadow: 0 1px 4px rgb(from var(--color-shadow) r g b / 60%);
 }
 
-@keyframes table-wait-status {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-html[data-motion="reduce"] .loading::before,
-html[data-motion="reduce"] .status {
+/* A frame that follows another keeps the line it repeats as it was (its moons keep the first frame's entrance: TableWait). */
+.status[data-repeated],
+.loading[data-carries-on] .controls {
   animation: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .loading::before,
-  html:not([data-motion="ok"]) .status {
-    animation: none;
+/* The controls come in with the first line, not before it. */
+.controls {
+  animation: table-wait-controls 600ms ease-out backwards;
+}
+
+@keyframes table-wait-controls {
+  from {
+    opacity: 0;
   }
+}
+
+/* A notice that is more than a line (the table could not be prepared) keeps its own layout. */
+.notice {
+  max-width: 38rem;
+  padding-inline: var(--space-md);
+  text-align: center;
+  animation: table-wait-status 600ms ease-out;
+}
+
+/* Opacity and transform only, so a line still eases in while the page underneath is busy mounting the table. */
+@keyframes table-wait-status {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+}
+
+/* The moons circle the planet's centre in the window, wherever the frame sits (below a page header, or scrolled). */
+.orrery {
+  position: fixed !important;
+  left: calc(50% + var(--voyage-planet-x));
+  top: var(--voyage-planet-y);
+  width: calc(var(--voyage-planet-size) * 1.7);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  perspective: 1200px;
+  pointer-events: none;
+  animation: table-wait-arrive 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+  animation-delay: 0.5s;
+}
+
+/* The moons come out of the dark once the planet has risen, then keep circling. */
+@keyframes table-wait-arrive {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+}
+
+.orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px dashed rgb(from var(--ui-brass) r g b / 0.28);
+  transform-style: preserve-3d;
+  animation: table-wait-orbit 14s linear infinite;
+}
+
+.orbit[data-orbit="near"] {
+  --tilt: 74deg;
+  --lean: -12deg;
+}
+
+.orbit[data-orbit="far"] {
+  --tilt: 78deg;
+  --lean: 18deg;
+
+  inset: -22%;
+  animation-duration: 23s;
+}
+
+@keyframes table-wait-orbit {
+  from {
+    transform: rotateZ(var(--lean)) rotateX(var(--tilt)) rotateZ(0deg);
+  }
+  to {
+    transform: rotateZ(var(--lean)) rotateX(var(--tilt)) rotateZ(360deg);
+  }
+}
+
+/* Each moon is a small cousin of the planet: its umber, lit from the same side, and the same thin gilt rim. It starts
+   behind the planet and is hidden while it passes there. */
+.moon {
+  position: absolute;
+  top: -0.6rem;
+  left: calc(50% - 0.6rem);
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 26%, var(--ui-highlight), var(--ui-umber) 55%, var(--ui-ground) 100%);
+  box-shadow:
+    0 0 2px 1px rgb(from var(--ui-highlight) r g b / 0.5),
+    0 0 10px 2px rgb(from var(--ui-brass) r g b / 0.2);
+  /* Turns back against its orbit and stands back up, so it always faces the viewer as a ball rather than a coin on its edge. */
+  transform: rotateX(calc(-1 * var(--tilt)));
+  animation: table-wait-moon 14s linear infinite;
+}
+
+.orbit[data-orbit="far"] .moon {
+  top: -0.4rem;
+  left: calc(50% - 0.4rem);
+  width: 0.8rem;
+  height: 0.8rem;
+  animation-duration: 23s;
+}
+
+@keyframes table-wait-moon {
+  0% {
+    opacity: 0;
+    transform: rotateZ(0deg) rotateX(calc(-1 * var(--tilt)));
+  }
+  9%,
+  91% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotateZ(-360deg) rotateX(calc(-1 * var(--tilt)));
+  }
+}
+
+/* A visitor who asked for still pages gets the moons at rest, both in view: useMotionAllowed() marks the frame. */
+.loading[data-still] *,
+.loading[data-still] .status {
+  animation: none !important;
+}
+
+.loading[data-still] .orbit {
+  transform: rotateZ(var(--lean)) rotateX(var(--tilt)) rotateZ(150deg);
+}
+
+.loading[data-still] .moon {
+  transform: rotateZ(-150deg) rotateX(calc(-1 * var(--tilt)));
 }

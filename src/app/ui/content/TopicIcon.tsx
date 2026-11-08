@@ -5,7 +5,9 @@ import {
   EyeOff,
   Globe2,
   Hand,
+  House,
   Heading1,
+  CircleHelp,
   CircleStar,
   CircleDot,
   Stamp,
@@ -76,6 +78,10 @@ const TOPIC_ICON_DEFINITIONS = {
      reuse the contents glyph, the way decals reuses alliance: one drawing, two topics. */
   factions: { kind: 'mask', src: '/vector/generic/laurel-star.svg' },
   groups: { kind: 'component', component: UsersRound },
+  /* Community questions: a ruleset's FAQ, a related FAQ list, a profile's questions asked. */
+  faq: { kind: 'component', component: CircleHelp },
+  /* The site's front page, as the way out of a page that has nowhere else to go back to. */
+  home: { kind: 'component', component: House },
   assets: { kind: 'component', component: Boxes },
   /* The play table's own controls: trackers, the storm, the selected piece. The Table tab of the play panel. */
   controls: { kind: 'component', component: SlidersHorizontal },

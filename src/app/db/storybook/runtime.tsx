@@ -143,8 +143,8 @@ export class ConvexStorybookWorkerClient {
     }
   };
 
-  reset = async (seed: SeedDocument[]) => {
-    await this.request({ operation: 'reset', seed });
+  reset = async (seed: SeedDocument[], elapsedMs?: number) => {
+    await this.request({ operation: 'reset', seed, ...(elapsedMs === undefined ? {} : { elapsedMs }) });
     this.resolved.clear();
     this.notifyQueries();
   };

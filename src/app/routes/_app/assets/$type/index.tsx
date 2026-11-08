@@ -1,4 +1,4 @@
-import { Select, Stack } from '@mantine/core';
+import { Select } from '@mantine/core';
 import { ASSET_CATALOGUE_PAGE_SIZE, parseAssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import type { AssetCatalogueSearch } from '@shared/assets/catalogueSearch';
 import { ASSET_TYPES, isAssetType } from '@shared/assets/types';
@@ -7,16 +7,15 @@ import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { CallToAction } from '@ui/control/CallToAction';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
-import { IconAction } from '@ui/control/IconAction';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, Plus } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
@@ -174,36 +173,27 @@ function AssetTypePage() {
   return (
     <PageLayout>
       <PageLayout.Header>
-        <Stack gap="xs" align="center">
-          <PageTitle
-            eyebrow="Community assets"
-            title={definition.label}
-            lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
-          />
-          {definition.status === 'live' ? (
-            <CallToAction
-              attention
-              renderRoot={(rootProps) => <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />}
-            >
-              Create a {noun.toLowerCase()}
-            </CallToAction>
-          ) : null}
-        </Stack>
+        <PageTitle
+          breadcrumb={<Breadcrumb to="/assets">Assets</Breadcrumb>}
+          title={definition.label}
+          lede={`Every ${noun.toLowerCase()} the community has made. Open one to see it up close, or make your own.`}
+          action={
+            definition.status === 'live' ? (
+              <CallToAction
+                attention
+                renderRoot={(rootProps) => (
+                  <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />
+                )}
+              >
+                Create a {noun.toLowerCase()}
+              </CallToAction>
+            ) : undefined
+          }
+        />
       </PageLayout.Header>
       {definition.status === 'live' ? (
         <PageLayout.Toolbar>
           <Toolbar>
-            <Toolbar.Left label="Navigation">
-              {/* A way back to the shelves, where a result count stood: the number told nobody anything a full grid did not (Norbert, 2026-08-21). */}
-              <IconAction
-                label="Back to all assets"
-                emphasis="standard"
-                intent="neutral"
-                size="lg"
-                icon={<ArrowLeft size={17} aria-hidden />}
-                renderRoot={(rootProps) => <Link {...rootProps} to="/assets" />}
-              />
-            </Toolbar.Left>
             <Toolbar.Center>
               <SearchRefine
                 label={`${definition.label} filters`}
@@ -222,18 +212,6 @@ function AssetTypePage() {
                 {sortSelect()}
               </SearchRefine>
             </Toolbar.Center>
-            <Toolbar.Right label={`${definition.label} actions`}>
-              <IconAction
-                label={`Create a ${noun.toLowerCase()}`}
-                emphasis="strong"
-                intent="positive"
-                size="lg"
-                renderRoot={(rootProps) => (
-                  <Link {...rootProps} to="/assets/$type/create" params={{ type: validType }} />
-                )}
-                icon={<Plus size={17} aria-hidden />}
-              />
-            </Toolbar.Right>
           </Toolbar>
         </PageLayout.Toolbar>
       ) : null}
@@ -296,13 +274,11 @@ function TypeContent({ definition, type, plural, data, loading, loaded, onLoadMo
       noun={plural}
       noMatches={`No ${singularLabel(plural)} matches this search.`}
       renderEntries={(entries) => (
-        <Surface padding="xl">
-          <TileGrid>
-            {entries.map((entry) => (
-              <AssetCatalogueTile key={entry.id} entry={entry} />
-            ))}
-          </TileGrid>
-        </Surface>
+        <TileGrid>
+          {entries.map((entry) => (
+            <AssetCatalogueTile key={entry.id} entry={entry} />
+          ))}
+        </TileGrid>
       )}
       ref={ref}
     />

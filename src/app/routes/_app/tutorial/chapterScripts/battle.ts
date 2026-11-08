@@ -170,7 +170,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'reveal-early',
       task: 'Show your dial early',
       detail:
-        'Some cards and powers require an early reveal.\n\nPress the eye beside your dial to make it public. Once revealed, it cannot change during this battle.\n\nLeaders and cards have their own eye buttons.',
+        'Some cards and advantages require an early reveal.\n\nPress the eye beside your dial to make it public. Once revealed, it cannot change during this battle.\n\nLeaders and cards have their own eye buttons.',
       anchor: {
         kind: 'page',
         element: element('[data-window="battle"] [aria-label="Show your dial to everyone now"]'),

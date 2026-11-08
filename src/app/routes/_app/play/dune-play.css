@@ -27,10 +27,10 @@
   text-rendering: optimizeLegibility;
 }
 
-/* The stage under the shell: a one-cell grid that stacks the waiting frame (its ground, its pool of
-   light, its status line) under the shell until the renderer is ready. The shell stays closed until
-   then and opens through an iris from the same point (#1270), so the table is there to be seen when
-   the circle opens. */
+/* The stage under the shell: a one-cell grid that stacks the waiting frame under the shell until the renderer is ready.
+   It paints no ground while it waits, so the app's stars and its planet show through the waiting frame (TableWait).
+   The shell stays closed until then, and opens out of the planet: an iris that starts at the planet's own disc and
+   widens to the window, while the planet swells away behind it (AppBackground reads the stage's data-voyage). */
 .dune-play-stage {
   position: relative;
   display: grid;
@@ -38,7 +38,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: var(--color-ground);
+  background: transparent;
 }
 
 .dune-play-stage > * {
@@ -46,33 +46,96 @@
   min-height: 0;
 }
 
-.dune-play-stage:not([data-scene-ready="true"]) .dune-play-shell {
-  clip-path: circle(0% at 50% 46%);
+/* The waiting frame fades as the table opens over it. */
+.dune-play-wait[data-leaving] {
+  opacity: 0;
+  transition: opacity 700ms ease-out;
 }
 
-.dune-play-stage[data-scene-ready="true"] .dune-play-shell {
-  animation: dune-play-enter 1000ms cubic-bezier(0.4, 0, 0.2, 1);
+/*
+ * The planet rests by the window (beside a tutorial's rail, centred on the page beside it), while the shell starts right of
+ * that rail: the iris centres on the planet in the shell's own coordinates.
+ */
+.dune-play-stage {
+  --dune-play-planet-x: calc(50vw + var(--voyage-planet-x) - var(--page-layout-fullscreen-left, 0px));
+}
+
+.dune-play-stage:not([data-arrival="opening"], [data-arrival="open"]) .dune-play-shell {
+  clip-path: circle(0% at var(--dune-play-planet-x) var(--voyage-planet-y));
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
+  animation: dune-play-enter 1500ms ease-in-out;
+}
+
+/*
+ * The table fades in over the planet's disc before it widens, so the planet turns into the board rather than cutting to it.
+ * The circle is a radial-gradient mask whose radius is a registered property the keyframes animate. A circular clip-path,
+ * animated or not, let Chromium clip the WebGL canvas inside only to the circle's bounding box, so the canvas's dark edges
+ * showed outside the circle; a mask makes the shell one surface, canvas included, and its edge can be feathered.
+ * The clipped shell never fades either; its ground eases in from clear, and its contents fade on their own.
+ */
+@property --dune-play-iris {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell {
+  --dune-play-iris: 150vmax;
+
+  clip-path: none;
+  mask-image: radial-gradient(
+    circle at var(--dune-play-planet-x) var(--voyage-planet-y),
+    var(--ui-black) calc(var(--dune-play-iris) - 1.5px),
+    transparent var(--dune-play-iris)
+  );
+}
+
+/* Once open, the shell drops its mask altogether. */
+.dune-play-stage[data-arrival="open"] .dune-play-shell {
+  mask-image: none;
 }
 
 @keyframes dune-play-enter {
   from {
-    clip-path: circle(0% at 50% 46%);
+    --dune-play-iris: calc(var(--voyage-planet-size) / 2);
+    background-color: transparent;
+  }
+  30% {
+    --dune-play-iris: calc(var(--voyage-planet-size) * 0.62);
+    background-color: var(--color-ground);
   }
   to {
-    clip-path: circle(125% at 50% 46%);
+    --dune-play-iris: 150vmax;
+  }
+}
+
+.dune-play-stage[data-arrival="opening"] .dune-play-shell > * {
+  animation: dune-play-enter-contents 1500ms ease-in-out;
+}
+
+@keyframes dune-play-enter-contents {
+  from {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
   }
 }
 
 /* The stage's own rules carry the stage class and the ready attribute, so these repeat the stage class to outrank them. */
-html[data-motion="reduce"] .dune-play-stage .dune-play-shell {
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell,
+html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   animation: none;
-  clip-path: none;
+  mask-image: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell {
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell,
+  html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell > * {
     animation: none;
-    clip-path: none;
+    mask-image: none;
   }
 }
 

@@ -1,6 +1,7 @@
 import { Anchor, Group, Stack, Text } from '@mantine/core';
 import { tokenShapeOfType } from '@shared/assets/tokenOutline';
 import type { RulesetAssetSlot } from '@shared/rulesets/assetSlots';
+import { EmptyNote } from '@ui/content/EmptyNote';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { TokenImage } from '@ui/content/TokenImage';
 import { ChipList } from '@ui/list/ChipList';
@@ -54,17 +55,11 @@ export function RulesetManifest({
       {preview.packed.length > 0 ? (
         <TallyList items={preview.packed.map(packedTally)} />
       ) : (
-        <Text size="sm" c="dimmed">
-          No decks or token sets are linked yet.
-        </Text>
+        <EmptyNote>No decks or token sets are linked yet.</EmptyNote>
       )}
       <Stack gap="sm" pt="xs">
         <Eyebrow>{preview.factions.length === 1 ? '1 faction' : `${preview.factions.length} factions`}</Eyebrow>
-        {preview.factions.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No factions are linked yet.
-          </Text>
-        ) : null}
+        {preview.factions.length === 0 ? <EmptyNote>No factions are linked yet.</EmptyNote> : null}
         {own.length > 0 ? (
           <FactionGroup label={<Text size="xs" c="dimmed">{`Made for ${ruleset.name}`}</Text>} factions={own} />
         ) : null}

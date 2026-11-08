@@ -181,12 +181,14 @@ export const seedBaseline = mutation({
     });
 
     const disposableAccountEmail = args.disposableAccountEmail?.trim().toLowerCase() ?? null;
+    let disposableUserId: Id<'users'> | null = null;
     if (disposableAccountEmail) {
       const disposableUser = users.find((user) => user.email === disposableAccountEmail);
       if (!disposableUser) {
         throw new Error('Disposable account not found');
       }
 
+      disposableUserId = disposableUser._id as Id<'users'>;
       const disposableUsername = disposableAccountEmail.split('@')[0] ?? 'e2e-account-delete';
       const disposableSlugBase = slugify(disposableUsername);
       await ctx.db.insert('profiles', {
@@ -216,6 +218,17 @@ export const seedBaseline = mutation({
       approved_at: now,
       approved_by: ownerUser._id as Id<'users'>,
     });
+    /* Account deletion hands ownership only to a co-member, so the disposable account shares the baseline Group with its owner. */
+    if (disposableUserId) {
+      await ctx.db.insert('group_members', {
+        group_id: groupId,
+        user_id: disposableUserId,
+        status: 'active',
+        requested_at: now,
+        approved_at: now,
+        approved_by: ownerUser._id as Id<'users'>,
+      });
+    }
 
     const rulesetId = await ctx.db.insert('rulesets', {
       name: 'E2EBaselineRuleset',
@@ -244,7 +257,8 @@ export const seedBaseline = mutation({
     await ctx.db.insert('publication_assets', {
       asset_type: 'board',
       asset_id: arrakisId,
-      cache_token: 'e2e-arrakis-official',
+      /* A real token: the publisher's illustration answer parses it as a UUID. */
+      cache_token: crypto.randomUUID(),
       published_at: Date.now(),
       component_geometry: componentGeometrySchema.parse(arrakisOfficialGeometry),
     });

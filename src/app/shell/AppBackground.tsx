@@ -6,6 +6,8 @@ import planet from './planet.webp?url';
 const HOUR = 3_600_000;
 /* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
 const TICK_MS = 250;
+/* After a voyage held them still, the orbits catch up with the clock over the planet's way back down. */
+const GLIDE_MS = 1600;
 
 /* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
 function twinkle(elapsed: number, duration: number, delay: number) {
@@ -36,7 +38,12 @@ const stars = (() => {
   }));
 })();
 
+/* The widest catch-up the orbits glide through after a hold, five minutes of the planet's turn. */
+const MAX_GLIDE_DEGREES = 30;
+
 /** The shell's fixed planet and independently turning SVG stars. */
+const LAYOUT_MARKS = '[data-page-layout-height], [data-voyage]';
+
 export function AppBackground({ motion }: { motion: boolean }) {
   const gradientId = useId();
   const background = useRef<HTMLDivElement>(null);
@@ -51,18 +58,66 @@ export function AppBackground({ motion }: { motion: boolean }) {
     }
     let timer: number | undefined;
     let suspended: boolean | undefined;
-    const synchronize = () => {
-      if (suspended) {
+    /* Whether a voyage held the orbits still, and the hold's end, so they glide to the clock instead of jumping to it. */
+    let held = false;
+    let glide: number | undefined;
+    /* While gliding, the orbits keep their target: a new one each tick would restart the glide, and ending it mid-way would jump. */
+    let gliding = false;
+    let lastPlanetAngle = 0;
+    let lastStarsAngle = 0;
+    const glideToClock = () => {
+      const layers = [planetLayer.current, starsLayer.current];
+      for (const layer of layers) {
+        layer?.style.setProperty('transition', `transform ${GLIDE_MS}ms ease-in-out`);
+      }
+      gliding = true;
+      window.clearTimeout(glide);
+      glide = window.setTimeout(() => {
+        gliding = false;
+        for (const layer of layers) {
+          layer?.style.removeProperty('transition');
+        }
+      }, GLIDE_MS);
+    };
+    const synchronize = (initial = false) => {
+      /* On the way to a table the planet is mid-flight on the compositor: turning it or the stars would repaint those huge layers mid-animation. */
+      /* A waiting frame at rest holds nothing: only a planet in flight does. */
+      if (
+        !initial &&
+        (document.documentElement.dataset.voyage ||
+          document.querySelector('[data-voyage]:not([data-voyage="resting"])'))
+      ) {
+        held = true;
+        return;
+      }
+      if (!initial && suspended) {
         return;
       }
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
-      if (planetLayer.current) {
-        planetLayer.current.style.transform = `rotate(${((localTime % HOUR) / HOUR) * 360}deg)`;
+      const planetAngle = ((localTime % HOUR) / HOUR) * 360;
+      const starsAngle = ((localTime % (2 * HOUR)) / (2 * HOUR)) * -360;
+      /* A glide across the top of the hour would spin the long way round, so the orbits then take their place at once. */
+      /* Only a short hold glides back: after a long one the page has changed under the orbits, and a near-full turn in a moment would read as a spin. */
+      const glides =
+        held &&
+        planetAngle >= lastPlanetAngle &&
+        starsAngle <= lastStarsAngle &&
+        planetAngle - lastPlanetAngle <= MAX_GLIDE_DEGREES;
+      if (glides) {
+        glideToClock();
       }
-      if (starsLayer.current) {
-        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${((localTime % (2 * HOUR)) / (2 * HOUR)) * -360}deg)`;
+      held = false;
+      if (glides || !gliding) {
+        lastPlanetAngle = planetAngle;
+        lastStarsAngle = starsAngle;
+        if (planetLayer.current) {
+          planetLayer.current.style.transform = `rotate(${planetAngle}deg)`;
+        }
+        if (starsLayer.current) {
+          starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${starsAngle}deg)`;
+        }
       }
       const elapsed = performance.now();
       for (const [id, element] of starLayers.current) {
@@ -70,7 +125,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
         element.style.opacity = String(twinkle(elapsed, star.duration, star.delay));
       }
     };
-    synchronize();
+    synchronize(true);
     if (!motion) {
       return;
     }
@@ -88,20 +143,18 @@ export function AppBackground({ motion }: { motion: boolean }) {
       if (!next) {
         synchronize();
         /* The orbits and twinkles step on a slow clock, scrolling included, so they never have to catch up; continuous CSS animations cost more CPU in Firefox for motion too slow to see between steps. */
-        timer = window.setInterval(synchronize, TICK_MS);
+        timer = window.setInterval(() => synchronize(), TICK_MS);
       }
     };
     refresh();
-    /* Fullscreen hides the background without resizing it; only page-layout changes can change that state. */
+    /* Fullscreen hides the background without resizing it, unless a voyage to a table keeps it up: only page-layout and voyage marks change that state. */
     const observer = new MutationObserver((records) => {
       if (
         records.some(
           (record) =>
             record.type === 'attributes' ||
             [...record.addedNodes, ...record.removedNodes].some(
-              (node) =>
-                node instanceof Element &&
-                (node.matches('[data-page-layout-height]') || node.querySelector('[data-page-layout-height]'))
+              (node) => node instanceof Element && (node.matches(LAYOUT_MARKS) || node.querySelector(LAYOUT_MARKS))
             )
         )
       ) {
@@ -114,12 +167,15 @@ export function AppBackground({ motion }: { motion: boolean }) {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ['data-page-layout-height'],
+        attributeFilter: ['data-page-layout-height', 'data-voyage'],
       });
     }
+    /* A departing page marks the document itself. */
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-voyage'] });
     document.addEventListener('visibilitychange', refresh);
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(glide);
       observer.disconnect();
       document.removeEventListener('visibilitychange', refresh);
       element.removeAttribute('data-suspended');

@@ -1,7 +1,7 @@
 import { Text } from '@mantine/core';
+import clsx from 'clsx';
 
-/** The drop shadow under white text on header artwork; `EntityLink.module.css` repeats it for an inverse name. */
-const INVERSE_TEXT_SHADOW = '0 2px 8px rgb(from var(--color-shadow) r g b / 85%)';
+import styles from './Eyebrow.module.css';
 
 export interface EyebrowProps {
   /** The label itself. A string, not a node: the words are the data this renders. */
@@ -27,14 +27,8 @@ export function Eyebrow({ children, tone = 'muted', align = 'start', id }: Eyebr
     <Text
       id={id}
       component="p"
-      size="xs"
-      fw={800}
-      tt="uppercase"
-      lts="0.14em"
-      lh={1.4}
+      className={clsx(styles.eyebrow, styles[tone])}
       ta={align === 'center' ? 'center' : undefined}
-      c={tone === 'accent' ? 'var(--color-link)' : tone === 'inverse' ? 'var(--color-inverse)' : 'dimmed'}
-      style={tone === 'inverse' ? { textShadow: INVERSE_TEXT_SHADOW } : undefined}
     >
       {children}
     </Text>

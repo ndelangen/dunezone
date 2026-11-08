@@ -6,6 +6,7 @@ import { ActionError } from '@ui/block/ActionError';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageIdentity } from '@ui/block/PageIdentity';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { formatStableDate } from '@ui/content/dates';
 import { EditionArtifactLink } from '@ui/content/EditionArtifactLink';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -15,7 +16,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
+import { CalendarPlus, Check, FileText, History, Link2, Pencil, Pin, PinOff } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 
 import { useRulebookReader, useSoftDeleteRulebook } from '@db/rulebooks';
@@ -651,9 +652,9 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
         <PageIdentity
           title={data.rulebook.name}
           breadcrumb={
-            <PageIdentity.Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
+            <Breadcrumb to="/rulesets/$rulesetSlug" params={{ rulesetSlug: data.ruleset.slug }}>
               {data.ruleset.name}
-            </PageIdentity.Breadcrumb>
+            </Breadcrumb>
           }
           stats={headerStats}
         >
@@ -664,16 +665,6 @@ function RulebookReader({ data, published }: Readonly<{ data: ReaderData; publis
       <PageLayout.Toolbar>
         <Toolbar>
           <Toolbar.Left label="Navigation">
-            <IconAction
-              label="Back to ruleset"
-              emphasis="standard"
-              intent="neutral"
-              size="lg"
-              icon={<ArrowLeft size={17} aria-hidden />}
-              renderRoot={(props) => (
-                <Link {...props} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: params.rulesetSlug }} />
-              )}
-            />
             {data.canEdit ? (
               <IconAction
                 label="Edit Rulebook"

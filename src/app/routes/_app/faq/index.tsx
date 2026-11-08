@@ -150,10 +150,10 @@ function GlobalFaqPage() {
           {deps.q ? (
             <FaqResults deps={deps} initial={loaderData.page} />
           ) : (
-            <Section title="How the FAQ works">
-              <Text size="sm" c="dimmed">
-                Ask about a ruleset, let the table weigh in, and mark the reply that settled it.
-              </Text>
+            <Section
+              title="How the FAQ works"
+              help="Ask about a ruleset, let the table weigh in, and mark the reply that settled it."
+            >
               <FaqWalkthrough
                 asker="Chani"
                 askerImage={resolveAsset('/image/leader/official/chani.png', 'small')}

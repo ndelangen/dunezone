@@ -12,7 +12,7 @@ const meta = preview.meta({
 
 /**
  * The most-reached message in the application, and the last one to wear the shared frame.
- * The assertions distinguish the frame from what stood here before, which was a bare paragraph and a raw link under a title with no pane.
+ * It says its one message in the band, under the name, with the boxed way home beneath it.
  */
 export const NotFound = meta.story({
   args: { path: '/a-page-that-does-not-exist' },
@@ -20,9 +20,16 @@ export const NotFound = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(
-      page.findByRole('heading', { name: 'This page does not exist' }, { timeout: 30_000 })
+      page.findByText(
+        'The address may be mistyped, or whatever lived here has since been removed.',
+        {},
+        { timeout: 30_000 }
+      )
     ).resolves.toBeVisible();
-    const back = await page.findByRole('link', { name: 'Go back home' }, { timeout: 30_000 });
+    /* One message: the band says it all, with no pane repeating it under the title. */
+    await expect(page.queryByRole('heading', { name: 'This page does not exist' })).toBeNull();
+    const back = await page.findByRole('link', { name: 'Go home' }, { timeout: 30_000 });
+    await expect(back).toHaveAttribute('href', '/');
     await expect(back.closest('main')).toBeNull();
   },
 });

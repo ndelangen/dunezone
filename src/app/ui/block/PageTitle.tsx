@@ -1,19 +1,39 @@
 import { Stack, Title } from '@mantine/core';
+import type { ReactNode } from 'react';
 
 import { Eyebrow } from '../content/Eyebrow';
 import { useInsidePageHeader } from '../layout/PageLayout';
 import styles from './PageTitle.module.css';
 
-export interface PageTitleProps {
+/** What sits above the name: a classifier, or the way up. Both take the same place, so a page gives one or the other. */
+type PageTitleKicker =
+  | {
+      /** Classifier above the name: what kind of thing this page is. Words, not a node. */
+      eyebrow?: string;
+      breadcrumb?: never;
+    }
+  | {
+      eyebrow?: never;
+      /**
+       * The way up one level, as a `Breadcrumb`, worn where the eyebrow sits.
+       * A page under another names its parent here instead of carrying a Back action.
+       */
+      breadcrumb?: ReactNode;
+    };
+
+export type PageTitleProps = PageTitleKicker & {
   /** The page's name. A string, not a node: the words are the data this renders. */
   title: string;
-  /** Classifier above the name: what kind of thing this page is. Words, not a node. */
-  eyebrow?: string;
   /** Welcome line under the name, framed between two thin gilt rules like a title card. Words, not a node. */
   subtitle?: string;
   /** One sentence under the name that says what the page is for. Words, not a node. */
   lede?: string;
-}
+  /**
+   * The page's one primary action, such as a catalogue's create `CallToAction`, set under the name and lede.
+   * It takes the title group's alignment, so a centred band centres it and a left-aligned one keeps it on the title's edge.
+   */
+  action?: ReactNode;
+};
 
 /**
  * The page's own name, and the one thing on a page allowed to be an `h1`.
@@ -29,7 +49,7 @@ export interface PageTitleProps {
  *
  * It exists because the page title had three spellings and no legal home: a Content component holding an `h1`, a `Title order={1}`, and a bare `h1`, so every page picked one and the outline drifted.
  */
-export function PageTitle({ title, eyebrow, subtitle, lede }: PageTitleProps) {
+export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede, action }: PageTitleProps) {
   const insideHeader = useInsidePageHeader();
 
   if (import.meta.env.DEV && !insideHeader) {
@@ -43,12 +63,13 @@ export function PageTitle({ title, eyebrow, subtitle, lede }: PageTitleProps) {
 
   return (
     <Stack gap="var(--space-xs)" className={styles.root}>
-      {eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>}
+      {breadcrumb ?? (eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>)}
       <Title order={1} className={styles.title}>
         {title}
       </Title>
       {subtitle === undefined ? null : <p className={styles.subtitle}>{subtitle}</p>}
       {lede === undefined ? null : <p className={styles.lede}>{lede}</p>}
+      {action ?? null}
     </Stack>
   );
 }

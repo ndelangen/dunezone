@@ -46,7 +46,7 @@
 /* Pure white with the same drop shadow as an inverse `Eyebrow`, so header text reads as one treatment. */
 .name.inverse {
   color: var(--color-inverse);
-  text-shadow: 0 2px 8px rgb(from var(--color-shadow) r g b / 85%);
+  text-shadow: var(--text-shadow-inverse);
 }
 
 .compact .name {

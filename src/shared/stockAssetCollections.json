@@ -405,6 +405,30 @@
     ]
   },
   {
+    "label": "Custom portraits / House Mikarrol",
+    "keywords": "Gary MCDM Dune Awakening officer nobleman commander purple gold crimson masked goggles scar face paint marking",
+    "assets": [
+      "/image/leader/custom/house-mikarrol/blonde-officer.png",
+      "/image/leader/custom/house-mikarrol/crimson-masked-figure.png",
+      "/image/leader/custom/house-mikarrol/haughty-nobleman.png",
+      "/image/leader/custom/house-mikarrol/marked-leader.png",
+      "/image/leader/custom/house-mikarrol/scarred-commander.png",
+      "/image/leader/custom/house-mikarrol/stoic-officer.png"
+    ]
+  },
+  {
+    "label": "Custom portraits / House Lindaren",
+    "keywords": "Gary MCDM Dune Awakening officer soldier royal blue gold uniform gray armour helmet visor",
+    "assets": [
+      "/image/leader/custom/house-lindaren/helmeted-soldier.png",
+      "/image/leader/custom/house-lindaren/paired-officers.png",
+      "/image/leader/custom/house-lindaren/resolute-officer.png",
+      "/image/leader/custom/house-lindaren/skeptical-officer.png",
+      "/image/leader/custom/house-lindaren/veteran-officer.png",
+      "/image/leader/custom/house-lindaren/warrior.png"
+    ]
+  },
+  {
     "label": "Custom portraits / Black and gold uniforms",
     "keywords": "officer black gold",
     "assets": [

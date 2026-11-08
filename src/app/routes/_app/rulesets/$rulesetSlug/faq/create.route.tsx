@@ -1,11 +1,11 @@
 import { Group, Stack } from '@mantine/core';
 import type { FaqTag } from '@shared/faq/tags';
 import type { ErrorComponentProps } from '@tanstack/react-router';
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
-import { RulesetLink } from '@ui/content/RulesetLink';
+import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { FaqTagFieldset } from '@ui/control/FaqTagFieldset';
 import { FormattedTextInput } from '@ui/control/FormattedTextInput';
@@ -68,27 +68,7 @@ function FaqCreatePage() {
   const { question, answer } = draft;
   const rulesetRow = ruleset.data?.ruleset;
 
-  const header = (
-    <div>
-      <PageTitle title="Ask a question" />
-      <p>
-        {rulesetRow ? (
-          <>
-            For <RulesetLink slug={rulesetSlug} name={rulesetRow.name} /> ·{' '}
-          </>
-        ) : null}
-        <Link to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
-          Back to ruleset
-        </Link>
-        {' · '}
-        <Link to="/rulesets">Back to rulesets</Link>
-      </p>
-    </div>
-  );
-
-  /* Only this page's message frames move to `PageMessage`. The loaded page keeps its hand-rolled
-     `h1` header, which is a separate item of the same wave (#701 item 5, the FAQ pages' raw
-     elements), so for now the two states spell the same words two ways. */
+  /* The message frames (loading, missing ruleset) keep a boxed Back: they have no header band to carry the breadcrumb. */
   const backToRuleset = (
     <PageMessage.Back to="/rulesets/$rulesetSlug" params={{ rulesetSlug }}>
       Back to ruleset
@@ -102,6 +82,18 @@ function FaqCreatePage() {
       </RoutePending>
     );
   }
+
+  /* The way up is the ruleset's FAQ, named after the ruleset, so it also says which ruleset the question is for. */
+  const header = (
+    <PageTitle
+      breadcrumb={
+        <Breadcrumb to="/rulesets/$rulesetSlug/faq" params={{ rulesetSlug }}>
+          {`${rulesetRow.name} FAQ`}
+        </Breadcrumb>
+      }
+      title="Ask a question"
+    />
+  );
   const rulesetId = rulesetRow._id;
 
   if (!profile?.data?._id) {

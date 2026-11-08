@@ -159,7 +159,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     explanation: 'One full pass through all nine phases. A game lasts a set number of turns.',
     reason: 'The rulebook only ever says turn. Round means the same thing, so it is not used.',
     source: 'rulebook',
-    avoid: [{ word: 'rounds' }, { word: 'round', hint: false }],
+    avoid: [
+      /* Bidding goes in rounds, one card at a time, which is not a turn. */
+      { word: 'rounds', exceptions: [/bidding\s+rounds/i, /rounds\s+of\s+bidding/i, /sit\s+rounds\s+out/i] },
+      { word: 'round', hint: false },
+    ],
   },
   {
     id: 'phase',
@@ -357,6 +361,17 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     ],
   },
   {
+    id: 'spice-dialing',
+    term: 'Spice dialing',
+    topic: 'battle',
+    explanation:
+      'The advanced battle rule in which a faction pays spice to support its dialed troops. Under it a supported troop counts at full strength and an unsupported one at its lower strength, usually half.',
+    reason:
+      'The name the battle rules picker gives the Advanced option, next to Basic, KISS and GF9 2.0. Supported is the word for a troop under this rule.',
+    source: 'house',
+    avoid: [],
+  },
+  {
     id: 'battle-wheel',
     term: 'Battle wheel',
     topic: 'battle',
@@ -383,7 +398,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
       {
         word: 'zone',
         forms: ['zones'],
-        exceptions: [/dune\s+zone/i],
+        exceptions: [/dune(?:\s+|\.)zone/i],
         fixes: { zone: 'territory', zones: 'territories' },
       },
       { word: 'area', forms: ['areas'], hint: false },
@@ -512,9 +527,11 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
     source: 'rulebook',
     avoid: [
       { word: 'melange', hint: false },
-      { word: 'credit', forms: ['credits'], fixes: { credits: 'spice' } },
+      /* No automatic fix: credits for artwork is ordinary English. */
+      { word: 'credit', forms: ['credits'] },
       { word: 'solari', forms: ['solaris'], fixes: { solari: 'spice', solaris: 'spice' } },
-      { word: 'money', fixes: { money: 'spice' } },
+      /* No automatic fix: value for money is ordinary English. */
+      { word: 'money' },
     ],
   },
   {
@@ -679,11 +696,12 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'fate',
     term: 'Fate',
+    searchTerms: ['fate card'],
     topic: 'factions',
     explanation:
-      'The name a faction may give its special Karama power section on its sheet, in place of Faction Special Karama. The rule is still used by playing a Karama card.',
+      'A one-time card a faction holds, and the rule printed for it in the special rule section of its faction sheet. Playing the fate card uses that rule, once per game.',
     reason:
-      'Dune Zone’s faction editor and sheets offer Fate as the section’s other name. Saying so here lets readers take the two names as one thing.',
+      'A Dune Zone faction can give its once-per-game rule a fate card of its own instead of tying it to a Karama card, as the special Karama power does. The faction editor offers Fate as that section’s name.',
     source: 'house',
     avoid: [],
   },
@@ -725,6 +743,23 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
         forms: ['heroes'],
         exceptions: [/cheap\s+hero(?:es)?/i],
         fixes: { hero: 'faction leader', heroes: 'faction leaders' },
+      },
+    ],
+  },
+  {
+    id: 'faction-shield',
+    term: 'Faction shield',
+    topic: 'factions',
+    explanation:
+      'The folding screen each faction stands up in front of its seat. It shows the faction leader and keeps the faction’s spice out of sight.',
+    reason:
+      'Named for the faction it belongs to, like the faction leader and faction token it shows. The rulebook calls it a player shield.',
+    source: 'house',
+    avoid: [
+      {
+        word: 'player shield',
+        forms: ['player shields'],
+        fixes: { 'player shield': 'faction shield', 'player shields': 'faction shields' },
       },
     ],
   },

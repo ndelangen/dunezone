@@ -3,10 +3,10 @@ import { Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { SectionedSurface } from '@ui/surface/SectionedSurface';
 import type { CSSProperties } from 'react';
 
 import { loadAssetCataloguePage, useAssetCataloguePage } from '@app/db/assets';
@@ -47,11 +47,11 @@ const MASTHEAD_CARD = 138;
 const pileGroupStyle = { '--pile-slot': `${PILE_SLOT}px` } as CSSProperties;
 
 /**
- * The ledger's three rows, each naming the categories whose piles it holds.
- * Written out rather than derived from the category list, because the rows do not map one to one onto categories: cards and decks share a row.
+ * The overview's three sections, each naming the categories whose piles it holds.
+ * Written out rather than derived from the category list, because the sections do not map one to one onto categories: cards and decks share one.
  */
 const PILE_ROWS: { label: string; categories: AssetCategory[] }[] = [
-  { label: 'Cards & decks', categories: ['cards', 'decks'] },
+  { label: 'Cards and decks', categories: ['cards', 'decks'] },
   { label: 'Tokens', categories: ['tokens'] },
   { label: 'Boards', categories: ['boards'] },
 ];
@@ -237,6 +237,7 @@ function EmptyPileOutline({ type, planned }: { type: AssetType; planned: boolean
       {planned ? (
         <StatusBadge>Planned</StatusBadge>
       ) : (
+        /* oxlint-disable-next-line local/empty-note -- A pile caption under an empty pile, centred in the pile's width, not a section line. */
         <Text size="xs" c="dimmed" ta="center" px={6}>
           none yet
         </Text>
@@ -306,8 +307,9 @@ function AssetsLandingPage() {
         </PageLayout.Header>
       ) : null}
       <PageLayout.Content>
-        {/* No width cap: the ledger spans the content column, so its edges align with the masthead band. */}
+        {/* No width cap: the sections span the content column, so their edges align with the masthead band. */}
         <Stack gap="md">
+          {/* Not a PageTitle: the band here is the card fan, and it is absent while there are no treachery cards, so the name sits on the paper under it. */}
           <Stack gap={2} align="center">
             <Eyebrow>Community assets</Eyebrow>
             <Title order={1}>Assets</Title>
@@ -315,24 +317,18 @@ function AssetsLandingPage() {
               Cards, decks, tokens and boards, made by the community.
             </Text>
           </Stack>
-          <SectionedSurface>
-            {PILE_GROUPS.map((group) => (
-              <SectionedSurface.Row key={group.label}>
-                <div className={styles.pileGroup} style={pileGroupStyle}>
-                  <div className={styles.pileGroupLayout}>
-                    <Stack gap={2} className={styles.pileGroupLabel}>
-                      <Eyebrow>{group.label}</Eyebrow>
-                    </Stack>
-                    <div className={styles.pileGrid}>
-                      {group.types.map((type) => (
-                        <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
-                      ))}
-                    </div>
-                  </div>
+          {/* Open sections, as the tutorial catalogues group their tiles: the piles are the objects, so no frame or side label wraps them. */}
+          {PILE_GROUPS.map((group) => (
+            <Section key={group.label} title={group.label}>
+              <div className={styles.pileGroup} style={pileGroupStyle}>
+                <div className={styles.pileGrid}>
+                  {group.types.map((type) => (
+                    <TypePile key={type} type={type} entries={byType.get(type) ?? []} />
+                  ))}
                 </div>
-              </SectionedSurface.Row>
-            ))}
-          </SectionedSurface>
+              </div>
+            </Section>
+          ))}
         </Stack>
       </PageLayout.Content>
     </PageLayout>

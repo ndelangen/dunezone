@@ -11,7 +11,11 @@ page renders and prose inputs hint from. New code names game concepts with its p
 older names such as the faction `hero` field and troop `combat` values are being renamed to match.
 
 **Group**:
-A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members.
+A collaboration boundary shared by factions, rulesets, and future community assets. Active members may maintain associated content and manage membership intake, while the Group owner alone may rename the Group or remove active members. Any active member but the owner may leave.
+
+**Membership invitation**:
+The Group's half of a membership: an active member asks a person in, and the person becomes an active member only by accepting. Until then they are a stranger to the Group, named on no roster and no profile, and only the Group's active members and the person see the invitation. A membership request is the person's half; whichever half arrives second completes the membership. Either side may take its half back.
+_Avoid_: Adding a member, direct add
 
 **Deleted Group**:
 A Group its owner has deleted. It survives with its memberships and asset associations intact, but the product treats it as not found for everyone, owner included: it appears nowhere, grants no collaborative access, and accepts no changes, while its name and slug remain reserved. Recovery is an administrative act, not a product capability; restoring a Group never reclaims an asset whose owner reassigned it away.
@@ -145,7 +149,7 @@ What one troop face contributes to a battle plan: its strength, its supported st
 The amount of spice a faction begins the game with. Starting spice is a structured setup value, distinct from the faction's free-form starting instructions.
 
 **Faction Special Karama**:
-The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the rule title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions.
+The default name of a faction's special rule section. A faction may instead name it Fate. The optional choice belongs to the faction and follows it onto its page, Play details, sheet and PDF. It changes the section name alone; the rule title and authored rule text remain separate. A missing choice means Faction Special Karama without a backfill of existing faction definitions. Players use a Fate section by playing the faction's one-time fate card, not a Karama card (Norbert, 2026-11-07; see the glossary's Fate entry).
 
 **Background definition**:
 How soft or crisp the selected pattern appears in a faction's composed background.

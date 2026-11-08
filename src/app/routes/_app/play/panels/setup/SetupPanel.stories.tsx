@@ -47,7 +47,7 @@ export const WaitingForAPrediction = meta.story({
   args: setupArgs(predicting()),
   parameters: inSetupWindow(predicting()),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Waiting for the faction player to lock a prediction.')).toBeVisible();
+    await expect(canvas.getByText('Waiting for Bene Gesserit to lock a prediction.')).toBeVisible();
   },
 });
 

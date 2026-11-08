@@ -12,6 +12,10 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
   ...(await importOriginal<typeof TanStackRouter>()),
   createFileRoute: () => (options: unknown) => ({ options }),
   Link: ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  /* The Admin tools breadcrumb is built with `createLink`, whose `useLinkProps` needs a router. */
+  createLink:
+    () =>
+    ({ children, to }: { children?: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 vi.mock('@db/accounts', () => ({
   authProviderNames: {},

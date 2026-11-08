@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 
+import { Breadcrumb } from '../content/Breadcrumb';
 import { PageLayout } from '../layout/PageLayout';
 import type { PageHeaderSize } from '../layout/PageLayout';
 import { PageTitle } from './PageTitle';
@@ -35,6 +36,16 @@ const meta = preview.meta({
 
 /** The app's heading face, which is what a page gets unless it declares otherwise. */
 export const Default = meta.story({});
+
+/** A catalogue under another names its parent above the title, where the eyebrow would sit, as the way back up. */
+export const WithBreadcrumb = meta.story({
+  args: {
+    title: 'Treachery cards',
+    eyebrow: undefined,
+    breadcrumb: <Breadcrumb to="/assets">Assets</Breadcrumb>,
+    lede: 'Every treachery card the community has made.',
+  },
+});
 
 /** A page that declares a hero header: the shields' Desdemona face, uppercase, fluid against the viewport. */
 export const Hero = meta.story({
