@@ -32,15 +32,7 @@ import { FaqList } from '@ui/list/FaqList';
 import { TileGrid } from '@ui/list/TileGrid';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
-import {
-  BadgeCheck,
-  BadgeMinus,
-  ChevronDown,
-  EllipsisVertical,
-  MessageSquarePlus,
-  Pencil,
-  X,
-} from 'lucide-react';
+import { BadgeCheck, BadgeMinus, ChevronDown, EllipsisVertical, MessageSquarePlus, Pencil, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
