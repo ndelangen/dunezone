@@ -5,6 +5,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { markDecoded } from './imageArrival';
 import { PUBLISHED_IMAGE_RETRIES, PublishedImage, publishedImageRetryDelayMs } from './PublishedImage';
 
 /* jsdom neither fetches nor decodes images, so each probe's outcome is set by the test, one per retry. */
@@ -166,12 +167,12 @@ describe("PublishedImage as a page's main image", () => {
 describe('PublishedImage asks for a copy sized to its tile', () => {
   const card = '/published/cards/j57c8t9m2q4w6e8r0y2u4i6o8p0a2s4d/card.jpg?v=1';
 
-  function renderAtWidth(width: number, src = card) {
+  function renderAtWidth(width: number, src = card, full = false) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
       DOMRect.fromRect({ x: 0, y: 0, width, height: width })
     );
     vi.stubGlobal('devicePixelRatio', 2);
-    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} />);
+    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} full={full} />);
     return container.querySelector('img')?.getAttribute('src');
   }
 
@@ -187,5 +188,29 @@ describe('PublishedImage asks for a copy sized to its tile', () => {
 
   test('a source that is not a publication is drawn as given', () => {
     expect(renderAtWidth(60, '/published/atreides.png')).toBe('/published/atreides.png');
+  });
+});
+
+describe('PublishedImage drawn full, as the Alt close-up is', () => {
+  const card = '/published/cards/k57c8t9m2q4w6e8r0y2u4i6o8p0a2s4d/card.jpg?v=1';
+
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width: 60, height: 84 })
+    );
+    vi.stubGlobal('devicePixelRatio', 2);
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  test('draws the capture itself however small its box', () => {
+    const { container } = render(<PublishedImage src={card} name="Trishula" aspect={1.4} full />);
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(card);
+  });
+
+  test('passes over the small copy the hand decoded first', () => {
+    markDecoded(card, `${card}&w=160`);
+    const { container } = render(<PublishedImage src={card} name="Trishula" aspect={1.4} full />);
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(card);
   });
 });

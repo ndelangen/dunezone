@@ -43,6 +43,10 @@ type Props = {
    * It then paints without waiting for scripts, and is what image search finds on the page.
    */
   priority?: boolean;
+  /**
+   * Whether it always draws the full capture, never a resized copy, for an image shown larger than the box it is laid out in, such as the Alt close-up, which the reader zooms: a copy sized to the box, or one drawn smaller elsewhere first, would blur.
+   */
+  full?: boolean;
 };
 
 /**
@@ -114,7 +118,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function initialState(src: string | null, priority: boolean): State {
+function initialState(src: string | null, priority: boolean, full: boolean): State {
   const base = { arrival: 'animate', fetching: false, drawn: src, slot: false, order: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
@@ -125,7 +129,8 @@ function initialState(src: string | null, priority: boolean): State {
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   const drawn = decodedFrom(src);
-  if (drawn !== undefined) {
+  /* A full image takes only the capture itself, never a smaller copy another tile decoded. */
+  if (drawn !== undefined && (!full || drawn === src)) {
     return { ...base, phase: 'loading', fetching: true, drawn };
   }
   return { ...base, phase: 'loading' };
@@ -149,10 +154,12 @@ function inFetchRange(element: HTMLElement) {
   return rect.bottom >= -FETCH_MARGIN_PX && rect.top <= window.innerHeight + FETCH_MARGIN_PX;
 }
 
-function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false }: Props) {
+function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false, full = false }: Props) {
   /* Only a server-rendered main image starts shown; one mounted later, by navigation or a new src, arrives like any other. */
   const serverRendered = useSyncExternalStore(subscribeToNothing, clientSnapshot, serverSnapshot);
-  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority && serverRendered));
+  const [state, dispatch] = useReducer(reducer, src, (initial) =>
+    initialState(initial, priority && serverRendered, full)
+  );
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -183,7 +190,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     const inRange = () =>
       dispatch({
         type: 'inRange',
-        drawn: publishedThumbnailSrc(src!, root.getBoundingClientRect().width * window.devicePixelRatio),
+        drawn: full ? src! : publishedThumbnailSrc(src!, root.getBoundingClientRect().width * window.devicePixelRatio),
       });
     if (inFetchRange(root)) {
       inRange();
@@ -200,7 +207,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     );
     observer.observe(root);
     return () => observer.disconnect();
-  }, [fetching, phase, src]);
+  }, [fetching, full, phase, src]);
 
   /*
    * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.

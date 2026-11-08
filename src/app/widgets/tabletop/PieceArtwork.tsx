@@ -18,6 +18,8 @@ type Props = {
   height: number;
   /** A card's corner. A token ignores it: its own type decides its cut, the same as everywhere else it is shown. */
   radius?: string;
+  /** Whether it draws the full capture rather than a copy sized to the box, for a face the reader may zoom past its box. */
+  full?: boolean;
 };
 
 /** A piece's published face at its own proportions: a card's, a rectangle token's, and square for every other token. */
@@ -29,7 +31,7 @@ function artworkAspect(piece: TablePiece) {
  * A piece's artwork in a panel control, arriving through `PublishedImage` inside the fixed box the control lays out.
  * The box keeps the control's size while the image loads, and the fit keeps a card and a token from stretching to the same box.
  */
-export function PieceArtwork({ piece, src, name, width, height, radius }: Props) {
+export function PieceArtwork({ piece, src, name, width, height, radius, full }: Props) {
   const aspect = artworkAspect(piece);
   const shape = piece.kind === 'card' ? null : tokenShapeOfType(piece.items[0]?.artwork?.type);
   /* A token whose type names no shape keeps its square, the same as an uncut card. */
@@ -37,7 +39,7 @@ export function PieceArtwork({ piece, src, name, width, height, radius }: Props)
   return (
     <div style={{ width, height, display: 'grid', placeItems: 'center' }}>
       <div style={{ width: Math.min(width, height / aspect), position: 'relative' }}>
-        <PublishedImage src={src} name={name} aspect={aspect} {...outline} />
+        <PublishedImage src={src} name={name} aspect={aspect} full={full} {...outline} />
         <PredictionOverlay piece={piece} src={src} />
       </div>
     </div>
