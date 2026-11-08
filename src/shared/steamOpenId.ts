@@ -42,6 +42,59 @@ export function steamAssertionFrom(search: URLSearchParams): Record<string, stri
 
 export type SteamAssertion = { steamId: string; nonce: string; checkBody: URLSearchParams };
 
+type OpenIdField = (name: string) => string | null;
+
+const SIGNED_FIELDS = ['op_endpoint', 'claimed_id', 'identity', 'return_to', 'response_nonce', 'assoc_handle'];
+
+/** A positive answer from Steam's own endpoint, for one Steam account, carrying its `steamId`. */
+function positiveSteamId(field: OpenIdField): string | null {
+  const positive =
+    field('ns') === OPENID_NS && field('mode') === 'id_res' && field('op_endpoint') === STEAM_OPENID_ENDPOINT;
+  if (!positive || field('claimed_id') !== field('identity')) {
+    return null;
+  }
+  return CLAIMED_ID.exec(field('claimed_id') ?? '')?.[1] ?? null;
+}
+
+/** Whether the answer was sent back to this site's Steam return page. */
+function addressedToSite(field: OpenIdField, siteUrl: string): boolean {
+  try {
+    const returnTo = new URL(field('return_to') ?? '');
+    return returnTo.origin === new URL(siteUrl).origin && returnTo.pathname === STEAM_RETURN_PATH;
+  } catch {
+    return false;
+  }
+}
+
+/** The answer's nonce, when its timestamp says Steam issued it within the accepted age. */
+function recentNonce(field: OpenIdField, now: number): string | null {
+  const nonce = field('response_nonce') ?? '';
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ/.test(nonce) || nonce.length > 255) {
+    return null;
+  }
+  const issued = Date.parse(nonce.slice(0, 20));
+  const fresh = issued <= now + 60_000 && now - issued <= STEAM_ASSERTION_MAX_AGE_MS;
+  return fresh ? nonce : null;
+}
+
+/** Whether Steam's signature covers every field this check relies on. */
+function signedOverEssentials(field: OpenIdField): boolean {
+  const signed = new Set((field('signed') ?? '').split(','));
+  return SIGNED_FIELDS.every((name) => signed.has(name)) && !!field('sig') && !!field('assoc_handle');
+}
+
+/** The same fields, as the `check_authentication` request that asks Steam to confirm them. */
+function checkAuthenticationBody(fields: Record<string, unknown>): URLSearchParams {
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(fields)) {
+    if (key.startsWith('openid.') && typeof value === 'string') {
+      body.set(key, value);
+    }
+  }
+  body.set('openid.mode', 'check_authentication');
+  return body;
+}
+
 /**
  * Reads a returned assertion without trusting it yet: it must be a positive Steam answer, addressed to this site's return page, recent, and signed over the fields that matter.
  * Returns `null` for anything else.
@@ -52,58 +105,16 @@ export function parseSteamAssertion(
   siteUrl: string,
   now: number
 ): SteamAssertion | null {
-  const field = (name: string) => {
+  const field: OpenIdField = (name) => {
     const value = fields[`openid.${name}`];
     return typeof value === 'string' ? value : null;
   };
-  if (
-    field('ns') !== OPENID_NS ||
-    field('mode') !== 'id_res' ||
-    field('op_endpoint') !== STEAM_OPENID_ENDPOINT ||
-    field('claimed_id') !== field('identity')
-  ) {
+  const steamId = positiveSteamId(field);
+  const nonce = recentNonce(field, now);
+  if (!steamId || !nonce || !addressedToSite(field, siteUrl) || !signedOverEssentials(field)) {
     return null;
   }
-  const steamId = CLAIMED_ID.exec(field('claimed_id') ?? '')?.[1];
-  if (!steamId) {
-    return null;
-  }
-  let returnTo: URL;
-  let site: URL;
-  try {
-    returnTo = new URL(field('return_to') ?? '');
-    site = new URL(siteUrl);
-  } catch {
-    return null;
-  }
-  if (returnTo.origin !== site.origin || returnTo.pathname !== STEAM_RETURN_PATH) {
-    return null;
-  }
-  const nonce = field('response_nonce') ?? '';
-  const issued = Date.parse(nonce.slice(0, 20));
-  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ/.test(nonce) || nonce.length > 255 || Number.isNaN(issued)) {
-    return null;
-  }
-  if (issued > now + 60_000 || now - issued > STEAM_ASSERTION_MAX_AGE_MS) {
-    return null;
-  }
-  const signed = new Set((field('signed') ?? '').split(','));
-  for (const required of ['op_endpoint', 'claimed_id', 'identity', 'return_to', 'response_nonce', 'assoc_handle']) {
-    if (!signed.has(required)) {
-      return null;
-    }
-  }
-  if (!field('sig') || !field('assoc_handle')) {
-    return null;
-  }
-  const checkBody = new URLSearchParams();
-  for (const [key, value] of Object.entries(fields)) {
-    if (key.startsWith('openid.') && typeof value === 'string') {
-      checkBody.set(key, value);
-    }
-  }
-  checkBody.set('openid.mode', 'check_authentication');
-  return { steamId, nonce, checkBody };
+  return { steamId, nonce, checkBody: checkAuthenticationBody(fields) };
 }
 
 /** Whether Steam's `check_authentication` answer, in OpenID's key-value form, confirms the assertion. */

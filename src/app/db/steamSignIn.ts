@@ -23,10 +23,8 @@ export function takeSteamSignIn(state: string | null): string | null {
     const stored = sessionStorage.getItem(STEAM_SIGN_IN_KEY);
     sessionStorage.removeItem(STEAM_SIGN_IN_KEY);
     const pending = stored ? (JSON.parse(stored) as { state?: unknown; redirectTo?: unknown }) : null;
-    if (!state || pending?.state !== state || typeof pending.redirectTo !== 'string') {
-      return null;
-    }
-    return pending.redirectTo;
+    const ours = !!state && pending?.state === state;
+    return ours && typeof pending.redirectTo === 'string' ? pending.redirectTo : null;
   } catch {
     return null;
   }

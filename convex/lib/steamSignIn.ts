@@ -25,6 +25,13 @@ export async function verifySteamLogin(fields: Record<string, unknown>, siteUrl:
   return { steamId: assertion.steamId, nonce: assertion.nonce, ...(await steamProfile(assertion.steamId)) };
 }
 
+/** The public name and avatar a Steam player summary carries, leaving out anything missing or unsafe to show. */
+function playerProfile(player: Record<string, unknown> | undefined): { name?: string; image?: string } {
+  const name = typeof player?.personaname === 'string' ? player.personaname.trim().slice(0, 64) : '';
+  const avatar = typeof player?.avatarfull === 'string' ? player.avatarfull : '';
+  return { ...(name ? { name } : {}), ...(avatar.startsWith('https://') ? { image: avatar } : {}) };
+}
+
 /* The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
 async function steamProfile(steamId: string): Promise<{ name?: string; image?: string }> {
   const key = process.env.STEAM_WEB_API_KEY;
@@ -38,12 +45,8 @@ async function steamProfile(steamId: string): Promise<{ name?: string; image?: s
     if (!response.ok) {
       return {};
     }
-    const body = (await response.json()) as { response?: { players?: unknown[] } };
-    const player = body.response?.players?.[0] as Record<string, unknown> | undefined;
-    const name = typeof player?.personaname === 'string' ? player.personaname.trim().slice(0, 64) : '';
-    const image =
-      typeof player?.avatarfull === 'string' && player.avatarfull.startsWith('https://') ? player.avatarfull : '';
-    return { ...(name ? { name } : {}), ...(image ? { image } : {}) };
+    const body = (await response.json()) as { response?: { players?: Record<string, unknown>[] } };
+    return playerProfile(body.response?.players?.[0]);
   } catch {
     return {};
   }
