@@ -24,7 +24,7 @@ import { filterCatalogue } from './mediaSearch';
 import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 import type { MediaSearch } from './mediaSearchParams';
 import { MediaShowcase } from './MediaShowcase';
-import { mediaTiles, variantLabel } from './mediaTiles';
+import { holdsArtwork, mediaTiles, variantLabel } from './mediaTiles';
 import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
 
@@ -141,15 +141,17 @@ function MediaResults({
     );
   }
   const total = search.source === 'media' ? catalogue.matches.length : topicMatchCount(query);
+  const groups = catalogue.groups.map((group) => ({ ...group, tiles: mediaTiles(group.entries) }));
+  const host = focused && groups.flatMap((group) => group.tiles).find((tile) => holdsArtwork(tile, focused.value));
   return (
     <Stack gap="xl">
       <MediaResultCount search={search} matches={catalogue.matches} total={total} />
       {/* The detail opens in the gallery, under the row of the artwork it shows. Only artwork the filters hide keeps it above the results. */}
-      {focused && !showsArtwork(catalogue.groups, focused) && <FocusedMedia focused={focused} onClose={onClose} />}
+      {focused && !host && <FocusedMedia focused={focused} onClose={onClose} />}
       {search.source === 'media' ? (
         <>
           {catalogue.approximate && <Text size="sm">No exact matches. Showing close spellings.</Text>}
-          <MediaGroups groups={catalogue.groups} search={search} focused={focused} onClose={onClose} />
+          <MediaGroups groups={groups} search={search} focused={focused} hostKey={host?.key} onClose={onClose} />
         </>
       ) : (
         <TopicIcons query={query} />
@@ -269,13 +271,6 @@ function mediaDetails(entry: MediaEntry) {
   );
 }
 
-function holdsArtwork(tile: MediaTile, entry: MediaEntry) {
-  return tile.variants.some((variant) => variant.value === entry.value);
-}
-function showsArtwork(groups: ReturnType<typeof filterCatalogue>['groups'], entry: MediaEntry) {
-  return groups.some((group) => mediaTiles(group.entries).some((tile) => holdsArtwork(tile, entry)));
-}
-
 function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
   return (
     <Section
@@ -309,14 +304,25 @@ function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onCl
   );
 }
 
-function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSearch }>) {
+function MediaCard({ tile, search, opened }: Readonly<{ tile: MediaTile; search: MediaSearch; opened?: string }>) {
   const [selected, setSelected] = useState<string>();
-  const entry = tile.variants.find((variant) => variant.value === selected) ?? tile.entry;
+  /* The opened version shows on the tile until the visitor picks another, so tile and detail agree. */
+  const entry = tile.variants.find((variant) => variant.value === (selected ?? opened)) ?? tile.entry;
   return (
     <article aria-label={tile.label} className={styles.card}>
       <Tooltip label={mediaDetails(entry)} multiline w={320} events={{ hover: true, focus: true, touch: false }}>
         <Anchor
-          renderRoot={(props) => <Link {...props} {...mediaLocation({ ...search, item: entry.value })} />}
+          renderRoot={(props) => (
+            <Link
+              {...props}
+              {...mediaLocation({ ...search, item: entry.value })}
+              resetScroll={false}
+              onClick={(event) => {
+                reveal.value = entry.value;
+                props.onClick?.(event);
+              }}
+            />
+          )}
           aria-label={`Open ${entry.label}`}
           rel="nofollow"
           className={styles.previewLink}
@@ -348,11 +354,20 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
   );
 }
 
-/* Spans the whole grid row; the grid packs densely, so the artwork after the opened one fills its row first and the detail drops in under it. */
+/* The artwork a visitor just clicked. Only that click brings the detail into view; filtering, a deep link or a restored scroll leave the page where it is. */
+const reveal: { value?: string } = {};
+
+/*
+ * Spans the whole grid row; the grid packs densely, so the artwork after the opened one fills its row
+ * first and the detail drops in under it. That artwork sits after the detail in reading and tab order.
+ */
 function InlineFocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    ref.current?.scrollIntoView({ block: 'nearest' });
+    if (reveal.value === focused.value) {
+      reveal.value = undefined;
+      ref.current?.scrollIntoView({ block: 'nearest' });
+    }
   }, [focused.value]);
   return (
     <div ref={ref} className={styles.inlineDetail}>
@@ -365,16 +380,18 @@ function MediaGroups({
   groups,
   search,
   focused,
+  hostKey,
   onClose,
 }: Readonly<{
-  groups: ReturnType<typeof filterCatalogue>['groups'];
+  groups: (ReturnType<typeof filterCatalogue>['groups'][number] & { tiles: MediaTile[] })[];
   search: MediaSearch;
   focused?: MediaEntry;
+  hostKey?: string;
   onClose: () => void;
 }>) {
   return (
     <>
-      {groups.map(({ label, entries, total, collection, kind }) => (
+      {groups.map(({ label, entries, tiles, total, collection, kind }) => (
         <Card
           key={label}
           padding="md"
@@ -393,12 +410,15 @@ function MediaGroups({
           }
         >
           <div className={galleryGrid(kind)}>
-            {mediaTiles(entries).map((tile) => (
-              <Fragment key={tile.key}>
-                <MediaCard tile={tile} search={search} />
-                {focused && holdsArtwork(tile, focused) && <InlineFocusedMedia focused={focused} onClose={onClose} />}
-              </Fragment>
-            ))}
+            {tiles.map((tile) => {
+              const opened = tile.key === hostKey ? focused : undefined;
+              return (
+                <Fragment key={tile.key}>
+                  <MediaCard tile={tile} search={search} opened={opened?.value} />
+                  {opened && <InlineFocusedMedia focused={opened} onClose={onClose} />}
+                </Fragment>
+              );
+            })}
           </div>
         </Card>
       ))}
