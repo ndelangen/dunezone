@@ -2303,6 +2303,12 @@
         "token-details.jpg"
       ],
       "/web/blog/dune-board-game-style-guide/": ["faction-palette.jpg"],
+      "/web/blog/learn-to-play-dune-online/": [
+        "chapter-complete.jpg",
+        "chat-reply.jpg",
+        "meet-arrakis.jpg",
+        "meet-in-arrakeen.jpg"
+      ],
       "/web/blog/playing-dune-online-in-real-time/": ["table-in-play.jpg"],
       "/web/blog/running-from-databases/": [
         "dune-app-creator.jpg",
