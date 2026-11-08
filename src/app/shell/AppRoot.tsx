@@ -2,7 +2,6 @@ import { PAGE_CONTENT_ID } from '@ui/layout/PageLayout';
 import { useEffect } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
-import { useNativeDragMark } from '../styles/dragMark';
 import { useMotionAllowed } from '../styles/motion';
 import { AppBackground } from './AppBackground';
 import { AppFooter } from './AppFooter';
@@ -34,7 +33,6 @@ export interface AppRootProps {
 /** Persistent application chrome and document-level page effects. */
 export function AppRoot({ children }: AppRootProps) {
   const motion = useMotionAllowed();
-  useNativeDragMark();
 
   useEffect(() => {
     const root = document.documentElement;
