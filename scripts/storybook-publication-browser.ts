@@ -30,7 +30,12 @@ function waitForProcess(process: BrowserCheckProcess, timeoutMs: number): Promis
   });
 }
 
-async function stopProcess(process: BrowserCheckProcess, shutdownTimeoutMs: number) {
+/** Stops a process with SIGTERM, then SIGKILL, waiting up to the shutdown timeout after each. */
+export async function stopProcess(
+  process: BrowserCheckProcess,
+  shutdownTimeoutMs: number,
+  name = 'The Storybook browser process'
+) {
   process.kill();
   if ((await waitForProcess(process, shutdownTimeoutMs)).kind === 'exit') {
     return;
@@ -38,7 +43,7 @@ async function stopProcess(process: BrowserCheckProcess, shutdownTimeoutMs: numb
 
   process.kill('SIGKILL');
   if ((await waitForProcess(process, shutdownTimeoutMs)).kind === 'timeout') {
-    throw new Error('The Storybook browser process did not stop after SIGKILL.');
+    throw new Error(`${name} did not stop after SIGKILL.`);
   }
 }
 

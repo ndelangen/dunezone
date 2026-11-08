@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck } from './storybook-publication-browser';
+import { RETRYABLE_BROWSER_CHECK_STATUS, runBrowserCheck, stopProcess } from './storybook-publication-browser';
 import type { BrowserCheckProcess } from './storybook-publication-browser';
 
 function processThatExits(status: number): BrowserCheckProcess {
@@ -71,5 +71,18 @@ describe('Storybook publication browser process', () => {
 
     await expect(check(spawn)).rejects.toThrow('Browser publication check exited with status 1.');
     expect(spawn).toHaveBeenCalledOnce();
+  });
+});
+
+describe('stopping a process', () => {
+  test('returns once the process exits on normal termination', async () => {
+    const process = processThatStopsOn();
+    await expect(stopProcess(process, 1)).resolves.toBeUndefined();
+    expect(process.kill).toHaveBeenCalledOnce();
+  });
+
+  test('names the process that ignored SIGKILL', async () => {
+    const stuck: BrowserCheckProcess = { exited: new Promise(() => undefined), kill: vi.fn() };
+    await expect(stopProcess(stuck, 1, 'Wrangler')).rejects.toThrow('Wrangler did not stop after SIGKILL.');
   });
 });
