@@ -34,7 +34,7 @@ afterEach(() => {
 /** What Steam puts on the return address after a successful sign-in. */
 function steamAssertion(overrides: Record<string, string> = {}) {
   const returnTo = new URL(
-    new URL(steamSignInUrl('https://dune.zone', 'tab-state')).searchParams.get('openid.return_to')!
+    steamSignInUrl(new URL('https://dune.zone'), 'tab-state').searchParams.get('openid.return_to')!
   );
   const claimed = `https://steamcommunity.com/openid/id/${STEAM_ID}`;
   returnTo.search = new URLSearchParams({

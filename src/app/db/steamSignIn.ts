@@ -12,7 +12,7 @@ function randomState(): string {
 export function startSteamSignIn(redirectTo: string): { redirect: URL; signingIn: false } {
   const state = randomState();
   sessionStorage.setItem(STEAM_SIGN_IN_KEY, JSON.stringify({ state, redirectTo }));
-  const redirect = new URL(steamSignInUrl(window.location.origin, state));
+  const redirect = steamSignInUrl(new URL(window.location.origin), state);
   window.location.assign(redirect);
   return { redirect, signingIn: false };
 }

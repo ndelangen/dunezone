@@ -9,7 +9,7 @@ export type SteamLogin = { steamId: string; nonce: string; name?: string; image?
  * Returns `null` when the assertion is malformed, stale, aimed at another site, or Steam does not confirm it.
  */
 export async function verifySteamLogin(fields: Record<string, unknown>, siteUrl: string): Promise<SteamLogin | null> {
-  const assertion = parseSteamAssertion(fields, siteUrl, Date.now());
+  const assertion = parseSteamAssertion(fields, new URL(siteUrl), Date.now());
   if (!assertion) {
     return null;
   }

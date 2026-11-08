@@ -15,19 +15,19 @@ const CLAIMED_ID = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/;
 export const STEAM_ASSERTION_MAX_AGE_MS = 5 * 60_000;
 
 /** The Steam sign-in address for a site, returning to that site with `state` so the tab can tell its own sign-in from a planted one. */
-export function steamSignInUrl(siteOrigin: string, state: string): string {
-  const returnTo = new URL(STEAM_RETURN_PATH, siteOrigin);
+export function steamSignInUrl(site: URL, state: string): URL {
+  const returnTo = new URL(STEAM_RETURN_PATH, site);
   returnTo.searchParams.set('state', state);
   const url = new URL(STEAM_OPENID_ENDPOINT);
   url.search = new URLSearchParams({
     'openid.ns': OPENID_NS,
     'openid.mode': 'checkid_setup',
     'openid.return_to': returnTo.toString(),
-    'openid.realm': new URL(siteOrigin).origin,
+    'openid.realm': site.origin,
     'openid.identity': IDENTIFIER_SELECT,
     'openid.claimed_id': IDENTIFIER_SELECT,
   }).toString();
-  return url.toString();
+  return url;
 }
 
 /** The `openid.*` fields Steam put on the return address, which the backend needs to check the assertion. */
@@ -43,29 +43,49 @@ export function steamAssertionFrom(search: URLSearchParams): Record<string, stri
 
 export type SteamAssertion = { steamId: string; nonce: string; checkBody: URLSearchParams };
 
-type OpenIdField = (name: string) => string | null;
+type OpenIdKey =
+  | 'ns'
+  | 'mode'
+  | 'op_endpoint'
+  | 'claimed_id'
+  | 'identity'
+  | 'return_to'
+  | 'response_nonce'
+  | 'assoc_handle'
+  | 'signed'
+  | 'sig';
+type OpenIdField = (name: OpenIdKey) => string | null;
 
-const SIGNED_FIELDS = ['op_endpoint', 'claimed_id', 'identity', 'return_to', 'response_nonce', 'assoc_handle'];
+const SIGNED_FIELDS: OpenIdKey[] = [
+  'op_endpoint',
+  'claimed_id',
+  'identity',
+  'return_to',
+  'response_nonce',
+  'assoc_handle',
+];
 
 /** A positive answer from Steam's own endpoint, for one Steam account, carrying its `steamId`. */
-const POSITIVE_ANSWER: Record<string, string> = {
+const POSITIVE_ANSWER: Partial<Record<OpenIdKey, string>> = {
   ns: OPENID_NS,
   mode: 'id_res',
   op_endpoint: STEAM_OPENID_ENDPOINT,
 };
 
 function positiveSteamId(field: OpenIdField): string | null {
-  const positive = Object.entries(POSITIVE_ANSWER).every(([name, expected]) => field(name) === expected);
+  const positive = (Object.entries(POSITIVE_ANSWER) as [OpenIdKey, string][]).every(
+    ([name, expected]) => field(name) === expected
+  );
   const claimed = field('claimed_id');
   const sameIdentity = positive && claimed === field('identity');
   return sameIdentity ? (CLAIMED_ID.exec(claimed ?? '')?.[1] ?? null) : null;
 }
 
 /** Whether the answer was sent back to this site's Steam return page. */
-function addressedToSite(field: OpenIdField, siteUrl: string): boolean {
+function addressedToSite(field: OpenIdField, site: URL): boolean {
   try {
     const returnTo = new URL(field('return_to') ?? '');
-    return returnTo.origin === new URL(siteUrl).origin && returnTo.pathname === STEAM_RETURN_PATH;
+    return returnTo.origin === site.origin && returnTo.pathname === STEAM_RETURN_PATH;
   } catch {
     return false;
   }
@@ -85,7 +105,7 @@ function recentNonce(field: OpenIdField, now: number): string | null {
 /** Whether Steam's signature covers every field this check relies on. */
 function signedOverEssentials(field: OpenIdField): boolean {
   const signed = new Set((field('signed') ?? '').split(','));
-  const hasSignature = ['sig', 'assoc_handle'].every((name) => !!field(name));
+  const hasSignature = (['sig', 'assoc_handle'] as const).every((name) => !!field(name));
   return hasSignature && SIGNED_FIELDS.every((name) => signed.has(name));
 }
 
@@ -106,16 +126,12 @@ function checkAuthenticationBody(fields: Record<string, unknown>): URLSearchPara
  * Returns `null` for anything else.
  * Only Steam's `check_authentication` answer, which the caller still has to get, proves it is genuine.
  */
-export function parseSteamAssertion(
-  fields: Record<string, unknown>,
-  siteUrl: string,
-  now: number
-): SteamAssertion | null {
+export function parseSteamAssertion(fields: Record<string, unknown>, site: URL, now: number): SteamAssertion | null {
   const field: OpenIdField = (name) => {
     const value = fields[`openid.${name}`];
     return typeof value === 'string' ? value : null;
   };
-  const trustworthy = addressedToSite(field, siteUrl) && signedOverEssentials(field);
+  const trustworthy = addressedToSite(field, site) && signedOverEssentials(field);
   const steamId = trustworthy ? positiveSteamId(field) : null;
   const nonce = steamId ? recentNonce(field, now) : null;
   return steamId && nonce ? { steamId, nonce, checkBody: checkAuthenticationBody(fields) } : null;
