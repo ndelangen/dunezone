@@ -10,7 +10,8 @@ import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.st
 const meta = testingPreview.meta({
   ...battlePlanPanelMeta,
   title: 'Play/Panels/Battle plan',
-  parameters: { panelWindow: PLAN_WINDOW },
+  /* Keeps the frame's full-screen layout: centred, the frame collapses to no width and its clipping hides the adjustment popover. */
+  parameters: { ...battlePlanPanelMeta.parameters, panelWindow: PLAN_WINDOW },
 });
 
 /** A finished plan locks in with Ready. */
