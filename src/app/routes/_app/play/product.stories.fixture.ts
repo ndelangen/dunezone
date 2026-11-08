@@ -1,6 +1,7 @@
 import { toStoredHeroKey } from '@shared/factions/schema';
 import { publicFaction } from '@shared/play/capture';
 import type { FactionCapture } from '@shared/play/capture';
+import dreamrulesDecks from '@shared/play/fixtures/dreamrulesDecks.json';
 import { normalizePlayGameSlug } from '@shared/play/gameNames';
 import type { TablePiece } from '@shared/play/model';
 import type { GameSnapshot, Viewer } from '@shared/play/protocol';
@@ -18,7 +19,6 @@ import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
 
 import { draftingSnapshot, factions, storyPlayer } from './drafting.stories.fixture';
-import dreamrulesDecks from '@shared/play/fixtures/dreamrulesDecks.json';
 import ruleset from './product.stories.fixture/ruleset.json';
 import { storyTransport } from './storyTransport';
 
@@ -60,11 +60,7 @@ const deckSize = (deck: DreamrulesDeck) => dreamrulesDecks[deck].cards.reduce((s
  * Once cards have left it, the stack takes the name its back gives it, as a split names it.
  * A full deck keeps the published deck's own name.
  */
-function dreamrulesDeck(
-  deck: DreamrulesDeck,
-  taken = 0,
-  factionNames: Parameters<typeof labelForCount>[2] = {}
-) {
+function dreamrulesDeck(deck: DreamrulesDeck, taken = 0, factionNames: Parameters<typeof labelForCount>[2] = {}) {
   const { id, name, color, back } = DECK_PIECES[deck];
   const count = deckSize(deck) - taken;
   const stack = {
