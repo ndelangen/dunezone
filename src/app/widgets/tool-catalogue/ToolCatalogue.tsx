@@ -264,7 +264,9 @@ function FeaturedLayout({ rows }: Readonly<{ rows: readonly ToolRow[] }>) {
             <Soon tile={featured} />
           </Group>
           <Text fw={800} size="xl">
-            {featured.title}
+            <Link {...featured.link} className={styles.atlasLink}>
+              {featured.title}
+            </Link>
           </Text>
           <Text c="dimmed">{featured.statement}</Text>
           <ChipList items={featured.points.map((point) => ({ key: point, label: point }))} />
