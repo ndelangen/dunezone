@@ -1,3 +1,4 @@
+import { Tooltip } from '@mantine/core';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
 
@@ -19,6 +20,8 @@ export type EntityLinkProps = EntityMedia & {
   showName?: boolean;
   /** The root's accessible name when the name is hidden. */
   label?: string;
+  /** Shown on hover, wrapped around the root, which takes the hover handlers and ref. */
+  tooltip?: string;
   /** `inverse` sets the name in pure white with a drop shadow, for a link laid over header artwork. */
   tone?: 'default' | 'inverse';
   /** A row with its own hover treatment can keep the name undecorated. */
@@ -50,13 +53,14 @@ export function EntityLink({
   renderRoot,
   showName = true,
   label,
+  tooltip,
   tone = 'default',
   underline = 'hover',
   density = 'default',
   presentation = 'citation',
   ...media
 }: EntityLinkProps) {
-  return renderRoot({
+  const root = renderRoot({
     className: clsx(
       styles.link,
       underline === 'hover' && styles.underlined,
@@ -79,4 +83,5 @@ export function EntityLink({
       </>
     ),
   });
+  return tooltip ? <Tooltip label={tooltip}>{root}</Tooltip> : root;
 }

@@ -1,3 +1,4 @@
+import { VisuallyHidden } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import styles from './RankedList.module.css';
@@ -33,7 +34,9 @@ export function RankedList({ items, label }: RankedListProps) {
       {items.map((item) => (
         <li key={item.key} className={styles.row}>
           <span className={styles.rank} data-podium={item.rank <= 3 ? item.rank : undefined}>
+            <VisuallyHidden>Rank </VisuallyHidden>
             {item.rank}
+            <VisuallyHidden>: </VisuallyHidden>
           </span>
           <span className={styles.subject}>
             {item.subject}

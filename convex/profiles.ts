@@ -35,7 +35,7 @@ import { profileCatalogueOrderOf, profileListName } from './lib/profileCatalogue
 import { loadProfilePageBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { allocateProfileSlug } from './lib/profileSlugs';
-import { loadDirectoryGroups, loadLeaderboard } from './lib/standings';
+import { loadDirectoryGroups, loadGroupStandings, loadLeaderboard } from './lib/standings';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -252,6 +252,8 @@ const profileDirectoryEntryValidator = v.object({
   }),
   /** The live Groups the person is an active member of, for the discs beside their name. */
   groups: v.array(v.object({ slug: v.string(), name: v.string() })),
+  /** How many more live Groups they are in than the discs show. */
+  moreGroups: v.number(),
 });
 
 /** The rows of the selected entries, each profile read once with its activity counts. */
@@ -280,7 +282,8 @@ async function directoryEntries(ctx: QueryCtx, selected: { source_id: string }[]
     name: profileListName(profile),
     image: profile.avatar?.url ?? profile.avatar_url,
     activity: activity[index] ?? { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
-    groups: groups[index] ?? [],
+    groups: groups[index]?.shown ?? [],
+    moreGroups: groups[index]?.more ?? 0,
   }));
 }
 
@@ -381,23 +384,44 @@ const leaderboardEntryValidator = v.object({
   image: v.union(v.string(), v.null()),
 });
 
+const groupStandingMemberValidator = v.object({
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+});
+
 /**
- * The directory's two leaderboards: who made the most factions, and who asked and answered the most rules questions.
- * Each holds at most five people and never anyone at zero;
- * a board with nobody on it comes back empty.
+ * What the plain directory's first page opens with, as one answer: two leaderboards and the Groups list.
+ * The leaderboards are who made the most factions and who asked and answered the most rules questions, each at most five people and never anyone at zero.
+ * The Groups list orders live Groups by active members, then by what they maintain;
+ * Load more asks again with a larger `groupLimit`, and `hasMore` says whether that would show more.
  */
-export const leaderboards = publicQuery({
-  args: {},
+export const directoryHighlights = publicQuery({
+  args: { groupLimit: v.optional(v.number()) },
   returns: v.object({
     factionDesigners: v.array(leaderboardEntryValidator),
     faqContributors: v.array(leaderboardEntryValidator),
+    groups: v.object({
+      entries: v.array(
+        v.object({
+          rank: v.number(),
+          slug: v.string(),
+          name: v.string(),
+          memberCount: v.number(),
+          factionCount: v.number(),
+          members: v.array(groupStandingMemberValidator),
+        })
+      ),
+      hasMore: v.boolean(),
+    }),
   }),
-  handler: async (ctx) => {
-    const [factionDesigners, faqContributors] = await Promise.all([
+  handler: async (ctx, args) => {
+    const [factionDesigners, faqContributors, groups] = await Promise.all([
       loadLeaderboard(ctx, 'factions'),
       loadLeaderboard(ctx, 'faq'),
+      loadGroupStandings(ctx, args.groupLimit),
     ]);
-    return { factionDesigners, faqContributors };
+    return { factionDesigners, faqContributors, groups };
   },
 });
 

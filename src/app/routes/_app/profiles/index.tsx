@@ -1,5 +1,9 @@
-import { Group, Select, SimpleGrid, Stack } from '@mantine/core';
-import { PROFILE_CATALOGUE_PAGE_SIZE, parseProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
+import { Group, Select, SimpleGrid, Stack, Text, VisuallyHidden } from '@mantine/core';
+import {
+  GROUP_STANDINGS_STEP,
+  PROFILE_CATALOGUE_PAGE_SIZE,
+  parseProfileCatalogueSearch,
+} from '@shared/profiles/catalogueSearch';
 import type { ProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
@@ -24,20 +28,17 @@ import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
 import {
-  loadGroupStandings,
+  loadDirectoryHighlights,
   loadProfileDirectoryPage,
-  loadProfileLeaderboards,
-  useGroupStandings,
+  useDirectoryHighlights,
   useProfileDirectoryPage,
-  useProfileLeaderboards,
 } from '@db/profiles';
 import type {
-  GroupStandingsData,
+  DirectoryHighlights as Highlights,
   LeaderboardEntry,
   ProfileDirectoryArgs,
   ProfileDirectoryEntry,
   ProfileDirectoryPageData,
-  ProfileLeaderboards,
 } from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
@@ -95,19 +96,9 @@ function pageSearch(page: number) {
   });
 }
 
-/** How many Groups the list shows at first, and how many more each "Load more" asks for. */
-const GROUP_STEP = 5;
-
 /** Only the plain directory's first page shows the leaderboards and Groups; a search or a later page shows just the list. */
 function showsHighlights(deps: ProfileDirectoryArgs) {
   return !deps.q && !(deps.page && deps.page > 1);
-}
-
-type Highlights = { leaderboards: ProfileLeaderboards; groups: GroupStandingsData };
-
-async function loadHighlights(): Promise<Highlights> {
-  const [leaderboards, groups] = await Promise.all([loadProfileLeaderboards(), loadGroupStandings(GROUP_STEP)]);
-  return { leaderboards, groups };
 }
 
 export const Route = createFileRoute('/_app/profiles/')({
@@ -118,7 +109,7 @@ export const Route = createFileRoute('/_app/profiles/')({
   loader: async ({ deps }) => {
     const [data, highlights] = await Promise.all([
       loadProfileDirectoryPage(catalogueQueryArgs(deps, SEARCH_STEP)),
-      showsHighlights(deps) ? loadHighlights() : null,
+      showsHighlights(deps) ? loadDirectoryHighlights(GROUP_STANDINGS_STEP) : null,
     ]);
     /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
     if (!('mode' in data) && data.page > data.pageCount) {
@@ -303,10 +294,16 @@ function ProfileRow({ entry }: { entry: ProfileDirectoryEntry }) {
         <Group gap="sm" wrap="nowrap" className={styles.identity}>
           <ProfileLink slug={entry.slug} name={entry.name} image={entry.image} />
           {entry.groups.length > 0 ? (
-            <Group component="span" gap={4} wrap="nowrap" aria-label={`Groups of ${entry.name}`}>
+            <Group component="span" role="group" gap={4} wrap="nowrap" aria-label={`Groups of ${entry.name}`}>
               {entry.groups.map((group) => (
                 <GroupLink key={group.slug} slug={group.slug} name={group.name} showName={false} />
               ))}
+              {entry.moreGroups > 0 ? (
+                <Text component="span" size="xs" c="dimmed">
+                  +{entry.moreGroups}
+                  <VisuallyHidden> more groups</VisuallyHidden>
+                </Text>
+              ) : null}
             </Group>
           ) : null}
         </Group>
@@ -331,15 +328,16 @@ function leaderboardItems(entries: readonly LeaderboardEntry[], stat: (count: nu
  * A board with nobody on it is left out.
  */
 function DirectoryHighlights({ initial }: { initial: Highlights }) {
-  const leaderboards = useProfileLeaderboards({ initialData: initial.leaderboards }).data ?? initial.leaderboards;
-  const growing = useGrowingLimit('groups', GROUP_STEP);
-  const live = useGroupStandings(growing.limit);
-  const groups = useGrowingSearch({
+  const growing = useGrowingLimit('groups', GROUP_STANDINGS_STEP);
+  const live = useDirectoryHighlights(growing.limit, GROUP_STANDINGS_STEP);
+  const shown = useGrowingSearch({
     search: growing,
-    initial: initial.groups,
+    initial,
     live,
-    rows: (page) => page.entries.length,
+    rows: (answer) => answer.groups.entries.length,
   });
+  const leaderboards = shown.data;
+  const groups = { ...shown, data: shown.data.groups };
   const list = useRef<HTMLDivElement>(null);
   useFocusFirstNewRow(list, groups.loaded, groups.grown, 'li a[href^="/groups/"]');
 

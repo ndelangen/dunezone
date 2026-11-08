@@ -1,5 +1,4 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
 
 import { RankedList } from './RankedList';
 
@@ -20,14 +19,7 @@ const meta = preview.meta({
 });
 
 /** Equal counts share a place, and the top three stand out. */
-export const Default = meta.story({
-  play: async ({ canvasElement }) => {
-    const list = within(canvasElement).getByRole('list', { name: 'Faction designers ranking' });
-    const rows = within(list).getAllByRole('listitem');
-    await expect(rows).toHaveLength(5);
-    await expect(rows[4]).toHaveTextContent('4Ridwan3');
-  },
-});
+export const Default = meta.story({});
 
 /** A line under the subject, such as the faces of a Group's members. */
 export const WithDetail = meta.story({

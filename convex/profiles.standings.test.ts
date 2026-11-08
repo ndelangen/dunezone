@@ -124,7 +124,7 @@ describe('leaderboards', () => {
     await factions(t, ridwan, 2);
     await factions(t, amon, 2);
 
-    const boards = await t.query(api.profiles.leaderboards, {});
+    const boards = await t.query(api.profiles.directoryHighlights, {});
     expect(boards.factionDesigners.map(({ name, rank, count }) => [rank, name, count])).toEqual([
       [1, 'Central', 4],
       [2, 'Amon', 2],
@@ -143,7 +143,7 @@ describe('leaderboards', () => {
     await question(t, asker);
     await question(t, gone, gone);
 
-    const boards = await t.query(api.profiles.leaderboards, {});
+    const boards = await t.query(api.profiles.directoryHighlights, {});
     expect(boards.faqContributors.map(({ name, count }) => [name, count])).toEqual([
       ['Asker', 3],
       ['Helper', 2],
@@ -155,9 +155,39 @@ describe('leaderboards', () => {
     for (let index = 0; index < LEADERBOARD_SIZE + 2; index += 1) {
       await factions(t, await person(t, `Maker${index}`), index + 1);
     }
-    const boards = await t.query(api.profiles.leaderboards, {});
+    const boards = await t.query(api.profiles.directoryHighlights, {});
     expect(boards.factionDesigners).toHaveLength(LEADERBOARD_SIZE);
     expect(boards.factionDesigners[0]?.name).toBe(`Maker${LEADERBOARD_SIZE + 1}`);
+  });
+
+  test('order a tie across the fifth place A-Z over everyone in it', async () => {
+    const t = applicationTest();
+    for (const name of ['Zed', 'Yan', 'Xia', 'Wes', 'Val', 'Uma', 'Abe']) {
+      await factions(t, await person(t, name), 1);
+    }
+    const boards = await t.query(api.profiles.directoryHighlights, {});
+    expect(boards.factionDesigners.map(({ name, rank }) => [rank, name])).toEqual([
+      [1, 'Abe'],
+      [1, 'Uma'],
+      [1, 'Val'],
+      [1, 'Wes'],
+      [1, 'Xia'],
+    ]);
+  });
+
+  test('drop a person whose profile is deleted', async () => {
+    const t = applicationTest();
+    const maker = await person(t, 'Maker');
+    await factions(t, maker, 2);
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', maker))
+        .unique();
+      await ctx.db.patch(profile!._id, { account_state: 'deleted' });
+    });
+    expect(await t.run(async (ctx) => await ctx.db.query('profile_standings').collect())).toEqual([]);
   });
 
   test('drop a person whose last faction is deleted', async () => {
@@ -167,7 +197,7 @@ describe('leaderboards', () => {
     await t.run(async (rawCtx) => {
       await applicationTriggers.wrapDB(rawCtx).db.patch(factionId!, { is_deleted: true });
     });
-    const boards = await t.query(api.profiles.leaderboards, {});
+    const boards = await t.query(api.profiles.directoryHighlights, {});
     expect(boards.factionDesigners).toEqual([]);
   });
 });
@@ -201,7 +231,7 @@ describe('group standings', () => {
       await group(t, `Extra${index}`, owner, []);
     }
 
-    const first = await t.query(api.groups.standings, {});
+    const first = (await t.query(api.profiles.directoryHighlights, {})).groups;
     expect(first.entries.map(({ name }) => name).slice(0, 3)).toEqual(['Big', 'Busy', 'Quiet']);
     expect(first.entries[0]).toMatchObject({ rank: 1, memberCount: 3, factionCount: 0 });
     expect(first.entries[0]?.members.map(({ name }) => name)).toEqual(['Owner', 'Two', 'Three']);
@@ -209,7 +239,7 @@ describe('group standings', () => {
     expect(first.entries).toHaveLength(GROUP_STANDINGS_STEP);
     expect(first.hasMore).toBe(true);
 
-    const grown = await t.query(api.groups.standings, { limit: GROUP_STANDINGS_STEP * 2 });
+    const grown = (await t.query(api.profiles.directoryHighlights, { groupLimit: GROUP_STANDINGS_STEP * 2 })).groups;
     expect(grown.entries).toHaveLength(GROUP_STANDINGS_STEP + 3);
     expect(grown.hasMore).toBe(false);
   });
@@ -221,11 +251,11 @@ describe('group standings', () => {
     await t.run(async (rawCtx) => {
       await applicationTriggers.wrapDB(rawCtx).db.patch(groupId, { is_deleted: true });
     });
-    expect((await t.query(api.groups.standings, {})).entries).toEqual([]);
+    expect((await t.query(api.profiles.directoryHighlights, {})).groups.entries).toEqual([]);
   });
 });
 
-test('the directory shows the Groups a person is an active member of', async () => {
+test('the directory shows the Groups a person is an active member of, and counts those past the discs', async () => {
   const t = applicationTest();
   const owner = await person(t, 'Owner');
   await group(t, 'Dreamers', owner, [owner]);
@@ -233,9 +263,20 @@ test('the directory shows the Groups a person is an active member of', async () 
   if ('mode' in page) {
     throw new Error('Expected a browsed page.');
   }
-  expect(page.entries.find((entry) => entry.name === 'Owner')?.groups).toEqual([
-    { slug: 'dreamers', name: 'Dreamers' },
-  ]);
+  const entry = page.entries.find(({ name }) => name === 'Owner');
+  expect(entry?.groups).toEqual([{ slug: 'dreamers', name: 'Dreamers' }]);
+  expect(entry?.moreGroups).toBe(0);
+
+  for (let index = 0; index < 7; index += 1) {
+    await group(t, `Sietch${index}`, owner, [owner]);
+  }
+  const fuller = await t.query(api.profiles.catalogue, {});
+  if ('mode' in fuller) {
+    throw new Error('Expected a browsed page.');
+  }
+  const grown = fuller.entries.find(({ name }) => name === 'Owner');
+  expect(grown?.groups).toHaveLength(6);
+  expect(grown?.moreGroups).toBe(2);
 });
 
 test('the standings backfill rebuilds rows written past the triggers', async () => {
@@ -251,12 +292,16 @@ test('the standings backfill rebuilds rows written past the triggers', async () 
       await ctx.db.delete(row._id);
     }
   });
-  expect((await t.query(api.profiles.leaderboards, {})).factionDesigners).toEqual([]);
+  expect((await t.query(api.profiles.directoryHighlights, {})).factionDesigners).toEqual([]);
 
   await t.mutation(internal.migrations.standings_profiles_v1, {});
   await t.mutation(internal.migrations.standings_groups_v1, {});
   await t.finishAllScheduledFunctions(() => undefined);
 
-  expect((await t.query(api.profiles.leaderboards, {})).factionDesigners.map(({ name }) => name)).toEqual(['Owner']);
-  expect((await t.query(api.groups.standings, {})).entries.map(({ name }) => name)).toEqual(['Dreamers']);
+  expect((await t.query(api.profiles.directoryHighlights, {})).factionDesigners.map(({ name }) => name)).toEqual([
+    'Owner',
+  ]);
+  expect((await t.query(api.profiles.directoryHighlights, {})).groups.entries.map(({ name }) => name)).toEqual([
+    'Dreamers',
+  ]);
 });

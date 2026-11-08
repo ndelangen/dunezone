@@ -1,4 +1,3 @@
-import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 
@@ -61,17 +60,14 @@ export const ProfileLink = ({
       disc={<NameDisc name={name ?? ''} src={image} size="var(--entity-link-media-size)" />}
       showName={showName}
       label={title}
+      tooltip={title}
       tone={tone}
       underline={underline}
       density={density}
       presentation={presentation}
       className={className}
       style={style}
-      renderRoot={(props) => {
-        const link = <Link to="/profiles/$profileSlug" params={{ profileSlug: slug }} {...props} />;
-        /* The tooltip wraps the link itself, which is what takes its hover handlers and ref. */
-        return title ? <Tooltip label={title}>{link}</Tooltip> : link;
-      }}
+      renderRoot={(props) => <Link to="/profiles/$profileSlug" params={{ profileSlug: slug }} {...props} />}
     />
   );
 };

@@ -17,6 +17,9 @@ export type ProfileCatalogueSort = (typeof PROFILE_CATALOGUE_SORTS)[number];
 /** How many profiles one page holds. */
 export const PROFILE_CATALOGUE_PAGE_SIZE = 24;
 
+/** How many Groups the directory's Groups list shows at first, and how many more each Load more adds. */
+export const GROUP_STANDINGS_STEP = 5;
+
 /** The longest search the directory runs; anything past it is cut, since no name is this long. */
 export const PROFILE_CATALOGUE_QUERY_LIMIT = 100;
 

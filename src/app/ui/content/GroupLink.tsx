@@ -1,4 +1,3 @@
-import { Tooltip } from '@mantine/core';
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties } from 'react';
 
@@ -33,12 +32,9 @@ export const GroupLink = ({ slug, name, className, style, showName = true }: Gro
     color={nameDiscColor(name)}
     showName={showName}
     label={showName ? undefined : name}
+    tooltip={showName ? undefined : name}
     className={className}
     style={style}
-    renderRoot={(props) => {
-      const link = <Link to="/groups/$groupSlug" params={{ groupSlug: slug }} {...props} />;
-      /* The tooltip wraps the link itself, which is what takes its hover handlers and ref. */
-      return showName ? link : <Tooltip label={name}>{link}</Tooltip>;
-    }}
+    renderRoot={(props) => <Link to="/groups/$groupSlug" params={{ groupSlug: slug }} {...props} />}
   />
 );

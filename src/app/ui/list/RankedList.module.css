@@ -18,7 +18,7 @@
 }
 
 .rank {
-  font-family: "C_Copperplate_Gothic", serif;
+  font-family: "C_Copperplate_Gothic", sans-serif;
   font-variant-numeric: tabular-nums;
   color: var(--color-muted);
   text-align: center;

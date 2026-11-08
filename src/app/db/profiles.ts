@@ -73,28 +73,20 @@ export async function loadProfileDirectoryPage(args: ProfileDirectoryArgs): Prom
   return await db.query(api.profiles.catalogue, args, { hold: !args.q });
 }
 
-export type ProfileLeaderboards = FunctionReturnType<typeof api.profiles.leaderboards>;
-export type LeaderboardEntry = ProfileLeaderboards['factionDesigners'][number];
-export type GroupStandingsData = FunctionReturnType<typeof api.groups.standings>;
+export type DirectoryHighlights = FunctionReturnType<typeof api.profiles.directoryHighlights>;
+export type LeaderboardEntry = DirectoryHighlights['factionDesigners'][number];
 
-/** The directory's leaderboards, for the route loader; paired with `useProfileLeaderboards`. */
-export async function loadProfileLeaderboards(): Promise<ProfileLeaderboards> {
-  return await db.query(api.profiles.leaderboards, {});
+/** The directory's leaderboards and Groups list, for the route loader; paired with `useDirectoryHighlights`. */
+export async function loadDirectoryHighlights(groupLimit: number): Promise<DirectoryHighlights> {
+  return await db.query(api.profiles.directoryHighlights, { groupLimit });
 }
 
-/** The directory's leaderboards, live, taking `loadProfileLeaderboards`'s result as `initialData`. */
-export function useProfileLeaderboards(options?: { initialData?: ProfileLeaderboards }) {
-  return toLiveQueryResult(useLiveQuery(api.profiles.leaderboards, {}), () => options?.initialData);
-}
-
-/** The directory's Groups list at one limit, for the route loader; paired with `useGroupStandings`. */
-export async function loadGroupStandings(limit: number): Promise<GroupStandingsData> {
-  return await db.query(api.groups.standings, { limit });
-}
-
-/** The directory's Groups list at one limit, live: Load more asks again with a larger one. */
-export function useGroupStandings(limit: number) {
-  return useLiveQuery(api.groups.standings, { limit });
+/**
+ * The directory's leaderboards and Groups list, live: Load more asks again with a larger `groupLimit`.
+ * Only the first step is held warm after it is left, so a grown list does not keep a subscription per length.
+ */
+export function useDirectoryHighlights(groupLimit: number, firstStep: number) {
+  return useLiveQuery(api.profiles.directoryHighlights, { groupLimit }, { hold: groupLimit === firstStep });
 }
 
 /** One profile's page, live, taking `loadProfileBySlug`'s result as `initialData`. */
