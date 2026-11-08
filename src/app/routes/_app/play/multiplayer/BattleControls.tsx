@@ -635,10 +635,14 @@ function BattleSides(props: ActiveProps) {
 function usePointerReach() {
   const motion = useMotionAllowed();
   const [run, setRun] = useState({ motion, count: motion ? 1 : 0 });
+  const [reach, setReach] = useState(motion ? 0 : 1);
   if (run.motion !== motion) {
     setRun({ motion, count: motion ? run.count + 1 : run.count });
+    /* Motion turned back on grows the pointer again from nothing, rather than showing it whole until the first frame. */
+    if (motion) {
+      setReach(0);
+    }
   }
-  const [reach, setReach] = useState(motion ? 0 : 1);
   useEffect(() => {
     if (!run.motion) {
       return;

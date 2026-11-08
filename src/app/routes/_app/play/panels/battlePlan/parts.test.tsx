@@ -35,11 +35,13 @@ function Row({
   start = 2,
   max = 20,
   stops,
+  disabled = false,
 }: {
   onChange: (value: number) => void;
   start?: number;
   max?: number;
   stops?: number[];
+  disabled?: boolean;
 }) {
   const [value, setValue] = useState(start);
   return (
@@ -49,7 +51,7 @@ function Row({
         value={value}
         max={max}
         stops={stops}
-        disabled={false}
+        disabled={disabled}
         onChange={(next) => {
           onChange(next);
           setValue(next);
@@ -135,10 +137,13 @@ async function drag(
     fireEvent.mouseMove(document, { clientX, clientY: 5 });
     await settle(pause);
   }
+  const live = onChange.mock.calls.length;
   fireEvent.mouseUp(document, { clientX: at.at(-1), clientY: 5 });
   await settle(200);
   vi.useRealTimers();
   return {
+    /* How many steps went out before letting go. */
+    live,
     sent: onChange.mock.calls.map(([value]) => value as number),
     shown: screen.getByRole('textbox', { name: 'Fedaykin' }),
   };
@@ -167,11 +172,53 @@ test('a steady drag up through troops that cost 3 spice each never falls back to
 
 test('a fast scrub sends a few live steps, not every one, and still ends where the thumb is let go', async () => {
   /* Back and forth across the track, a step every 20 ms. */
-  const { sent, shown } = await drag({}, { at: [20, 40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70], pause: 20 });
+  const { live, sent, shown } = await drag(
+    {},
+    { at: [20, 40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70], pause: 20 }
+  );
   /* 240 ms of scrubbing on the fake clock allows two live steps after the first; the release sends the endpoint. */
+  expect(live).toBeGreaterThan(0);
   expect(sent.length).toBeLessThanOrEqual(4);
   expect(sent.at(-1)).toBe(7);
   expect(shown).toHaveProperty('value', '7');
+});
+
+test('a held arrow key keeps the live pace and still sends where it stops', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+  const onChange = vi.fn();
+  render(<Row onChange={onChange} />);
+  const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
+  thumb.focus();
+  /* Key repeat every 30 ms, eight times: 3 through 10. */
+  for (let press = 0; press < 8; press += 1) {
+    fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30);
+    });
+  }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  vi.useRealTimers();
+  const sent = onChange.mock.calls.map(([value]) => value as number);
+  expect(sent.length).toBeLessThanOrEqual(3);
+  expect(sent.at(-1)).toBe(10);
+});
+
+test('a dial that locks drops the step still waiting its turn', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+  const onChange = vi.fn();
+  const { rerender } = render(<Row onChange={onChange} />);
+  const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
+  thumb.focus();
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  rerender(<Row onChange={onChange} disabled />);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  vi.useRealTimers();
+  expect(onChange.mock.calls).toEqual([[3]]);
 });
 
 test('an arrow key on the slider sends its step once', async () => {

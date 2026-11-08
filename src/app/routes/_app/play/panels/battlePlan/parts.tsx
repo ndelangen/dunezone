@@ -285,7 +285,24 @@ export function DialRow({
     }
   };
   useEffect(() => cancelWaiting, []);
+  /* A dial that locks mid-gesture, as when its side readies, drops the step still waiting and lets the thumb go back to the plan. */
+  const locked = disabled || max === 0;
+  if (locked && draft !== null) {
+    setDraft(null);
+  }
+  useEffect(() => {
+    if (locked) {
+      cancelWaiting();
+    }
+  }, [locked]);
+  const finish = () => {
+    sent.current = { value: null, at: sent.current.at, seen: sent.current.seen };
+    setDraft(null);
+  };
   const send = (next: number) => {
+    if (locked) {
+      return;
+    }
     if (next === (waiting.current?.value ?? sent.current.value ?? latest.current.value)) {
       return;
     }
@@ -303,14 +320,31 @@ export function DialRow({
       }, wait),
     };
   };
+  /*
+   * The end of a gesture keeps the same pace as its steps: an arrow key ends one at every press, so a held key would
+   * otherwise send each repeat. An endpoint inside the step budget waits its turn, the thumb holding it until it goes out.
+   */
   const release = (end: number) => {
     cancelWaiting();
     const inFlight = end === sent.current.value && !sent.current.seen;
-    if (end !== latest.current.value && !inFlight) {
-      deliver(end);
+    if (locked || end === latest.current.value || inFlight) {
+      finish();
+      return;
     }
-    sent.current = { value: null, at: sent.current.at, seen: sent.current.seen };
-    setDraft(null);
+    const wait = sent.current.at + LIVE_STEP_MS - performance.now();
+    if (wait <= 0) {
+      deliver(end);
+      finish();
+      return;
+    }
+    waiting.current = {
+      value: end,
+      timer: setTimeout(() => {
+        waiting.current = null;
+        deliver(end);
+        finish();
+      }, wait),
+    };
   };
   return (
     <div className={styles.dialRow} data-spice={spice || undefined}>
@@ -324,7 +358,7 @@ export function DialRow({
         max={Math.max(max, 1)}
         step={1}
         value={Math.min(shown, Math.max(max, 1))}
-        disabled={disabled || max === 0}
+        disabled={locked}
         label={null}
         size="sm"
         /* A row with stops snaps the thumb to the nearest one as it moves, so every step it sends is one the plan can take. */
@@ -332,6 +366,9 @@ export function DialRow({
         restrictToMarks={!!stops}
         classNames={stops ? { markWrapper: styles.stop } : undefined}
         onChange={(next) => {
+          if (locked) {
+            return;
+          }
           setDraft(next);
           send(next);
         }}

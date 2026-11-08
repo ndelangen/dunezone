@@ -176,5 +176,10 @@ export const MarkingDone = meta.story({
     }
     await waitFor(() => expect(row).toHaveAttribute('data-complete'));
     await expect(tick(order.at(-1)!)).not.toBeNull();
+    /* Taking the last mark back ends the completion; the token moves back among the factions still to go, so each look finds it afresh. */
+    const last = () => canvas.getByRole('button', { name: names[order.at(-1)!] });
+    await userEvent.click(last());
+    await waitFor(() => expect(last()).toHaveAttribute('aria-pressed', 'false'));
+    await expect(row).not.toHaveAttribute('data-complete');
   },
 });

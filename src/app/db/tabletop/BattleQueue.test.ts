@@ -45,3 +45,19 @@ test('an edit held back while the table cannot send, as during a resync, still s
   );
   expect(queue.shown(snapshot, false).battlePlan?.adjustment).toBe(2);
 });
+
+test('an edit the room has not answered counts its own strength, not the strength the room last answered', () => {
+  const snapshot = battleSnapshot();
+  const queue = new BattleQueue({
+    canAct: () => false,
+    snapshot: () => snapshot,
+    sendPlan: vi.fn(),
+    command: vi.fn(),
+    hasRoom: () => true,
+  });
+  queue.editPlan('battle-one', { adjustment: 2 });
+  expect(queue.shown(snapshot, false).battlePlan?.strength).toBe(2);
+  /* Advanced dialing: two unsupported troops at half strength and one supported at full. */
+  queue.editPlan('battle-one', { troops: [{ faceId: 'harkonnen-front', undialed: 2, dialed: 1 }], spice: 1 });
+  expect(queue.shown(snapshot, false).battlePlan?.strength).toBe(4);
+});

@@ -53,17 +53,19 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
   const complete = rest.length === 0 && locked.length > 0;
   /*
    * What changed while the row was shown, so a tick pops, and the completion runs, only for marks made since, not on every mount.
-   * Marks made with motion off are not kept, so turning motion back on does not replay them.
+   * Marks made with motion off are not kept, so turning motion back on does not replay them,
+   * nor any that arrive in the same update that turns it on: only marks seen with motion already on animate.
    */
   const [seen, setSeen] = useState({ done, motion, fresh: [] as string[], completed: false });
   if (seen.done.join() !== done.join() || seen.motion !== motion) {
+    const animate = motion && seen.motion;
     setSeen({
       done,
       motion,
-      fresh: motion
+      fresh: animate
         ? [...seen.fresh.filter((id) => done.includes(id)), ...done.filter((id) => !seen.done.includes(id))]
         : [],
-      completed: motion && complete && seen.done.length < order.length,
+      completed: animate && complete && seen.done.length < order.length,
     });
   }
   const token = (id: string) => (

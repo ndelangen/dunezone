@@ -1,4 +1,5 @@
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
+import { dialsFlat, dialsFree, flatStrength, spiceStrength } from '@shared/play/battleDialing';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 
 type BattleAction = Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>;
@@ -18,6 +19,22 @@ function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): Batt
   return disclosure.element === 'card'
     ? { ...shown, cardIds: [...new Set([...shown.cardIds, disclosure.cardId])] }
     : { ...shown, [disclosure.element]: true };
+}
+
+/*
+ * The strength the room will count for a plan, worked out the way the Worker counts it, so an edit the room has not answered yet
+ * moves the shown total at once. Advanced max dialing may still move support between troops when the room answers.
+ */
+function projectedStrength(plan: Pick<BattlePlan, 'troops' | 'spice' | 'adjustment' | 'faces' | 'dialing'>) {
+  if (dialsFlat(plan.dialing)) {
+    const dial = flatStrength(plan.troops, plan.faces);
+    const bonus = plan.dialing === 'gf92' ? spiceStrength(dial, plan.spice, dialsFree(plan.troops, plan.faces)) : 0;
+    return dial + bonus + plan.adjustment;
+  }
+  return plan.troops.reduce((total, troop) => {
+    const face = plan.faces.find((candidate) => candidate.id === troop.faceId);
+    return total + troop.undialed * (face?.strength ?? 0) + troop.dialed * (face?.supportedStrength ?? 0);
+  }, plan.adjustment);
 }
 
 /* The snapshot with its battle plan replaced, the bank holding back the spice the new plan commits. */
@@ -165,7 +182,9 @@ export class BattleQueue {
       return authoritative;
     }
     const was = authoritative.battlePlan;
-    return withPlan(authoritative, was, { ...was, ...pending?.patch, ...queued?.patch });
+    const plan = { ...was, ...pending?.patch, ...queued?.patch };
+    /* The room's strength belongs to the plan it last answered; an edit still on its way counts its own. */
+    return withPlan(authoritative, was, { ...plan, strength: projectedStrength(plan) });
   }
 
   /*

@@ -1,7 +1,8 @@
 import { testingPreview } from '@sb/preview';
+import { waitForFrame } from '@sb/storyWaits';
 import type { BattlePlan, BattlePlanInput } from '@shared/play/battle';
 import { useState } from 'react';
-import { expect, userEvent } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { BattlePlanPanel } from './BattlePlanPanel';
 import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.stories.fixture';
@@ -69,4 +70,24 @@ function PlayedPlan() {
 export const RollingStrength = meta.story({
   globals: { motion: 'on' },
   render: () => <PlayedPlan />,
+  play: async ({ canvas, canvasElement }) => {
+    const sum = canvasElement.querySelector<HTMLElement>('[aria-live="polite"]');
+    await expect(sum).not.toBeNull();
+    const total = () => Number(sum!.querySelector('.mantine-VisuallyHidden-root')?.textContent);
+    /* Where each wheel stands: its faces' scroll. */
+    const wheels = () =>
+      [...sum!.querySelectorAll<HTMLElement>('[aria-hidden="true"] > span')]
+        .map((faces) => faces.style.translate)
+        .join();
+    const before = total();
+    const stood = wheels();
+    await expect(Number.isFinite(before)).toBe(true);
+    await userEvent.click(canvas.getByRole('button', { name: /^Adjust the strength by hand/ }));
+    const more = await within(canvasElement.ownerDocument.body).findByRole('button', { name: 'More: Adjustment' });
+    await userEvent.click(more);
+    await userEvent.click(more);
+    /* Two half steps up: the total reads one more at once, and the wheels roll away from where they stood. */
+    await waitForFrame(() => expect(total()).toBe(before + 1));
+    await waitForFrame(() => expect(wheels()).not.toBe(stood));
+  },
 });
