@@ -255,26 +255,27 @@ describe('group standings', () => {
   });
 });
 
-test('the directory shows the Groups a person is an active member of, and counts those past the discs', async () => {
-  const t = applicationTest();
-  const owner = await person(t, 'Owner');
-  await group(t, 'Dreamers', owner, [owner]);
+/** One person's row on the directory's first browsed page. */
+async function directoryEntry(t: World, name: string) {
   const page = await t.query(api.profiles.catalogue, {});
   if ('mode' in page) {
     throw new Error('Expected a browsed page.');
   }
-  const entry = page.entries.find(({ name }) => name === 'Owner');
+  return page.entries.find((entry) => entry.name === name);
+}
+
+test('the directory shows the Groups a person is an active member of, and counts those past the discs', async () => {
+  const t = applicationTest();
+  const owner = await person(t, 'Owner');
+  await group(t, 'Dreamers', owner, [owner]);
+  const entry = await directoryEntry(t, 'Owner');
   expect(entry?.groups).toEqual([{ slug: 'dreamers', name: 'Dreamers' }]);
   expect(entry?.moreGroups).toBe(0);
 
   for (let index = 0; index < 7; index += 1) {
     await group(t, `Sietch${index}`, owner, [owner]);
   }
-  const fuller = await t.query(api.profiles.catalogue, {});
-  if ('mode' in fuller) {
-    throw new Error('Expected a browsed page.');
-  }
-  const grown = fuller.entries.find(({ name }) => name === 'Owner');
+  const grown = await directoryEntry(t, 'Owner');
   expect(grown?.groups).toHaveLength(6);
   expect(grown?.moreGroups).toBe(2);
 });
