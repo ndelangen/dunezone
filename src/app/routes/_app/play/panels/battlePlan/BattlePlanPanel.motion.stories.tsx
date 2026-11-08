@@ -1,9 +1,7 @@
 import preview from '@sb/preview';
 import type { BattlePlan, BattlePlanInput } from '@shared/play/battle';
-import type { Decorator } from '@storybook/tanstack-react';
 import { useState } from 'react';
 
-import { useTrialVariant } from '../../motionTrials.stories.fixture';
 import { BattlePlanPanel } from './BattlePlanPanel';
 import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.stories.fixture';
 
@@ -51,23 +49,7 @@ function PlayedPlan() {
   );
 }
 
-function strengthTrial(variant?: string): Decorator {
-  function Pin() {
-    useTrialVariant('strength', variant);
-    return null;
-  }
-  return (Story) => (
-    <>
-      <Story />
-      <Pin />
-    </>
-  );
-}
-
-/*
- * Animation trials for the battle strength landing on its new total. Change the troops, the spice, the leader or the
- * adjustment in each story to see it. Once one is chosen it becomes the total's own and these trials go.
- */
+/* The battle strength's digits slide to each new total; change the troops, the spice, the leader or the adjustment to see it. */
 const meta = preview.meta({
   ...battlePlanPanelMeta,
   title: 'Play/Animation trials/Battle strength',
@@ -76,14 +58,5 @@ const meta = preview.meta({
   render: () => <PlayedPlan />,
 });
 
-/** Today: the total rolls to its new value. */
-export const Current = meta.story({ decorators: [strengthTrial()] });
-
-/** The total rolls, then pops as it lands. 460 ms. */
-export const Pop = meta.story({ decorators: [strengthTrial('pop')] });
-
-/** The total rolls, then drops onto its line with the Panel edge's two-step knock. 520 ms. */
-export const Knock = meta.story({ decorators: [strengthTrial('knock')] });
-
-/** A stronger plan swells as it rolls; a weaker one sinks a little and comes back up. 420 ms. */
-export const Weigh = meta.story({ decorators: [strengthTrial('weigh')] });
+/** By hand: each digit that changes slides through its own slot, up as the strength grows and down as it shrinks. */
+export const SlidingDigits = meta.story({});

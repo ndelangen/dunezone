@@ -336,19 +336,80 @@
   }
 }
 
-/* A side claimed while the panel is up: its faction's token is slapped down where the claim was, with a quarter turn and a pop. */
-:global(html[data-motion="ok"]) .side[data-claimed-now] > :first-child {
-  animation: claim-slap 340ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+/* Animation trials for a side claimed while the panel is up (`data-trial-claim`); the claimed faction's token arrives where the claim was. */
+
+/* Pop: the token pops up out of the claim. */
+:global(html[data-motion="ok"][data-trial-claim="pop"]) .side[data-claimed-now] > :first-child {
+  animation: claim-pop 280ms cubic-bezier(0.2, 0.9, 0.3, 1.35);
 }
 
-@keyframes claim-slap {
+@keyframes claim-pop {
   from {
+    scale: 0;
+  }
+}
+
+/* Drop: the token is set down from a little above and lands with the Panel edge's two-step knock. */
+:global(html[data-motion="ok"][data-trial-claim="drop"]) .side[data-claimed-now] > :first-child {
+  animation: claim-drop 420ms ease-out;
+}
+
+@keyframes claim-drop {
+  0% {
     opacity: 0;
-    scale: 0.4;
-    rotate: -90deg;
+    translate: 0 -22px;
+    scale: 1.08;
   }
 
-  60% {
+  40% {
     opacity: 1;
+    translate: 0 0;
+    scale: 1;
   }
+
+  58% {
+    translate: 0 -5px;
+  }
+
+  78% {
+    translate: 0 0;
+  }
+
+  89% {
+    translate: 0 -1.5px;
+  }
+}
+
+/* Flip: the claim turns over like a coin and comes up as the faction's token. */
+:global(html[data-motion="ok"][data-trial-claim="flip"]) .side[data-claimed-now] {
+  perspective: 600px;
+}
+
+:global(html[data-motion="ok"][data-trial-claim="flip"]) .side[data-claimed-now] > :first-child {
+  animation: claim-flip 380ms cubic-bezier(0.3, 0.8, 0.3, 1.2);
+}
+
+@keyframes claim-flip {
+  0% {
+    rotate: y 90deg;
+    scale: 0.92;
+  }
+
+  70% {
+    scale: 1.04;
+  }
+
+  100% {
+    rotate: y 0deg;
+    scale: 1;
+  }
+}
+
+/* Charge: the token charges in from its own edge of the panel and knocks against the middle once. */
+:global(html[data-motion="ok"][data-trial-claim="charge"]) .side:first-child[data-claimed-now] > :first-child {
+  animation: build-left 420ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-claim="charge"]) .side:nth-child(2)[data-claimed-now] > :first-child {
+  animation: build-right 420ms ease-out;
 }

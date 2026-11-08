@@ -44,8 +44,9 @@ function declare() {
   ];
 }
 
-function BattleTrial({ variant }: { variant?: string }) {
-  useTrialVariant('battle-pop', variant);
+function BattleTrial({ claim }: { claim: string }) {
+  useTrialVariant('battle-pop', 'reach');
+  useTrialVariant('claim', claim);
   useEffect(() => {
     /* Long enough for the table's own arrival to finish. */
     const timer = setTimeout(declare, 4000);
@@ -54,30 +55,33 @@ function BattleTrial({ variant }: { variant?: string }) {
       steps.forEach(clearTimeout);
     };
   }, []);
-  return <TrialButton onClick={declare}>⚔ Start battle{variant ? ` (${variant})` : ''}</TrialButton>;
+  return <TrialButton onClick={declare}>⚔ Start battle ({claim} claims)</TrialButton>;
 }
 
-function battleTrial(variant?: string): Decorator {
+function battleTrial(claim: string): Decorator {
   return (Story) => (
     <>
       <Story />
-      <BattleTrial variant={variant} />
+      <BattleTrial claim={claim} />
     </>
   );
 }
 
 const meta = preview.meta({
   ...gameMeta,
-  title: 'Play/Animation trials/Battle panel arrives',
+  title: 'Play/Animation trials/Battle panel claims',
   globals: { motion: 'on' },
   beforeEach: install(() => productTransport('seat-2', quiet())),
 });
 
-/** Today: the panel appears at once; claiming a side slaps its token down. */
-export const Current = meta.story({ decorators: [battleTrial()] });
+/** Reach, then each claimed token pops up out of its claim. 280 ms. */
+export const ClaimPop = meta.story({ decorators: [battleTrial('pop')] });
 
-/** A narrow stalk rises out of the marker and opens sideways into the panel; the open sides charge in. 680 ms. */
-export const Stalk = meta.story({ decorators: [battleTrial('stalk')] });
+/** Reach, then each claimed token is set down from above with the Panel edge's two-step knock. 420 ms. */
+export const ClaimDrop = meta.story({ decorators: [battleTrial('drop')] });
 
-/** The panel springs up over the marker, its pointer reaches down to it, and the open sides charge in. 680 ms. */
-export const Reach = meta.story({ decorators: [battleTrial('reach')] });
+/** Reach, then each claim turns over like a coin and comes up as the faction's token. 380 ms. */
+export const ClaimFlip = meta.story({ decorators: [battleTrial('flip')] });
+
+/** Reach, then each claimed token charges in from its own edge and knocks against the middle. 420 ms. */
+export const ClaimCharge = meta.story({ decorators: [battleTrial('charge')] });

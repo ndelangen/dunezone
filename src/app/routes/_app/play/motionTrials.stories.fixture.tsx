@@ -6,7 +6,7 @@ import { useEffect } from 'react';
  * so a story picks one variant without plumbing a prop through the table.
  * Once a variant is chosen it becomes the spot's only animation and this fixture goes.
  */
-export type TrialSpot = 'battle-pop' | 'strength';
+export type TrialSpot = 'battle-pop' | 'claim';
 
 /** Pins the spot's variant on <html> while the story shows; no variant is today's behaviour. */
 export function useTrialVariant(spot: TrialSpot, variant: string | undefined) {

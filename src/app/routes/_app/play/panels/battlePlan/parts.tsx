@@ -8,7 +8,7 @@ import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check, Diff, Eye, EyeOff, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -76,33 +76,49 @@ export function useBump(value: unknown) {
   return bump;
 }
 
-/** A number that counts to its new value instead of jumping, so a change reads as a change. */
-function RollingNumber({ value, format = formatStrength }: { value: number; format?: (value: number) => string }) {
+/**
+ * A number whose changed digits slide to their new value, each in its own slot like an odometer: up when the number grows, down when it shrinks.
+ * Digits that did not change stay put.
+ */
+/* A formatted strength's whole digits, sign included, and whatever follows them, such as a half. */
+function split(text: string): [string[], string[]] {
+  const [, whole = '', rest = ''] = /^([-−]?\d*)(.*)$/.exec(text) ?? [];
+  return [whole.split(''), rest.split('')];
+}
+
+function SlidingNumber({ value, format = formatStrength }: { value: number; format?: (value: number) => string }) {
   const motion = useMotionAllowed();
-  const [shown, setShown] = useState(value);
-  const from = useRef(value);
-  useEffect(() => {
-    if (!motion) {
-      from.current = value;
-      return;
-    }
-    const start = performance.now();
-    const origin = from.current;
-    let frame = 0;
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / 260);
-      const eased = 1 - (1 - t) ** 3;
-      const next = origin + (value - origin) * eased;
-      from.current = next;
-      setShown(t === 1 ? value : Math.round(next * 2) / 2);
-      if (t < 1) {
-        frame = requestAnimationFrame(step);
-      }
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, [value, motion]);
-  return <>{format(motion ? shown : value)}</>;
+  const text = format(value);
+  const [shown, setShown] = useState({ value, text, previous: text, way: 'up', change: 0 });
+  if (shown.text !== text) {
+    setShown({ value, text, previous: shown.text, way: value > shown.value ? 'up' : 'down', change: shown.change + 1 });
+  }
+  /*
+   * A strength is whole digits and maybe a half after them, never a character that spans two code points.
+   * The whole digits line up from the right, so the ones stay the ones as the number gains or loses a place; the half keeps its own slot.
+   */
+  const [whole, half] = split(text);
+  const [wholeBefore, halfBefore] = split(shown.previous);
+  const slot = (key: string, char: string, old: string) =>
+    !motion || shown.change === 0 || old === char ? (
+      <span key={key}>{char}</span>
+    ) : (
+      <span key={`${key}-${shown.change}`} className={styles.digit}>
+        <span className={styles.digitOld} aria-hidden="true">
+          {old}
+        </span>
+        <span className={styles.digitNew}>{char}</span>
+      </span>
+    );
+  return (
+    <span className={styles.digits} data-way={shown.way}>
+      {whole.map((char, index) => {
+        const place = whole.length - 1 - index;
+        return slot(`whole-${place}`, char, wholeBefore[wholeBefore.length - 1 - place] ?? '');
+      })}
+      {half.map((char, index) => slot(`half-${index}`, char, halfBefore[index] ?? ''))}
+    </span>
+  );
 }
 
 /**
@@ -419,17 +435,11 @@ export function StrengthSum({
       : undefined;
   const total = plan.strength + (leader ?? 0);
   const bonus = spiceBonus(plan);
-  /* The total lands with a small animation each time it changes; which way it went tells the stylesheet how. */
-  const landed = useBump(total);
-  const [trend, setTrend] = useState<{ total: number; way?: 'up' | 'down' }>({ total });
-  if (trend.total !== total) {
-    setTrend({ total, way: total > trend.total ? 'up' : 'down' });
-  }
   return (
     <div className={styles.sum} aria-live="polite">
       <span className={styles.sumTop}>
-        <span className={styles.sumValue} data-landed={landed} data-trend={trend.way}>
-          <RollingNumber value={total} />
+        <span className={styles.sumValue}>
+          <SlidingNumber value={total} />
         </span>
         {adjust}
       </span>

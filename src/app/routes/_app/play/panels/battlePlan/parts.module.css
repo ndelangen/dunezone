@@ -362,136 +362,59 @@
   }
 }
 
-/*
- * Animation trials for the strength landing on its new total once it has rolled there (motionTrials.stories.fixture.tsx
- * picks one per story). Each runs in two copies that `data-landed` alternates between, so every change replays it.
- */
-.sumValue[data-landed] {
+/* The total's digits, each changed one sliding through its own slot to its new value (`SlidingNumber`). */
+.digits {
+  display: inline-flex;
+}
+
+.digit {
+  position: relative;
   display: inline-block;
-  transform-origin: left center;
+  overflow: hidden;
+  /* Room above and below the glyph inside the clip, so a tall figure is not cut by the total's tight line height. */
+  padding-block: 0.1em;
+  margin-block: -0.1em;
 }
 
-/* Pop: the total pops as it lands. */
-:global(html[data-motion="ok"][data-trial-strength="pop"]) .sumValue[data-landed="0"] {
-  animation: strength-pop 460ms ease-out;
+.digitNew {
+  display: block;
+  animation: digit-in-up 240ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
 }
 
-:global(html[data-motion="ok"][data-trial-strength="pop"]) .sumValue[data-landed="1"] {
-  animation: strength-pop2 460ms ease-out;
+.digitOld {
+  position: absolute;
+  inset: 0.1em 0;
+  animation: digit-out-up 240ms ease-in forwards;
 }
 
-@keyframes strength-pop {
-  0%,
-  50% {
-    scale: 1;
-  }
-
-  72% {
-    scale: 1.2;
-  }
+.digits[data-way="down"] .digitNew {
+  animation-name: digit-in-down;
 }
 
-@keyframes strength-pop2 {
-  0%,
-  50% {
-    scale: 1;
-  }
+.digits[data-way="down"] .digitOld {
+  animation-name: digit-out-down;
+}
 
-  72% {
-    scale: 1.2;
+@keyframes digit-in-up {
+  from {
+    translate: 0 100%;
   }
 }
 
-/* Knock: the total drops onto its line as it lands, with the Panel edge's two-step knock. */
-:global(html[data-motion="ok"][data-trial-strength="knock"]) .sumValue[data-landed="0"] {
-  animation: strength-knock 520ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-strength="knock"]) .sumValue[data-landed="1"] {
-  animation: strength-knock2 520ms ease-out;
-}
-
-@keyframes strength-knock {
-  0%,
-  45% {
-    translate: 0 0;
-  }
-
-  60% {
-    translate: 0 4px;
-  }
-
-  75% {
-    translate: 0 0;
-  }
-
-  87% {
-    translate: 0 2px;
+@keyframes digit-out-up {
+  to {
+    translate: 0 -100%;
   }
 }
 
-@keyframes strength-knock2 {
-  0%,
-  45% {
-    translate: 0 0;
-  }
-
-  60% {
-    translate: 0 4px;
-  }
-
-  75% {
-    translate: 0 0;
-  }
-
-  87% {
-    translate: 0 2px;
+@keyframes digit-in-down {
+  from {
+    translate: 0 -100%;
   }
 }
 
-/* Weigh: a stronger plan swells as it rolls and settles; a weaker one sinks a little and comes back up. */
-:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="up"][data-landed="0"] {
-  animation: strength-swell 420ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="up"][data-landed="1"] {
-  animation: strength-swell2 420ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="down"][data-landed="0"] {
-  animation: strength-sink 420ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="down"][data-landed="1"] {
-  animation: strength-sink2 420ms ease-out;
-}
-
-@keyframes strength-swell {
-  55% {
-    scale: 1.16;
-    translate: 0 -2px;
-  }
-}
-
-@keyframes strength-swell2 {
-  55% {
-    scale: 1.16;
-    translate: 0 -2px;
-  }
-}
-
-@keyframes strength-sink {
-  55% {
-    scale: 0.9;
-    translate: 0 3px;
-    opacity: 0.7;
-  }
-}
-
-@keyframes strength-sink2 {
-  55% {
-    scale: 0.9;
-    translate: 0 3px;
-    opacity: 0.7;
+@keyframes digit-out-down {
+  to {
+    translate: 0 100%;
   }
 }
