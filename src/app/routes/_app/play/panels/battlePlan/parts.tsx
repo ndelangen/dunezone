@@ -262,18 +262,20 @@ export function DialRow({
    */
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
-  const latest = useRef({ value, onChange });
-  useLayoutEffect(() => {
-    latest.current = { value, onChange };
-  });
   /*
    * Live steps go out at most once per LIVE_STEP_MS, the latest one waiting its turn, so a scrub stays inside the table's
    * command budget even when each edit is answered at once.
+   * `seen` turns true once a render has passed since the last step went out, so the plan has had its chance to show it.
    */
-  const sent = useRef<{ value: number | null; at: number }>({ value: null, at: -Infinity });
+  const latest = useRef({ value, onChange });
+  const sent = useRef<{ value: number | null; at: number; seen: boolean }>({ value: null, at: -Infinity, seen: true });
+  useLayoutEffect(() => {
+    latest.current = { value, onChange };
+    sent.current = { ...sent.current, seen: true };
+  });
   const waiting = useRef<{ value: number; timer: ReturnType<typeof setTimeout> } | null>(null);
   const deliver = (next: number) => {
-    sent.current = { value: next, at: performance.now() };
+    sent.current = { value: next, at: performance.now(), seen: false };
     latest.current.onChange(next);
   };
   const cancelWaiting = () => {
@@ -301,6 +303,15 @@ export function DialRow({
       }, wait),
     };
   };
+  const release = (end: number) => {
+    cancelWaiting();
+    const inFlight = end === sent.current.value && !sent.current.seen;
+    if (end !== latest.current.value && !inFlight) {
+      deliver(end);
+    }
+    sent.current = { value: null, at: sent.current.at, seen: sent.current.seen };
+    setDraft(null);
+  };
   return (
     <div className={styles.dialRow} data-spice={spice || undefined}>
       <span className={styles.dialLabel}>{label}</span>
@@ -326,16 +337,10 @@ export function DialRow({
         }}
         /*
          * Letting go sends the endpoint at once unless the plan already shows it, so a step still waiting its turn, or one
-         * the table turned away, still lands where the thumb was let go; then the thumb goes back to the plan.
+         * the table turned away, still lands where the thumb was let go; then the thumb goes back to the plan. A step sent in
+         * this same event, as an arrow key's is, has not reached the plan yet and is not sent twice.
          */
-        onChangeEnd={(end) => {
-          cancelWaiting();
-          if (end !== latest.current.value) {
-            deliver(end);
-          }
-          sent.current = { value: null, at: sent.current.at };
-          setDraft(null);
-        }}
+        onChangeEnd={release}
       />
       <span className={styles.dialStep}>
         <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} wheel="focus" onChange={onChange} />

@@ -25,7 +25,10 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 };
 
-afterEach(cleanup);
+afterEach(() => {
+  vi.useRealTimers();
+  cleanup();
+});
 
 function Row({
   onChange,
@@ -104,8 +107,11 @@ test('a typed adjustment stays as entered, while − and + move by halves', asyn
   expect(onEdit).toHaveBeenLastCalledWith({ adjustment: 0.5 });
 });
 
-/* The slider reads the pointer on the next frame and reports the end of a drag a tick after letting go. */
-const settle = (ms = 40) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
+/* The slider reads the pointer on the next frame and reports the end of a drag a tick after letting go; the drags run on a fake clock, frames included, so a busy runner cannot stretch them. */
+const settle = (ms = 40) =>
+  act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 
 /*
  * Drags the row's slider, its track `width` px wide, through each pointer position in turn, `pause` ms apart, and lets go
@@ -115,6 +121,9 @@ async function drag(
   row: { start?: number; max?: number; stops?: number[] },
   { width = 200, at, pause = 40 }: { width?: number; at: number[]; pause?: number }
 ) {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'],
+  });
   const onChange = vi.fn();
   const { container } = render(<Row onChange={onChange} {...row} />);
   const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
@@ -128,6 +137,7 @@ async function drag(
   }
   fireEvent.mouseUp(document, { clientX: at.at(-1), clientY: 5 });
   await settle(200);
+  vi.useRealTimers();
   return {
     sent: onChange.mock.calls.map(([value]) => value as number),
     shown: screen.getByRole('textbox', { name: 'Fedaykin' }),
@@ -158,8 +168,18 @@ test('a steady drag up through troops that cost 3 spice each never falls back to
 test('a fast scrub sends a few live steps, not every one, and still ends where the thumb is let go', async () => {
   /* Back and forth across the track, a step every 20 ms. */
   const { sent, shown } = await drag({}, { at: [20, 40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70], pause: 20 });
-  /* About 260 ms of scrubbing allows three live steps; the release sends the endpoint. */
-  expect(sent.length).toBeLessThanOrEqual(5);
+  /* 240 ms of scrubbing on the fake clock allows two live steps after the first; the release sends the endpoint. */
+  expect(sent.length).toBeLessThanOrEqual(4);
   expect(sent.at(-1)).toBe(7);
   expect(shown).toHaveProperty('value', '7');
+});
+
+test('an arrow key on the slider sends its step once', async () => {
+  const onChange = vi.fn();
+  render(<Row onChange={onChange} />);
+  const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
+  thumb.focus();
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  await act(async () => {});
+  expect(onChange.mock.calls).toEqual([[3]]);
 });
