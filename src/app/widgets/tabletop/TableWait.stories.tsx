@@ -8,7 +8,7 @@ import { TableWait } from './TableWait';
 
 const meta = preview.meta({
   component: TableWait,
-  /* The frame is part of the table's arrival, so its moons move. */
+  /* The frame is part of the table's arrival, so its moons move wherever motion is on. */
   parameters: { layout: 'fullscreen', tableArrival: 'play' },
   /* The frame is see-through over the app's own background, whose planet it raises and circles, and fills the window as on the game page. */
   decorators: [

@@ -1,17 +1,16 @@
+import { createContext, use } from 'react';
+
+import { useMotionAllowed } from '@app/styles/motion';
+
 /*
  * Whether a table plays its arrival: the moons circling the waiting frame and the table opening out of the planet.
- * The product always plays it. Storybook turns it off for every story that is not about the arrival, because each story
- * mounts its page afresh and would otherwise replay the whole opening before showing the state it is about.
- * It is read once per mount, so it is set before a story renders (the preview's `beforeEach`).
+ * The product always plays it. Storybook's preview provides `false` for every story that is not about the arrival, because
+ * each story mounts its page afresh and would otherwise replay the whole opening before showing the state it is about.
  */
-let played = true;
+export const TableArrivalContext = createContext(true);
 
-/** Storybook's switch; the product never calls it. */
-export function setTableArrivalPlayed(next: boolean) {
-  played = next;
-}
-
-/** Whether the table's arrival plays; when it does not, the table shows as it does without motion: at once, and the waiting frame still. */
-export function tableArrivalPlayed() {
-  return played;
+/** Whether the table's arrival moves: motion is allowed and the arrival plays. Otherwise the table shows at once and its waiting frame stays still. */
+export function useTableArrivalMotion() {
+  const motion = useMotionAllowed();
+  return use(TableArrivalContext) && motion;
 }

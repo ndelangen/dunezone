@@ -26,8 +26,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
-import { useMotionAllowed } from '@app/styles/motion';
-import { tableArrivalPlayed } from '@app/widgets/tabletop/tableArrival';
+import { useTableArrivalMotion } from '@app/widgets/tabletop/tableArrival';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
@@ -618,7 +617,7 @@ const TABLE_ARRIVAL_MS = 1600;
  */
 function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening' | 'open' {
   /* A story that is not about the arrival shows the table the way it shows without motion. */
-  const motion = useMotionAllowed() && tableArrivalPlayed();
+  const motion = useTableArrivalMotion();
   const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
   useEffect(() => {
     if (!sceneReady) {

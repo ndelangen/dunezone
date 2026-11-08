@@ -3,8 +3,7 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSc
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { useMotionAllowed } from '@app/styles/motion';
-import { tableArrivalPlayed } from '@app/widgets/tabletop/tableArrival';
+import { useTableArrivalMotion } from '@app/widgets/tabletop/tableArrival';
 import { arriveDirectly, endDeparture, riseRemaining } from '@app/widgets/voyage/voyage';
 
 import styles from './TableWait.module.css';
@@ -61,7 +60,7 @@ export function TableWait({
   children,
 }: Readonly<{ status: ReactNode; connection?: string; children?: ReactNode }>) {
   /* A story that is not about the arrival keeps the frame still, as it is without motion. */
-  const motion = useMotionAllowed() && tableArrivalPlayed();
+  const motion = useTableArrivalMotion();
   const frame = useRef<HTMLDivElement>(null);
   const [carriesOn] = useState(followsAnotherFrame);
   const [repeated] = useState(() => carriesOn && typeof status === 'string' && status === frames.status);
