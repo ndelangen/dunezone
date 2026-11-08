@@ -1,7 +1,7 @@
 import { expect, test } from 'vite-plus/test';
 
 import { catalogueEntries } from './mediaCatalogue';
-import { mediaTiles } from './mediaTiles';
+import { holdsArtwork, mediaTiles } from './mediaTiles';
 
 test('paired decal tiles retain every file and keep independent designs separate', () => {
   const decals = catalogueEntries.filter((entry) => entry.kind === 'decal');
@@ -22,4 +22,12 @@ test('a match in the color version keeps its mono counterpart available', () => 
     '/vector/decal/atomics.svg',
     '/vector/decal/atomics-multicolor.svg',
   ]);
+});
+
+test('a tile holds both versions of its artwork and nothing else', () => {
+  const mono = catalogueEntries.find((entry) => entry.value === '/vector/decal/atomics.svg')!;
+  const [tile] = mediaTiles([mono]);
+  expect(holdsArtwork(tile!, '/vector/decal/atomics.svg')).toBe(true);
+  expect(holdsArtwork(tile!, '/vector/decal/atomics-multicolor.svg')).toBe(true);
+  expect(holdsArtwork(tile!, '/vector/decal/crossed-knives.svg')).toBe(false);
 });

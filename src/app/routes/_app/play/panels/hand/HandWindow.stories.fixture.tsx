@@ -1,3 +1,4 @@
+import dreamrulesDecks from '@shared/play/fixtures/dreamrulesDecks.json';
 import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
@@ -102,31 +103,40 @@ export const handWindowMeta = {
   argTypes: { seat: { control: 'select' as const, options: journeyViewers().filter((seat) => seat !== 'neutral') } },
 };
 
-/* Treachery cards from the production catalogue, beside the recording's one Snooper, so the hand holds a real mix. */
-const TREACHERY = [
-  ['crysknife', 'Crysknife'],
-  ['chaumas', 'Chaumas'],
-  ['shield', 'Shield'],
-  ['cheap-hero', 'Cheap Hero'],
-] as const;
+/* Dreamrules Treachery cards for Atreides' hand, so it holds a real mix. */
+const TREACHERY = ['Crysknife', 'Chaumas', 'Shield', 'Cheap Hero'];
 
-/* Atreides draws them as Treachery cards are drawn: copies of its Snooper with each card's own face. */
+/*
+ * Atreides holds them in place of the Treachery card the recording dealt it: copies of that card with each card's published face.
+ * The deal is random, so the dealt card is found by its kind and replaced, which keeps the hand the same on every recording.
+ */
 function withTreachery(stored: StoredSnapshot): StoredSnapshot {
   const hand = stored.factionInventories['house-atreides'] ?? [];
-  const snooper = hand.find((piece) => piece.items[0]?.artwork?.name === 'Snooper');
-  if (!snooper) {
+  const dealt = hand.find((piece) => piece.items[0]?.artwork?.type === 'card-treachery');
+  if (!dealt) {
     return stored;
   }
-  const drawn = TREACHERY.map(([file, name]) => ({
-    ...snooper,
-    id: `story-treachery-${file}`,
-    items: snooper.items.map((item) => ({
-      ...item,
-      id: `story-treachery-${file}-item`,
-      artwork: { ...item.artwork!, name, front: item.artwork!.front!.replace('snooper.jpg', `${file}.jpg`) },
-    })),
-  }));
-  return { ...stored, factionInventories: { ...stored.factionInventories, 'house-atreides': [...hand, ...drawn] } };
+  const drawn = TREACHERY.map((name) => {
+    const card = dreamrulesDecks.treachery.cards.find((entry) => entry.name === name)!;
+    const slug = card.file.replace(/\.jpg$/, '');
+    const front = new URL(`/play-fixtures/dreamrules/${card.file}`, dealt.items[0]!.artwork!.back).href;
+    return {
+      ...dealt,
+      id: `story-treachery-${slug}`,
+      items: dealt.items.map((item) => ({
+        ...item,
+        id: `story-treachery-${slug}-item`,
+        artwork: { ...item.artwork!, name, front },
+      })),
+    };
+  });
+  return {
+    ...stored,
+    factionInventories: {
+      ...stored.factionInventories,
+      'house-atreides': [...hand.filter((piece) => piece !== dealt), ...drawn],
+    },
+  };
 }
 
 /* The live table from the recorded journey: Atreides mid-game with leaders, Treachery, Traitor and Alliance cards, or earlier at Shipment. */
