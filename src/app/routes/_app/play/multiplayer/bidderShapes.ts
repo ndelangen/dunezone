@@ -99,7 +99,7 @@ function clockHand(): BidderPart[] {
   ];
 }
 
-/* A drop with gently hollowed sides and a shorter point, its edges rounded, on a brass outline. */
+/* A drop with gently hollowed sides and a shorter point, on a brass outline. */
 function softDrop(): BidderPart[] {
   const tip = TIP - 0.7;
   const outline = (radius: number, reach: number) => {
@@ -118,8 +118,8 @@ function softDrop(): BidderPart[] {
     return shape;
   };
   return [
-    { geometry: slab(outline(RADIUS + 0.07, tip + 0.12), 0.05), color: accent, lift: 0 },
-    { geometry: slab(outline(RADIUS, tip), DEPTH - 0.03, 0.03), color: ground, lift: 0.02 },
+    { geometry: slab(outline(RADIUS + 0.07, tip + 0.2), 0.05), color: accent, lift: 0 },
+    { geometry: slab(outline(RADIUS, tip), DEPTH - 0.02), color: ground, lift: 0.02 },
   ];
 }
 
@@ -154,14 +154,14 @@ function bluntDrop(): BidderPart[] {
   return [{ geometry: slab(shape, DEPTH, 0.03), color: ground, lift: 0 }];
 }
 
-/* An open dark ring the board shows through, with a brass tab on its rim pointing at the faction. */
+/* An open dark ring the board shows through, with a long brass pointer from its rim at the faction. */
 function dial(): BidderPart[] {
   const outer = RADIUS * 0.9;
   const tab = new Shape();
-  tab.moveTo(outer + 0.75, 0);
-  tab.lineTo(outer - 0.15, 0.32);
-  tab.lineTo(outer - 0.15, -0.32);
-  tab.lineTo(outer + 0.75, 0);
+  tab.moveTo(TIP - 0.2, 0);
+  tab.lineTo(outer - 0.15, 0.26);
+  tab.lineTo(outer - 0.15, -0.26);
+  tab.lineTo(TIP - 0.2, 0);
   return [
     { geometry: slab(circle(outer, outer - 0.32)), color: ground, lift: 0 },
     { geometry: slab(tab, 0.05), color: accent, lift: DEPTH - 0.02 },
