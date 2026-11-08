@@ -346,14 +346,17 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storybook-static
-          path: storybook-static
+          # The raster copies are about 260 MB that .assetsignore keeps out of the Worker upload anyway.
+          path: |
+            storybook-static
+            !storybook-static/m/**
+            !storybook-static/image/**
+            !storybook-static/web/**
           if-no-files-found: error
           include-hidden-files: true
           # A rerun of this job replaces the previous attempt's copy, and a later "Re-run failed jobs" can still find it.
           overwrite: true
           retention-days: 7
-          # Mostly images that are already compressed.
-          compression-level: 0
 
   # A failure here still fails the run, so the gate deploys the commit again on the next event, and "Re-run failed
   # jobs" after a Storybook-only failure reruns just this job.
