@@ -1,4 +1,4 @@
-import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, Switch, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Radio, Stack, Switch, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -18,7 +18,7 @@ function advisory(blank: boolean, text: string) {
 function SetupFields({ form }: { form: FactionFormApi }) {
   return (
     <Stack component="section" gap="md" aria-label="Setup and revival">
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+      <Stack gap="md">
         <Stack gap="md">
           <form.Field name="rules.startText">
             {(field) => {
@@ -112,7 +112,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
             )}
           </form.Field>
         </Stack>
-      </SimpleGrid>
+      </Stack>
     </Stack>
   );
 }
