@@ -1,0 +1,662 @@
+/* The Atreides Treachery tracker, inside a compass window: the window's ink, edge and sand accent, and the palette's roles for card kinds. */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  color: var(--ink, var(--ui-text));
+}
+
+.caption {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.dim {
+  color: var(--ink-dim, var(--ui-muted));
+}
+
+/* A card's round kind glyph, cut from the top right corner of its face (the 140 px circle at 665,79 of a 900 x 1263 card). */
+.glyph {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgb(from var(--ui-black) r g b / 0.6);
+}
+
+.glyph img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 643%;
+  max-width: none;
+  transform: translate(-73.9%, -6.25%);
+  pointer-events: none;
+}
+
+/* A card's illustration, cut round from the middle of its face (the 390 px square at 255,252 of a 900 x 1263 card), ringed in its kind's colour. */
+.picto {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--ui-paper);
+  box-shadow:
+    0 0 0 2px var(--kind),
+    0 1px 3px 1px rgb(from var(--ui-black) r g b / 0.6);
+}
+
+.picto img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 230.8%;
+  max-width: none;
+  transform: translate(-28.33%, -19.95%);
+  pointer-events: none;
+}
+
+/* A card's name banner, cut from the top of its face. */
+.banner {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 790 / 111;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgb(from var(--ui-black) r g b / 0.6);
+}
+
+.banner img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 113.9%;
+  max-width: none;
+  transform: translate(-5.4%, -4.9%);
+  pointer-events: none;
+}
+
+.unknown {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px dashed var(--edge, var(--ui-edge));
+  border-radius: 50%;
+  background: var(--ui-recess);
+  color: var(--ink-dim, var(--ui-muted));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.preview {
+  background: var(--ui-ground);
+  border-color: var(--edge, var(--ui-edge));
+}
+
+.preview img {
+  display: block;
+  border-radius: 6px;
+}
+
+.dropdown {
+  background: var(--ui-raised);
+  border-color: var(--edge, var(--ui-edge));
+  color: var(--ui-text);
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tokenButton {
+  border-radius: 50%;
+  transition: transform 120ms ease-out;
+}
+
+.tokenButton:hover,
+.tokenButton:focus-visible {
+  transform: scale(1.12);
+}
+
+.glyphRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.glyphButton,
+.slotButton {
+  position: relative;
+  display: inline-flex;
+  border-radius: 999px;
+  transition: transform 120ms ease-out;
+}
+
+.glyphButton:hover,
+.glyphButton:focus-visible {
+  transform: scale(1.12);
+}
+
+.badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--ui-ground);
+  color: var(--ui-highlight);
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.chooser {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.chooserUnknown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.chooserUnknown:hover,
+.menuLine:hover,
+.textButton:hover {
+  background: var(--ui-hover);
+}
+
+.menuLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.menuIcon {
+  display: inline-grid;
+  width: 16px;
+  place-items: center;
+  color: var(--ui-brass);
+}
+
+.textButton {
+  padding: 2px 8px;
+  border: 1px solid var(--edge, var(--ui-edge));
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* The deck's makeup by kind, in the palette's roles: weapons the negative fill, defenses progress, specials positive, worthless umber. */
+.kindBar {
+  display: flex;
+  overflow: hidden;
+  gap: 1px;
+  border-radius: 3px;
+  background: var(--ui-recess);
+}
+
+.kindBar span {
+  flex-basis: 0;
+}
+
+[data-kind="weapon"] {
+  --kind: var(--ui-negative-fill);
+}
+
+[data-kind="defense"] {
+  --kind: var(--ui-progress-fill);
+}
+
+[data-kind="special"] {
+  --kind: var(--ui-positive-fill);
+}
+
+[data-kind="worthless"] {
+  --kind: var(--ui-umber);
+}
+
+.kindBar span[data-kind] {
+  background: var(--kind);
+}
+
+/* Seen: the cards Atreides looked at, newest first. */
+.seen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.seenRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.turnMark {
+  padding-inline: 4px 0;
+  border-left: 1px solid var(--edge, var(--ui-edge));
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.seenCard,
+.sheetCard {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+  transition: transform 120ms ease-out;
+}
+
+.seenCard:hover,
+.sheetCard:hover {
+  transform: scale(1.1);
+}
+
+.seenCard[data-open="true"],
+.sheetCard[data-seen="true"] {
+  outline: 2px solid var(--ui-caution);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .seenCard[data-open="true"] {
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+}
+
+:global([data-motion="on"]) .seenCard[data-open="true"] {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    outline-offset: 4px;
+    outline-color: rgb(from var(--ui-caution) r g b / 0.5);
+  }
+}
+
+.holder {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ui-ground);
+}
+
+.holderDiscard {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgb(from var(--ui-ground) r g b / 0.55);
+}
+
+/* Option A: Columns. */
+.columns {
+  display: grid;
+  gap: 4px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 2px;
+  border-radius: 8px;
+  background: rgb(from var(--ui-recess) r g b / 0.6);
+}
+
+.columnHead {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.count {
+  position: absolute;
+  right: 2px;
+  bottom: -2px;
+  min-width: 16px;
+  border-radius: 8px;
+  background: var(--ui-ground);
+  color: var(--ui-highlight);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.columnSlots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-start;
+  gap: 5px;
+}
+
+.columnSlots .slotButton:hover,
+.rowCards .slotButton:hover,
+.oddsHand .slotButton:hover {
+  transform: scale(1.12);
+}
+
+.columnSlot {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.slotButton:hover .columnSlot {
+  background: var(--ui-hover);
+}
+
+.slotName {
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.columnSlot[data-known="false"] .slotName {
+  color: var(--ink-dim, var(--ui-muted));
+}
+
+.columnFoot {
+  display: flex;
+  justify-content: center;
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--edge, var(--ui-edge));
+}
+
+.footerDeck {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.footerDiscard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.discarded {
+  display: inline-flex;
+  filter: grayscale(0.8);
+  opacity: 0.7;
+}
+
+/* Option B: Ledger. */
+.ledger {
+  display: grid;
+  align-items: center;
+  gap: 1px 2px;
+  font-size: 11px;
+}
+
+.ledgerHead,
+.ledgerHeadText {
+  display: grid;
+  place-items: center;
+  position: sticky;
+  top: 0;
+}
+
+.ledgerHeadText {
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 9px;
+}
+
+.ledgerKind {
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.ledgerName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ledgerName > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ledgerCell {
+  display: grid;
+  height: 18px;
+  place-items: center;
+  border-radius: 4px;
+  background: rgb(from var(--ui-recess) r g b / 0.7);
+}
+
+.ledgerCell[data-column="deck"] {
+  background: rgb(from var(--ui-raised) r g b / 0.8);
+}
+
+.ledgerCell:hover {
+  background: var(--ui-hover);
+}
+
+.dots {
+  display: flex;
+  gap: 2px;
+  color: var(--ui-highlight);
+  font-size: 10px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ui-highlight);
+}
+
+.dots[data-unknown="true"] .dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--ui-highlight);
+}
+
+.dotEmpty {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgb(from var(--ui-muted) r g b / 0.25);
+}
+
+/* Option C: Auction first. */
+.onBid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgb(from var(--ui-recess) r g b / 0.8);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 8px;
+}
+
+.row:hover {
+  background: rgb(from var(--ui-recess) r g b / 0.6);
+}
+
+.rowCards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.rowCards .slotButton:hover {
+  transform: scale(1.12);
+}
+
+/* Option D: Battle odds. */
+.odds {
+  display: grid;
+  align-items: center;
+  gap: 4px 4px;
+}
+
+.oddsRow {
+  display: contents;
+}
+
+.oddsHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.oddsHeadLabel {
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 9px;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.oddsToken {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+}
+
+.oddsCount {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 14px;
+  border-radius: 7px;
+  background: var(--ui-ground);
+  color: var(--ui-highlight);
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.oddsCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 30px;
+  border-radius: 6px;
+  background: rgb(from var(--ui-recess) r g b / 0.6);
+}
+
+.oddsCell[data-held="true"] {
+  background: rgb(from var(--ui-selected) r g b / 0.7);
+}
+
+.chance {
+  color: rgb(from var(--ui-highlight) r g b / calc(0.45 + var(--chance) * 0.55));
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: calc(400 + var(--chance) * 300);
+}
+
+.none {
+  color: rgb(from var(--ui-muted) r g b / 0.4);
+}
+
+.oddsHand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgb(from var(--ui-recess) r g b / 0.9);
+}
+
+/* Option E: Deck sheet. */
+.unknownRow {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.unknownTally {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.tallyCount {
+  color: var(--ui-highlight);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tallyActions {
+  display: flex;
+  gap: 1px;
+}
+
+.sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-top: 3px;
+}
+
+.sheetCard[data-place="hand"] .glyph {
+  opacity: 0.85;
+}
+
+.sheetCard[data-place="discard"] {
+  filter: grayscale(0.9);
+  opacity: 0.35;
+}

@@ -71,6 +71,10 @@ export default defineMain({
       titlePrefix: 'Widgets/Tabletop',
     },
     {
+      directory: '../src/app/widgets/treachery-tracker',
+      titlePrefix: 'Widgets/Treachery Tracker',
+    },
+    {
       directory: '../src/app/widgets/faction-editor',
       titlePrefix: 'Widgets/Faction Editor',
     },
