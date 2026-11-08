@@ -31,10 +31,49 @@ const noChanges = () => () => {};
 const hasVoice = () => synthesis() !== null;
 const noVoice = () => false;
 
-/* The tutorial is written in English, so it is read in an English voice whatever the machine's own language. */
-function englishVoice(voices: readonly SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+/*
+ * How natural a voice sounds, as far as its name tells. The machine's default is often its oldest voice
+ * (on Windows the robotic David or Zira), while the browser offers far better ones beside it.
+ */
+function naturalness(voice: SpeechSynthesisVoice): number {
+  const name = voice.name.toLowerCase();
+  /* Edge's online voices, such as "Microsoft Aria Online (Natural)". */
+  if (/\b(natural|neural)\b/.test(name)) {
+    return 3;
+  }
+  /* Apple's downloaded voices, such as "Ava (Premium)". */
+  if (/\((premium|enhanced)\)/.test(name)) {
+    return 2;
+  }
+  /* Chrome's voices, such as "Google US English". */
+  if (name.startsWith('google')) {
+    return 1;
+  }
+  return 0;
+}
+
+/**
+ * The tutorial is written in English, so it is read in an English voice whatever the machine's own language: the most natural one, and among equals the machine's default, then one on the machine itself.
+ */
+export function englishVoice(voices: readonly SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
   const english = voices.filter((voice) => voice.lang.toLowerCase().startsWith('en'));
-  return english.find((voice) => voice.default) ?? english.find((voice) => voice.localService) ?? english[0];
+  const rank = (voice: SpeechSynthesisVoice) =>
+    naturalness(voice) * 4 + (voice.default ? 2 : 0) + (voice.localService ? 1 : 0);
+  return english.reduce<SpeechSynthesisVoice | undefined>(
+    (best, voice) => (best === undefined || rank(voice) > rank(best) ? voice : best),
+    undefined
+  );
+}
+
+/*
+ * A text in parts of a sentence or so. Chrome's online voices fall silent partway through a long text,
+ * and short parts keep each one well within what they read.
+ */
+export function speechParts(text: string): string[] {
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
 }
 
 /**
@@ -43,8 +82,8 @@ function englishVoice(voices: readonly SpeechSynthesisVoice[]): SpeechSynthesisV
  */
 export function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
-  /* The utterance under way. The browser drops its events once nothing holds it, so it is held here until it ends. */
-  const current = useRef<SpeechSynthesisUtterance | null>(null);
+  /* The utterances under way. The browser drops their events once nothing holds them, so they are held here until they end. */
+  const current = useRef<readonly SpeechSynthesisUtterance[] | null>(null);
   const pending = useRef<string | null>(null);
   /* Known only in the browser; the server renders no voice, so the page it sends matches the first render. */
   const supported = useSyncExternalStore(noChanges, hasVoice, noVoice);
@@ -64,34 +103,51 @@ export function useSpeech() {
     pending.current = null;
     current.current = null;
     voice.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en';
     const chosen = englishVoice(voice.getVoices());
-    if (chosen) {
-      utterance.voice = chosen;
-      utterance.lang = chosen.lang;
+    const utterances = speechParts(text).map((part) => {
+      const utterance = new SpeechSynthesisUtterance(part);
+      utterance.lang = chosen?.lang ?? 'en';
+      if (chosen) {
+        utterance.voice = chosen;
+      }
+      return utterance;
+    });
+    const last = utterances.at(-1);
+    if (!last) {
+      setSpeaking(false);
+      return;
     }
-    /* A cancelled utterance ends too, sometimes after the next has begun; only the one under way may say speaking is over. */
+    /* A cancelled utterance ends too, sometimes after the next has begun; only the text under way may say speaking is over. */
     const ended = () => {
-      if (current.current === utterance) {
+      if (current.current === utterances) {
         current.current = null;
         setSpeaking(false);
       }
     };
-    utterance.addEventListener('end', ended);
-    utterance.addEventListener('error', (event) => {
-      if (current.current !== utterance) {
-        return;
-      }
-      ended();
-      /* A fresh page may require an interaction before speech; only the current step may retry. */
-      if (event.error === 'not-allowed') {
-        pending.current = text;
-      }
-    });
-    current.current = utterance;
+    last.addEventListener('end', ended);
+    for (const utterance of utterances) {
+      utterance.addEventListener('error', (event) => {
+        if (current.current !== utterances) {
+          return;
+        }
+        ended();
+        voice.cancel();
+        /* A fresh page may require an interaction before speech; only the current step may retry. */
+        if (event.error === 'not-allowed') {
+          pending.current = text;
+        }
+      });
+    }
+    current.current = utterances;
     setSpeaking(true);
-    voice.speak(utterance);
+    for (const utterance of utterances) {
+      voice.speak(utterance);
+    }
+  }, []);
+
+  /* Chrome lists its voices only some time after it is first asked, so it is asked before the first text. */
+  useEffect(() => {
+    synthesis()?.getVoices();
   }, []);
 
   useEffect(() => {

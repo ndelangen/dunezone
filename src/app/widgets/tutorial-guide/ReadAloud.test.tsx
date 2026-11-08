@@ -1,13 +1,14 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';
 
 import { ReadAloud } from './ReadAloud';
+import { useSpeech } from './speech';
 
 stubMatchMedia();
 
@@ -93,11 +94,12 @@ test('both choices survive leaving a chapter and opening another', () => {
 test('the Welcome introduction speaks without opting in, and Enter can leave it silent', () => {
   const { said } = fakeVoice();
   const view = render(content('Welcome. Press {Z} to hear each step.', 'welcome', true));
-  expect(said.at(-1)!.text).toBe('Welcome. Press the Z key to hear each step.');
+  /* Read sentence by sentence, so an online voice never falls silent partway. */
+  expect(said.map((utterance) => utterance.text)).toEqual(['Welcome.', 'Press the Z key to hear each step.']);
   expect(on().getAttribute('aria-pressed')).toBe('false');
   expect(on().hasAttribute('data-attention')).toBe(true);
   view.rerender(content('This is the table.', 'board'));
-  expect(said).toHaveLength(1);
+  expect(said).toHaveLength(2);
   expect(on().hasAttribute('data-attention')).toBe(false);
 });
 
@@ -224,4 +226,19 @@ test('blocked storage still allows speaking for the current chapter', () => {
 test('where the browser has no voice there is no button', () => {
   render(content('Open the controls.'));
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('speaking is over only once the last sentence ends', () => {
+  const { said } = fakeVoice();
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('One. Two.'));
+  expect(said.map((utterance) => utterance.text)).toEqual(['One.', 'Two.']);
+  act(() => {
+    said[0]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    said[1]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(false);
 });
