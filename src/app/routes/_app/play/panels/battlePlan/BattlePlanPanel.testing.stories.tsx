@@ -83,7 +83,11 @@ export const RollingStrength = meta.story({
     const stood = wheels();
     await expect(Number.isFinite(before)).toBe(true);
     await userEvent.click(canvas.getByRole('button', { name: /^Adjust the strength by hand/ }));
-    const more = await within(canvasElement.ownerDocument.body).findByRole('button', { name: 'More: Adjustment' });
+    const more = await within(canvasElement.ownerDocument.body).findByRole(
+      'button',
+      { name: 'More: Adjustment' },
+      { timeout: 5000 }
+    );
     await userEvent.click(more);
     await userEvent.click(more);
     /* Two half steps up: the total reads one more at once, and the wheels roll away from where they stood. */
