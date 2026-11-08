@@ -5,11 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
-import dreamrulesDecks from '../../src/shared/play/fixtures/dreamrulesDecks.json';
 import { HistoricalFactionPublicationObject, HeroKeyedHistoricalFactionObject } from '../../src/shared/factions/schema';
 import { factionDefinitionSchema } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
+import dreamrulesDecks from '../../src/shared/play/fixtures/dreamrulesDecks.json';
 import type { LogTab, LogEntry } from '../../src/shared/play/log';
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
