@@ -448,12 +448,11 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-13. A separate `storybook` job, running beside the deploy job after the same gate, builds and verifies
-    the secret-free Storybook artifact, deploys it to `storybook.dune.zone`, and smokes its manager,
-    page index, preview entry, CSP, and shared public assets. It does not wait for the production
-    release, and a failure there still fails the run. Storybook proxies `/m`, `/image`, `/web` and
-    `/published` to `dune.zone`, so artwork the release adds can 404 there until step 11 publishes its
-    variants, or until the next green release if the deploy job fails before step 11.
+13. A `storybook_build` job, running beside the deploy job after the same gate, builds and verifies the
+    secret-free Storybook artifact. Once the deploy job has finished, `storybook_deploy` deploys that
+    artifact to `storybook.dune.zone` and smokes its manager, page index, preview entry, CSP, and shared
+    public assets. It waits because Storybook proxies `/m`, `/image`, `/web` and `/published` to
+    `dune.zone`, which must already serve this release's media. A failure in either job fails the run.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
@@ -515,7 +514,8 @@ and deploys the older commit even over a later release. "Re-run all jobs" asks t
 stops the run once production has a later commit.
 
 To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
-rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+rerun that run. "Re-run failed jobs" picks up at the failed job, so after a Storybook-only failure it
+reruns just the Storybook job. "Re-run all jobs" deploys the commit
 again from the start, because the gate stops a commit production already has only on a run's first
 attempt. A dispatched run, or a second push event for the same merge, is a first attempt: while both
 Workers report that commit, it stops at the gate only if an earlier run for the commit finished

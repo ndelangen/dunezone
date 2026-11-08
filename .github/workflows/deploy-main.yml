@@ -316,17 +316,13 @@ jobs:
           path: .cache/media-verified
           key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Storybook is a separate secret-free Worker, so it builds, verifies and deploys beside the production release
-  # instead of adding its two minutes after it. It follows the gate's answer like the deploy job does. A failure
-  # here still fails the run, so the gate deploys the commit again on the next event, the same as a failure in the
-  # deploy job.
-  # Its /m, /image, /web and /published paths proxy to dune.zone, so artwork this release adds can 404 on
-  # storybook.dune.zone until the deploy job publishes its raster variants, or until the next green release if
-  # the deploy job fails before then. Storybook is a noindex development tool, so that window is accepted.
-  storybook:
+  # Storybook builds and verifies beside the production release instead of adding its two minutes after it, and
+  # follows the gate's answer like the deploy job does.
+  # Only its deploy waits for production: the Storybook Worker proxies /m, /image, /web and /published to dune.zone,
+  # so it goes live after the deploy job has published this release's raster variants and Worker.
+  storybook_build:
     needs: release_gate
     if: needs.release_gate.outputs.deploy != 'false'
-    environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -345,6 +341,38 @@ jobs:
           with-deps: "false"
       - name: Verify isolated Storybook publication
         run: bun run verify:storybook-publication
+
+      - name: Keep the verified Storybook for its deploy
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: storybook-static
+          path: storybook-static
+          if-no-files-found: error
+          include-hidden-files: true
+          # A rerun of this job replaces the previous attempt's copy, and a later "Re-run failed jobs" can still find it.
+          overwrite: true
+          retention-days: 7
+          # Mostly images that are already compressed.
+          compression-level: 0
+
+  # A failure here still fails the run, so the gate deploys the commit again on the next event, and "Re-run failed
+  # jobs" after a Storybook-only failure reruns just this job.
+  storybook_deploy:
+    needs: [release_gate, storybook_build, deploy]
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: storybook-static
+          path: storybook-static
 
       - name: Deploy isolated Storybook
         run: >-

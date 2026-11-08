@@ -59,9 +59,9 @@ const STAGES = [
   },
   {
     title: 'Publish Storybook and queue image updates',
-    command: 'Storybook deploy (parallel job) · Renderer revision activation → variant verification',
+    command: 'Storybook deploy → Renderer revision activation → variant verification',
     reason:
-      'A parallel job publishes the isolated Storybook while the release runs. The release then activates any increased renderer revisions and verifies its media. A separate job then rebuilds the shared development environment.',
+      'A parallel job builds and checks the isolated Storybook while the release runs, then publishes it once the release is live. The release activates any increased renderer revisions and verifies its media. A separate job then rebuilds the shared development environment.',
     consequence:
       'Increasing a renderer revision queues new captures. Pages can show the previous published image until its replacement is ready.',
   },
