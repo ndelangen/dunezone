@@ -13,6 +13,7 @@ import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
+import { TableArrivalContext } from '../src/app/widgets/tabletop/tableArrival';
 import * as sizes from '../src/game/data/sizes';
 import { TUTORIAL_PLAYERS } from '../src/shared/tutorial/players';
 import { coreColors } from '../src/shared/uiPalette';
@@ -345,10 +346,13 @@ const preview = definePreview({
   },
   parameters,
   decorators: [
-    (Story) => (
-      <TutorialPlayersContext value={TUTORIAL_PLAYERS}>
-        <Story />
-      </TutorialPlayersContext>
+    /* Every story mounts its page afresh; only a story about the table's arrival (`tableArrival: 'play'`) replays the opening. */
+    (Story, { parameters }) => (
+      <TableArrivalContext value={parameters.tableArrival === 'play'}>
+        <TutorialPlayersContext value={TUTORIAL_PLAYERS}>
+          <Story />
+        </TutorialPlayersContext>
+      </TableArrivalContext>
     ),
     (Story, { globals, title }) => {
       const { viewport } = globals;
