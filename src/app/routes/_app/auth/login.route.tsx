@@ -261,7 +261,7 @@ function SignInPanel({
   );
 }
 
-function ProviderMark({ provider }: { provider: AuthProvider }) {
+function ProviderMark({ provider }: Readonly<{ provider: AuthProvider }>) {
   switch (provider) {
     case 'google':
       return <GoogleColoredMark width={22} height={22} />;

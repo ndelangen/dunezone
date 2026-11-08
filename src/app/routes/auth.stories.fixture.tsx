@@ -14,7 +14,7 @@ const STEAM_STORY_STATE = 'steam-story';
 /** The address Steam returns the tab to: a positive answer for one Steam account, carrying the `state` the tab left with. */
 export const steamReturnPath = `/auth/steam?${new URLSearchParams({
   state: STEAM_STORY_STATE,
-  'openid.ns': 'http://specs.openid.net/auth/2.0',
+  'openid.ns': 'http://specs.openid.net/auth/2.0' /* NOSONAR: OpenID 2.0's namespace identifier */,
   'openid.mode': 'id_res',
   'openid.op_endpoint': 'https://steamcommunity.com/openid/login',
   'openid.claimed_id': 'https://steamcommunity.com/openid/id/76561198000000001',

@@ -9,8 +9,13 @@ import { Surface } from '@ui/surface';
 import { ArrowRight, Merge } from 'lucide-react';
 import { useReducer } from 'react';
 
-import { authProviderNames } from '@db/accounts';
-import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection, useProviderSignIn } from '@db/accounts';
+import {
+  authProviderNames,
+  useAuthConnection,
+  useConfirmAuthConnection,
+  useHeldAuthConnection,
+  useProviderSignIn,
+} from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
