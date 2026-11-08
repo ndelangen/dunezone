@@ -95,9 +95,11 @@ describe('stored release variants', () => {
 
   test('reports a variant the bucket lacks or stores at another size, once per name', () => {
     const stored = [variant('kept.webp'), variant('resized.webp'), source('a')];
-    const earlier = [release[1]];
+    /* An earlier record shares one variant with the latest and names one only it lists. */
+    const earlier = [release[1], { name: 'older.webp', source: hash('d'), bytes: 3 }];
     expect(missingVariants(stored, [earlier, release])).toEqual([
       { name: 'gone.webp', bytes: 5, stored: null },
+      { name: 'older.webp', bytes: 3, stored: null },
       { name: 'resized.webp', bytes: 9, stored: 5 },
     ]);
   });

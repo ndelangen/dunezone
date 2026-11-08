@@ -194,8 +194,8 @@ function planNames(lock: RasterLock): string[] {
 }
 
 /*
- * The ledger is listed and its records read before the variant bucket is listed.
- * A deploy writes a record only after every variant it lists is stored, so a deploy running alongside this report can add variants the records do not name yet, never a record naming variants the listing missed.
+ * The ledger is listed before the variant bucket, and only the records that listing found are read.
+ * A deploy writes a record only after every variant it lists is stored, so each record read here names variants that were stored before the variant listing began; a deploy running alongside this report can only add variants no record read here names.
  */
 const ledgerKeys = (await listBucket({ bucket: RELEASE_BUCKET })).map((object) => object.key);
 const recordKeys = ledgerKeys.filter((key) => key.startsWith('releases/') && key.endsWith('.json'));
