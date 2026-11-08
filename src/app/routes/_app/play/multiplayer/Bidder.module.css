@@ -173,7 +173,15 @@
 
 .turnButton:disabled {
   cursor: default;
-  opacity: 0.45;
+  color: rgb(from var(--color-text) r g b / 0.4);
+  box-shadow: none;
+}
+
+/* The row stands on the same overlay as the clock's label, so the board and the bidder's band never show between the buttons. */
+.turnButtons {
+  padding: 4px;
+  border-radius: 999px;
+  background: rgb(from var(--glass-overlay) r g b / var(--glass-overlay-alpha));
 }
 
 .turnSign {

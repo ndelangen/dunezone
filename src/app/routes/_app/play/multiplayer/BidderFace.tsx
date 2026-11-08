@@ -206,7 +206,7 @@ function TurnButton({
 function TurnButtons({ client, bidding }: { client: TableSession; bidding: BiddingState }) {
   const { round, bid, turn } = bidding;
   return (
-    <Group gap={6} justify="center" wrap="nowrap" role="group" aria-label="Your bid">
+    <Group gap={6} justify="center" wrap="nowrap" role="group" aria-label="Your bid" className={styles.turnButtons}>
       <TurnButton
         sign="+"
         name={bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}

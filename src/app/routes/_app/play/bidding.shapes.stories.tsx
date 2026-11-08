@@ -3,7 +3,7 @@ import type { Decorator } from '@storybook/tanstack-react';
 
 import { STORYBOOK_NOW } from '@db/storybook';
 
-import { biddingSetup } from './bidding.stories.fixture';
+import { biddingSetup, clockSetup } from './bidding.stories.fixture';
 import { gameMeta } from './game.stories.fixture';
 import { BidderShapeContext } from './multiplayer/bidderShapes';
 import type { BidderShape } from './multiplayer/bidderShapes';
@@ -41,15 +41,5 @@ export const BluntDrop = meta.story(drawn('bluntDrop'));
 export const Dial = meta.story(drawn('dial'));
 export const HollowBluntDrop = meta.story(drawn('hollowBluntDrop'));
 
-/* The same shape while the bidder points at the viewer's Harkonnen: the bigger face with its raise, lower and pass buttons. */
-export const HollowBluntDropYourTurn = meta.story({
-  ...drawn('hollowBluntDrop'),
-  beforeEach: biddingSetup({
-    stage: 'open',
-    round: 1,
-    opener: 'house-atreides',
-    turn: 'house-harkonnen',
-    bid: { factionId: 'house-atreides', amount: 4 },
-    deadline: STORYBOOK_NOW + 12_000,
-  }),
-});
+/* The same shape while the bidder points at the viewer's Harkonnen in a live round: the bigger face with its raise, lower and pass buttons, which work. */
+export const HollowBluntDropYourTurn = meta.story({ ...drawn('hollowBluntDrop'), beforeEach: clockSetup(true) });
