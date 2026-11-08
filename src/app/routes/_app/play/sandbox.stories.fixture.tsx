@@ -7,7 +7,7 @@ import { restingPositionAt } from '@shared/play/tableGeometry';
 import { nearestCollisionFreePosition } from '@shared/play/tablePhysics';
 import { isTechToken } from '@shared/play/techToken';
 import type { within } from 'storybook/test';
-import { expect } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
 import { storedSnapshotSchema } from '../../../../../workers/game/state';
 import type { StoredSnapshot } from '../../../../../workers/game/state';
@@ -209,6 +209,13 @@ export async function sandboxReady(page: ReturnType<typeof within>) {
   await expect(
     page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
+  /*
+   * The table's shell stays clipped shut over the waiting frame until the board has painted (up to ten seconds on a slow renderer),
+   * so a pointer let go over the board before then lands on the waiting frame. A story drives the table once it is open.
+   */
+  await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
+    timeout: 30_000,
+  });
 }
 
 /** What the page is shown of the room right now, in the ids it sends back. */
