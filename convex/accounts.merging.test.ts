@@ -555,3 +555,12 @@ test('a merge moves large assets within the transaction limits', async () => {
   });
   /* Thirty-three near-limit cards and their one-row merge steps; this leaves headroom for a loaded runner. */
 }, 60_000);
+
+test('only a signed-in reader learns which sign-in methods are connected, for signing in again', async () => {
+  const t = setup();
+  const reader = await account(t, 'reader', 'google');
+  expect(await t.query(api.accounts.connectedMethods, {})).toBeNull();
+  expect(
+    await t.withIdentity({ subject: `${reader.userId}|${reader.sessionId}` }).query(api.accounts.connectedMethods, {})
+  ).toEqual(['google']);
+});

@@ -39,8 +39,9 @@ function playerProfile(player: Record<string, unknown> | undefined): { name?: st
 
 /* The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
 async function steamProfile(steamId: string): Promise<{ name?: string; image?: string }> {
-  const key = process.env.STEAM_WEB_API_KEY;
+  const key = process.env.STEAM_WEB_API_KEY?.trim();
   if (!key) {
+    console.warn('Steam profile lookup skipped: STEAM_WEB_API_KEY is not set');
     return {};
   }
   try {
@@ -48,11 +49,18 @@ async function steamProfile(steamId: string): Promise<{ name?: string; image?: s
     url.search = new URLSearchParams({ key, steamids: steamId }).toString();
     const response = await fetch(url, { signal: AbortSignal.timeout(STEAM_TIMEOUT_MS) });
     if (!response.ok) {
+      /* The sign-in still succeeds without a name or avatar; the log says why, without the key. */
+      console.warn(`Steam profile lookup failed with HTTP ${response.status}`);
       return {};
     }
     const body = (await response.json()) as { response?: { players?: Record<string, unknown>[] } };
-    return playerProfile(body.response?.players?.[0]);
-  } catch {
+    const player = body.response?.players?.[0];
+    if (!player) {
+      console.warn('Steam profile lookup returned no player');
+    }
+    return playerProfile(player);
+  } catch (error) {
+    console.warn(`Steam profile lookup failed: ${error instanceof Error ? error.name : 'unknown error'}`);
     return {};
   }
 }

@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   signIn: vi.fn(),
   signOut: vi.fn(),
+  providers: [{ provider: 'google', available: true }],
+  connected: null as string[] | null,
 }));
 
 vi.mock('@tanstack/react-router', async (importOriginal) => ({
@@ -31,7 +33,8 @@ vi.mock('@db/profiles', () => ({ useCurrentProfile: () => ({ data: mocks.profile
 vi.mock('@db/accounts', () => ({
   authProviderNames: { google: 'Google', discord: 'Discord', steam: 'Steam' },
   useProviderSignIn: () => (provider: string, options: { redirectTo: string }) => mocks.signIn(provider, options),
-  useSignInProviders: () => [{ provider: 'google', available: true }],
+  useSignInProviders: () => mocks.providers,
+  useConnectedSignInMethods: () => mocks.connected,
   useLastSignInMethod: () => null,
   noteSignInStarted: vi.fn(),
   settleStartedSignIn: vi.fn(),
@@ -49,6 +52,8 @@ const privateTable = '{"hand":["private-card"]}';
 beforeEach(() => {
   mocks.search = { redirect: destination, reauthenticate: true };
   mocks.profile = { username: 'Krell' };
+  mocks.providers = [{ provider: 'google', available: true }];
+  mocks.connected = null;
   mocks.navigate.mockReset();
   mocks.signOut.mockReset().mockResolvedValue(undefined);
   mocks.signIn.mockReset().mockResolvedValue({ signingIn: true });
@@ -73,14 +78,18 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+const tree = () => (
+  <MantineProvider theme={appContentTheme}>
+    <LoginPage />
+  </MantineProvider>
+);
+
 async function page() {
+  let view!: ReturnType<typeof render>;
   await act(async () => {
-    render(
-      <MantineProvider theme={appContentTheme}>
-        <LoginPage />
-      </MantineProvider>
-    );
+    view = render(tree());
   });
+  return { rerender: () => view.rerender(tree()) };
 }
 
 test('recovery shows sign-in choices without redirecting or signing out on arrival', async () => {
@@ -168,4 +177,32 @@ test('local recovery returns with a fresh page after password sign-in', async ()
     password: 'local-test-password',
   });
   expect(mocks.navigate).toHaveBeenCalledExactlyOnceWith({ href: destination, replace: true, reloadDocument: true });
+});
+
+test('signing in again offers only the methods connected to the profile, even once signed out', async () => {
+  mocks.providers = [
+    { provider: 'google', available: true },
+    { provider: 'discord', available: true },
+    { provider: 'steam', available: true },
+  ];
+  mocks.connected = ['google'];
+  const view = await page();
+  expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Continue with Steam' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Continue with Discord' })).toBeNull();
+  /* Picking a method signs out first, and a signed-out reader has no connected methods to read. */
+  mocks.connected = null;
+  view.rerender();
+  expect(screen.queryByRole('button', { name: 'Continue with Steam' })).toBeNull();
+});
+
+test('an ordinary sign-in offers every method', async () => {
+  mocks.search = { redirect: destination };
+  mocks.profile = null;
+  mocks.providers = [
+    { provider: 'google', available: true },
+    { provider: 'steam', available: true },
+  ];
+  await page();
+  expect(screen.getByRole('button', { name: 'Continue with Steam' })).toBeTruthy();
 });
