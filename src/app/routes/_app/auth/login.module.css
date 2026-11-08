@@ -42,6 +42,14 @@
   color: var(--color-inverse);
 }
 
+/* Steam's own near-black, from its store header. */
+.provider[data-provider="steam"],
+.provider[data-provider="steam"]:hover:not(:disabled) {
+  --provider-bg: #171a21;
+  background-color: var(--provider-bg);
+  color: var(--color-inverse);
+}
+
 .provider:disabled {
   opacity: 0.55;
 }
