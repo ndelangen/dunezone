@@ -44,6 +44,7 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/publisher-assets.ts',
   'scripts/lib/browserBundleBudgets.ts',
   'scripts/lib/jsonc.ts',
+  'scripts/lib/quietBuildReport.ts',
   'scripts/lib/reactCompiler.ts',
   'scripts/lib/threeRendererStack.ts',
   'scripts/lib/unsyncedMediaPreview.ts',
