@@ -32,7 +32,7 @@ export function AuctionTracker({ factions, state, onAction }: TrackerViewProps) 
           <HandRow key={faction.id} faction={faction} factions={factions} state={state} onAction={onAction} />
         ))}
       </section>
-      <DeckFooter state={state} onAction={onAction} deckSize={unplaced(state).length} />
+      <DeckFooter factions={factions} state={state} onAction={onAction} deckSize={unplaced(state).length} />
     </div>
   );
 }

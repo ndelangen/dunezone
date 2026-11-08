@@ -142,7 +142,7 @@ export function OddsTracker({ factions, state, onAction }: TrackerViewProps) {
         % is the chance that at least one of a faction's {unknownTotal > 0 ? 'unknown cards' : 'cards'} is such a card,
         from the {poolSize} cards you have not placed.
       </Text>
-      <DeckFooter state={state} onAction={onAction} deckSize={poolSize} />
+      <DeckFooter factions={factions} state={state} onAction={onAction} deckSize={poolSize} />
     </div>
   );
 }
