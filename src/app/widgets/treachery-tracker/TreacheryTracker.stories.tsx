@@ -4,7 +4,6 @@ import type { ComponentType } from 'react';
 import { expect } from 'storybook/test';
 
 import { panelMeta } from '../../routes/_app/play/panels/PanelWindow.stories.fixture';
-import { AuctionTracker } from './AuctionTracker';
 import { ColumnsTracker } from './ColumnsTracker';
 import { DeckSheetTracker } from './DeckSheetTracker';
 import { LedgerTracker } from './LedgerTracker';
@@ -48,14 +47,6 @@ export const Columns = meta.story({
 /** B: the paper Atreides sheet, alive: a row per card, a column per faction plus deck and discard, a dot per copy. */
 export const Ledger = meta.story({
   render: () => <Live view={LedgerTracker} initial={midGameTracker} />,
-});
-
-/** C: the card on bid fills the top as its own banner, and one click on a token records who won it. */
-export const AuctionFirst = meta.story({
-  render: () => <Live view={AuctionTracker} initial={midGameTracker} />,
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Fremen won Hunter Seeker' })).toBeVisible();
-  },
 });
 
 /** D: what matters in a battle, per faction: the weapons and defenses Atreides knows of, and the odds among its unknown cards. */

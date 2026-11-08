@@ -111,7 +111,11 @@ export function placeOf(state: TrackerState, card: string): Place {
 export function unplaced(state: TrackerState): CardCopy[] {
   const placed = new Set<string>(state.discard);
   for (const slots of Object.values(state.hands)) {
-    for (const slot of slots) {if (slot.card) placed.add(slot.card);}
+    for (const slot of slots) {
+      if (slot.card) {
+        placed.add(slot.card);
+      }
+    }
   }
   return state.copies.filter((copy) => !placed.has(copy.id));
 }

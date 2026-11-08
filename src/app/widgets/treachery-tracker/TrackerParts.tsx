@@ -1,6 +1,6 @@
 import { HoverCard, Popover, Stack, Text, UnstyledButton } from '@mantine/core';
-import { IconAction } from '@ui/control/IconAction';
-import { ArrowRightLeft, Plus, Trash2, Undo2 } from 'lucide-react';
+import { AddAction } from '@ui/control/ListLengthActions';
+import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
@@ -93,7 +93,7 @@ export function CardChooser({
                   aria-label={copy.def.name}
                   onClick={() => onPick(copy.id)}
                 >
-                  <CardGlyph card={copy} size={28} />
+                  <CardGlyph card={copy} size={32} />
                 </UnstyledButton>
               </CardPreview>
             ))}
@@ -118,7 +118,7 @@ export function CardChooser({
                     aria-label={copy.def.name}
                     onClick={() => onPick(copy.id)}
                   >
-                    <CardGlyph card={copy} size={28} />
+                    <CardGlyph card={copy} size={32} />
                     {left > 1 && <span className={styles.badge}>{left}</span>}
                   </UnstyledButton>
                 </CardPreview>
@@ -139,15 +139,9 @@ export function AddCard({
 }: Readonly<{ faction: FactionToken; state: TrackerState; onAction: (action: TrackerAction) => void }>) {
   const [open, setOpen] = useState(false);
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={260}>
+    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={300}>
       <Popover.Target>
-        <IconAction
-          label={`Add a card to ${faction.name}`}
-          icon={<Plus size={14} />}
-          size="sm"
-          emphasis="quiet"
-          onClick={() => setOpen((was) => !was)}
-        />
+        <AddAction label={`Add a card to ${faction.name}`} onClick={() => setOpen((was) => !was)} />
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown}>
         <CardChooser
@@ -193,7 +187,7 @@ export function SlotChip({
       position="bottom"
       withinPortal
       shadow="md"
-      width={mode === 'identify' ? 260 : 'target'}
+      width={mode === 'identify' ? 300 : 'target'}
     >
       <Popover.Target>
         <span>

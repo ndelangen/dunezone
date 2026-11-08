@@ -47,18 +47,26 @@
   overflow: hidden;
   border-radius: 50%;
   background: var(--ui-paper);
-  box-shadow:
-    0 0 0 3px var(--kind),
-    0 1px 3px 3px rgb(from var(--ui-black) r g b / 0.6);
+  box-shadow: 0 1px 3px rgb(from var(--ui-black) r g b / 0.6);
 }
 
+/* The kind ring sits inside the glyph's box, so a known card and an unknown one are the same size. */
+.picto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--kind);
+  border-radius: 50%;
+}
+
+/* The illustration's backdrop circle, centred at 450,462 of a 900 x 1263 card, cut as the 420 px square around it. */
 .picto img {
   position: absolute;
   top: 0;
   left: 0;
-  width: 230.8%;
+  width: 214.3%;
   max-width: none;
-  transform: translate(-28.33%, -19.95%);
+  transform: translate(-26.67%, -19.95%);
   pointer-events: none;
 }
 
@@ -84,9 +92,10 @@
 
 .unknown {
   display: inline-grid;
+  box-sizing: border-box;
   flex-shrink: 0;
   place-items: center;
-  border: 1px dashed var(--edge, var(--ui-edge));
+  border: 2px dashed rgb(from var(--ui-muted) r g b / 0.5);
   border-radius: 50%;
   background: var(--ui-recess);
   color: var(--ink-dim, var(--ui-muted));
@@ -130,7 +139,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .glyphButton,
@@ -148,9 +157,10 @@
 
 .badge {
   position: absolute;
-  right: -3px;
-  bottom: -3px;
+  right: -4px;
+  bottom: -4px;
   min-width: 14px;
+  box-shadow: 0 0 0 1.5px var(--ui-raised);
   padding: 0 3px;
   border-radius: 7px;
   background: var(--ui-ground);
@@ -163,6 +173,8 @@
 .chooser {
   max-height: 340px;
   overflow-y: auto;
+  /* Room for a glyph's shadow and its copy count, which the scroll box would otherwise cut off. */
+  padding: 4px;
 }
 
 .chooserUnknown {
