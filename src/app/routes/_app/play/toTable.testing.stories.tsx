@@ -54,7 +54,7 @@ async function seated(canvasElement: HTMLElement) {
   await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
     timeout: 60_000,
   });
-  await expect(within(document.body).getByRole('img', { name: 'Game table' })).toBeVisible();
+  await expect(await within(document.body).findByRole('img', { name: 'Game table' })).toBeVisible();
 }
 
 /* The page's own address, so the play function can find the game the page opened. */
