@@ -33,7 +33,7 @@ const dreamrulesFace = (file: string) => imageHref(`/play-fixtures/dreamrules/${
 /** The published Dreamrules Treachery back. */
 export const cardBack = () => dreamrulesFace(dreamrulesDecks.treachery.back.file);
 /** The published Dreamrules Spice back. */
-export const spiceBack = () => dreamrulesFace(dreamrulesDecks.spice.back.file);
+const spiceBack = () => dreamrulesFace(dreamrulesDecks.spice.back.file);
 
 type DreamrulesDeck = 'treachery' | 'spice';
 const DECK_PIECES = {
@@ -60,7 +60,7 @@ const deckSize = (deck: DreamrulesDeck) => dreamrulesDecks[deck].cards.reduce((s
  * Once cards have left it, the stack takes the name its back gives it, as a split names it.
  * A full deck keeps the published deck's own name.
  */
-export function dreamrulesDeck(
+function dreamrulesDeck(
   deck: DreamrulesDeck,
   taken = 0,
   factionNames: Parameters<typeof labelForCount>[2] = {}
@@ -86,7 +86,7 @@ export function dreamrulesDeck(
  * A discard pile beside its deck: the given Dreamrules cards face up, the last on top.
  * The Treachery discard lies beside its deck in the left bay, the Spice discard below its deck in the right bay.
  */
-export function dreamrulesDiscard(
+function dreamrulesDiscard(
   deck: DreamrulesDeck,
   id: string,
   names: string[],
