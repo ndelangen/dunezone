@@ -12,6 +12,8 @@ on:
     - cron: "17 5 * * *"
   workflow_dispatch:
 
+permissions: {}
+
 concurrency:
   # Hold production stable from revision selection through the dev refresh.
   group: deploy-production
