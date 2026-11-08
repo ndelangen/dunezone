@@ -10,6 +10,8 @@ const RISE_MS = 1600;
 let riseEndsAt = Number.NEGATIVE_INFINITY;
 /* The latest departure; a caller hands back the token it was given, so an older departure's cleanup leaves a newer one alone. */
 let current = 0;
+/* Whether the latest departure is on its way into a table; a departing page that goes away before that calls it off. */
+let opened = false;
 
 /** Marks the document as departing for a table (AppBackground and AppRoot read it alongside any `data-voyage` element), and returns this departure's token. */
 export function beginDeparture() {
@@ -17,12 +19,31 @@ export function beginDeparture() {
   riseEndsAt = performance.now() + RISE_MS;
   document.documentElement.dataset.voyage = 'departing';
   current += 1;
+  opened = false;
   return current;
+}
+
+/**
+ * The departure heads into its table, so the page that goes away next hands the planet on rather than calling it off.
+ * Returns false for a departure a newer one has replaced, which must not navigate;
+ * the default is the latest departure.
+ */
+export function openDeparture(token = current) {
+  if (token !== current) {
+    return false;
+  }
+  opened = true;
+  return true;
 }
 
 /** The departing page went away: the table's frame should take over within a moment, else the mark lapses on its own. */
 export function leaveDeparture(token: number) {
   if (token !== current || document.documentElement.dataset.voyage !== 'departing') {
+    return;
+  }
+  /* A page left before its departure headed into a table (Back mid-way) calls it off, so no later table waits out its rise. */
+  if (!opened) {
+    cancelDeparture(token);
     return;
   }
   window.clearTimeout(release);

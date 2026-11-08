@@ -7,6 +7,7 @@ import type { Dispatch } from 'react';
 
 import { useCreatableRulesets, useCreateGame, usePlayReadiness } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
+import { useMotionAllowed } from '@app/styles/motion';
 import {
   CreateGamePass,
   CreateGamePassTitle,
@@ -16,6 +17,7 @@ import {
 import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/widgets/create-game/CreateGamePass';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { openDeparture } from '@app/widgets/voyage/voyage';
 
 import { loadHostedTable } from './hostedTableChunk';
 import { DEPARTURE_MS } from './TableDepartureLink';
@@ -83,6 +85,7 @@ type CreateGame = ReturnType<typeof useCreateGame>;
 /* Pressing Create game fades the page away while the planet rises; the game opens once the fade is complete, and a refusal lifts it again. */
 function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraftEvent>) {
   const navigate = useNavigate();
+  const motion = useMotionAllowed();
   const [departing, setDeparting] = useState(false);
   const departedAt = useRef(0);
   const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -103,17 +106,19 @@ function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraft
     createGame.mutate(input, {
       onSuccess: (result) => {
         if (result.ok) {
-          const remaining = wasStalled.current
-            ? DEPARTURE_MS
-            : Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-          opening.current = setTimeout(
-            () =>
-              void navigate({
-                to: '/play/$gameId',
-                params: { gameId: result.slug ?? result.gameId },
-              }),
-            remaining
-          );
+          /* With motion off there is no fade to wait out. */
+          const remaining = !motion
+            ? 0
+            : wasStalled.current
+              ? DEPARTURE_MS
+              : Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+          opening.current = setTimeout(() => {
+            openDeparture();
+            void navigate({
+              to: '/play/$gameId',
+              params: { gameId: result.slug ?? result.gameId },
+            });
+          }, remaining);
         } else {
           setDeparting(false);
           dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });

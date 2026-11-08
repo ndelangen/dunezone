@@ -4,7 +4,7 @@ import type { MouseEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
-import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
+import { beginDeparture, cancelDeparture, leaveDeparture, openDeparture } from '@app/widgets/voyage/voyage';
 
 import { loadHostedTable } from './hostedTableChunk';
 
@@ -59,10 +59,16 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
       return;
     }
     event.preventDefault();
-    started.current = beginDeparture();
+    const token = beginDeparture();
+    started.current = token;
     setDeparting(true);
     opening.current = window.setTimeout(() => {
       opening.current = undefined;
+      /* A newer departure (another link pressed meanwhile) owns the planet now; this one stays put. */
+      if (!openDeparture(token)) {
+        setDeparting(false);
+        return;
+      }
       void navigate({ to: '/play/$gameId', params: { gameId } });
     }, DEPARTURE_MS);
   };
