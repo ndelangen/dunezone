@@ -16,6 +16,7 @@ import type { TableMessage } from '../tutorial/table/localTable';
 import { install } from './game.stories.fixture';
 import recording from './journey.recording/journey.json';
 import { chapter, journeySteps, journeyViewers, stepCode, timelineSteps, viewerLabel } from './journey.stories.fixture';
+import { waitForTableOpen } from './mapView.stories.fixture';
 import { dreamrulesTechTokenPieces } from './panels/inventory/techTokens.stories.fixture';
 import { capturedFactions } from './product.stories.fixture';
 import { storyTransport } from './storyTransport';
@@ -177,6 +178,7 @@ export async function sandboxReady(page: ReturnType<typeof within>) {
   await expect(
     page.findByRole('heading', { name: 'Dreamrules', level: 1 }, { timeout: 30_000 })
   ).resolves.toBeVisible();
+  await waitForTableOpen(document);
 }
 
 /** What the page is shown of the room right now, in the ids it sends back. */
