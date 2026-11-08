@@ -125,7 +125,7 @@ function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
  * `eager` loads the first row's pictures at once, for a page whose rows open above the fold;
  * a list further down a page leaves them lazy.
  */
-export function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly CatalogueRow[]; eager?: boolean }>) {
+function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly CatalogueRow[]; eager?: boolean }>) {
   return (
     <Stack gap="xl">
       {rows.map((row, index) => (

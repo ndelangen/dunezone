@@ -72,7 +72,6 @@ export interface SurfaceProps {
  *
  * Callers own what goes inside and where the pane sits.
  * This component owns the one treatment that makes a pane read as a pane here: a pale border, a translucent infill, the blur that lets the desert artwork through, and the soft shadow that lifts it off the page.
- * A region dense with panes may switch the blur off for all of them with `--surface-backdrop: none` (see the stylesheet).
  *
  * It exists because that treatment had been written out three separate times, once against the `--panel-*` tokens, once as a `color-mix` of white, and once inside the Mantine theme, so panes that should have been identical differed in border weight, blur radius and translucency depending on which copy the author happened to find first.
  *
