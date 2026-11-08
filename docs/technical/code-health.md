@@ -20,7 +20,8 @@ to the repository's security dashboard.
 The scanner version lives in [semgrep.in](../../.github/requirements/semgrep.in). Its
 [requirements lock](../../.github/requirements/semgrep.txt) pins the full dependency set and SHA-256
 hashes. CI installs wheels only and requires every package to match a committed hash. Changes to
-either requirements file run the Code health workflow on pull requests and on `main`.
+either requirements file run the Code health workflow on pull requests and on `main`. The input also
+constrains installation, so a scanner version that differs from the lock fails CI.
 
 Rule-specific `nosemgrep` comments record reviewed exceptions beside the expression: fixed test
 fixtures, loopback publication probes, and the Rulebook reader's publisher-generated markup.
@@ -64,7 +65,9 @@ a dependency. Review version changes under the repository's dependency policy.
 Verify the lock in a clean Linux x86_64 environment with Python 3.14:
 
 ```bash
-python -m pip install --only-binary=:all: --require-hashes -r .github/requirements/semgrep.txt
+python -m pip install --only-binary=:all: --require-hashes \
+  --constraint .github/requirements/semgrep.in \
+  --requirement .github/requirements/semgrep.txt
 python -m pip check
 semgrep --version
 ```

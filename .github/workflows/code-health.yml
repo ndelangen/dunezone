@@ -50,7 +50,9 @@ jobs:
           python-version: "3.14"
       - name: Install Semgrep Community Edition
         run: |
-          python -m pip install --only-binary=:all: --require-hashes -r .github/requirements/semgrep.txt
+          python -m pip install --only-binary=:all: --require-hashes \
+            --constraint .github/requirements/semgrep.in \
+            --requirement .github/requirements/semgrep.txt
       - name: Scan source with community security rules
         id: semgrep
         run: |
