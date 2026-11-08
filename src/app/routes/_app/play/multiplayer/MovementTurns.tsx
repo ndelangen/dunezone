@@ -4,7 +4,7 @@ import type { MovementTurns as MovementTurnsState } from '@shared/play/movement'
 import { SortableRow } from '@ui/control/SortableRow';
 import { Check } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 
@@ -50,6 +50,16 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
   /* The factions done lead the order and keep their places: only the factions still to go drag, and only among themselves. */
   const locked = order.filter((id) => done.includes(id));
   const rest = order.filter((id) => !done.includes(id));
+  const complete = rest.length === 0 && locked.length > 0;
+  /* What changed while the row was shown, so a tick pops, and the completion runs, only for marks made since, not on every mount. */
+  const [seen, setSeen] = useState({ done, fresh: [] as string[], completed: false });
+  if (seen.done.join() !== done.join()) {
+    setSeen({
+      done,
+      fresh: [...seen.fresh.filter((id) => done.includes(id)), ...done.filter((id) => !seen.done.includes(id))],
+      completed: complete && seen.done.length < order.length,
+    });
+  }
   const token = (id: string) => (
     <Token
       key={id}
@@ -58,6 +68,7 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
       name={names[id] ?? id}
       names={names}
       turn={turnOf(id)}
+      fresh={seen.fresh.includes(id)}
       canAct={canAct}
       onToggle={() => (done.includes(id) ? onUndo(id) : onDone(id))}
     />
@@ -68,7 +79,7 @@ export function MovementTurns({ table, order, done, names, canAct, onDone, onUnd
       aria-label="Shipment and Movement turns"
       className={styles.turns}
       data-motion={motion || undefined}
-      data-complete={(rest.length === 0 && locked.length > 0) || undefined}
+      data-complete={(complete && seen.completed) || undefined}
     >
       {locked.length > 0 && (
         <div className={styles.row}>
@@ -104,6 +115,7 @@ function Token({
   name,
   names,
   turn,
+  fresh,
   canAct,
   onToggle,
 }: Readonly<{
@@ -112,6 +124,8 @@ function Token({
   name: string;
   names: Readonly<Record<string, string>>;
   turn: Turn;
+  /** Marked done while the row was shown, so its tick pops on. */
+  fresh: boolean;
   canAct: boolean;
   onToggle: () => void;
 }>) {
@@ -121,7 +135,7 @@ function Token({
     <>
       <FactionTokenFace token={factionToken(table, factionId, names)} size={TOKEN_SIZE} />
       {turn === 'done' && (
-        <span className={styles.tick} aria-hidden="true">
+        <span className={styles.tick} data-fresh={fresh || undefined} aria-hidden="true">
           <Check size={10} strokeWidth={3} />
         </span>
       )}

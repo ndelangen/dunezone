@@ -76,10 +76,6 @@ export function useBump(value: unknown) {
   return bump;
 }
 
-/**
- * A number whose changed digits slide to their new value, each in its own slot like an odometer: up when the number grows, down when it shrinks.
- * Digits that did not change stay put.
- */
 /*
  * The strength as rolling wheels, like an odometer: a wheel per whole place, then a half that opens beside them.
  * Everything follows one count of halves, which a spring carries towards the plan's total, so a quick run of changes keeps rolling from wherever the wheels are.
@@ -105,7 +101,11 @@ function leadOpen(position: number) {
 }
 
 function useSpring(target: number, motion: boolean) {
-  const [shown, setShown] = useState(target);
+  /* `live` is the verdict the shown value belongs to: one that motion turned back on for starts from the target, not from where it was left. */
+  const [shown, setShown] = useState({ at: target, live: motion });
+  if (shown.live !== motion) {
+    setShown({ at: target, live: motion });
+  }
   const state = useRef({ at: target, speed: 0 });
   useEffect(() => {
     if (!motion) {
@@ -125,7 +125,7 @@ function useSpring(target: number, motion: boolean) {
         spring.at = target;
         spring.speed = 0;
       }
-      setShown(spring.at);
+      setShown({ at: spring.at, live: true });
       if (!settled) {
         frame = requestAnimationFrame(step);
       }
@@ -133,7 +133,7 @@ function useSpring(target: number, motion: boolean) {
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
   }, [target, motion]);
-  return motion ? shown : target;
+  return motion && shown.live === motion ? shown.at : target;
 }
 
 function Wheel({ faces, position, open, slot }: { faces: string[]; position: number; open: number; slot: string }) {
@@ -152,7 +152,9 @@ function Wheel({ faces, position, open, slot }: { faces: string[]; position: num
 /** The strength on rolling wheels that carry it smoothly to each new total; a negative total, or reduced motion, shows as plain text. */
 function SlidingNumber({ value }: { value: number }) {
   const motion = useMotionAllowed();
-  const halves = useSpring(value * 2, motion && value >= 0);
+  /* The wheels hold wholes and halves; a total with a finer fraction (a typed adjustment of a quarter, say), or a negative one, is plain text. */
+  const wheeled = value >= 0 && Number.isInteger(value * 2);
+  const halves = useSpring(value * 2, motion && wheeled);
   const [roll, setRoll] = useState({ to: value * 2, from: value * 2 });
   /* The half opens only near an end of the roll that has one, so a roll between whole numbers never flickers a half on the way. */
   const near = (end: number) => (Math.abs(end % 2) === 1 ? Math.max(0, 1 - Math.abs(end - halves)) : 0);
@@ -161,7 +163,7 @@ function SlidingNumber({ value }: { value: number }) {
   if (roll.to !== value * 2) {
     setRoll({ to: value * 2, from: half > 0.5 ? Math.round(halves) : 2 * Math.round(halves / 2) });
   }
-  if (!motion || value < 0 || halves < 0) {
+  if (!motion || !wheeled || halves < 0) {
     return <>{formatStrength(value)}</>;
   }
   /* The whole number the wheels stand on: it rolls smoothly between wholes and rests while the half opens or closes. */
@@ -273,12 +275,8 @@ export function DialRow({
             onChange(next);
           }
         }}
-        onChangeEnd={(next) => {
-          setDraft(null);
-          if (next !== value) {
-            onChange(next);
-          }
-        }}
+        /* Every step was sent as the thumb crossed it, the last one included, so letting go only hands the thumb back to the plan. */
+        onChangeEnd={() => setDraft(null)}
       />
       <span className={styles.dialStep}>
         <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} wheel="focus" onChange={onChange} />

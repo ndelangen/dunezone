@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
 /*
- * Marks <html data-dragging> while any drag lasts, so the theme hides tooltips for its length.
+ * Marks <html data-dragging> while a sortable row's drag or a native drag lasts, so the theme hides tooltips for its length.
  * Several drags may overlap (a row's drag and a native drag), so the mark stays until the last one ends.
  */
 let drags = 0;
@@ -39,13 +39,20 @@ export function useNativeDragMark(): void {
       end?.();
       end = undefined;
     };
+    /*
+     * A drag whose source left the page mid-drag ends without a dragend reaching the document, so the first pointer
+     * movement after it clears the mark too: no pointer event fires while a native drag lasts.
+     */
+    const events = ['dragend', 'drop', 'pointermove', 'pointerdown'] as const;
     document.addEventListener('dragstart', start, true);
-    document.addEventListener('dragend', stop, true);
-    document.addEventListener('drop', stop, true);
+    for (const event of events) {
+      document.addEventListener(event, stop, true);
+    }
     return () => {
       document.removeEventListener('dragstart', start, true);
-      document.removeEventListener('dragend', stop, true);
-      document.removeEventListener('drop', stop, true);
+      for (const event of events) {
+        document.removeEventListener(event, stop, true);
+      }
       stop();
     };
   }, []);

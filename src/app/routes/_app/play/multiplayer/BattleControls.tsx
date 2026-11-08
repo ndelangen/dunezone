@@ -567,19 +567,27 @@ function SideContents({
     </Button>
   );
 }
-/* The sides this page has seen open in this battle, so a side claimed while the panel is up can mark its arrival. */
-function useClaimedNow(battle: PublicBattle) {
-  const open = battle.sides.flatMap((side, index) => (side ? [] : [index]));
-  const [seen, setSeen] = useState({ battleId: battle.id, open });
-  const fresh = seen.battleId !== battle.id;
-  if (fresh || open.some((index) => !seen.open.includes(index))) {
-    setSeen({ battleId: battle.id, open: fresh ? open : [...new Set([...seen.open, ...open])] });
+/*
+ * The sides claimed while the panel was up, until their token has dropped in: a side whose claim this page saw arrive,
+ * not one already taken when the panel opened, and only for the drop itself, so later changes inside it do not replay it.
+ */
+function useClaimDrops(battle: PublicBattle) {
+  const claimed = battle.sides.map(Boolean);
+  const [seen, setSeen] = useState({ claimed, dropping: [] as number[] });
+  const arrived = claimed.flatMap((now, index) => (now && !seen.claimed[index] ? [index] : []));
+  if (claimed.some((now, index) => now !== seen.claimed[index])) {
+    setSeen({
+      claimed,
+      dropping: [...seen.dropping.filter((index) => claimed[index]), ...arrived],
+    });
   }
-  return (index: number) => !fresh && Boolean(battle.sides[index]) && seen.open.includes(index);
+  const landed = (index: number) =>
+    setSeen((before) => ({ ...before, dropping: before.dropping.filter((other) => other !== index) }));
+  return { dropping: (index: number) => seen.dropping.includes(index) || arrived.includes(index), landed };
 }
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
-  const claimedNow = useClaimedNow(battle);
+  const claims = useClaimDrops(battle);
   const active = new Set(
     table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
   );
@@ -588,7 +596,16 @@ function BattleSides(props: ActiveProps) {
       {([0, 1] as const).map((index) => {
         const side = battle.sides[index];
         return (
-          <div className={styles.side} key={index} data-claimed-now={claimedNow(index) || undefined}>
+          <div
+            className={styles.side}
+            key={index}
+            data-claimed-now={claims.dropping(index) || undefined}
+            onAnimationEnd={(event) => {
+              if (event.animationName.includes('claim-drop')) {
+                claims.landed(index);
+              }
+            }}
+          >
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
@@ -649,9 +666,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
           <div
             className={styles.callout}
             data-battle-stage={battle.stage}
-            style={
-              { '--pop-x': `${anchor[0] - capsule[0]}px`, '--pop-y': `${anchor[1] - capsule[1]}px` } as CSSProperties
-            }
+            data-pointer={anchor[1] < capsule[1] ? 'above' : 'below'}
           >
             <CalloutSurface
               pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
@@ -691,7 +706,8 @@ export function BattleScene({
         onDrop={(position) => markBattle(props.client, position)}
         onHover={onMarkerTerritory}
       />
-      {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
+      {/* Keyed by the battle, so a battle that replaces another builds up as its own. */}
+      {battle ? <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} /> : null}
     </>
   );
 }

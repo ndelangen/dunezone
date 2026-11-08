@@ -228,6 +228,11 @@
   transform-origin: center bottom;
 }
 
+/* A marker above the panel: the panel springs from its top edge, the side its pointer leaves from. */
+:global(html[data-motion="ok"]) .callout[data-pointer="above"] {
+  transform-origin: center top;
+}
+
 @keyframes build-reach {
   from {
     opacity: 0;

@@ -49,7 +49,7 @@ function PlayedPlan() {
   );
 }
 
-/* The battle strength's digits slide to each new total; change the troops, the spice, the leader or the adjustment to see it. */
+/* The battle strength rolls on odometer wheels to each new total; change the troops, the spice, the leader or the adjustment to see it. */
 const meta = preview.meta({
   ...battlePlanPanelMeta,
   title: 'Play/Panels/Battle plan rolling strength',
@@ -59,5 +59,5 @@ const meta = preview.meta({
   render: () => <PlayedPlan />,
 });
 
-/** By hand: each digit that changes slides through its own slot, up as the strength grows and down as it shrinks. */
+/** By hand: each place's wheel rolls to the new total and keeps rolling smoothly through quick changes; a half opens beside them. */
 export const RollingStrength = meta.story({});

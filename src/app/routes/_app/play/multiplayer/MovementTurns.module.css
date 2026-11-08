@@ -76,8 +76,8 @@ button.token:focus-visible {
   color: var(--ui-ground);
 }
 
-/* A faction marked done: its tick pops onto the token. */
-.turns[data-motion] .tick {
+/* A faction marked done while the row is shown: its tick pops onto the token. */
+.turns[data-motion] .tick[data-fresh] {
   animation: done-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 
