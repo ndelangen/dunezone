@@ -80,3 +80,24 @@ test('an unanswered Advanced Max edit spends the spice on support the way the ro
   queue.editPlan('battle-one', { spice: 4 });
   expect(queue.shown(snapshot, false).battlePlan).toMatchObject({ spice: 4, strength: 5.5 });
 });
+
+test('a troop edit queued behind an unanswered mode change keeps its troops', () => {
+  const snapshot = battleSnapshot();
+  const queue = new BattleQueue({
+    canAct: () => true,
+    snapshot: () => snapshot,
+    sendPlan: vi.fn(),
+    command: vi.fn(),
+    hasRoom: () => true,
+  });
+  queue.editPlan('battle-one', { mode: 'custom' });
+  queue.flush();
+  /* The room has not answered Custom yet, so this edit waits behind it. */
+  queue.editPlan('battle-one', { troops: [{ faceId: 'harkonnen-front', undialed: 5, dialed: 3 }] });
+  expect(queue.shown(snapshot, false).battlePlan).toMatchObject({
+    mode: 'custom',
+    troops: [{ faceId: 'harkonnen-front', undialed: 5, dialed: 3 }],
+    spice: 3,
+    strength: 5.5,
+  });
+});

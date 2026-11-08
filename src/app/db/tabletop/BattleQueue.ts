@@ -247,8 +247,12 @@ export class BattleQueue {
       return authoritative;
     }
     const was = authoritative.battlePlan;
-    /* The room's support and strength belong to the plan it last answered; an edit still on its way settles its own. */
-    return withPlan(authoritative, was, projectedPlan({ ...was, ...pending?.patch, ...queued?.patch }, was));
+    /*
+     * The room's support and strength belong to the plan it last answered; an edit still on its way settles its own.
+     * The edit on its way settles first and the queued one on top of it, in the order the room will take them.
+     */
+    const sent = pending ? projectedPlan({ ...was, ...pending.patch }, was) : was;
+    return withPlan(authoritative, was, queued ? projectedPlan({ ...sent, ...queued.patch }, sent) : sent);
   }
 
   /*
