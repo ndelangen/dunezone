@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 
 import {
   awaitingWinner,
+  chooserCards,
   currentTurn,
   drawPile,
   groupCount,
@@ -229,4 +230,15 @@ test('no sequence of actions breaks the tracker, and only a bid or a take-back o
       state = next;
     }
   }
+});
+
+test('the next-bid chooser never offers a copy already on bid; a hand still may take it', () => {
+  const state = run({ kind: 'bid', card: 'shield#1', turn: 1 });
+  const forBid = chooserCards(state, true);
+  expect(forBid.seen).toEqual([]);
+  expect(forBid.byName.find((entry) => entry.copy.def.key === 'shield')).toMatchObject({
+    copy: { id: 'shield#2' },
+    left: 1,
+  });
+  expect(chooserCards(state, false).seen.map((copy) => copy.id)).toEqual(['shield#1']);
 });

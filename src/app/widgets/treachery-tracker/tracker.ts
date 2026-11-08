@@ -371,6 +371,29 @@ export function drawPile(state: TrackerState): { copies: CardCopy[]; count: numb
   return { copies, count: Math.max(0, copies.length - unknownInHands - unknownOnBid) };
 }
 
+/** One glyph a chooser offers for a card name: the copy a pick takes, and how many copies are left. */
+export type ChooserCard = { copy: CardCopy; left: number };
+
+/**
+ * What a card chooser offers: the cards seen but not placed, newest first, then the draw pile with one entry per name.
+ * A copy on bid is spoken for: the draw pile offers only the other copies, and a hand takes it from the seen row, which leaves it out when picking the next card up for bid.
+ */
+export function chooserCards(state: TrackerState, forBid: boolean): { seen: CardCopy[]; byName: ChooserCard[] } {
+  const reserved = reservedCards(state);
+  const freeIds = new Set(unplaced(state).map((copy) => copy.id));
+  const offered = (card: string | null): card is string =>
+    card !== null && freeIds.has(card) && !(forBid && reserved.has(card));
+  const seen = [...new Set(state.seen.map((sighting) => sighting.card).filter(offered))].map((card) =>
+    copyOf(state, card)
+  );
+  const byName = new Map<string, ChooserCard>();
+  for (const copy of drawPile(state).copies) {
+    const entry = byName.get(copy.def.key) ?? { copy, left: 0 };
+    byName.set(copy.def.key, { ...entry, left: entry.left + 1 });
+  }
+  return { seen, byName: [...byName.values()] };
+}
+
 /** The turn the tracker is in: the table's turn where a game supplies it, else the turn of the newest card on bid. */
 export function currentTurn(state: TrackerState, tableTurn?: number): number {
   return tableTurn ?? state.seen[0]?.turn ?? 1;

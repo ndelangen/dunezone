@@ -12,12 +12,11 @@ import {
   GROUP_LABEL,
   GROUP_ROWS,
   copyOf,
+  chooserCards,
   groupCount,
   groupOf,
   placeOf,
   slotOf,
-  reservedCards,
-  unplaced,
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TreacheryTracker.module.css';
@@ -79,26 +78,7 @@ export function CardChooser({
   /** Picking the next card up for bid, which may never be a card already on bid. */
   forBid?: boolean;
 }>) {
-  /* A copy on bid is spoken for: the deck offers only the other copies, and only a hand may take it, from the seen row. */
-  const reserved = reservedCards(state);
-  const free = unplaced(state);
-  const freeIds = new Set(free.map((copy) => copy.id));
-  const seenIds = new Set(
-    state.seen.flatMap((sighting) =>
-      sighting.card && freeIds.has(sighting.card) && !(forBid && reserved.has(sighting.card)) ? [sighting.card] : []
-    )
-  );
-  const seen = [...seenIds].map((card) => copyOf(state, card));
-  /* One glyph per card name: a second copy adds nothing to choose from. */
-  const byName = new Map<string, { copy: CardCopy; left: number }>();
-  for (const copy of free.filter((entry) => !reserved.has(entry.id))) {
-    const entry = byName.get(copy.def.key);
-    if (entry) {
-      entry.left += 1;
-    } else {
-      byName.set(copy.def.key, { copy, left: 1 });
-    }
-  }
+  const { seen, byName } = chooserCards(state, forBid);
   return (
     <Stack gap={8} className={styles.chooser}>
       {allowUnknown && (
@@ -131,7 +111,7 @@ export function CardChooser({
         const groups = row
           .map((group) => ({
             group,
-            cards: [...byName.values()].filter(({ copy }) => groupOf(copy.def) === group),
+            cards: byName.filter(({ copy }) => groupOf(copy.def) === group),
           }))
           .filter(({ cards }) => cards.length > 0);
         if (groups.length === 0) {

@@ -242,7 +242,7 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
               type="button"
               className={styles.cardButton}
               aria-label={waiting ? `${name}: who won it?` : name}
-              onClick={() => waiting && setOpen((was) => !was)}
+              onClick={waiting ? () => setOpen((was) => !was) : undefined}
             >
               <KnownOrUnknown copy={copy} />
             </button>
