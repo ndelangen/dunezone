@@ -44,8 +44,12 @@
        On a desktop row that lands in the gap; on a stacked row the outer piles sit against the screen edge, where the room is this padding plus the shell's 12px gutter (32px), or the page scrolls sideways on a phone. */
     --pile-fan-overhang: 20px;
 
+    /* The two piles lean into the gap between them as well: one fan's outer card one way, its neighbour's other card the other way, together close to a fifth of a card's width. Two overhangs keep them apart. */
+    --pile-column-gap: calc(2 * var(--pile-fan-overhang));
+
     grid-template-columns: repeat(2, minmax(0, var(--pile-slot-stacked)));
-    max-width: calc(var(--pile-slot-stacked) * 2 + var(--pile-gap) + 2 * var(--pile-fan-overhang));
+    column-gap: var(--pile-column-gap);
+    max-width: calc(var(--pile-slot-stacked) * 2 + var(--pile-column-gap) + 2 * var(--pile-fan-overhang));
     padding-inline: var(--pile-fan-overhang);
     margin-inline: auto;
   }
