@@ -2,10 +2,8 @@
  * The landing page's rows of chapter tiles.
  * The rows are the page's rhythm, so they ask the page frame and step from one tile to two, three and five across; a part never holds more than five chapters.
  */
-/* Twenty-odd panes over the fixed starfield: their live blur made scrolling stutter, so the rows keep the glass without it. */
+/* The tiles are panes like any other and blur the page behind them (Norbert, 2026-11-08: blur like surfaces, on every page). */
 .row {
-  --surface-backdrop: none;
-
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-md);
@@ -118,7 +116,7 @@
  * The strip: the same tiles on one line that scrolls sideways, in the kit's fading lane.
  * A tile keeps about the width it has on the catalogue page at five across, and comes down a step where the line has less than a phone's width of room, so the next tile always shows its edge and says the line scrolls.
  * The frame is the strip's own container, so the step reads the room the strip is given rather than the page.
- * Unlike the catalogue's rows, the strip sets no `--surface-backdrop`: its tiles keep the panes' live blur, and the lane fades them one by one.
+ * The strip's tiles keep the panes' live blur, as the rows' do, so the lane fades them one by one.
  */
 .stripFrame {
   container: tile-strip / inline-size;
