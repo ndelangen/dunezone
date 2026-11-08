@@ -59,14 +59,14 @@
   border-radius: 50%;
 }
 
-/* The illustration's backdrop circle, centred at 450,462 of a 900 x 1263 card, cut as the 420 px square around it. */
+/* The illustration, centred at 450,462 of a 900 x 1263 card, cut as the 525 px square around it so the silhouette sits clear of the ring. */
 .picto img {
   position: absolute;
   top: 0;
   left: 0;
-  width: 214.3%;
+  width: 171.4%;
   max-width: none;
-  transform: translate(-26.67%, -19.95%);
+  transform: translate(-20.83%, -15.8%);
   pointer-events: none;
 }
 
