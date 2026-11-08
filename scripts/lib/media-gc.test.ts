@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test';
 
 import type { RasterLock, RasterLockEntry } from '../../src/shared/media/rasterLock';
-import { planCollection } from './media-gc';
+import { missingVariants, planCollection } from './media-gc';
 import type { GcInputs, StoredObject } from './media-gc';
 
 const NOW = new Date('2026-10-09T00:00:00Z');
@@ -41,7 +41,7 @@ describe('media collection plan', () => {
       inputs({
         sources: [source('a')],
         variants: [variant('released.webp')],
-        releases: [[{ name: 'released.webp', source: hash('a') }]],
+        releases: [[{ name: 'released.webp', source: hash('a'), bytes: 5 }]],
       })
     );
 
@@ -79,5 +79,31 @@ describe('media collection plan', () => {
     const plan = planCollection(inputs({ sources: [{ key: 'stray.png', bytes: 1, uploaded: OLD }] }));
 
     expect(plan.sources).toMatchObject({ unrecognised: ['stray.png'], candidates: [] });
+  });
+});
+
+describe('stored release variants', () => {
+  const release = [
+    { name: 'kept.webp', source: hash('a'), bytes: 5 },
+    { name: 'gone.webp', source: hash('b'), bytes: 5 },
+    { name: 'resized.webp', source: hash('c'), bytes: 9 },
+  ];
+
+  test('passes when every listed variant is stored at its published size', () => {
+    expect(missingVariants([variant('kept.webp')], [[release[0]]])).toEqual([]);
+  });
+
+  test('reports a variant the bucket lacks or stores at another size, once per name', () => {
+    const stored = [variant('kept.webp'), variant('resized.webp'), source('a')];
+    expect(missingVariants(stored, [release, release])).toEqual([
+      { name: 'gone.webp', bytes: 5, stored: null },
+      { name: 'resized.webp', bytes: 9, stored: 5 },
+    ]);
+  });
+
+  test('checks only presence for a record entry without a size', () => {
+    const unsized = { name: 'kept.webp', source: hash('a') };
+    expect(missingVariants([variant('kept.webp')], [[unsized]])).toEqual([]);
+    expect(missingVariants([], [[unsized]])).toEqual([{ name: 'kept.webp', bytes: null, stored: null }]);
   });
 });

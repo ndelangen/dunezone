@@ -75,10 +75,17 @@ describe('Storybook publication browser process', () => {
 });
 
 describe('stopping a process', () => {
-  test('returns once the process exits on normal termination', async () => {
-    const process = processThatStopsOn();
-    await expect(stopProcess(process, 1)).resolves.toBeUndefined();
-    expect(process.kill).toHaveBeenCalledOnce();
+  test('returns once the process exits on normal termination, leaving no timer behind', async () => {
+    vi.useFakeTimers();
+    try {
+      const process = processThatStopsOn();
+      await expect(stopProcess(process, 5000)).resolves.toBeUndefined();
+      expect(process.kill).toHaveBeenCalledOnce();
+      /* A pending shutdown timer would keep Bun alive for its whole duration after a passing run. */
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   test('names the process that ignored SIGKILL', async () => {

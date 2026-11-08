@@ -77,7 +77,7 @@ the ledger. Ship the fix as a new commit. Before merging, run the publisher loca
 `/m` URL and one legacy URL; after the deploy, its verify step proves the sample again.
 
 **The verify step's record is suspect** (for example, after objects were changed outside the Worker, or the
-monthly media check, `.github/workflows/media-check.yml`, failed).
+monthly media report, `.github/workflows/media-gc-report.yml`, listed `missingReleaseVariants`).
 The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`), and
 publishing checks only new entries, while the verify step downloads new entries plus a random sample of 128. Delete those caches the same way
 (`--key media-verified-`): the next deploy then HEADs every variant before going live, re-uploads any R2 lacks, and

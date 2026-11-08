@@ -12,7 +12,7 @@
  *
  * Publishing asks R2 only about the entries that record lacks, and uploads any R2 lacks.
  * An entry the record holds was downloaded intact from R2 by an earlier deploy, and R2 objects are create-only, so asking again proves nothing new.
- * Whether stored media stays intact is the monthly media check's concern (`.github/workflows/media-check.yml`), not the deploy's.
+ * Whether stored media stays intact is the monthly media report's concern (`.github/workflows/media-gc-report.yml`), not the deploy's.
  * `--all` asks about every variant, which also re-uploads any that went missing.
  * The bytes come from the store `generate:images` fills (`scripts/lib/media-store.ts`), so run that first.
  * MEDIA_ORIGIN picks the Worker, https://dune.zone by default.

@@ -1,5 +1,5 @@
 /**
- * The R2 media collection report (#1888 step 9): a dry run of the retention rules that lists what a collection could remove.
+ * The R2 media report (#1888 step 9): a dry run of the retention rules that lists what a collection could remove, and a check that every variant any release record lists is still stored at its published size, which fails the run when one is not.
  *
  * Bun run media:gc
  *
@@ -12,7 +12,7 @@
 import sharp from 'sharp';
 
 import type { RasterLock } from '../src/shared/media/rasterLock';
-import { planCollection } from './lib/media-gc';
+import { missingVariants, planCollection } from './lib/media-gc';
 import type { ReleaseVariant, StoredObject } from './lib/media-gc';
 import { readRasterLock } from './lib/raster-lock';
 import { planVariants } from './media-variants';
@@ -126,7 +126,7 @@ async function readRelease(key: string): Promise<ReleaseVariant[]> {
   if (!response.ok) {
     throw new Error(`Reading ${key} failed with HTTP ${response.status}`);
   }
-  const record = (await response.json()) as { variants?: { name?: unknown; source?: unknown }[] };
+  const record = (await response.json()) as { variants?: { name?: unknown; source?: unknown; bytes?: unknown }[] };
   if (!Array.isArray(record.variants)) {
     throw new Error(`${key} has no variant list`);
   }
@@ -134,7 +134,11 @@ async function readRelease(key: string): Promise<ReleaseVariant[]> {
     if (typeof variant.name !== 'string' || typeof variant.source !== 'string') {
       throw new Error(`${key} lists a variant without a name or source`);
     }
-    return { name: variant.name, source: variant.source };
+    return {
+      name: variant.name,
+      source: variant.source,
+      ...(typeof variant.bytes === 'number' ? { bytes: variant.bytes } : {}),
+    };
   });
 }
 
@@ -199,6 +203,7 @@ const plan = planCollection({
   planNames,
   now: new Date(),
 });
+const missing = missingVariants(variants, releases);
 const summary = (report: (typeof plan)['sources']) => ({
   ...report,
   candidateBytes: report.candidates.reduce((total, object) => total + object.bytes, 0),
@@ -211,8 +216,15 @@ console.log(
       openPullRequests: pulls.length,
       sources: summary(plan.sources),
       variants: summary(plan.variants),
+      missingReleaseVariants: missing,
     },
     null,
     2
   )
 );
+if (missing.length > 0) {
+  console.error(
+    `${missing.length} variant(s) a release record lists are missing from ${VARIANT_BUCKET} or stored at another size; see docs/technical/media-runbooks.md.`
+  );
+  process.exit(1);
+}

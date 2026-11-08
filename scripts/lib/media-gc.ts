@@ -4,6 +4,9 @@
  * An original or variant stays while any release record lists it, prepared or deployed, because published HTML may reference it forever.
  * It also stays while the lock on main or on any open pull request references it, or while it is younger than the minimum age.
  * Only what is left is a candidate, and this plan never deletes anything itself.
+ *
+ * The same listing also proves the opposite direction (`missingVariants`): every variant a release record lists is still stored, at the size it was published with.
+ * Deploys trust that, because R2 objects are create-only and nothing deletes them, so they only ask R2 about variants no earlier deploy proved.
  */
 import type { RasterLock } from '../../src/shared/media/rasterLock';
 
@@ -15,8 +18,34 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type StoredObject = { key: string; bytes: number; uploaded: string };
 
-/** The part of a release record retention reads: each variant's name and the original it was encoded from. */
-export type ReleaseVariant = { name: string; source: string };
+/** The part of a release record these checks read: each variant's name, the original it was encoded from, and its size where the record has one. */
+export type ReleaseVariant = { name: string; source: string; bytes?: number };
+
+/** A variant some release record lists that the variant bucket lacks, or stores at another size. */
+export type MissingVariant = { name: string; bytes: number | null; stored: number | null };
+
+/** Every variant a release record lists that the bucket listing lacks or holds at a different size, each name once. */
+export function missingVariants(
+  variants: readonly StoredObject[],
+  releases: readonly (readonly ReleaseVariant[])[]
+): MissingVariant[] {
+  const stored = new Map<string, number>();
+  for (const object of variants) {
+    const name = VARIANT_KEY.exec(object.key)?.[1];
+    if (name !== undefined) {
+      stored.set(name, object.bytes);
+    }
+  }
+  const missing = new Map<string, MissingVariant>();
+  for (const variant of releases.flat()) {
+    const bytes = stored.get(variant.name);
+    const expected = variant.bytes ?? null;
+    if (bytes === undefined || (expected !== null && bytes !== expected)) {
+      missing.set(variant.name, { name: variant.name, bytes: expected, stored: bytes ?? null });
+    }
+  }
+  return [...missing.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
 
 export type GcInputs = {
   sources: readonly StoredObject[];
