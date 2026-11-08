@@ -124,23 +124,14 @@ stack traces keep function names, but frames show bundle file and line numbers r
 
 ### Browser files across deployments
 
-A new HTML cache key cannot repair a document already open in a browser. Before deploying, the
-workflow reads the current site's `application-assets.json` and copies older hashed browser files
-into the new Static Assets upload. Files in the previous current build remain available for at
-least seven days after replacement. Subsequent releases carry their original expiry forward, then
-omit them after that window. No request-time R2 lookup or new storage binding is involved.
-
-The manifest lists only hashed `/public/` files. Downloads must match their SHA-256 and byte count;
-a reused URL with different bytes fails the release. The existing Static Assets count and file-size
-gates apply after retention. A missing or corrupt manifest stops deployment once this feature has
-shipped. The initial rollout imports the currently deployed Vite dependency graph from the live shell,
-including dynamic imports, preload maps, stylesheets and their hashed resources. It rejects HTML
-fallbacks masquerading as missing scripts. Tabs already broken before rollout, or left open beyond
-seven days after replacement, may still need a refresh. Stable artwork and font URLs retain their existing delivery rules.
+Each release uploads only its own hashed browser files; older releases' chunks are not kept. A tab
+left open across a deploy may fail to load a lazy chunk and need a refresh. This keeps deploys fast
+and the Static Assets count well under Cloudflare's 20,000-file limit. Stable artwork and font URLs
+retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build, bundle retention and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
+PR CI runs it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment does not repeat it: main only accepts a merge whose PR checks passed on an up-to-date branch, so a normal merge deploys a tree whose publisher inputs CI rehearsed, possibly by reusing an earlier pass on identical inputs (the reasoning that removed the deploy-time verify job in #286). An admin-bypass merge or a direct push to main ships without it. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 
@@ -148,11 +139,8 @@ The live smoke normally makes one public Dream Rulebook request and requires pub
 
 ### Forward fixes
 
-Ship a corrected commit through the normal deployment workflow. Keep the retention step and the
-versioned HTML identity in place; do not replace the current release with an old asset directory.
-If retention fails, leave the current deployment serving traffic, inspect the manifest or failed
-asset digest, and fix the release input before deploying. Do not skip retention to turn a failed
-build green. Verify health's Git SHA and application version, then fetch a public document and one
+Ship a corrected commit through the normal deployment workflow. Keep the versioned HTML identity in
+place; do not replace the current release with an old asset directory. Verify health's Git SHA and application version, then fetch a public document and one
 of its scripts. The combined SEO release has its own live acceptance ticket.
 
 The release checks report both raw and compressed bundle size and measure local startup. Cloudflare's
@@ -420,7 +408,10 @@ deploying. In every other case the `deploy` job runs:
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
    it.
-2. Deploy Convex and run required migrations.
+2. Deploy Convex and run required migrations. Since Convex 1.47, `convex deploy` exits before
+   pushing when it would create or change an index on a table of 100,000 documents or more, because
+   CI cannot answer its confirmation. Stage such an index (`staged: true`) and enable it in a later
+   release once it has backfilled.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
@@ -429,9 +420,9 @@ deploying. In every other case the `deploy` job runs:
    vectors (`verify:vectors`) and OBJ pieces (`generate:objs`), then log the
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
-8. Remove raster copies served from R2, then retain the previous browser bundles. Check the final
-   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
-   raster copies because its buckets start empty.
+8. Remove raster copies served from R2. Check the final
+   Static Assets file count and reject generated-source drift. Local rehearsals keep the raster
+   copies because their buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
@@ -457,8 +448,11 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-13. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
-    smoke its manager, page index, preview entry, CSP, and shared public assets.
+13. A `storybook_build` job, running beside the deploy job after the same gate, builds and verifies the
+    secret-free Storybook artifact. Once the deploy job has finished, steps 14 to 16 included, `storybook_deploy` deploys that
+    artifact to `storybook.dune.zone` and smokes its manager, page index, preview entry, CSP, and shared
+    public assets. It waits because Storybook proxies `/m`, `/image`, `/web` and `/published` to
+    `dune.zone`, which must already serve this release's media. A failure in either job fails the run.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
@@ -520,7 +514,10 @@ and deploys the older commit even over a later release. "Re-run all jobs" asks t
 stops the run once production has a later commit.
 
 To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
-rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+rerun that run. "Re-run failed jobs" picks up at the failed job: after a failed Storybook deploy it
+reruns just `storybook_deploy`, and after a failed Storybook build it reruns the build and then the
+deploy. The built Storybook is kept for seven days, so a later deploy-only retry needs "Re-run all
+jobs" or a new run. "Re-run all jobs" deploys the commit
 again from the start, because the gate stops a commit production already has only on a run's first
 attempt. A dispatched run, or a second push event for the same merge, is a first attempt: while both
 Workers report that commit, it stops at the gate only if an earlier run for the commit finished
@@ -753,7 +750,8 @@ Two Three vendor payloads have separate limits:
 The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
 JavaScript. Their larger budgets preserve the renderer's module resolution. The client build's `three` chunk group
 (`THREE_BUILD`, shared with the budget) holds the three WebGPU modules together, whichever chunks import them. The build reports each
-verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+verified payload and its budget. Vite's own 500 kB advisory is switched off (`chunkSizeWarningLimit`), because these
+budgets already fail any oversized client chunk.
 A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
 
 Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware

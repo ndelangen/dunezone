@@ -13,6 +13,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight, History } from 'lucide-react';
 import { useEffect, useReducer } from 'react';
 import type { SVGProps } from 'react';
+import { FaSteam } from 'react-icons/fa6';
 import { SiDiscord } from 'react-icons/si';
 
 import {
@@ -20,6 +21,7 @@ import {
   noteSignInStarted,
   settleStartedSignIn,
   useLastSignInMethod,
+  useProviderSignIn,
   useSignInProviders,
 } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
@@ -104,6 +106,7 @@ function SignInPanel({
   reauthenticate: boolean;
 }) {
   const { signIn, signOut } = useAuthActions();
+  const providerSignIn = useProviderSignIn();
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
   const lastUsed = useLastSignInMethod();
@@ -133,7 +136,7 @@ function SignInPanel({
         forgetStoredPlayTables();
         await signOut();
       }
-      const { redirect, signingIn } = await signIn(provider, { redirectTo: returnTo });
+      const { redirect, signingIn } = await providerSignIn(provider, { redirectTo: returnTo });
       /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
          The buttons come back only if the back button restores this page from the browser's cache. */
       if (redirect) {
@@ -258,8 +261,15 @@ function SignInPanel({
   );
 }
 
-function ProviderMark({ provider }: { provider: AuthProvider }) {
-  return provider === 'google' ? <GoogleColoredMark width={22} height={22} /> : <SiDiscord size={22} aria-hidden />;
+function ProviderMark({ provider }: Readonly<{ provider: AuthProvider }>) {
+  switch (provider) {
+    case 'google':
+      return <GoogleColoredMark width={22} height={22} />;
+    case 'discord':
+      return <SiDiscord size={22} aria-hidden />;
+    case 'steam':
+      return <FaSteam size={22} aria-hidden />;
+  }
 }
 
 function LoginPage() {

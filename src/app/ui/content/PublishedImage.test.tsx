@@ -5,6 +5,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { markDecoded } from './imageArrival';
 import { PUBLISHED_IMAGE_RETRIES, PublishedImage, publishedImageRetryDelayMs } from './PublishedImage';
 
 /* jsdom neither fetches nor decodes images, so each probe's outcome is set by the test, one per retry. */
@@ -166,12 +167,12 @@ describe("PublishedImage as a page's main image", () => {
 describe('PublishedImage asks for a copy sized to its tile', () => {
   const card = '/published/cards/j57c8t9m2q4w6e8r0y2u4i6o8p0a2s4d/card.jpg?v=1';
 
-  function renderAtWidth(width: number, src = card) {
+  function renderAtWidth(width: number, src = card, full = false) {
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
       DOMRect.fromRect({ x: 0, y: 0, width, height: width })
     );
     vi.stubGlobal('devicePixelRatio', 2);
-    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} />);
+    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} full={full} />);
     return container.querySelector('img')?.getAttribute('src');
   }
 
@@ -185,7 +186,91 @@ describe('PublishedImage asks for a copy sized to its tile', () => {
     expect(renderAtWidth(400)).toBe(card);
   });
 
+  test('a full image draws the capture itself however small its tile', () => {
+    expect(renderAtWidth(60, card, true)).toBe(card);
+  });
+
   test('a source that is not a publication is drawn as given', () => {
     expect(renderAtWidth(60, '/published/atreides.png')).toBe('/published/atreides.png');
+  });
+});
+
+describe('PublishedImage shown from a copy another tile decoded', () => {
+  /* Each test its own card, since the page-wide record of decoded copies outlives a test. */
+  const card = () => `/published/cards/${crypto.randomUUID().replaceAll('-', '')}/card.jpg?v=1`;
+
+  /* The small copy is already in the browser, so the tile draws it complete and decoded. */
+  function renderDecoded(width: number, src: string, full = false) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(
+      DOMRect.fromRect({ x: 0, y: 0, width, height: width })
+    );
+    vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
+    vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(160);
+    vi.stubGlobal('devicePixelRatio', 2);
+    const { container } = render(<PublishedImage src={src} name="Trishula" aspect={1.4} full={full} />);
+    return () => container.querySelector('img')?.getAttribute('src');
+  }
+
+  afterEach(() => vi.restoreAllMocks());
+
+  test("a full image shows the hand's copy at once, then the capture once it has loaded", async () => {
+    const src = card();
+    markDecoded(src, `${src}&w=160`);
+    probeOutcomes.push(true);
+    const drawn = renderDecoded(60, src, true);
+    expect(drawn()).toBe(`${src}&w=160`);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(probedSources).toEqual([src]);
+    expect(drawn()).toBe(src);
+  });
+
+  test('goes back to the smaller copy when the capture fails in the tile itself', async () => {
+    const src = card();
+    markDecoded(src, `${src}&w=160`);
+    probeOutcomes.push(true);
+    const drawn = renderDecoded(60, src, true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(drawn()).toBe(src);
+    fireEvent.error(screen.getByRole('img', { name: 'Trishula' }));
+    expect(drawn()).toBe(`${src}&w=160`);
+    expect(screen.queryByRole('img', { name: 'Trishula: preview unavailable' })).toBeNull();
+  });
+
+  test('keeps the smaller copy when the capture fails to load', async () => {
+    const src = card();
+    markDecoded(src, `${src}&w=160`);
+    probeOutcomes.push(false);
+    const drawn = renderDecoded(60, src, true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(drawn()).toBe(`${src}&w=160`);
+  });
+
+  test('a small tile after a close look draws the small copy, not the capture', async () => {
+    const src = card();
+    markDecoded(src, src);
+    markDecoded(src, `${src}&w=160`);
+    const drawn = renderDecoded(60, src);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(drawn()).toBe(`${src}&w=160`);
+    expect(probedSources).toEqual([]);
+  });
+
+  test('a larger tile sharpens past the small copy to the one it needs', async () => {
+    const src = card();
+    markDecoded(src, `${src}&w=160`);
+    probeOutcomes.push(true);
+    const drawn = renderDecoded(240, src);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(drawn()).toBe(`${src}&w=640`);
   });
 });

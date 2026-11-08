@@ -84,7 +84,6 @@
     "publisher:omit-static-rasters": "bun run ./scripts/assemble-publisher-assets.ts --omit-static-rasters",
     "publisher:release:dry-run": "wrangler deploy --dry-run --config workers/publisher/wrangler.jsonc",
     "publisher:release:verify": "bun run publisher:types:check && bun run publisher:dry-run && git diff --exit-code -- workers/publisher/renderer-manifest.generated.ts",
-    "publisher:retain-assets": "bun run ./scripts/retain-application-assets.ts",
     "publisher:rulebook-html-runtime:verify": "bun run ./scripts/verify-rulebook-html-runtime.ts",
     "publisher:secret:publish-token": "wrangler secret put MEDIA_PUBLISH_TOKEN --config workers/publisher/wrangler.jsonc",
     "publisher:startup": "wrangler check startup --cwd workers/publisher --config wrangler.jsonc --outfile /tmp/asset-publisher-startup.cpuprofile",
@@ -138,8 +137,8 @@
     "@tanstack/react-router": "1.170.46",
     "@tanstack/react-start": "1.169.4",
     "clsx": "^2.1.1",
-    "convex": "1.46.0",
-    "convex-helpers": "0.1.127",
+    "convex": "1.49.0",
+    "convex-helpers": "0.1.134",
     "crypto-js": "^4.2.0",
     "fuse.js": "^7.5.0",
     "highlight.js": "11.12.0",
@@ -262,9 +261,9 @@
     "@storybook/tanstack-react@10.6.2": "patches/@storybook%2Ftanstack-react@10.6.2.patch",
     "three@0.186.1": "patches/three@0.186.1.patch",
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
-    "convex@1.46.0": "patches/convex@1.46.0.patch",
     "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
     "@storybook/react@10.6.2": "patches/@storybook%2Freact@10.6.2.patch",
-    "miniflare@5.20261023.3-beta": "patches/miniflare@5.20261023.3-beta.patch"
+    "miniflare@5.20261023.3-beta": "patches/miniflare@5.20261023.3-beta.patch",
+    "convex@1.49.0": "patches/convex@1.49.0.patch"
   }
 }

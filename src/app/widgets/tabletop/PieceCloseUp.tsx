@@ -281,7 +281,10 @@ function CloseUp({
       data-piece-type={item.artwork?.type}
       aria-hidden
     >
-      {/* Only the top item, so a stack of prediction cards that share one front shows the top card's prediction. */}
+      {/*
+       * Only the top item, so a stack of prediction cards that share one front shows the top card's prediction.
+       * The full capture, the sharpest there is, since the face is zoomed past its box; the hand's small copy shows only until it loads.
+       */}
       <PieceArtwork
         piece={{ ...shown, items: [item] }}
         src={src}
@@ -289,6 +292,7 @@ function CloseUp({
         width={width}
         height={height}
         radius="10px"
+        full
       />
       {count > 1 ? <div className={styles.closeUpCount}>×{count}</div> : null}
       {description ? <CloseUpDescription source={description} width={width} /> : null}

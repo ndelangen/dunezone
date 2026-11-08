@@ -59,6 +59,60 @@ function sandboxAsyncHooksInBrowser(): PluginOption {
   };
 }
 
+/**
+ * The `ssr` environment's side-effect rule below drops unused Mantine imports from Rolldown 1.3.0 on.
+ * The Rolldown inside vite-plus (1.2.14 in vite-plus 1.3.0, still 1.2.16 in vite-plus 1.5.0) ignores that rule for an external import that another chunk also uses and leaves a bare `import "@mantine/core"`, so this blanks exactly that line in server chunks.
+ * The line stays (empty) so source maps keep their positions.
+ * When a server build has no such line, the plugin warns that it can be deleted.
+ */
+function unusedMantineImportOnServer(): PluginOption {
+  const bareImport = /^import "@mantine\/core";$/mu;
+  return {
+    name: 'dunezone:unused-mantine-import-on-server',
+    applyToEnvironment: (environment) => environment.name === 'ssr',
+    /* Rolldown writes a chunk's external imports after `renderChunk`, so the finished chunk is edited here. */
+    generateBundle(_options, bundle) {
+      let stripped = false;
+      for (const output of Object.values(bundle)) {
+        if (output.type === 'chunk' && bareImport.test(output.code)) {
+          output.code = output.code.replace(bareImport, '');
+          stripped = true;
+        }
+      }
+      if (!stripped) {
+        this.warn('No bare `import "@mantine/core"` left in the server build: delete unusedMantineImportOnServer.');
+      }
+    },
+  };
+}
+
+/*
+ * Vite's build report, which vite-plus logs as one message whose first line is an emitted file and its size, such as `dist/client/index.html  0.17 kB`.
+ * If a later Vite logs it differently, the regex stops matching and the report prints again.
+ */
+const BUILD_REPORT_FILE_LINE = /^\S*dist\/\S+\s+[\d,.]+ kB/u;
+
+/**
+ * In CI, Vite's report of every emitted file (about 1,400 lines a build, 2,800 per deploy) is left out of the log.
+ * The bundle budgets still print and fail on any oversized client chunk, and the build's `dist/` holds the files.
+ * Their gzip sizes are then never shown, so CI skips computing them too (`reportCompressedSize` below).
+ */
+function quietBuildReportInCi(): PluginOption {
+  return {
+    name: 'dunezone:quiet-build-report-in-ci',
+    apply: () => Boolean(process.env.CI),
+    configResolved(config) {
+      const passThrough = config.logger.info.bind(config.logger);
+      config.logger.info = (message, options) => {
+        if (BUILD_REPORT_FILE_LINE.test(message.trim())) {
+          return;
+        }
+        passThrough(message, options);
+      };
+    },
+  };
+}
+
 /* The same worker lowers every async function it can run, in development; the worker build lowers them below. */
 function sandboxWorkerAsyncInDevelopment(): PluginOption {
   return convexWorkerServePlugins().map((plugin) => ({
@@ -95,6 +149,9 @@ function gameTableCryptoInBrowser(): PluginOption {
  * Styles keep their side effects: the pattern matches TypeScript only, and never a dependency's own `src/` folder.
  */
 const APP_MODULES_WITHOUT_SIDE_EFFECTS = /^(?!.*\/node_modules\/).*\/src\/(?:shared|app\/db|app\/ui)\/[^?]*\.tsx?$/u;
+
+/* Mantine's JavaScript entry; its package.json marks only CSS as having side effects. */
+const MANTINE_JS = /^@mantine\/core$/u;
 
 function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
   if (!process.env.VITEST) {
@@ -141,11 +198,36 @@ const config = defineConfig({
   },
   build: {
     assetsDir: 'public', // will make your static assets appear under /public/
+    /* browserBundleBudgets fails any client chunk over its budget, so Vite's 500 kB advisory only repeats it. */
+    chunkSizeWarningLimit: Number.POSITIVE_INFINITY,
+    /* CI hides the per-file report (quietBuildReportInCi), so it skips gzipping every file just to size it. */
+    reportCompressedSize: !process.env.CI,
     rollupOptions: {
+      /* The per-build plugin timing report printed on every build and every CI run; profile locally instead. */
+      checks: { bundlerTimings: false },
+      onLog(level, log, handler) {
+        /* linkedom's vendored worker build uses direct eval; the published reader only calls its parseHTML. */
+        if (log.code === 'EVAL' && log.id?.includes('/linkedom/')) {
+          return;
+        }
+        handler(level, log);
+      },
       output: { assetFileNames: publicAssetFileName },
     },
   },
   environments: {
+    /*
+     * Mantine's JavaScript has no side effects (its package.json lists only CSS), so an import of it whose bindings
+     * all went unused is dropped. Without this, the server router chunk keeps a bare `import "@mantine/core"`, which
+     * Wrangler's bundler drops with a warning on every build and dry run.
+     */
+    ssr: {
+      build: {
+        rollupOptions: {
+          treeshake: { moduleSideEffects: [{ test: MANTINE_JS, external: true, sideEffects: false }] },
+        },
+      },
+    },
     /**
      * Client-only: server chunk names never reach Codecov and TanStack Start owns the server entry layout.
      * These mirror
@@ -178,6 +260,14 @@ const config = defineConfig({
     plugins: () => [...convexWorkerBuildPlugins(), sandboxAsyncHooksInBrowser()],
     /* The same file names as the client's chunks, which the Worker's asset manifest holds to one pattern. */
     rolldownOptions: {
+      /*
+       * convex-test takes lazy import.meta.glob loaders, and the Convex worker also imports those modules statically,
+       * so every loader reported as an ineffective dynamic import. That worker is one bundle either way. This option
+       * covers every browser worker bundle; today that is the Convex worker and its protocol probe, and a new worker
+       * that relies on dynamic imports for splitting should check its chunks by hand (onLog/onwarn here never see
+       * these warnings).
+       */
+      checks: { bundlerTimings: false, ineffectiveDynamicImport: false },
       output: {
         entryFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
         chunkFileNames: ({ name }) => `public/${codecovSafeName(name)}-[hash].js`,
@@ -213,6 +303,8 @@ const config = defineConfig({
     gameTableCryptoInBrowser(),
     sandboxAsyncHooksInBrowser(),
     sandboxWorkerAsyncInDevelopment(),
+    unusedMantineImportOnServer(),
+    quietBuildReportInCi(),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },
