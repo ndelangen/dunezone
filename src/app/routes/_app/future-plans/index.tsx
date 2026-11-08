@@ -1,6 +1,6 @@
 /* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
 import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -21,7 +21,10 @@ import {
   PenTool,
   Printer,
   Search,
+  Shuffle,
+  Smartphone,
   Sparkles,
+  Swords,
   Trophy,
   Wrench,
 } from 'lucide-react';
@@ -38,7 +41,7 @@ export const Route = createFileRoute('/_app/future-plans/')({
       name: 'Future plans',
       pathname: '/future-plans',
       description:
-        'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and faction table tools.',
+        'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and tools for the physical table.',
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: FuturePlansPage,
@@ -55,6 +58,8 @@ type FuturePlan = {
   statement: string;
   icon: ReactNode;
   capabilities: Array<{ icon: ReactNode; title: string; detail: string }>;
+  /** A page on the site where the territory can already be explored. */
+  explore?: { label: string; to: '/tools' };
 };
 
 const FUTURE_PLANS: FuturePlan[] = [
@@ -125,20 +130,37 @@ const FUTURE_PLANS: FuturePlan[] = [
   },
   {
     number: '04',
-    title: 'Give every faction its perfect table tool',
+    title: 'Give every table the tools it reaches for',
     shortTitle: 'Build better tools',
-    statement: 'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
+    statement:
+      'Start with the best possible Treachery tracker, then fill a shelf of small phone tools for the physical table: drafting factions, setting up, battles, spice, predictions, and exports for print and Tabletop Simulator.',
     icon: <Wrench />,
+    explore: { label: 'See every planned tool', to: '/tools' },
     capabilities: [
       {
         icon: <ListChecks />,
-        title: 'Atreides tracker',
+        title: 'Treachery tracker',
         detail: 'Know which Treachery cards remain.',
+      },
+      {
+        icon: <Shuffle />,
+        title: 'Faction draft',
+        detail: 'Deal factions fairly before the game.',
+      },
+      {
+        icon: <Swords />,
+        title: 'Battle calculator',
+        detail: 'See who wins before you commit.',
       },
       {
         icon: <Sparkles />,
         title: 'Ruleset-aware',
         detail: 'Use the exact factions and cards in play.',
+      },
+      {
+        icon: <Smartphone />,
+        title: 'Made for your phone',
+        detail: 'At the table, with no account.',
       },
       {
         icon: <Lightbulb />,
@@ -211,6 +233,11 @@ function FuturePlansPage() {
                       <Text className={styles.statement} c="dimmed" mt="sm">
                         {plan.statement}
                       </Text>
+                      {plan.explore ? (
+                        <Anchor component={Link} to={plan.explore.to} fw={700} mt="md" display="inline-block">
+                          {plan.explore.label} <ArrowRight size={15} aria-hidden />
+                        </Anchor>
+                      ) : null}
                     </Grid.Col>
                   </Grid>
                   <Box ml={{ base: 0, sm: '16.6667%' }}>

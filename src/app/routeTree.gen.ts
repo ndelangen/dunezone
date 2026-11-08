@@ -16,6 +16,7 @@ import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppImportsRouteRouteImport } from './routes/_app/imports.route'
 import { Route as AppMediaRouteRouteImport } from './routes/_app/media/route'
 import { Route as AppPlayRouteRouteImport } from './routes/_app/play/route'
+import { Route as AppToolsRouteRouteImport } from './routes/_app/tools/route'
 import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/route'
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
@@ -48,6 +49,8 @@ import { Route as AppPrivacyIndexRouteImport } from './routes/_app/privacy/index
 import { Route as AppProfilesIndexRouteImport } from './routes/_app/profiles/index'
 import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/index'
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
+import { Route as AppToolsIndexRouteImport } from './routes/_app/tools/index'
+import { Route as AppToolsToolRouteRouteImport } from './routes/_app/tools/$tool.route'
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
@@ -116,6 +119,11 @@ const AppMediaRouteRoute = AppMediaRouteRouteImport.update({
 const AppPlayRouteRoute = AppPlayRouteRouteImport.update({
   id: '/play',
   path: '/play',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppToolsRouteRoute = AppToolsRouteRouteImport.update({
+  id: '/tools',
+  path: '/tools',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppTutorialRouteRoute = AppTutorialRouteRouteImport.update({
@@ -279,6 +287,16 @@ const AppRulesetsCreateRouteRoute = AppRulesetsCreateRouteRouteImport.update({
   id: '/rulesets/create',
   path: '/rulesets/create',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppToolsIndexRoute = AppToolsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppToolsRouteRoute,
+} as any)
+const AppToolsToolRouteRoute = AppToolsToolRouteRouteImport.update({
+  id: '/$tool',
+  path: '/$tool',
+  getParentRoute: () => AppToolsRouteRoute,
 } as any)
 const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
   id: '/',
@@ -491,6 +509,7 @@ export interface FileRoutesByFullPath {
   '/imports': typeof AppImportsRouteRoute
   '/media': typeof AppMediaRouteRouteWithChildren
   '/play': typeof AppPlayRouteRouteWithChildren
+  '/tools': typeof AppToolsRouteRouteWithChildren
   '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
@@ -509,6 +528,7 @@ export interface FileRoutesByFullPath {
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin/': typeof AppAdminIndexRoute
@@ -525,6 +545,7 @@ export interface FileRoutesByFullPath {
   '/privacy/': typeof AppPrivacyIndexRoute
   '/profiles/': typeof AppProfilesIndexRoute
   '/rulesets/': typeof AppRulesetsIndexRoute
+  '/tools/': typeof AppToolsIndexRoute
   '/tutorial/': typeof AppTutorialIndexRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
@@ -581,6 +602,7 @@ export interface FileRoutesByTo {
   '/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin': typeof AppAdminIndexRoute
@@ -597,6 +619,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof AppPrivacyIndexRoute
   '/profiles': typeof AppProfilesIndexRoute
   '/rulesets': typeof AppRulesetsIndexRoute
+  '/tools': typeof AppToolsIndexRoute
   '/tutorial': typeof AppTutorialIndexRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
@@ -639,6 +662,7 @@ export interface FileRoutesById {
   '/_app/imports': typeof AppImportsRouteRoute
   '/_app/media': typeof AppMediaRouteRouteWithChildren
   '/_app/play': typeof AppPlayRouteRouteWithChildren
+  '/_app/tools': typeof AppToolsRouteRouteWithChildren
   '/_app/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
@@ -658,6 +682,7 @@ export interface FileRoutesById {
   '/_app/play/$gameId': typeof AppPlayGameIdRouteRoute
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
+  '/_app/tools/$tool': typeof AppToolsToolRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/admin/': typeof AppAdminIndexRoute
@@ -674,6 +699,7 @@ export interface FileRoutesById {
   '/_app/privacy/': typeof AppPrivacyIndexRoute
   '/_app/profiles/': typeof AppProfilesIndexRoute
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
+  '/_app/tools/': typeof AppToolsIndexRoute
   '/_app/tutorial/': typeof AppTutorialIndexRoute
   '/_app/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/_app/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
@@ -717,6 +743,7 @@ export interface FileRouteTypes {
     | '/imports'
     | '/media'
     | '/play'
+    | '/tools'
     | '/tutorial'
     | '/auth/oauth'
     | '/admin/accounts'
@@ -735,6 +762,7 @@ export interface FileRouteTypes {
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tools/$tool'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/admin/'
@@ -751,6 +779,7 @@ export interface FileRouteTypes {
     | '/privacy/'
     | '/profiles/'
     | '/rulesets/'
+    | '/tools/'
     | '/tutorial/'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
@@ -807,6 +836,7 @@ export interface FileRouteTypes {
     | '/play/$gameId'
     | '/play/create'
     | '/rulesets/create'
+    | '/tools/$tool'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/admin'
@@ -823,6 +853,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/profiles'
     | '/rulesets'
+    | '/tools'
     | '/tutorial'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
@@ -864,6 +895,7 @@ export interface FileRouteTypes {
     | '/_app/imports'
     | '/_app/media'
     | '/_app/play'
+    | '/_app/tools'
     | '/_app/tutorial'
     | '/auth/oauth'
     | '/_app/'
@@ -883,6 +915,7 @@ export interface FileRouteTypes {
     | '/_app/play/$gameId'
     | '/_app/play/create'
     | '/_app/rulesets/create'
+    | '/_app/tools/$tool'
     | '/_app/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/_app/admin/'
@@ -899,6 +932,7 @@ export interface FileRouteTypes {
     | '/_app/privacy/'
     | '/_app/profiles/'
     | '/_app/rulesets/'
+    | '/_app/tools/'
     | '/_app/tutorial/'
     | '/_app/contributing/code/$lesson'
     | '/_app/contributing/deployment/$lesson'
@@ -989,6 +1023,13 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof AppPlayRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/tools': {
+      id: '/_app/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof AppToolsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/tutorial': {
@@ -1214,6 +1255,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/rulesets/create'
       preLoaderRoute: typeof AppRulesetsCreateRouteRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_app/tools/': {
+      id: '/_app/tools/'
+      path: '/'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof AppToolsIndexRouteImport
+      parentRoute: typeof AppToolsRouteRoute
+    }
+    '/_app/tools/$tool': {
+      id: '/_app/tools/$tool'
+      path: '/$tool'
+      fullPath: '/tools/$tool'
+      preLoaderRoute: typeof AppToolsToolRouteRouteImport
+      parentRoute: typeof AppToolsRouteRoute
     }
     '/_app/tutorial/': {
       id: '/_app/tutorial/'
@@ -1524,6 +1579,20 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
   AppPlayRouteRouteChildren,
 )
 
+interface AppToolsRouteRouteChildren {
+  AppToolsToolRouteRoute: typeof AppToolsToolRouteRoute
+  AppToolsIndexRoute: typeof AppToolsIndexRoute
+}
+
+const AppToolsRouteRouteChildren: AppToolsRouteRouteChildren = {
+  AppToolsToolRouteRoute: AppToolsToolRouteRoute,
+  AppToolsIndexRoute: AppToolsIndexRoute,
+}
+
+const AppToolsRouteRouteWithChildren = AppToolsRouteRoute._addFileChildren(
+  AppToolsRouteRouteChildren,
+)
+
 interface AppTutorialRouteRouteChildren {
   AppTutorialChapterRouteRoute: typeof AppTutorialChapterRouteRoute
   AppTutorialIndexRoute: typeof AppTutorialIndexRoute
@@ -1543,6 +1612,7 @@ interface AppRouteRouteChildren {
   AppImportsRouteRoute: typeof AppImportsRouteRoute
   AppMediaRouteRoute: typeof AppMediaRouteRouteWithChildren
   AppPlayRouteRoute: typeof AppPlayRouteRouteWithChildren
+  AppToolsRouteRoute: typeof AppToolsRouteRouteWithChildren
   AppTutorialRouteRoute: typeof AppTutorialRouteRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
   AppAuthErrorRouteRoute: typeof AppAuthErrorRouteRoute
@@ -1604,6 +1674,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppImportsRouteRoute: AppImportsRouteRoute,
   AppMediaRouteRoute: AppMediaRouteRouteWithChildren,
   AppPlayRouteRoute: AppPlayRouteRouteWithChildren,
+  AppToolsRouteRoute: AppToolsRouteRouteWithChildren,
   AppTutorialRouteRoute: AppTutorialRouteRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
   AppAuthErrorRouteRoute: AppAuthErrorRouteRoute,
