@@ -135,22 +135,32 @@ async function waitForServer(process: ReturnType<typeof Bun.spawn>) {
   throw new Error(`Wrangler did not start ${origin}.`);
 }
 
+/**
+ * Whether the process exits within the shutdown timeout.
+ * The timer is cleared once it has, because a pending timer keeps Bun alive: a bare `Bun.sleep` here held every run open for five seconds after it passed.
+ */
+async function exitsInTime(process: ReturnType<typeof Bun.spawn>): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      process.exited.then(() => true),
+      new Promise<false>((resolve) => {
+        timer = setTimeout(() => resolve(false), PROCESS_SHUTDOWN_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function stopProcess(process: ReturnType<typeof Bun.spawn>) {
   process.kill();
-  const exited = await Promise.race([
-    process.exited.then(() => true),
-    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
-  ]);
-  if (exited) {
+  if (await exitsInTime(process)) {
     return;
   }
 
   process.kill('SIGKILL');
-  const killed = await Promise.race([
-    process.exited.then(() => true),
-    Bun.sleep(PROCESS_SHUTDOWN_TIMEOUT_MS).then(() => false),
-  ]);
-  invariant(killed, 'Wrangler did not stop after SIGKILL.');
+  invariant(await exitsInTime(process), 'Wrangler did not stop after SIGKILL.');
 }
 
 /**

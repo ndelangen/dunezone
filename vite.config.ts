@@ -16,6 +16,7 @@ import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
+import { quietBuildReportInCi } from './scripts/lib/quietBuildReport.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 import { unsyncedMediaPreview } from './scripts/lib/unsyncedMediaPreview.ts';
@@ -82,33 +83,6 @@ function unusedMantineImportOnServer(): PluginOption {
       if (!stripped) {
         this.warn('No bare `import "@mantine/core"` left in the server build: delete unusedMantineImportOnServer.');
       }
-    },
-  };
-}
-
-/*
- * Vite's build report, which vite-plus logs as one message whose first line is an emitted file and its size, such as `dist/client/index.html  0.17 kB`.
- * If a later Vite logs it differently, the regex stops matching and the report prints again.
- */
-const BUILD_REPORT_FILE_LINE = /^\S*dist\/\S+\s+[\d,.]+ kB/u;
-
-/**
- * In CI, Vite's report of every emitted file (about 1,400 lines a build, 2,800 per deploy) is left out of the log.
- * The bundle budgets still print and fail on any oversized client chunk, and the build's `dist/` holds the files.
- * Their gzip sizes are then never shown, so CI skips computing them too (`reportCompressedSize` below).
- */
-function quietBuildReportInCi(): PluginOption {
-  return {
-    name: 'dunezone:quiet-build-report-in-ci',
-    apply: () => Boolean(process.env.CI),
-    configResolved(config) {
-      const passThrough = config.logger.info.bind(config.logger);
-      config.logger.info = (message, options) => {
-        if (BUILD_REPORT_FILE_LINE.test(message.trim())) {
-          return;
-        }
-        passThrough(message, options);
-      };
     },
   };
 }
