@@ -13,10 +13,12 @@ on:
       - "stryker.config.json"
       - ".semgrepignore"
       - ".github/workflows/code-health.yml"
+      - ".github/requirements/semgrep.*"
   push:
     branches: [main]
     paths:
       - ".github/workflows/code-health.yml"
+      - ".github/requirements/semgrep.*"
       - ".semgrepignore"
       - "stryker.config.json"
       - "vitest.mutation.config.ts"
@@ -48,7 +50,7 @@ jobs:
           python-version: "3.14"
       - name: Install Semgrep Community Edition
         run: |
-          python -m pip install --only-binary=:all: semgrep==1.180.0
+          python -m pip install --only-binary=:all: --require-hashes -r .github/requirements/semgrep.txt
       - name: Scan source with community security rules
         id: semgrep
         run: |
