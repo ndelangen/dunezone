@@ -23,6 +23,12 @@ on:
 permissions:
   contents: read
 
+# Every Wrangler call printed its version banner with an "update available" note and the telemetry notice.
+# The pinned version in bun.lock is the one that deploys, and CI sends no usage telemetry.
+env:
+  WRANGLER_HIDE_BANNER: "true"
+  WRANGLER_SEND_METRICS: "false"
+
 concurrency:
   group: deploy-production
   cancel-in-progress: false

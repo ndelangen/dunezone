@@ -54,6 +54,12 @@ function buildEnvironment() {
     NODE_ENV: 'production',
     PATH: process.env.PATH ?? '',
     VITE_CONVEX_URL: 'https://storybook.invalid',
+    /* The workflow's quiet-Wrangler settings, which this fixed environment would otherwise drop. */
+    ...Object.fromEntries(
+      ['WRANGLER_HIDE_BANNER', 'WRANGLER_SEND_METRICS'].flatMap((name) =>
+        process.env[name] === undefined ? [] : [[name, process.env[name]]]
+      )
+    ),
   };
 }
 
@@ -457,6 +463,9 @@ async function verifyPublication() {
       'wrangler',
       'dev',
       '--local',
+      /* One request line per asset filled about 2,400 lines of every deploy log; failures still print. */
+      '--log-level',
+      'warn',
       '--ip',
       '127.0.0.1',
       '--port',
