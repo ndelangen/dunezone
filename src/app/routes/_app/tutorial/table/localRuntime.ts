@@ -88,6 +88,9 @@ export function localRuntime(
           return conversations.admitted();
         case 'faction':
           return this.later({ ...message, faction: factions[message.factionId] ?? null });
+        /* The tutorial keeps no Treachery tracker, so it answers as a game without a deck to track. */
+        case 'treachery-deck':
+          return this.later({ type: 'treachery-deck', cards: null });
         case 'conversation-history':
         case 'conversation-send':
         case 'conversation-read':

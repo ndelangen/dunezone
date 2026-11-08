@@ -224,9 +224,12 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
 const isPageRead = (message: ClientMessage): message is PageRead =>
-  message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+  message.type === 'log-history' ||
+  message.type === 'spice-history' ||
+  message.type === 'faction' ||
+  message.type === 'treachery-deck';
 type ConversationRequest = Extract<
   ClientMessage,
   { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
@@ -1656,6 +1659,9 @@ export class GameRoom extends DurableObject<GameEnv> {
           factionId: message.factionId,
           faction: this.session.publicFaction(message.factionId),
         });
+        return;
+      case 'treachery-deck':
+        this.send(socket, { type: 'treachery-deck', cards: this.session.treacheryDeck() });
         return;
     }
   }

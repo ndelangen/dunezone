@@ -48,6 +48,7 @@ import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
+import { treacheryDeckCards } from '../../src/shared/play/treacheryDeck';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import type { PassProfile } from './actors';
@@ -338,6 +339,11 @@ export class GameSession {
     const seated = this.room && seatedFaction(this.room.snapshot, factionId);
     const capture = seated ? this.captures.faction(factionId) : undefined;
     return capture ? publicFaction(capture) : null;
+  }
+
+  /** The captured Treachery deck's cards, which are public; null when the game captured none. */
+  treacheryDeck() {
+    return treacheryDeckCards(this.captures.ruleset());
   }
 
   retainedCaptures() {

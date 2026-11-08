@@ -1017,6 +1017,7 @@ export class TableSession {
       spiceHistory: this.pages.spiceHistory,
       logHistory: this.pages.logHistory,
       factions: this.pages.factions,
+      treacheryDeck: this.pages.treacheryDeck,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;
@@ -1207,6 +1208,7 @@ export class TableSession {
       case 'log-history':
       case 'spice-history':
       case 'faction':
+      case 'treachery-deck':
         this.pages.receive(message);
         break;
       case 'catalogue':
@@ -1421,6 +1423,7 @@ export class TableSession {
   readLogHistory = (tab: LogTab, before?: number) => this.pages.readLog(tab, before);
   refreshLogHistory = (tab: LogTab) => this.pages.refreshLog(tab);
   readFaction = (factionId: string) => this.pages.readFaction(factionId);
+  readTreacheryDeck = () => this.pages.readTreacheryDeck();
   readSpiceHistory = (before?: number) => this.pages.readSpice(before);
   private expireHistoryRequest() {
     if (this.pendingHistory === null) {

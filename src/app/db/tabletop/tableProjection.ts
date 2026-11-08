@@ -8,6 +8,7 @@ import { tableForViewer } from '@shared/play/protocol';
 import type { GameSnapshot, PublicCarry, ServerMessage, Viewer } from '@shared/play/protocol';
 import type { ReviewCheckpoint, TableReview } from '@shared/play/review';
 import { renderedPiecesFor } from '@shared/play/tableState';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 
 import type { ConversationView } from './ConversationSession';
 import type { StoredTable } from './storedTable';
@@ -111,6 +112,8 @@ export type ConnectionView = {
   logHistory: Partial<Record<LogTab, LogPage>>;
   /* Seated factions' captured starting sheets by faction id; null when the game holds no capture of one. */
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
+  /* The game's Treachery deck for the tracker; undefined until read, null when the game captured none. */
+  treacheryDeck?: readonly TreacheryDeckCard[] | null;
 };
 
 /*

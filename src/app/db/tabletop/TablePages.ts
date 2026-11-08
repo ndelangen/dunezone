@@ -5,7 +5,8 @@ import type { ClientMessage, ServerMessage } from '@shared/play/protocol';
 export type LogPage = Extract<ServerMessage, { type: 'log-history' }>;
 type SpicePage = Extract<ServerMessage, { type: 'spice-history' }>;
 type FactionPage = Extract<ServerMessage, { type: 'faction' }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
+type TreacheryDeckPage = Extract<ServerMessage, { type: 'treachery-deck' }>;
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
 
 /*
  * How soon after one read of a log tab a changed table may read it again. Changes inside the wait are read together at its end,
@@ -55,6 +56,9 @@ export class TablePages {
   private sheets: Readonly<Partial<Record<string, PublicFaction | null>>> = {};
   /* Reads sent and not yet answered; a dropped connection or a refusal forgets them, so the panel can ask again. */
   private readonly factionRequests = new Set<string>();
+  /* The game's Treachery deck, which never changes once captured; undefined until asked and answered. */
+  private deck?: TreacheryDeckPage['cards'];
+  private deckRequested = false;
 
   constructor(
     private readonly send: (message: PageRead) => boolean,
@@ -72,6 +76,17 @@ export class TablePages {
 
   get factions() {
     return this.sheets;
+  }
+
+  get treacheryDeck() {
+    return this.deck;
+  }
+
+  /* Asks once for the game's Treachery deck; a read that was never answered can be asked again. */
+  readTreacheryDeck() {
+    if (this.deck === undefined && !this.deckRequested && this.send({ type: 'treachery-deck' })) {
+      this.deckRequested = true;
+    }
   }
 
   /* Each tab keeps the page it asked for through live updates; the newest page is the default and the reset. */
@@ -122,7 +137,7 @@ export class TablePages {
   }
 
   /* A page arrives for the cursor it was asked with; one the panel has since moved past is dropped. */
-  receive(message: LogPage | SpicePage | FactionPage) {
+  receive(message: LogPage | SpicePage | FactionPage | TreacheryDeckPage) {
     switch (message.type) {
       case 'log-history': {
         const asked = message.before === this.logBefore[message.tab];
@@ -141,17 +156,23 @@ export class TablePages {
         this.factionRequests.delete(message.factionId);
         this.sheets = { ...this.sheets, [message.factionId]: message.faction };
         break;
+      case 'treachery-deck':
+        this.deckRequested = false;
+        this.deck = message.cards;
+        break;
     }
   }
 
   /* A refused read carries no id; forgetting the faction reads lets the panel ask again on its next look. */
   forgetFactionReads() {
     this.factionRequests.clear();
+    this.deckRequested = false;
   }
 
   /* A dropped connection answers nothing it was asked, so the logs start again from their newest pages. */
   disconnected() {
     this.factionRequests.clear();
+    this.deckRequested = false;
     this.logs = {};
     this.logBefore = latestLogPages();
     this.logReadAt = {};
