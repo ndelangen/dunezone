@@ -76,6 +76,8 @@ type State = {
   /** Whether the loading slot is drawn, which waits out the grace window. */
   slot: boolean;
   order: number | null;
+  /** The smaller copy a sharpened tile drew before, drawn again should the sharper one fail in the tile. */
+  fallback: string | null;
 };
 
 type Action =
@@ -110,10 +112,13 @@ function reducer(state: State, action: Action): State {
       return state.phase === 'ready' ? { ...state, phase: action.animate ? 'arriving' : 'shown' } : state;
     case 'finished':
       return state.phase === 'arriving' ? { ...state, phase: 'shown', slot: false } : state;
-    case 'failed':
-      return { ...state, phase: 'missing', fetching: false };
     case 'sharpened':
-      return { ...state, drawn: action.drawn };
+      return { ...state, drawn: action.drawn, fallback: state.drawn };
+    case 'failed':
+      /* A sharper copy that fails in the tile gives way to the smaller one it replaced, which was already drawn. */
+      return state.fallback
+        ? { ...state, drawn: state.fallback, fallback: null }
+        : { ...state, phase: 'missing', fetching: false };
     case 'recovered':
       /* The bytes were just fetched, so the image replaces the missing state at once when the browser still holds them. */
       return state.phase === 'missing'
@@ -123,7 +128,7 @@ function reducer(state: State, action: Action): State {
 }
 
 function initialState(src: string | null, priority: boolean): State {
-  const base = { arrival: 'animate', fetching: false, drawn: src, slot: false, order: null } as const;
+  const base = { arrival: 'animate', fetching: false, drawn: src, slot: false, order: null, fallback: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
   }

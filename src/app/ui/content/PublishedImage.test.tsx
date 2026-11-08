@@ -226,6 +226,20 @@ describe('PublishedImage shown from a copy another tile decoded', () => {
     expect(drawn()).toBe(src);
   });
 
+  test('goes back to the smaller copy when the capture fails in the tile itself', async () => {
+    const src = card();
+    markDecoded(src, `${src}&w=160`);
+    probeOutcomes.push(true);
+    const drawn = renderDecoded(60, src, true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(drawn()).toBe(src);
+    fireEvent.error(screen.getByRole('img', { name: 'Trishula' }));
+    expect(drawn()).toBe(`${src}&w=160`);
+    expect(screen.queryByRole('img', { name: 'Trishula: preview unavailable' })).toBeNull();
+  });
+
   test('keeps the smaller copy when the capture fails to load', async () => {
     const src = card();
     markDecoded(src, `${src}&w=160`);
