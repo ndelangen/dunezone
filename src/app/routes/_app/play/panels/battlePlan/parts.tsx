@@ -267,10 +267,12 @@ export function DialRow({
    * command budget even when each edit is answered at once.
    * `seen` turns true once a render has passed since the last step went out, so the plan has had its chance to show it.
    */
-  const latest = useRef({ value, onChange });
+  /* A dial that locks mid-gesture, as when its side readies, takes no more steps; the drag's own handlers read it here. */
+  const locked = disabled || max === 0;
+  const latest = useRef({ value, onChange, locked });
   const sent = useRef<{ value: number | null; at: number; seen: boolean }>({ value: null, at: -Infinity, seen: true });
   useLayoutEffect(() => {
-    latest.current = { value, onChange };
+    latest.current = { value, onChange, locked };
     sent.current = { ...sent.current, seen: true };
   });
   const waiting = useRef<{ value: number; timer: ReturnType<typeof setTimeout> } | null>(null);
@@ -285,8 +287,7 @@ export function DialRow({
     }
   };
   useEffect(() => cancelWaiting, []);
-  /* A dial that locks mid-gesture, as when its side readies, drops the step still waiting and lets the thumb go back to the plan. */
-  const locked = disabled || max === 0;
+  /* Locking drops the step still waiting and lets the thumb go back to the plan. */
   if (locked && draft !== null) {
     setDraft(null);
   }
@@ -300,7 +301,7 @@ export function DialRow({
     setDraft(null);
   };
   const send = (next: number) => {
-    if (locked) {
+    if (latest.current.locked) {
       return;
     }
     if (next === (waiting.current?.value ?? sent.current.value ?? latest.current.value)) {
@@ -327,7 +328,7 @@ export function DialRow({
   const release = (end: number) => {
     cancelWaiting();
     const inFlight = end === sent.current.value && !sent.current.seen;
-    if (locked || end === latest.current.value || inFlight) {
+    if (latest.current.locked || end === latest.current.value || inFlight) {
       finish();
       return;
     }
@@ -366,7 +367,7 @@ export function DialRow({
         restrictToMarks={!!stops}
         classNames={stops ? { markWrapper: styles.stop } : undefined}
         onChange={(next) => {
-          if (locked) {
+          if (latest.current.locked) {
             return;
           }
           setDraft(next);

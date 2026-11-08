@@ -221,6 +221,26 @@ test('a dial that locks drops the step still waiting its turn', async () => {
   expect(onChange.mock.calls).toEqual([[3]]);
 });
 
+test('a dial that locks mid-drag takes no further steps, nor the release', async () => {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'],
+  });
+  const onChange = vi.fn();
+  const { container, rerender } = render(<Row onChange={onChange} />);
+  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
+  track.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width: 200, height: 10 });
+  /* Over 0 to 20, every 10 px is one troop. */
+  fireEvent.mouseDown(track, { clientX: 50, clientY: 5 });
+  await settle();
+  rerender(<Row onChange={onChange} disabled />);
+  fireEvent.mouseMove(document, { clientX: 150, clientY: 5 });
+  await settle();
+  fireEvent.mouseUp(document, { clientX: 150, clientY: 5 });
+  await settle(200);
+  vi.useRealTimers();
+  expect(onChange.mock.calls).toEqual([[5]]);
+});
+
 test('an arrow key on the slider sends its step once', async () => {
   const onChange = vi.fn();
   render(<Row onChange={onChange} />);
