@@ -76,10 +76,12 @@ bytes). The deploy's verify step fails after go-live, and the release is never m
 the ledger. Ship the fix as a new commit. Before merging, run the publisher locally and check one
 `/m` URL and one legacy URL; after the deploy, its verify step proves the sample again.
 
-**The verify step's record is suspect** (for example, after objects were changed outside the Worker).
-The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`) and
-downloads only new entries plus a random sample of 128. Delete those caches the same way (`--key media-verified-`) or run
-`bun run media:publish --verify --all` against production to download every entry again.
+**The verify step's record is suspect** (for example, after objects were changed outside the Worker, or the
+monthly media check, `.github/workflows/media-check.yml`, failed).
+The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`), and
+publishing checks only new entries, while the verify step downloads new entries plus a random sample of 128. Delete those caches the same way
+(`--key media-verified-`): the next deploy then HEADs every variant before going live, re-uploads any R2 lacks, and
+downloads every entry again. `bun run media:publish --verify --all` re-downloads every entry without a deploy.
 
 ## The machine with the upload token is unavailable
 

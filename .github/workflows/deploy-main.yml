@@ -243,6 +243,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
+      # Earlier deploys record every variant entry they proved. Only main's deploys write this cache, and
+      # a miss proves nothing, so publishing then asks R2 about every variant and the verify downloads every entry.
+      - name: Restore the variant entries earlier deploys proved
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/media-verified
+          key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: media-verified-
+
       - name: Publish raster variants
         timeout-minutes: 20
         env:
@@ -290,18 +299,8 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
           CONVEX_DEPLOYMENT: ${{ vars.CONVEX_DEPLOYMENT }}
 
-      # Earlier deploys record every variant entry they proved. Only main's deploys write this cache, and
-      # a miss proves nothing, so the verify below then downloads every entry.
-      - name: Restore the variant entries earlier deploys proved
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/media-verified
-          key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: media-verified-
-
       # Proves that /m and the legacy URLs, both now answered from R2, serve the bytes this job encoded,
-      # then marks the release deployed in the media ledger. Publishing already checked every variant's
-      # stored integrity before the release went live, so this downloads only the entries no earlier
+      # then marks the release deployed in the media ledger. This downloads only the entries no earlier
       # deploy proved, plus a random sample of 128 that catches a release serving every URL wrongly.
       - name: Verify raster variants and mark the release deployed
         timeout-minutes: 20

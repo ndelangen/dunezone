@@ -481,3 +481,18 @@ test('PR CI rehearses the runtime; deployment assembles, then omits raster copie
   expect(exactRelease).toBeGreaterThan(omission);
   expect(commands.some((command: string) => command.includes('retain-assets'))).toBe(false);
 });
+
+test('deployment restores the proved variant entries before publishing skips them', () => {
+  const workflow = parse(
+    readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
+  );
+  const steps: { name?: string; run?: string; uses?: string }[] = workflow.jobs.deploy.steps;
+  const restore = steps.findIndex(
+    (step) => step.uses?.startsWith('actions/cache/restore@') && step.name?.includes('variant entries')
+  );
+  const publish = steps.findIndex((step) => step.run?.includes('bun run media:publish --rotated-token'));
+  const verify = steps.findIndex((step) => step.run?.includes('bun run media:publish --verify'));
+  expect(restore).toBeGreaterThan(-1);
+  expect(publish).toBeGreaterThan(restore);
+  expect(verify).toBeGreaterThan(publish);
+});
