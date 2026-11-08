@@ -104,122 +104,62 @@ test('a typed adjustment stays as entered, while − and + move by halves', asyn
   expect(onEdit).toHaveBeenLastCalledWith({ adjustment: 0.5 });
 });
 
-test('dragging the slider out and back sends the step it comes back to', async () => {
+/* The slider reads the pointer on the next frame and reports the end of a drag a tick after letting go. */
+const settle = (ms = 40) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
+
+/*
+ * Drags the row's slider, its track `width` px wide, through each pointer position in turn, `pause` ms apart, and lets go
+ * on the last; answers what the row sent and the count it shows afterwards.
+ */
+async function drag(
+  row: { start?: number; max?: number; stops?: number[] },
+  { width = 200, at, pause = 40 }: { width?: number; at: number[]; pause?: number }
+) {
   const onChange = vi.fn();
-  const { container } = render(<Row onChange={onChange} />);
+  const { container } = render(<Row onChange={onChange} {...row} />);
   const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
-  /* A 200 px track over 0 to 20, so every 10 px is one troop. */
-  track.getBoundingClientRect = () => ({
-    left: 0,
-    top: 0,
-    width: 200,
-    height: 10,
-    right: 200,
-    bottom: 10,
-    x: 0,
-    y: 0,
-    toJSON() {},
-  });
-  /* The slider reads the pointer on the next frame and reports the end of a drag a tick after letting go. */
-  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
-  fireEvent.mouseDown(track, { clientX: 20, clientY: 5 });
-  await settle();
-  fireEvent.mouseMove(document, { clientX: 50, clientY: 5 });
-  await settle();
-  fireEvent.mouseMove(document, { clientX: 20, clientY: 5 });
-  await settle();
-  fireEvent.mouseUp(document, { clientX: 20, clientY: 5 });
-  await settle();
-  expect(onChange.mock.calls.map(([value]) => value)).toEqual([5, 2]);
-  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '2');
+  track.getBoundingClientRect = () => DOMRect.fromRect({ x: 0, y: 0, width, height: 10 });
+  const [first, ...rest] = at;
+  fireEvent.mouseDown(track, { clientX: first, clientY: 5 });
+  await settle(pause);
+  for (const clientX of rest) {
+    fireEvent.mouseMove(document, { clientX, clientY: 5 });
+    await settle(pause);
+  }
+  fireEvent.mouseUp(document, { clientX: at.at(-1), clientY: 5 });
+  await settle(200);
+  return {
+    sent: onChange.mock.calls.map(([value]) => value as number),
+    shown: screen.getByRole('textbox', { name: 'Fedaykin' }),
+  };
+}
+
+test('dragging the slider out and back sends the step it comes back to', async () => {
+  /* Over 0 to 20, every 10 px is one troop. */
+  const { sent, shown } = await drag({}, { at: [20, 50, 20] });
+  expect(sent).toEqual([5, 2]);
+  expect(shown).toHaveProperty('value', '2');
 });
 
 test('a slider with stops sends only stops as it is dragged, and the one it is let go on', async () => {
-  const onChange = vi.fn();
-  const { container } = render(<Row onChange={onChange} start={0} max={8} stops={[0, 4, 8]} />);
-  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
-  /* A 200 px track over 0 to 8, so every 25 px is one unit of spice. */
-  track.getBoundingClientRect = () => ({
-    left: 0,
-    top: 0,
-    width: 200,
-    height: 10,
-    right: 200,
-    bottom: 10,
-    x: 0,
-    y: 0,
-    toJSON() {},
-  });
-  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
-  fireEvent.mouseDown(track, { clientX: 25, clientY: 5 });
-  await settle();
-  fireEvent.mouseMove(document, { clientX: 175, clientY: 5 });
-  await settle();
-  fireEvent.mouseMove(document, { clientX: 125, clientY: 5 });
-  await settle();
-  fireEvent.mouseUp(document, { clientX: 125, clientY: 5 });
-  await settle();
-  expect(onChange.mock.calls.map(([value]) => value)).toEqual([8, 4]);
-  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '4');
+  /* Over 0 to 8, every 25 px is one unit of spice. */
+  const { sent, shown } = await drag({ start: 0, max: 8, stops: [0, 4, 8] }, { at: [25, 175, 125] });
+  expect(sent).toEqual([8, 4]);
+  expect(shown).toHaveProperty('value', '4');
 });
 
 test('a steady drag up through troops that cost 3 spice each never falls back to none', async () => {
-  const onChange = vi.fn();
-  const { container } = render(<Row onChange={onChange} start={0} max={6} stops={[0, 3, 6]} />);
-  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
-  /* A 300 px track over 0 to 6, so every 50 px is one spice. */
-  track.getBoundingClientRect = () => ({
-    left: 0,
-    top: 0,
-    width: 300,
-    height: 10,
-    right: 300,
-    bottom: 10,
-    x: 0,
-    y: 0,
-    toJSON() {},
-  });
-  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
-  fireEvent.mouseDown(track, { clientX: 50, clientY: 5 });
-  await settle();
-  for (const clientX of [100, 150, 100]) {
-    fireEvent.mouseMove(document, { clientX, clientY: 5 });
-    await settle();
-  }
-  fireEvent.mouseUp(document, { clientX: 100, clientY: 5 });
-  await settle();
-  expect(onChange.mock.calls.map(([value]) => value)).toEqual([3]);
-  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '3');
+  /* Over 0 to 6 on 300 px, every 50 px is one spice. */
+  const { sent, shown } = await drag({ start: 0, max: 6, stops: [0, 3, 6] }, { width: 300, at: [50, 100, 150, 100] });
+  expect(sent).toEqual([3]);
+  expect(shown).toHaveProperty('value', '3');
 });
 
 test('a fast scrub sends a few live steps, not every one, and still ends where the thumb is let go', async () => {
-  const onChange = vi.fn();
-  const { container } = render(<Row onChange={onChange} />);
-  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
-  track.getBoundingClientRect = () => ({
-    left: 0,
-    top: 0,
-    width: 200,
-    height: 10,
-    right: 200,
-    bottom: 10,
-    x: 0,
-    y: 0,
-    toJSON() {},
-  });
-  const settle = (ms: number) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
-  fireEvent.mouseDown(track, { clientX: 20, clientY: 5 });
-  await settle(20);
   /* Back and forth across the track, a step every 20 ms. */
-  const sweep = [40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70];
-  for (const clientX of sweep) {
-    fireEvent.mouseMove(document, { clientX, clientY: 5 });
-    await settle(20);
-  }
-  fireEvent.mouseUp(document, { clientX: 70, clientY: 5 });
-  await settle(200);
+  const { sent, shown } = await drag({}, { at: [20, 40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70], pause: 20 });
   /* About 260 ms of scrubbing allows three live steps; the release sends the endpoint. */
-  expect(onChange.mock.calls.length).toBeLessThanOrEqual(5);
-  expect(onChange).toHaveBeenLastCalledWith(7);
-  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '7');
+  expect(sent.length).toBeLessThanOrEqual(5);
+  expect(sent.at(-1)).toBe(7);
+  expect(shown).toHaveProperty('value', '7');
 });
