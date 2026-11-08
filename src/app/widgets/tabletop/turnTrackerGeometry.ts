@@ -112,7 +112,7 @@ export function createTurnTrackerWedge({ radius, selectedIndex, sectorAngle }: T
 const POINTER_ROUND_RADIUS = 0.28;
 const POINTER_TIP_RADIUS = 0.56;
 
-/** A flat teardrop like the bidder's: its round end over the hub and its point at the turn, before the wheel turns it. */
+/** A flat teardrop: its round end over the hub and its point at the turn, before the wheel turns it. */
 export function createTurnTrackerPointer({ radius }: TrackerLayout): ExtrudeGeometry {
   const round = radius * POINTER_ROUND_RADIUS;
   const tip = radius * POINTER_TIP_RADIUS;
