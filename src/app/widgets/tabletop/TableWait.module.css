@@ -10,7 +10,6 @@
   align-content: start;
   justify-items: center;
   gap: var(--space-md);
-  padding-top: calc(var(--voyage-planet-y) + var(--voyage-planet-size) / 2 + 4.5rem);
   padding-bottom: var(--space-lg);
   /* A short window scrolls the frame, so a notice and its way back stay reachable below the planet. */
   overflow: hidden auto;
@@ -19,6 +18,12 @@
 
 .loading > * {
   position: relative;
+}
+
+/* The room the planet takes above the status line, as content rather than padding, so the frame itself stays the window's height and scrolls. */
+.loading::before {
+  content: "";
+  height: calc(var(--voyage-planet-y) + var(--voyage-planet-size) / 2 + 4.5rem - var(--space-md));
 }
 
 /* The status line reads like a title card's subtitle: small caps between two thin gilt rules. */

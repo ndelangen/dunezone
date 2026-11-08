@@ -619,16 +619,19 @@ function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening
   const motion = useMotionAllowed();
   const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
   useEffect(() => {
-    /* Without motion the table shows at once when its scene is ready, and the waiting frame goes with it. */
-    if (!sceneReady || !motion) {
+    if (!sceneReady) {
       return;
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
+    /* Without motion the table is there at once; an open table stays open, whatever the motion setting does later. */
+    const run = motion
+      ? () => {
+          setPhase((current) => (current === 'open' ? current : 'opening'));
+          timer = setTimeout(() => setPhase('open'), TABLE_ARRIVAL_MS);
+        }
+      : () => setPhase('open');
     /* The iris starts once the page has finished the work the ready scene set off, so its first frames are not the ones a long task drops. */
-    const idle = requestIdleCallbackOr(() => {
-      setPhase('opening');
-      timer = setTimeout(() => setPhase('open'), TABLE_ARRIVAL_MS);
-    }, ARRIVAL_IDLE_WAIT_MS);
+    const idle = requestIdleCallbackOr(run, motion ? ARRIVAL_IDLE_WAIT_MS : 0);
     return () => {
       idle();
       clearTimeout(timer);
