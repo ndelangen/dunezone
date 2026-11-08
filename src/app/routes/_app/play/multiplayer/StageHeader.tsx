@@ -194,8 +194,10 @@ export function PhaseTurns({ client, table }: Readonly<{ client: TableSession; t
   ) {
     return null;
   }
+  /* Keyed by the phase itself, so a row that stays up from one Shipment and Movement to a later one, as across a reconnect, starts fresh and replays nothing it did not see. */
   return (
     <MovementTurns
+      key={table.snapshot.phase}
       table={table}
       order={order}
       done={movement?.done ?? []}
