@@ -1,17 +1,26 @@
-import { Group, Select, Stack } from '@mantine/core';
-import { PROFILE_CATALOGUE_PAGE_SIZE, parseProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
+import { Group, Select, SimpleGrid, Stack, Text, VisuallyHidden } from '@mantine/core';
+import {
+  GROUP_STANDINGS_STEP,
+  PROFILE_CATALOGUE_PAGE_SIZE,
+  parseProfileCatalogueSearch,
+} from '@shared/profiles/catalogueSearch';
 import type { ProfileCatalogueSearch } from '@shared/profiles/catalogueSearch';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
 import type { NotFoundRouteProps } from '@tanstack/react-router';
 import { EmptyResults, PastTheEnd } from '@ui/block/EmptyResults';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
+import { GroupLink } from '@ui/content/GroupLink';
 import { ProfileLink } from '@ui/content/ProfileLink';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import type { ControlBlockField } from '@ui/control/ControlBlock';
+import { LoadMoreButton } from '@ui/control/LoadMoreButton';
 import { SearchRefine } from '@ui/control/SearchRefine';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { RankedList } from '@ui/list/RankedList';
 import { Stats } from '@ui/list/Stats';
+import type { StatsItem } from '@ui/list/Stats';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { MessageCircleReply, Shield, UsersRound } from 'lucide-react';
@@ -19,8 +28,15 @@ import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
 import { loadProfileDirectoryPage, useProfileDirectoryPage } from '@db/profiles';
-import type { ProfileDirectoryArgs, ProfileDirectoryEntry, ProfileDirectoryPageData } from '@db/profiles';
+import type {
+  DirectoryHighlights as Highlights,
+  LeaderboardEntry,
+  ProfileDirectoryArgs,
+  ProfileDirectoryEntry,
+  ProfileDirectoryPageData,
+} from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
+import type { GrownFrom } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
@@ -53,14 +69,17 @@ const SEARCH_STEP = PROFILE_CATALOGUE_PAGE_SIZE;
 /** The rows' links, as the list renders them, in their order. */
 const ROW_LINK = 'a[href^="/profiles/"]';
 
-/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
-function catalogueQueryArgs(args: ProfileDirectoryArgs, limit: number): ProfileDirectoryArgs {
-  return { ...args, limit: args.q ? limit : undefined };
+/**
+ * The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it.
+ * The plain first page also asks for the leaderboards and `groupLimit` Groups, so the page stays one query.
+ */
+function catalogueQueryArgs(args: ProfileDirectoryArgs, limit: number, groupLimit: number): ProfileDirectoryArgs {
+  return { ...args, limit: args.q ? limit : undefined, groupLimit: showsHighlights(args) ? groupLimit : undefined };
 }
 
-/** The live directory for a parsed address at one limit; the growing list asks for a longer one through it. */
-function useDirectoryRows(args: ProfileDirectoryArgs, limit: number) {
-  return useProfileDirectoryPage(catalogueQueryArgs(args, limit)).data;
+/** The live directory for a parsed address at one limit; the growing lists ask for longer ones through it. */
+function useDirectoryRows(args: ProfileDirectoryArgs, limit: number, groupLimit: number) {
+  return useProfileDirectoryPage(catalogueQueryArgs(args, limit, groupLimit)).data;
 }
 
 /** The search parameters a change writes: any change but a page turn starts again from the first page. */
@@ -76,13 +95,23 @@ function pageSearch(page: number) {
   });
 }
 
+/** The leaderboards and Groups a browsed first page carries, or null on a search or a later page. */
+function highlightsOf(page: ProfileDirectoryPageData) {
+  return 'mode' in page ? null : page.highlights;
+}
+
+/** Only the plain directory's first page shows the leaderboards and Groups; a search or a later page shows just the list. */
+function showsHighlights(deps: ProfileDirectoryArgs) {
+  return !deps.q && !(deps.page && deps.page > 1);
+}
+
 export const Route = createFileRoute('/_app/profiles/')({
   ssr: true,
   codeSplitGroupings: [['component', 'notFoundComponent']],
   validateSearch: parseProfileCatalogueSearch,
   loaderDeps: ({ search }) => directoryDeps(search),
   loader: async ({ deps }) => {
-    const data = await loadProfileDirectoryPage(catalogueQueryArgs(deps, SEARCH_STEP));
+    const data = await loadProfileDirectoryPage(catalogueQueryArgs(deps, SEARCH_STEP, GROUP_STANDINGS_STEP));
     /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
     if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
@@ -113,7 +142,8 @@ function ProfilesPage() {
   const navigate = Route.useNavigate();
   const loaderData = Route.useLoaderData();
   const growing = useGrowingLimit(deps, SEARCH_STEP);
-  const live = useDirectoryRows(deps, growing.limit);
+  const growingGroups = useGrowingLimit(deps, GROUP_STANDINGS_STEP);
+  const live = useDirectoryRows(deps, growing.limit, growingGroups.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
     search: growing,
     initial: loaderData,
@@ -122,6 +152,13 @@ function ProfilesPage() {
   });
   const list = useRef<HTMLDivElement>(null);
   useFocusFirstNewRow(list, loaded, grown, ROW_LINK);
+  const groups = useGrowingSearch({
+    search: growingGroups,
+    initial: loaderData,
+    live,
+    rows: (page) => highlightsOf(page)?.groups.entries.length ?? 0,
+  });
+  const highlights = highlightsOf(groups.data);
 
   /* Every write re-parses, so a default never reaches the address. Replacing keeps a browse session to one history entry. */
   const changeSearch = (patch: Partial<Record<keyof ProfileCatalogueSearch, unknown>>) => {
@@ -178,7 +215,18 @@ function ProfilesPage() {
         </PageLayout.Toolbar>
       ) : null}
       <PageLayout.Content>
-        <DirectoryContent data={data} loading={loading} loaded={loaded} onLoadMore={loadMore} ref={list} />
+        <Stack gap="md">
+          {highlights && showsHighlights(deps) ? (
+            <DirectoryHighlights
+              highlights={highlights}
+              groupsLoading={groups.loading}
+              groupsLoaded={groups.loaded}
+              groupsGrown={groups.grown}
+              onLoadMoreGroups={groups.loadMore}
+            />
+          ) : null}
+          <DirectoryContent data={data} loading={loading} loaded={loaded} onLoadMore={loadMore} ref={list} />
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );
@@ -236,40 +284,172 @@ function ProfileRows({ entries }: { entries: readonly ProfileDirectoryEntry[] })
 
 function ProfileRow({ entry }: { entry: ProfileDirectoryEntry }) {
   const { activity } = entry;
+  /* Groups show as discs beside the name, so the counts are the person's own work; a zero says nothing and is left out. */
+  const stats: StatsItem[] = [
+    {
+      key: 'factions',
+      icon: <Shield size={16} aria-hidden />,
+      value: activity.factionCount,
+      label: `Factions owned: ${activity.factionCount}`,
+    },
+    {
+      key: 'questions',
+      icon: <TopicIcon topic="faq" size={16} />,
+      value: activity.questionCount,
+      label: `Questions asked: ${activity.questionCount}`,
+    },
+    {
+      key: 'answers',
+      icon: <MessageCircleReply size={16} aria-hidden />,
+      value: activity.answerCount,
+      label: `Answers given: ${activity.answerCount}`,
+    },
+  ].filter((item) => item.value > 0);
   return (
     <li>
       <Group justify="space-between" wrap="nowrap" gap="md">
-        <ProfileLink slug={entry.slug} name={entry.name} image={entry.image} />
-        <Stats
-          items={[
-            {
-              key: 'groups',
-              icon: <UsersRound size={16} aria-hidden />,
-              value: activity.groupCount,
-              label: `Groups: ${activity.groupCount}`,
-            },
-            {
-              key: 'factions',
-              icon: <Shield size={16} aria-hidden />,
-              value: activity.factionCount,
-              label: `Factions owned: ${activity.factionCount}`,
-            },
-            {
-              key: 'questions',
-              icon: <TopicIcon topic="faq" size={16} />,
-              value: activity.questionCount,
-              label: `Questions asked: ${activity.questionCount}`,
-            },
-            {
-              key: 'answers',
-              icon: <MessageCircleReply size={16} aria-hidden />,
-              value: activity.answerCount,
-              label: `Answers given: ${activity.answerCount}`,
-            },
-          ]}
-        />
+        <Group gap="sm" wrap="nowrap" className={styles.identity}>
+          <ProfileLink slug={entry.slug} name={entry.name} image={entry.image} />
+          {entry.groups.length > 0 ? (
+            <Group component="span" role="group" gap={4} wrap="nowrap" aria-label={`Groups of ${entry.name}`}>
+              {entry.groups.map((group) => (
+                <GroupLink key={group.slug} slug={group.slug} name={group.name} showName={false} />
+              ))}
+              {entry.moreGroups > 0 ? (
+                <Text component="span" size="xs" c="dimmed">
+                  +{entry.moreGroups}
+                  <VisuallyHidden> more groups</VisuallyHidden>
+                </Text>
+              ) : null}
+            </Group>
+          ) : null}
+        </Group>
+        {stats.length > 0 ? <Stats items={stats} /> : null}
       </Group>
     </li>
+  );
+}
+
+/** One person's place on a board: who, and the count that earned it. */
+function leaderboardItems(entries: readonly LeaderboardEntry[], stat: (count: number) => StatsItem) {
+  return entries.map((entry) => ({
+    key: entry.slug,
+    rank: entry.rank,
+    subject: <ProfileLink slug={entry.slug} name={entry.name} image={entry.image} />,
+    score: <Stats items={[stat(entry.count)]} />,
+  }));
+}
+
+/**
+ * The directory's first page opens with who does the most: two leaderboards, capped at five, and the Groups list, which grows with Load more.
+ * A board with nobody on it is left out.
+ */
+function DirectoryHighlights({
+  highlights: leaderboards,
+  groupsLoading,
+  groupsLoaded,
+  groupsGrown,
+  onLoadMoreGroups,
+}: {
+  highlights: Highlights;
+  groupsLoading: boolean;
+  groupsLoaded: boolean;
+  groupsGrown: GrownFrom;
+  onLoadMoreGroups: () => void;
+}) {
+  const groups = { data: leaderboards.groups, loading: groupsLoading, loadMore: onLoadMoreGroups };
+  const list = useRef<HTMLDivElement>(null);
+  useFocusFirstNewRow(list, groupsLoaded, groupsGrown, 'li a[href^="/groups/"]');
+
+  const boards = [
+    leaderboards.factionDesigners.length > 0 ? (
+      <Surface key="factions" padding="lg">
+        <Section title="Faction designers" icon={<Shield size={20} aria-hidden />}>
+          <RankedList
+            label="Faction designers ranking"
+            items={leaderboardItems(leaderboards.factionDesigners, (count) => ({
+              key: 'factions',
+              icon: <Shield size={16} aria-hidden />,
+              value: count,
+              label: `Factions owned: ${count}`,
+            }))}
+          />
+        </Section>
+      </Surface>
+    ) : null,
+    leaderboards.faqContributors.length > 0 ? (
+      <Surface key="faq" padding="lg">
+        <Section title="FAQ contributors" icon={<TopicIcon topic="faq" size={20} />}>
+          <RankedList
+            label="FAQ contributors ranking"
+            items={leaderboardItems(leaderboards.faqContributors, (count) => ({
+              key: 'faq',
+              icon: <TopicIcon topic="faq" size={16} />,
+              value: count,
+              label: `Questions asked and answers given: ${count}`,
+            }))}
+          />
+        </Section>
+      </Surface>
+    ) : null,
+    groups.data.entries.length > 0 ? (
+      <Surface key="groups" padding="lg">
+        <Section title="Groups" icon={<UsersRound size={20} aria-hidden />}>
+          <Stack gap="md" ref={list}>
+            <RankedList
+              label="Groups ranking"
+              items={groups.data.entries.map((group) => ({
+                key: group.slug,
+                rank: group.rank,
+                subject: <GroupLink slug={group.slug} name={group.name} />,
+                detail:
+                  group.members.length > 0 ? (
+                    <Group component="span" gap={2} wrap="nowrap">
+                      {group.members.map((member) => (
+                        <ProfileLink
+                          key={member.slug}
+                          slug={member.slug}
+                          name={member.name}
+                          image={member.image}
+                          showName={false}
+                          title={member.name}
+                        />
+                      ))}
+                    </Group>
+                  ) : undefined,
+                score: (
+                  <Stats
+                    items={[
+                      {
+                        key: 'members',
+                        icon: <UsersRound size={16} aria-hidden />,
+                        value: group.memberCount,
+                        label: `Members: ${group.memberCount}`,
+                      },
+                      {
+                        key: 'factions',
+                        icon: <Shield size={16} aria-hidden />,
+                        value: group.factionCount,
+                        label: `Factions maintained: ${group.factionCount}`,
+                      },
+                    ]}
+                  />
+                ),
+              }))}
+            />
+            {groups.data.hasMore ? <LoadMoreButton loading={groups.loading} onLoadMore={groups.loadMore} /> : null}
+          </Stack>
+        </Section>
+      </Surface>
+    ) : null,
+  ].filter(Boolean);
+  if (boards.length === 0) {
+    return null;
+  }
+  return (
+    <SimpleGrid cols={{ base: 1, md: boards.length }} spacing="md" className={styles.highlights}>
+      {boards}
+    </SimpleGrid>
   );
 }
 

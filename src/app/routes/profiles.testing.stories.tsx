@@ -9,7 +9,7 @@ import { db, ref, faction, STORYBOOK_NOW, storybookViewer } from '@db/storybook'
 import type { StorybookDatabase } from '@db/storybook';
 
 import { strangerOwnsTheGroups, viewerStandsAs } from './groups.stories.fixture';
-import { findDeletionPage } from './profiles.stories.fixture';
+import { findDeletionPage, seedLeaderboards } from './profiles.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = testingPreview.meta({
@@ -385,5 +385,32 @@ export const BoardGameGeekProfileLink = meta.story({
     const link = await page.findByRole('link', { name: 'View BGG profile' }, { timeout: 30_000 });
     await expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/user/ExamplePlayer');
     await expect(page.getByText('Unverified')).toBeVisible();
+  },
+});
+
+/**
+ * The leaderboards stop at five, and the Groups list grows with Load more.
+ * A search drops the boards and Groups, so only the matching profiles remain.
+ */
+export const DirectoryLeaderboards = meta.story({
+  args: { path: '/profiles' },
+  parameters: { database: db(seedLeaderboards) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    const designers = within(await main.findByRole('list', { name: 'Faction designers ranking' }, { timeout: 30_000 }));
+    await expect(designers.getAllByRole('listitem')).toHaveLength(5);
+    await expect(designers.getAllByRole('listitem')[0]).toHaveTextContent(/Duncan/);
+
+    const groups = within(main.getByRole('list', { name: 'Groups ranking' }));
+    await expect(groups.getAllByRole('listitem')).toHaveLength(5);
+    await userEvent.click(main.getByRole('button', { name: 'Load more' }));
+    await waitFor(() => expect(groups.getAllByRole('listitem').length).toBeGreaterThan(5), { timeout: 30_000 });
+
+    await userEvent.type(page.getByRole('textbox', { name: 'Search profiles' }), 'Chani');
+    await waitFor(() => expect(main.queryByRole('list', { name: 'Faction designers ranking' })).toBeNull(), {
+      timeout: 30_000,
+    });
+    await expect(main.queryByRole('list', { name: 'Groups ranking' })).toBeNull();
   },
 });

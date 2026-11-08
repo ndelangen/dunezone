@@ -192,6 +192,8 @@ export const snapshotPolicy = {
   catalogue_entries: {
     drop: 'catalogue read models, which the replayed catalogue backfill rebuilds from the kept rows',
   },
+  profile_standings: { drop: 'leaderboard read models, which the replayed standings backfill rebuilds' },
+  group_standings: { drop: 'Groups list read models, which the replayed standings backfill rebuilds' },
   discovery_presets: {
     fields: { key: 'keep', label: 'keep', front: 'keep', back: 'keep', revision: 'keep', updated_at: 'keep' },
     rows: 'all',

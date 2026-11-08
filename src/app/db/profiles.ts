@@ -1,3 +1,4 @@
+import { GROUP_STANDINGS_STEP } from '@shared/profiles/catalogueSearch';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
@@ -70,8 +71,16 @@ export function useProfileLink(slug: string): ProfileLinkEntry | undefined {
 
 /** The directory route's loader, paired with `useProfileDirectoryPage`; a searched page is not held, for the same reason. */
 export async function loadProfileDirectoryPage(args: ProfileDirectoryArgs): Promise<ProfileDirectoryPageData> {
-  return await db.query(api.profiles.catalogue, args, { hold: !args.q });
+  return await db.query(api.profiles.catalogue, args, { hold: holdsDirectoryPage(args) });
 }
+
+/** A search, or a Groups list grown past its first step, is not held warm after it is left: holding each would keep re-running them on every write. */
+function holdsDirectoryPage(args: ProfileDirectoryArgs) {
+  return !args.q && (args.groupLimit ?? 0) <= GROUP_STANDINGS_STEP;
+}
+
+export type DirectoryHighlights = NonNullable<Extract<ProfileDirectoryPageData, { page: number }>['highlights']>;
+export type LeaderboardEntry = DirectoryHighlights['factionDesigners'][number];
 
 /** One profile's page, live, taking `loadProfileBySlug`'s result as `initialData`. */
 export function useProfileBySlug(
@@ -95,7 +104,7 @@ export function useProfileDirectoryPage(
   args: ProfileDirectoryArgs,
   options?: { initialData?: ProfileDirectoryPageData }
 ) {
-  const liveData = useLiveQuery(api.profiles.catalogue, args, { hold: !args.q });
+  const liveData = useLiveQuery(api.profiles.catalogue, args, { hold: holdsDirectoryPage(args) });
   return toLiveQueryResult(liveData, () => options?.initialData);
 }
 

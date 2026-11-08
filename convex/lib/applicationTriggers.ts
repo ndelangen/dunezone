@@ -9,6 +9,7 @@ import { registerFactionCardTriggers } from './factionCards';
 import { registerProfileActivityTriggers } from './profileActivity';
 import { registerProfileDiscoveryTriggers } from './profileDiscovery';
 import { registerPublicationJobListingTriggers } from './publicationJobListings';
+import { registerStandingsTriggers } from './standings';
 import { registerStatisticsTriggers } from './statistics';
 
 export const applicationTriggers = new Triggers<DataModel, MutationCtx>();
@@ -16,6 +17,8 @@ export const applicationTriggers = new Triggers<DataModel, MutationCtx>();
 registerStatisticsTriggers(applicationTriggers);
 registerProfileActivityTriggers(applicationTriggers);
 registerProfileDiscoveryTriggers(applicationTriggers);
+/* After the activity triggers, whose counts a person's standing reads. */
+registerStandingsTriggers(applicationTriggers);
 
 registerBoardReadinessTriggers(applicationTriggers);
 registerCatalogueTriggers(applicationTriggers);

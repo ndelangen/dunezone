@@ -7,3 +7,11 @@
 .sortSegment :is(input, button) {
   padding-inline: var(--space-sm);
 }
+
+.identity {
+  min-width: 0;
+}
+
+.highlights {
+  align-items: start;
+}
