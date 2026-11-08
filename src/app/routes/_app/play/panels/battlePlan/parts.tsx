@@ -226,6 +226,9 @@ export function DialGrid({ children, label }: { children: ReactNode; label: stri
   );
 }
 
+/* The shortest gap between live slider steps: about eight a second, inside the table's refill of ten commands a second. */
+const LIVE_STEP_MS = 125;
+
 /** One row of the dial: a slider to sweep a count and a stepper to nudge it, both on the same value. */
 export function DialRow({
   label,
@@ -263,12 +266,40 @@ export function DialRow({
   useLayoutEffect(() => {
     latest.current = { value, onChange };
   });
-  const sent = useRef<number | null>(null);
-  const send = (next: number) => {
-    if (next !== (sent.current ?? latest.current.value)) {
-      sent.current = next;
-      latest.current.onChange(next);
+  /*
+   * Live steps go out at most once per LIVE_STEP_MS, the latest one waiting its turn, so a scrub stays inside the table's
+   * command budget even when each edit is answered at once.
+   */
+  const sent = useRef<{ value: number | null; at: number }>({ value: null, at: -Infinity });
+  const waiting = useRef<{ value: number; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const deliver = (next: number) => {
+    sent.current = { value: next, at: performance.now() };
+    latest.current.onChange(next);
+  };
+  const cancelWaiting = () => {
+    if (waiting.current) {
+      clearTimeout(waiting.current.timer);
+      waiting.current = null;
     }
+  };
+  useEffect(() => cancelWaiting, []);
+  const send = (next: number) => {
+    if (next === (waiting.current?.value ?? sent.current.value ?? latest.current.value)) {
+      return;
+    }
+    cancelWaiting();
+    const wait = sent.current.at + LIVE_STEP_MS - performance.now();
+    if (wait <= 0) {
+      deliver(next);
+      return;
+    }
+    waiting.current = {
+      value: next,
+      timer: setTimeout(() => {
+        waiting.current = null;
+        deliver(next);
+      }, wait),
+    };
   };
   return (
     <div className={styles.dialRow} data-spice={spice || undefined}>
@@ -293,10 +324,16 @@ export function DialRow({
           setDraft(next);
           send(next);
         }}
-        /* Letting go makes sure the endpoint was sent, then hands the thumb back to the plan. */
+        /*
+         * Letting go sends the endpoint at once unless the plan already shows it, so a step still waiting its turn, or one
+         * the table turned away, still lands where the thumb was let go; then the thumb goes back to the plan.
+         */
         onChangeEnd={(end) => {
-          send(end);
-          sent.current = null;
+          cancelWaiting();
+          if (end !== latest.current.value) {
+            deliver(end);
+          }
+          sent.current = { value: null, at: sent.current.at };
           setDraft(null);
         }}
       />

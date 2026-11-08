@@ -191,3 +191,35 @@ test('a steady drag up through troops that cost 3 spice each never falls back to
   expect(onChange.mock.calls.map(([value]) => value)).toEqual([3]);
   expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '3');
 });
+
+test('a fast scrub sends a few live steps, not every one, and still ends where the thumb is let go', async () => {
+  const onChange = vi.fn();
+  const { container } = render(<Row onChange={onChange} />);
+  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
+  track.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 200,
+    height: 10,
+    right: 200,
+    bottom: 10,
+    x: 0,
+    y: 0,
+    toJSON() {},
+  });
+  const settle = (ms: number) => act(() => new Promise((resolve) => setTimeout(resolve, ms)));
+  fireEvent.mouseDown(track, { clientX: 20, clientY: 5 });
+  await settle(20);
+  /* Back and forth across the track, a step every 20 ms. */
+  const sweep = [40, 80, 120, 160, 200, 160, 120, 80, 40, 80, 120, 70];
+  for (const clientX of sweep) {
+    fireEvent.mouseMove(document, { clientX, clientY: 5 });
+    await settle(20);
+  }
+  fireEvent.mouseUp(document, { clientX: 70, clientY: 5 });
+  await settle(200);
+  /* About 260 ms of scrubbing allows three live steps; the release sends the endpoint. */
+  expect(onChange.mock.calls.length).toBeLessThanOrEqual(5);
+  expect(onChange).toHaveBeenLastCalledWith(7);
+  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '7');
+});
