@@ -1,40 +1,68 @@
 import preview from '@sb/preview';
 import type { TablePiece } from '@shared/play/model';
 import { STANDARD_PHASES } from '@shared/play/phases';
+import { rosterFactionNames } from '@shared/play/protocol';
 import { item, piece, place } from '@shared/play/setupSupply';
-import { cardBaySlotPositions } from '@shared/play/tableFurnitureLayout';
+import { cardBaySlotPositions, SHARED_ITEM_PLACEMENT_ANCHORS } from '@shared/play/tableFurnitureLayout';
 import { restingAmongLeaders } from '@shared/play/tablePhysics';
+import { labelForCount } from '@shared/play/tableState';
 import { TANKS_PAD } from '@shared/play/tanksShelf';
 import { userEvent, waitFor } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
-import { capture, cardBack, factions, playingSnapshot, productTransport } from './product.stories.fixture';
+import { capture, dreamrulesCard, factions, playingSnapshot, productTransport } from './product.stories.fixture';
 
 const meta = preview.meta({
   ...gameMeta,
   title: 'Play/Table',
 });
 
-const READABLE_CARDS: [string, string][] = [
-  ['Snooper', '/play-fixtures/dreamrules/snooper.jpg'],
-  ['Broken Land', '/play-fixtures/dreamrules/broken-land.jpg'],
-  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-0.jpg'],
-  ['Atreides Traitor', '/play-fixtures/product/house-atreides-traitor-1.jpg'],
-  ['Harkonnen Traitor', '/play-fixtures/product/house-harkonnen-traitor-0.jpg'],
-];
+const READABLE_CARDS = {
+  treachery: ['Truth Trance', 'Family Atomics', 'Weather Control'],
+  spice: ['Habbanya Erg', 'Shai-Hulud', 'The Great Flat'],
+} as const;
+const READABLE_TRAITORS = ['house-atreides-traitor-0', 'house-harkonnen-traitor-0'];
 
-/* Cards with small print face up in the left card bay: their table faces are scaled to 512 px, which read sharper than the published size in a blind comparison. */
+/*
+ * Cards with small print face up where a game lays them: Treachery cards in the free slots of the left card bay, Spice cards in the right bay's,
+ * and Traitors on the shared item slots beside the gathered Traitor deck.
+ * Their table faces are scaled to 512 px, which read sharper than the published size in a blind comparison.
+ */
 function readableCardsSnapshot() {
   const snapshot = playingSnapshot('seat-2');
-  READABLE_CARDS.forEach(([name, path], index) => {
-    const front = new URL(path, location.origin).href;
+  const factionNames = rosterFactionNames(snapshot.roster);
+  (['treachery', 'spice'] as const).forEach((deck) => {
+    READABLE_CARDS[deck].forEach((name, index) => {
+      const id = `readable-${deck}-${index}`;
+      const stack = {
+        ...piece(id, '', 'shared', '#ad8a45', 'card', `readable:${id}`),
+        items: [dreamrulesCard(deck, name, `${id}-card`)],
+      };
+      snapshot.table.pieces.push(
+        place(
+          { ...stack, label: labelForCount(stack, 1, factionNames) },
+          cardBaySlotPositions(deck === 'treachery' ? 'left' : 'right')[index + 2]!
+        )
+      );
+    });
+  });
+  READABLE_TRAITORS.forEach((file, index) => {
+    const front = new URL(`/play-fixtures/product/${file}.jpg`, location.origin).href;
+    const back = new URL('/play-fixtures/product/traitor-back.jpg', location.origin).href;
     snapshot.table.pieces.push(
       place(
         {
-          ...piece(`readable-card-${index}`, name, 'shared', '#ad8a45', 'card', `readable:${index}`),
-          items: [item(`readable-item-${index}`, name, front, cardBack(), 'card-treachery', true, 'Treachery')],
+          ...piece(
+            `readable-traitor-${index}`,
+            'Traitor card',
+            'shared',
+            '#ad8a45',
+            'card',
+            `readable:traitor-${index}`
+          ),
+          items: [item(`readable-traitor-item-${index}`, 'Traitor', front, back, 'card-traitor', true, 'Traitor')],
         },
-        cardBaySlotPositions('left')[index]!
+        SHARED_ITEM_PLACEMENT_ANCHORS[index + 1]!.position
       )
     );
   });

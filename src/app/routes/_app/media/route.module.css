@@ -2,7 +2,12 @@
 .decalGrid,
 .leaderGrid {
   display: grid;
+  grid-auto-flow: row dense;
   gap: var(--space-sm);
+}
+.inlineDetail {
+  grid-column: 1 / -1;
+  scroll-margin-block: var(--space-xl);
 }
 .grid {
   grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));

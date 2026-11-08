@@ -41,11 +41,10 @@ function setDown(piece: StoredPiece, at: [number, number], orientation: number, 
 }
 
 /**
- * Seat 1's troops after a few rough turns: both reserves knocked askew behind the seat, 4 troops out on the board, and 2 revived troops lying face down beside the token.
+ * A faction's troops after a few rough turns: both reserves knocked askew behind the seat, 4 troops out on the board, and 2 revived troops lying face down beside the token.
  * The board troops and the revived ones are split off the first reserve, so the count adds up to what setup dealt.
  */
-export function withMessyReserves(stored: StoredSnapshot): StoredSnapshot {
-  const factionId = stored.roster!.seats.find((entry) => entry.id === 'seat-1')!.faction!.id;
+export function withMessyReserves(stored: StoredSnapshot, factionId: string): StoredSnapshot {
   const angle = seatAngleOf(stored.roster, factionId)!;
   const [first, ...rest] = stored.table.pieces.filter(
     (piece) => !piece.inventory && troopFactionOf(piece) === factionId

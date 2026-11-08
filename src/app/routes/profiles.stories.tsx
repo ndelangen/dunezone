@@ -4,7 +4,7 @@ import { expect, within } from 'storybook/test';
 import { db } from '@db/storybook';
 
 import { expectFieldValue } from './pagePlay';
-import { findDeletionPage } from './profiles.stories.fixture';
+import { findDeletionPage, seedLeaderboards } from './profiles.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -12,15 +12,29 @@ const meta = preview.meta({
   ...pageStoryMeta,
 });
 
+/** The first page opens with the leaderboards and Groups above the directory. */
 export const Directory = meta.story({
   args: { path: '/profiles' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
-    await expect(main.findByRole('link', { name: /Central/ }, { timeout: 30_000 })).resolves.toHaveAttribute(
-      'href',
-      '/profiles/central'
-    );
+    const designers = within(await main.findByRole('list', { name: 'Faction designers ranking' }, { timeout: 30_000 }));
+    await expect(designers.getByRole('link', { name: /Central/ })).toHaveAttribute('href', '/profiles/central');
+    await expect(main.getByRole('list', { name: 'Groups ranking' })).toBeVisible();
+    await expect(main.getAllByRole('link', { name: 'Arrakeen Rules Council' })).not.toHaveLength(0);
+  },
+});
+/** A busier community: both boards full at five, and more Groups than the list shows at first. */
+export const DirectoryWithLeaderboards = meta.story({
+  args: { path: '/profiles' },
+  parameters: { database: db(seedLeaderboards) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const main = within(await page.findByRole('main', {}, { timeout: 30_000 }));
+    await expect(
+      main.findByRole('list', { name: 'Faction designers ranking' }, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(main.getByRole('button', { name: 'Load more' })).toBeVisible();
   },
 });
 /** A contributor's two FAQ sections use the shared question rows. */

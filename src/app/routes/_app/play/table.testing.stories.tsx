@@ -226,9 +226,10 @@ export const SettingsKeepLabelsOn = meta.story({
   },
 });
 
-/* The pieces the eight shared slots hold, in slot order: the published traitor deck, a treachery deck, a card and five tokens. */
+/* The pieces the eight shared slots hold, in slot order: the gathered Traitor deck, the Treachery deck, its discard and five tokens. */
+const SLOT_CARDS = ['remaining-traitors', 'treachery-deck', 'treachery-card-loose'];
 function sharedSlotPieces(snapshot: ReturnType<typeof playingSnapshot>) {
-  const cards = snapshot.table.pieces.filter((piece) => piece.kind === 'card');
+  const cards = SLOT_CARDS.map((id) => snapshot.table.pieces.find((piece) => piece.id === id)!);
   const troops = snapshot.table.pieces.filter((piece) => piece.kind === 'force' && !piece.inventory).slice(0, 5);
   return [...cards, ...troops];
 }

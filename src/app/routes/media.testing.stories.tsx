@@ -32,13 +32,30 @@ export const LeaderLink = meta.story({
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const detail = await page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 });
+    await expect(detail).toBeVisible();
+    /* The detail opens in the gallery, after the artwork it shows, not above the results. */
+    const articles = page.getAllByRole('article');
+    const opened = articles.indexOf(page.getByRole('article', { name: 'Aramsham' }));
+    const follows = (node: Node) => Boolean(node.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING);
+    await expect(follows(articles[opened]!)).toBe(true);
+    await expect(follows(articles[opened + 1]!)).toBe(false);
     await expect(page.getByRole('link', { name: 'Open image file' })).toHaveAttribute(
       'href',
       resolveAsset('/image/leader/official/aramsham.png', 'large')
     );
     await userEvent.click(page.getByRole('button', { name: 'Close preview' }));
     await expect(page.queryByRole('link', { name: 'Open image file' })).toBeNull();
+  },
+});
+
+/* Artwork the filters hide keeps its detail above the results. */
+export const HiddenLeaderLink = meta.story({
+  args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png&q=qqqqzzzz' },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('article', { name: 'Aramsham' })).toBeNull();
   },
 });
 

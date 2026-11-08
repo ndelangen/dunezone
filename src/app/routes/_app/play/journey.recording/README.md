@@ -21,10 +21,12 @@ longer parses, and `sandbox.stories.fixture.test.ts` when a stored state no long
 
 ## Contents
 
-- Content: the six public factions of `../product.stories.fixture/factions.json`, one Treachery deck of
-  Snooper cards and one Spice deck of Broken Land cards (`.storybook/static/play-fixtures/dreamrules`).
-  Every faction deals Traitors with their published fronts, and Bene Gesserit opens setup with
-  its prediction where it is seated.
+- Content: the six public factions of `../product.stories.fixture/factions.json` and the published Dreamrules decks of
+  `src/shared/play/fixtures/dreamrulesDecks.json` on their own backs: the whole Treachery deck, and a Spice deck of
+  the published size whose cards are all Broken Land, so the Spice Blow always reveals the card the journey places spice
+  for. Setup lays the Treachery deck in the left card bay and the Spice deck in the right; the revealed Spice card goes
+  on the Spice discard below its deck. Every faction deals Traitors with their published fronts, and Bene Gesserit
+  opens setup with its prediction where it is seated.
 - People: the synthetic accounts are renamed to the public profiles the other Play stories seat
   (Central, Krell, Jaded AF, Eichmal, Ridwan, Tautrimas) and the spectator IHasPinecone.
 - Faction assignment and shuffles are random, so each recording deals differently.

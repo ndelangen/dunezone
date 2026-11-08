@@ -27,6 +27,7 @@ import {
   rulebookDraftContentsHash,
   rulebookEditionContentsHash,
 } from './lib/rulebookEditionContents';
+import { syncGroupStanding, syncProfileStanding } from './lib/standings';
 import {
   reconcileAnswerStatistics,
   reconcileAssetStatistics,
@@ -77,6 +78,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
   board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
   faction_cards_v1: internal.migrations.faction_cards_v1,
+  standings_profiles_v1: internal.migrations.standings_profiles_v1,
+  standings_groups_v1: internal.migrations.standings_groups_v1,
 };
 
 type MigrationId = keyof typeof MIGRATION_IDS;
@@ -227,6 +230,24 @@ export const profile_activity_answers_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     await reconcileAnswerActivity(ctx, row);
+  },
+});
+
+/** Builds every person's leaderboard row from their activity counts; recomputing is idempotent, so a snapshot load can replay it. */
+export const standings_profiles_v1 = migrations.define({
+  table: 'profiles',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    await syncProfileStanding(ctx, row.user_id);
+  },
+});
+
+/** Builds every live Group's row for the directory's Groups list; a deleted Group's row is removed. */
+export const standings_groups_v1 = migrations.define({
+  table: 'groups',
+  batchSize: 20,
+  migrateOne: async (ctx, row) => {
+    await syncGroupStanding(ctx, row._id);
   },
 });
 
