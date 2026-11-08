@@ -1,12 +1,13 @@
-import { Text } from '@mantine/core';
-import { IconAction } from '@ui/control/IconAction';
-import { RotateCcw } from 'lucide-react';
+import { Popover, Stack, Text, UnstyledButton } from '@mantine/core';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { RotateCcw, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
-import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
+import { CardGlyph, UnknownGlyph } from './CardArt';
 import { SeenStrip } from './SeenStrip';
-import { copyOf, unplaced } from './tracker';
-import { AddCard, KindBar, SlotChip, kindSummary } from './TrackerParts';
+import { CARD_GROUPS, copyOf, groupOf, unplaced } from './tracker';
+import { AddCard, GroupList, KindBar, SlotChip, kindSummary } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
 import styles from './TreacheryTracker.module.css';
 
@@ -76,32 +77,52 @@ export function DeckFooter({
           An unknown card could be one of {kindSummary(deck)}
         </Text>
       </div>
-      <div className={styles.footerDiscard}>
-        <Text size="xs" className={styles.caption}>
-          Discard {state.discard.length}
-        </Text>
-        <div className={styles.glyphRow}>
-          {state.discard.slice(-6).map((card) => {
-            const copy = copyOf(state, card);
-            return (
-              <CardPreview key={card} card={copy}>
-                <span className={styles.discarded}>
-                  <CardGlyph card={copy} size={18} />
-                </span>
-              </CardPreview>
-            );
-          })}
-          {state.discard.length > 0 && (
-            <IconAction
-              label="Shuffle the discard pile back into the deck"
-              icon={<RotateCcw size={12} />}
-              size="xs"
-              emphasis="quiet"
-              onClick={() => onAction({ kind: 'reshuffle' })}
-            />
-          )}
-        </div>
-      </div>
+      <DiscardPile state={state} onAction={onAction} />
     </div>
+  );
+}
+
+/** The discard pile as one icon and its count; clicking it lists the pile by group, as the deck bar does, with the reshuffle. */
+function DiscardPile({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'>) {
+  const [open, setOpen] = useState(false);
+  const pile = state.discard.map((card) => copyOf(state, card));
+  return (
+    <Popover opened={open} onChange={setOpen} position="top-end" withinPortal shadow="md" width={320}>
+      <Popover.Target>
+        <UnstyledButton
+          className={styles.discardButton}
+          aria-label={`Discard pile: ${pile.length} cards`}
+          onClick={() => setOpen((was) => !was)}
+        >
+          <Trash2 size={16} aria-hidden />
+          <span>{pile.length}</span>
+        </UnstyledButton>
+      </Popover.Target>
+      <Popover.Dropdown className={styles.dropdown}>
+        <Stack gap={10}>
+          {pile.length === 0 ? (
+            <Text size="sm" className={styles.dim}>
+              The discard pile is empty.
+            </Text>
+          ) : (
+            CARD_GROUPS.filter((group) => pile.some((copy) => groupOf(copy.def) === group)).map((group) => (
+              <GroupList key={group} group={group} copies={pile} suffix="discarded" />
+            ))
+          )}
+          {pile.length > 0 && (
+            <LabeledAction
+              size="xs"
+              icon={<RotateCcw size={14} />}
+              onClick={() => {
+                onAction({ kind: 'reshuffle' });
+                setOpen(false);
+              }}
+            >
+              Shuffle back into the deck
+            </LabeledAction>
+          )}
+        </Stack>
+      </Popover.Dropdown>
+    </Popover>
   );
 }

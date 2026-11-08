@@ -16,6 +16,12 @@ export const KIND_LABEL: Readonly<Record<CardKind, string>> = {
   worthless: 'Worthless',
 };
 
+/** A group's name for a count of its cards: "1 poison defense", "2 poison defenses". */
+export function groupCount(group: CardGroup, count: number): string {
+  const label = GROUP_LABEL[group].toLowerCase();
+  return `${count} ${count === 1 && label.endsWith('s') ? label.slice(0, -1) : label}`;
+}
+
 /** One card of the deck as the ruleset defines it, with how many copies the deck holds. */
 export type CardDef = Readonly<{
   key: string;

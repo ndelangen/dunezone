@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
-import { CARD_GROUPS, GROUP_LABEL, GROUP_ROWS, copyOf, groupOf, placeOf, slotOf, unplaced } from './tracker';
+import { CARD_GROUPS, GROUP_LABEL, GROUP_ROWS, copyOf, groupCount, groupOf, placeOf, slotOf, unplaced } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TreacheryTracker.module.css';
 
@@ -311,10 +311,11 @@ export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly Car
             <HoverCard.Target>
               <span
                 data-kind={group.split('-')[0]}
+                data-group={group}
                 className={styles.kindSlice}
                 style={{ flexGrow: count / total }}
                 tabIndex={0}
-                aria-label={`${count} ${GROUP_LABEL[group].toLowerCase()} left`}
+                aria-label={`${groupCount(group, count)} left`}
               />
             </HoverCard.Target>
             <HoverCard.Dropdown className={styles.dropdown}>
@@ -328,7 +329,11 @@ export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly Car
 }
 
 /** Exactly which cards of a group are left, one line per card with how many copies. */
-function GroupList({ group, copies }: Readonly<{ group: CardGroup; copies: readonly CardCopy[] }>) {
+export function GroupList({
+  group,
+  copies,
+  suffix = 'left',
+}: Readonly<{ group: CardGroup; copies: readonly CardCopy[]; suffix?: string }>) {
   const byName = new Map<string, { copy: CardCopy; left: number }>();
   for (const copy of copies.filter((entry) => groupOf(entry.def) === group)) {
     const entry = byName.get(copy.def.key);
@@ -342,7 +347,7 @@ function GroupList({ group, copies }: Readonly<{ group: CardGroup; copies: reado
   return (
     <Stack gap={4}>
       <Text size="xs" className={styles.caption}>
-        {lines.reduce((sum, line) => sum + line.left, 0)} {GROUP_LABEL[group].toLowerCase()} left
+        {groupCount(group, lines.reduce((sum, line) => sum + line.left, 0))} {suffix}
       </Text>
       <div className={styles.kindList}>
         {lines.map(({ copy, left }) => (
@@ -360,7 +365,7 @@ function GroupList({ group, copies }: Readonly<{ group: CardGroup; copies: reado
 export function kindSummary(copies: readonly CardCopy[]): string {
   return CARD_GROUPS.map((group) => [group, copies.filter((copy) => groupOf(copy.def) === group).length] as const)
     .filter(([, count]) => count > 0)
-    .map(([group, count]) => `${count} ${GROUP_LABEL[group].toLowerCase()}`)
+    .map(([group, count]) => groupCount(group, count))
     .join(', ');
 }
 

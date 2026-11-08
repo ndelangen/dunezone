@@ -747,3 +747,24 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
+
+.discardButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  color: var(--ui-highlight);
+  font-variant-numeric: tabular-nums;
+}
+
+.discardButton:hover,
+.discardButton:focus-visible {
+  background: var(--ui-hover);
+}
+
+/* Poison and projectile share their kind's colour; the projectile half is a lighter tint of it, so the pair reads as one kind in two parts. */
+.kindSlice[data-group$="-projectile"] {
+  background: color-mix(in oklab, var(--kind) 70%, var(--ui-white));
+}
