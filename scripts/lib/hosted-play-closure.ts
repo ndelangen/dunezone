@@ -42,7 +42,6 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'scripts/lib/convex-admin.ts',
   'scripts/node-executable.ts',
   'scripts/lib/publisher-assets.ts',
-  'scripts/lib/application-assets.ts',
   'scripts/lib/browserBundleBudgets.ts',
   'scripts/lib/jsonc.ts',
   'scripts/lib/reactCompiler.ts',

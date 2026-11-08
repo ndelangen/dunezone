@@ -124,23 +124,14 @@ stack traces keep function names, but frames show bundle file and line numbers r
 
 ### Browser files across deployments
 
-A new HTML cache key cannot repair a document already open in a browser. Before deploying, the
-workflow reads the current site's `application-assets.json` and copies older hashed browser files
-into the new Static Assets upload. Files in the previous current build remain available for at
-least seven days after replacement. Subsequent releases carry their original expiry forward, then
-omit them after that window. No request-time R2 lookup or new storage binding is involved.
-
-The manifest lists only hashed `/public/` files. Downloads must match their SHA-256 and byte count;
-a reused URL with different bytes fails the release. The existing Static Assets count and file-size
-gates apply after retention. A missing or corrupt manifest stops deployment once this feature has
-shipped. The initial rollout imports the currently deployed Vite dependency graph from the live shell,
-including dynamic imports, preload maps, stylesheets and their hashed resources. It rejects HTML
-fallbacks masquerading as missing scripts. Tabs already broken before rollout, or left open beyond
-seven days after replacement, may still need a refresh. Stable artwork and font URLs retain their existing delivery rules.
+Each release uploads only its own hashed browser files; older releases' chunks are not kept. A tab
+left open across a deploy may fail to load a lazy chunk and need a refresh. This keeps deploys fast
+and the Static Assets count well under Cloudflare's 20,000-file limit. Stable artwork and font URLs
+retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build, bundle retention and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
+Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 

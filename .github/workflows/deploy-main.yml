@@ -166,12 +166,9 @@ jobs:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
 
       # The local rehearsal above needs raster copies with empty buckets. Production serves them from
-      # R2, so remove them before retention checks the final Static Assets file count.
+      # R2, so remove them before the final Static Assets file count is checked.
       - name: Omit raster copies from the release
         run: bun run publisher:omit-static-rasters
-
-      - name: Retain browser bundles from the previous application release
-        run: bun run publisher:retain-assets
 
       - name: Verify assembled Worker assets
         run: bun run publisher:assets:check
