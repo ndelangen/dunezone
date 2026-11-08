@@ -88,7 +88,7 @@ function unusedMantineImportOnServer(): PluginOption {
 
 /*
  * Vite's build report, which vite-plus logs as one message whose first line is an emitted file and its size, such as `dist/client/index.html  0.17 kB`.
- * If a later Vite logs it differently, the report simply prints again.
+ * If a later Vite logs it differently, the regex stops matching and the report prints again.
  */
 const BUILD_REPORT_FILE_LINE = /^\S*dist\/\S+\s+[\d,.]+ kB/u;
 
