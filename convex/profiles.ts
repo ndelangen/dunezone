@@ -35,6 +35,7 @@ import { profileCatalogueOrderOf, profileListName } from './lib/profileCatalogue
 import { loadProfilePageBySlug } from './lib/profileDetail';
 import { discoverableProfileValidator, loadNewestDiscoverableProfiles } from './lib/profileDiscovery';
 import { allocateProfileSlug } from './lib/profileSlugs';
+import { loadDirectoryGroups, loadLeaderboard } from './lib/standings';
 import { nowIso, slugify } from './lib/utils';
 
 async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
@@ -249,6 +250,8 @@ const profileDirectoryEntryValidator = v.object({
     questionCount: v.number(),
     answerCount: v.number(),
   }),
+  /** The live Groups the person is an active member of, for the discs beside their name. */
+  groups: v.array(v.object({ slug: v.string(), name: v.string() })),
 });
 
 /** The rows of the selected entries, each profile read once with its activity counts. */
@@ -264,16 +267,20 @@ async function directoryEntries(ctx: QueryCtx, selected: { source_id: string }[]
     }
     profiles.push(profile);
   }
-  const activity = await loadProfileActivityCounts(
-    ctx,
-    profiles.map((profile) => profile.user_id)
-  );
+  const [activity, groups] = await Promise.all([
+    loadProfileActivityCounts(
+      ctx,
+      profiles.map((profile) => profile.user_id)
+    ),
+    Promise.all(profiles.map((profile) => loadDirectoryGroups(ctx, profile.user_id))),
+  ]);
   return profiles.map((profile, index) => ({
     id: profile._id,
     slug: profile.slug,
     name: profileListName(profile),
     image: profile.avatar?.url ?? profile.avatar_url,
     activity: activity[index] ?? { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
+    groups: groups[index] ?? [],
   }));
 }
 
@@ -363,6 +370,34 @@ export const catalogue = publicQuery({
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() ?? '';
     return text ? await loadDirectorySearch(ctx, args, text) : await loadDirectoryPage(ctx, args);
+  },
+});
+
+const leaderboardEntryValidator = v.object({
+  rank: v.number(),
+  count: v.number(),
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+});
+
+/**
+ * The directory's two leaderboards: who made the most factions, and who asked and answered the most rules questions.
+ * Each holds at most five people and never anyone at zero;
+ * a board with nobody on it comes back empty.
+ */
+export const leaderboards = publicQuery({
+  args: {},
+  returns: v.object({
+    factionDesigners: v.array(leaderboardEntryValidator),
+    faqContributors: v.array(leaderboardEntryValidator),
+  }),
+  handler: async (ctx) => {
+    const [factionDesigners, faqContributors] = await Promise.all([
+      loadLeaderboard(ctx, 'factions'),
+      loadLeaderboard(ctx, 'faq'),
+    ]);
+    return { factionDesigners, faqContributors };
   },
 });
 

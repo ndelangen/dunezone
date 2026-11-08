@@ -23,6 +23,7 @@ import { recordFormerSlug } from './lib/formerSlugs';
 import { retireGroupInvitations } from './lib/groupInvitations';
 import { requireAuthUserId } from './lib/policy';
 import { allocateCounterSlug } from './lib/slugCounters';
+import { loadGroupStandings } from './lib/standings';
 import { nowIso, slugify } from './lib/utils';
 
 async function resolveUniqueGroupSlug(ctx: MutationCtx, name: string, own?: Doc<'groups'>) {
@@ -105,6 +106,36 @@ export const detailPage = publicQuery({
   args: { slug: v.string() },
   returns: groupPageValidator,
   handler: async (ctx, args) => await loadGroupPageBySlug(ctx, args.slug),
+});
+
+const groupStandingMemberValidator = v.object({
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+});
+
+/**
+ * The profile directory's Groups list: live Groups by active members, then by what they maintain.
+ * Load more asks again with a larger `limit`;
+ * `hasMore` says whether that would show more.
+ */
+export const standings = publicQuery({
+  args: { limit: v.optional(v.number()) },
+  returns: v.object({
+    entries: v.array(
+      v.object({
+        rank: v.number(),
+        slug: v.string(),
+        name: v.string(),
+        memberCount: v.number(),
+        factionCount: v.number(),
+        members: v.array(groupStandingMemberValidator),
+      })
+    ),
+    hasMore: v.boolean(),
+    limit: v.number(),
+  }),
+  handler: async (ctx, args) => await loadGroupStandings(ctx, args.limit),
 });
 
 export const list = publicQuery({

@@ -1,0 +1,46 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rank {
+  font-family: "C_Copperplate_Gothic", serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.rank[data-podium] {
+  color: var(--color-brand);
+  font-size: var(--mantine-font-size-lg);
+}
+
+.subject {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.detail {
+  display: flex;
+  align-items: center;
+}
+
+.score {
+  white-space: nowrap;
+}

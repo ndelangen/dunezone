@@ -133,6 +133,7 @@ import type * as lib_rulesetSlots from "../lib/rulesetSlots.js";
 import type * as lib_slugAllocation from "../lib/slugAllocation.js";
 import type * as lib_slugCounters from "../lib/slugCounters.js";
 import type * as lib_spiceCardBoard from "../lib/spiceCardBoard.js";
+import type * as lib_standings from "../lib/standings.js";
 import type * as lib_statistics from "../lib/statistics.js";
 import type * as lib_syntheticPasswords from "../lib/syntheticPasswords.js";
 import type * as lib_userImageIngest from "../lib/userImageIngest.js";
@@ -309,6 +310,7 @@ const fullApi: ApiFromModules<{
   "lib/slugAllocation": typeof lib_slugAllocation;
   "lib/slugCounters": typeof lib_slugCounters;
   "lib/spiceCardBoard": typeof lib_spiceCardBoard;
+  "lib/standings": typeof lib_standings;
   "lib/statistics": typeof lib_statistics;
   "lib/syntheticPasswords": typeof lib_syntheticPasswords;
   "lib/userImageIngest": typeof lib_userImageIngest;

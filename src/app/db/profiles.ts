@@ -73,6 +73,30 @@ export async function loadProfileDirectoryPage(args: ProfileDirectoryArgs): Prom
   return await db.query(api.profiles.catalogue, args, { hold: !args.q });
 }
 
+export type ProfileLeaderboards = FunctionReturnType<typeof api.profiles.leaderboards>;
+export type LeaderboardEntry = ProfileLeaderboards['factionDesigners'][number];
+export type GroupStandingsData = FunctionReturnType<typeof api.groups.standings>;
+
+/** The directory's leaderboards, for the route loader; paired with `useProfileLeaderboards`. */
+export async function loadProfileLeaderboards(): Promise<ProfileLeaderboards> {
+  return await db.query(api.profiles.leaderboards, {});
+}
+
+/** The directory's leaderboards, live, taking `loadProfileLeaderboards`'s result as `initialData`. */
+export function useProfileLeaderboards(options?: { initialData?: ProfileLeaderboards }) {
+  return toLiveQueryResult(useLiveQuery(api.profiles.leaderboards, {}), () => options?.initialData);
+}
+
+/** The directory's Groups list at one limit, for the route loader; paired with `useGroupStandings`. */
+export async function loadGroupStandings(limit: number): Promise<GroupStandingsData> {
+  return await db.query(api.groups.standings, { limit });
+}
+
+/** The directory's Groups list at one limit, live: Load more asks again with a larger one. */
+export function useGroupStandings(limit: number) {
+  return useLiveQuery(api.groups.standings, { limit });
+}
+
 /** One profile's page, live, taking `loadProfileBySlug`'s result as `initialData`. */
 export function useProfileBySlug(
   slug: string,
