@@ -8,7 +8,7 @@ import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check, Diff, Eye, EyeOff, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -251,9 +251,22 @@ export function DialRow({
   /*
    * The slider sends each step as the thumb crosses it, so the strength follows the drag live; the battle queue merges
    * steps sent while one is still unanswered. The draft holds the thumb where it is until the plan catches up.
+   * Mantine keeps the drag listeners it installed when the gesture began, so the handlers read the plan and the last
+   * step sent through refs rather than from the render that started the drag.
    */
   const [draft, setDraft] = useState<number | null>(null);
   const shown = draft ?? value;
+  const latest = useRef({ value, onChange });
+  useLayoutEffect(() => {
+    latest.current = { value, onChange };
+  });
+  const sent = useRef<number | null>(null);
+  const send = (next: number) => {
+    if (next !== (sent.current ?? latest.current.value)) {
+      sent.current = next;
+      latest.current.onChange(next);
+    }
+  };
   return (
     <div className={styles.dialRow} data-spice={spice || undefined}>
       <span className={styles.dialLabel}>{label}</span>
@@ -271,12 +284,14 @@ export function DialRow({
         size="sm"
         onChange={(next) => {
           setDraft(next);
-          if (next !== shown) {
-            onChange(next);
-          }
+          send(next);
         }}
-        /* Every step was sent as the thumb crossed it, the last one included, so letting go only hands the thumb back to the plan. */
-        onChangeEnd={() => setDraft(null)}
+        /* Letting go makes sure the endpoint was sent, then hands the thumb back to the plan. */
+        onChangeEnd={(end) => {
+          send(end);
+          sent.current = null;
+          setDraft(null);
+        }}
       />
       <span className={styles.dialStep}>
         <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} wheel="focus" onChange={onChange} />

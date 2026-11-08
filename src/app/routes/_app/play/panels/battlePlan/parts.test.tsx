@@ -2,7 +2,7 @@
 
 import { MantineProvider } from '@mantine/core';
 import { emptyBattlePlan } from '@shared/play/battle';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { useState } from 'react';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
@@ -91,4 +91,34 @@ test('a typed adjustment stays as entered, while − and + move by halves', asyn
   /* The popover's closing transition hides it from the accessibility tree in jsdom once the field blurs. */
   fireEvent.click(screen.getByRole('button', { name: 'More: Adjustment', hidden: true }));
   expect(onEdit).toHaveBeenLastCalledWith({ adjustment: 0.5 });
+});
+
+test('dragging the slider out and back sends the step it comes back to', async () => {
+  const onChange = vi.fn();
+  const { container } = render(<Row onChange={onChange} />);
+  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
+  /* A 200 px track over 0 to 20, so every 10 px is one troop. */
+  track.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 200,
+    height: 10,
+    right: 200,
+    bottom: 10,
+    x: 0,
+    y: 0,
+    toJSON() {},
+  });
+  /* The slider reads the pointer on the next frame and reports the end of a drag a tick after letting go. */
+  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
+  fireEvent.mouseDown(track, { clientX: 20, clientY: 5 });
+  await settle();
+  fireEvent.mouseMove(document, { clientX: 50, clientY: 5 });
+  await settle();
+  fireEvent.mouseMove(document, { clientX: 20, clientY: 5 });
+  await settle();
+  fireEvent.mouseUp(document, { clientX: 20, clientY: 5 });
+  await settle();
+  expect(onChange.mock.calls.map(([value]) => value)).toEqual([5, 2]);
+  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '2');
 });
