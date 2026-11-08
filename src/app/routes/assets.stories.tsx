@@ -40,6 +40,10 @@ export const CataloguePhone = meta.story({
       await expect(box.left).toBeGreaterThanOrEqual(band.left);
       await expect(box.right).toBeLessThanOrEqual(band.right);
     }
+    /* The piles' leaning fan cards stay inside the screen, so the page never scrolls sideways (they reached 11px past it). */
+    await page.findAllByRole('link', { name: /^Browse / }, { timeout: 30_000 });
+    const doc = canvasElement.ownerDocument;
+    await expect(doc.documentElement.scrollWidth).toBeLessThanOrEqual(doc.documentElement.clientWidth);
   },
 });
 export const TreacheryCards = meta.story({
