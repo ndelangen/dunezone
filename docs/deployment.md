@@ -450,8 +450,10 @@ deploying. In every other case the `deploy` job runs:
     migrations and release work.
 13. A separate `storybook` job, running beside the deploy job after the same gate, builds and verifies
     the secret-free Storybook artifact, deploys it to `storybook.dune.zone`, and smokes its manager,
-    page index, preview entry, CSP, and shared public assets. It reads nothing from production, so it
-    does not wait for the production release, and a failure there still fails the run.
+    page index, preview entry, CSP, and shared public assets. It does not wait for the production
+    release, and a failure there still fails the run. Storybook proxies `/m`, `/image`, `/web` and
+    `/published` to `dune.zone`, so artwork the release adds can 404 there until step 11 publishes its
+    variants, or until the next green release if the deploy job fails before step 11.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.

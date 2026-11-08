@@ -316,10 +316,13 @@ jobs:
           path: .cache/media-verified
           key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Storybook is a separate secret-free Worker that reads nothing from production, so it builds, verifies and
-  # deploys beside the production release instead of adding its two minutes after it. It follows the gate's
-  # answer like the deploy job does. A failure here still fails the run, so the gate deploys the commit again on
-  # the next event, the same as a failure in the deploy job.
+  # Storybook is a separate secret-free Worker, so it builds, verifies and deploys beside the production release
+  # instead of adding its two minutes after it. It follows the gate's answer like the deploy job does. A failure
+  # here still fails the run, so the gate deploys the commit again on the next event, the same as a failure in the
+  # deploy job.
+  # Its /m, /image, /web and /published paths proxy to dune.zone, so artwork this release adds can 404 on
+  # storybook.dune.zone until the deploy job publishes its raster variants, or until the next green release if
+  # the deploy job fails before then. Storybook is a noindex development tool, so that window is accepted.
   storybook:
     needs: release_gate
     if: needs.release_gate.outputs.deploy != 'false'
