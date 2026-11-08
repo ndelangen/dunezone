@@ -58,6 +58,8 @@ export function AppBackground({ motion }: { motion: boolean }) {
     /* Whether a voyage held the orbits still, and the hold's end, so they glide to the clock instead of jumping to it. */
     let held = false;
     let glide: number | undefined;
+    /* While gliding, the orbits keep their target: a new one each tick would restart the glide, and ending it mid-way would jump. */
+    let gliding = false;
     let lastPlanetAngle = 0;
     let lastStarsAngle = 0;
     const glideToClock = () => {
@@ -65,8 +67,10 @@ export function AppBackground({ motion }: { motion: boolean }) {
       for (const layer of layers) {
         layer?.style.setProperty('transition', `transform ${GLIDE_MS}ms ease-in-out`);
       }
+      gliding = true;
       window.clearTimeout(glide);
       glide = window.setTimeout(() => {
+        gliding = false;
         for (const layer of layers) {
           layer?.style.removeProperty('transition');
         }
@@ -87,17 +91,20 @@ export function AppBackground({ motion }: { motion: boolean }) {
       const planetAngle = ((localTime % HOUR) / HOUR) * 360;
       const starsAngle = ((localTime % (2 * HOUR)) / (2 * HOUR)) * -360;
       /* A glide across the top of the hour would spin the long way round, so the orbits then take their place at once. */
-      if (held && planetAngle >= lastPlanetAngle && starsAngle <= lastStarsAngle) {
+      const glides = held && planetAngle >= lastPlanetAngle && starsAngle <= lastStarsAngle;
+      if (glides) {
         glideToClock();
       }
       held = false;
-      lastPlanetAngle = planetAngle;
-      lastStarsAngle = starsAngle;
-      if (planetLayer.current) {
-        planetLayer.current.style.transform = `rotate(${planetAngle}deg)`;
-      }
-      if (starsLayer.current) {
-        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${starsAngle}deg)`;
+      if (glides || !gliding) {
+        lastPlanetAngle = planetAngle;
+        lastStarsAngle = starsAngle;
+        if (planetLayer.current) {
+          planetLayer.current.style.transform = `rotate(${planetAngle}deg)`;
+        }
+        if (starsLayer.current) {
+          starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${starsAngle}deg)`;
+        }
       }
       const elapsed = performance.now();
       for (const [id, element] of starLayers.current) {
