@@ -92,78 +92,94 @@ const recordTableContexts = () => {
   };
 };
 
+type IrisReading = {
+  animationName: string;
+  mask: string;
+  start: number;
+  later: number;
+  startMask: string;
+  laterMask: string;
+};
+
+/*
+ * Watches for the stage's opening from before the page mounts, so the play function cannot miss it.
+ * The runner's headless renderer may never report; the stage then opens on the fallback clock, at the page's next idle moment.
+ */
+function watchIris(document: Document) {
+  return new Promise<IrisReading>((resolve, reject) => {
+    /* The phase is caught as React commits it, and the iris is read by seeking its paused animation, so no frame or clock has to keep up. */
+    const check = () => {
+      const stage = document.querySelector<HTMLElement>('.dune-play-stage');
+      if (stage?.dataset.arrival !== 'opening') {
+        return;
+      }
+      observer.disconnect();
+      window.clearTimeout(giveUp);
+      const shell = document.querySelector<HTMLElement>('.dune-play-shell')!;
+      const style = getComputedStyle(shell);
+      const animation = shell
+        .getAnimations()
+        .find((each): each is CSSAnimation => each instanceof CSSAnimation && each.animationName === 'dune-play-enter');
+      const radius = (at: number) => {
+        animation!.currentTime = at;
+        return Number.parseFloat(style.getPropertyValue('--dune-play-iris'));
+      };
+      const maskAt = (at: number) => {
+        animation!.currentTime = at;
+        return style.maskImage || style.getPropertyValue('-webkit-mask-image');
+      };
+      animation?.pause();
+      const reading = {
+        animationName: style.animationName,
+        mask: style.maskImage || style.getPropertyValue('-webkit-mask-image'),
+        start: animation ? radius(0) : Number.NaN,
+        later: animation ? radius(1200) : Number.NaN,
+        startMask: animation ? maskAt(0) : '',
+        laterMask: animation ? maskAt(1200) : '',
+      };
+      animation?.play();
+      resolve(reading);
+    };
+    const observer = new MutationObserver(check);
+    /* The renderer's fallback clock opens the stage well inside this bound, even on a loaded runner. */
+    const giveUp = window.setTimeout(() => {
+      observer.disconnect();
+      const arrival = document.querySelector<HTMLElement>('.dune-play-stage')?.dataset.arrival ?? 'no stage';
+      reject(new Error(`The stage never reached its opening; it is at ${arrival}.`));
+    }, 30_000);
+    observer.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-arrival'],
+      childList: true,
+    });
+    check();
+  });
+}
+
+let iris: Promise<IrisReading> | undefined;
+
 /* The shell opens through an iris once the renderer is ready; until then it stays closed behind the stage's status line. */
 export const OpensThroughAnIris = meta.story({
   globals: { motion: 'on' },
-  beforeEach: install(() => productTransport()),
+  beforeEach: [
+    install(() => productTransport()),
+    () => {
+      iris = watchIris(document);
+      /* A story left before its opening has nothing to report. */
+      iris.catch(() => {});
+    },
+  ],
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
-    /* The runner's headless renderer may never report; the stage then opens on the fallback clock, at the page's next idle moment. */
-    const iris = await new Promise<{
-      animationName: string;
-      mask: string;
-      start: number;
-      later: number;
-      startMask: string;
-      laterMask: string;
-    }>((resolve, reject) => {
-      /* The phase is caught as React commits it, and the iris is read by seeking its paused animation, so no frame or clock has to keep up. */
-      const check = () => {
-        const stage = document.querySelector<HTMLElement>('.dune-play-stage');
-        if (stage?.dataset.arrival !== 'opening') {
-          return;
-        }
-        observer.disconnect();
-        window.clearTimeout(giveUp);
-        const shell = document.querySelector<HTMLElement>('.dune-play-shell')!;
-        const style = getComputedStyle(shell);
-        const animation = shell
-          .getAnimations()
-          .find(
-            (each): each is CSSAnimation => each instanceof CSSAnimation && each.animationName === 'dune-play-enter'
-          );
-        const radius = (at: number) => {
-          animation!.currentTime = at;
-          return Number.parseFloat(style.getPropertyValue('--dune-play-iris'));
-        };
-        const maskAt = (at: number) => {
-          animation!.currentTime = at;
-          return style.maskImage || style.getPropertyValue('-webkit-mask-image');
-        };
-        animation?.pause();
-        const reading = {
-          animationName: style.animationName,
-          mask: style.maskImage || style.getPropertyValue('-webkit-mask-image'),
-          start: animation ? radius(0) : Number.NaN,
-          later: animation ? radius(1200) : Number.NaN,
-          startMask: animation ? maskAt(0) : '',
-          laterMask: animation ? maskAt(1200) : '',
-        };
-        animation?.play();
-        resolve(reading);
-      };
-      const observer = new MutationObserver(check);
-      /* The renderer's fallback clock opens the stage well inside this bound, even on a loaded runner. */
-      const giveUp = window.setTimeout(() => {
-        observer.disconnect();
-        const arrival = document.querySelector<HTMLElement>('.dune-play-stage')?.dataset.arrival ?? 'no stage';
-        reject(new Error(`The stage never reached its opening; it is at ${arrival}.`));
-      }, 30_000);
-      observer.observe(document.body, {
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['data-arrival'],
-        childList: true,
-      });
-      check();
-    });
+    const reading = await iris!;
     /* While it opens, the shell widens a radial mask out of the planet. */
-    await expect(iris.animationName).toBe('dune-play-enter');
-    await expect(iris.mask).toContain('radial-gradient');
-    await expect(iris.later).toBeGreaterThan(iris.start);
+    await expect(reading.animationName).toBe('dune-play-enter');
+    await expect(reading.mask).toContain('radial-gradient');
+    await expect(reading.later).toBeGreaterThan(reading.start);
     /* The mask itself follows the radius, not only the property behind it. */
-    await expect(iris.laterMask).toContain('radial-gradient');
-    await expect(iris.laterMask).not.toBe(iris.startMask);
+    await expect(reading.laterMask).toContain('radial-gradient');
+    await expect(reading.laterMask).not.toBe(reading.startMask);
     /* Once open, the mask is gone and so is the waiting frame. */
     const { shell } = await tablePage(canvasElement);
     await expect(getComputedStyle(shell).maskImage || 'none').toBe('none');
