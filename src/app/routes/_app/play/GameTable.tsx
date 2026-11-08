@@ -27,6 +27,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
+import { tableArrivalPlayed } from '@app/widgets/tabletop/tableArrival';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
@@ -616,7 +617,8 @@ const TABLE_ARRIVAL_MS = 1600;
  * While it opens, the stage marks the voyage as arrived, so the shell's planet swells away behind the opening table.
  */
 function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening' | 'open' {
-  const motion = useMotionAllowed();
+  /* A story that is not about the arrival shows the table the way it shows without motion. */
+  const motion = useMotionAllowed() && tableArrivalPlayed();
   const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
   useEffect(() => {
     if (!sceneReady) {

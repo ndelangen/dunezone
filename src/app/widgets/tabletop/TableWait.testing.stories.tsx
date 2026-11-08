@@ -9,7 +9,8 @@ import { TableWait } from './TableWait';
 /* A timed sequence, so it is a testing story: Chromatic would capture whichever line it reached. */
 const meta = testingPreview.meta({
   component: TableWait,
-  parameters: { layout: 'fullscreen' },
+  /* The frame is part of the table's arrival, so its moons move. */
+  parameters: { layout: 'fullscreen', tableArrival: 'play' },
   decorators: [
     (Story) => (
       <>

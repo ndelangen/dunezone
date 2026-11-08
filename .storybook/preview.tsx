@@ -13,6 +13,7 @@ import '../src/app/styles/tokens.css';
 import '../src/app/styles/mantine-shell-compatibility.css';
 import { setMotionOverride } from '../src/app/styles/motion';
 import { appColorSchemeManager, appContentTheme } from '../src/app/ui/theme';
+import { setTableArrivalPlayed } from '../src/app/widgets/tabletop/tableArrival';
 import * as sizes from '../src/game/data/sizes';
 import { TUTORIAL_PLAYERS } from '../src/shared/tutorial/players';
 import { coreColors } from '../src/shared/uiPalette';
@@ -330,9 +331,11 @@ const preview = definePreview({
      so a capture or a play never lands on a moving frame; a story that shows motion pins `motion: 'on'`. */
   /* Runs after the React renderer's own beforeAll has installed its act() wrappers. */
   beforeAll: keepNestedEventsInOneActScope,
-  beforeEach: async ({ globals }) => {
+  beforeEach: async ({ globals, parameters }) => {
     await settleStoryViewport();
     resetFrameLag();
+    /* Every story mounts its page afresh; only a story about the table's arrival (`tableArrival: 'play'`) replays the opening. */
+    setTableArrivalPlayed(parameters.tableArrival === 'play');
     await emulateReducedMotion(globals.motion !== 'on');
     setMotionOverride(globals.motion === 'on' ? 'on' : globals.motion === 'reduce' ? 'off' : null);
     /* The app marks <html> with the verdict for its stylesheets, so a story pinned to motion gets the same mark; AppRoot sets its own. */
