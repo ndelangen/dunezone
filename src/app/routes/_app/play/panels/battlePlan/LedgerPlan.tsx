@@ -242,6 +242,7 @@ function FlatDialRows(props: BattlePlanViewProps & { disabled: boolean; named: (
           name="Spice for spice strength"
           value={plan.spice}
           max={spiceStrengthOptions(plan, balance).at(-1) ?? 0}
+          stops={spiceStrengthOptions(plan, balance)}
           disabled={disabled}
           onChange={(wanted) => {
             const spice = snapSpiceStrength(plan, balance, wanted);

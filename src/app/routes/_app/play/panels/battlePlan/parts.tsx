@@ -236,6 +236,7 @@ export function DialRow({
   disabled,
   onChange,
   spice,
+  stops,
 }: {
   /** The row's label, such as the troop's token; a second row of the same troop leaves it out. */
   label?: ReactNode;
@@ -247,6 +248,8 @@ export function DialRow({
   disabled: boolean;
   onChange: (value: number) => void;
   spice?: boolean;
+  /** The only values the slider lands on, such as the spice amounts a plan can spend; any value when left out. */
+  stops?: readonly number[];
 }) {
   /*
    * The slider sends each step as the thumb crosses it, so the strength follows the drag live; the battle queue merges
@@ -282,6 +285,10 @@ export function DialRow({
         disabled={disabled || max === 0}
         label={null}
         size="sm"
+        /* A row with stops snaps the thumb to the nearest one as it moves, so every step it sends is one the plan can take. */
+        marks={stops?.map((stop) => ({ value: stop }))}
+        restrictToMarks={!!stops}
+        classNames={stops ? { markWrapper: styles.stop } : undefined}
         onChange={(next) => {
           setDraft(next);
           send(next);

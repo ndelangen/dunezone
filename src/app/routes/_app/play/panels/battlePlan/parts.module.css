@@ -87,6 +87,11 @@
   grid-column: 3;
 }
 
+/* A slider's stops guide the thumb without marking the track. */
+.stop {
+  display: none;
+}
+
 .dialStep {
   grid-column: 4;
 }

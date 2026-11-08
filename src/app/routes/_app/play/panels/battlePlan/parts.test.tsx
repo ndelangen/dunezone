@@ -27,14 +27,25 @@ globalThis.ResizeObserver ??= class {
 
 afterEach(cleanup);
 
-function Row({ onChange }: { onChange: (value: number) => void }) {
-  const [value, setValue] = useState(2);
+function Row({
+  onChange,
+  start = 2,
+  max = 20,
+  stops,
+}: {
+  onChange: (value: number) => void;
+  start?: number;
+  max?: number;
+  stops?: number[];
+}) {
+  const [value, setValue] = useState(start);
   return (
     <MantineProvider theme={appContentTheme} forceColorScheme="dark">
       <DialRow
         name="Fedaykin"
         value={value}
-        max={20}
+        max={max}
+        stops={stops}
         disabled={false}
         onChange={(next) => {
           onChange(next);
@@ -121,4 +132,33 @@ test('dragging the slider out and back sends the step it comes back to', async (
   await settle();
   expect(onChange.mock.calls.map(([value]) => value)).toEqual([5, 2]);
   expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '2');
+});
+
+test('a slider with stops sends only stops as it is dragged, and the one it is let go on', async () => {
+  const onChange = vi.fn();
+  const { container } = render(<Row onChange={onChange} start={0} max={8} stops={[0, 4, 8]} />);
+  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
+  /* A 200 px track over 0 to 8, so every 25 px is one unit of spice. */
+  track.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 200,
+    height: 10,
+    right: 200,
+    bottom: 10,
+    x: 0,
+    y: 0,
+    toJSON() {},
+  });
+  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
+  fireEvent.mouseDown(track, { clientX: 25, clientY: 5 });
+  await settle();
+  fireEvent.mouseMove(document, { clientX: 175, clientY: 5 });
+  await settle();
+  fireEvent.mouseMove(document, { clientX: 125, clientY: 5 });
+  await settle();
+  fireEvent.mouseUp(document, { clientX: 125, clientY: 5 });
+  await settle();
+  expect(onChange.mock.calls.map(([value]) => value)).toEqual([8, 4]);
+  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '4');
 });
