@@ -91,7 +91,7 @@
 /* The moons circle the planet's centre in the window, wherever the frame sits (below a page header, or scrolled). */
 .orrery {
   position: fixed !important;
-  left: 50%;
+  left: calc(50% + var(--voyage-planet-x));
   top: var(--voyage-planet-y);
   width: calc(var(--voyage-planet-size) * 1.7);
   aspect-ratio: 1;

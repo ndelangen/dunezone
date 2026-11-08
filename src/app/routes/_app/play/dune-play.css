@@ -53,11 +53,11 @@
 }
 
 /*
- * The planet sits at the viewport's centre, while the shell can start right of a rail (a tutorial's workspace does):
- * the iris centres on the planet in the shell's own coordinates.
+ * The planet rests by the window (beside a tutorial's rail, centred on the page beside it), while the shell starts right of
+ * that rail: the iris centres on the planet in the shell's own coordinates.
  */
 .dune-play-stage {
-  --dune-play-planet-x: calc(50vw - var(--page-layout-fullscreen-left, 0px));
+  --dune-play-planet-x: calc(50vw + var(--voyage-planet-x) - var(--page-layout-fullscreen-left, 0px));
 }
 
 .dune-play-stage:not([data-arrival="opening"], [data-arrival="open"]) .dune-play-shell {

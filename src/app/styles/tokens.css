@@ -64,6 +64,8 @@
   --voyage-planet-scale: 0.14;
   --voyage-planet-size: calc(var(--app-planet-diameter) * var(--voyage-planet-scale));
   --voyage-planet-y: 42vh;
+  /* How far right of the window's centre the planet rests: beside a rail (a tutorial's), it centres on the page beside the rail. */
+  --voyage-planet-x: 0px;
 
   --transition-fast: 140ms ease;
 }
