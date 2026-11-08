@@ -1,4 +1,4 @@
-import { Popover, Text, TextInput } from '@mantine/core';
+import { Popover, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ChevronLeft, ChevronRight, CircleHelp, Layers, NotebookPen } from 'lucide-react';
 import { useState } from 'react';
@@ -47,10 +47,12 @@ function OnBid({ factions, state, onAction }: TrackerViewProps) {
           <CardPreview card={card}>
             <img src={card.def.face} alt={card.def.name} />
           </CardPreview>
-        ) : (
-          <span className={styles.bidUnknown} data-empty={onBid ? 'false' : 'true'}>
-            {onBid ? '?' : ''}
+        ) : onBid ? (
+          <span className={styles.bidUnknown} data-empty="false">
+            ?
           </span>
+        ) : (
+          <EmptyBid state={state} onAction={onAction} />
         )}
       </div>
       <div className={styles.bidSide}>
@@ -66,12 +68,40 @@ function OnBid({ factions, state, onAction }: TrackerViewProps) {
           />
         ) : (
           <Text size="sm" className={styles.dim}>
-            In Play, the next card you look at comes up here.
+            Click the empty card to put the next one up for bid.
           </Text>
         )}
         <NextUp state={state} onAction={onAction} />
       </div>
     </section>
+  );
+}
+
+/** The empty place of the card on bid: clicking it picks the card that comes up next, or an unknown one. */
+function EmptyBid({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'>) {
+  const [open, setOpen] = useState(false);
+  const turn = currentTurn(state);
+  return (
+    <Popover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+      <Popover.Target>
+        <UnstyledButton
+          className={styles.bidUnknown}
+          data-empty="true"
+          aria-label="Pick the card up next"
+          onClick={() => setOpen((was) => !was)}
+        />
+      </Popover.Target>
+      <Popover.Dropdown className={styles.dropdown}>
+        <CardChooser
+          state={state}
+          allowUnknown
+          onPick={(card) => {
+            onAction({ kind: 'bid', card, turn });
+            setOpen(false);
+          }}
+        />
+      </Popover.Dropdown>
+    </Popover>
   );
 }
 
