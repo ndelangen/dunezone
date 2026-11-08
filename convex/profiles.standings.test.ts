@@ -113,6 +113,24 @@ async function group(t: World, name: string, ownerId: Id<'users'>, members: Id<'
   });
 }
 
+/** What the plain directory's first page opens with, as the page asks for it. */
+async function highlights(t: World, groupLimit = GROUP_STANDINGS_STEP) {
+  const page = await t.query(api.profiles.catalogue, { groupLimit });
+  if ('mode' in page || !page.highlights) {
+    throw new Error('Expected a browsed first page with its highlights.');
+  }
+  return page.highlights;
+}
+
+/** One person's row on the directory's first browsed page. */
+async function directoryEntry(t: World, name: string) {
+  const page = await t.query(api.profiles.catalogue, {});
+  if ('mode' in page) {
+    throw new Error('Expected a browsed page.');
+  }
+  return page.entries.find((entry) => entry.name === name);
+}
+
 describe('leaderboards', () => {
   test('rank people by factions, with ties sharing a place and nobody at zero', async () => {
     const t = applicationTest();
@@ -124,7 +142,7 @@ describe('leaderboards', () => {
     await factions(t, ridwan, 2);
     await factions(t, amon, 2);
 
-    const boards = await t.query(api.profiles.directoryHighlights, {});
+    const boards = await highlights(t);
     expect(boards.factionDesigners.map(({ name, rank, count }) => [rank, name, count])).toEqual([
       [1, 'Central', 4],
       [2, 'Amon', 2],
@@ -143,7 +161,7 @@ describe('leaderboards', () => {
     await question(t, asker);
     await question(t, gone, gone);
 
-    const boards = await t.query(api.profiles.directoryHighlights, {});
+    const boards = await highlights(t);
     expect(boards.faqContributors.map(({ name, count }) => [name, count])).toEqual([
       ['Asker', 3],
       ['Helper', 2],
@@ -155,7 +173,7 @@ describe('leaderboards', () => {
     for (let index = 0; index < LEADERBOARD_SIZE + 2; index += 1) {
       await factions(t, await person(t, `Maker${index}`), index + 1);
     }
-    const boards = await t.query(api.profiles.directoryHighlights, {});
+    const boards = await highlights(t);
     expect(boards.factionDesigners).toHaveLength(LEADERBOARD_SIZE);
     expect(boards.factionDesigners[0]?.name).toBe(`Maker${LEADERBOARD_SIZE + 1}`);
   });
@@ -165,7 +183,7 @@ describe('leaderboards', () => {
     for (const name of ['Zed', 'Yan', 'Xia', 'Wes', 'Val', 'Uma', 'Abe']) {
       await factions(t, await person(t, name), 1);
     }
-    const boards = await t.query(api.profiles.directoryHighlights, {});
+    const boards = await highlights(t);
     expect(boards.factionDesigners.map(({ name, rank }) => [rank, name])).toEqual([
       [1, 'Abe'],
       [1, 'Uma'],
@@ -197,7 +215,7 @@ describe('leaderboards', () => {
     await t.run(async (rawCtx) => {
       await applicationTriggers.wrapDB(rawCtx).db.patch(factionId!, { is_deleted: true });
     });
-    const boards = await t.query(api.profiles.directoryHighlights, {});
+    const boards = await highlights(t);
     expect(boards.factionDesigners).toEqual([]);
   });
 });
@@ -231,7 +249,7 @@ describe('group standings', () => {
       await group(t, `Extra${index}`, owner, []);
     }
 
-    const first = (await t.query(api.profiles.directoryHighlights, {})).groups;
+    const first = (await highlights(t)).groups;
     expect(first.entries.map(({ name }) => name).slice(0, 3)).toEqual(['Big', 'Busy', 'Quiet']);
     expect(first.entries[0]).toMatchObject({ rank: 1, memberCount: 3, factionCount: 0 });
     expect(first.entries[0]?.members.map(({ name }) => name)).toEqual(['Owner', 'Two', 'Three']);
@@ -239,7 +257,7 @@ describe('group standings', () => {
     expect(first.entries).toHaveLength(GROUP_STANDINGS_STEP);
     expect(first.hasMore).toBe(true);
 
-    const grown = (await t.query(api.profiles.directoryHighlights, { groupLimit: GROUP_STANDINGS_STEP * 2 })).groups;
+    const grown = (await highlights(t, GROUP_STANDINGS_STEP * 2)).groups;
     expect(grown.entries).toHaveLength(GROUP_STANDINGS_STEP + 3);
     expect(grown.hasMore).toBe(false);
   });
@@ -251,18 +269,9 @@ describe('group standings', () => {
     await t.run(async (rawCtx) => {
       await applicationTriggers.wrapDB(rawCtx).db.patch(groupId, { is_deleted: true });
     });
-    expect((await t.query(api.profiles.directoryHighlights, {})).groups.entries).toEqual([]);
+    expect((await highlights(t)).groups.entries).toEqual([]);
   });
 });
-
-/** One person's row on the directory's first browsed page. */
-async function directoryEntry(t: World, name: string) {
-  const page = await t.query(api.profiles.catalogue, {});
-  if ('mode' in page) {
-    throw new Error('Expected a browsed page.');
-  }
-  return page.entries.find((entry) => entry.name === name);
-}
 
 test('the directory shows the Groups a person is an active member of, and counts those past the discs', async () => {
   const t = applicationTest();
@@ -293,16 +302,12 @@ test('the standings backfill rebuilds rows written past the triggers', async () 
       await ctx.db.delete(row._id);
     }
   });
-  expect((await t.query(api.profiles.directoryHighlights, {})).factionDesigners).toEqual([]);
+  expect((await highlights(t)).factionDesigners).toEqual([]);
 
   await t.mutation(internal.migrations.standings_profiles_v1, {});
   await t.mutation(internal.migrations.standings_groups_v1, {});
   await t.finishAllScheduledFunctions(() => undefined);
 
-  expect((await t.query(api.profiles.directoryHighlights, {})).factionDesigners.map(({ name }) => name)).toEqual([
-    'Owner',
-  ]);
-  expect((await t.query(api.profiles.directoryHighlights, {})).groups.entries.map(({ name }) => name)).toEqual([
-    'Dreamers',
-  ]);
+  expect((await highlights(t)).factionDesigners.map(({ name }) => name)).toEqual(['Owner']);
+  expect((await highlights(t)).groups.entries.map(({ name }) => name)).toEqual(['Dreamers']);
 });

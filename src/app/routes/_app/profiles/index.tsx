@@ -27,12 +27,7 @@ import { MessageCircleReply, Shield, UsersRound } from 'lucide-react';
 import { useCallback, useRef } from 'react';
 import type { Ref } from 'react';
 
-import {
-  loadDirectoryHighlights,
-  loadProfileDirectoryPage,
-  useDirectoryHighlights,
-  useProfileDirectoryPage,
-} from '@db/profiles';
+import { loadProfileDirectoryPage, useProfileDirectoryPage } from '@db/profiles';
 import type {
   DirectoryHighlights as Highlights,
   LeaderboardEntry,
@@ -41,6 +36,7 @@ import type {
   ProfileDirectoryPageData,
 } from '@db/profiles';
 import { useFocusFirstNewRow, useGrowingLimit, useGrowingSearch } from '@app/routes/growingSearch';
+import type { GrownFrom } from '@app/routes/growingSearch';
 import { publicPageHead } from '@app/routes/publicPage';
 import { useSearchDraft } from '@app/routes/searchDraft';
 import { CatalogueResults } from '@app/widgets/catalogue-results/CatalogueResults';
@@ -73,14 +69,17 @@ const SEARCH_STEP = PROFILE_CATALOGUE_PAGE_SIZE;
 /** The rows' links, as the list renders them, in their order. */
 const ROW_LINK = 'a[href^="/profiles/"]';
 
-/** The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it. */
-function catalogueQueryArgs(args: ProfileDirectoryArgs, limit: number): ProfileDirectoryArgs {
-  return { ...args, limit: args.q ? limit : undefined };
+/**
+ * The query's arguments at one limit: a search asks for its best matches up to it, a browsed page ignores it.
+ * The plain first page also asks for the leaderboards and `groupLimit` Groups, so the page stays one query.
+ */
+function catalogueQueryArgs(args: ProfileDirectoryArgs, limit: number, groupLimit: number): ProfileDirectoryArgs {
+  return { ...args, limit: args.q ? limit : undefined, groupLimit: showsHighlights(args) ? groupLimit : undefined };
 }
 
-/** The live directory for a parsed address at one limit; the growing list asks for a longer one through it. */
-function useDirectoryRows(args: ProfileDirectoryArgs, limit: number) {
-  return useProfileDirectoryPage(catalogueQueryArgs(args, limit)).data;
+/** The live directory for a parsed address at one limit; the growing lists ask for longer ones through it. */
+function useDirectoryRows(args: ProfileDirectoryArgs, limit: number, groupLimit: number) {
+  return useProfileDirectoryPage(catalogueQueryArgs(args, limit, groupLimit)).data;
 }
 
 /** The search parameters a change writes: any change but a page turn starts again from the first page. */
@@ -96,6 +95,11 @@ function pageSearch(page: number) {
   });
 }
 
+/** The leaderboards and Groups a browsed first page carries, or null on a search or a later page. */
+function highlightsOf(page: ProfileDirectoryPageData) {
+  return 'mode' in page ? null : page.highlights;
+}
+
 /** Only the plain directory's first page shows the leaderboards and Groups; a search or a later page shows just the list. */
 function showsHighlights(deps: ProfileDirectoryArgs) {
   return !deps.q && !(deps.page && deps.page > 1);
@@ -107,15 +111,12 @@ export const Route = createFileRoute('/_app/profiles/')({
   validateSearch: parseProfileCatalogueSearch,
   loaderDeps: ({ search }) => directoryDeps(search),
   loader: async ({ deps }) => {
-    const [data, highlights] = await Promise.all([
-      loadProfileDirectoryPage(catalogueQueryArgs(deps, SEARCH_STEP)),
-      showsHighlights(deps) ? loadDirectoryHighlights(GROUP_STANDINGS_STEP) : null,
-    ]);
+    const data = await loadProfileDirectoryPage(catalogueQueryArgs(deps, SEARCH_STEP, GROUP_STANDINGS_STEP));
     /* A browsed page past the end is an address that does not exist, so it answers 404 and points at the last page. */
     if (!('mode' in data) && data.page > data.pageCount) {
       throw notFound({ data: { pageCount: data.pageCount } });
     }
-    return { data, highlights };
+    return data;
   },
   notFoundComponent: ProfilesPastTheEnd,
   head: ({ match }) => {
@@ -139,9 +140,10 @@ function ProfilesPage() {
   const search = Route.useSearch();
   const deps = Route.useLoaderDeps();
   const navigate = Route.useNavigate();
-  const { data: loaderData, highlights } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
   const growing = useGrowingLimit(deps, SEARCH_STEP);
-  const live = useDirectoryRows(deps, growing.limit);
+  const growingGroups = useGrowingLimit(deps, GROUP_STANDINGS_STEP);
+  const live = useDirectoryRows(deps, growing.limit, growingGroups.limit);
   const { data, loading, loaded, grown, loadMore } = useGrowingSearch({
     search: growing,
     initial: loaderData,
@@ -150,6 +152,13 @@ function ProfilesPage() {
   });
   const list = useRef<HTMLDivElement>(null);
   useFocusFirstNewRow(list, loaded, grown, ROW_LINK);
+  const groups = useGrowingSearch({
+    search: growingGroups,
+    initial: loaderData,
+    live,
+    rows: (page) => highlightsOf(page)?.groups.entries.length ?? 0,
+  });
+  const highlights = highlightsOf(groups.data);
 
   /* Every write re-parses, so a default never reaches the address. Replacing keeps a browse session to one history entry. */
   const changeSearch = (patch: Partial<Record<keyof ProfileCatalogueSearch, unknown>>) => {
@@ -207,7 +216,15 @@ function ProfilesPage() {
       ) : null}
       <PageLayout.Content>
         <Stack gap="md">
-          {highlights && showsHighlights(deps) ? <DirectoryHighlights initial={highlights} /> : null}
+          {highlights && showsHighlights(deps) ? (
+            <DirectoryHighlights
+              highlights={highlights}
+              groupsLoading={groups.loading}
+              groupsLoaded={groups.loaded}
+              groupsGrown={groups.grown}
+              onLoadMoreGroups={groups.loadMore}
+            />
+          ) : null}
           <DirectoryContent data={data} loading={loading} loaded={loaded} onLoadMore={loadMore} ref={list} />
         </Stack>
       </PageLayout.Content>
@@ -327,19 +344,22 @@ function leaderboardItems(entries: readonly LeaderboardEntry[], stat: (count: nu
  * The directory's first page opens with who does the most: two leaderboards, capped at five, and the Groups list, which grows with Load more.
  * A board with nobody on it is left out.
  */
-function DirectoryHighlights({ initial }: { initial: Highlights }) {
-  const growing = useGrowingLimit('groups', GROUP_STANDINGS_STEP);
-  const live = useDirectoryHighlights(growing.limit, GROUP_STANDINGS_STEP);
-  const shown = useGrowingSearch({
-    search: growing,
-    initial,
-    live,
-    rows: (answer) => answer.groups.entries.length,
-  });
-  const leaderboards = shown.data;
-  const groups = { ...shown, data: shown.data.groups };
+function DirectoryHighlights({
+  highlights: leaderboards,
+  groupsLoading,
+  groupsLoaded,
+  groupsGrown,
+  onLoadMoreGroups,
+}: {
+  highlights: Highlights;
+  groupsLoading: boolean;
+  groupsLoaded: boolean;
+  groupsGrown: GrownFrom;
+  onLoadMoreGroups: () => void;
+}) {
+  const groups = { data: leaderboards.groups, loading: groupsLoading, loadMore: onLoadMoreGroups };
   const list = useRef<HTMLDivElement>(null);
-  useFocusFirstNewRow(list, groups.loaded, groups.grown, 'li a[href^="/groups/"]');
+  useFocusFirstNewRow(list, groupsLoaded, groupsGrown, 'li a[href^="/groups/"]');
 
   const boards = [
     leaderboards.factionDesigners.length > 0 ? (

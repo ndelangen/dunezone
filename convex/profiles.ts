@@ -287,6 +287,53 @@ async function directoryEntries(ctx: QueryCtx, selected: { source_id: string }[]
   }));
 }
 
+const leaderboardEntryValidator = v.object({
+  rank: v.number(),
+  count: v.number(),
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+});
+
+const groupStandingMemberValidator = v.object({
+  slug: v.string(),
+  name: v.string(),
+  image: v.union(v.string(), v.null()),
+});
+
+/**
+ * What the plain directory's first page opens with: two leaderboards and the Groups list.
+ * The leaderboards are who made the most factions and who asked and answered the most rules questions, each at most five people and never anyone at zero.
+ * The Groups list orders live Groups by active members, then by what they maintain;
+ * Load more asks again with a larger `groupLimit`, and `hasMore` says whether that would show more.
+ */
+const directoryHighlightsValidator = v.object({
+  factionDesigners: v.array(leaderboardEntryValidator),
+  faqContributors: v.array(leaderboardEntryValidator),
+  groups: v.object({
+    entries: v.array(
+      v.object({
+        rank: v.number(),
+        slug: v.string(),
+        name: v.string(),
+        memberCount: v.number(),
+        factionCount: v.number(),
+        members: v.array(groupStandingMemberValidator),
+      })
+    ),
+    hasMore: v.boolean(),
+  }),
+});
+
+async function loadDirectoryHighlights(ctx: QueryCtx, groupLimit: number) {
+  const [factionDesigners, faqContributors, groups] = await Promise.all([
+    loadLeaderboard(ctx, 'factions'),
+    loadLeaderboard(ctx, 'faq'),
+    loadGroupStandings(ctx, groupLimit),
+  ]);
+  return { factionDesigners, faqContributors, groups };
+}
+
 /** A browsed page: aggregate counts, numbered pages, a chosen order. */
 const catalogueBrowseValidator = v.object({
   entries: v.array(profileDirectoryEntryValidator),
@@ -300,6 +347,8 @@ const catalogueBrowseValidator = v.object({
   page: v.number(),
   pageCount: v.number(),
   pageSize: v.number(),
+  /** The leaderboards and Groups list, on the first page when `groupLimit` asks for them, so the page stays one query. */
+  highlights: v.union(directoryHighlightsValidator, v.null()),
 });
 
 /** A searched directory: the best matches first, no count and no pages, and more by asking for a larger limit. */
@@ -316,7 +365,7 @@ const catalogueSearchValidator = v.object({
   directoryTotal: v.number(),
 });
 
-type CatalogueArgs = { q?: string; sort?: ProfileCatalogueSort; page?: number; limit?: number };
+type CatalogueArgs = { q?: string; sort?: ProfileCatalogueSort; page?: number; limit?: number; groupLimit?: number };
 
 async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs) {
   const page = Number.isSafeInteger(args.page) && args.page! > 1 ? args.page! : 1;
@@ -327,14 +376,19 @@ async function loadDirectoryPage(ctx: QueryCtx, args: CatalogueArgs) {
     page,
     pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
   });
+  const [entries, highlights] = await Promise.all([
+    directoryEntries(ctx, selection.entries),
+    page === 1 && args.groupLimit !== undefined ? loadDirectoryHighlights(ctx, args.groupLimit) : null,
+  ]);
   return {
-    entries: await directoryEntries(ctx, selection.entries),
+    entries,
     total: selection.total,
     directoryTotal: selection.total,
     complete: selection.exact,
     page,
     pageCount: Math.max(1, Math.ceil(selection.total / PROFILE_CATALOGUE_PAGE_SIZE)),
     pageSize: PROFILE_CATALOGUE_PAGE_SIZE,
+    highlights,
   };
 }
 
@@ -368,60 +422,13 @@ export const catalogue = publicQuery({
     page: v.optional(v.number()),
     /** How many of the best matches to return; Load more asks again with a larger one. */
     limit: v.optional(v.number()),
+    /** Asks the first browsed page for the leaderboards and this many Groups; Load more asks again with a larger one. */
+    groupLimit: v.optional(v.number()),
   },
   returns: v.union(catalogueBrowseValidator, catalogueSearchValidator),
   handler: async (ctx, args) => {
     const text = args.q?.slice(0, PROFILE_CATALOGUE_QUERY_LIMIT).trim() ?? '';
     return text ? await loadDirectorySearch(ctx, args, text) : await loadDirectoryPage(ctx, args);
-  },
-});
-
-const leaderboardEntryValidator = v.object({
-  rank: v.number(),
-  count: v.number(),
-  slug: v.string(),
-  name: v.string(),
-  image: v.union(v.string(), v.null()),
-});
-
-const groupStandingMemberValidator = v.object({
-  slug: v.string(),
-  name: v.string(),
-  image: v.union(v.string(), v.null()),
-});
-
-/**
- * What the plain directory's first page opens with, as one answer: two leaderboards and the Groups list.
- * The leaderboards are who made the most factions and who asked and answered the most rules questions, each at most five people and never anyone at zero.
- * The Groups list orders live Groups by active members, then by what they maintain;
- * Load more asks again with a larger `groupLimit`, and `hasMore` says whether that would show more.
- */
-export const directoryHighlights = publicQuery({
-  args: { groupLimit: v.optional(v.number()) },
-  returns: v.object({
-    factionDesigners: v.array(leaderboardEntryValidator),
-    faqContributors: v.array(leaderboardEntryValidator),
-    groups: v.object({
-      entries: v.array(
-        v.object({
-          rank: v.number(),
-          slug: v.string(),
-          name: v.string(),
-          memberCount: v.number(),
-          factionCount: v.number(),
-          members: v.array(groupStandingMemberValidator),
-        })
-      ),
-      hasMore: v.boolean(),
-    }),
-  }),
-  handler: async (ctx, args) => {
-    const [factionDesigners, faqContributors, groups] = await Promise.all([
-      loadLeaderboard(ctx, 'factions'),
-      loadLeaderboard(ctx, 'faq'),
-      loadGroupStandings(ctx, args.groupLimit),
-    ]);
-    return { factionDesigners, faqContributors, groups };
   },
 });
 
