@@ -872,6 +872,8 @@ export function GameTable({
             <div
               className="dune-play-shell"
               {...darkSchemeIslandAttributes}
+              /* Until the table has opened, its controls are out of reach: the waiting frame's own controls stay in the tab order and under the pointer. */
+              inert={arrival !== 'open'}
               data-board-gesture-active={overlaysInert}
               data-table-view={viewState.activeView}
               data-mentat-recall={Boolean(recall)}

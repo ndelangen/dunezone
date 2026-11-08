@@ -2,7 +2,7 @@ import { Anchor } from '@mantine/core';
 import { testingPreview } from '@sb/preview';
 import { useEffect, useState } from 'react';
 
-import { AppBackground } from '@app/shell/AppBackground';
+import { ShellBackground } from '@app/shell/ShellStoryPage.stories.fixture';
 
 import { TableWait } from './TableWait';
 
@@ -13,7 +13,7 @@ const meta = testingPreview.meta({
   decorators: [
     (Story) => (
       <>
-        <AppBackground motion />
+        <ShellBackground />
         <div style={{ height: '100vh' }}>
           <Story />
         </div>

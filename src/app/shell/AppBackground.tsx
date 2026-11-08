@@ -6,6 +6,8 @@ import planet from './planet.webp?url';
 const HOUR = 3_600_000;
 /* The hour-long orbit advances less than half a CSS pixel per tick on a 1440px-wide screen. */
 const TICK_MS = 250;
+/* After a voyage held them still, the orbits catch up with the clock over the planet's way back down. */
+const GLIDE_MS = 1600;
 
 /* Sample the former CSS ease-in-out curve, including each star's delay and alternating direction. */
 function twinkle(elapsed: number, duration: number, delay: number) {
@@ -53,22 +55,49 @@ export function AppBackground({ motion }: { motion: boolean }) {
     }
     let timer: number | undefined;
     let suspended: boolean | undefined;
+    /* Whether a voyage held the orbits still, and the hold's end, so they glide to the clock instead of jumping to it. */
+    let held = false;
+    let glide: number | undefined;
+    let lastPlanetAngle = 0;
+    let lastStarsAngle = 0;
+    const glideToClock = () => {
+      const layers = [planetLayer.current, starsLayer.current];
+      for (const layer of layers) {
+        layer?.style.setProperty('transition', `transform ${GLIDE_MS}ms ease-in-out`);
+      }
+      window.clearTimeout(glide);
+      glide = window.setTimeout(() => {
+        for (const layer of layers) {
+          layer?.style.removeProperty('transition');
+        }
+      }, GLIDE_MS);
+    };
     const synchronize = (initial = false) => {
       /* On the way to a table the planet is mid-flight on the compositor: turning it or the stars would repaint those huge layers mid-animation. */
-      if (
-        !initial &&
-        (suspended || document.documentElement.dataset.voyage || document.querySelector('[data-voyage]'))
-      ) {
+      if (!initial && (document.documentElement.dataset.voyage || document.querySelector('[data-voyage]'))) {
+        held = true;
+        return;
+      }
+      if (!initial && suspended) {
         return;
       }
       const now = new Date();
       const localTime =
         now.getHours() * HOUR + now.getMinutes() * 60_000 + now.getSeconds() * 1000 + now.getMilliseconds();
+      const planetAngle = ((localTime % HOUR) / HOUR) * 360;
+      const starsAngle = ((localTime % (2 * HOUR)) / (2 * HOUR)) * -360;
+      /* A glide across the top of the hour would spin the long way round, so the orbits then take their place at once. */
+      if (held && planetAngle >= lastPlanetAngle && starsAngle <= lastStarsAngle) {
+        glideToClock();
+      }
+      held = false;
+      lastPlanetAngle = planetAngle;
+      lastStarsAngle = starsAngle;
       if (planetLayer.current) {
-        planetLayer.current.style.transform = `rotate(${((localTime % HOUR) / HOUR) * 360}deg)`;
+        planetLayer.current.style.transform = `rotate(${planetAngle}deg)`;
       }
       if (starsLayer.current) {
-        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${((localTime % (2 * HOUR)) / (2 * HOUR)) * -360}deg)`;
+        starsLayer.current.style.transform = `translate(-50%, -50%) rotate(${starsAngle}deg)`;
       }
       const elapsed = performance.now();
       for (const [id, element] of starLayers.current) {
@@ -126,6 +155,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
     document.addEventListener('visibilitychange', refresh);
     return () => {
       window.clearInterval(timer);
+      window.clearTimeout(glide);
       observer.disconnect();
       document.removeEventListener('visibilitychange', refresh);
       element.removeAttribute('data-suspended');

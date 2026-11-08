@@ -29,7 +29,7 @@ import type { Dispatch, ReactNode } from 'react';
 import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
 import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
-import { beginDeparture, endDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
+import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './CreateGamePass.module.css';
 import { RulesetManifest } from './RulesetManifest';
@@ -166,7 +166,7 @@ export function CreateGamePass({
   onRecheck?: (() => void) | undefined;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
-  useEffect(() => (departing ? beginDeparture() : endDeparture()), [departing]);
+  useEffect(() => (departing ? beginDeparture() : cancelDeparture()), [departing]);
   useEffect(() => leaveDeparture, []);
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({

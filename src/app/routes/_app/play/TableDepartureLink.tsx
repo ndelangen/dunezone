@@ -4,7 +4,7 @@ import type { MouseEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
-import { beginDeparture, endDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
+import { beginDeparture, cancelDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import { loadHostedTable } from './hostedTableChunk';
 
@@ -30,7 +30,7 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
         leaveDeparture();
       } else {
         window.clearTimeout(opening.current);
-        endDeparture();
+        cancelDeparture();
       }
     },
     []

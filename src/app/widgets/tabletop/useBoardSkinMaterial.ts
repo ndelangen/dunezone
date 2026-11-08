@@ -189,8 +189,12 @@ export function useBoardSkinPaint({
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          /* The board keeps its current look, which is then the look it is painted in; say why the new one never came. */
+          /* The board falls back to the plain look over the current artwork, which is then the look it is painted in; say why the new one never came. */
           console.error('The board skin could not be prepared', error);
+          setShown({
+            material: createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked: null, planet }),
+            lease: null,
+          });
           setPreparedOver({ map });
         }
       }

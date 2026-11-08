@@ -97,22 +97,25 @@ export const OpensThroughAnIris = meta.story({
   globals: { motion: 'on' },
   beforeEach: install(() => productTransport()),
   play: async ({ canvasElement }) => {
-    const { shell, document } = await tablePage(canvasElement);
-    /* The runner's headless renderer may never report; the stage then opens on the fallback clock. */
-    await waitFor(() => expect(shell.parentElement).toHaveAttribute('data-scene-ready', 'true'), { timeout: 5000 });
-    /* The iris starts at the page's next idle moment after the scene is ready; the stage's arrival mark settles on open. */
-    await waitFor(() => expect(shell.parentElement?.getAttribute('data-arrival')).toMatch(/^(opening|open)$/), {
-      timeout: 5000,
+    const document = canvasElement.ownerDocument;
+    /* The runner's headless renderer may never report; the stage then opens on the fallback clock, at the page's next idle moment. */
+    await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'opening'), {
+      timeout: 30_000,
+      interval: 20,
     });
-    /* The waiting frame fades as the table opens over it, and goes once it is open. */
-    await waitFor(() => expect(within(document.body).queryByText('Opening the table...')).toBeNull(), {
-      timeout: 5000,
-    });
+    /* While it opens, the shell widens a radial mask out of the planet. */
+    const opening = getComputedStyle(document.querySelector('.dune-play-shell')!);
+    await expect(opening.animationName).toBe('dune-play-enter');
+    await expect(opening.maskImage || opening.getPropertyValue('-webkit-mask-image')).toContain('radial-gradient');
+    /* Once open, the mask is gone and so is the waiting frame. */
+    const { shell } = await tablePage(canvasElement);
+    await expect(getComputedStyle(shell).maskImage || 'none').toBe('none');
+    await expect(within(document.body).queryByText('Opening the table...')).toBeNull();
   },
 });
 
 /*
- * The motion verdict keeps the shell open and still, before and after the renderer is ready.
+ * The motion verdict keeps the shell still: no iris, and once the renderer is ready the table is there at once.
  * It also stills the shell's transitions and smooth scrolling, whatever the OS hint says.
  */
 export const OpensStill = meta.story({

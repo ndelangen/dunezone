@@ -128,7 +128,6 @@
 html[data-motion="reduce"] .dune-play-stage .dune-play-shell,
 html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   animation: none;
-  clip-path: none;
   mask-image: none;
 }
 
@@ -136,7 +135,6 @@ html[data-motion="reduce"] .dune-play-stage .dune-play-shell > * {
   html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell,
   html:not([data-motion="ok"]) .dune-play-stage .dune-play-shell > * {
     animation: none;
-    clip-path: none;
     mask-image: none;
   }
 }

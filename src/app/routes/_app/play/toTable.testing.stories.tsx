@@ -48,6 +48,15 @@ const meta = testingPreview.meta({
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/* The journey ends once the table has opened out of the planet and its controls are in reach. */
+async function seated(canvasElement: HTMLElement) {
+  const document = canvasElement.ownerDocument;
+  await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'open'), {
+    timeout: 60_000,
+  });
+  await expect(within(document.body).getByRole('group', { name: 'Table view' })).toBeVisible();
+}
+
 /* The page's own address, so the play function can find the game the page opened. */
 let history = createMemoryHistory({ initialEntries: ['/play/create'] });
 
@@ -75,9 +84,7 @@ export const CreateToSeating = meta.story({
     /* A real table takes a few seconds to prepare. */
     await pause(3000);
     await provision();
-    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"]')).not.toBeNull(), {
-      timeout: 60_000,
-    });
+    await seated(canvasElement);
   },
 });
 
@@ -98,8 +105,6 @@ export const LobbyToSeating = meta.story({
     open.focus();
     await pause(1500);
     await userEvent.click(open);
-    await waitFor(() => expect(canvasElement.ownerDocument.querySelector('[data-scene-ready="true"]')).not.toBeNull(), {
-      timeout: 60_000,
-    });
+    await seated(canvasElement);
   },
 });

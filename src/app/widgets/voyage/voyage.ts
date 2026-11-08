@@ -25,12 +25,18 @@ export function leaveDeparture() {
   release = window.setTimeout(endDeparture, LANDING_GRACE_MS);
 }
 
-/** Clears the departure mark: a table's frame has taken over, or the departure was called off. */
+/** Clears the departure mark: a table's frame has taken over. */
 export function endDeparture() {
   window.clearTimeout(release);
   if (document.documentElement.dataset.voyage === 'departing') {
     delete document.documentElement.dataset.voyage;
   }
+}
+
+/** Calls the departure off: the mark goes, and so does the rise a table would otherwise wait out before building. */
+export function cancelDeparture() {
+  riseEndsAt = Number.NEGATIVE_INFINITY;
+  endDeparture();
 }
 
 /*
