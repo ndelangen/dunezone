@@ -44,38 +44,6 @@ const clampStart = (index: number) => {
   return steps.includes(index) ? index : (steps.find((candidate) => candidate >= index) ?? steps.at(-1)!);
 };
 
-/* The fixture faces a peek can tell apart: the story Traitor fronts, each a different leader. */
-const VARIED_FRONTS = [
-  ...[0, 1, 2, 3, 4].map((index) => `house-atreides-traitor-${index}`),
-  ...[0, 1, 2, 3].map((index) => `house-harkonnen-traitor-${index}`),
-];
-
-/*
- * The recording's Treachery deck is all Snooper cards, so a peek through it shows one face over and over.
- * The sandbox gives its hidden Treachery cards story faces that differ, so rearranging and pulling a card out can be seen.
- */
-function variedTreachery(stored: StoredSnapshot): StoredSnapshot {
-  let next = 0;
-  const vary = (item: StoredSnapshot['table']['pieces'][number]['items'][number]) => {
-    const front = item.artwork?.front;
-    if (!front?.endsWith('/dreamrules/snooper.jpg') || item.faceUp) {
-      return item;
-    }
-    const face = VARIED_FRONTS[next++ % VARIED_FRONTS.length]!;
-    return {
-      ...item,
-      artwork: { ...item.artwork!, front: front.replace('dreamrules/snooper.jpg', `product/${face}.jpg`), name: face },
-    };
-  };
-  return {
-    ...stored,
-    table: {
-      ...stored.table,
-      pieces: stored.table.pieces.map((piece) => ({ ...piece, items: piece.items.map(vary) })),
-    },
-  };
-}
-
 /** The live table of a sandbox story, started from a recorded journey step. */
 export class SandboxTable extends LocalTable {
   /** The journey step the table started from. */
@@ -85,7 +53,7 @@ export class SandboxTable extends LocalTable {
   constructor({ start, seat, prepare }: SandboxStart) {
     const index = clampStart(start);
     const step = journeySteps()[index]!;
-    const recorded = variedTreachery(storedSnapshotSchema.parse(step.stored));
+    const recorded = storedSnapshotSchema.parse(step.stored);
     /* Every viewer the recording connected, each with a connection of its own so carries keep their owners apart. */
     const last = journeySteps().at(-1)!.views;
     const viewers = Object.fromEntries(

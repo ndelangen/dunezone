@@ -18,6 +18,7 @@ import type { StorybookDatabase } from '@db/storybook';
 import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
 
 import { draftingSnapshot, factions, storyPlayer } from './drafting.stories.fixture';
+import dreamrulesDecks from '@shared/play/fixtures/dreamrulesDecks.json';
 import ruleset from './product.stories.fixture/ruleset.json';
 import { storyTransport } from './storyTransport';
 
@@ -28,7 +29,78 @@ export const SIX = ['central', 'krell', 'jaded-af', 'eichmal', 'ridwan', 'tautri
 export const GAME_KEY = 'game:real';
 const RULESET_KEY = 'ruleset:classicrules';
 const imageHref = (path: string) => new URL(path, location.origin).href;
-export const cardBack = () => imageHref('/play-fixtures/dreamrules/cardback.jpg');
+const dreamrulesFace = (file: string) => imageHref(`/play-fixtures/dreamrules/${file}`);
+/** The published Dreamrules Treachery back. */
+export const cardBack = () => dreamrulesFace(dreamrulesDecks.treachery.back.file);
+/** The published Dreamrules Spice back. */
+export const spiceBack = () => dreamrulesFace(dreamrulesDecks.spice.back.file);
+
+type DreamrulesDeck = 'treachery' | 'spice';
+const DECK_PIECES = {
+  treachery: { id: 'treachery-deck', name: 'Treachery', color: '#ad8a45', back: cardBack },
+  spice: { id: 'spice-deck', name: 'Spice', color: '#c47a2c', back: spiceBack },
+} satisfies Record<DreamrulesDeck, { id: string; name: string; color: string; back: () => string }>;
+
+/** A Dreamrules card face up, with its published front, by its printed name. */
+export function dreamrulesCard(deck: DreamrulesDeck, name: string, id: string) {
+  const card = dreamrulesDecks[deck].cards.find((entry) => entry.name === name);
+  if (!card) {
+    throw new Error(`The Dreamrules ${deck} deck has no ${name}.`);
+  }
+  const { back, name: backName } = DECK_PIECES[deck];
+  return item(id, card.name, dreamrulesFace(card.file), back(), `card-${deck}`, true, backName);
+}
+
+/* How many cards the published Dreamrules deck holds, counting every copy. */
+const deckSize = (deck: DreamrulesDeck) => dreamrulesDecks[deck].cards.reduce((sum, card) => sum + card.count, 0);
+
+/**
+ * A Dreamrules deck lying face down in its card bay, as setup lays it: Treachery in the left bay, Spice in the right.
+ * Every card reaches a viewer as its back alone, so taking cards off it changes only its height.
+ * Once cards have left it, the stack takes the name its back gives it, as a split names it.
+ * A full deck keeps the published deck's own name.
+ */
+export function dreamrulesDeck(
+  deck: DreamrulesDeck,
+  taken = 0,
+  factionNames: Parameters<typeof labelForCount>[2] = {}
+) {
+  const { id, name, color, back } = DECK_PIECES[deck];
+  const count = deckSize(deck) - taken;
+  const stack = {
+    /* A catalogue deck, keyed by its asset as the Worker spawns it. */
+    ...piece(id, dreamrulesDecks[deck].name, 'shared', color, 'card', `deck:${id}`),
+    items: Array.from({ length: count }, (_, index) => ({
+      id: `${deck}-${index}`,
+      faceUp: false,
+      artwork: { back: back(), backName: name },
+    })),
+  };
+  return place(
+    taken ? { ...stack, label: labelForCount(stack, count, factionNames) } : stack,
+    cardBaySlotPositions(deck === 'treachery' ? 'left' : 'right')[0]!
+  );
+}
+
+/**
+ * A discard pile beside its deck: the given Dreamrules cards face up, the last on top.
+ * The Treachery discard lies beside its deck in the left bay, the Spice discard below its deck in the right bay.
+ */
+export function dreamrulesDiscard(
+  deck: DreamrulesDeck,
+  id: string,
+  names: string[],
+  factionNames: Parameters<typeof labelForCount>[2] = {}
+) {
+  const stack = {
+    ...piece(id, '', 'shared', DECK_PIECES[deck].color, 'card', `deck:${DECK_PIECES[deck].id}`),
+    items: names.map((name, index) => dreamrulesCard(deck, name, `${id}-${index}`)),
+  };
+  return place(
+    { ...stack, label: labelForCount(stack, names.length, factionNames, true) },
+    cardBaySlotPositions(deck === 'treachery' ? 'left' : 'right')[1]!
+  );
+}
 
 /* A troop face as the room shows it to every seat: its battle values stay out, as `supplyInventory` in the game Worker leaves them. */
 function troopArtwork<Face extends { capable?: boolean; combat?: unknown }>(face: Face) {
@@ -225,11 +297,16 @@ export function setupSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   const supply: SupplyDependencies = { id: () => `supply-${next++}`, shuffle: (items) => items };
   const angles = tableSeatAngles(6);
   const supplies = factions.map((faction, index) => factionSupply(capture(faction), angles[index]!, supply));
-  snapshot.table.pieces = supplies.flatMap(({ token, reserves, traitors }) => [
-    ...token,
-    ...reserves,
-    ...traitors.map((deck) => projected(deck, supply)),
-  ]);
+  /* Setup supplies the ruleset's decks with the factions: the Treachery deck in the left card bay, the Spice deck in the right. */
+  snapshot.table.pieces = [
+    ...supplies.flatMap(({ token, reserves, traitors }) => [
+      ...token,
+      ...reserves,
+      ...traitors.map((deck) => projected(deck, supply)),
+    ]),
+    dreamrulesDeck('treachery'),
+    dreamrulesDeck('spice'),
+  ];
   const own = snapshot.roster!.seats.findIndex((seat) => seat.id === viewerSeat);
   if (own >= 0) {
     snapshot.bank = { factionId: factions[own]!.slug, balance: factions[own]!.data.rules.spiceCount };
@@ -312,7 +389,8 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
       }))
     );
   }
-  const decks = snapshot.table.pieces.filter((entry) => entry.kind === 'card');
+  const isTraitorDeck = (entry: TablePiece) => entry.stackKey === 'cards:traitor';
+  const decks = snapshot.table.pieces.filter(isTraitorDeck);
   const items = decks.flatMap((entry) => entry.items).slice(keptCounts.reduce((sum, count) => sum + count, 0));
   /* The gather combines the six Traitor decks, which changes their cards, so the pile takes the name its back gives it. */
   const remaining = {
@@ -323,7 +401,7 @@ export function preparedSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
     items,
   };
   remaining.position = restingPositionAt(SHARED_ITEM_PLACEMENT_ANCHORS[0]!.position, remaining);
-  snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => entry.kind !== 'card'), remaining];
+  snapshot.table.pieces = [...snapshot.table.pieces.filter((entry) => !isTraitorDeck(entry)), remaining];
   placeStartingTroops(snapshot);
   snapshot.setup!.index = 1;
   snapshot.setup!.mapRevealed = true;
@@ -348,55 +426,19 @@ export function playingSnapshot(viewerSeat = 'seat-2'): GameSnapshot {
   delete snapshot.swapping;
   snapshot.stage = 'play';
   snapshot.phase = 0;
-  /* The gathered Traitor deck stays on the table after setup; every other card is arranged below. */
-  snapshot.table.pieces = snapshot.table.pieces.filter(
-    (entry) => entry.kind !== 'card' || entry.id === 'remaining-traitors'
-  );
-  /* The table is arranged for a mid-game page scenario, not a recording of a production game. */
-  const cards = [
-    'supplies',
-    'shield',
-    'shield',
-    'shield',
-    'shield',
-    'shield',
-    'snooper',
-    'snooper',
-    'snooper',
-    'snooper',
-  ];
-  const deck = {
-    /* A catalogue deck, keyed by its asset as the Worker spawns it. */
-    ...piece('treachery-deck', 'Treachery deck', 'shared', '#ad8a45', 'card', 'deck:treachery-deck'),
-    items: cards.map((_name, index) => ({
-      id: `treachery-${index}`,
-      faceUp: false,
-      artwork: { back: cardBack(), backName: 'Treachery' },
-    })),
-  };
+  /*
+   * A Dreamrules table a few turns in, laid out as a game lays it: the Treachery deck in the left card bay with a used
+   * Snooper discarded beside it, and the Spice deck in the right card bay with the last Spice Blow, Broken Land, discarded below it.
+   * Setup dealt seven Treachery cards (two to Harkonnen), and the gathered Traitor deck stays where setup left it.
+   */
   const factionNames = rosterFactionNames(snapshot.roster);
-  /* A Snooper was drawn off the deck and turned face up. The draw changed both stacks' cards, so each takes the name its back gives it, as a split names them. */
+  const decks = new Set(Object.values(DECK_PIECES).map(({ id }) => id));
+  snapshot.table.pieces = snapshot.table.pieces.filter((entry) => !decks.has(entry.id));
   snapshot.table.pieces.push(
-    place({ ...deck, label: labelForCount(deck, deck.items.length, factionNames) }, cardBaySlotPositions('right')[2]!),
-    place(
-      {
-        ...deck,
-        id: 'treachery-card-loose',
-        label: labelForCount(deck, 1, factionNames, true),
-        items: [
-          item(
-            'treachery-loose',
-            'Snooper',
-            imageHref('/play-fixtures/dreamrules/snooper.jpg'),
-            cardBack(),
-            'card-treachery',
-            true,
-            'Treachery'
-          ),
-        ],
-      },
-      [4, 0, 1]
-    )
+    dreamrulesDeck('treachery', 8, factionNames),
+    dreamrulesDiscard('treachery', 'treachery-card-loose', ['Snooper'], factionNames),
+    dreamrulesDeck('spice', 1, factionNames),
+    dreamrulesDiscard('spice', 'spice-discard', ['Broken Land'], factionNames)
   );
   snapshot.versions = Object.fromEntries(snapshot.table.pieces.map((entry) => [entry.id, snapshot.revision]));
   return snapshot;
