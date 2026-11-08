@@ -10,7 +10,7 @@ import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
 import { DeckFooter } from './ColumnsTracker';
 import { awaitingWinner, copyOf, currentTurn, sightingCard, unplaced } from './tracker';
 import type { Sighting } from './tracker';
-import { AddCard, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
+import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
 
 /* One size for every card and token in the hands, so the rows line up on a single grid. */
@@ -88,7 +88,7 @@ function NextUp({ state, onAction }: Pick<TrackerViewProps, 'state' | 'onAction'
         emphasis="quiet"
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
       />
-      <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={300}>
+      <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
         <Popover.Target>
           <span>
             <IconAction

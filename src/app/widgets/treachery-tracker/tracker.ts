@@ -286,8 +286,7 @@ export type CardGroup =
 export const GROUP_ROWS: readonly (readonly CardGroup[])[] = [
   ['weapon-poison', 'weapon-projectile'],
   ['defense-poison', 'defense-projectile'],
-  ['special'],
-  ['worthless'],
+  ['special', 'worthless'],
 ];
 
 export const CARD_GROUPS: readonly CardGroup[] = GROUP_ROWS.flat();

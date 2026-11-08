@@ -61,6 +61,10 @@ export function FactionPicker({
   );
 }
 
+/* The chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling. */
+const CHOOSER_GLYPH = 28;
+export const CHOOSER_WIDTH = 400;
+
 /** The cards one may still pick for a hand: the cards seen but not placed, newest first, then the rest of the deck by kind. */
 export function CardChooser({
   state,
@@ -107,7 +111,7 @@ export function CardChooser({
                   aria-label={copy.def.name}
                   onClick={() => onPick(copy.id)}
                 >
-                  <CardGlyph card={copy} size={32} />
+                  <CardGlyph card={copy} size={CHOOSER_GLYPH} />
                 </UnstyledButton>
               </CardPreview>
             ))}
@@ -125,7 +129,7 @@ export function CardChooser({
           return null;
         }
         return (
-          <div key={row.join()} className={styles.groupRow} data-pair={row.length > 1 ? 'true' : 'false'}>
+          <div key={row.join()} className={styles.groupRow} data-row={row[0]}>
             {groups.map(({ group, cards }) => (
               <div key={group}>
                 <Text size="xs" className={styles.caption}>
@@ -139,7 +143,7 @@ export function CardChooser({
                         aria-label={copy.def.name}
                         onClick={() => onPick(copy.id)}
                       >
-                        <CardGlyph card={copy} size={32} />
+                        <CardGlyph card={copy} size={CHOOSER_GLYPH} />
                         {left > 1 && <span className={styles.badge}>{left}</span>}
                       </UnstyledButton>
                     </CardPreview>
@@ -166,7 +170,7 @@ export function AddCard({
 }>) {
   const [open, setOpen] = useState(false);
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={300}>
+    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
       <Popover.Target>
         <AddAction label={`Add a card to ${faction.name}`} onClick={() => setOpen((was) => !was)} />
       </Popover.Target>
@@ -214,7 +218,7 @@ export function SlotChip({
       position="bottom"
       withinPortal
       shadow="md"
-      width={mode === 'identify' || mode === 'discard' ? 300 : 'target'}
+      width={mode === 'identify' || mode === 'discard' ? CHOOSER_WIDTH : 'target'}
     >
       <Popover.Target>
         <span>

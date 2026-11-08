@@ -171,10 +171,11 @@
 }
 
 .chooser {
-  max-height: 340px;
-  overflow-y: auto;
-  /* Room for a glyph's shadow and its copy count, which the scroll box would otherwise cut off. */
   padding: 4px;
+}
+
+.chooser .glyphRow {
+  gap: 6px;
 }
 
 .chooserUnknown {
@@ -742,10 +743,15 @@
 }
 
 /* Weapons and defenses each sit as a poison | projectile pair. */
-.groupRow[data-pair="true"] {
+.groupRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+/* Specials outnumber the worthless cards beside them, so they take the wider column. */
+.groupRow[data-row="special"] {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
 .discardButton {
