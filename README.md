@@ -1,5 +1,7 @@
 # Dune Zone
 
+For suspected vulnerabilities, follow the [security policy](./SECURITY.md) to report them privately.
+
 ## Working here
 
 - [`AGENTS.md`](./AGENTS.md): repo conventions, and the canonical component taxonomy.
