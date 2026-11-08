@@ -5,7 +5,7 @@
  */
 
 export const STEAM_OPENID_ENDPOINT = 'https://steamcommunity.com/openid/login';
-export const STEAM_RETURN_PATH = '/auth/steam';
+const STEAM_RETURN_PATH = '/auth/steam';
 const OPENID_NS = 'http://specs.openid.net/auth/2.0';
 const IDENTIFIER_SELECT = 'http://specs.openid.net/auth/2.0/identifier_select';
 const CLAIMED_ID = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d{17})$/;
