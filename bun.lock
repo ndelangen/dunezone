@@ -26,8 +26,8 @@
         "@tanstack/react-router": "1.170.46",
         "@tanstack/react-start": "1.169.4",
         "clsx": "^2.1.1",
-        "convex": "1.46.0",
-        "convex-helpers": "0.1.127",
+        "convex": "1.49.0",
+        "convex-helpers": "0.1.134",
         "crypto-js": "^4.2.0",
         "fuse.js": "^7.5.0",
         "highlight.js": "11.12.0",
@@ -158,7 +158,7 @@
   },
   "patchedDependencies": {
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
-    "convex@1.46.0": "patches/convex@1.46.0.patch",
+    "convex@1.49.0": "patches/convex@1.49.0.patch",
     "three@0.186.1": "patches/three@0.186.1.patch",
     "harfbuzzjs@0.10.0": "patches/harfbuzzjs@0.10.0.patch",
     "miniflare@5.20261023.3-beta": "patches/miniflare@5.20261023.3-beta.patch",
@@ -1299,9 +1299,9 @@
 
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
-    "convex": ["convex@1.46.0", "", { "dependencies": { "esbuild": "0.27.0", "prettier": "^3.0.0", "ws": "8.21.0" }, "peerDependencies": { "@auth0/auth0-react": "^2.0.1", "@clerk/clerk-react": "^4.12.8 || ^5.0.0", "@clerk/react": "^6.4.3", "react": "^18.0.0 || ^19.0.0-0 || ^19.0.0" }, "optionalPeers": ["@auth0/auth0-react", "@clerk/clerk-react", "@clerk/react", "react"], "bin": { "convex": "bin/main.js" } }, "sha512-dhBwDQTZDOhi5SUGAX17EWNehCdNq6/UFrSL0eLZuGfMkdsQbCVWVRZCzbZ5CF+/pgvoGxtApbEoTSipqL4JTw=="],
+    "convex": ["convex@1.49.0", "", { "dependencies": { "esbuild": "0.27.0", "prettier": "^3.0.0", "ws": "8.21.0" }, "peerDependencies": { "@auth0/auth0-react": "^2.0.1", "@clerk/clerk-react": "^4.12.8 || ^5.0.0", "@clerk/react": "^6.4.3", "react": "^18.0.0 || ^19.0.0-0 || ^19.0.0" }, "optionalPeers": ["@auth0/auth0-react", "@clerk/clerk-react", "@clerk/react", "react"], "bin": { "convex": "bin/main.js" } }, "sha512-mkr9oXF8/arkCI1kvYyGytWd62oVXNABh4uwLeI4UQVN6Zuudm4DlmSzNUJKF63djk6f/uUXC+6ffuVSkPLvzA=="],
 
-    "convex-helpers": ["convex-helpers@0.1.127", "", { "peerDependencies": { "@standard-schema/spec": "^1.0.0", "convex": "^1.46.0", "hono": "^4.0.5", "react": "^17.0.2 || ^18.0.0 || ^19.0.0", "typescript": "^5.5 || ^6.0.0 || ^7.0.0", "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["@standard-schema/spec", "hono", "react", "typescript", "zod"], "bin": { "convex-helpers": "bin.cjs" } }, "sha512-WG8QVcpFeyRhACjif0kvqXRp8Xhp9N+NL1PLffx9pkSUJfXE3MEve13npznjNkNnJE9GhqwPnBCSs2fhO9/3Sw=="],
+    "convex-helpers": ["convex-helpers@0.1.134", "", { "peerDependencies": { "@standard-schema/spec": "^1.0.0", "convex": "^1.46.0", "hono": "^4.0.5", "prettier": "^3.0.0", "react": "^17.0.2 || ^18.0.0 || ^19.0.0", "typescript": "^5.5 || ^6.0.0 || ^7.0.0", "zod": "^3.25.0 || ^4.0.0" }, "optionalPeers": ["@standard-schema/spec", "hono", "prettier", "react", "typescript", "zod"], "bin": { "convex-helpers": "dist/bin.cjs" } }, "sha512-GPVj5HmRMOyd2PF/OxUYQlNS/HdmOo3pZ4iTyPXyEOxuXwvNeQcx7OUlvNFTTYnHhcuonsMx8UuqjVo5gCqpZA=="],
 
     "convex-test": ["convex-test@0.0.60", "", { "peerDependencies": { "convex": "^1.43.0" } }, "sha512-qCAFx+CO6bmpXNc9s1jZvw8NJPS4yM074ib87PUY675FsiaRRW4ALotEB+RbVCYDRMYxh623KMnYZBlrMJIv1Q=="],
 
