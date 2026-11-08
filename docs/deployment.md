@@ -445,8 +445,11 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-13. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
-    smoke its manager, page index, preview entry, CSP, and shared public assets.
+13. A `storybook_build` job, running beside the deploy job after the same gate, builds and verifies the
+    secret-free Storybook artifact. Once the deploy job has finished, steps 14 to 16 included, `storybook_deploy` deploys that
+    artifact to `storybook.dune.zone` and smokes its manager, page index, preview entry, CSP, and shared
+    public assets. It waits because Storybook proxies `/m`, `/image`, `/web` and `/published` to
+    `dune.zone`, which must already serve this release's media. A failure in either job fails the run.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
@@ -508,7 +511,10 @@ and deploys the older commit even over a later release. "Re-run all jobs" asks t
 stops the run once production has a later commit.
 
 To finish a deploy that failed partway, for example a smoke that failed after both Workers went out,
-rerun that run. "Re-run failed jobs" picks up at the failed job. "Re-run all jobs" deploys the commit
+rerun that run. "Re-run failed jobs" picks up at the failed job: after a failed Storybook deploy it
+reruns just `storybook_deploy`, and after a failed Storybook build it reruns the build and then the
+deploy. The built Storybook is kept for seven days, so a later deploy-only retry needs "Re-run all
+jobs" or a new run. "Re-run all jobs" deploys the commit
 again from the start, because the gate stops a commit production already has only on a run's first
 attempt. A dispatched run, or a second push event for the same merge, is a first attempt: while both
 Workers report that commit, it stops at the gate only if an earlier run for the commit finished
