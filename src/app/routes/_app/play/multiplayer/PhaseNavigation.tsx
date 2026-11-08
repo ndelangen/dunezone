@@ -6,6 +6,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import { useId } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import styles from './PhaseNavigation.module.css';
 import { publicControlsOf } from './publicControls';
 
 /* What the phase asks of the table before it moves on: the public readiness and seats, through the shared gate. */
@@ -91,9 +92,17 @@ export function ReadyToggle({
           variant="filled"
           aria-pressed={ready}
           aria-describedby={countId}
-          leftSection={ready ? <Check size={16} aria-hidden /> : undefined}
+          leftSection={ready ? <Check className={styles.check} size={16} aria-hidden /> : undefined}
           rightSection={
-            <Text span size="xs" fw={700} style={{ opacity: 0.8 }} aria-hidden>
+            <Text
+              key={`${count}/${of}`}
+              span
+              size="xs"
+              fw={700}
+              className={styles.count}
+              style={{ opacity: 0.8 }}
+              aria-hidden
+            >
               {count}/{of}
             </Text>
           }

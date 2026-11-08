@@ -15,7 +15,7 @@ import { DarkSchemeIsland } from '@ui/surface/DarkSchemeIsland';
 import clsx from 'clsx';
 import { Check } from 'lucide-react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
-import { useEffect, useId, useReducer, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useId, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import type { Camera } from 'three';
 import { Vector3 } from 'three';
 
@@ -567,8 +567,37 @@ function SideContents({
     </Button>
   );
 }
+/*
+ * The sides claimed while the panel was up, until their token has dropped in: a side whose claim this page saw arrive,
+ * not one already taken when the panel opened, and only for the drop itself, so later changes inside it do not replay it.
+ */
+function useClaimDrops(battle: PublicBattle) {
+  const motion = useMotionAllowed();
+  const claimed = battle.sides.map(Boolean);
+  const [seen, setSeen] = useState({ claimed, motion, dropping: [] as number[] });
+  /* With motion off no drop plays, so nothing would clear its mark: a claim then is not kept to drop later. */
+  const arrived = motion ? claimed.flatMap((now, index) => (now && !seen.claimed[index] ? [index] : [])) : [];
+  if (claimed.some((now, index) => now !== seen.claimed[index]) || motion !== seen.motion) {
+    setSeen({
+      claimed,
+      motion,
+      dropping: motion ? [...seen.dropping.filter((index) => claimed[index]), ...arrived] : [],
+    });
+  }
+  /* A drop that lands clears its side's mark; one cut short by motion turning off, or by the claim going, is cleared above. */
+  const settled = (index: number, animation: string) => {
+    if (animation.includes('claim-drop')) {
+      setSeen((before) => ({ ...before, dropping: before.dropping.filter((other) => other !== index) }));
+    }
+  };
+  return {
+    dropping: (index: number) => motion && (seen.dropping.includes(index) || arrived.includes(index)),
+    settled,
+  };
+}
 function BattleSides(props: ActiveProps) {
   const { battle, table } = props;
+  const claims = useClaimDrops(battle);
   const active = new Set(
     table.snapshot.table.pieces.filter((piece) => piece.battleOverlay === battle.id).map((piece) => piece.id)
   );
@@ -577,7 +606,12 @@ function BattleSides(props: ActiveProps) {
       {([0, 1] as const).map((index) => {
         const side = battle.sides[index];
         return (
-          <div className={styles.side} key={index}>
+          <div
+            className={styles.side}
+            key={index}
+            data-claimed-now={claims.dropping(index) || undefined}
+            onAnimationEnd={(event) => claims.settled(index, event.animationName)}
+          >
             <SideContents {...props} index={index} active={active} />
             {side?.choice && (
               <Text className={styles.choice} size="xs">
@@ -593,6 +627,40 @@ function BattleSides(props: ActiveProps) {
     </Group>
   );
 }
+/*
+ * The panel's pointer grows from the panel down to the marker once the panel has sprung up.
+ * The callout mounts with its battle, so the reach starts with it; it grows again when motion is turned back on, as the panel's
+ * own spring does, and stands at full reach as soon as motion is off.
+ */
+function usePointerReach() {
+  const motion = useMotionAllowed();
+  const [run, setRun] = useState({ motion, count: motion ? 1 : 0 });
+  const [reach, setReach] = useState(motion ? 0 : 1);
+  if (run.motion !== motion) {
+    setRun({ motion, count: motion ? run.count + 1 : run.count });
+    /* Motion turned back on grows the pointer again from nothing, rather than showing it whole until the first frame. */
+    if (motion) {
+      setReach(0);
+    }
+  }
+  useEffect(() => {
+    if (!run.motion) {
+      return;
+    }
+    const start = performance.now() + 140;
+    let frame = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - start) / 200));
+      setReach(1 - (1 - t) ** 3);
+      if (t < 1) {
+        frame = requestAnimationFrame(step);
+      }
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [run]);
+  return motion ? reach : 1;
+}
 function BattleCallout({ client, table, battle, placement }: Props & { battle: PublicBattle; placement: Placement }) {
   const pointerSession = usePointerSession();
   const canvas = useThree((state) => state.renderer.domElement);
@@ -600,6 +668,7 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
   const faction = table.snapshot.bank?.factionId;
   const own = faction ? battle.sides.findIndex((side) => side?.factionId === faction) : -1;
   const props = { client, table, battle, own };
+  const reach = usePointerReach();
   /* Html reads its position only in its own frame and the table draws on demand, so the capsule is projected in that frame: `capsule` from state commits after the frame that computed it, and Html would not read it until something else asked for a frame. */
   return (
     <Html
@@ -610,9 +679,14 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>
-          <div className={styles.callout} data-battle-stage={battle.stage}>
+          <div
+            className={styles.callout}
+            data-battle-stage={battle.stage}
+            data-pointer={anchor[1] < capsule[1] ? 'above' : 'below'}
+          >
             <CalloutSurface
               pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
+              reach={reach}
               actions={
                 <Group className={styles.actions} gap={4} justify="space-between" wrap="nowrap">
                   <BattleActions {...props} />
@@ -648,7 +722,8 @@ export function BattleScene({
         onDrop={(position) => markBattle(props.client, position)}
         onHover={onMarkerTerritory}
       />
-      {battle ? <BattleCallout {...props} battle={battle} placement={placement} /> : null}
+      {/* Keyed by the battle, so a battle that replaces another builds up as its own. */}
+      {battle ? <BattleCallout key={battle.id} {...props} battle={battle} placement={placement} /> : null}
     </>
   );
 }

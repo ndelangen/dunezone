@@ -65,3 +65,8 @@ input:checked:not(:disabled, [data-disabled]) + .selectedSwitch {
     background-color: var(--action-neutral-hover-bg);
   }
 }
+
+/* While something is being dragged, no tooltip opens: the pointer is carrying a piece, not asking what it passes over (`styles/dragMark.ts`). */
+:global(html[data-dragging]) .tooltip {
+  display: none;
+}

@@ -1,0 +1,22 @@
+/* Going ready: the tick pops in and the count bumps up a line, while the visitor welcomes motion. */
+:global(html[data-motion="ok"]) .check {
+  animation: ready-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+:global(html[data-motion="ok"]) .count {
+  display: inline-block;
+  animation: ready-count 220ms ease-out;
+}
+
+@keyframes ready-pop {
+  from {
+    scale: 0;
+  }
+}
+
+@keyframes ready-count {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
