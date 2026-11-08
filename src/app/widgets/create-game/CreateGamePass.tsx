@@ -166,20 +166,19 @@ export function CreateGamePass({
   onRecheck?: (() => void) | undefined;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
-  const started = useRef(false);
+  const started = useRef<number | undefined>(undefined);
   useEffect(() => {
     if (departing) {
-      started.current = true;
-      beginDeparture();
-    } else if (started.current) {
-      started.current = false;
-      cancelDeparture();
+      started.current = beginDeparture();
+    } else if (started.current !== undefined) {
+      cancelDeparture(started.current);
+      started.current = undefined;
     }
   }, [departing]);
   useEffect(
     () => () => {
-      if (started.current) {
-        leaveDeparture();
+      if (started.current !== undefined) {
+        leaveDeparture(started.current);
       }
     },
     []

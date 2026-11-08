@@ -8,17 +8,21 @@ let release: number | undefined;
 /* The planet's rise takes as long as AppBackground's transform transition. */
 const RISE_MS = 1600;
 let riseEndsAt = Number.NEGATIVE_INFINITY;
+/* The latest departure; a caller hands back the token it was given, so an older departure's cleanup leaves a newer one alone. */
+let current = 0;
 
-/** Marks the document as departing for a table (AppBackground and AppRoot read it alongside any `data-voyage` element). */
+/** Marks the document as departing for a table (AppBackground and AppRoot read it alongside any `data-voyage` element), and returns this departure's token. */
 export function beginDeparture() {
   window.clearTimeout(release);
   riseEndsAt = performance.now() + RISE_MS;
   document.documentElement.dataset.voyage = 'departing';
+  current += 1;
+  return current;
 }
 
 /** The departing page went away: the table's frame should take over within a moment, else the mark lapses on its own. */
-export function leaveDeparture() {
-  if (document.documentElement.dataset.voyage !== 'departing') {
+export function leaveDeparture(token: number) {
+  if (token !== current || document.documentElement.dataset.voyage !== 'departing') {
     return;
   }
   window.clearTimeout(release);
@@ -34,7 +38,10 @@ export function endDeparture() {
 }
 
 /** Calls the departure off: the mark goes, and so does the rise a table would otherwise wait out before building. */
-export function cancelDeparture() {
+export function cancelDeparture(token: number) {
+  if (token !== current) {
+    return;
+  }
   riseEndsAt = Number.NEGATIVE_INFINITY;
   endDeparture();
 }

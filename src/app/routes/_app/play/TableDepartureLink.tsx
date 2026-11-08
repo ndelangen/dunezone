@@ -20,22 +20,23 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
   const motion = useMotionAllowed();
   const [departing, setDeparting] = useState(false);
   const opening = useRef<number | undefined>(undefined);
-  /* Whether this link started the departure: a lobby holds many links, and only the one that departed hands the planet on or calls it off. */
-  const started = useRef(false);
+  /* The departure this link started, if any: a lobby holds many links, and only the one that departed hands the planet on or calls it off. */
+  const started = useRef<number | undefined>(undefined);
   /*
    * A page left during the departure (Back, another link) calls the departure off at once;
    * a page left by the departure itself hands the planet on to the table's frame.
    */
   useEffect(
     () => () => {
-      if (!started.current) {
+      const token = started.current;
+      if (token === undefined) {
         return;
       }
       if (opening.current === undefined) {
-        leaveDeparture();
+        leaveDeparture(token);
       } else {
         window.clearTimeout(opening.current);
-        cancelDeparture();
+        cancelDeparture(token);
       }
     },
     []
@@ -58,8 +59,7 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
       return;
     }
     event.preventDefault();
-    started.current = true;
-    beginDeparture();
+    started.current = beginDeparture();
     setDeparting(true);
     opening.current = window.setTimeout(() => {
       opening.current = undefined;
