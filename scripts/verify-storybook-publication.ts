@@ -54,6 +54,12 @@ function buildEnvironment() {
     NODE_ENV: 'production',
     PATH: process.env.PATH ?? '',
     VITE_CONVEX_URL: 'https://storybook.invalid',
+    /* The workflow's quiet-Wrangler settings, which this fixed environment would otherwise drop. */
+    ...Object.fromEntries(
+      ['WRANGLER_HIDE_BANNER', 'WRANGLER_SEND_METRICS'].flatMap((name) =>
+        process.env[name] === undefined ? [] : [[name, process.env[name]]]
+      )
+    ),
   };
 }
 

@@ -190,8 +190,11 @@ const config = defineConfig({
     /* The same file names as the client's chunks, which the Worker's asset manifest holds to one pattern. */
     rolldownOptions: {
       /*
-       * convex-test takes lazy import.meta.glob loaders, and the worker also imports those modules statically, so
-       * every loader reported as an ineffective dynamic import. The worker is one bundle either way.
+       * convex-test takes lazy import.meta.glob loaders, and the Convex worker also imports those modules statically,
+       * so every loader reported as an ineffective dynamic import. That worker is one bundle either way. This option
+       * covers every browser worker bundle; today that is the Convex worker and its protocol probe, and a new worker
+       * that relies on dynamic imports for splitting should check its chunks by hand (onLog/onwarn here never see
+       * these warnings).
        */
       checks: { bundlerTimings: false, ineffectiveDynamicImport: false },
       output: {

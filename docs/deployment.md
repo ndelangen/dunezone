@@ -747,7 +747,8 @@ Two Three vendor payloads have separate limits:
 The WebGPU runtime is already distributed as prebuilt modules. The Draco decoder is copied vendor
 JavaScript. Their larger budgets preserve the renderer's module resolution. The client build's `three` chunk group
 (`THREE_BUILD`, shared with the budget) holds the three WebGPU modules together, whichever chunks import them. The build reports each
-verified payload and its budget; Vite's default 500 kB advisory remains visible for the WebGPU chunk.
+verified payload and its budget. Vite's own 500 kB advisory is switched off (`chunkSizeWarningLimit`), because these
+budgets already fail any oversized client chunk.
 A dependency upgrade that changes these identities or exceeds a budget needs another measured review.
 
 Lucide's full media catalogue and the Rulebook capture validation graph use bounded, entry-aware
