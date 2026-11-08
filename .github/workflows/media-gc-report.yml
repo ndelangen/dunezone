@@ -1,9 +1,15 @@
-name: Media collection report
+name: Media report
 
 # A dry run of the R2 media retention rules (#1888 step 9). It lists what a collection could remove
 # and deletes nothing. It reads main's lock, every open pull request's lock and the release ledger,
 # and fails rather than report from an incomplete listing.
+# It is also the monthly sanity check of stored media: it fails when a variant any release record
+# lists is missing from R2 or stored at another size. Deploys rely on that never happening, because
+# they only ask R2 about variants no earlier deploy proved. It reads the bucket listing through the
+# Cloudflare API, so no edge cache can hide a missing object.
 on:
+  schedule:
+    - cron: "17 4 1 * *"
   workflow_dispatch:
 
 permissions:
@@ -30,7 +36,7 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
       - uses: ./.github/actions/setup
-      - name: Report collection candidates
+      - name: Report collection candidates and missing release variants
         shell: bash
         run: bun run media:gc | tee -a "$GITHUB_STEP_SUMMARY"
         env:
