@@ -2,12 +2,13 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { signInReturnFrom } from '@shared/authDestination';
 import { steamAssertionFrom } from '@shared/steamOpenId';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { PageState } from '@ui/block/PageState';
 import { useEffect, useRef } from 'react';
 
 import { refusedAsInactiveAccount, settleStartedSignIn } from '@db/accounts';
 import { takeSteamSignIn } from '@db/steamSignIn';
 import { pageHead } from '@app/routes/pageTitle';
-import { RoutePending } from '@app/widgets/page-message/RoutePending';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 import type { SignInFailure } from './signInFailure';
 
@@ -72,8 +73,10 @@ function SteamReturnPage() {
     );
   }, [signIn, router]);
   return (
-    <RoutePending title="Sign in" size="immersive" loading="Signing you in with Steam">
-      Steam sent you back. Checking your sign-in with Steam.
-    </RoutePending>
+    <PageMessage title="Sign in" size="immersive">
+      <PageState kind="pending" title="Signing you in with Steam">
+        Steam sent you back. Checking your sign-in with Steam.
+      </PageState>
+    </PageMessage>
   );
 }
