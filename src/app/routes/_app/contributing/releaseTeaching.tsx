@@ -29,11 +29,11 @@ const STAGES = [
   },
   {
     title: 'Build and check the release',
-    command: 'publisher:assets → publisher:retain-assets → publisher:application-runtime:verify',
+    command: 'publisher:assets → publisher:application-runtime:verify',
     reason:
-      "Build browser and server artifacts from the same commit, retain the previous release's hashed browser files, and exercise the assembled public application locally.",
+      'Build browser and server artifacts from the same commit and exercise the assembled public application locally.',
     consequence:
-      'Old hashed browser files remain available for at least seven days after replacement. Runtime checks must pass before the site upload.',
+      "Only the new release's hashed browser files are uploaded; a tab still on an older release may need a refresh. Runtime checks must pass before the site upload.",
   },
   {
     title: 'Deploy the game Worker',

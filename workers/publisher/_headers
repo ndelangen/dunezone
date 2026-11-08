@@ -13,10 +13,6 @@
 /play/*
   X-Robots-Tag: noindex
 
-# Each release reads the previous manifest before retaining its browser bundles.
-/application-assets.json
-  Cache-Control: no-store
-
 # Assembly inserts the configured Convex origin and hashes of the final SPA shell's inline scripts.
 # Public SSR uses the same resource policy with a fresh nonce on every delivery, including cache hits.
 /*
