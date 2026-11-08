@@ -266,3 +266,42 @@ export function awaitingWinner(state: TrackerState, sighting: Sighting): boolean
 export function currentTurn(state: TrackerState): number {
   return state.seen[0]?.turn ?? 1;
 }
+
+/** The groups the tracker sorts cards into: weapons and defenses split by what they kill or stop, then the rest by kind. */
+export type CardGroup =
+  | 'weapon-poison'
+  | 'weapon-projectile'
+  | 'defense-poison'
+  | 'defense-projectile'
+  | 'special'
+  | 'worthless';
+
+/** The groups in order, weapons and defenses each as a poison | projectile pair. */
+export const GROUP_ROWS: readonly (readonly CardGroup[])[] = [
+  ['weapon-poison', 'weapon-projectile'],
+  ['defense-poison', 'defense-projectile'],
+  ['special'],
+  ['worthless'],
+];
+
+export const CARD_GROUPS: readonly CardGroup[] = GROUP_ROWS.flat();
+
+export const GROUP_LABEL: Readonly<Record<CardGroup, string>> = {
+  'weapon-poison': 'Poison weapons',
+  'weapon-projectile': 'Projectile weapons',
+  'defense-poison': 'Poison defenses',
+  'defense-projectile': 'Projectile defenses',
+  special: 'Specials',
+  worthless: 'Worthless',
+};
+
+/**
+ * A card's group, read from its subtitle. A weapon or defense that names neither poison nor projectile
+ * (the Lasgun, Weirding Way) joins the projectile side: Weirding Way counts as a projectile weapon, and the Lasgun is a gun.
+ */
+export function groupOf(def: CardDef): CardGroup {
+  if (def.kind === 'weapon' || def.kind === 'defense') {
+    return `${def.kind}-${/\bPoison\b/.test(def.detail) ? 'poison' : 'projectile'}`;
+  }
+  return def.kind;
+}

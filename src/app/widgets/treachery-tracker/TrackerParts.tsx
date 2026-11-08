@@ -7,8 +7,8 @@ import { useState } from 'react';
 import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
-import { CARD_KINDS, KIND_LABEL, copyOf, kindCounts, placeOf, slotOf, unplaced } from './tracker';
-import type { CardCopy, CardKind, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
+import { CARD_GROUPS, GROUP_LABEL, GROUP_ROWS, copyOf, groupOf, placeOf, slotOf, unplaced } from './tracker';
+import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TreacheryTracker.module.css';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
@@ -100,30 +100,36 @@ export function CardChooser({
           </div>
         </div>
       )}
-      {CARD_KINDS.map((kind) => {
-        const cards = [...byName.values()].filter(({ copy }) => copy.def.kind === kind);
-        if (cards.length === 0) {
+      {GROUP_ROWS.map((row) => {
+        const groups = row
+          .map((group) => ({ group, cards: [...byName.values()].filter(({ copy }) => groupOf(copy.def) === group) }))
+          .filter(({ cards }) => cards.length > 0);
+        if (groups.length === 0) {
           return null;
         }
         return (
-          <div key={kind}>
-            <Text size="xs" className={styles.caption}>
-              {KIND_LABEL[kind]} in the deck
-            </Text>
-            <div className={styles.glyphRow}>
-              {cards.map(({ copy, left }) => (
-                <CardPreview key={copy.id} card={copy}>
-                  <UnstyledButton
-                    className={styles.glyphButton}
-                    aria-label={copy.def.name}
-                    onClick={() => onPick(copy.id)}
-                  >
-                    <CardGlyph card={copy} size={32} />
-                    {left > 1 && <span className={styles.badge}>{left}</span>}
-                  </UnstyledButton>
-                </CardPreview>
-              ))}
-            </div>
+          <div key={row.join()} className={styles.groupRow} data-pair={row.length > 1 ? 'true' : 'false'}>
+            {groups.map(({ group, cards }) => (
+              <div key={group}>
+                <Text size="xs" className={styles.caption}>
+                  {GROUP_LABEL[group]}
+                </Text>
+                <div className={styles.glyphRow}>
+                  {cards.map(({ copy, left }) => (
+                    <CardPreview key={copy.id} card={copy}>
+                      <UnstyledButton
+                        className={styles.glyphButton}
+                        aria-label={copy.def.name}
+                        onClick={() => onPick(copy.id)}
+                      >
+                        <CardGlyph card={copy} size={32} />
+                        {left > 1 && <span className={styles.badge}>{left}</span>}
+                      </UnstyledButton>
+                    </CardPreview>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         );
       })}
@@ -295,36 +301,36 @@ function MenuLine({
 
 /** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. */
 export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
-  const counts = kindCounts(copies);
   const total = copies.length || 1;
   return (
     <div className={styles.kindBar} style={{ height }} aria-label={kindSummary(copies)}>
-      {CARD_KINDS.map((kind) =>
-        counts[kind] > 0 ? (
-          <HoverCard key={kind} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
+      {CARD_GROUPS.map((group) => {
+        const count = copies.filter((copy) => groupOf(copy.def) === group).length;
+        return count > 0 ? (
+          <HoverCard key={group} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
             <HoverCard.Target>
               <span
-                data-kind={kind}
+                data-kind={group.split('-')[0]}
                 className={styles.kindSlice}
-                style={{ flexGrow: counts[kind] / total }}
+                style={{ flexGrow: count / total }}
                 tabIndex={0}
-                aria-label={`${counts[kind]} ${KIND_LABEL[kind].toLowerCase()} left`}
+                aria-label={`${count} ${GROUP_LABEL[group].toLowerCase()} left`}
               />
             </HoverCard.Target>
             <HoverCard.Dropdown className={styles.dropdown}>
-              <KindList kind={kind} copies={copies} />
+              <GroupList group={group} copies={copies} />
             </HoverCard.Dropdown>
           </HoverCard>
-        ) : null
-      )}
+        ) : null;
+      })}
     </div>
   );
 }
 
-/** Exactly which cards of a kind are left, one line per card with how many copies. */
-function KindList({ kind, copies }: Readonly<{ kind: CardKind; copies: readonly CardCopy[] }>) {
+/** Exactly which cards of a group are left, one line per card with how many copies. */
+function GroupList({ group, copies }: Readonly<{ group: CardGroup; copies: readonly CardCopy[] }>) {
   const byName = new Map<string, { copy: CardCopy; left: number }>();
-  for (const copy of copies.filter((entry) => entry.def.kind === kind)) {
+  for (const copy of copies.filter((entry) => groupOf(entry.def) === group)) {
     const entry = byName.get(copy.def.key);
     if (entry) {
       entry.left += 1;
@@ -336,7 +342,7 @@ function KindList({ kind, copies }: Readonly<{ kind: CardKind; copies: readonly 
   return (
     <Stack gap={4}>
       <Text size="xs" className={styles.caption}>
-        {lines.reduce((sum, line) => sum + line.left, 0)} {KIND_LABEL[kind].toLowerCase()} left
+        {lines.reduce((sum, line) => sum + line.left, 0)} {GROUP_LABEL[group].toLowerCase()} left
       </Text>
       <div className={styles.kindList}>
         {lines.map(({ copy, left }) => (
@@ -352,9 +358,9 @@ function KindList({ kind, copies }: Readonly<{ kind: CardKind; copies: readonly 
 }
 
 export function kindSummary(copies: readonly CardCopy[]): string {
-  const counts = kindCounts(copies);
-  return CARD_KINDS.filter((kind) => counts[kind] > 0)
-    .map((kind) => `${counts[kind]} ${KIND_LABEL[kind].toLowerCase()}`)
+  return CARD_GROUPS.map((group) => [group, copies.filter((copy) => groupOf(copy.def) === group).length] as const)
+    .filter(([, count]) => count > 0)
+    .map(([group, count]) => `${count} ${GROUP_LABEL[group].toLowerCase()}`)
     .join(', ');
 }
 
