@@ -463,7 +463,7 @@ band's one left edge. The big-title pages (Home, Tutorials, Play, Blog, Future p
 title card: the title, a gilt-ruled subtitle or a word above, and one line (Norbert, 2026-11-08).
 
 *Convention. The kit carries it: `PageLayout.Header size="collapsed"` keeps the title out of
-sight, [`BackToolbar`](../../src/app/widgets/back-toolbar/BackToolbar.tsx) is a form's way back,
+sight, [`BackToolbar`](../../src/app/ui/block/BackToolbar.tsx) is a form's way back,
 and `PageLayout.Header align="start"` sets the content on the one left edge, so no page pads its
 own title into place.*
 

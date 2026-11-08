@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
  * the back arrow in this toolbar is the way up instead.
  * Render it inside `PageLayout.Toolbar`.
  */
-export function BackToolbar({ label, renderRoot }: { label: string; renderRoot: RenderRoot }) {
+export function BackToolbar({ label, renderRoot }: Readonly<{ label: string; renderRoot: RenderRoot }>) {
   return (
     <Toolbar>
       <Toolbar.Left label="Navigation">
