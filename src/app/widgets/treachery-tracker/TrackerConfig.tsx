@@ -7,6 +7,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Select, Switch, Text } from '@mantine/core';
+import { ControlBlock } from '@ui/control/ControlBlock';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 
@@ -49,14 +50,20 @@ export function TrackerConfigPanel({
   return (
     <div className={styles.tracker}>
       <section className={styles.configSection}>
-        <Select
-          label="Treachery deck"
+        <ControlBlock
+          title="Treachery deck"
           description="The tracker starts with a copy of this deck."
-          size="sm"
-          data={decks.map((deck) => ({ value: deck.id, label: deck.name }))}
-          value={config.deck}
-          allowDeselect={false}
-          onChange={(deck) => deck && onChange({ ...config, deck })}
+          inputId="tracker-deck"
+          input={(fieldProps) => (
+            <Select
+              {...fieldProps}
+              size="sm"
+              data={decks.map((deck) => ({ value: deck.id, label: deck.name }))}
+              value={config.deck}
+              allowDeselect={false}
+              onChange={(deck) => deck && onChange({ ...config, deck })}
+            />
+          )}
         />
       </section>
       <section className={styles.section} aria-label="Factions">

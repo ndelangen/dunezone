@@ -7,7 +7,7 @@ import type { RulesetCapture } from './capture';
  * ("Weapon - Projectile"), its published face and how many copies the deck holds.
  * What the deck holds is public, as the printed deck list is at a physical table.
  */
-export const treacheryDeckCardSchema = z.object({
+const treacheryDeckCardSchema = z.object({
   key: z.string().min(1).max(160),
   name: z.string().max(160),
   detail: z.string().max(160),

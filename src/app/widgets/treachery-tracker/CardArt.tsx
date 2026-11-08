@@ -30,15 +30,6 @@ export function CardGlyph({
   );
 }
 
-/** The card's name banner, cut from the top of its face; it reads at any width from about 120 px. */
-export function CardBanner({ card, width }: Readonly<{ card: CardCopy; width?: number | string }>) {
-  return (
-    <span className={styles.banner} style={{ width }}>
-      <img src={card.def.face} alt="" draggable={false} />
-    </span>
-  );
-}
-
 /** An unknown card: the deck's back, or a question mark where a glyph would be. */
 export function UnknownGlyph({ size = 24 }: Readonly<{ size?: number }>) {
   return (

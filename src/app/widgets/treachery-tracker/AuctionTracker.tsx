@@ -7,7 +7,7 @@ import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionToke
 import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import styles from './AuctionTracker.module.css';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
-import { DeckFooter } from './ColumnsTracker';
+import { DeckFooter } from './DeckFooter';
 import { awaitingWinner, copyOf, currentTurn, sightingCard, unplaced } from './tracker';
 import type { Sighting } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
@@ -278,7 +278,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
         <TextInput
           className={styles.note}
           size="xs"
-          autoFocus
+          ref={(input) => input?.focus()}
           defaultValue={note}
           maxLength={120}
           placeholder="Which cards they cannot have…"

@@ -58,8 +58,6 @@ export const DREAMRULES_DECK: readonly CardDef[] = decks.treachery.cards.map((ca
   };
 });
 
-export const CARD_BACK = href('/play-fixtures/dreamrules/cardback.jpg');
-
 const token = (id: string, name: string, color: string): FactionToken => ({
   id,
   name,
@@ -76,8 +74,6 @@ export const FACTIONS: readonly FactionToken[] = [
   token('fremen', 'Fremen', '#e4942e'),
   token('bene-gesserit', 'Bene Gesserit', '#253b82'),
 ];
-
-export const ATREIDES = 'house-atreides';
 
 /**
  * Turn 2 of a Dreamrules game, at the first card of the second auction.
@@ -123,24 +119,4 @@ export function midGameTracker(): TrackerState {
       { id: 'seen-crysknife-1', card: 'crysknife#1', turn: 1 },
     ],
   };
-}
-
-/** The start of a game: setup has dealt, and Atreides has seen nothing but its own card. */
-export function freshTracker(): TrackerState {
-  const steps: TrackerAction[] = [
-    { kind: 'add', faction: 'house-atreides', card: 'shield#1' },
-    ...FACTIONS.filter((faction) => faction.id !== ATREIDES).map((faction): TrackerAction => ({
-      kind: 'add',
-      faction: faction.id,
-      card: null,
-    })),
-    { kind: 'add', faction: 'house-harkonnen', card: null },
-  ];
-  return steps.reduce(
-    trackerReducer,
-    newTracker(
-      DREAMRULES_DECK,
-      FACTIONS.map((faction) => faction.id)
-    )
-  );
 }

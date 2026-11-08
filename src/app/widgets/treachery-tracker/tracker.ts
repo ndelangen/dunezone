@@ -9,13 +9,6 @@ export type CardKind = 'weapon' | 'defense' | 'special' | 'worthless';
 
 export const CARD_KINDS: readonly CardKind[] = ['weapon', 'defense', 'special', 'worthless'];
 
-export const KIND_LABEL: Readonly<Record<CardKind, string>> = {
-  weapon: 'Weapons',
-  defense: 'Defenses',
-  special: 'Specials',
-  worthless: 'Worthless',
-};
-
 /** A group's name for a count of its cards: "1 poison defense", "2 poison defenses". */
 export function groupCount(group: CardGroup, count: number): string {
   const label = GROUP_LABEL[group].toLowerCase();
@@ -64,7 +57,7 @@ export type TrackerAction =
   | Readonly<{ kind: 'add'; faction: string; card: string | null }>
   /** An unknown card in a hand turns out to be this one. */
   | Readonly<{ kind: 'identify'; faction: string; slot: string; card: string }>
-  /** The card leaves the hand for the discard pile; an unknown one simply leaves. */
+  /** The card leaves the hand for the discard pile; an unknown one leaves without a name. */
   | Readonly<{ kind: 'discard'; faction: string; slot: string }>
   /** The card passes from one hand to another, known or not. */
   | Readonly<{ kind: 'give'; faction: string; slot: string; to: string }>
@@ -82,7 +75,7 @@ export type TrackerAction =
   | Readonly<{ kind: 'note'; faction: string; text: string }>;
 
 /** Every copy of a deck, in the deck's order. */
-export function deckCopies(defs: readonly CardDef[]): CardCopy[] {
+function deckCopies(defs: readonly CardDef[]): CardCopy[] {
   return defs.flatMap((def) =>
     Array.from({ length: def.count }, (_, index) => ({ id: `${def.key}#${index + 1}`, def, copy: index + 1 }))
   );
@@ -132,37 +125,6 @@ export function copyOf(state: TrackerState, card: string): CardCopy {
     throw new Error(`No card ${card} in this deck.`);
   }
   return copy;
-}
-
-export function unknownCount(state: TrackerState, faction: string): number {
-  return (state.hands[faction] ?? []).filter((slot) => slot.card === null).length;
-}
-
-/** How many unplaced cards of each kind are left, which is what an unknown card could be. */
-export function kindCounts(copies: readonly CardCopy[]): Record<CardKind, number> {
-  const counts: Record<CardKind, number> = { weapon: 0, defense: 0, special: 0, worthless: 0 };
-  for (const copy of copies) {
-    counts[copy.def.kind] += 1;
-  }
-  return counts;
-}
-
-/**
- * The chance that at least one of `draws` unknown cards is of the matching kind, drawn from `pool` cards of which `matching` qualify.
- * Unknown cards are drawn without replacement from the cards Atreides has not placed.
- */
-export function chanceOfAny(pool: number, matching: number, draws: number): number {
-  if (draws <= 0 || matching <= 0) {
-    return 0;
-  }
-  if (draws > pool - matching) {
-    return 1;
-  }
-  let none = 1;
-  for (let index = 0; index < draws; index += 1) {
-    none *= (pool - matching - index) / (pool - index);
-  }
-  return 1 - none;
 }
 
 function withoutCard(state: TrackerState, card: string): TrackerState {
@@ -301,7 +263,8 @@ export const GROUP_LABEL: Readonly<Record<CardGroup, string>> = {
 };
 
 /**
- * A card's group, read from its subtitle. A weapon or defense that names neither poison nor projectile
+ * A card's group, read from its subtitle.
+ * A weapon or defense that names neither poison nor projectile
  * (the Lasgun, Weirding Way) joins the projectile side: Weirding Way counts as a projectile weapon, and the Lasgun is a gun.
  */
 export function groupOf(def: CardDef): CardGroup {

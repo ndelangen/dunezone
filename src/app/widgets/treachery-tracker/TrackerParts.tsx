@@ -344,12 +344,12 @@ export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly Car
         return count > 0 ? (
           <HoverCard key={group} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
             <HoverCard.Target>
-              <span
+              <button
+                type="button"
                 data-kind={group.split('-')[0]}
                 data-group={group}
                 className={styles.kindSlice}
                 style={{ flexGrow: count / total }}
-                tabIndex={0}
                 aria-label={`${groupCount(group, count)} left`}
               />
             </HoverCard.Target>

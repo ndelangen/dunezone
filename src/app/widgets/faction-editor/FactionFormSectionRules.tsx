@@ -97,7 +97,7 @@ function SetupFields({ form }: { form: FactionFormApi }) {
               <ControlBlock
                 title="Treachery tracker"
                 description={
-                  'In Play, this faction can open a private tracker of every Treachery card: who won it, and what is left in the deck.\nTurn it on for a faction that sees cards before they are bid on, as Atreides does.'
+                  'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
                 }
                 inputId="rules-treachery-tracker"
                 input={(fieldProps) => (
