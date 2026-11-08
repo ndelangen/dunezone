@@ -4,7 +4,7 @@ import { v } from 'convex/values';
 import type { Id } from '../_generated/dataModel';
 import type { QueryCtx, MutationCtx } from '../_generated/server';
 
-export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'));
+export const authProviderValidator = v.union(v.literal('google'), v.literal('discord'), v.literal('steam'));
 export type AuthProvider = Infer<typeof authProviderValidator>;
 export const authMethodValidator = v.object({
   provider: authProviderValidator,
@@ -12,10 +12,16 @@ export const authMethodValidator = v.object({
   available: v.boolean(),
 });
 
+/** Steam's OpenID sign-in needs no client secret, only the public site its return page lives on. */
+export function steamSignInAvailable() {
+  return !!process.env.SITE_URL;
+}
+
 export function signInProviders() {
   const configured = {
     google: !!(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
     discord: !!(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET),
+    steam: steamSignInAvailable(),
   } satisfies Record<AuthProvider, boolean>;
   return (Object.keys(configured) as AuthProvider[]).map((provider) => ({
     provider,

@@ -86,6 +86,7 @@ import type * as lib_groupInvitations from "../lib/groupInvitations.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
+import type * as lib_loginUser from "../lib/loginUser.js";
 import type * as lib_memoised from "../lib/memoised.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
 import type * as lib_playGameAddressAvailability from "../lib/playGameAddressAvailability.js";
@@ -135,6 +136,7 @@ import type * as lib_slugCounters from "../lib/slugCounters.js";
 import type * as lib_spiceCardBoard from "../lib/spiceCardBoard.js";
 import type * as lib_standings from "../lib/standings.js";
 import type * as lib_statistics from "../lib/statistics.js";
+import type * as lib_steamSignIn from "../lib/steamSignIn.js";
 import type * as lib_syntheticPasswords from "../lib/syntheticPasswords.js";
 import type * as lib_userImageIngest from "../lib/userImageIngest.js";
 import type * as lib_utils from "../lib/utils.js";
@@ -175,6 +177,7 @@ import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
 import type * as statistics from "../statistics.js";
+import type * as steamAuth from "../steamAuth.js";
 import type * as types from "../types.js";
 
 import type {
@@ -263,6 +266,7 @@ const fullApi: ApiFromModules<{
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
+  "lib/loginUser": typeof lib_loginUser;
   "lib/memoised": typeof lib_memoised;
   "lib/playAuthorization": typeof lib_playAuthorization;
   "lib/playGameAddressAvailability": typeof lib_playGameAddressAvailability;
@@ -312,6 +316,7 @@ const fullApi: ApiFromModules<{
   "lib/spiceCardBoard": typeof lib_spiceCardBoard;
   "lib/standings": typeof lib_standings;
   "lib/statistics": typeof lib_statistics;
+  "lib/steamSignIn": typeof lib_steamSignIn;
   "lib/syntheticPasswords": typeof lib_syntheticPasswords;
   "lib/userImageIngest": typeof lib_userImageIngest;
   "lib/utils": typeof lib_utils;
@@ -352,6 +357,7 @@ const fullApi: ApiFromModules<{
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
   statistics: typeof statistics;
+  steamAuth: typeof steamAuth;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;
 

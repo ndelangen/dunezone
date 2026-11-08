@@ -1,5 +1,6 @@
 import Discord from '@auth/core/providers/discord';
 import Google from '@auth/core/providers/google';
+import { ConvexCredentials } from '@convex-dev/auth/providers/ConvexCredentials';
 import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 import { ConvexError } from 'convex/values';
@@ -9,9 +10,11 @@ import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { accountStateOf } from './lib/accountLifecycle';
+import { steamSignInAvailable } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { upsertLoginUser } from './lib/loginUser';
 import { isSyntheticBackend, syntheticIdentity } from './lib/playSynthetic';
-import { ensureProfileForUser, profileSourcesFromUserDoc } from './lib/profileBootstrap';
+import { verifySteamLogin } from './lib/steamSignIn';
 import { pbkdf2PasswordCrypto } from './lib/syntheticPasswords';
 
 /* Password sign-in also lets anyone sign up, so one variable alone cannot turn it on: it needs the same test backend every other test control does. */
@@ -74,6 +77,25 @@ if (process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET) {
       authorization: {
         url: 'https://discord.com/api/oauth2/authorize',
         params: { scope: 'identify' },
+      },
+    })
+  );
+}
+
+if (steamSignInAvailable()) {
+  /* Steam speaks OpenID 2.0, so the browser brings Steam's assertion back here and Steam is asked to confirm it. */
+  providers.push(
+    ConvexCredentials({
+      id: 'steam',
+      authorize: async (params, ctx) => {
+        const login = await verifySteamLogin(params, process.env.SITE_URL!, () =>
+          ctx.runMutation(internal.steamAuth.admitSteamCheck, {})
+        );
+        if (!login) {
+          return null;
+        }
+        const userId = await ctx.runMutation(internal.steamAuth.signInSteamAccount, login);
+        return userId ? { userId } : null;
       },
     })
   );
@@ -148,20 +170,13 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
      * No provider here returns a verified email or phone, so, as before, nothing links by email or phone.
      */
     async createOrUpdateUser(ctx, { existingUserId, type, profile }) {
-      const triggerCtx = applicationTriggers.wrapDB(ctx as MutationCtx);
       const { emailVerified: _emailVerified, phoneVerified: _phoneVerified, ...details } = profile;
       const userData = { ...(type === 'oauth' ? { emailVerificationTime: Date.now() } : null), ...details };
-      const existing = existingUserId ? await triggerCtx.db.get(existingUserId as Id<'users'>) : null;
-      let userId: Id<'users'>;
-      if (existing && accountStateOf(existing) !== 'deleted') {
-        userId = existing._id;
-        await triggerCtx.db.patch(userId, userData);
-      } else {
-        userId = await triggerCtx.db.insert('users', userData);
-      }
-      const user = (await triggerCtx.db.get(userId))!;
-      await ensureProfileForUser(triggerCtx, userId, profileSourcesFromUserDoc(user));
-      return userId;
+      return await upsertLoginUser(
+        applicationTriggers.wrapDB(ctx as MutationCtx),
+        existingUserId as Id<'users'> | null,
+        userData
+      );
     },
   },
 });

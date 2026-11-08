@@ -20,6 +20,7 @@ import {
   holdAuthConnection,
   needsRecentSignIn,
   useBeginAuthConnection,
+  useProviderSignIn,
   useDisconnectAuthMethod,
   useSignOutEverywhere,
 } from '@db/accounts';
@@ -656,7 +657,8 @@ function SignInMethods({
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
   const revokeSessions = useSignOutEverywhere();
-  const { signIn, signOut } = useAuthActions();
+  const { signOut } = useAuthActions();
+  const signIn = useProviderSignIn();
   const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
   const connect = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });

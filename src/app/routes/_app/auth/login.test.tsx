@@ -29,7 +29,8 @@ vi.mock('@convex-dev/auth/react', () => ({
 }));
 vi.mock('@db/profiles', () => ({ useCurrentProfile: () => ({ data: mocks.profile }) }));
 vi.mock('@db/accounts', () => ({
-  authProviderNames: { google: 'Google', discord: 'Discord' },
+  authProviderNames: { google: 'Google', discord: 'Discord', steam: 'Steam' },
+  useProviderSignIn: () => (provider: string, options: { redirectTo: string }) => mocks.signIn(provider, options),
   useSignInProviders: () => [{ provider: 'google', available: true }],
   useLastSignInMethod: () => null,
   noteSignInStarted: vi.fn(),

@@ -40,6 +40,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'play_session_cutoffs',
     'user_image_ingest_tokens',
     'account_connections',
+    'steam_openid_nonces',
     'account_merge_operations',
     'account_deletion_operations',
     'account_deletion_items',
