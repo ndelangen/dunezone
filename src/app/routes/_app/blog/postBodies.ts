@@ -17,6 +17,7 @@ export const BLOG_POST_BODIES: Record<BlogPostSlug, () => Promise<BodyModule>> =
   'dune-homebrew-art-ai-and-credits': () => import('./posts/dune-homebrew-art-ai-and-credits'),
   'dune-board-game-style-guide': () => import('./posts/dune-board-game-style-guide'),
   'drawing-dune-tokens-and-cards': () => import('./posts/drawing-dune-tokens-and-cards'),
+  'learn-to-play-dune-online': () => import('./posts/learn-to-play-dune-online'),
   'playing-dune-online-in-real-time': () => import('./posts/playing-dune-online-in-real-time'),
   'tabletop-simulator': () => import('./posts/tabletop-simulator'),
   'why-dune': () => import('./posts/why-dune'),

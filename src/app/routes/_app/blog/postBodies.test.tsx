@@ -7,7 +7,7 @@ import { MEDIA_MAP } from '@shared/media/map.generated';
 import type * as ResolveAsset from '@shared/media/resolveAsset';
 import type * as TanStackRouter from '@tanstack/react-router';
 import { appContentTheme } from '@ui/theme';
-import type { ComponentType, ReactNode } from 'react';
+import type { ElementType, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeAll, expect, test, vi } from 'vite-plus/test';
 
@@ -28,14 +28,13 @@ vi.mock('@shared/media/resolveAsset', async (importOriginal) => {
 });
 
 /*
- * A post's in-site links need no router to be drawn as markup: `PostLink`, built with `createLink`, reads router context otherwise.
+ * A post's in-site links need no router to be drawn as markup: `PostLink`, built with `createLink`, and the chapter tiles' `Link` read router context otherwise.
  * The mock fills the route's params into its path as the router would, so the markup carries each link's real destination.
- * Whether that route exists is the type checker's job: `PostLink` takes the router's own `to`.
+ * Whether that route exists is the type checker's job: `PostLink` and `Link` take the router's own `to`.
  */
-vi.mock('@tanstack/react-router', async (importOriginal) => ({
-  ...(await importOriginal<typeof TanStackRouter>()),
-  createLink:
-    (Host: ComponentType<{ href: string; children?: ReactNode }>) =>
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const routerless =
+    (Host: ElementType<{ href: string; children?: ReactNode }>) =>
     ({
       children,
       to,
@@ -49,8 +48,13 @@ vi.mock('@tanstack/react-router', async (importOriginal) => ({
       <Host {...props} href={to.replace(/\$(\w+)/g, (segment, name: string) => params[name] ?? segment)}>
         {children}
       </Host>
-    ),
-}));
+    );
+  return {
+    ...(await importOriginal<typeof TanStackRouter>()),
+    createLink: routerless,
+    Link: routerless('a'),
+  };
+});
 
 /* Text a reader would take as part of the post: a figure's own caption is not among it. */
 const READING_TEXT = 'p:not(figure p), h1, h2, h3, h4, h5, h6, li, blockquote';

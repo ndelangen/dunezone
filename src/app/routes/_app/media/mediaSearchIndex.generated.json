@@ -8434,6 +8434,26 @@
     "tags": ["dune.zone", "game table", "online play", "blog"],
     "subjects": ["places", "symbols"]
   },
+  "/web/blog/learn-to-play-dune-online/meet-arrakis.jpg": {
+    "description": "The Welcome chapter of the dune.zone tutorial, with the task list on the left and an arrow pointing at the centre of the Arrakis board.",
+    "tags": ["dune.zone", "tutorial", "game table", "blog"],
+    "subjects": ["places", "symbols"]
+  },
+  "/web/blog/learn-to-play-dune-online/chat-reply.jpg": {
+    "description": "A private chat in the dune.zone tutorial, where a practice player has replied to the learner's message.",
+    "tags": ["dune.zone", "tutorial", "chat", "blog"],
+    "subjects": ["places", "symbols"]
+  },
+  "/web/blog/learn-to-play-dune-online/meet-in-arrakeen.jpg": {
+    "description": "The Battle chapter of the dune.zone tutorial, asking the learner to bring troops into Arrakeen.",
+    "tags": ["dune.zone", "tutorial", "game table", "blog"],
+    "subjects": ["places", "symbols"]
+  },
+  "/web/blog/learn-to-play-dune-online/chapter-complete.jpg": {
+    "description": "The end of the Welcome chapter of the dune.zone tutorial: a Chapter complete card listing what the player learned.",
+    "tags": ["dune.zone", "tutorial", "blog"],
+    "subjects": ["places", "symbols"]
+  },
   "/web/blog/dune-board-game-style-guide/faction-palette.jpg": {
     "description": "Twelve faction swatch cards on a dark blue page: each faction's token, its light and shade colours with hex codes, and its texture number.",
     "tags": ["factions", "colours", "blog"],

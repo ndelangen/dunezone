@@ -1,0 +1,272 @@
+/*
+ * The room and the tab as a line drawing in sand ink, one drawing for both states.
+ * Every part has a base position in the SVG and the `.tutorial` class moves an inner group with a CSS transform in user units, so a switch is a transition on transform and opacity alone.
+ * `.gameOnly` parts fade out in the tutorial and `.tutorialOnly` parts fade in; the two blocks that travel keep their own classes.
+ */
+.root {
+  --ink: #f0e8da;
+  --muted: #bfb09a;
+  --sand: #d5ba8c;
+  --spice: #b8842f;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --glide: 650ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fade: 450ms ease;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-self: center;
+  box-sizing: border-box;
+  width: min(36rem, 100%);
+  padding-block: var(--space-sm);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.switch {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid rgb(136 114 82 / 70%);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: var(--mantine-font-size-sm);
+  transition: background 150ms ease;
+}
+
+.switch:hover {
+  background: rgb(136 114 82 / 20%);
+}
+
+.switchOn {
+  border-color: var(--spice);
+  background: rgb(136 114 82 / 25%);
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+}
+
+.scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 85%));
+}
+
+.gameOnly,
+.tutorialOnly,
+.code,
+.storage {
+  transition:
+    transform var(--glide),
+    opacity var(--fade);
+}
+
+.tutorialOnly {
+  opacity: 0;
+}
+
+.tutorial .gameOnly {
+  opacity: 0;
+}
+
+.tutorial .tutorialOnly {
+  opacity: 1;
+}
+
+.link {
+  stroke: var(--sand);
+  stroke-width: 1.2;
+  opacity: 0.55;
+}
+
+.link.tutorialOnly,
+.tutorial .link.gameOnly {
+  opacity: 0;
+}
+
+.tutorial .link.tutorialOnly {
+  opacity: 0.55;
+}
+
+.room {
+  fill: #211d18;
+  stroke: var(--spice);
+  stroke-width: 1.6;
+}
+
+/* The room sinks a little as it goes, and the ghost rises from where it went. */
+.tutorial .cloud {
+  transform: translate(0, 24px);
+}
+
+.ghost {
+  transform: translate(0, -10px);
+}
+
+.tutorial .ghost {
+  transform: none;
+}
+
+.ghostBox {
+  fill: rgb(33 29 24 / 80%);
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+.ghostLabel {
+  fill: var(--muted);
+  stroke: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  opacity: 0.8;
+}
+
+.strike {
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.frame {
+  fill: #211d18;
+  stroke: var(--sand);
+  stroke-width: 1.2;
+}
+
+.bar {
+  fill: #352e25;
+}
+
+.dot {
+  fill: var(--muted);
+}
+
+/* The reader's own screen slides toward where the tab stands; the others drift to the sides. */
+.tutorial .you {
+  transform: translate(54px, 0);
+}
+
+.tutorial .other {
+  transform: translate(0, -8px);
+}
+
+.tab {
+  transform: translate(0, 6px);
+}
+
+.tutorial .tab {
+  transform: none;
+}
+
+/* The two blocks leave the room for the tab. */
+.tutorial .code {
+  transform: translate(-20px, -116px);
+}
+
+.tutorial .storage {
+  transform: translate(10px, -116px);
+}
+
+.block {
+  fill: #2a241d;
+  stroke: var(--sand);
+  stroke-width: 1;
+}
+
+.glyph {
+  fill: none;
+  stroke: var(--sand);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.thin {
+  stroke-width: 0.7;
+  opacity: 0.7;
+}
+
+.chip {
+  transform: translate(0, -10px);
+}
+
+.tutorial .chip {
+  transform: none;
+}
+
+.chipBox {
+  fill: #211d18;
+  stroke: rgb(136 114 82 / 90%);
+  stroke-width: 1;
+}
+
+.title,
+.name,
+.label,
+.tiny,
+.chipLabel {
+  fill: var(--ink);
+  stroke: none;
+  font-family: var(--mono);
+  text-anchor: middle;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.name {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.tiny {
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  fill: var(--muted);
+}
+
+.chipLabel {
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+}
+
+.chipNote {
+  letter-spacing: 0.02em;
+}
+
+.footer {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--mantine-font-size-xs);
+  text-align: center;
+}
+
+/* With less motion asked for, the parts change place and fade without a transition. */
+@media (prefers-reduced-motion: reduce) {
+  .gameOnly,
+  .tutorialOnly,
+  .code,
+  .storage,
+  .switch {
+    transition: none;
+  }
+}

@@ -1,0 +1,143 @@
+/*
+ * One line of items that scrolls sideways under a fading mask.
+ * The lane bleeds past its frame by the page's gutter on both sides, up to a large space, and fades out over that bleed,
+ * so an item half out of view dissolves instead of being cut, and one that is scrolled right up to the edge still sits where the frame's content does.
+ * The scrollbar stays thin and faint, in view so a reader sees the line scrolls.
+ * The fade is a mask of the lane's own box, or of each item (`data-fade`), so the ring for keyboard focus goes on the frame around it, where nothing fades it.
+ */
+.frame {
+  min-width: 0;
+}
+
+.frame:has(> .lane:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/*
+ * The lane clips what an item paints past its own box in the block direction, so it keeps room for that: 4px above, a ring of 2px at 2px offset, and a small space below so the scrollbar never sits on the items' edge.
+ * Items that ask to snap (`scroll-snap-align`) snap to the frame's content edge, which the bleed-wide scroll padding puts in line; items that do not, scroll freely.
+ * Outside the shell nothing sets the gutter, so the bleed falls back to the shell's wide-window value.
+ */
+.lane {
+  --lane-bleed: min(var(--space-xl), var(--app-shell-inline-gutter, 20px));
+
+  display: flex;
+  flex-flow: row nowrap;
+  gap: var(--space-md);
+  min-width: 0;
+  margin: 0 calc(-1 * var(--lane-bleed));
+  padding: 4px var(--lane-bleed) var(--space-sm);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-padding-inline: var(--lane-bleed);
+  scroll-snap-type: inline proximity;
+  scrollbar-color: color-mix(in srgb, currentColor 38%, transparent) transparent;
+  scrollbar-width: thin;
+  list-style: none;
+}
+
+.lane:focus-visible {
+  outline: none;
+}
+
+/* The fade on the line itself: one mask over the lane, transparent at its edges and whole from the bleed inward. */
+.lane[data-fade="lane"] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--color-shadow) var(--lane-bleed),
+    var(--color-shadow) calc(100% - var(--lane-bleed)),
+    transparent
+  );
+}
+
+/*
+ * The fade on the items: for items that blur the page behind them, as a `Surface` pane does.
+ * A mask makes its element the backdrop of every blur inside it, so under the lane's mask a pane blurred the empty lane and not the page (2026-11-08).
+ * Here the lane keeps no mask, and each item fades on the very element that blurs (`fadingItem`), where a mask of its own leaves its backdrop alone.
+ * The item's mask is the lane's gradient, as wide as the lane's scrollport, and a scroll-driven animation slides it against the item's travel, so the fade holds still at the lane's ends while the item passes under it.
+ * The lane is an inline-size container so an item can size the gradient to the scrollport: the lane's content box plus the bleed on both sides.
+ * The gradient repeats in the block direction and the mask does not clip, so an item's ring stays whole above and below it.
+ * The fade follows the scroll position and nothing else, as the lane's mask does, so it is no motion and the motion preference leaves it alone.
+ * Where the browser has no scroll-driven animations, the items keep their blur and their edges are cut rather than faded.
+ * Keep `animation-timeline` as a separate longhand after the shorthand: Lightning CSS without browser targets folds it into an `animation` shorthand that browsers reject.
+ */
+.lane[data-fade="items"] {
+  container-type: inline-size;
+}
+
+@supports (animation-timeline: view()) {
+  .lane[data-fade="items"] .fadingItem {
+    --lane-scrollport: calc(100cqi + 2 * var(--lane-bleed));
+
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-shadow) var(--lane-bleed),
+      var(--color-shadow) calc(100% - var(--lane-bleed)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      var(--color-shadow) var(--lane-bleed),
+      var(--color-shadow) calc(100% - var(--lane-bleed)),
+      transparent
+    );
+    -webkit-mask-size: var(--lane-scrollport) 100%;
+    mask-size: var(--lane-scrollport) 100%;
+    -webkit-mask-repeat: repeat-y;
+    mask-repeat: repeat-y;
+    mask-clip: no-clip;
+    animation: lane-item-fade linear both;
+    animation-timeline: view(inline 0);
+  }
+}
+
+/*
+ * The mask's travel over the item's own: at the start of the view timeline the item's leading edge meets the scrollport's far end, so the mask sits one scrollport before it;
+ * at the end the item's trailing edge leaves the scrollport's near end, so the mask sits one item past the item's start.
+ * A percentage of the mask's position is a share of the item's width less the mask's, so one item is a hundred percent plus one scrollport.
+ */
+@keyframes lane-item-fade {
+  from {
+    -webkit-mask-position: calc(-1 * var(--lane-scrollport)) 0;
+    mask-position: calc(-1 * var(--lane-scrollport)) 0;
+  }
+
+  to {
+    -webkit-mask-position: calc(100% + var(--lane-scrollport)) 0;
+    mask-position: calc(100% + var(--lane-scrollport)) 0;
+  }
+}
+
+/*
+ * Room for a drop shadow: the lane pads by a large space on both sides and folds most of it back with its margin,
+ * so the shadow has its blur to spread into while the lane takes only a small space of the page beyond its items.
+ */
+.lane[data-room="shadow"] {
+  margin-block: calc(var(--space-xs) - var(--space-xl));
+  padding-block: var(--space-xl);
+}
+
+.lane::-webkit-scrollbar {
+  height: 0.3rem;
+}
+
+.lane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lane::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 38%, transparent);
+}

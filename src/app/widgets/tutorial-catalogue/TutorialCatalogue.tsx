@@ -7,6 +7,7 @@ import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { ScrollLane, fadingItemClass } from '@ui/list/ScrollLane';
 import { Surface } from '@ui/surface';
 import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
@@ -23,7 +24,7 @@ import styles from './TutorialCatalogue.module.css';
  */
 
 /** One tile, whichever catalogue it belongs to. */
-type CatalogueTile = Readonly<{
+export type CatalogueTile = Readonly<{
   slug: string;
   number: number;
   title: string;
@@ -49,7 +50,11 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
  * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
  * A built tile's title is a link that covers the whole tile, so the tile opens the tutorial and reads as one link.
  */
-function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
+function CatalogueTileView({
+  tile,
+  eager,
+  className,
+}: Readonly<{ tile: CatalogueTile; eager: boolean; className?: string }>) {
   const titleId = useId();
   const title = (
     <>
@@ -62,7 +67,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
-        className={clsx(styles.tile, tile.link && styles.built)}
+        className={clsx(styles.tile, tile.link && styles.built, className)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
@@ -113,20 +118,47 @@ function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
   );
 }
 
-/* The tiles, one row per part; the first row's pictures load at once. */
-function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+/**
+ * The tiles alone, one row per part, each row named by its part.
+ * The catalogue page mounts them under its title band, and a blog post shows the same rows in its column.
+ * The rows step from one tile across to five by the width of the `page-frame` container they sit in, so a page that gives them less room than the frame names its own.
+ * `eager` loads the first row's pictures at once, for a page whose rows open above the fold;
+ * a list further down a page leaves them lazy.
+ */
+function TutorialTiles({ rows, eager = true }: Readonly<{ rows: readonly CatalogueRow[]; eager?: boolean }>) {
   return (
     <Stack gap="xl">
       {rows.map((row, index) => (
         <Section key={row.part} title={row.part}>
           <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
             {row.tiles.map((tile) => (
-              <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
+              <CatalogueTileView key={tile.slug} tile={tile} eager={eager && index === 0} />
             ))}
           </ol>
         </Section>
       ))}
     </Stack>
+  );
+}
+
+/**
+ * The same tiles on one line that scrolls sideways, for a page that shows the catalogue in passing (Norbert, 2026-11-07: a blog post needs one line, not every row).
+ * Every tile keeps the width it has on the catalogue page at five across, so the line shows the first few and the edge of the next, and the list scrolls and snaps tile by tile.
+ * The line is the kit's `ScrollLane`, the fading lane the leaders on a faction's page scroll in.
+ * The tiles keep the panes' live blur of the page, as on the catalogue pages (Norbert, 2026-11-08: blur like surfaces).
+ * A blurred pane cannot fade under the lane's mask, which would make the lane its backdrop, so each tile fades itself (`fade="items"`).
+ * The list takes the focus so a keyboard moves it, and `label` names it to a reader.
+ * The pictures stay lazy: the line sits down a page, never above its fold.
+ */
+export function TutorialTileStrip({ tiles, label }: Readonly<{ tiles: readonly CatalogueTile[]; label: string }>) {
+  return (
+    <div className={styles.stripFrame}>
+      <ScrollLane as="ol" aria-label={label} start={tiles[0]?.number} focusable fade="items">
+        {tiles.map((tile) => (
+          <CatalogueTileView key={tile.slug} tile={tile} eager={false} className={fadingItemClass} />
+        ))}
+      </ScrollLane>
+    </div>
   );
 }
 
@@ -159,7 +191,7 @@ export function TutorialCatalogue({
         <TutorialTracks track={track} />
       </PageLayout.Toolbar>
       <PageLayout.Content>
-        <TutorialRows rows={rows} />
+        <TutorialTiles rows={rows} />
       </PageLayout.Content>
     </PageLayout>
   );

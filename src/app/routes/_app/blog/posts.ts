@@ -31,6 +31,19 @@ export type BlogPostMeta = {
  * A folder beside it, like `posts/anatomy/`, holds that post's own figures and follows the same naming rule.
  */
 export const BLOG_POST_META: Record<BlogPostSlug, BlogPostMeta> = {
+  'learn-to-play-dune-online': {
+    slug: 'learn-to-play-dune-online',
+    title: 'Learn to play Dune online in 21 short chapters: inside the dune.zone tutorial',
+    date: '2026-11-07',
+    author: 'Central419',
+    summary:
+      "The dune.zone tutorial won't let you click Next, on purpose. It's 21 short chapters on the real game table, running in your browser, with practice players who talk back and confetti at the end.",
+    cover: {
+      key: '/web/blog/learn-to-play-dune-online/meet-arrakis.jpg',
+      alt: 'The first chapter of the dune.zone tutorial: a list of tasks on the left, and an arrow pointing at the centre of the Arrakis board',
+      aspect: 1280 / 2048,
+    },
+  },
   'dune-homebrew-art-ai-and-credits': {
     slug: 'dune-homebrew-art-ai-and-credits',
     title: 'Making Dune homebrew look like it belongs: fan art, AI and credits',

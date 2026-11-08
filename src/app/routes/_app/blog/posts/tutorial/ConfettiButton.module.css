@@ -1,0 +1,6 @@
+/* The button on a line of its own in the middle of the column, with a little air above and below; the confetti it throws is over the page, not in here. */
+.root {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--space-sm);
+}
