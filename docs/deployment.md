@@ -408,7 +408,10 @@ deploying. In every other case the `deploy` job runs:
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
    it.
-2. Deploy Convex and run required migrations.
+2. Deploy Convex and run required migrations. Since Convex 1.47, `convex deploy` exits before
+   pushing when it would create or change an index on a table of 100,000 documents or more, because
+   CI cannot answer its confirmation. Stage such an index (`staged: true`) and enable it in a later
+   release once it has backfilled.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
