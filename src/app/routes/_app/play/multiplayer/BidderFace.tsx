@@ -174,18 +174,20 @@ function ClockRing({ deadline, table, now }: { deadline: number | null; table: T
 function TurnButton({
   sign,
   name,
+  hint,
   shortcut,
   disabledReason,
   onClick,
 }: {
   sign: string;
   name: string;
+  hint: string;
   shortcut: string;
   disabledReason?: string;
   onClick: () => void;
 }) {
   return (
-    <Tooltip label={disabledReason ?? name}>
+    <Tooltip label={disabledReason ?? hint}>
       <TooltipTarget>
         <UnstyledButton
           className={styles.turnButton}
@@ -209,13 +211,15 @@ function TurnButtons({ client, bidding }: { client: TableSession; bidding: Biddi
     <Group gap={6} justify="center" wrap="nowrap" role="group" aria-label="Your bid" className={styles.turnButtons}>
       <TurnButton
         sign="+"
-        name={bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}
+        name="Raise"
+        hint={bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}
         shortcut={SHORTCUTS.raise}
         onClick={() => client.command({ kind: 'bid-raise', round })}
       />
       <TurnButton
         sign="−"
-        name="Take back your last raise"
+        name="Lower"
+        hint="Take back your last raise"
         shortcut={SHORTCUTS.lower}
         disabledReason={canLowerBid(bidding, turn) ? undefined : 'Only a raise you made this turn can be taken back'}
         onClick={() => client.command({ kind: 'bid-lower', round })}
@@ -223,6 +227,7 @@ function TurnButtons({ client, bidding }: { client: TableSession; bidding: Biddi
       <TurnButton
         sign="Pass"
         name="Pass"
+        hint="Hand the bidder on"
         shortcut={SHORTCUTS.pass}
         onClick={() => client.command({ kind: 'bid-pass', round })}
       />

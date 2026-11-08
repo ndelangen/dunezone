@@ -7,7 +7,7 @@ import type { ChapterScript, TablePlayers } from './chapterScript';
 import { at, element, sentSince, tableDeck, task } from './guideChecks';
 
 /*
- * "Bidding": one round on the bidder, the teardrop over the board, from its start to a card won.
+ * "Bidding": one round on the bidder, the hollow drop over the board, from its start to a card won.
  * The others moved the game on to Bidding before the chapter opens. The learner opens the round at their own faction,
  * raises, takes a raise back and hands the bidder on with the letter keys, and the other players answer: one outbids them,
  * the rest pass, and the learner wins the card back. Then P turns their faction token face down to sit rounds out, and U turns it up.
