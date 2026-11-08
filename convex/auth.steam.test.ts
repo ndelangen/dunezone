@@ -112,11 +112,18 @@ describe('Steam sign-in', () => {
   });
 
   test('signs in without a profile when no Web API key is configured', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', '');
     const steamFetch = stubSteam();
     const t = applicationTest();
-    const signedIn = await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    const params = steamAssertion();
+    const signedIn = await t.action(api.auth.signIn, { provider: 'steam', params });
     expect(signedIn.tokens?.token).toEqual(expect.any(String));
     expect(steamFetch).toHaveBeenCalledTimes(1);
+    /* Steam is asked about exactly the assertion it sent, with only the mode changed. */
+    const checked = new URLSearchParams(steamFetch.mock.calls[0]![1]?.body as string);
+    for (const [key, value] of Object.entries(params)) {
+      expect(checked.get(key)).toBe(key === 'openid.mode' ? 'check_authentication' : value);
+    }
     expect(await steamAccount(t)).not.toBeNull();
   });
 
@@ -134,11 +141,25 @@ describe('Steam sign-in', () => {
     const t = applicationTest();
     await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
     const first = await steamAccount(t);
-    await t.action(api.auth.signIn, {
+    const signedIn = await t.action(api.auth.signIn, {
       provider: 'steam',
       params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
     });
+    expect(signedIn.tokens?.token).toEqual(expect.any(String));
     expect((await steamAccount(t))!.userId).toBe(first!.userId);
+  });
+
+  test('stops asking Steam once the check budget is spent', async () => {
+    const steamFetch = stubSteam({ valid: false });
+    const t = applicationTest();
+    for (let attempt = 0; attempt < 31; attempt++) {
+      const nonce = `2026-11-08T18:29:40Zforged${attempt}`;
+      await t.action(api.auth.signIn, {
+        provider: 'steam',
+        params: steamAssertion({ 'openid.response_nonce': nonce }),
+      });
+    }
+    expect(steamFetch).toHaveBeenCalledTimes(30);
   });
 
   test('refuses an assertion Steam does not confirm', async () => {

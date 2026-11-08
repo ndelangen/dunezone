@@ -6,11 +6,16 @@ export type SteamLogin = { steamId: string; nonce: string; name?: string; image?
 
 /**
  * Checks a returned Steam assertion with Steam itself and, when a Web API key is configured, reads the player's public name and avatar.
- * Returns `null` when the assertion is malformed, stale, aimed at another site, or Steam does not confirm it.
+ * Returns `null` when the assertion is malformed, stale, aimed at another site, over the check budget, or Steam does not confirm it.
  */
-export async function verifySteamLogin(fields: Record<string, unknown>, siteUrl: string): Promise<SteamLogin | null> {
+export async function verifySteamLogin(
+  fields: Record<string, unknown>,
+  siteUrl: string,
+  admit: () => Promise<boolean>
+): Promise<SteamLogin | null> {
   const assertion = parseSteamAssertion(fields, new URL(siteUrl), Date.now());
-  if (!assertion) {
+  /* Anyone can send a well-formed assertion with a made-up signature, so the requests to Steam share a budget. */
+  if (!assertion || !(await admit())) {
     return null;
   }
   const check = await fetch(STEAM_OPENID_ENDPOINT, {

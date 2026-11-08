@@ -1,9 +1,22 @@
+import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter';
 import { v } from 'convex/values';
 
 import { STEAM_ASSERTION_MAX_AGE_MS } from '../src/shared/steamOpenId';
-import { internal } from './_generated/api';
+import { components, internal } from './_generated/api';
 import { internalMutation } from './functions';
 import { upsertLoginUser } from './lib/loginUser';
+
+/* Real sign-ins are a handful a minute; the budget only stops a flood of forged assertions from tying up actions waiting on Steam. */
+const limiter = new RateLimiter(components.rateLimiter, {
+  steamCheck: { kind: 'token bucket', rate: 120, period: MINUTE, capacity: 30 },
+});
+
+/** Whether another assertion may be checked with Steam now. */
+export const admitSteamCheck = internalMutation({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => (await limiter.limit(ctx, 'steamCheck')).ok,
+});
 
 /**
  * Signs a Steam login, already confirmed by Steam, into its account.

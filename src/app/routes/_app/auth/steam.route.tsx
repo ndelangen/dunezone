@@ -2,7 +2,7 @@ import { useAuthActions } from '@convex-dev/auth/react';
 import { signInReturnFrom } from '@shared/authDestination';
 import { steamAssertionFrom } from '@shared/steamOpenId';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { refusedAsInactiveAccount, settleStartedSignIn } from '@db/accounts';
 import { takeSteamSignIn } from '@db/steamSignIn';
@@ -18,9 +18,6 @@ export const Route = createFileRoute('/_app/auth/steam')({
   component: SteamReturnPage,
 });
 
-/* One page load holds at most one Steam answer; Strict Mode's second effect must not spend it again. */
-let handled = false;
-
 /** A connect page explains its own unfinished sign-in, so it keeps the reader instead of sending them to sign in. */
 const explainsItsOwnResult = (pathname: string) => /^\/profiles\/[^/]+\/connect$/.test(pathname);
 
@@ -32,11 +29,13 @@ const explainsItsOwnResult = (pathname: string) => /^\/profiles\/[^/]+\/connect$
 function SteamReturnPage() {
   const { signIn } = useAuthActions();
   const router = useRouter();
+  /* One return holds one Steam answer; Strict Mode's second effect must not spend it again. */
+  const handled = useRef(false);
   useEffect(() => {
-    if (handled) {
+    if (handled.current) {
       return;
     }
-    handled = true;
+    handled.current = true;
     /* The router's history holds the address Steam returned to, in the browser and in a story's memory history alike. */
     const { pathname, search: returnedSearch } = router.history.location;
     const search = new URLSearchParams(returnedSearch);

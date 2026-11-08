@@ -88,7 +88,9 @@ if (steamSignInAvailable()) {
     ConvexCredentials({
       id: 'steam',
       authorize: async (params, ctx) => {
-        const login = await verifySteamLogin(params, process.env.SITE_URL!);
+        const login = await verifySteamLogin(params, process.env.SITE_URL!, () =>
+          ctx.runMutation(internal.steamAuth.admitSteamCheck, {})
+        );
         if (!login) {
           return null;
         }
