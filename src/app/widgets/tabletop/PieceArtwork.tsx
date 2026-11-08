@@ -18,7 +18,7 @@ type Props = {
   height: number;
   /** A card's corner. A token ignores it: its own type decides its cut, the same as everywhere else it is shown. */
   radius?: string;
-  /** Whether it draws the full capture rather than a copy sized to the box, for a face the reader may zoom past its box. */
+  /** Whether it draws the full capture rather than a copy sized to the box, for a face the reader zooms past its box. */
   full?: boolean;
 };
 

@@ -42,3 +42,14 @@ export function publishedThumbnailSrc(src: string, pixels: number): string {
   url.searchParams.set(PUBLISHED_THUMBNAIL_PARAM, String(width));
   return /^[a-z][a-z\d+.-]*:/i.test(src) ? url.toString() : `${url.pathname}${url.search}`;
 }
+
+/** The width a drawn URL serves at: its listed copy's, or, for the capture itself and anything else, more than every copy's. */
+export function publishedCopyWidth(drawn: string): number {
+  if (!URL.canParse(drawn, 'https://published.invalid')) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const width = publishedThumbnailWidth(
+    new URL(drawn, 'https://published.invalid').searchParams.get(PUBLISHED_THUMBNAIL_PARAM)
+  );
+  return width ?? Number.POSITIVE_INFINITY;
+}

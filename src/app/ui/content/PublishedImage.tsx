@@ -1,4 +1,4 @@
-import { publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
+import { publishedCopyWidth, publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
 import clsx from 'clsx';
 import { ImageOff } from 'lucide-react';
 import { useEffect, useLayoutEffect, useReducer, useRef, useSyncExternalStore } from 'react';
@@ -44,7 +44,8 @@ type Props = {
    */
   priority?: boolean;
   /**
-   * Whether it always draws the full capture, never a resized copy, for an image shown larger than the box it is laid out in, such as the Alt close-up, which the reader zooms: a copy sized to the box, or one drawn smaller elsewhere first, would blur.
+   * Whether it draws the full capture rather than a copy sized to its box, for an image the reader zooms past its box, such as the Alt close-up.
+   * A smaller copy already decoded is shown until the capture has loaded.
    */
   full?: boolean;
 };
@@ -58,8 +59,8 @@ type Props = {
  * It fills the width it is given at `aspect`, and fetches nothing but `src`.
  */
 export function PublishedImage(props: Props) {
-  /* A new src is a new image with its own arrival, so it starts from a fresh state and a fresh img element. */
-  return <Arrival key={props.src ?? ''} {...props} />;
+  /* A new src, or a full image in place of a sized one, is a new image with its own arrival, so it starts from a fresh state and a fresh img element. */
+  return <Arrival key={`${props.full ? 'full:' : ''}${props.src ?? ''}`} {...props} />;
 }
 
 type Phase = 'loading' | 'decoded' | 'ready' | 'arriving' | 'shown' | 'missing';
@@ -86,7 +87,8 @@ type Action =
   | { type: 'started'; animate: boolean }
   | { type: 'finished' }
   | { type: 'failed' }
-  | { type: 'recovered' };
+  | { type: 'recovered' }
+  | { type: 'sharpened'; drawn: string };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -110,6 +112,8 @@ function reducer(state: State, action: Action): State {
       return state.phase === 'arriving' ? { ...state, phase: 'shown', slot: false } : state;
     case 'failed':
       return { ...state, phase: 'missing', fetching: false };
+    case 'sharpened':
+      return { ...state, drawn: action.drawn };
     case 'recovered':
       /* The bytes were just fetched, so the image replaces the missing state at once when the browser still holds them. */
       return state.phase === 'missing'
@@ -118,7 +122,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function initialState(src: string | null, priority: boolean, full: boolean): State {
+function initialState(src: string | null, priority: boolean): State {
   const base = { arrival: 'animate', fetching: false, drawn: src, slot: false, order: null } as const;
   if (src === null) {
     return { ...base, phase: 'missing' };
@@ -129,8 +133,7 @@ function initialState(src: string | null, priority: boolean, full: boolean): Sta
   }
   /* An image decoded before fetches at once, and is shown before the first paint if the browser still holds it. */
   const drawn = decodedFrom(src);
-  /* A full image takes only the capture itself, never a smaller copy another tile decoded. */
-  if (drawn !== undefined && (!full || drawn === src)) {
+  if (drawn !== undefined) {
     return { ...base, phase: 'loading', fetching: true, drawn };
   }
   return { ...base, phase: 'loading' };
@@ -149,6 +152,11 @@ function completeImageAction(img: HTMLImageElement, phase: Phase): Action | null
   return phase === 'loading' ? { type: 'decoded' } : null;
 }
 
+/** The URL a tile draws from: the capture itself when it is full, otherwise the smallest copy that covers its device pixels. */
+function neededCopy(src: string, root: HTMLElement, full: boolean) {
+  return full ? src : publishedThumbnailSrc(src, root.getBoundingClientRect().width * window.devicePixelRatio);
+}
+
 function inFetchRange(element: HTMLElement) {
   const rect = element.getBoundingClientRect();
   return rect.bottom >= -FETCH_MARGIN_PX && rect.top <= window.innerHeight + FETCH_MARGIN_PX;
@@ -157,9 +165,7 @@ function inFetchRange(element: HTMLElement) {
 function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority = false, full = false }: Props) {
   /* Only a server-rendered main image starts shown; one mounted later, by navigation or a new src, arrives like any other. */
   const serverRendered = useSyncExternalStore(subscribeToNothing, clientSnapshot, serverSnapshot);
-  const [state, dispatch] = useReducer(reducer, src, (initial) =>
-    initialState(initial, priority && serverRendered, full)
-  );
+  const [state, dispatch] = useReducer(reducer, src, (initial) => initialState(initial, priority && serverRendered));
   const motion = useMotionAllowed();
   const rootRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -190,7 +196,7 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     const inRange = () =>
       dispatch({
         type: 'inRange',
-        drawn: full ? src! : publishedThumbnailSrc(src!, root.getBoundingClientRect().width * window.devicePixelRatio),
+        drawn: neededCopy(src!, root, full),
       });
     if (inFetchRange(root)) {
       inRange();
@@ -208,6 +214,40 @@ function Arrival({ src, name, aspect, radius, clipPath, raised = false, priority
     observer.observe(root);
     return () => observer.disconnect();
   }, [fetching, full, phase, src]);
+
+  /*
+   * An image shown at once from a smaller copy another tile decoded, such as the hand's copy of a card held up close, stays on screen while the copy its own tile needs loads out of sight, and is swapped for it once decoded.
+   * A copy that fails to load leaves the smaller one in place.
+   */
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !src || !drawn || phase !== 'shown') {
+      return;
+    }
+    /* A tile with no width yet, as in a closed panel, needs nothing more. */
+    if (!full && root.getBoundingClientRect().width === 0) {
+      return;
+    }
+    const needed = neededCopy(src, root, full);
+    if (publishedCopyWidth(needed) <= publishedCopyWidth(drawn)) {
+      return;
+    }
+    let cancelled = false;
+    const image = new Image();
+    image.src = needed;
+    void image
+      .decode()
+      .catch(() => undefined)
+      .then(() => {
+        if (!cancelled && image.naturalWidth > 0) {
+          markDecoded(src, needed);
+          dispatch({ type: 'sharpened', drawn: needed });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [drawn, full, phase, src]);
 
   /*
    * An image the browser already holds is complete the moment it gets its src, so it is shown before the first paint.

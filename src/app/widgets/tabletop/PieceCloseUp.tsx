@@ -283,7 +283,7 @@ function CloseUp({
     >
       {/*
        * Only the top item, so a stack of prediction cards that share one front shows the top card's prediction.
-       * Always the full capture: the face is zoomed up to four times its box, and the hand's small copy of the same card would blur.
+       * The full capture, the sharpest there is, since the face is zoomed past its box; the hand's small copy shows only until it loads.
        */}
       <PieceArtwork
         piece={{ ...shown, items: [item] }}
