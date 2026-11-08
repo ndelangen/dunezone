@@ -411,10 +411,16 @@ export function StrengthSum({
       : undefined;
   const total = plan.strength + (leader ?? 0);
   const bonus = spiceBonus(plan);
+  /* The total lands with a small animation each time it changes; which way it went tells the stylesheet how. */
+  const landed = useBump(total);
+  const [trend, setTrend] = useState<{ total: number; way?: 'up' | 'down' }>({ total });
+  if (trend.total !== total) {
+    setTrend({ total, way: total > trend.total ? 'up' : 'down' });
+  }
   return (
     <div className={styles.sum} aria-live="polite">
       <span className={styles.sumTop}>
-        <span className={styles.sumValue}>
+        <span className={styles.sumValue} data-landed={landed} data-trend={trend.way}>
           <RollingNumber value={total} />
         </span>
         {adjust}

@@ -88,7 +88,6 @@ export function ReadyToggle({
       <Tooltip label={ready ? 'Withdraw readiness' : 'Tell the table you are ready'} withinPortal>
         <Button
           disabled={disabled}
-          className={styles.button}
           color={ready ? 'confirm' : 'cta'}
           variant="filled"
           aria-pressed={ready}

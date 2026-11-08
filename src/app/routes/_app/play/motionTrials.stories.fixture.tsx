@@ -1,31 +1,30 @@
-import type { Decorator } from '@storybook/tanstack-react';
+import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 
 /*
  * Animation trials: each spot's candidate animations live in its stylesheet behind `<html data-trial-<spot>="<variant>">`,
- * so a story picks one variant without plumbing a prop through the table, and the Replay button restarts it.
+ * so a story picks one variant without plumbing a prop through the table.
  * Once a variant is chosen it becomes the spot's only animation and this fixture goes.
  */
-export type TrialSpot = 'battle-pop' | 'ready' | 'turn-done';
+export type TrialSpot = 'battle-pop' | 'strength';
 
-function replay(spot: TrialSpot, variant: string) {
-  const root = document.documentElement;
-  const attribute = `data-trial-${spot}`;
-  root.removeAttribute(attribute);
-  /* Reading layout recalculates styles, so every animation the attribute drives restarts from its first frame. */
-  void document.body.offsetHeight;
-  root.setAttribute(attribute, variant);
-}
-
-function TrialReplay({ spot, variant }: { spot: TrialSpot; variant: string }) {
+/** Pins the spot's variant on <html> while the story shows; no variant is today's behaviour. */
+export function useTrialVariant(spot: TrialSpot, variant: string | undefined) {
   useEffect(() => {
+    if (!variant) {
+      return;
+    }
     document.documentElement.setAttribute(`data-trial-${spot}`, variant);
     return () => document.documentElement.removeAttribute(`data-trial-${spot}`);
   }, [spot, variant]);
+}
+
+/** The trial's control, in the corner over the story. */
+export function TrialButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
-      onClick={() => replay(spot, variant)}
+      onClick={onClick}
       style={{
         position: 'fixed',
         right: 12,
@@ -40,17 +39,7 @@ function TrialReplay({ spot, variant }: { spot: TrialSpot; variant: string }) {
         cursor: 'pointer',
       }}
     >
-      ↻ Replay “{variant}”
+      {children}
     </button>
-  );
-}
-
-/** Pins one trial variant for the story and adds a Replay button in the corner. */
-export function trial(spot: TrialSpot, variant: string): Decorator {
-  return (Story) => (
-    <>
-      <Story />
-      <TrialReplay spot={spot} variant={variant} />
-    </>
   );
 }

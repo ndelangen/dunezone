@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useDragMark } from '@app/styles/dragMark';
 import { useMotionAllowed } from '@app/styles/motion';
 
 import styles from './SortableRow.module.css';
@@ -107,6 +108,7 @@ export function SortableRow<T extends { id: string }>({
   const pointer = useRef<Point>(undefined);
   const held = useRef<number>(undefined);
   const dragging = active !== undefined;
+  useDragMark(dragging);
   useEffect(() => {
     if (!dragging) {
       return;

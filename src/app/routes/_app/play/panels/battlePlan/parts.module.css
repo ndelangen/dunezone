@@ -361,3 +361,137 @@
     transition: none;
   }
 }
+
+/*
+ * Animation trials for the strength landing on its new total once it has rolled there (motionTrials.stories.fixture.tsx
+ * picks one per story). Each runs in two copies that `data-landed` alternates between, so every change replays it.
+ */
+.sumValue[data-landed] {
+  display: inline-block;
+  transform-origin: left center;
+}
+
+/* Pop: the total pops as it lands. */
+:global(html[data-motion="ok"][data-trial-strength="pop"]) .sumValue[data-landed="0"] {
+  animation: strength-pop 460ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-strength="pop"]) .sumValue[data-landed="1"] {
+  animation: strength-pop2 460ms ease-out;
+}
+
+@keyframes strength-pop {
+  0%,
+  50% {
+    scale: 1;
+  }
+
+  72% {
+    scale: 1.2;
+  }
+}
+
+@keyframes strength-pop2 {
+  0%,
+  50% {
+    scale: 1;
+  }
+
+  72% {
+    scale: 1.2;
+  }
+}
+
+/* Knock: the total drops onto its line as it lands, with the Panel edge's two-step knock. */
+:global(html[data-motion="ok"][data-trial-strength="knock"]) .sumValue[data-landed="0"] {
+  animation: strength-knock 520ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-strength="knock"]) .sumValue[data-landed="1"] {
+  animation: strength-knock2 520ms ease-out;
+}
+
+@keyframes strength-knock {
+  0%,
+  45% {
+    translate: 0 0;
+  }
+
+  60% {
+    translate: 0 4px;
+  }
+
+  75% {
+    translate: 0 0;
+  }
+
+  87% {
+    translate: 0 2px;
+  }
+}
+
+@keyframes strength-knock2 {
+  0%,
+  45% {
+    translate: 0 0;
+  }
+
+  60% {
+    translate: 0 4px;
+  }
+
+  75% {
+    translate: 0 0;
+  }
+
+  87% {
+    translate: 0 2px;
+  }
+}
+
+/* Weigh: a stronger plan swells as it rolls and settles; a weaker one sinks a little and comes back up. */
+:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="up"][data-landed="0"] {
+  animation: strength-swell 420ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="up"][data-landed="1"] {
+  animation: strength-swell2 420ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="down"][data-landed="0"] {
+  animation: strength-sink 420ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-strength="weigh"]) .sumValue[data-trend="down"][data-landed="1"] {
+  animation: strength-sink2 420ms ease-out;
+}
+
+@keyframes strength-swell {
+  55% {
+    scale: 1.16;
+    translate: 0 -2px;
+  }
+}
+
+@keyframes strength-swell2 {
+  55% {
+    scale: 1.16;
+    translate: 0 -2px;
+  }
+}
+
+@keyframes strength-sink {
+  55% {
+    scale: 0.9;
+    translate: 0 3px;
+    opacity: 0.7;
+  }
+}
+
+@keyframes strength-sink2 {
+  55% {
+    scale: 0.9;
+    translate: 0 3px;
+    opacity: 0.7;
+  }
+}

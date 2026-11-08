@@ -18,6 +18,11 @@
   gap: 0.3rem;
 }
 
+/* A sortable tile is a block around its token; as a flex box it takes the token's height, so the factions still to go line up with the ones done. */
+.row > * {
+  display: flex;
+}
+
 .token {
   position: relative;
   display: inline-flex;
@@ -71,79 +76,13 @@ button.token:focus-visible {
   color: var(--ui-ground);
 }
 
-/* Animation trials for a faction marked done (motionTrials.stories.fixture.tsx picks one per story). */
-
-/* Pop: the tick pops onto the token. */
-:global(html[data-motion="ok"][data-trial-turn-done="pop"]) .turns[data-motion] .tick {
+/* A faction marked done: its tick pops onto the token. */
+.turns[data-motion] .tick {
   animation: done-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 
 @keyframes done-pop {
   from {
     scale: 0;
-  }
-}
-
-/* Stamp: the tick comes down big and tilted like a rubber stamp, and the token gives under it with a small knock. */
-:global(html[data-motion="ok"][data-trial-turn-done="stamp"]) .turns[data-motion] .tick {
-  animation: done-stamp 220ms ease-in;
-}
-
-:global(html[data-motion="ok"][data-trial-turn-done="stamp"]) .turns[data-motion] .token[data-turn="done"] {
-  animation: done-give 320ms ease-out 200ms;
-}
-
-@keyframes done-stamp {
-  from {
-    opacity: 0;
-    scale: 2.6;
-    rotate: -30deg;
-  }
-}
-
-@keyframes done-give {
-  30% {
-    translate: 0 2px;
-  }
-
-  60% {
-    translate: 0 0;
-  }
-
-  80% {
-    translate: 0 1px;
-  }
-}
-
-/* Hop: the token hops into its place among the finished and lands with the Panel edge's two-step knock; the tick follows. */
-:global(html[data-motion="ok"][data-trial-turn-done="hop"]) .turns[data-motion] .token[data-turn="done"] {
-  animation: done-hop 380ms ease-out;
-}
-
-:global(html[data-motion="ok"][data-trial-turn-done="hop"]) .turns[data-motion] .tick {
-  animation: done-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 260ms backwards;
-}
-
-@keyframes done-hop {
-  0% {
-    translate: 0 0;
-    animation-timing-function: ease-out;
-  }
-
-  35% {
-    translate: 0 -7px;
-    animation-timing-function: ease-in;
-  }
-
-  60% {
-    translate: 0 0;
-  }
-
-  78% {
-    translate: 0 -2px;
-  }
-
-  100% {
-    translate: 0 0;
   }
 }

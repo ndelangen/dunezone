@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
 import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSchemeIsland';
+import { useState } from 'react';
 import { fn } from 'storybook/test';
 
 import { MovementTurns } from './MovementTurns';
@@ -44,4 +45,23 @@ export const EveryoneDone = meta.story({
 /** An observer sees the same row without a press or a drag on it. */
 export const Observer = meta.story({
   args: { done: order.slice(0, 1), canAct: false },
+});
+
+/* The row as the table plays it: a click marks a faction done, another takes it back. */
+function PlayedTurns(args: Parameters<typeof TableMovementTurns>[0]) {
+  const [done, setDone] = useState<string[]>([]);
+  return (
+    <TableMovementTurns
+      {...args}
+      done={done}
+      onDone={(id) => setDone([...done, id])}
+      onUndo={(id) => setDone(done.filter((other) => other !== id))}
+    />
+  );
+}
+
+/** By hand: click a token to mark its faction done; its tick pops on, and it lines up with the ones still to go. */
+export const MarkingDone = meta.story({
+  globals: { motion: 'on' },
+  render: (args) => <PlayedTurns {...args} />,
 });
