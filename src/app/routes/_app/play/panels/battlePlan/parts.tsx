@@ -81,7 +81,7 @@ export function useBump(value: unknown) {
  * Digits that did not change stay put.
  */
 /*
- * The strength as rolling wheels, like an odometer: a half wheel, then a wheel per whole place.
+ * The strength as rolling wheels, like an odometer: a wheel per whole place, then a half that opens beside them.
  * Everything follows one count of halves, which a spring carries towards the plan's total, so a quick run of changes keeps rolling from wherever the wheels are.
  */
 const HALF = ['', '½'];
@@ -90,10 +90,13 @@ const FIGURES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const STIFFNESS = 150;
 const DAMPING = 19;
 
-/* Where a wheel stands for `halves`, counted in its own steps: it turns only while the wheel below it rolls over. */
-function wheelPosition(halves: number, size: number) {
-  const below = ((halves % size) + size) % size;
-  return Math.floor(halves / size) + Math.max(0, below - (size - 1));
+/* Where a wheel worth `size` stands for the whole number `whole`: it turns only while the wheel below it rolls over from 9. */
+function wheelPosition(whole: number, size: number) {
+  if (size === 1) {
+    return whole;
+  }
+  const below = whole % size;
+  return Math.floor(whole / size) + Math.max(0, below - (size - 1));
 }
 
 /* How open a leading place is: shut below its first step, open from it on, opening as its wheel rolls in. */
@@ -150,30 +153,31 @@ function Wheel({ faces, position, open, slot }: { faces: string[]; position: num
 function SlidingNumber({ value }: { value: number }) {
   const motion = useMotionAllowed();
   const halves = useSpring(value * 2, motion && value >= 0);
+  const [roll, setRoll] = useState({ to: value * 2, from: value * 2 });
+  /* The half opens only near an end of the roll that has one, so a roll between whole numbers never flickers a half on the way. */
+  const near = (end: number) => (Math.abs(end % 2) === 1 ? Math.max(0, 1 - Math.abs(end - halves)) : 0);
+  const half = Math.max(near(roll.to), near(roll.from));
+  /* A new total sets off from where the wheels stand: on a half if it shows, otherwise on the nearest whole. */
+  if (roll.to !== value * 2) {
+    setRoll({ to: value * 2, from: half > 0.5 ? Math.round(halves) : 2 * Math.round(halves / 2) });
+  }
   if (!motion || value < 0 || halves < 0) {
     return <>{formatStrength(value)}</>;
   }
-  const places = Math.max(1, String(Math.floor(Math.max(value, halves / 2))).length);
-  const half = ((halves % 2) + 2) % 2;
-  /* Below one, a bare half drops its nought, as the plain strength writes it. */
-  const units = halves <= 2 ? 1 - Math.min(half, 2 - half) : 1;
+  /* The whole number the wheels stand on: it rolls smoothly between wholes and rests while the half opens or closes. */
+  const whole = Math.max(0, (halves - half) / 2);
+  const places = Math.max(1, String(Math.floor(Math.max(value, whole + 1))).length);
   return (
     <span className={styles.wheels}>
       <VisuallyHidden>{formatStrength(value)}</VisuallyHidden>
       {Array.from({ length: places }, (_, index) => {
         const place = places - 1 - index;
-        const position = wheelPosition(halves, 2 * 10 ** place);
-        return (
-          <Wheel
-            key={place}
-            faces={FIGURES}
-            position={position}
-            open={place === 0 ? units : leadOpen(position)}
-            slot="1ch"
-          />
-        );
+        const position = wheelPosition(whole, 10 ** place);
+        /* Below one, a bare half drops its nought, as the plain strength writes it. */
+        const open = place === 0 ? (whole < 1 ? 1 - half : 1) : leadOpen(position);
+        return <Wheel key={place} faces={FIGURES} position={position} open={open} slot="1ch" />;
       })}
-      <Wheel faces={HALF} position={halves} open={Math.min(half, 2 - half)} slot="1.35ch" />
+      <Wheel faces={HALF} position={1} open={half} slot="1.35ch" />
     </span>
   );
 }
