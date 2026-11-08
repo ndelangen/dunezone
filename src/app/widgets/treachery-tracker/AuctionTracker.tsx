@@ -107,6 +107,7 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
         <CardChooser
           state={state}
           allowUnknown
+          forBid
           onPick={(card) => {
             onAction({ kind: 'bid', card, turn });
             setOpen(false);
@@ -147,6 +148,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
           <CardChooser
             state={state}
             allowUnknown={false}
+            forBid
             onPick={(card) => {
               onAction({ kind: 'bid', card, turn });
               setOpen(false);

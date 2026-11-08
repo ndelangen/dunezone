@@ -16,6 +16,7 @@ import {
   groupOf,
   placeOf,
   slotOf,
+  reservedCards,
   unplaced,
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
@@ -70,19 +71,27 @@ export function CardChooser({
   state,
   onPick,
   allowUnknown,
+  forBid = false,
 }: Readonly<{
   state: TrackerState;
   onPick: (card: string | null) => void;
   allowUnknown: boolean;
+  /** Picking the next card up for bid, which may never be a card already on bid. */
+  forBid?: boolean;
 }>) {
+  /* A copy on bid is spoken for: the deck offers only the other copies, and only a hand may take it, from the seen row. */
+  const reserved = reservedCards(state);
   const free = unplaced(state);
   const freeIds = new Set(free.map((copy) => copy.id));
-  const seen = state.seen.flatMap((sighting) =>
-    sighting.card && freeIds.has(sighting.card) ? [copyOf(state, sighting.card)] : []
+  const seenIds = new Set(
+    state.seen.flatMap((sighting) =>
+      sighting.card && freeIds.has(sighting.card) && !(forBid && reserved.has(sighting.card)) ? [sighting.card] : []
+    )
   );
+  const seen = [...seenIds].map((card) => copyOf(state, card));
   /* One glyph per card name: a second copy adds nothing to choose from. */
   const byName = new Map<string, { copy: CardCopy; left: number }>();
-  for (const copy of free) {
+  for (const copy of free.filter((entry) => !reserved.has(entry.id))) {
     const entry = byName.get(copy.def.key);
     if (entry) {
       entry.left += 1;

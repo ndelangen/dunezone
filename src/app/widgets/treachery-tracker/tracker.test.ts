@@ -1,6 +1,16 @@
 import { expect, test } from 'vitest';
 
-import { awaitingWinner, currentTurn, groupCount, newTracker, onBid, sightingCard, trackerReducer } from './tracker';
+import {
+  awaitingWinner,
+  currentTurn,
+  groupCount,
+  newTracker,
+  onBid,
+  reservedCards,
+  sightingCard,
+  trackerReducer,
+  unplaced,
+} from './tracker';
 import type { CardDef, TrackerAction, TrackerState } from './tracker';
 
 const def = (key: string, detail: string, count = 1): CardDef => ({
@@ -54,4 +64,57 @@ test('group counts read in the singular for one card', () => {
   expect(groupCount('worthless', 1)).toBe('1 worthless');
   expect(groupCount('defense-poison', 1)).toBe('1 poison defense');
   expect(groupCount('defense-poison', 2)).toBe('2 poison defenses');
+});
+
+test('a finished auction stays finished after its card is discarded and reshuffled', () => {
+  const state = run(
+    { kind: 'bid', card: 'shield#1', turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' },
+    { kind: 'discard', faction: 'emperor', slot: 'slot-2' },
+    { kind: 'reshuffle' },
+    { kind: 'bid', card: 'lasgun#1', turn: 2 }
+  );
+  expect(awaitingWinner(state, state.seen[1]!)).toBe(false);
+  expect(onBid(state)?.card).toBe('lasgun#1');
+});
+
+test('a card on bid sent straight to the discard pile ends its auction for good', () => {
+  const state = run(
+    { kind: 'bid', card: 'shield#1', turn: 1 },
+    { kind: 'place', card: 'shield#1', at: 'discard' },
+    { kind: 'reshuffle' }
+  );
+  expect(onBid(state)).toBeUndefined();
+});
+
+test('a copy on bid is reserved, so a second identical card goes up as the other copy', () => {
+  const state = run({ kind: 'bid', card: 'shield#1', turn: 1 });
+  expect([...reservedCards(state)]).toEqual(['shield#1']);
+  const won = run(
+    { kind: 'bid', card: 'shield#1', turn: 1 },
+    { kind: 'bid', card: 'shield#2', turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' }
+  );
+  expect(onBid(won)?.card).toBe('shield#2');
+  expect(won.hands.emperor?.map((slot) => slot.card)).toEqual(['shield#1']);
+});
+
+test('taking back a card picked from the discard pile returns it to the pile', () => {
+  const state = run(
+    { kind: 'place', card: 'baliset#1', at: 'discard' },
+    { kind: 'add', faction: 'emperor', card: 'baliset#1' },
+    { kind: 'undo', faction: 'emperor', slot: 'slot-1' }
+  );
+  expect(state.discard).toEqual(['baliset#1']);
+  expect(unplaced(state).map((copy) => copy.id)).not.toContain('baliset#1');
+});
+
+test('taking back a card picked from another hand returns it to that hand', () => {
+  const state = run(
+    { kind: 'add', faction: 'atreides', card: 'lasgun#1' },
+    { kind: 'add', faction: 'emperor', card: 'lasgun#1' },
+    { kind: 'undo', faction: 'emperor', slot: 'slot-2' }
+  );
+  expect(state.hands.atreides).toEqual([{ id: 'slot-1', card: 'lasgun#1' }]);
+  expect(state.hands.emperor).toEqual([]);
 });

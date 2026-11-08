@@ -176,6 +176,9 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
   return kept;
 }
 
+/** Chunks of Play panels that only some seats ever open, imported on demand by the table. */
+const ON_DEMAND_PANELS = /\/TreacheryTrackerPanel-[^/]+\.js$/u;
+
 const config = defineConfig({
   /* Oxfmt and Oxlint keep their own config files, which scripts and docs read; Vite+ takes them from here. */
   fmt: readJsonc(fileURLToPath(new URL('./.oxfmtrc.json', import.meta.url))) as UserConfig['fmt'],
@@ -202,6 +205,14 @@ const config = defineConfig({
     chunkSizeWarningLimit: Number.POSITIVE_INFINITY,
     /* CI hides the per-file report (quietBuildReportInCi), so it skips gzipping every file just to size it. */
     reportCompressedSize: !process.env.CI,
+    /*
+     * A panel loaded on demand keeps only its stylesheets in its importer's preload list: its scripts load with it, and the
+     * long list of shared chunk names would otherwise sit in the table's own bundle.
+     */
+    modulePreload: {
+      resolveDependencies: (filename, deps) =>
+        ON_DEMAND_PANELS.test(filename) ? deps.filter((dep) => dep.endsWith('.css')) : deps,
+    },
     rollupOptions: {
       /* The per-build plugin timing report printed on every build and every CI run; profile locally instead. */
       checks: { bundlerTimings: false },

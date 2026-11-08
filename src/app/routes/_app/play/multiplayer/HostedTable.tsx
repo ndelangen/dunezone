@@ -16,7 +16,16 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
-import { useContext, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  lazy,
+  useContext,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
@@ -57,8 +66,8 @@ import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSi
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
-import { ConnectedTreacheryTrackerPanel, useTrackerSeat } from '../panels/treacheryTracker/useTreacheryTracker';
-import type { TrackerSeat } from '../panels/treacheryTracker/useTreacheryTracker';
+import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
+import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
@@ -83,6 +92,13 @@ import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
+
+/* Only a faction whose rules keep the Treachery tracker loads it, so the table's own bundle stays within its budget. */
+const ConnectedTreacheryTrackerPanel = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.ConnectedTreacheryTrackerPanel,
+  }))
+);
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -373,7 +389,11 @@ function yoursGroup({
         ? [
             {
               ...PANEL_WINDOWS.treacheryTracker,
-              content: <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />,
+              content: (
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />
+                </Suspense>
+              ),
             },
           ]
         : []),

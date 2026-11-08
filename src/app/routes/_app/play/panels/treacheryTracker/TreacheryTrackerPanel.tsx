@@ -3,33 +3,14 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { tableProgressFor } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
-import { useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useReducer } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { AuctionTracker } from '../../../../../widgets/treachery-tracker/AuctionTracker';
 import { CARD_KINDS, newTracker, trackerReducer } from '../../../../../widgets/treachery-tracker/tracker';
 import type { CardDef, CardKind, TrackerState } from '../../../../../widgets/treachery-tracker/tracker';
 import { factionToken } from '../../multiplayer/FactionTokenFace';
-import { seatFaction } from '../../multiplayer/tableFactions';
-
-/** The tracker a seat may keep: its faction and the game's Treachery deck. */
-export type TrackerSeat = Readonly<{ faction: string; cards: readonly TreacheryDeckCard[] }>;
-
-/**
- * The viewer's tracker, when the room answers its deck read: the room answers only a seat whose faction's captured rules keep the tracker.
- * The read waits for an authorized connection and is asked again after a reconnect, as a faction's sheet is.
- */
-export function useTrackerSeat(client: TableSession, table: TableProjection): TrackerSeat | null {
-  const { status, treacheryDeck } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const seat = table.viewer.viewerSeat ?? null;
-  const faction = seat ? seatFaction(table, seat) : undefined;
-  useEffect(() => {
-    if (faction && status === 'authorized') {
-      client.readTreacheryDeck(seat);
-    }
-  }, [client, faction, seat, status]);
-  return faction && treacheryDeck ? { faction, cards: treacheryDeck } : null;
-}
+import type { TrackerSeat } from './useTrackerSeat';
 
 /* A card's kind is the first word of the line under its name; a card without one counts as a special. */
 function kindOf(detail: string): CardKind {
@@ -106,7 +87,7 @@ function TrackerAtTable({
   return <AuctionTracker factions={factions} state={state} onAction={dispatch} tableTurn={turn} />;
 }
 
-/** The Treachery tracker at a table: the game's own Treachery deck, and the seated factions in seat order. */
+/** The Treachery tracker at a table, loaded only when the seat keeps one: the game's own Treachery deck, and the seated factions in seat order. */
 export function ConnectedTreacheryTrackerPanel({
   client,
   table,

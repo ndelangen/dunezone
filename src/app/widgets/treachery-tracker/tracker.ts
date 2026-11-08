@@ -38,14 +38,21 @@ export type CardDef = Readonly<{
 /** One physical card: a definition and which of its copies this is. */
 export type CardCopy = Readonly<{ id: string; def: CardDef; copy: number }>;
 
-/** A place in a faction's hand: a card Atreides knows, or one it only knows is there (`card` null). */
-export type Slot = Readonly<{ id: string; card: string | null }>;
+/** Where a known card was before it went into a slot, so taking the slot back as a mistake returns it there. */
+type Origin = Readonly<{ at: 'discard' } | { at: 'hand'; faction: string; slot: string }>;
+
+/**
+ * A place in a faction's hand: a card Atreides knows, or one it only knows is there (`card` null).
+ * `from` is where the card was before, when that was not the deck.
+ */
+export type Slot = Readonly<{ id: string; card: string | null; from?: Origin }>;
 
 /**
  * A card that came up for bid, newest first, and in which turn: one Atreides looked at, or an unknown one (`card` null).
  * `slot` is the hand slot the winner got it in, which names it later if it was unknown.
+ * `done` marks an auction that ended, whichever way: once its card leaves the winner's hand, or goes straight to the discard pile.
  */
-export type Sighting = Readonly<{ id: string; turn: number; card: string | null; slot?: string }>;
+export type Sighting = Readonly<{ id: string; turn: number; card: string | null; slot?: string; done?: true }>;
 
 export type TrackerState = Readonly<{
   copies: readonly CardCopy[];
@@ -156,7 +163,7 @@ function releaseSlots(state: TrackerState, slots: ReadonlySet<string>, mistake =
         return sighting;
       }
       const { slot, ...rest } = sighting;
-      return mistake ? rest : { ...rest, card: cards.get(slot) ?? sighting.card };
+      return mistake ? rest : { ...rest, card: cards.get(slot) ?? sighting.card, done: true };
     }),
   };
 }
@@ -178,6 +185,33 @@ function withoutCard(state: TrackerState, card: string): TrackerState {
   };
 }
 
+/* Where a known card is now, as the origin a slot that takes it remembers; the deck needs no memory. */
+function originOf(state: TrackerState, card: string): Origin | undefined {
+  const place = placeOf(state, card);
+  return place.at === 'deck' ? undefined : place;
+}
+
+/* The auction a card settles: the oldest one still waiting on that card. */
+function waitingFor(state: TrackerState, card: string): Sighting | undefined {
+  return state.seen.findLast((sighting) => sighting.card === card && awaitingWinner(state, sighting));
+}
+
+function updateSighting(state: TrackerState, id: string, change: (sighting: Sighting) => Sighting): TrackerState {
+  return { ...state, seen: state.seen.map((sighting) => (sighting.id === id ? change(sighting) : sighting)) };
+}
+
+/* A slot taken back as a mistake: its card returns to where it was, into the deck when it came from there. */
+function restoreOrigin(state: TrackerState, slot: Slot): TrackerState {
+  const { card, from } = slot;
+  if (!card || !from) {
+    return state;
+  }
+  if (from.at === 'discard') {
+    return { ...state, discard: [...state.discard, card] };
+  }
+  return updateHand(state, from.faction, (slots) => [...slots, { id: from.slot, card }]);
+}
+
 function updateHand(state: TrackerState, faction: string, change: (slots: readonly Slot[]) => readonly Slot[]) {
   return { ...state, hands: { ...state.hands, [faction]: change(state.hands[faction] ?? []) } };
 }
@@ -193,9 +227,17 @@ function findSlot(state: TrackerState, faction: string, slot: string): Slot {
 export function trackerReducer(state: TrackerState, action: TrackerAction): TrackerState {
   switch (action.kind) {
     case 'add': {
+      const id = `slot-${state.nextSlot}`;
+      const from = action.card ? originOf(state, action.card) : undefined;
+      /* A card on bid that goes into a hand is that auction's winner, by whichever button. */
+      const auction = action.card ? waitingFor(state, action.card) : undefined;
       const cleared = action.card ? withoutCard(state, action.card) : state;
-      const slot = { id: `slot-${state.nextSlot}`, card: action.card };
-      return { ...updateHand(cleared, action.faction, (slots) => [...slots, slot]), nextSlot: state.nextSlot + 1 };
+      const slot: Slot = from ? { id, card: action.card, from } : { id, card: action.card };
+      const added = {
+        ...updateHand(cleared, action.faction, (slots) => [...slots, slot]),
+        nextSlot: state.nextSlot + 1,
+      };
+      return auction ? updateSighting(added, auction.id, (entry) => ({ ...entry, slot: id })) : added;
     }
     case 'identify': {
       const cleared = withoutCard(state, action.card);
@@ -214,13 +256,20 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
       const next = updateHand(state, action.faction, (slots) => slots.filter((entry) => entry.id !== action.slot));
       return updateHand(next, action.to, (slots) => [...slots, slot]);
     }
-    case 'undo':
-      return updateHand(releaseSlots(state, new Set([action.slot]), true), action.faction, (slots) =>
+    case 'undo': {
+      const slot = findSlot(state, action.faction, action.slot);
+      const released = releaseSlots(state, new Set([action.slot]), true);
+      const removed = updateHand(released, action.faction, (slots) =>
         slots.filter((entry) => entry.id !== action.slot)
       );
+      return restoreOrigin(removed, slot);
+    }
     case 'place': {
+      /* A card on bid that goes straight to the discard pile ends its auction. */
+      const auction = action.at === 'discard' ? waitingFor(state, action.card) : undefined;
       const cleared = withoutCard(state, action.card);
-      return action.at === 'discard' ? { ...cleared, discard: [...cleared.discard, action.card] } : cleared;
+      const placed = action.at === 'discard' ? { ...cleared, discard: [...cleared.discard, action.card] } : cleared;
+      return auction ? updateSighting(placed, auction.id, (entry) => ({ ...entry, done: true })) : placed;
     }
     case 'reshuffle':
       return { ...state, discard: [] };
@@ -236,11 +285,16 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
         throw new Error(`Nothing came up for bid as ${action.sighting}.`);
       }
       const slot = `slot-${state.nextSlot}`;
-      const added = trackerReducer(state, { kind: 'add', faction: action.faction, card: sighting.card });
-      return {
-        ...added,
-        seen: added.seen.map((entry) => (entry.id === sighting.id ? { ...entry, slot } : entry)),
-      };
+      /* The win names its own auction, so a second copy of the same card on bid keeps waiting. */
+      const added = trackerReducer(
+        updateSighting(state, sighting.id, (entry) => ({ ...entry, card: null })),
+        {
+          kind: 'add',
+          faction: action.faction,
+          card: sighting.card,
+        }
+      );
+      return updateSighting(added, sighting.id, (entry) => ({ ...entry, card: sighting.card, slot }));
     }
     case 'note':
       return { ...state, notes: { ...state.notes, [action.faction]: action.text.slice(0, 120) } };
@@ -268,10 +322,17 @@ export function sightingCard(state: TrackerState, sighting: Sighting): string | 
 
 /** Whether a card on bid is still waiting for its winner. */
 export function awaitingWinner(state: TrackerState, sighting: Sighting): boolean {
-  if (sighting.slot) {
+  if (sighting.slot || sighting.done) {
     return false;
   }
   return sighting.card === null || placeOf(state, sighting.card).at === 'deck';
+}
+
+/** The copies on bid that still wait for their winner: no other auction or hand may take them from the deck. */
+export function reservedCards(state: TrackerState): Set<string> {
+  return new Set(
+    state.seen.flatMap((sighting) => (sighting.card && awaitingWinner(state, sighting) ? [sighting.card] : []))
+  );
 }
 
 /** The turn the tracker is in: the table's turn where a game supplies it, else the turn of the newest card on bid. */
