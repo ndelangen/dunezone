@@ -7,6 +7,7 @@ import type { Dispatch } from 'react';
 
 import { useCreatableRulesets, useCreateGame, usePlayReadiness } from '@db/play';
 import { pageHead } from '@app/routes/pageTitle';
+import { useMotionAllowed } from '@app/styles/motion';
 import {
   CreateGamePass,
   CreateGamePassTitle,
@@ -16,7 +17,10 @@ import {
 import type { CreateGameDraftEvent, CreateGameRequest, PassRuleset } from '@app/widgets/create-game/CreateGamePass';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
+import { openDeparture } from '@app/widgets/voyage/voyage';
 
+import { loadHostedTable } from './hostedTableChunk';
+import { DEPARTURE_MS } from './TableDepartureLink';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 export const Route = createFileRoute('/_app/play/create')({
@@ -25,8 +29,6 @@ export const Route = createFileRoute('/_app/play/create')({
 });
 
 const TITLE = 'Create a game';
-/* As long as the fade to the table's ground in the pass's stylesheet takes. */
-const DEPARTURE_MS = 700;
 
 const REFUSALS = {
   not_authorized: 'Your account cannot create a game while signed out, suspended or deleted.',
@@ -80,30 +82,43 @@ function CreateGamePage() {
 
 type CreateGame = ReturnType<typeof useCreateGame>;
 
-/* Pressing Create game fades the page to the table's ground; the game opens once the fade is complete, and a refusal lifts it again. */
+/* Pressing Create game fades the page away while the planet rises; the game opens once the fade is complete, and a refusal lifts it again. */
 function useDeparture(createGame: CreateGame, dispatch: Dispatch<CreateGameDraftEvent>) {
   const navigate = useNavigate();
+  const motion = useMotionAllowed();
   const [departing, setDeparting] = useState(false);
   const departedAt = useRef(0);
   const opening = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(opening.current), []);
   /* Convex holds a mutation while it cannot reach the server, so a fade with no answer lifts again and the page says why. */
   const stalled = useServerUnreachable(departing && createGame.isPending);
+  /* A game created after the page said the server was out of reach fades the page away afresh, so it opens after a whole fade. */
+  const wasStalled = useRef(false);
+  useEffect(() => {
+    if (stalled) {
+      wasStalled.current = true;
+    }
+  }, [stalled]);
   const depart = (input: CreateGameRequest) => {
     departedAt.current = performance.now();
+    wasStalled.current = false;
     setDeparting(true);
     createGame.mutate(input, {
       onSuccess: (result) => {
         if (result.ok) {
-          const remaining = Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
-          opening.current = setTimeout(
-            () =>
-              void navigate({
-                to: '/play/$gameId',
-                params: { gameId: result.slug ?? result.gameId },
-              }),
-            remaining
-          );
+          /* With motion off there is no fade to wait out. */
+          const remaining = !motion
+            ? 0
+            : wasStalled.current
+              ? DEPARTURE_MS
+              : Math.max(0, DEPARTURE_MS - (performance.now() - departedAt.current));
+          opening.current = setTimeout(() => {
+            openDeparture();
+            void navigate({
+              to: '/play/$gameId',
+              params: { gameId: result.slug ?? result.gameId },
+            });
+          }, remaining);
         } else {
           setDeparting(false);
           dispatch({ kind: 'refused', reason: REFUSALS[result.reason] });
@@ -168,6 +183,18 @@ function CreateGameForm({
 >) {
   const createGame = useCreateGame();
   const { departing, stalled, depart } = useDeparture(createGame, dispatch);
+  /* The table this page departs for loads while the form is filled in, so its evaluation does not freeze the planet's rise. */
+  useEffect(() => {
+    const load = () => {
+      loadHostedTable().catch(() => {});
+    };
+    if (typeof requestIdleCallback !== 'function') {
+      const timer = window.setTimeout(load, 1000);
+      return () => window.clearTimeout(timer);
+    }
+    const handle = requestIdleCallback(load, { timeout: 3000 });
+    return () => cancelIdleCallback(handle);
+  }, []);
   /*
    * The live manifest changes as the ruleset's slots do; a fix to a deck's members, made in another tab, is checked again when this one regains focus,
    * and Check again asks at any time.

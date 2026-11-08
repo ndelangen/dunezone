@@ -17,21 +17,11 @@ import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { GameLink } from './GameLink';
+import { loadHostedTable } from './hostedTableChunk';
 import type { GameRuntime } from './multiplayer/gameRuntime';
 import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
-/*
- * The table's own lazy parts start alongside its bundle, so they do not wait for it to render.
- * Their list is fetched too, rather than imported, since this route's loader is part of every page's entry.
- */
-const loadHostedTable = () => {
-  import('@app/widgets/tabletop/tableChunks').then(
-    ({ preloadTableChunks }) => preloadTableChunks(),
-    () => {}
-  );
-  return import('./multiplayer/HostedTable');
-};
 const HostedTable = lazy(loadHostedTable);
 
 /*
@@ -248,7 +238,7 @@ function TablePage({
   game,
   exit,
 }: Readonly<{ game: Omit<KnownGame, 'status' | 'gameId'> & { gameId: string }; exit: ReactNode }>) {
-  const loading = <TableWait status="Loading the table...">{exit}</TableWait>;
+  const loading = <TableWait status="Opening the table...">{exit}</TableWait>;
   return (
     <TableFrame title={game.name}>
       <ClientOnly fallback={loading}>

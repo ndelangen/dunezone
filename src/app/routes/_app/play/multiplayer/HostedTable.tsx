@@ -16,12 +16,13 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
-import { useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useContext, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
+import { riseRemaining } from '@app/widgets/voyage/voyage';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';
@@ -658,7 +659,9 @@ function ConnectedTable({
   gameId,
   diagnostics,
   reportsEnabled,
+  exitControl,
 }: Readonly<{
+  exitControl: ReactNode;
   client: TableSession;
   table: TableProjection;
   error: string | null;
@@ -695,6 +698,7 @@ function ConnectedTable({
             <GameTable
               readOnly={readOnly}
               onSceneReady={onReady}
+              waitControls={exitControl}
               seatCount={table.snapshot.roster?.seatCount ?? DEFAULT_TABLE_SEAT_COUNT}
               tableProgress={progress}
               stage={stage}
@@ -771,7 +775,6 @@ export default function HostedTable({
   const runtime = useContext(GameRuntimeContext);
   const [diagnostics] = useState(() => new BrowserDiagnostics());
   useEffect(() => diagnostics.listen(window), [diagnostics]);
-  const here = useLocation({ select: (location) => location.href });
   const [client] = useState(
     () =>
       new TableSession(
@@ -788,22 +791,15 @@ export default function HostedTable({
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => client.connect(), [client]);
   usePreloadedCardFaces(view.table?.snapshot.cardFaces);
-  if (!view.table) {
-    return (
-      <TableWait status={view.error ?? 'Connecting to the hosted table...'} connection={view.status}>
-        {view.status === 'denied' && (
-          <Anchor
-            renderRoot={(props) => (
-              <Link {...props} to="/auth/login" search={{ ...signInReturnFrom(here), reauthenticate: true }} />
-            )}
-          >
-            Sign in again
-          </Anchor>
-        )}
-        <OfflineConversations client={client} />
-        {exitControl}
-      </TableWait>
-    );
+  /*
+   * The table's first render is the page's largest: it is deferred, so React renders it in slices that yield to the browser,
+   * and the waiting frame keeps its motion while the table is built behind it. Later views render as they arrive.
+   * A table that answers while the planet is still rising (a game opened from the lobby) waits for it to come to rest first.
+   */
+  const risen = usePlanetRisen();
+  const tableBuilt = useDeferredValue(Boolean(view.table) && risen);
+  if (!view.table || !tableBuilt) {
+    return <HostedTableWait client={client} view={view} exitControl={exitControl} />;
   }
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
@@ -817,7 +813,49 @@ export default function HostedTable({
         table={view.table}
         error={view.error}
         connection={view.status}
+        exitControl={exitControl}
       />
     </ServerClockContext.Provider>
+  );
+}
+
+/* Whether the planet's rise into the waiting frame has ended; a table reached without a departure has none to wait for. */
+function usePlanetRisen() {
+  const [risen, setRisen] = useState(() => riseRemaining() === 0);
+  useEffect(() => {
+    if (risen) {
+      return;
+    }
+    const timer = window.setTimeout(() => setRisen(true), riseRemaining());
+    return () => window.clearTimeout(timer);
+  }, [risen]);
+  return risen;
+}
+
+/* The waiting frame while the hosted table connects, or while its first answer is being built. */
+function HostedTableWait({
+  client,
+  view,
+  exitControl,
+}: Readonly<{ client: TableSession; view: ReturnType<TableSession['getSnapshot']>; exitControl: ReactNode }>) {
+  const here = useLocation({ select: (location) => location.href });
+  return (
+    <TableWait
+      status={view.error ?? (view.table ? 'Opening the table...' : 'Connecting to the hosted table...')}
+      connection={view.status}
+    >
+      {view.status === 'denied' && (
+        <Anchor
+          renderRoot={(props) => (
+            <Link {...props} to="/auth/login" search={{ ...signInReturnFrom(here), reauthenticate: true }} />
+          )}
+        >
+          Sign in again
+        </Anchor>
+      )}
+      {/* Only while the table is out of reach: a table already answering is being built, and its chat reads the table's clock. */}
+      {view.table ? null : <OfflineConversations client={client} />}
+      {exitControl}
+    </TableWait>
   );
 }

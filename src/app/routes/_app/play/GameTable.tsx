@@ -26,6 +26,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { useMotionAllowed } from '@app/styles/motion';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
@@ -63,8 +64,10 @@ import { MentatRecallBackdrop } from './multiplayer/MentatRecall';
 import { TableLabelsContext } from './tableLabels';
 import type { TableLabels } from './tableLabels';
 
-/* How long the shell waits for the renderer before opening anyway. */
+/* How long the shell waits for the renderer's first frame before opening anyway. */
 const SCENE_READY_FALLBACK_MS = 1500;
+/* Once the renderer draws, how long the shell waits for the board's paint before opening anyway. */
+const SCENE_PAINT_FALLBACK_MS = 10_000;
 
 /** One panel of the table's controls, which the compass opens as a window: its name, its glyph from the topic map, and what it shows. */
 export type TablePanel = Readonly<{
@@ -92,6 +95,8 @@ export type TablePanel = Readonly<{
 
 type GameTableProps = {
   onSceneReady?: (() => void) | undefined;
+  /** The controls the waiting frame keeps reachable until the table opens, as the frames before it did (the way back to the lobby). */
+  waitControls?: ReactNode;
   sceneContent?: ReactNode;
   /** A territory the scene content lights on the board, such as the one under a carried battle marker. */
   highlightTerritory?: string | null;
@@ -603,6 +608,83 @@ function measureHeader(node: HTMLElement | null) {
   return () => observer.disconnect();
 }
 
+/* How long the table takes to open out of the planet; the waiting frame and the planet stay up behind it until then. */
+const TABLE_ARRIVAL_MS = 1600;
+
+/**
+ * The table's arrival: waiting until the scene is ready, then opening out of the planet, then open.
+ * While it opens, the stage marks the voyage as arrived, so the shell's planet swells away behind the opening table.
+ */
+function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening' | 'open' {
+  const motion = useMotionAllowed();
+  const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
+  useEffect(() => {
+    if (!sceneReady) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    /* Without motion the table is there at once; an open table stays open, whatever the motion setting does later. */
+    const run = motion
+      ? () => {
+          setPhase((current) => (current === 'open' ? current : 'opening'));
+          timer = setTimeout(() => setPhase('open'), TABLE_ARRIVAL_MS);
+        }
+      : () => setPhase('open');
+    /* The iris starts once the page has finished the work the ready scene set off, so its first frames are not the ones a long task drops. */
+    const idle = requestIdleCallbackOr(run, motion ? ARRIVAL_IDLE_WAIT_MS : 0);
+    return () => {
+      idle();
+      clearTimeout(timer);
+    };
+  }, [sceneReady, motion]);
+  if (!sceneReady) {
+    return 'waiting';
+  }
+  return motion ? phase : 'open';
+}
+
+/* The longest the iris waits for an idle moment after the scene is ready. */
+const ARRIVAL_IDLE_WAIT_MS = 300;
+
+/* Runs `run` in the browser's next idle period, or after `timeout` at the latest; returns a cancel. */
+function requestIdleCallbackOr(run: () => void, timeout: number) {
+  if (typeof requestIdleCallback === 'function') {
+    const handle = requestIdleCallback(run, { timeout });
+    return () => cancelIdleCallback(handle);
+  }
+  const handle = setTimeout(run, 0);
+  return () => clearTimeout(handle);
+}
+
+/** The stage under the table's shell: the waiting frame stays on it until the table has opened out of the planet. */
+function TableArrivalStage({
+  sceneReady,
+  arrival,
+  waitControls,
+  children,
+}: Readonly<{
+  sceneReady: boolean;
+  arrival: ReturnType<typeof useTableArrival>;
+  waitControls: ReactNode;
+  children: ReactNode;
+}>) {
+  return (
+    <div
+      className="dune-play-stage"
+      data-scene-ready={sceneReady}
+      data-voyage={arrival === 'opening' ? 'arrived' : undefined}
+      data-arrival={arrival}
+    >
+      {arrival === 'open' ? null : (
+        <div className="dune-play-wait" data-leaving={arrival === 'opening' || undefined}>
+          <TableWait status="Opening the table...">{waitControls}</TableWait>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 function useTableViewController(
   activePhase: GameTableProps['tableProgress']['phases'][number] | undefined,
   word: StageFrame['word'],
@@ -639,11 +721,19 @@ function useTableViewController(
     dispatchView({ type: 'scene.ready' });
     onSceneReady?.();
   }, [onSceneReady]);
-  /* A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing. */
+  const [sceneStarted, setSceneStarted] = useState(false);
+  const handleSceneStarted = useCallback(() => setSceneStarted(true), []);
+  /*
+   * A renderer whose initialisation never settles (the story runner's headless one is such a renderer) must not keep the shell closed for good: the clock reports for it, and a later real report changes nothing.
+   * A renderer that draws has its board on the way, so the clock gives the board's paint longer before the shell opens without it.
+   */
   useEffect(() => {
-    const timer = setTimeout(() => dispatchView({ type: 'scene.ready' }), SCENE_READY_FALLBACK_MS);
+    const timer = setTimeout(
+      () => dispatchView({ type: 'scene.ready' }),
+      sceneStarted ? SCENE_PAINT_FALLBACK_MS : SCENE_READY_FALLBACK_MS
+    );
     return () => clearTimeout(timer);
-  }, [handleSceneReady]);
+  }, [handleSceneReady, sceneStarted]);
 
   return {
     viewPhase,
@@ -652,6 +742,7 @@ function useTableViewController(
     cameraView,
     sceneEvents: {
       onInteractionActiveChange: handleInteractionActiveChange,
+      onSceneStarted: handleSceneStarted,
       onSceneReady: handleSceneReady,
       onSceneUnavailable: handleSceneUnavailable,
     },
@@ -660,6 +751,7 @@ function useTableViewController(
 
 export function GameTable({
   onSceneReady,
+  waitControls,
   sceneContent,
   highlightTerritory,
   readOnly = false,
@@ -696,6 +788,7 @@ export function GameTable({
   const activePhase = tableProgress.phases.find((entry) => entry.id === tableProgress.activePhaseId);
   const controller = useTableViewController(activePhase, frame.word, requestedView, onSceneReady);
   const { viewPhase, viewState, dispatchView, cameraView, sceneEvents } = controller;
+  const arrival = useTableArrival(viewState.sceneReady);
   const overlaysInert = viewState.interactionActive || gestureActive;
 
   const scene = (
@@ -770,10 +863,12 @@ export function GameTable({
   return (
     <PointerSessionContext value={pointerSession}>
       <TableLabelsContext value={tableLabels}>
-        <DarkSchemeIsland>
-          {/* The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris. */}
-          <div className="dune-play-stage" data-scene-ready={viewState.sceneReady}>
-            {viewState.sceneReady ? null : <TableWait status="Opening the table..." />}
+        {/*
+          The stage stacks the waiting frame under the shell until the renderer is ready; then the frame goes and the shell opens through its iris.
+          The waiting frame is its own island, so only the shell sits in this one: an island inside another lost the tooltip host of the frame's Lobby button.
+        */}
+        <TableArrivalStage sceneReady={viewState.sceneReady} arrival={arrival} waitControls={waitControls}>
+          <DarkSchemeIsland>
             <div
               className="dune-play-shell"
               {...darkSchemeIslandAttributes}
@@ -804,8 +899,8 @@ export function GameTable({
                 focus={focus}
               />
             </div>
-          </div>
-        </DarkSchemeIsland>
+          </DarkSchemeIsland>
+        </TableArrivalStage>
       </TableLabelsContext>
     </PointerSessionContext>
   );

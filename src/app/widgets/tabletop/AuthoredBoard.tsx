@@ -12,7 +12,7 @@ import type { Texture } from 'three';
 import { authoredBoardGeometry } from './authoredBoardGeometry';
 import { authoredBoardTexture } from './authoredBoardTexture';
 import { POLAR_SINK_RENDER_ORDER } from './boardRenderOrder';
-import { useBoardSkinMaterial } from './useBoardSkinMaterial';
+import { useBoardSkinPaint } from './useBoardSkinMaterial';
 
 type State = { texture: Texture | null; error: boolean; attempt: number };
 type Event = { type: 'ready'; texture: Texture } | { type: 'failed' } | { type: 'retry' };
@@ -28,7 +28,8 @@ function reducer(state: State, event: Event): State {
 }
 
 /** Mounted once for a retained definition; geometry and decoded artwork share its lifetime. */
-export default function AuthoredBoard({ board }: { board: Board }) {
+/** `onPainted` reports the board drawn in full, its artwork in its skin, or failed and offering a retry. */
+export default function AuthoredBoard({ board, onPainted }: { board: Board; onPainted?: () => void }) {
   const geometry = useMemo(() => authoredBoardGeometry(board), [board]);
   const polarSink = useMemo(() => authoredBoardGeometry(board, true), [board]);
   const invalidate = useThree((state) => state.invalidate);
@@ -64,14 +65,14 @@ export default function AuthoredBoard({ board }: { board: Board }) {
       texture?.dispose();
     };
   }, [board, state.attempt, invalidate]);
-  const paint = useBoardSkinMaterial({
+  const { material: paint, ready: paintReady } = useBoardSkinPaint({
     geometry,
     board,
     map: state.texture,
     vertexColors: !state.texture,
     polygonOffset: true,
   });
-  const polarPaint = useBoardSkinMaterial({
+  const { material: polarPaint, ready: polarReady } = useBoardSkinPaint({
     geometry: polarSink,
     /* The disc's geometry covers the Polar Sink too, so both paints read one bake. */
     bakeGeometry: geometry,
@@ -80,6 +81,12 @@ export default function AuthoredBoard({ board }: { board: Board }) {
     vertexColors: !state.texture,
     polygonOffset: true,
   });
+  const painted = state.error || (state.texture !== null && paintReady && polarReady);
+  useEffect(() => {
+    if (painted) {
+      onPainted?.();
+    }
+  }, [painted, onPainted]);
   return (
     <>
       {/* The disc owns depth; its paint draws before the storm and stays above the disc at distant camera angles. */}

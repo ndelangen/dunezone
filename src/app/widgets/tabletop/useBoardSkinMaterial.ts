@@ -130,12 +130,13 @@ type BoardSkinMaterialProps = Readonly<{
 }>;
 
 /**
- * The board paint's material in the active look.
+ * The board paint's material in the active look, and whether a prepared look over the current artwork is on the board yet.
  * The skin is baked once, so every frame reads one texture;
  * a new look is baked and compiled off the frame, and the board keeps its current look, bake and all, until the new one is ready, so choosing a skin never stalls the table.
- * Meshes take it as their `material` prop: swapping an attached child material can restore a stale one.
+ * Meshes take the material as their `material` prop: swapping an attached child material can restore a stale one.
+ * The table's opening waits on `ready`, so the board is painted in full before the frame lifts.
  */
-export function useBoardSkinMaterial({
+export function useBoardSkinPaint({
   geometry,
   bakeGeometry = geometry,
   board = null,
@@ -161,6 +162,20 @@ export function useBoardSkinMaterial({
     }),
     invalidate
   );
+  /* What the plain look on the board was made from, while it is the look on the board, so a failed preparation installs a new plain look only when that changed. */
+  const plainOver = useRef<{
+    map: Texture | null;
+    planet: typeof planet;
+    vertexColors: boolean;
+    polygonOffset: boolean;
+  } | null>({
+    map,
+    planet,
+    vertexColors,
+    polygonOffset,
+  });
+  /* The artwork the last prepared look was made over; the board is ready once that is the artwork it has now. */
+  const [preparedOver, setPreparedOver] = useState<{ map: Texture | null } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -173,11 +188,36 @@ export function useBoardSkinMaterial({
       polygonOffset,
     };
     prepareLook({ renderer, scene, camera }, { skin, planet }, paint, controller.signal).then(
-      (next) => next && (controller.signal.aborted ? drop(next) : setShown(next)),
+      (next) => {
+        if (!next) {
+          return;
+        }
+        if (controller.signal.aborted) {
+          drop(next);
+          return;
+        }
+        plainOver.current = null;
+        setShown(next);
+        setPreparedOver({ map });
+      },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          /* The board keeps its current look; say why the new one never came. */
+          /* The board falls back to the plain look over the current artwork, which is then the look it is painted in; say why the new one never came. */
           console.error('The board skin could not be prepared', error);
+          const plain = plainOver.current;
+          if (
+            plain?.map !== map ||
+            plain.planet !== planet ||
+            plain.vertexColors !== vertexColors ||
+            plain.polygonOffset !== polygonOffset
+          ) {
+            plainOver.current = { map, planet, vertexColors, polygonOffset };
+            setShown({
+              material: createBoardPaintMaterial({ vertexColors, polygonOffset, map, baked: null, planet }),
+              lease: null,
+            });
+          }
+          setPreparedOver({ map });
         }
       }
     );
@@ -197,5 +237,5 @@ export function useBoardSkinMaterial({
     setShown,
   ]);
 
-  return shown.material;
+  return { material: shown.material, ready: preparedOver !== null && preparedOver.map === map };
 }

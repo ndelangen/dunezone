@@ -2,9 +2,11 @@
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber/webgpu';
 import type { ComponentProps, ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NeutralToneMapping } from 'three';
 
+import { SceneHoldsContext } from './sceneHolds';
+import type { SceneHolds } from './sceneHolds';
 import { releaseSharedMeshes } from './sharedMeshes';
 import { TableGraphicsBoundary, TableGraphicsUnavailable } from './TableGraphicsBoundary';
 import { useTableLighting } from './tableLighting';
@@ -39,7 +41,20 @@ function TableLights() {
   );
 }
 
-function PaintedFrames({ onReady }: { onReady?: () => void }) {
+/* A part that never lets go stops holding the scene after this long, so the renderer still settles to drawing on demand. */
+const HOLD_LIMIT_MS = 10_000;
+
+/* Reports the renderer's first frame, then the ready scene: a few frames painted after every hold let go. */
+function PaintedFrames({
+  held,
+  onStarted,
+  onReady,
+}: {
+  held: () => boolean;
+  onStarted?: () => void;
+  onReady?: () => void;
+}) {
+  const startedAt = useRef<number | null>(null);
   const frames = useRef(0);
   const complete = useRef(false);
   const pending = useRef<number | null>(null);
@@ -55,6 +70,15 @@ function PaintedFrames({ onReady }: { onReady?: () => void }) {
     if (complete.current) {
       return;
     }
+    if (startedAt.current === null) {
+      startedAt.current = performance.now();
+      onStarted?.();
+    }
+    /* A held part restarts the count, so the frames that count are the ones that drew it. */
+    if (held() && performance.now() - startedAt.current < HOLD_LIMIT_MS) {
+      frames.current = 0;
+      return;
+    }
     if (++frames.current > 3) {
       complete.current = true;
       pending.current = requestAnimationFrame(() => onReady?.());
@@ -67,12 +91,15 @@ function PaintedFrames({ onReady }: { onReady?: () => void }) {
 export function TabletopCanvas({
   camera,
   presentation,
+  onSceneStarted,
   onSceneReady,
   onSceneUnavailable,
   children,
 }: {
   camera: ComponentProps<typeof Canvas>['camera'];
   presentation: 'play' | 'preview';
+  /** The renderer drew its first frame; the scene may still be waiting on parts that hold it. */
+  onSceneStarted?: () => void;
   onSceneReady?: () => void;
   onSceneUnavailable?: () => void;
   children: ReactNode;
@@ -84,6 +111,23 @@ export function TabletopCanvas({
     onSceneReady?.();
   }, [onSceneReady]);
   const onUnavailable = onSceneUnavailable ?? onSceneReady;
+  const holdCount = useRef(0);
+  const holds = useMemo<SceneHolds>(
+    () => ({
+      hold: () => {
+        holdCount.current += 1;
+        let released = false;
+        return () => {
+          if (!released) {
+            released = true;
+            holdCount.current -= 1;
+          }
+        };
+      },
+    }),
+    []
+  );
+  const held = useCallback(() => holdCount.current > 0, []);
   return (
     <>
       {graphics === 'unavailable' && (
@@ -105,8 +149,8 @@ export function TabletopCanvas({
           >
             <ReleaseSharedMeshesOnUnmount />
             <TableLights />
-            <PaintedFrames onReady={ready} />
-            {children}
+            <PaintedFrames held={held} onStarted={onSceneStarted} onReady={ready} />
+            <SceneHoldsContext value={holds}>{children}</SceneHoldsContext>
           </Canvas>
         </TableGraphicsBoundary>
       )}

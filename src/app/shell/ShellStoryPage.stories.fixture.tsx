@@ -8,6 +8,12 @@ import type { ReactNode } from 'react';
 /* The real document stylesheet, as a string, so a story can carry it for its own lifetime instead
    of importing it and changing the document styling behind every other story in the preview. */
 import pageStylesheet from '../styles/page.css?inline';
+import { AppBackground } from './AppBackground';
+
+/** The shell's planet and stars behind a story, turning, for a frame that sits over them as it does on a page. */
+export function ShellBackground() {
+  return <AppBackground motion />;
+}
 
 /**
  * Applies the shell document stylesheet for this story and removes it on unmount.

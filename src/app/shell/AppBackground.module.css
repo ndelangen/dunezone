@@ -62,7 +62,7 @@
 }
 
 .planetFrame {
-  --planet-diameter: max(140vw, 140vh);
+  --planet-diameter: var(--app-planet-diameter);
 
   /* Measured against the same largest window, so the planet holds still while the toolbar comes and goes. */
   top: calc(100vh - var(--planet-diameter) * 0.2);
@@ -71,6 +71,58 @@
   width: var(--planet-diameter);
   aspect-ratio: 1;
   transform: translateX(-50%);
+  /*
+   * The rise is a transform only, so the compositor runs it while the page underneath is still mounting the table.
+   * The way back down waits a moment, so a page swap between two waits never starts the planet home.
+   */
+  transition:
+    transform 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.4s,
+    opacity 0.6s ease;
+  will-change: transform;
+}
+
+/*
+ * On the way to a table (a departing page, a table's waiting frame, an opened table: anything marked `data-voyage`), the planet
+ * rises from the foot of the page to the centre and shrinks to a world the table's moons can circle.
+ */
+:global(:root:is([data-voyage], :has([data-voyage]))) .planetFrame {
+  /* From its centre at the foot of the window (its top plus half its width) to the resting place, at the resting scale. */
+  transform: translate(
+      calc(-50% + var(--voyage-planet-x)),
+      calc(var(--voyage-planet-y) - 100lvh - var(--planet-diameter) * 0.3)
+    )
+    scale(var(--voyage-planet-scale));
+  transition-delay: 0s;
+}
+
+/* Once the table has faded in over it, the planet fades behind the widening table. It only fades: scaling the rounded,
+   clipped disc while it fades let browsers drop its rounding for a few frames and show the square artwork's dark corners. */
+:global(:root:has([data-voyage="arrived"])) .planetFrame {
+  opacity: 0;
+  transition-delay: 0.45s;
+}
+
+/* A table reached directly shows the planet already at rest and fades it in (voyage.ts marks the arrival for the fade's length).
+   Only its opacity changes, so the fade stays with reduced motion too. */
+:global(:root[data-voyage-arrival="direct"]) .planetFrame {
+  transition: none;
+  animation: planet-fade-in 0.8s ease both;
+}
+
+@keyframes planet-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+html[data-motion="reduce"] .planetFrame {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-motion="ok"]) .planetFrame {
+    transition: none;
+  }
 }
 
 .planetDisc {
@@ -78,6 +130,8 @@
   inset: 0;
   overflow: hidden;
   border-radius: 50%;
+  /* Its own stacking context, so the rounded clip holds while the frame above it fades. */
+  isolation: isolate;
   background: var(--ui-umber);
   box-shadow:
     0 0 2px 1px rgb(from var(--ui-highlight) r g b / 0.65),

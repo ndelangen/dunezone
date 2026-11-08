@@ -29,7 +29,7 @@ import type { TableSeatCount } from '@shared/play/tableSettings';
 import { TRACKER_DISC_HEIGHT } from '@shared/play/tableTrackers';
 import type { TrackerArcSlot } from '@shared/play/tableTrackers';
 import { playUiColors } from '@shared/uiPalette';
-import { lazy, Suspense, useMemo, useRef, useLayoutEffect, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useRef, useLayoutEffect, useEffect, useState } from 'react';
 import type { ExtrudeGeometry, Group } from 'three';
 import { BufferGeometry, CircleGeometry, EdgesGeometry, Float32BufferAttribute, SRGBColorSpace } from 'three';
 
@@ -42,8 +42,10 @@ import { STORM_OUTLINE_RENDER_ORDER, STORM_SECTOR_RENDER_ORDER } from './boardRe
 import { BOARD_RIM_DEPTH, BOARD_RIM_METALNESS, BOARD_RIM_ROUGHNESS, createBoardRimShape } from './boardRimGeometry';
 import { ignoreRaycast } from './ignoreRaycast';
 import { PhaseSymbol } from './PhaseSymbol';
+import { useSceneHold } from './sceneHolds';
 import { useSharedMeshes } from './sharedMeshes';
 import { SoftShadow } from './SoftShadow';
+import { loadAuthoredBoard } from './tableChunks';
 import { loadSpiceBank } from './tableChunks';
 import { TableFurniture } from './TableFurniture';
 import { useTablePalette } from './tablePalette';
@@ -383,13 +385,19 @@ function StormSectorHighlight({ sectorIndex }: { sectorIndex: number }) {
   );
 }
 
-const AuthoredBoard = lazy(() => import('./AuthoredBoard'));
+const AuthoredBoard = lazy(loadAuthoredBoard);
 
-/* A table without a board, such as one before its first view arrives, shows the bare disc. */
+/*
+ * A table without a board, such as one before its first view arrives, shows the bare disc.
+ * The table's opening holds until the board's artwork is painted, its chunk and skin included, so the board never arrives after the frame lifts.
+ */
 function BoardPaint({ board }: { board: NonNullable<GameSnapshot['board']> }) {
+  const [painted, setPainted] = useState<string | null>(null);
+  useSceneHold(painted !== board.asset.id);
+  const onPainted = useCallback(() => setPainted(board.asset.id), [board.asset.id]);
   return (
     <Suspense fallback={null}>
-      <AuthoredBoard key={board.asset.id} board={board.definition} />
+      <AuthoredBoard key={board.asset.id} board={board.definition} onPainted={onPainted} />
     </Suspense>
   );
 }
