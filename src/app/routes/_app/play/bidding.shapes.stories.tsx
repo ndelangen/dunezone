@@ -12,17 +12,20 @@ import type { BidderShape } from './multiplayer/bidderShapes';
 const meta = preview.meta({
   ...gameMeta,
   title: 'Play/Bidding/Bidder shapes',
-  beforeEach: biddingSetup({
-    stage: 'open',
-    round: 1,
-    opener: 'house-atreides',
-    turn: 'fremen',
-    bid: { factionId: 'house-harkonnen', amount: 4 },
-    deadline: STORYBOOK_NOW + 12_000,
-  }),
 });
 
-const drawn = (shape: BidderShape) => ({
+/* Fremen's turn over Harkonnen's high bid of 4, seen from Harkonnen's seat. */
+const fremenTurn = biddingSetup({
+  stage: 'open',
+  round: 1,
+  opener: 'house-atreides',
+  turn: 'fremen',
+  bid: { factionId: 'house-harkonnen', amount: 4 },
+  deadline: STORYBOOK_NOW + 12_000,
+});
+
+const drawn = (shape: BidderShape, beforeEach = fremenTurn) => ({
+  beforeEach,
   decorators: [
     ((Story) => (
       <BidderShapeContext value={shape}>
@@ -42,4 +45,4 @@ export const Dial = meta.story(drawn('dial'));
 export const HollowBluntDrop = meta.story(drawn('hollowBluntDrop'));
 
 /* The same shape while the bidder points at the viewer's Harkonnen in a live round: the bigger face with its raise, lower and pass buttons, which work. */
-export const HollowBluntDropYourTurn = meta.story({ ...drawn('hollowBluntDrop'), beforeEach: clockSetup(true) });
+export const HollowBluntDropYourTurn = meta.story(drawn('hollowBluntDrop', clockSetup(true)));
