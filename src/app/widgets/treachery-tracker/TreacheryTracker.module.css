@@ -48,8 +48,8 @@
   border-radius: 50%;
   background: var(--ui-paper);
   box-shadow:
-    0 0 0 2px var(--kind),
-    0 1px 3px 1px rgb(from var(--ui-black) r g b / 0.6);
+    0 0 0 3px var(--kind),
+    0 1px 3px 3px rgb(from var(--ui-black) r g b / 0.6);
 }
 
 .picto img {
@@ -228,10 +228,6 @@
 
 [data-kind="worthless"] {
   --kind: var(--ui-umber);
-}
-
-.kindBar span[data-kind] {
-  background: var(--kind);
 }
 
 /* Seen: the cards Atreides looked at, newest first. */
@@ -519,7 +515,7 @@
 
 .row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 2px 4px;
   border-radius: 8px;
@@ -659,4 +655,76 @@
 .sheetCard[data-place="discard"] {
   filter: grayscale(0.9);
   opacity: 0.35;
+}
+
+.kindSlice {
+  cursor: help;
+  background: var(--kind);
+  transition: filter 120ms ease-out;
+}
+
+.kindSlice:hover,
+.kindSlice:focus-visible {
+  filter: brightness(1.35);
+  outline: none;
+}
+
+.kindList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  gap: 6px 14px;
+}
+
+.kindLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kindLeft {
+  color: var(--ui-highlight);
+  font-size: 12px;
+}
+
+.unknownBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  aspect-ratio: 790 / 111;
+  padding-inline: 12px;
+  border: 1px dashed var(--edge, var(--ui-edge));
+  border-radius: 6px;
+  background: var(--ui-recess);
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nextUp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgb(from var(--ui-edge) r g b / 0.4);
+}
+
+.rowBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.note {
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 12px;
+  font-style: italic;
+  text-align: left;
+}
+
+.note:hover {
+  color: var(--ui-text);
 }

@@ -1,4 +1,4 @@
-import { Popover, Stack, Text, UnstyledButton } from '@mantine/core';
+import { HoverCard, Popover, Stack, Text, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ArrowRightLeft, Plus, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -7,8 +7,8 @@ import { useState } from 'react';
 import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
-import { CARD_KINDS, KIND_LABEL, copyOf, kindCounts, placeOf, unplaced } from './tracker';
-import type { CardCopy, Slot, TrackerAction, TrackerState } from './tracker';
+import { CARD_KINDS, KIND_LABEL, copyOf, kindCounts, placeOf, slotOf, unplaced } from './tracker';
+import type { CardCopy, CardKind, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TreacheryTracker.module.css';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
@@ -59,9 +59,9 @@ export function CardChooser({
 }: Readonly<{ state: TrackerState; onPick: (card: string | null) => void; allowUnknown: boolean }>) {
   const free = unplaced(state);
   const freeIds = new Set(free.map((copy) => copy.id));
-  const seen = state.seen
-    .filter((sighting) => freeIds.has(sighting.card))
-    .map((sighting) => copyOf(state, sighting.card));
+  const seen = state.seen.flatMap((sighting) =>
+    sighting.card && freeIds.has(sighting.card) ? [copyOf(state, sighting.card)] : []
+  );
   /* One glyph per card name: a second copy adds nothing to choose from. */
   const byName = new Map<string, { copy: CardCopy; left: number }>();
   for (const copy of free) {
@@ -282,22 +282,60 @@ function MenuLine({
 }
 
 /** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. */
-export function KindBar({ copies, height = 6 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
+export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
   const counts = kindCounts(copies);
   const total = copies.length || 1;
   return (
-    <div className={styles.kindBar} style={{ height }} role="img" aria-label={kindSummary(copies)}>
+    <div className={styles.kindBar} style={{ height }} aria-label={kindSummary(copies)}>
       {CARD_KINDS.map((kind) =>
         counts[kind] > 0 ? (
-          <span
-            key={kind}
-            data-kind={kind}
-            style={{ flexGrow: counts[kind] / total }}
-            title={`${counts[kind]} ${KIND_LABEL[kind].toLowerCase()}`}
-          />
+          <HoverCard key={kind} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
+            <HoverCard.Target>
+              <span
+                data-kind={kind}
+                className={styles.kindSlice}
+                style={{ flexGrow: counts[kind] / total }}
+                tabIndex={0}
+                aria-label={`${counts[kind]} ${KIND_LABEL[kind].toLowerCase()} left`}
+              />
+            </HoverCard.Target>
+            <HoverCard.Dropdown className={styles.dropdown}>
+              <KindList kind={kind} copies={copies} />
+            </HoverCard.Dropdown>
+          </HoverCard>
         ) : null
       )}
     </div>
+  );
+}
+
+/** Exactly which cards of a kind are left, one line per card with how many copies. */
+function KindList({ kind, copies }: Readonly<{ kind: CardKind; copies: readonly CardCopy[] }>) {
+  const byName = new Map<string, { copy: CardCopy; left: number }>();
+  for (const copy of copies.filter((entry) => entry.def.kind === kind)) {
+    const entry = byName.get(copy.def.key);
+    if (entry) {
+      entry.left += 1;
+    } else {
+      byName.set(copy.def.key, { copy, left: 1 });
+    }
+  }
+  const lines = [...byName.values()];
+  return (
+    <Stack gap={4}>
+      <Text size="xs" className={styles.caption}>
+        {lines.reduce((sum, line) => sum + line.left, 0)} {KIND_LABEL[kind].toLowerCase()} left
+      </Text>
+      <div className={styles.kindList}>
+        {lines.map(({ copy, left }) => (
+          <span key={copy.def.key} className={styles.kindLine}>
+            <CardGlyph card={copy} size={22} />
+            <Text size="sm">{copy.def.name}</Text>
+            {left > 1 && <span className={styles.kindLeft}>×{left}</span>}
+          </span>
+        ))}
+      </div>
+    </Stack>
   );
 }
 
@@ -308,13 +346,20 @@ export function kindSummary(copies: readonly CardCopy[]): string {
     .join(', ');
 }
 
-/** Where a seen card went, as a small token on its glyph; nothing while it is still unplaced. */
+/** Where a card on bid went, as a small token on its glyph; nothing while it waits for a winner. */
 export function holderOf(
   state: TrackerState,
   factions: readonly FactionToken[],
-  card: string
+  sighting: Sighting
 ): FactionToken | 'discard' | null {
-  const place = placeOf(state, card);
+  const won = slotOf(state, sighting.slot);
+  if (won) {
+    return factions.find((faction) => faction.id === won.faction) ?? null;
+  }
+  if (!sighting.card) {
+    return null;
+  }
+  const place = placeOf(state, sighting.card);
   if (place.at === 'hand') {
     return factions.find((faction) => faction.id === place.faction) ?? null;
   }

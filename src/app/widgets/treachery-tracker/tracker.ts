@@ -34,8 +34,11 @@ export type CardCopy = Readonly<{ id: string; def: CardDef; copy: number }>;
 /** A place in a faction's hand: a card Atreides knows, or one it only knows is there (`card` null). */
 export type Slot = Readonly<{ id: string; card: string | null }>;
 
-/** A card Atreides looked at, newest first, and in which turn. */
-export type Sighting = Readonly<{ card: string; turn: number }>;
+/**
+ * A card that came up for bid, newest first, and in which turn: one Atreides looked at, or an unknown one (`card` null).
+ * `slot` is the hand slot the winner got it in, which names it later if it was unknown.
+ */
+export type Sighting = Readonly<{ id: string; turn: number; card: string | null; slot?: string }>;
 
 export type TrackerState = Readonly<{
   copies: readonly CardCopy[];
@@ -45,6 +48,8 @@ export type TrackerState = Readonly<{
   discard: readonly string[];
   /** Cards Atreides saw, newest first: the auction cards, and anything else it peeked at. */
   seen: readonly Sighting[];
+  /** A line Atreides keeps on each faction, such as what it knows that faction cannot have. */
+  notes: Readonly<Record<string, string>>;
   nextSlot: number;
 }>;
 
@@ -62,7 +67,13 @@ export type TrackerAction =
   /** A known card goes straight to the discard pile, or back to the deck, from wherever it is. */
   | Readonly<{ kind: 'place'; card: string; at: 'deck' | 'discard' }>
   /** The discard pile is shuffled back into the deck. */
-  | Readonly<{ kind: 'reshuffle' }>;
+  | Readonly<{ kind: 'reshuffle' }>
+  /** A card comes up for bid: one Atreides looked at, or an unknown one. */
+  | Readonly<{ kind: 'bid'; card: string | null; turn: number }>
+  /** A faction won the card on bid: a known card goes to its hand by name, an unknown one as an unknown card. */
+  | Readonly<{ kind: 'win'; sighting: string; faction: string }>
+  /** Atreides's line on a faction. */
+  | Readonly<{ kind: 'note'; faction: string; text: string }>;
 
 /** Every copy of a deck, in the deck's order. */
 export function deckCopies(defs: readonly CardDef[]): CardCopy[] {
@@ -78,6 +89,7 @@ export function newTracker(defs: readonly CardDef[], factions: readonly string[]
     hands: Object.fromEntries(factions.map((faction) => [faction, []])),
     discard: [],
     seen: [],
+    notes: {},
     nextSlot: 1,
   };
 }
@@ -99,7 +111,7 @@ export function placeOf(state: TrackerState, card: string): Place {
 export function unplaced(state: TrackerState): CardCopy[] {
   const placed = new Set<string>(state.discard);
   for (const slots of Object.values(state.hands)) {
-    for (const slot of slots) if (slot.card) placed.add(slot.card);
+    for (const slot of slots) {if (slot.card) placed.add(slot.card);}
   }
   return state.copies.filter((copy) => !placed.has(copy.id));
 }
@@ -196,5 +208,57 @@ export function trackerReducer(state: TrackerState, action: TrackerAction): Trac
     }
     case 'reshuffle':
       return { ...state, discard: [] };
+    case 'bid':
+      return {
+        ...state,
+        seen: [{ id: `bid-${state.nextSlot}`, turn: action.turn, card: action.card }, ...state.seen],
+        nextSlot: state.nextSlot + 1,
+      };
+    case 'win': {
+      const sighting = state.seen.find((entry) => entry.id === action.sighting);
+      if (!sighting) {
+        throw new Error(`Nothing came up for bid as ${action.sighting}.`);
+      }
+      const slot = `slot-${state.nextSlot}`;
+      const added = trackerReducer(state, { kind: 'add', faction: action.faction, card: sighting.card });
+      return {
+        ...added,
+        seen: added.seen.map((entry) => (entry.id === sighting.id ? { ...entry, slot } : entry)),
+      };
+    }
+    case 'note':
+      return { ...state, notes: { ...state.notes, [action.faction]: action.text.slice(0, 120) } };
   }
+}
+
+/** Where a card on bid went: the slot it was won into, wherever that slot is now. */
+export function slotOf(state: TrackerState, slot: string | undefined): { faction: string; slot: Slot } | null {
+  if (!slot) {
+    return null;
+  }
+  for (const [faction, slots] of Object.entries(state.hands)) {
+    const found = slots.find((entry) => entry.id === slot);
+    if (found) {
+      return { faction, slot: found };
+    }
+  }
+  return null;
+}
+
+/** The card a bid was, as far as Atreides knows now: the card it saw, or what the winner's unknown card turned out to be. */
+export function sightingCard(state: TrackerState, sighting: Sighting): string | null {
+  return sighting.card ?? slotOf(state, sighting.slot)?.slot.card ?? null;
+}
+
+/** Whether a card on bid is still waiting for its winner. */
+export function awaitingWinner(state: TrackerState, sighting: Sighting): boolean {
+  if (sighting.slot) {
+    return false;
+  }
+  return sighting.card === null || placeOf(state, sighting.card).at === 'deck';
+}
+
+/** The turn the tracker is in: the turn of the newest card on bid. */
+export function currentTurn(state: TrackerState): number {
+  return state.seen[0]?.turn ?? 1;
 }

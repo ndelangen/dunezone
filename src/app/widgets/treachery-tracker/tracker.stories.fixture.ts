@@ -112,14 +112,15 @@ export function midGameTracker(): TrackerState {
   );
   return {
     ...state,
+    notes: { emperor: 'No projectile defense: lost a leader to a Maula Pistol in turn 1' },
     seen: [
-      { card: 'hunter-seeker#1', turn: 2 },
-      { card: 'snooper#1', turn: 1 },
-      { card: 'chaumas#1', turn: 1 },
-      { card: 'weather-control#1', turn: 1 },
-      { card: 'karama#1', turn: 1 },
-      { card: 'snooper#2', turn: 1 },
-      { card: 'crysknife#1', turn: 1 },
+      { id: 'seen-hunter-seeker-1', card: 'hunter-seeker#1', turn: 2 },
+      { id: 'seen-snooper-1', card: 'snooper#1', turn: 1 },
+      { id: 'seen-chaumas-1', card: 'chaumas#1', turn: 1 },
+      { id: 'seen-weather-control-1', card: 'weather-control#1', turn: 1 },
+      { id: 'seen-karama-1', card: 'karama#1', turn: 1 },
+      { id: 'seen-snooper-2', card: 'snooper#2', turn: 1 },
+      { id: 'seen-crysknife-1', card: 'crysknife#1', turn: 1 },
     ],
   };
 }

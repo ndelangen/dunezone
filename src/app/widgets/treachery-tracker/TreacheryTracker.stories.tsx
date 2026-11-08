@@ -41,7 +41,7 @@ function Live({
 export const Columns = meta.story({
   render: () => <Live view={ColumnsTracker} initial={midGameTracker} />,
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Hunter Seeker: who took it?' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Hunter Seeker: who won it?' })).toBeVisible();
   },
 });
 
