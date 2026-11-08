@@ -13,7 +13,7 @@ import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
 import { ArrowRight, Image as ImageIcon, Info, X } from 'lucide-react';
-import { lazy, Suspense, useReducer, useState } from 'react';
+import { Fragment, lazy, Suspense, useEffect, useReducer, useRef, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
 import type { MediaEntry } from './mediaCatalogue';
@@ -144,11 +144,12 @@ function MediaResults({
   return (
     <Stack gap="xl">
       <MediaResultCount search={search} matches={catalogue.matches} total={total} />
-      {focused && <FocusedMedia focused={focused} onClose={onClose} />}
+      {/* The detail opens in the gallery, under the row of the artwork it shows. Only artwork the filters hide keeps it above the results. */}
+      {focused && !showsArtwork(catalogue.groups, focused) && <FocusedMedia focused={focused} onClose={onClose} />}
       {search.source === 'media' ? (
         <>
           {catalogue.approximate && <Text size="sm">No exact matches. Showing close spellings.</Text>}
-          <MediaGroups groups={catalogue.groups} search={search} />
+          <MediaGroups groups={catalogue.groups} search={search} focused={focused} onClose={onClose} />
         </>
       ) : (
         <TopicIcons query={query} />
@@ -268,6 +269,13 @@ function mediaDetails(entry: MediaEntry) {
   );
 }
 
+function holdsArtwork(tile: MediaTile, entry: MediaEntry) {
+  return tile.variants.some((variant) => variant.value === entry.value);
+}
+function showsArtwork(groups: ReturnType<typeof filterCatalogue>['groups'], entry: MediaEntry) {
+  return groups.some((group) => mediaTiles(group.entries).some((tile) => holdsArtwork(tile, entry)));
+}
+
 function FocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
   return (
     <Section
@@ -340,12 +348,29 @@ function MediaCard({ tile, search }: Readonly<{ tile: MediaTile; search: MediaSe
   );
 }
 
+/* Spans the whole grid row; the grid packs densely, so the artwork after the opened one fills its row first and the detail drops in under it. */
+function InlineFocusedMedia({ focused, onClose }: Readonly<{ focused: MediaEntry; onClose: () => void }>) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: 'nearest' });
+  }, [focused.value]);
+  return (
+    <div ref={ref} className={styles.inlineDetail}>
+      <FocusedMedia focused={focused} onClose={onClose} />
+    </div>
+  );
+}
+
 function MediaGroups({
   groups,
   search,
+  focused,
+  onClose,
 }: Readonly<{
   groups: ReturnType<typeof filterCatalogue>['groups'];
   search: MediaSearch;
+  focused?: MediaEntry;
+  onClose: () => void;
 }>) {
   return (
     <>
@@ -369,7 +394,10 @@ function MediaGroups({
         >
           <div className={galleryGrid(kind)}>
             {mediaTiles(entries).map((tile) => (
-              <MediaCard key={tile.key} tile={tile} search={search} />
+              <Fragment key={tile.key}>
+                <MediaCard tile={tile} search={search} />
+                {focused && holdsArtwork(tile, focused) && <InlineFocusedMedia focused={focused} onClose={onClose} />}
+              </Fragment>
             ))}
           </div>
         </Card>

@@ -31,7 +31,12 @@ export const LeaderLink = meta.story({
   args: { path: '/media/game/leaders?item=%2Fimage%2Fleader%2Fofficial%2Faramsham.png' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 })).resolves.toBeVisible();
+    const detail = await page.findByRole('heading', { name: 'Aramsham' }, { timeout: 30_000 });
+    await expect(detail).toBeVisible();
+    /* The detail opens in the gallery, after the artwork it shows, not above the results. */
+    const following = (node: Node) => Boolean(node.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING);
+    await expect(following(page.getByRole('article', { name: 'Aramsham' }))).toBe(true);
+    await expect(following(page.getAllByRole('article')[0]!)).toBe(true);
     await expect(page.getByRole('link', { name: 'Open image file' })).toHaveAttribute(
       'href',
       resolveAsset('/image/leader/official/aramsham.png', 'large')
