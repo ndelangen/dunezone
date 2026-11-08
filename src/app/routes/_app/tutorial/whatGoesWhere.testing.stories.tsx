@@ -23,3 +23,10 @@ export const Chapter = meta.story({
   parameters: chapterParameters,
   play: playChapter('Chapter 11: What goes where', 'Place the storm'),
 });
+
+/** The chapter opened at its third task with `?step=3`, the Spice Blow: turn a card over, then place its spice from the card's ring. */
+export const FromSpiceBlow = meta.story({
+  args: { path: '/tutorial/what-goes-where?step=3' },
+  parameters: chapterParameters,
+  play: playChapter('Chapter 11: What goes where', 'Turn over a Spice card'),
+});

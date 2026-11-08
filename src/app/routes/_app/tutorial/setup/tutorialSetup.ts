@@ -10,6 +10,7 @@ import { storedSnapshotSchema } from '../../../../../../workers/game/state';
 import type { ChapterScript } from '../chapterScripts/chapterScript';
 import type { RecordedDeal } from '../table/localSession';
 import type { TableStart } from '../table/localTable';
+import spiceBlows from './spiceBlows.json';
 
 /*
  * The tutorial's shared setup as `bun run tutorial:record` wrote it: one stored table per checkpoint, the seats' viewers,
@@ -37,9 +38,33 @@ export type TutorialSetup = Readonly<{
 export const withOrigin = <Value>(value: Value, origin: string): Value =>
   JSON.parse(JSON.stringify(value).replaceAll('{{origin}}', origin)) as Value;
 
-/* A recorded stored table, with its images under the page's origin. */
+/*
+ * Each recorded spice card's territories and amount, which a live game copies onto the card when it takes the deck in (#2678).
+ * The recording predates that, so its cards get them here: a revealed card then lights its territory and offers to place its spice, as in a game.
+ */
+const blowByAsset = new Map(spiceBlows.map(({ assetId, spiceBlow }) => [assetId, spiceBlow]));
+
+function withSpiceBlows(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(withSpiceBlows);
+  }
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+  const entries = Object.entries(value).map(([key, entry]) => [key, withSpiceBlows(entry)] as const);
+  const record = Object.fromEntries(entries) as Record<string, unknown>;
+  const artwork = record.artwork as { type?: unknown; front?: unknown; spiceBlow?: unknown } | undefined;
+  if (artwork?.type !== 'card-spice' || artwork.spiceBlow || typeof artwork.front !== 'string') {
+    return record;
+  }
+  const assetId = /\/spice-cards\/([^/]+)\//.exec(artwork.front)?.[1];
+  const spiceBlow = assetId && blowByAsset.get(assetId);
+  return spiceBlow ? { ...record, artwork: { ...artwork, spiceBlow } } : record;
+}
+
+/* A recorded stored table, with its images under the page's origin and its spice cards' blows. */
 const storedAt = (setup: TutorialSetup, checkpoint: TutorialCheckpoint, origin: string) =>
-  storedSnapshotSchema.parse(withOrigin(setup.checkpoints[checkpoint].stored, origin));
+  storedSnapshotSchema.parse(withSpiceBlows(withOrigin(setup.checkpoints[checkpoint].stored, origin)));
 
 /*
  * How the recording dealt: each seat's faction and station at setup, with the faction token trading showed for it,
