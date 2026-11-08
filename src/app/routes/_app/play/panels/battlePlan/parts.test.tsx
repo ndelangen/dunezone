@@ -162,3 +162,32 @@ test('a slider with stops sends only stops as it is dragged, and the one it is l
   expect(onChange.mock.calls.map(([value]) => value)).toEqual([8, 4]);
   expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '4');
 });
+
+test('a steady drag up through troops that cost 3 spice each never falls back to none', async () => {
+  const onChange = vi.fn();
+  const { container } = render(<Row onChange={onChange} start={0} max={6} stops={[0, 3, 6]} />);
+  const track = container.querySelector<HTMLElement>('.mantine-Slider-trackContainer')!;
+  /* A 300 px track over 0 to 6, so every 50 px is one spice. */
+  track.getBoundingClientRect = () => ({
+    left: 0,
+    top: 0,
+    width: 300,
+    height: 10,
+    right: 300,
+    bottom: 10,
+    x: 0,
+    y: 0,
+    toJSON() {},
+  });
+  const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 40)));
+  fireEvent.mouseDown(track, { clientX: 50, clientY: 5 });
+  await settle();
+  for (const clientX of [100, 150, 100]) {
+    fireEvent.mouseMove(document, { clientX, clientY: 5 });
+    await settle();
+  }
+  fireEvent.mouseUp(document, { clientX: 100, clientY: 5 });
+  await settle();
+  expect(onChange.mock.calls.map(([value]) => value)).toEqual([3]);
+  expect(screen.getByRole('textbox', { name: 'Fedaykin' })).toHaveProperty('value', '3');
+});

@@ -197,6 +197,7 @@ function DialRows(props: BattlePlanViewProps & { disabled: boolean }) {
           name="Spice"
           value={plan.spice}
           max={supportableSpice(plan, balance).at(-1) ?? 0}
+          stops={supportableSpice(plan, balance)}
           disabled={disabled}
           onChange={(wanted) => {
             const spice = snapSpice(plan, balance, wanted);
