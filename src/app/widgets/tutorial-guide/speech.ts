@@ -104,29 +104,43 @@ export function englishVoice(
 /* Chrome's online voices fall silent partway through a long text, so no part is longer than this. */
 const LONGEST_PART = 180;
 
-/* A long sentence in clauses, joined back up to parts no longer than they need be. */
-function clauses(sentence: string): string[] {
-  if (sentence.length <= LONGEST_PART) {
-    return [sentence];
-  }
+/* Pieces joined back up into parts no longer than they need be. */
+function packed(pieces: readonly string[]): string[] {
   const parts: string[] = [];
-  for (const clause of sentence.match(/[^,;:]+[,;:]*/g) ?? [sentence]) {
+  for (const piece of pieces) {
     const last = parts.at(-1);
-    if (last !== undefined && last.length + clause.length <= LONGEST_PART) {
-      parts[parts.length - 1] = last + clause;
+    if (last !== undefined && last.length + piece.length <= LONGEST_PART) {
+      parts[parts.length - 1] = last + piece;
     } else {
-      parts.push(clause);
+      parts.push(piece);
     }
   }
   return parts;
 }
 
+/* A long sentence in clauses, and a clause still too long in words. */
+function clauses(sentence: string): string[] {
+  if (sentence.length <= LONGEST_PART) {
+    return [sentence];
+  }
+  return packed(
+    (sentence.match(/[^,;:]+[,;:]*/g) ?? [sentence]).flatMap((clause) =>
+      clause.length <= LONGEST_PART ? [clause] : (clause.match(/\S+\s*/g) ?? [clause])
+    )
+  );
+}
+
+/* Sentences where the browser has no Intl.Segmenter: each ends at its stop and the space after it. */
+const ROUGH_SENTENCE = /\S[\s\S]*?(?:[.!?]+(?=\s|$)|$)/g;
+
+const sentencesOf = (text: string): string[] =>
+  typeof Intl.Segmenter === 'function'
+    ? Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), ({ segment }) => segment)
+    : (text.match(ROUGH_SENTENCE) ?? []);
+
 /** A text in the parts it is read in: each sentence, and a long one in clauses. */
 export function speechParts(text: string): string[] {
-  const sentences =
-    typeof Intl.Segmenter === 'function'
-      ? Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), ({ segment }) => segment)
-      : [text];
+  const sentences = sentencesOf(text);
   /* A name such as "Supplies!" ends no sentence: what follows it in lower case goes on with the sentence. */
   const joined: string[] = [];
   for (const sentence of sentences.map((part) => part.trim()).filter((part) => part.length > 0)) {
@@ -211,8 +225,18 @@ export function useSpeech() {
             return;
           }
           if (chosen && !chosen.localService && OFFLINE_ERRORS.has(event.error)) {
-            voice.cancel();
-            read(parts.slice(index), true);
+            /*
+             * Chrome starts the next queued part once this handler returns, so the rest is read again in a voice on the machine only after it.
+             * Until then this attempt is no longer under way, and its other parts' errors are let be.
+             */
+            const rest = parts.slice(index);
+            reading.utterances = [];
+            setTimeout(() => {
+              if (current.current === reading && reading.utterances.length === 0) {
+                voice.cancel();
+                read(rest, true);
+              }
+            });
             return;
           }
           ended();

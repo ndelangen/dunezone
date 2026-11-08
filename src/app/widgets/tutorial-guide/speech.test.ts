@@ -1,4 +1,4 @@
-import { expect, test } from 'vite-plus/test';
+import { afterEach, expect, test } from 'vite-plus/test';
 
 import { englishVoice, speechParts, spokenText } from './speech';
 
@@ -92,4 +92,28 @@ test('a long sentence is read in clauses, none longer than an online voice reads
   expect(parts.length).toBeGreaterThan(1);
   expect(parts.every((part) => part.length <= 180)).toBe(true);
   expect(parts.join(' ')).toBe(sentence);
+});
+
+const segmenter = Object.getOwnPropertyDescriptor(Intl, 'Segmenter')!;
+afterEach(() => {
+  Object.defineProperty(Intl, 'Segmenter', segmenter);
+});
+
+test('a long text with no stops at all is read in parts of words, none too long', () => {
+  const text = Array.from({ length: 60 }, (_, index) => `word${index}`).join(' ');
+  const parts = speechParts(text);
+  expect(parts.length).toBeGreaterThan(1);
+  expect(parts.every((part) => part.length <= 180)).toBe(true);
+  expect(parts.join(' ')).toBe(text);
+});
+
+test('without Intl.Segmenter a text is still read sentence by sentence, and in short parts', () => {
+  Object.defineProperty(Intl, 'Segmenter', { configurable: true, value: undefined });
+  expect(speechParts('Pay 1.5 spice. Then wait! Ready?')).toEqual(['Pay 1.5 spice.', 'Then wait!', 'Ready?']);
+  const long =
+    'Press the J key to reopen the Mentat panel whenever you want to recall what happened earlier in the game, ' +
+    'then pick any turn from the timeline and read every move, bid and battle that was made on it by each faction at the table.';
+  const parts = speechParts(long);
+  expect(parts.length).toBeGreaterThan(1);
+  expect(parts.every((part) => part.length <= 180)).toBe(true);
 });

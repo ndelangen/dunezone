@@ -274,9 +274,18 @@ test('an online voice that fails offline is followed by a voice on the machine, 
   expect(said).toHaveLength(3);
   const failed = new Event('error') as SpeechSynthesisErrorEvent;
   Object.defineProperty(failed, 'error', { value: 'network' });
+  vi.useFakeTimers();
   act(() => {
     said[1]!.dispatchEvent(failed);
+    /* Chrome errors the parts it then drops too; one fallback follows, not one per part. */
+    said[2]!.dispatchEvent(failed);
   });
+  /* Only once the error handler has returned, so Chrome's own next part cannot start it twice. */
+  expect(said).toHaveLength(3);
+  act(() => {
+    vi.runAllTimers();
+  });
+  vi.useRealTimers();
   const again = said.slice(3);
   expect(again.map((utterance) => utterance.text)).toEqual(['Two.', 'Three.']);
   expect(again.every((utterance) => (utterance.voice as SpeechSynthesisVoice).localService)).toBe(true);
