@@ -40,8 +40,12 @@
     --pile-gap: var(--space-md);
     --pile-slot-stacked: 200px;
 
+    /* A fan's outer cards lean past their track by about 23px. On a desktop row that lands in the gap; on a stacked row the outer piles sit against the screen edge, so the grid keeps that much inside its own edges, or the page scrolls sideways on a phone. */
+    --pile-fan-overhang: 16px;
+
     grid-template-columns: repeat(2, minmax(0, var(--pile-slot-stacked)));
-    max-width: calc(var(--pile-slot-stacked) * 2 + var(--pile-gap));
+    max-width: calc(var(--pile-slot-stacked) * 2 + var(--pile-gap) + 2 * var(--pile-fan-overhang));
+    padding-inline: var(--pile-fan-overhang);
     margin-inline: auto;
   }
 }
