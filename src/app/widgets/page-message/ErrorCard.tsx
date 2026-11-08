@@ -1,6 +1,7 @@
 import { DECAL } from '@shared/assetIds';
 import { isRetiredStockAsset } from '@shared/retiredStockAssets';
 
+import { CardFrame } from '@app/widgets/asset-face/AssetFace';
 import { TreacheryCard } from '@game/assets/treachery/Treachery';
 import { backgroundPresets } from '@game/data/backgrounds';
 
@@ -39,7 +40,7 @@ export interface ErrorCardProps {
 export function ErrorCard({ name, code, text, seed }: ErrorCardProps) {
   return (
     <div className={styles.card} aria-hidden>
-      <div className={styles.frame}>
+      <CardFrame>
         <TreacheryCard
           name={name}
           subName={code}
@@ -48,7 +49,7 @@ export function ErrorCard({ name, code, text, seed }: ErrorCardProps) {
           icon={[backgroundPresets.atreides, '/vector/icon/treachery.svg']}
           decals={[{ id: errorCardDecal(seed), muted: false, offset: [0, 0], outline: false, scale: 1.6 }]}
         />
-      </div>
+      </CardFrame>
     </div>
   );
 }

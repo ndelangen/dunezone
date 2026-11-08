@@ -451,7 +451,7 @@ function RulesetDetailPage() {
   useLivePageTitle(page?.ruleset.name, 'Ruleset');
 
   if (!page) {
-    return <RouteNotFound size="compact" title="Ruleset" back={backToRulesets} noun="ruleset" />;
+    return <RouteNotFound title="Ruleset" back={backToRulesets} noun="ruleset" />;
   }
 
   /* The page is the same for everyone and usually settles first; controls wait for the viewer, as the anonymous capabilities grant none. */

@@ -9,10 +9,11 @@ import styles from './PageLayout.module.css';
  * What kind of header a page declares.
  * `compact` shrinks the band;
  * `collapsed` keeps the accessible page title and reduces the band to navigation;
+ * `inline` reduces the band to navigation too, and sets the header at the top of the page's content instead, on the page's own paper, for a reading page that opens like an article;
  * `hero` marks a page whose name is set in the display face;
  * `immersive` grows the band to fill the whole window, with the header content laid over its darker left side.
  */
-export type PageHeaderSize = 'default' | 'compact' | 'collapsed' | 'hero' | 'immersive';
+export type PageHeaderSize = 'default' | 'compact' | 'collapsed' | 'inline' | 'hero' | 'immersive';
 
 /**
  * Where the header content sits across the band.
@@ -30,7 +31,8 @@ type PageLayoutProps = PropsWithChildren<{ height?: 'document' | 'fullscreen' }>
 /** The id of the page's `main`, the target of the shell's skip link. One page mounts one PageLayout, so it is unique. */
 export const PAGE_CONTENT_ID = 'page-content';
 
-const InsidePageHeader = createContext(false);
+/* Where the caller sits: in the band, in an inline header at the top of the content, or in neither. */
+const InsidePageHeader = createContext<'band' | 'inline' | false>(false);
 
 /**
  * Whether the caller is rendering inside `PageLayout.Header`.
@@ -39,7 +41,12 @@ const InsidePageHeader = createContext(false);
  * The band is the only place the header treatment is correct: `data-scheme-paper` is set on the header content alone, while `data-page-layout-header-size` sits on the layout root, which `display: contents` leaves matching selectors for everything inside the layout, `Content` included.
  */
 export function useInsidePageHeader(): boolean {
-  return useContext(InsidePageHeader);
+  return useContext(InsidePageHeader) !== false;
+}
+
+/** Whether the caller is in an `inline` header, on the page's paper rather than the band's artwork, so it takes the page's ink rather than the band's. */
+export function useInlinePageHeader(): boolean {
+  return useContext(InsidePageHeader) === 'inline';
 }
 
 /**
@@ -74,6 +81,7 @@ const Content: (props: PropsWithChildren<{ width?: PageContentWidth }>) => null 
  * Slots: `Header` (omit it to mark the page intentionally compact;
  * `size="compact"` shrinks the band;
  * `size="hero"` declares a page whose title takes the display treatment;
+ * `size="inline"` sets the header at the top of the content with no band, for a page that opens like an article;
  * `size="immersive"` grows the band edge to edge over the whole window, for a page that is one invitation such as sign-in;
  * `align="start"` sets the header content on the band's one shared left edge instead of centring it), `Toolbar`, and
  * `Content` (`width="viewport"` lets the content use the viewport between the shell gutters).
@@ -114,6 +122,7 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
   const contentWidth: PageContentWidth = slots.Content?.width ?? 'default';
 
   const hasToolbarContent = Children.toArray(toolbar).length > 0;
+  const inlineHeader = hasHeader && headerSize === 'inline';
   const layoutRef = useRef<HTMLDivElement>(null);
   useAnnounceImmersive(layoutRef, hasHeader && headerSize === 'immersive');
 
@@ -121,19 +130,19 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
     <div
       ref={layoutRef}
       className={styles.layout}
-      data-page-layout-compact={!hasHeader || headerSize === 'collapsed' ? 'true' : undefined}
+      data-page-layout-compact={!hasHeader || headerSize === 'collapsed' || inlineHeader ? 'true' : undefined}
       data-page-layout-header-size={hasHeader ? headerSize : undefined}
       data-page-layout-height={height === 'document' ? undefined : height}
     >
       {/* data-scheme-paper: header content always sits on the light artwork band, so it keeps
           its light-scheme rendering in both schemes (see tokens.css). */}
-      {hasHeader && (
+      {hasHeader && !inlineHeader && (
         <header
           className={styles.headerContent}
           data-scheme-paper
           data-page-layout-header-align={headerAlign === 'start' ? 'start' : undefined}
         >
-          <InsidePageHeader.Provider value>{header}</InsidePageHeader.Provider>
+          <InsidePageHeader.Provider value="band">{header}</InsidePageHeader.Provider>
         </header>
       )}
       <main className={styles.content} id={PAGE_CONTENT_ID}>
@@ -141,6 +150,12 @@ function PageLayoutBase({ children, height = 'document' }: PageLayoutProps) {
           <div className={styles.toolbar} data-page-layout-toolbar>
             {toolbar}
           </div>
+        )}
+        {/* An inline header opens the content, under the toolbar's way back, so it reads as the article's own masthead. It is not a banner landmark here, since it sits inside main. */}
+        {inlineHeader && (
+          <header className={styles.inlineHeader}>
+            <InsidePageHeader.Provider value="inline">{header}</InsidePageHeader.Provider>
+          </header>
         )}
         <div className={styles.pageContent} data-page-layout-content data-page-layout-content-width={contentWidth}>
           {content}

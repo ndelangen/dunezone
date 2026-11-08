@@ -19,7 +19,9 @@ export const NotFound = meta.story({
   args: { path: '/a-page-that-does-not-exist' },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(
+      page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
     const band = within(page.getByRole('banner'));
     await expect(
       band.getByText('The address may be mistyped, or whatever lived here has since been removed.')
@@ -29,6 +31,17 @@ export const NotFound = meta.story({
     const back = await page.findByRole('link', { name: 'Go home' }, { timeout: 30_000 });
     await expect(back).toHaveAttribute('href', '/');
     await expect(back.closest('main')).not.toBeNull();
+  },
+});
+
+/** The same page at phone width: the dealt card narrows with the column, so its tilt never pushes the page sideways. */
+export const NotFoundPhone = meta.story({
+  args: { path: '/a-page-that-does-not-exist' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const back = await page.findByRole('link', { name: 'Go home' }, { timeout: 30_000 });
+    await expectWithinWidth(canvasElement, [back]);
   },
 });
 

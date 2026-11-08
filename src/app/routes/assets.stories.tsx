@@ -27,6 +27,21 @@ export const Catalogue = meta.story({
     }
   },
 });
+/** The overview at phone width: the fan drops under the title and scales to the column, inside the band's edges. */
+export const CataloguePhone = meta.story({
+  args: { path: '/assets' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = storyPage(canvasElement);
+    const title = await page.findByRole('heading', { name: 'Assets', level: 1 }, { timeout: 30_000 });
+    const band = title.closest('header')!.getBoundingClientRect();
+    for (const part of title.closest('header')!.querySelectorAll(':scope > div > div > *')) {
+      const box = part.getBoundingClientRect();
+      await expect(box.left).toBeGreaterThanOrEqual(band.left);
+      await expect(box.right).toBeLessThanOrEqual(band.right);
+    }
+  },
+});
 export const TreacheryCards = meta.story({
   args: { path: '/assets/card-treachery' },
   play: async ({ canvasElement }) => {

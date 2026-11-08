@@ -14,28 +14,13 @@
   text-wrap: balance;
 }
 
-/* The post's opening: the title in the display face, then the byline and the summary, all in the reading column. */
+/* The post's opening: the title, summary and byline in the reading column's measure, ruled off from the body. */
 .masthead {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  max-width: 44rem;
+  margin-inline: auto;
   padding-block-end: var(--space-md);
   border-block-end: 1px solid var(--mantine-color-default-border);
-}
-
-.title {
-  margin: 0;
-  font-family: "C_Desdemona", sans-serif;
-  font-size: clamp(2.4rem, 9cqi, 4.2rem);
-  line-height: 0.94;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  text-wrap: balance;
-}
-
-.summary {
-  margin: 0;
-  font-size: var(--mantine-font-size-lg);
-  line-height: 1.5;
-  color: var(--mantine-color-dimmed);
 }

@@ -23,7 +23,7 @@ function AuthErrorPage() {
       title="Sign-in error"
       lede={`Sorry, something went wrong while signing you in.${detail}`}
       back={<PageMessage.Home />}
-      card={{ name: 'Sign-in failed', code: 'Sign-in error' }}
+      card={{ name: 'Sign-in failed', code: params?.error ? `Error: ${params.error}` : 'Sign-in error' }}
     />
   );
 }

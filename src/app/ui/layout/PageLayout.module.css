@@ -201,3 +201,9 @@
   margin-inline: 0;
   overflow: hidden;
 }
+
+/* An inline header is the first thing in the content column, on the page's own paper; the page sets its measure. */
+.inlineHeader {
+  width: 100%;
+  min-width: 0;
+}

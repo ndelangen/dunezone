@@ -71,7 +71,7 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
       <AssetPile
         decorative
         faces={cards.slice(0, 5)}
-        style={{ position: 'relative', height: 230, width: 540 }}
+        style={{ position: 'absolute', top: 0, left: 0, height: 230, width: 540 }}
         place={(i, count) => {
           const off = i - (count - 1) / 2;
           return {
