@@ -352,7 +352,7 @@ const RELEASE_DESCRIPTIONS = [
   'Build and verify a new artifact without deploying it; it carries only its own browser files',
   'Upload the new game Worker, then verify that its active release identity matches the commit',
   'Upload raster image variants to R2 before new browser code requests them',
-  'New requests receive new browser code; an already open tab keeps previous code until a refresh; both use the new backend',
+  'New requests receive new browser code; an already open tab keeps only the code it already loaded and may need a refresh; both use the new backend',
   'Publish the new Storybook and queue new image captures; the previous image remains until a replacement is ready',
 ];
 
