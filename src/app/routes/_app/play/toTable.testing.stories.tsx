@@ -1,4 +1,4 @@
-import preview from '@sb/preview';
+import { testingPreview } from '@sb/preview';
 import type { Decorator } from '@storybook/tanstack-react';
 import { createMemoryHistory } from '@tanstack/react-router';
 import { useEffect } from 'react';
@@ -25,7 +25,7 @@ function KeepDatabase() {
   return null;
 }
 
-const meta = preview.meta({
+const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Play/Create to table',
   args: { path: '/play/create' },

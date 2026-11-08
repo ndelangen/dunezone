@@ -52,8 +52,16 @@
   transition: opacity 700ms ease-out;
 }
 
+/*
+ * The planet sits at the viewport's centre, while the shell can start right of a rail (a tutorial's workspace does):
+ * the iris centres on the planet in the shell's own coordinates.
+ */
+.dune-play-stage {
+  --dune-play-planet-x: calc(50vw - var(--page-layout-fullscreen-left, 0px));
+}
+
 .dune-play-stage:not([data-arrival="opening"], [data-arrival="open"]) .dune-play-shell {
-  clip-path: circle(0% at 50% var(--voyage-planet-y));
+  clip-path: circle(0% at var(--dune-play-planet-x) var(--voyage-planet-y));
 }
 
 .dune-play-stage[data-arrival="opening"] .dune-play-shell {
@@ -78,7 +86,7 @@
 
   clip-path: none;
   mask-image: radial-gradient(
-    circle at 50% var(--voyage-planet-y),
+    circle at var(--dune-play-planet-x) var(--voyage-planet-y),
     var(--ui-black) calc(var(--dune-play-iris) - 1.5px),
     transparent var(--dune-play-iris)
   );
