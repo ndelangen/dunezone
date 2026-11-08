@@ -610,7 +610,13 @@ function BattleCallout({ client, table, battle, placement }: Props & { battle: P
     >
       <PointerSessionContext value={pointerSession}>
         <DarkSchemeIsland>
-          <div className={styles.callout} data-battle-stage={battle.stage}>
+          <div
+            className={styles.callout}
+            data-battle-stage={battle.stage}
+            style={
+              { '--pop-x': `${anchor[0] - capsule[0]}px`, '--pop-y': `${anchor[1] - capsule[1]}px` } as CSSProperties
+            }
+          >
             <CalloutSurface
               pointer={[anchor[0] - capsule[0], anchor[1] - capsule[1]]}
               actions={

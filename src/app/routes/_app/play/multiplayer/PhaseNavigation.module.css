@@ -1,0 +1,73 @@
+/* Animation trials for the header's Ready (motionTrials.stories.fixture.tsx picks one per story). */
+
+/* Pop: the tick pops in, the count bumps up a line. */
+:global(html[data-motion="ok"][data-trial-ready="pop"]) .check {
+  animation: ready-pop 240ms cubic-bezier(0.2, 0.9, 0.3, 1.5);
+}
+
+:global(html[data-motion="ok"][data-trial-ready="pop"]) .count {
+  display: inline-block;
+  animation: ready-count 220ms ease-out;
+}
+
+@keyframes ready-pop {
+  from {
+    scale: 0;
+  }
+}
+
+@keyframes ready-count {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+/* Stamp: the tick comes down big and tilted like a rubber stamp, and the button gives a little under it. */
+:global(html[data-motion="ok"][data-trial-ready="stamp"]) .check {
+  animation: ready-stamp 200ms ease-in;
+}
+
+:global(html[data-motion="ok"][data-trial-ready="stamp"]) .button[aria-pressed="true"] {
+  animation: ready-give 300ms ease-out 180ms;
+}
+
+:global(html[data-motion="ok"][data-trial-ready="stamp"]) .count {
+  display: inline-block;
+  animation: ready-count 220ms ease-out 180ms backwards;
+}
+
+@keyframes ready-stamp {
+  from {
+    opacity: 0;
+    scale: 2.4;
+    rotate: -30deg;
+  }
+}
+
+@keyframes ready-give {
+  30% {
+    scale: 0.96;
+  }
+
+  65% {
+    scale: 1.01;
+  }
+}
+
+/* Tick: the tick draws itself on with a pen stroke, and the count rolls up. */
+:global(html[data-motion="ok"][data-trial-ready="draw"]) .check path {
+  stroke-dasharray: 24;
+  animation: ready-draw 260ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-ready="draw"]) .count {
+  display: inline-block;
+  animation: ready-count 220ms ease-out;
+}
+
+@keyframes ready-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+}

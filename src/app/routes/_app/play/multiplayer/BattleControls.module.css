@@ -218,3 +218,201 @@
     opacity: 0;
   }
 }
+
+/*
+ * Animation trials for the battle panel's arrival (motionTrials.stories.fixture.tsx picks one per story).
+ * Every variant grows out of the battle marker: `--pop-x` and `--pop-y` put the origin on the pointer's tip.
+ */
+.callout {
+  transform-origin: calc(50% + var(--pop-x, 0px)) calc(50% + var(--pop-y, 0px));
+}
+
+/* Spring: grows out of the marker, overshoots a hair, settles. */
+:global(html[data-motion="ok"][data-trial-battle-pop="spring"]) .callout {
+  animation: pop-spring 300ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes pop-spring {
+  0% {
+    opacity: 0;
+    scale: 0.55;
+  }
+
+  45% {
+    opacity: 1;
+  }
+
+  70% {
+    scale: 1.035;
+  }
+
+  100% {
+    scale: 1;
+  }
+}
+
+/* Drop: set down on the table from a little above, with the same two-step knock as a Panel's edge stopping. */
+:global(html[data-motion="ok"][data-trial-battle-pop="drop"]) .callout {
+  animation: pop-drop 400ms ease-out;
+}
+
+@keyframes pop-drop {
+  0% {
+    opacity: 0;
+    translate: 0 -16px;
+  }
+
+  40% {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  60% {
+    translate: 0 -4px;
+  }
+
+  80% {
+    translate: 0 0;
+  }
+
+  90% {
+    translate: 0 -1px;
+  }
+}
+
+/* Clash: the panel opens, then the two sides charge in from the edges, meet in the middle and recoil once. */
+:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .callout {
+  animation: pop-clash-panel 180ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .side:first-child {
+  animation: pop-clash-left 420ms ease-out;
+}
+
+:global(html[data-motion="ok"][data-trial-battle-pop="clash"]) .side:nth-child(2) {
+  animation: pop-clash-right 420ms ease-out;
+}
+
+@keyframes pop-clash-panel {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+@keyframes pop-clash-left {
+  0%,
+  15% {
+    opacity: 0;
+    translate: -48px 0;
+  }
+
+  55% {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  72% {
+    translate: -6px 0;
+  }
+
+  88% {
+    translate: 0 0;
+  }
+
+  94% {
+    translate: -2px 0;
+  }
+}
+
+@keyframes pop-clash-right {
+  0%,
+  15% {
+    opacity: 0;
+    translate: 48px 0;
+  }
+
+  55% {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  72% {
+    translate: 6px 0;
+  }
+
+  88% {
+    translate: 0 0;
+  }
+
+  94% {
+    translate: 2px 0;
+  }
+}
+
+/* Unroll: the capsule unrolls sideways out of the marker like a map, then its contents fade up. */
+:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .callout {
+  animation: pop-unroll 260ms cubic-bezier(0.25, 0.9, 0.35, 1);
+}
+
+:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .side,
+:global(html[data-motion="ok"][data-trial-battle-pop="unroll"]) .centre {
+  animation: pop-unroll-contents 320ms ease-out;
+}
+
+@keyframes pop-unroll {
+  0% {
+    opacity: 0;
+    scale: 0.12 0.7;
+  }
+
+  35% {
+    opacity: 1;
+  }
+
+  100% {
+    scale: 1 1;
+  }
+}
+
+@keyframes pop-unroll-contents {
+  0%,
+  45% {
+    opacity: 0;
+  }
+}
+
+/* Thud: lands heavily, a touch too big, and the table shudders once under it. */
+:global(html[data-motion="ok"][data-trial-battle-pop="thud"]) .callout {
+  animation: pop-thud 340ms ease-in;
+}
+
+@keyframes pop-thud {
+  0% {
+    opacity: 0;
+    scale: 1.12;
+  }
+
+  40% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    animation-timing-function: ease-out;
+  }
+
+  55% {
+    translate: 3px 1px;
+  }
+
+  70% {
+    translate: -2px 0;
+  }
+
+  85% {
+    translate: 1px 0;
+  }
+
+  100% {
+    translate: 0 0;
+  }
+}
