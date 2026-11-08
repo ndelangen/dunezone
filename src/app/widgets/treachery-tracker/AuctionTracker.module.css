@@ -20,6 +20,12 @@
   padding-block: calc(var(--unit) * 1.5);
 }
 
+/* Every section runs to the window's sides, so the rules between them span the whole window. */
+.tracker > * {
+  margin-inline: calc(-1 * var(--window-body-pad-inline, 0px));
+  padding-inline: var(--window-body-pad-inline, 0px);
+}
+
 .section + .section,
 .onBid + .section,
 .section + .hands,
