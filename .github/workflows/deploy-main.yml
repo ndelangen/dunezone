@@ -271,27 +271,6 @@ jobs:
         env:
           GAME_WORKER_VERSION_ID: ${{ steps.game_active.outputs.version_id }}
 
-      - uses: ./.github/actions/playwright-chromium
-        with:
-          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
-          with-deps: "false"
-      - name: Verify isolated Storybook publication
-        run: bun run verify:storybook-publication
-
-      - name: Deploy isolated Storybook
-        run: >-
-          bunx wrangler deploy
-          --strict
-          --config workers/storybook/wrangler.jsonc
-          --tag "$GITHUB_SHA"
-          --message "GitHub Actions Storybook $GITHUB_SHA"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Smoke isolated Storybook
-        run: bun run ./scripts/storybook-deployment-smoke.ts
-
       - name: Activate higher checked-in Renderer revisions
         run: bun run ./scripts/publication-revisions.ts activate
         env:
@@ -336,6 +315,47 @@ jobs:
         with:
           path: .cache/media-verified
           key: media-verified-${{ github.run_id }}-${{ github.run_attempt }}
+
+  # Storybook is a separate secret-free Worker that reads nothing from production, so it builds, verifies and
+  # deploys beside the production release instead of adding its two minutes after it. It follows the gate's
+  # answer like the deploy job does. A failure here still fails the run, so the gate deploys the commit again on
+  # the next event, the same as a failure in the deploy job.
+  storybook:
+    needs: release_gate
+    if: needs.release_gate.outputs.deploy != 'false'
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      # Storybook serves ../public, which carries the generated image variants.
+      - uses: ./.github/actions/generated-images
+
+      - uses: ./.github/actions/playwright-chromium
+        with:
+          # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
+          with-deps: "false"
+      - name: Verify isolated Storybook publication
+        run: bun run verify:storybook-publication
+
+      - name: Deploy isolated Storybook
+        run: >-
+          bunx wrangler deploy
+          --strict
+          --config workers/storybook/wrangler.jsonc
+          --tag "$GITHUB_SHA"
+          --message "GitHub Actions Storybook $GITHUB_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Smoke isolated Storybook
+        run: bun run ./scripts/storybook-deployment-smoke.ts
 
   # Production has already shipped when this starts.
   # Dev preserves its data between the weekly snapshot refreshes.

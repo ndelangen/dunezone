@@ -448,8 +448,10 @@ deploying. In every other case the `deploy` job runs:
     reads the endpoint up to twelve times, five seconds apart, and fails only when the last read is
     still wrong. The complete deploy job allows 120 minutes for both bounded active-version gates,
     migrations and release work.
-13. Build and verify the secret-free Storybook artifact, deploy it to `storybook.dune.zone`, and
-    smoke its manager, page index, preview entry, CSP, and shared public assets.
+13. A separate `storybook` job, running beside the deploy job after the same gate, builds and verifies
+    the secret-free Storybook artifact, deploys it to `storybook.dune.zone`, and smokes its manager,
+    page index, preview entry, CSP, and shared public assets. It reads nothing from production, so it
+    does not wait for the production release, and a failure there still fails the run.
 14. Read the stored Renderer revisions. If any checked-in revision is higher,
     activate all higher revisions in one mutation and schedule bounded
     regeneration scans. CI does not wait for scanning or capture.
