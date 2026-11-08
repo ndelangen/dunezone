@@ -61,3 +61,22 @@ test('an edit the room has not answered counts its own strength, not the strengt
   queue.editPlan('battle-one', { troops: [{ faceId: 'harkonnen-front', undialed: 2, dialed: 1 }], spice: 1 });
   expect(queue.shown(snapshot, false).battlePlan?.strength).toBe(4);
 });
+
+test('an unanswered Advanced Max edit spends the spice on support the way the room will', () => {
+  const snapshot = battleSnapshot();
+  const queue = new BattleQueue({
+    canAct: () => false,
+    snapshot: () => snapshot,
+    sendPlan: vi.fn(),
+    command: vi.fn(),
+    hasRoom: () => true,
+  });
+  /* Raising a face's count leaves its support to the room, as the dial's own edit does. */
+  queue.editPlan('battle-one', { troops: [{ faceId: 'harkonnen-front', undialed: 7, dialed: 0 }], spice: 6 });
+  const plan = queue.shown(snapshot, false).battlePlan;
+  expect(plan?.troops).toEqual([{ faceId: 'harkonnen-front', undialed: 1, dialed: 6 }]);
+  expect(plan?.strength).toBe(6.5);
+  /* A spice-only edit moves the support with it. */
+  queue.editPlan('battle-one', { spice: 4 });
+  expect(queue.shown(snapshot, false).battlePlan).toMatchObject({ spice: 4, strength: 5.5 });
+});

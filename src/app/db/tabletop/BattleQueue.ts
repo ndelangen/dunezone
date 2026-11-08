@@ -1,5 +1,12 @@
 import type { BattlePlan, BattlePlanInput, Disclosure } from '@shared/play/battle';
-import { dialsFlat, dialsFree, flatStrength, spiceStrength } from '@shared/play/battleDialing';
+import {
+  dialsFlat,
+  dialsFree,
+  flatStrength,
+  kissSpice,
+  spiceStrength,
+  spiceStrengthChoices,
+} from '@shared/play/battleDialing';
 import type { GameSnapshot, PieceAction } from '@shared/play/protocol';
 
 type BattleAction = Extract<PieceAction, { kind: 'battle-ready' | 'battle-disclose' }>;
@@ -21,20 +28,78 @@ function shownWith(shown: BattlePlan['disclosed'], disclosure: Disclosure): Batt
     : { ...shown, [disclosure.element]: true };
 }
 
+type Projected = Pick<BattlePlan, 'mode' | 'troops' | 'spice' | 'adjustment' | 'faces' | 'dialing'>;
+
 /*
- * The strength the room will count for a plan, worked out the way the Worker counts it, so an edit the room has not answered yet
- * moves the shown total at once. Advanced max dialing may still move support between troops when the room answers.
+ * Advanced Max support as the Worker allocates it: the spice buys the most strength it can, spent exactly where it can be,
+ * otherwise as much of it as can be spent. Each face's troops go in doubling batches, so a large count stays a short search.
  */
-function projectedStrength(plan: Pick<BattlePlan, 'troops' | 'spice' | 'adjustment' | 'faces' | 'dialing'>) {
+function maxSupport(troops: Projected['troops'], faces: Projected['faces'], spice: number) {
+  let states = new Map<number, { gain: number; supported: number[] }>([
+    [0, { gain: 0, supported: troops.map(() => 0) }],
+  ]);
+  troops.forEach((troop, index) => {
+    const face = faces.find((candidate) => candidate.id === troop.faceId);
+    let remaining = face ? troop.undialed + troop.dialed : 0;
+    for (let batch = 1; face && remaining > 0; batch *= 2) {
+      const quantity = Math.min(batch, remaining);
+      remaining -= quantity;
+      const next = new Map(states);
+      for (const [spent, allocation] of states) {
+        const total = spent + quantity * face.supportCost;
+        const gain = allocation.gain + quantity * (face.supportedStrength - face.strength);
+        const previous = next.get(total);
+        if (total <= spice && (!previous || gain > previous.gain)) {
+          const supported = [...allocation.supported];
+          supported[index] += quantity;
+          next.set(total, { gain, supported });
+        }
+      }
+      states = next;
+    }
+  });
+  const spent = states.has(spice) ? spice : Math.max(...states.keys());
+  const supported = states.get(spent)!.supported;
+  return {
+    spice: spent,
+    troops: troops.map((troop, index) => ({
+      ...troop,
+      dialed: supported[index]!,
+      undialed: troop.undialed + troop.dialed - supported[index]!,
+    })),
+  };
+}
+
+/*
+ * A plan as the room will settle it, worked out the way the Worker does, so an edit the room has not answered yet shows
+ * its own support, spice and strength at once rather than the room's last answer.
+ */
+function projectedPlan<P extends Projected>(plan: P, was: Projected): P & { strength: number } {
   if (dialsFlat(plan.dialing)) {
-    const dial = flatStrength(plan.troops, plan.faces);
-    const bonus = plan.dialing === 'gf92' ? spiceStrength(dial, plan.spice, dialsFree(plan.troops, plan.faces)) : 0;
-    return dial + bonus + plan.adjustment;
+    const troops = plan.troops.map((troop) => ({ ...troop, undialed: troop.undialed + troop.dialed, dialed: 0 }));
+    const dial = flatStrength(troops, plan.faces);
+    const free = dialsFree(troops, plan.faces);
+    let spice = 0;
+    let bonus = 0;
+    if (plan.dialing === 'gf92') {
+      spice = spiceStrengthChoices(dial, free).findLast((choice) => choice <= plan.spice) ?? 0;
+      bonus = spiceStrength(dial, spice, free);
+    } else if (plan.dialing === 'kiss') {
+      spice = kissSpice(troops, plan.faces);
+    }
+    return { ...plan, troops, spice, strength: dial + bonus + plan.adjustment };
   }
-  return plan.troops.reduce((total, troop) => {
+  const declared = plan.mode === was.mode ? plan.troops : [];
+  const cost = (faceId: string) => plan.faces.find((face) => face.id === faceId)?.supportCost ?? 1;
+  const settled =
+    plan.mode === 'custom'
+      ? { troops: declared, spice: declared.reduce((total, troop) => total + troop.dialed * cost(troop.faceId), 0) }
+      : maxSupport(declared, plan.faces, plan.mode === was.mode ? plan.spice : 0);
+  const strength = settled.troops.reduce((total, troop) => {
     const face = plan.faces.find((candidate) => candidate.id === troop.faceId);
     return total + troop.undialed * (face?.strength ?? 0) + troop.dialed * (face?.supportedStrength ?? 0);
   }, plan.adjustment);
+  return { ...plan, ...settled, strength };
 }
 
 /* The snapshot with its battle plan replaced, the bank holding back the spice the new plan commits. */
@@ -182,9 +247,8 @@ export class BattleQueue {
       return authoritative;
     }
     const was = authoritative.battlePlan;
-    const plan = { ...was, ...pending?.patch, ...queued?.patch };
-    /* The room's strength belongs to the plan it last answered; an edit still on its way counts its own. */
-    return withPlan(authoritative, was, { ...plan, strength: projectedStrength(plan) });
+    /* The room's support and strength belong to the plan it last answered; an edit still on its way settles its own. */
+    return withPlan(authoritative, was, projectedPlan({ ...was, ...pending?.patch, ...queued?.patch }, was));
   }
 
   /*

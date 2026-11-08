@@ -189,20 +189,48 @@ test('a held arrow key keeps the live pace and still sends where it stops', asyn
   render(<Row onChange={onChange} />);
   const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
   thumb.focus();
-  /* Key repeat every 30 ms, eight times: 3 through 10. */
+  /* A press, then key repeat every 30 ms: 3 through 10, and the key let go. */
   for (let press = 0; press < 8; press += 1) {
-    fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+    fireEvent.keyDown(thumb, { key: 'ArrowRight', repeat: press > 0 });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30);
     });
   }
-  await act(async () => {
-    await vi.advanceTimersByTimeAsync(200);
-  });
+  fireEvent.keyUp(thumb, { key: 'ArrowRight' });
+  await act(async () => {});
   vi.useRealTimers();
   const sent = onChange.mock.calls.map(([value]) => value as number);
   expect(sent.length).toBeLessThanOrEqual(3);
   expect(sent.at(-1)).toBe(10);
+});
+
+test('separate presses each send their step at once, ahead of whatever follows', () => {
+  const onChange = vi.fn();
+  render(<Row onChange={onChange} />);
+  const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
+  thumb.focus();
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  fireEvent.keyUp(thumb, { key: 'ArrowRight' });
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  fireEvent.keyUp(thumb, { key: 'ArrowRight' });
+  expect(onChange.mock.calls).toEqual([[3], [4]]);
+});
+
+test('a stepper change replaces a held step still waiting its turn', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance'] });
+  const onChange = vi.fn();
+  render(<Row onChange={onChange} />);
+  const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
+  thumb.focus();
+  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  fireEvent.keyDown(thumb, { key: 'ArrowRight', repeat: true });
+  fireEvent.click(screen.getByRole('button', { name: 'More: Fedaykin' }));
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(200);
+  });
+  vi.useRealTimers();
+  /* The held step never lands after the stepper's. */
+  expect(onChange.mock.calls.at(-1)).toEqual([5]);
 });
 
 test('a dial that locks drops the step still waiting its turn', async () => {
@@ -212,7 +240,7 @@ test('a dial that locks drops the step still waiting its turn', async () => {
   const thumb = screen.getByRole('slider', { name: 'Fedaykin' });
   thumb.focus();
   fireEvent.keyDown(thumb, { key: 'ArrowRight' });
-  fireEvent.keyDown(thumb, { key: 'ArrowRight' });
+  fireEvent.keyDown(thumb, { key: 'ArrowRight', repeat: true });
   rerender(<Row onChange={onChange} disabled />);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(200);

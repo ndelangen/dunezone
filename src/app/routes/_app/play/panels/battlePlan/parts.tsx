@@ -322,33 +322,66 @@ export function DialRow({
     };
   };
   /*
-   * The end of a gesture keeps the same pace as its steps: an arrow key ends one at every press, so a held key would
-   * otherwise send each repeat. An endpoint inside the step budget waits its turn, the thumb holding it until it goes out.
+   * An arrow key ends a gesture at every press, so while one is held its ends keep the live pace like any step,
+   * and letting the key go sends where it stopped.
+   */
+  const held = useRef(false);
+  /*
+   * The end of a gesture goes out at once, into the battle queue ahead of anything that follows it (a reveal, a stepper
+   * change), unless the plan already shows it.
    */
   const release = (end: number) => {
+    if (held.current && !latest.current.locked) {
+      send(end);
+      return;
+    }
     cancelWaiting();
     const inFlight = end === sent.current.value && !sent.current.seen;
-    if (latest.current.locked || end === latest.current.value || inFlight) {
-      finish();
-      return;
-    }
-    const wait = sent.current.at + LIVE_STEP_MS - performance.now();
-    if (wait <= 0) {
+    if (!latest.current.locked && end !== latest.current.value && !inFlight) {
       deliver(end);
+    }
+    finish();
+  };
+  const letGo = () => {
+    held.current = false;
+    const end = waiting.current?.value;
+    if (end !== undefined) {
+      release(end);
+    } else if (draft !== null) {
       finish();
+    }
+  };
+  const row = useRef<HTMLDivElement>(null);
+  const letGoNow = useRef<() => void>(() => {});
+  useLayoutEffect(() => {
+    letGoNow.current = letGo;
+  });
+  /* The row hears the slider's keys first: Mantine keeps the slider's own key handlers for itself. */
+  useEffect(() => {
+    const element = row.current;
+    if (!element) {
       return;
     }
-    waiting.current = {
-      value: end,
-      timer: setTimeout(() => {
-        waiting.current = null;
-        deliver(end);
-        finish();
-      }, wait),
+    /* On the window, so it hears a key before React's own listener hands it to the slider. */
+    const press = (event: KeyboardEvent) => {
+      if (event.target instanceof Node && element.contains(event.target)) {
+        held.current = event.repeat;
+      }
     };
-  };
+    const end = () => letGoNow.current();
+    window.addEventListener('keydown', press, true);
+    element.addEventListener('keyup', end);
+    /* Disabling the slider blurs it before the lock reaches the handlers, so a blur lets go once the render is through. */
+    const blur = () => queueMicrotask(end);
+    element.addEventListener('focusout', blur);
+    return () => {
+      window.removeEventListener('keydown', press, true);
+      element.removeEventListener('keyup', end);
+      element.removeEventListener('focusout', blur);
+    };
+  }, []);
   return (
-    <div className={styles.dialRow} data-spice={spice || undefined}>
+    <div ref={row} className={styles.dialRow} data-spice={spice || undefined}>
       <span className={styles.dialLabel}>{label}</span>
       <span className={styles.dialSub}>{sub}</span>
       <Slider
@@ -381,7 +414,19 @@ export function DialRow({
         onChangeEnd={release}
       />
       <span className={styles.dialStep}>
-        <Stepper size="sm" label={name} value={shown} max={max} disabled={disabled} wheel="focus" onChange={onChange} />
+        <Stepper
+          size="sm"
+          label={name}
+          value={shown}
+          max={max}
+          disabled={disabled}
+          wheel="focus"
+          onChange={(next) => {
+            /* A step the slider still holds back is older than this one, so it never lands after it. */
+            cancelWaiting();
+            onChange(next);
+          }}
+        />
       </span>
     </div>
   );
