@@ -23,6 +23,10 @@ concurrency:
 env:
   # "false" makes every run a dry run that uploads nothing, and "true" turns on the upload step below (#1559).
   SNAPSHOT_UPLOAD: "true"
+  # actions/checkout runs `git init`, whose "default branch name" hint filled ten lines of every job's log.
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
 
 jobs:
   due:

@@ -21,6 +21,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # actions/checkout runs `git init`, whose "default branch name" hint filled ten lines of every job's log.
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
+
 jobs:
   # The hosted shards come first because they are the run's longest jobs (#1322). GitHub's docs give
   # no order for a run's queued jobs, but in past PR runs a job early in this file waited for a runner

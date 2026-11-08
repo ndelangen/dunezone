@@ -131,7 +131,7 @@ retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
+PR CI runs it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment does not repeat it: main only accepts a merge whose PR checks passed on an up-to-date branch, so a normal merge deploys a tree whose publisher inputs CI rehearsed, possibly by reusing an earlier pass on identical inputs (the reasoning that removed the deploy-time verify job in #286). An admin-bypass merge or a direct push to main ships without it. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 
@@ -418,8 +418,8 @@ deploying. In every other case the `deploy` job runs:
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
 8. Remove raster copies served from R2. Check the final
-   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
-   raster copies because its buckets start empty.
+   Static Assets file count and reject generated-source drift. Local rehearsals keep the raster
+   copies because their buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.

@@ -28,6 +28,10 @@ permissions:
 env:
   WRANGLER_HIDE_BANNER: "true"
   WRANGLER_SEND_METRICS: "false"
+  # actions/checkout runs `git init`, whose "default branch name" hint filled ten lines of every job's log.
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: init.defaultBranch
+  GIT_CONFIG_VALUE_0: main
 
 concurrency:
   group: deploy-production
@@ -163,16 +167,13 @@ jobs:
         run: bun run generate:objs
       - name: Log generated output digest
         run: find public/m public/image public/web -type f | sort | xargs shasum -a 256 | shasum -a 256
-      - name: Verify public application runtime against isolated fixtures
-        run: bun run scripts/verify-application-runtime-local.ts
-
       - name: Build unified Worker release
         run: bun run publisher:assets
         env:
           VITE_CONVEX_URL: ${{ vars.VITE_CONVEX_URL }}
 
-      # The local rehearsal above needs raster copies with empty buckets. Production serves them from
-      # R2, so remove them before the final Static Assets file count is checked.
+      # The build keeps raster copies for local runs, whose buckets start empty. Production serves them
+      # from R2, so remove them before the final Static Assets file count is checked.
       - name: Omit raster copies from the release
         run: bun run publisher:omit-static-rasters
 
@@ -382,6 +383,9 @@ jobs:
         with:
           name: storybook-static
           path: storybook-static
+        env:
+          # v8.0.2 (the latest) prints Node's Buffer() deprecation on every download (actions/download-artifact#484).
+          NODE_OPTIONS: --disable-warning=DEP0005
 
       - name: Deploy isolated Storybook
         run: >-
