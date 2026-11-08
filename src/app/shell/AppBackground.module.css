@@ -87,7 +87,10 @@
  */
 :global(:root:is([data-voyage], :has([data-voyage]))) .planetFrame {
   /* From its centre at the foot of the window (its top plus half its width) to the resting place, at the resting scale. */
-  transform: translate(calc(-50% + var(--voyage-planet-x)), calc(var(--voyage-planet-y) - 100lvh - var(--planet-diameter) * 0.3))
+  transform: translate(
+      calc(-50% + var(--voyage-planet-x)),
+      calc(var(--voyage-planet-y) - 100lvh - var(--planet-diameter) * 0.3)
+    )
     scale(var(--voyage-planet-scale));
   transition-delay: 0s;
 }
