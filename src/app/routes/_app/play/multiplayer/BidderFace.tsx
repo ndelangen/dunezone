@@ -1,12 +1,15 @@
 import { Group, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { BID_COUNTDOWN_MS, BID_WARNING_MS } from '@shared/play/bidding';
 import type { BiddingState } from '@shared/play/bidding';
+import { Kbd } from '@ui/content/Kbd';
 import { TooltipTarget } from '@ui/control/TooltipTarget';
 import { useEffect, useRef } from 'react';
 
 import { Token as FactionToken } from '@game/assets/faction/token/Token';
 
 import type { TableProjection, TableSession } from '../../../../db/tabletop/TableSession';
+import type { CompassTable } from '../compass/compassTable';
+import { SHORTCUTS } from '../compass/shortcuts';
 import styles from './Bidder.module.css';
 import { offersActions } from './tableFactions';
 
@@ -109,11 +112,15 @@ export function RoundResult({
   );
 }
 
+function raiseLabel(bid: BiddingState['bid']) {
+  return bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1';
+}
+
 function turnLabel(mine: boolean, bid: BiddingState['bid'], turnName: string) {
   if (!mine) {
     return `Waiting for ${turnName}`;
   }
-  return `${bid ? `Raise the bid to ${bid.amount + 1}` : 'Bid 1'}. Right click to pass.`;
+  return `${raiseLabel(bid)}. Right click to pass.`;
 }
 
 /** The table supplies the deadline; these animations only draw its elapsed time. */
@@ -160,11 +167,89 @@ function ClockRing({ deadline, table, now }: { deadline: number | null; table: T
     resynchronize.current?.();
   }, [now]);
   return (
-    <svg className={styles.clockRing} viewBox="0 0 72 72" aria-hidden="true">
-      <circle className={styles.clockTrack} cx="36" cy="36" r="33" />
-      <circle ref={arc} className={styles.clockArc} cx="36" cy="36" r="33" pathLength="100" />
-      <circle ref={warning} className={styles.clockWarning} cx="36" cy="36" r="33" />
+    <svg className={styles.clockRing} viewBox="0 0 104 104" aria-hidden="true">
+      <circle className={styles.clockTrack} cx="52" cy="52" r="49" />
+      <circle ref={arc} className={styles.clockArc} cx="52" cy="52" r="49" pathLength="100" />
+      <circle ref={warning} className={styles.clockWarning} cx="52" cy="52" r="49" />
     </svg>
+  );
+}
+
+/** One of the bidder's turn buttons: its sign and the key that does the same over the table. */
+function TurnButton({
+  sign,
+  name,
+  hint,
+  shortcut,
+  disabledReason,
+  onClick,
+}: {
+  sign: string;
+  name: string;
+  hint: string;
+  shortcut: string;
+  disabledReason?: string;
+  onClick: (() => void) | undefined;
+}) {
+  return (
+    <Tooltip label={disabledReason ?? hint}>
+      <TooltipTarget>
+        <UnstyledButton
+          className={styles.turnButton}
+          aria-label={name}
+          aria-keyshortcuts={shortcut}
+          disabled={disabledReason !== undefined}
+          onClick={(event) => {
+            /* A clicked button gives its focus back, so Space for the compass never presses it again. */
+            event.currentTarget.blur();
+            onClick?.();
+          }}
+        >
+          <span className={styles.turnSign}>{sign}</span>
+          <Kbd>{shortcut}</Kbd>
+        </UnstyledButton>
+      </TooltipTarget>
+    </Tooltip>
+  );
+}
+
+/** The bidder's commands for the viewer while it points at them, the same ones the I, O and P keys run; null otherwise. */
+export type TurnCommands = CompassTable['bidding'];
+
+/**
+ * The raise, the lowering and the pass of the faction the bidder points at, each with its keyboard shortcut.
+ * A seated player keeps the row's room while the bidder points elsewhere, so the disc never moves under a pointer when the turn arrives.
+ */
+function TurnButtons({ commands, bid }: { commands: TurnCommands; bid: BiddingState['bid'] }) {
+  return (
+    <Group
+      gap={6}
+      justify="center"
+      wrap="nowrap"
+      role="group"
+      aria-label="Your bid"
+      aria-hidden={commands ? undefined : true}
+      inert={!commands}
+      data-waiting={commands ? undefined : true}
+      className={styles.turnButtons}
+    >
+      <TurnButton sign="+" name="Raise" hint={raiseLabel(bid)} shortcut={SHORTCUTS.raise} onClick={commands?.raise} />
+      <TurnButton
+        sign="−"
+        name="Lower"
+        hint="Take back your last raise"
+        shortcut={SHORTCUTS.lower}
+        disabledReason={commands?.lower ? undefined : 'Only a raise you made this turn can be taken back'}
+        onClick={commands?.lower ?? undefined}
+      />
+      <TurnButton
+        sign="Pass"
+        name="Pass"
+        hint="Hand the bidder on"
+        shortcut={SHORTCUTS.pass}
+        onClick={commands?.pass}
+      />
+    </Group>
   );
 }
 
@@ -176,7 +261,9 @@ export function OpenRound({
   remaining,
   warningRemaining,
   now,
+  commands,
 }: FaceProps & {
+  commands: TurnCommands;
   remaining: number | null;
   warningRemaining: number | null;
   now: number;
@@ -236,6 +323,7 @@ export function OpenRound({
           · {turnName}
         </Text>
       )}
+      {offersActions(table) && <TurnButtons commands={commands} bid={bid} />}
     </Stack>
   );
 }

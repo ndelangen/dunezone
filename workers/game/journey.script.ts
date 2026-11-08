@@ -1,5 +1,6 @@
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import type { PieceAction } from '../../src/shared/play/protocol';
+import { cardBaySlotPositions } from '../../src/shared/play/tableFurnitureLayout';
 import { PLAYERS, SUFFIXES, territoryName, territoryPosition } from './journey.native.fixture.ts';
 import type { JourneyRecorder } from './journey.native.fixture.ts';
 import { eventually, required, seat, syncView } from './native-runtime.fixture.ts';
@@ -218,13 +219,15 @@ export async function stormAndSpice(journey: JourneyRecorder) {
     `${PLAYERS[0]} draws the top Spice card into hand.`
   );
   const inHand = (await journey.hand(0)).find((piece) => !before.has(piece.id));
-  const beside: Vector3Tuple = [required(spiceDeck).position[0] - 1.2, 0.4, required(spiceDeck).position[2]];
+  /* The Spice discard lies in the right card bay, in the slot below the deck. */
+  const [x, , z] = required(cardBaySlotPositions('right')[1]);
+  const beside: Vector3Tuple = [x, 0.4, z];
   const drawn = await journey.created(() =>
     journey.act(
       0,
       { kind: 'hand-play', pieceId: required(inHand).id, position: beside },
       'Spice card played',
-      `${PLAYERS[0]} plays the Spice card beside the deck.`
+      `${PLAYERS[0]} plays the Spice card onto the Spice discard below the deck.`
     )
   );
   if (!required(drawn).items[0].faceUp) {

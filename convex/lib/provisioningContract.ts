@@ -54,6 +54,8 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'former_slugs',
     'migration_runs',
     'catalogue_entries',
+    'profile_standings',
+    'group_standings',
   ],
   seeded: ['rulebook_drafts'],
   required: ['factions'],

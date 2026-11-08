@@ -97,8 +97,8 @@ export const AskQuestion = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('textbox', { name: 'Ask a question' }, { timeout: 30_000 })).resolves.toBeVisible();
-    /* One way up, above the title, named after the ruleset's FAQ. */
-    await expect(page.getByRole('link', { name: 'ClassicRules FAQ' })).toHaveAttribute(
+    /* No band, as on the editors: the toolbar's back arrow is the one way up, named after the ruleset's FAQ. */
+    await expect(page.getByRole('link', { name: 'Back to ClassicRules FAQ' })).toHaveAttribute(
       'href',
       '/rulesets/classicrules/faq'
     );

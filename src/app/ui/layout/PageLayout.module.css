@@ -34,6 +34,23 @@
   aspect-ratio: 3064 / 580;
 }
 
+/*
+ * A start-aligned header sets its content on one left edge, the same inset on every page that asks for it,
+ * so a left-aligned title starts in the same place from page to page instead of wherever its own wrapper put it.
+ * The inset is the band's own padding doubled on a wide frame, and the plain padding on a narrow one, where the band has no room to spare.
+ */
+.headerContent[data-page-layout-header-align="start"] {
+  align-items: flex-start;
+  padding-inline: 3rem;
+  text-align: start;
+}
+
+@media (width < 48rem) {
+  .headerContent[data-page-layout-header-align="start"] {
+    padding-inline: 1.5rem;
+  }
+}
+
 .content {
   grid-area: content;
   display: flex;

@@ -684,7 +684,7 @@ export const PingsOutOfView = meta.story({
 });
 
 /**
- * Seat 1 carries its revived troops and then its board troops onto its own faction token: each time they join the Normal reserve face up, and both reserves stand on their setup spots, Normal first, as setup dealt them.
+ * The Emperor carries its revived troops and then its board troops onto its own faction token: each time they join the Normal reserve face up, and both reserves stand on their setup spots, Normal first, as setup dealt them.
  */
 export const TroopsGoBackToTheirReserves = meta.story({
   ...messyReservesSandbox,
@@ -709,11 +709,12 @@ export const TroopsGoBackToTheirReserves = meta.story({
       await expect(table.refusal).toBeUndefined();
       await expect(shown().table.events[0]?.command).toBe('troops.reserve');
     };
+    const normalKey = shown().table.pieces.find((candidate) => candidate.id === 'sandbox-on-board')!.stackKey;
     await carryHome('sandbox-revived');
     await carryHome('sandbox-on-board');
-    const [normal, sardaukar] = spots.map((spot) =>
-      reserves().find((pile) => planarDistance(pile.position, spot) < 0.01)
-    );
+    /* Which spot each kind takes depends on where the seat sits, so each reserve is found by its kind: the board troops are Normal. */
+    const normal = reserves().find((pile) => pile.stackKey === normalKey);
+    const sardaukar = reserves().find((pile) => pile.stackKey !== normalKey);
     await expect(normal?.items).toHaveLength(15);
     await expect(normal?.items.every((item) => item.faceUp)).toBe(true);
     await expect(sardaukar?.items).toHaveLength(5);

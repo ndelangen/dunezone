@@ -30,7 +30,8 @@ const meta = testingPreview.meta({
   ...pageStoryMeta,
   title: 'Play/Create to table',
   args: { path: '/play/create' },
-  parameters: { ...pageStoryMeta.parameters, ...creatable },
+  /* The journey ends in the table's arrival, so it plays it. */
+  parameters: { ...pageStoryMeta.parameters, ...creatable, tableArrival: 'play' },
   globals: { motion: 'on' },
   beforeEach: install(() => {
     history = createMemoryHistory({ initialEntries: ['/play/create'] });

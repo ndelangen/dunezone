@@ -9,6 +9,7 @@ import { HistoricalFactionPublicationObject, HeroKeyedHistoricalFactionObject } 
 import { factionDefinitionSchema } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
+import dreamrulesDecks from '../../src/shared/play/fixtures/dreamrulesDecks.json';
 import type { LogTab, LogEntry } from '../../src/shared/play/log';
 import type { Vector3Tuple } from '../../src/shared/play/model';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases';
@@ -17,7 +18,7 @@ import type { PieceAction, GameSnapshot, ClientMessage } from '../../src/shared/
 import { BOARD_RADIUS } from '../../src/shared/play/tableGeometry';
 import { ARRAKIS_OFFICIAL as board } from '../../src/shared/rulebooks/fixtures/arrakisOfficial';
 import { TUTORIAL_PLAYERS } from '../../src/shared/tutorial/players';
-import { cardPage, deckPage, slot, spiceCardPage } from './native-catalogue.fixture.ts';
+import { cardPage, presetDeckPage, slot, spiceCardPage } from './native-catalogue.fixture.ts';
 import type { NativePeer, NativeRuntime, NativeConnection, NativeView } from './native-runtime.fixture.ts';
 import { required } from './native-runtime.fixture.ts';
 import {
@@ -107,6 +108,38 @@ function draftable({ slug, data }: FactionFixture): DraftFaction {
   };
 }
 
+/*
+ * The published Dreamrules decks the Storybook fixtures copy (`src/shared/play/fixtures/dreamrulesDecks.json`), each on its own back.
+ * The Treachery deck holds every published card in its published count.
+ * The Spice deck has the published size and back, but every card in it is Broken Land, so the recorded Spice Blow always reveals the card the journey places spice for.
+ */
+function dreamrulesDeckPages() {
+  const treacheryCards = dreamrulesDecks.treachery.cards.map((card) => {
+    const page = cardPage(`dreamrules-${card.file.replace(/\.jpg$/, '')}`);
+    page.asset.name = card.name;
+    page.front = `${DREAMRULES}${card.file}`;
+    return { page, count: card.count };
+  });
+  const brokenLand = required(dreamrulesDecks.spice.cards.find((card) => card.name === 'Broken Land'));
+  const spiceCard = spiceCardPage('broken-land');
+  spiceCard.asset.name = brokenLand.name;
+  spiceCard.front = `${DREAMRULES}${brokenLand.file}`;
+  const spiceSize = dreamrulesDecks.spice.cards.reduce((sum, card) => sum + card.count, 0);
+  /* Both decks wear their Cardback presets, as the published Dreamrules decks do, so each deals under its own back name. */
+  const treachery = presetDeckPage(
+    'treachery-deck',
+    treacheryCards.map(({ page }) => page),
+    'treachery'
+  );
+  treachery.members = treachery.members.map((member, index) => ({ ...member, count: treacheryCards[index]!.count }));
+  const spice = presetDeckPage('spice-deck', [spiceCard], 'spice', spiceSize);
+  treachery.asset.name = dreamrulesDecks.treachery.name;
+  treachery.back = `${DREAMRULES}${dreamrulesDecks.treachery.back.file}`;
+  spice.asset.name = dreamrulesDecks.spice.name;
+  spice.back = `${DREAMRULES}${dreamrulesDecks.spice.back.file}`;
+  return { treachery, spice, pages: [...treacheryCards.map((card) => card.page), spiceCard, treachery, spice] };
+}
+
 async function journeyRuntime() {
   const peer = await createPeer();
   peer.game = {
@@ -116,22 +149,8 @@ async function journeyRuntime() {
   };
   /* The Storybook fixtures lack some faces a real deal requires, so the isolated path deals them provisionally. */
   peer.provisional = true;
-  const snooper = cardPage('snooper');
-  snooper.asset.name = 'Snooper';
-  snooper.front = `${DREAMRULES}snooper.jpg`;
-  const spiceCard = spiceCardPage('broken-land');
-  spiceCard.asset.name = 'Broken Land';
-  spiceCard.front = `${DREAMRULES}broken-land.jpg`;
-  const treachery = deckPage('treachery-deck', [snooper], 12);
-  const spice = deckPage('spice-deck', [spiceCard], 8);
-  for (const [page, name] of [
-    [treachery, 'Treachery'],
-    [spice, 'Spice'],
-  ] as const) {
-    page.asset.name = name;
-    page.back = `${DREAMRULES}cardback.jpg`;
-  }
-  for (const page of [snooper, spiceCard, treachery, spice]) {
+  const { treachery, spice, pages } = dreamrulesDeckPages();
+  for (const page of pages) {
     peer.catalogue.set(`${page.asset.type}/${page.asset.slug}`, page);
   }
   peer.rulesets.set('dreamrules', {

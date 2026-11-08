@@ -555,7 +555,9 @@ function stageScene({
   return (
     <>
       <BattleScene client={client} table={table} onMarkerTerritory={onMarkerTerritory} />
-      {stage !== 'finished' && <BidderScene client={client} table={table} faded={bidderFaded} />}
+      {stage !== 'finished' && (
+        <BidderScene client={client} table={table} turn={viewerBidding(client, table)} faded={bidderFaded} />
+      )}
       {stageInPlay(stage) && <HandCountsScene table={table} />}
       <AllianceCoinsScene table={table} />
     </>

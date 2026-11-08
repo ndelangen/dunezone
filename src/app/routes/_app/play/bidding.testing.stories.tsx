@@ -131,6 +131,25 @@ export const Untimed = meta.story({
   },
 });
 
+/** The buttons under the bidder's face raise, take the raise back and pass, as I, O and P do. */
+export const TurnButtons = meta.story({
+  beforeEach: clockSetup(false),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const buttons = within(await page.findByRole('group', { name: 'Your bid' }, { timeout: 30_000 }));
+    await expect(buttons.getByRole('button', { name: 'Raise' })).toHaveAttribute('aria-keyshortcuts', 'I');
+    await expect(buttons.getByRole('button', { name: 'Lower' })).toBeDisabled();
+    await userEvent.click(buttons.getByRole('button', { name: 'Raise' }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-raise', round: 1 }));
+    await waitFor(() => expect(buttons.getByRole('button', { name: 'Lower' })).toBeEnabled());
+    await userEvent.click(buttons.getByRole('button', { name: 'Lower' }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-lower', round: 1 }));
+    await waitFor(() => expect(buttons.getByRole('button', { name: 'Lower' })).toBeDisabled());
+    await userEvent.click(buttons.getByRole('button', { name: 'Pass' }));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'bid-pass', round: 1 }));
+  },
+});
+
 /** An observer watches the bidder: it says a round has yet to start and offers no start or reset, not even greyed. */
 export const ObserverBeforeTheFirstRound = meta.story({
   beforeEach: biddingSetup(null, 'neutral'),

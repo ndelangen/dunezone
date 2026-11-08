@@ -1,0 +1,369 @@
+{
+  "pulledFrom": "https://dune.zone",
+  "copiedAt": "2026-11-08",
+  "source": "src/app/routes/_app/tutorial/setup/catalogue.json (the Dreamrules ruleset supply)",
+  "treachery": {
+    "id": "ns7ehmyycycy007j1ty9nnhc7h8cw9s4",
+    "name": "Dreamrules Treachery Deck",
+    "back": {
+      "file": "cardback.jpg",
+      "published": "/published/cardback-presets/treachery/cardback.jpg"
+    },
+    "cards": [
+      {
+        "name": "Supplies!",
+        "count": 1,
+        "file": "supplies.jpg",
+        "published": "/published/cards/ns78nmym3qpth6sm9wsfj3ka9s8cw350/card.jpg"
+      },
+      {
+        "name": "Shield",
+        "count": 5,
+        "file": "shield.jpg",
+        "published": "/published/cards/ns7b716rp17wwzxzdpmjyyxy018cxchz/card.jpg"
+      },
+      {
+        "name": "Snooper",
+        "count": 5,
+        "file": "snooper.jpg",
+        "published": "/published/cards/ns7ahq18ww5e3b7hsdb3ztjggn8cwn08/card.jpg"
+      },
+      {
+        "name": "Baliset",
+        "count": 1,
+        "file": "baliset.jpg",
+        "published": "/published/cards/ns73jpdtnktfdtqy4bzef2bm3x8fmcrd/card.jpg"
+      },
+      {
+        "name": "Jubba Cloak",
+        "count": 1,
+        "file": "jubba-cloak.jpg",
+        "published": "/published/cards/ns79vj3kvwmwgvvbnvf0k8rxqd8fnp2j/card.jpg"
+      },
+      {
+        "name": "Kull Wahad",
+        "count": 1,
+        "file": "kull-wahad.jpg",
+        "published": "/published/cards/ns7e1can92gnyrr6wmn1fxdtb18fm2qq/card.jpg"
+      },
+      {
+        "name": "Kulon",
+        "count": 1,
+        "file": "kulon.jpg",
+        "published": "/published/cards/ns74k9d036fae7vsqm700nwe6x8fnc9a/card.jpg"
+      },
+      {
+        "name": "La La La",
+        "count": 1,
+        "file": "la-la-la.jpg",
+        "published": "/published/cards/ns74fmv05crczphsxrr7ar0mj98fn5je/card.jpg"
+      },
+      {
+        "name": "Trip to Gamont",
+        "count": 1,
+        "file": "trip-to-gamont.jpg",
+        "published": "/published/cards/ns7e8mvpvcq7kfyx9kdf8pnwsd8fm33b/card.jpg"
+      },
+      {
+        "name": "Gom Jabbar",
+        "count": 1,
+        "file": "gom-jabbar.jpg",
+        "published": "/published/cards/ns77am58gm55e9nw0y6mj45nbh8fmya3/card.jpg"
+      },
+      {
+        "name": "Chaumas",
+        "count": 1,
+        "file": "chaumas.jpg",
+        "published": "/published/cards/ns71wzr15ba6j3sws7ccp21sns8fnwdj/card.jpg"
+      },
+      {
+        "name": "Chaumurky",
+        "count": 1,
+        "file": "chaumurky.jpg",
+        "published": "/published/cards/ns7dcq7mt0gxn4w5hxjv36vfgh8fn0nn/card.jpg"
+      },
+      {
+        "name": "Basilia Weapon",
+        "count": 1,
+        "file": "basilia-weapon.jpg",
+        "published": "/published/cards/ns7bjb637jh7avf4rnez044csd8fm2zq/card.jpg"
+      },
+      {
+        "name": "Ellaca Drug",
+        "count": 1,
+        "file": "ellaca-drug.jpg",
+        "published": "/published/cards/ns7etv15e91687rh2gg5rry15x8fnvtk/card.jpg"
+      },
+      {
+        "name": "Stunner",
+        "count": 1,
+        "file": "stunner.jpg",
+        "published": "/published/cards/ns7fd1db09a3v38zfbdck41t1x8fn89c/card.jpg"
+      },
+      {
+        "name": "Slip Tip",
+        "count": 1,
+        "file": "slip-tip.jpg",
+        "published": "/published/cards/ns7b79cragk9cfnmkhnx2qj07n8fntxd/card.jpg"
+      },
+      {
+        "name": "Maula Pistol",
+        "count": 1,
+        "file": "maula-pistol.jpg",
+        "published": "/published/cards/ns785225ways2hbtape9wcb16d8fnp11/card.jpg"
+      },
+      {
+        "name": "Crysknife",
+        "count": 1,
+        "file": "crysknife.jpg",
+        "published": "/published/cards/ns7b4km2h6zvc02pwhbkwq8wrs8fnn0v/card.jpg"
+      },
+      {
+        "name": "Hunter Seeker",
+        "count": 1,
+        "file": "hunter-seeker.jpg",
+        "published": "/published/cards/ns70ez7yv0y1tzfa30ht928x458fm1eg/card.jpg"
+      },
+      {
+        "name": "Lasgun",
+        "count": 1,
+        "file": "lasgun.jpg",
+        "published": "/published/cards/ns7fma63r1st08c68bf9d7sne58fn84j/card.jpg"
+      },
+      {
+        "name": "Weirding Way",
+        "count": 1,
+        "file": "weirding-way.jpg",
+        "published": "/published/cards/ns7d2qvqg5jjadhxdp13pk5qjx8fmbxx/card.jpg"
+      },
+      {
+        "name": "Chemistry",
+        "count": 1,
+        "file": "chemistry.jpg",
+        "published": "/published/cards/ns768wa8gw92374wtvax4dc9pn8fmha0/card.jpg"
+      },
+      {
+        "name": "Cheap Hero",
+        "count": 2,
+        "file": "cheap-hero.jpg",
+        "published": "/published/cards/ns7a7ja95x6rhc74mchp2x00rd8fnwcm/card.jpg"
+      },
+      {
+        "name": "Cheap Heroine",
+        "count": 1,
+        "file": "cheap-heroine.jpg",
+        "published": "/published/cards/ns7fsdb8nk1d4sspw94z54tvqh8fm0rf/card.jpg"
+      },
+      {
+        "name": "Karama",
+        "count": 2,
+        "file": "karama.jpg",
+        "published": "/published/cards/ns74a12s7q79eyb7ywa04zva9h8fnb2w/card.jpg"
+      },
+      {
+        "name": "Truth Trance",
+        "count": 2,
+        "file": "truth-trance.jpg",
+        "published": "/published/cards/ns724e78qxt35j7ksqjpyhpk618fm4hz/card.jpg"
+      },
+      {
+        "name": "Mercenaries",
+        "count": 2,
+        "file": "mercenaries.jpg",
+        "published": "/published/cards/ns75q03jc0a875zxdswzxq9fwn8fnx0v/card.jpg"
+      },
+      {
+        "name": "Hajr",
+        "count": 1,
+        "file": "hajr.jpg",
+        "published": "/published/cards/ns763s677pz40tsx5j4m9m0f398fm9xq/card.jpg"
+      },
+      {
+        "name": "Weather Control",
+        "count": 1,
+        "file": "weather-control.jpg",
+        "published": "/published/cards/ns752ym4vcb7f2xcwad3rzn4c58fmvr7/card.jpg"
+      },
+      {
+        "name": "Tleilaxu Ghola",
+        "count": 1,
+        "file": "tleilaxu-ghola.jpg",
+        "published": "/published/cards/ns78kthnprye29s6vbt157ybnn8fm1fv/card.jpg"
+      },
+      {
+        "name": "Family Atomics",
+        "count": 1,
+        "file": "family-atomics.jpg",
+        "published": "/published/cards/ns7c8kwxg4v5bfjfceywbwerth8fn4ew/card.jpg"
+      },
+      {
+        "name": "Orange Catholic Bible",
+        "count": 1,
+        "file": "orange-catholic-bible.jpg",
+        "published": "/published/cards/ns7dan241k21f3pk0aems471q18fm3tq/card.jpg"
+      },
+      {
+        "name": "Break Conditioning",
+        "count": 1,
+        "file": "break-conditioning.jpg",
+        "published": "/published/cards/ns7f7psmdqgae5e0v301nj5mc18fn7rx/card.jpg"
+      }
+    ]
+  },
+  "spice": {
+    "id": "ns78gh1j0w1q5sergm35dppcbs8faq88",
+    "name": "Dreamrules Spice Deck",
+    "back": {
+      "file": "spice-back.jpg",
+      "published": "/published/cardback-presets/spice/cardback.jpg"
+    },
+    "cards": [
+      {
+        "name": "Broken Land",
+        "count": 1,
+        "file": "broken-land.jpg",
+        "published": "/published/spice-cards/ns71r4jh0veyz2w9d372deayp98fbjtt/card.jpg",
+        "amount": 8
+      },
+      {
+        "name": "Cielago North",
+        "count": 1,
+        "file": "cielago-north.jpg",
+        "published": "/published/spice-cards/ns790dz7jrazct3kk2tzmpxj858fa002/card.jpg",
+        "amount": 8
+      },
+      {
+        "name": "Cielago South",
+        "count": 1,
+        "file": "cielago-south.jpg",
+        "published": "/published/spice-cards/ns78f4q6wse2ctvdx8qehzn4ds8fb406/card.jpg",
+        "amount": 12
+      },
+      {
+        "name": "Funeral Plain",
+        "count": 1,
+        "file": "funeral-plain.jpg",
+        "published": "/published/spice-cards/ns736jntt093pb232vkv23rj0d8fbnkr/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "Habbanya Erg",
+        "count": 1,
+        "file": "habbanya-erg.jpg",
+        "published": "/published/spice-cards/ns7318ca1xzwn28q5fyawk8ghn8famt0/card.jpg",
+        "amount": 8
+      },
+      {
+        "name": "Habbanya Ridge Flat",
+        "count": 1,
+        "file": "habbanya-ridge-flat.jpg",
+        "published": "/published/spice-cards/ns70mpsrq6wy3mw4hwbaaj6pgx8faxz7/card.jpg",
+        "amount": 10
+      },
+      {
+        "name": "Hagga Basin",
+        "count": 1,
+        "file": "hagga-basin.jpg",
+        "published": "/published/spice-cards/ns79e4nh50t6198t3jntxawt5s8fbzg9/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "Old Gap",
+        "count": 1,
+        "file": "old-gap.jpg",
+        "published": "/published/spice-cards/ns704j1zbmnb8p09s6ejaaskjx8fbspg/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "Red Chasm",
+        "count": 1,
+        "file": "red-chasm.jpg",
+        "published": "/published/spice-cards/ns7e7xhjmsf14nsrr13yr09wrn8fbsgc/card.jpg",
+        "amount": 8
+      },
+      {
+        "name": "Rock Outcroppings",
+        "count": 1,
+        "file": "rock-outcroppings.jpg",
+        "published": "/published/spice-cards/ns7fmwbc1svzhsht500enggjxs8fb2dp/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "Sihaya Ridge",
+        "count": 1,
+        "file": "sihaya-ridge.jpg",
+        "published": "/published/spice-cards/ns73r37csetrvprqpqw4fn07558fav37/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "South Mesa",
+        "count": 1,
+        "file": "south-mesa.jpg",
+        "published": "/published/spice-cards/ns7278anbad90qczvfwcte095d8fbsn2/card.jpg",
+        "amount": 10
+      },
+      {
+        "name": "The Great Flat",
+        "count": 1,
+        "file": "the-great-flat.jpg",
+        "published": "/published/spice-cards/ns7b1kdynasphfb7trnc5msfp18fbp9j/card.jpg",
+        "amount": 10
+      },
+      {
+        "name": "The Minor Erg",
+        "count": 1,
+        "file": "the-minor-erg.jpg",
+        "published": "/published/spice-cards/ns7fjzp4kzkqh45zv602dxh1ys8fanbf/card.jpg",
+        "amount": 8
+      },
+      {
+        "name": "Wind Pass North",
+        "count": 1,
+        "file": "wind-pass-north.jpg",
+        "published": "/published/spice-cards/ns75bxpaktkmcbskbnfxew4ben8fahm8/card.jpg",
+        "amount": 6
+      },
+      {
+        "name": "Shai-Hulud",
+        "count": 6,
+        "file": "shai-hulud.jpg",
+        "published": "/published/custom-cards/ns7eg4z0ddpf49rqxgd4bc8nt18ga58n/card.jpg"
+      },
+      {
+        "name": "Arsunt",
+        "count": 1,
+        "file": "arsunt.jpg",
+        "published": "/published/spice-cards/ns7bwpps78qcc50x0brmn2n5198gr7tc/card.jpg",
+        "amount": 3
+      },
+      {
+        "name": "Bight of the Cliff",
+        "count": 1,
+        "file": "bight-of-the-cliff.jpg",
+        "published": "/published/spice-cards/ns71qnp0s60g9q4c0b2933myn98gsveh/card.jpg",
+        "amount": 4
+      },
+      {
+        "name": "Ceilago East",
+        "count": 1,
+        "file": "ceilago-east.jpg",
+        "published": "/published/spice-cards/ns7aqrydhhm0whq2464fpdeks98grn74/card.jpg",
+        "amount": 3
+      },
+      {
+        "name": "Ceilago West",
+        "count": 1,
+        "file": "ceilago-west.jpg",
+        "published": "/published/spice-cards/ns7dmhkm00gs54zgc9jxzj0bt58grvdy/card.jpg",
+        "amount": 4
+      },
+      {
+        "name": "Gaia Kulon",
+        "count": 1,
+        "file": "gaia-kulon.jpg",
+        "published": "/published/spice-cards/ns7f3ye20hrymr19evxf3nrjqh8gswzn/card.jpg",
+        "amount": 5
+      }
+    ]
+  }
+}

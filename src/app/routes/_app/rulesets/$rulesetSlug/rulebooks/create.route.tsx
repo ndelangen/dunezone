@@ -11,6 +11,7 @@ import type { RulebookDesign, RulebookSettings, RulebookSize } from '@shared/rul
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { RulebookPreview } from '@ui/content/RulebookPreview';
@@ -423,9 +424,17 @@ function CreateRulebookPage() {
   }
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <PageTitle title="Create Rulebook" eyebrow={page.ruleset.name} />
+      <PageLayout.Header size="collapsed">
+        <PageTitle title="Create Rulebook" />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <BackToolbar
+          label={`Back to ${page.ruleset.name}`}
+          renderRoot={(rootProps) => (
+            <Link {...rootProps} to="/rulesets/$rulesetSlug" params={{ rulesetSlug: page.ruleset.slug }} />
+          )}
+        />
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <Surface padding="lg">
           <CreateRulebookForm page={page} />

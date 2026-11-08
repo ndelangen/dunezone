@@ -41,3 +41,8 @@ export function mediaTiles(entries: readonly MediaEntry[]): MediaTile[] {
   }
   return [...tiles.values()];
 }
+
+/** Whether the tile shows this file, in either of its versions. */
+export function holdsArtwork(tile: MediaTile, value: string) {
+  return tile.variants.some((variant) => variant.value === value);
+}
