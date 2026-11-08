@@ -1,82 +1,179 @@
 diff --git a/dist/cli.bundle.cjs b/dist/cli.bundle.cjs
-index 62bf695a798..0062c6a79aa 100644
+index c7f6c6d9f62f47d68930aef184eeebbde7aca8dc..e64c840e2a93e22e5b744da8bbf3353b4726fb61 100644
 --- a/dist/cli.bundle.cjs
 +++ b/dist/cli.bundle.cjs
-@@ -116905,2 +116905,2 @@ function apiCodegen(modulePaths, opts) {
+@@ -137071,8 +137071,8 @@ function apiCodegen(modulePaths, opts) {
+       (modulePath) => `"${importPath(modulePath)}": typeof ${moduleIdentifier(modulePath)},`
+     ).join("\n")}
+   }>;
 -  export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 -  export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 +  export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
 +  export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
-@@ -116940 +116940 @@ const fullApi: ApiFromModules<{
+   `;
+     const apiJS = `${header("Generated `api` utility.")}
+   import { anyApi } from "convex/server";
+@@ -137106,7 +137106,7 @@ const fullApi: ApiFromModules<{
+   ${modulePaths.map(
+       (modulePath) => `"${importPath(modulePath)}": typeof ${moduleIdentifier(modulePath)},`
+     ).join("\n")}
 -}> = anyApi as any;
 +}> = anyApi as unknown as typeof fullApi;
-@@ -116950 +116950 @@ const fullApi: ApiFromModules<{
+ 
+ /**
+  * A utility for referencing Convex functions in your app's public API.
+@@ -137116,7 +137116,7 @@ const fullApi: ApiFromModules<{
+  * const myFunctionReference = api.myModule.myFunction;
+  * \`\`\`
+  */
 -export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
 +export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
-@@ -116960 +116960 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+ 
+ /**
+  * A utility for referencing Convex functions in your app's internal API.
+@@ -137126,7 +137126,7 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+  * const myFunctionReference = internal.myModule.myFunction;
+  * \`\`\`
+  */
 -export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
 +export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
-@@ -118714 +118714 @@ async function* codegenStaticApiObjectsTS(ctx, analysis) {
+ `;
+     return {
+       TS: apiTS
+@@ -138885,14 +138885,14 @@ async function* codegenStaticApiObjectsTS(ctx, analysis) {
+   yield apiComment("api", "public");
+   yield `export const api:`;
+   yield* codegenApiTree(ctx, apiTree);
 -  yield "= anyApi as any;";
 +  yield "= anyApi as unknown as typeof api;";
-@@ -118721 +118721 @@ async function* codegenStaticApiObjectsTS(ctx, analysis) {
+   yield apiComment("internal", "internal");
+   const internalTree = await buildApiTree(ctx, analysis.functions, {
+     kind: "internal"
+   });
+   yield `export const internal:`;
+   yield* codegenApiTree(ctx, internalTree);
 -  yield "= anyApi as any;";
 +  yield "= anyApi as unknown as typeof internal;";
-@@ -118748 +118748 @@ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+ }
+ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+   const absModulePaths = await entryPoints(ctx, componentDirectory.path);
+@@ -138919,9 +138919,9 @@ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+   yield `}>;`;
+   yield `
+     ${apiComment("api", "public")}
 -    export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 +    export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
-@@ -118750 +118750 @@ async function* codegenDynamicApiObjects(ctx, componentDirectory) {
+     ${apiComment("internal", "internal")}
 -    export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 +    export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
-@@ -118776 +118776 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+   `;
+ }
+ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+@@ -138947,12 +138947,12 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+     const path42 = importPath(modulePath);
+     yield `  "${path42}": typeof ${ident},`;
+   }
 -  yield `}> = anyApi as any;`;
 +  yield `}> = anyApi as unknown as typeof fullApi;`;
-@@ -118779 +118779 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+   yield `
+     ${apiComment("api", "public")}
 -    export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
 +    export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
-@@ -118781 +118781 @@ async function* codegenDynamicApiObjectsTS(ctx, componentDirectory) {
+     ${apiComment("internal", "internal")}
 -    export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
 +    export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+   `;
+ }
+ async function buildApiTree(ctx, functions, visibility2) {
 diff --git a/src/cli/codegen_templates/api.ts b/src/cli/codegen_templates/api.ts
-index ab167689024..fcc34a8f20d 100644
+index ab16768902426a7ffebdf3fe548c63ed40f1c4ba..fcc34a8f20d7205d503d0c86af93a250525b4310 100644
 --- a/src/cli/codegen_templates/api.ts
 +++ b/src/cli/codegen_templates/api.ts
-@@ -113,2 +113,2 @@ export function apiCodegen(
+@@ -110,8 +110,8 @@ export function apiCodegen(
+       )
+       .join("\n")}
+   }>;
 -  export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 -  export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 +  export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
 +  export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
-@@ -156 +156 @@ const fullApi: ApiFromModules<{
+   `;
+ 
+     const apiJS = `${header("Generated `api` utility.")}
+@@ -153,7 +153,7 @@ const fullApi: ApiFromModules<{
+         `"${importPath(modulePath)}": typeof ${moduleIdentifier(modulePath)},`,
+     )
+     .join("\n")}
 -}> = anyApi as any;
 +}> = anyApi as unknown as typeof fullApi;
-@@ -166 +166 @@ const fullApi: ApiFromModules<{
+ 
+ /**
+  * A utility for referencing Convex functions in your app's public API.
+@@ -163,7 +163,7 @@ const fullApi: ApiFromModules<{
+  * const myFunctionReference = api.myModule.myFunction;
+  * \`\`\`
+  */
 -export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
 +export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
-@@ -176 +176 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+ 
+ /**
+  * A utility for referencing Convex functions in your app's internal API.
+@@ -173,7 +173,7 @@ export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> =
+  * const myFunctionReference = internal.myModule.myFunction;
+  * \`\`\`
+  */
 -export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
 +export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+ `;
+     return {
+       TS: apiTS,
 diff --git a/src/cli/codegen_templates/component_api.ts b/src/cli/codegen_templates/component_api.ts
-index 1734ef3c97b..fc58ffb2061 100644
+index 1734ef3c97bef9f4a63bdb4c0aa0f6678edd052b..fc58ffb20615f958df7ea700a9c9b2ead8702c5d 100644
 --- a/src/cli/codegen_templates/component_api.ts
 +++ b/src/cli/codegen_templates/component_api.ts
-@@ -336 +336 @@ async function* codegenStaticApiObjectsTS(
+@@ -333,7 +333,7 @@ async function* codegenStaticApiObjectsTS(
+   yield apiComment("api", "public");
+   yield `export const api:`;
+   yield* codegenApiTree(ctx, apiTree);
 -  yield "= anyApi as any;";
 +  yield "= anyApi as unknown as typeof api;";
-@@ -344 +344 @@ async function* codegenStaticApiObjectsTS(
+ 
+   yield apiComment("internal", "internal");
+   const internalTree = await buildApiTree(ctx, analysis.functions, {
+@@ -341,7 +341,7 @@ async function* codegenStaticApiObjectsTS(
+   });
+   yield `export const internal:`;
+   yield* codegenApiTree(ctx, internalTree);
 -  yield "= anyApi as any;";
 +  yield "= anyApi as unknown as typeof internal;";
-@@ -377 +377 @@ async function* codegenDynamicApiObjects(
+ }
+ 
+ async function* codegenDynamicApiObjects(
+@@ -374,9 +374,9 @@ async function* codegenDynamicApiObjects(
+   yield `}>;`;
+   yield `
+     ${apiComment("api", "public")}
 -    export declare const api: FilterApi<typeof fullApi, FunctionReference<any, "public">>;
 +    export declare const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">>;
-@@ -379 +379 @@ async function* codegenDynamicApiObjects(
+     ${apiComment("internal", "internal")}
 -    export declare const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">>;
 +    export declare const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">>;
-@@ -411 +411 @@ async function* codegenDynamicApiObjectsTS(
+   `;
+ }
+ 
+@@ -408,12 +408,12 @@ async function* codegenDynamicApiObjectsTS(
+     const path = importPath(modulePath);
+     yield `  "${path}": typeof ${ident},`;
+   }
 -  yield `}> = anyApi as any;`;
 +  yield `}> = anyApi as unknown as typeof fullApi;`;
-@@ -414 +414 @@ async function* codegenDynamicApiObjectsTS(
+   yield `
+     ${apiComment("api", "public")}
 -    export const api: FilterApi<typeof fullApi, FunctionReference<any, "public">> = anyApi as any;
 +    export const api: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "public">> = anyApi as unknown as typeof api;
-@@ -416 +416 @@ async function* codegenDynamicApiObjectsTS(
+     ${apiComment("internal", "internal")}
 -    export const internal: FilterApi<typeof fullApi, FunctionReference<any, "internal">> = anyApi as any;
 +    export const internal: FilterApi<typeof fullApi, FunctionReference<"query" | "mutation" | "action", "internal">> = anyApi as unknown as typeof internal;
+   `;
+ }
+ 
