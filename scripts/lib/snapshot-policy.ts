@@ -175,6 +175,7 @@ export const snapshotPolicy = {
   play_session_cutoffs: { drop: 'Play session cutoffs' },
   user_image_ingest_tokens: { drop: 'image ingest credentials' },
   account_connections: { drop: 'sign-in connection credentials' },
+  steam_openid_nonces: { drop: 'spent Steam sign-in assertions' },
   account_merge_operations: { drop: 'account merge audit records' },
   account_deletion_operations: { drop: 'account deletions' },
   account_deletion_items: { drop: 'account deletions' },

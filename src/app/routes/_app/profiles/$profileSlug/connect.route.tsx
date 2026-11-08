@@ -1,4 +1,3 @@
-import { useAuthActions } from '@convex-dev/auth/react';
 import { Group, Stack, Text } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -11,7 +10,7 @@ import { ArrowRight, Merge } from 'lucide-react';
 import { useReducer } from 'react';
 
 import { authProviderNames } from '@db/accounts';
-import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection } from '@db/accounts';
+import { useAuthConnection, useConfirmAuthConnection, useHeldAuthConnection, useProviderSignIn } from '@db/accounts';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { RoutePending } from '@app/widgets/page-message/RoutePending';
@@ -45,7 +44,7 @@ function ConnectionPending() {
 function ConnectAccount({ token }: { token: string }) {
   const connection = useAuthConnection(token);
   const confirm = useConfirmAuthConnection();
-  const { signIn } = useAuthActions();
+  const signIn = useProviderSignIn();
   const [state, dispatch] = useReducer(
     (state: { busy: boolean; error: string | null }, update: Partial<typeof state>) => ({ ...state, ...update }),
     { busy: false, error: null }

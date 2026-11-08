@@ -624,6 +624,8 @@ export default defineSchema({
     .index('by_ruleset', ['ruleset_id'])
     .index('by_asset', ['asset_id'])
     .index('by_ruleset_slot', ['ruleset_id', 'slot']),
+  /* Steam assertions already used to sign in, kept until they would be too old to accept anyway. */
+  steam_openid_nonces: defineTable({ nonce: v.string(), expires_at: v.number() }).index('by_nonce', ['nonce']),
   account_connections: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
