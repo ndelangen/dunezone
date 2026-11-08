@@ -79,6 +79,10 @@ test('a text is read sentence by sentence', () => {
     'Then wait.',
   ]);
   expect(speechParts('   ')).toEqual([]);
+  expect(speechParts('Drag Supplies! cache onto the table. It lands face down.')).toEqual([
+    'Drag Supplies! cache onto the table.',
+    'It lands face down.',
+  ]);
 });
 
 test('a long sentence is read in clauses, none longer than an online voice reads', () => {

@@ -34,8 +34,8 @@ const hasVoice = () => synthesis() !== null;
 const noVoice = () => false;
 
 /*
- * How natural a voice sounds, as far as its name tells. The machine's default is often its oldest voice
- * (on Windows the robotic David or Zira), while the browser offers far better ones beside it.
+ * How natural a voice sounds, as far as its name tells.
+ * The machine's default is often its oldest voice (on Windows the robotic David or Zira), while the browser offers far better ones beside it.
  */
 function naturalness(voice: SpeechSynthesisVoice): number {
   const name = voice.name.toLowerCase();
@@ -127,8 +127,17 @@ export function speechParts(text: string): string[] {
     typeof Intl.Segmenter === 'function'
       ? Array.from(new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text), ({ segment }) => segment)
       : [text];
-  return sentences
-    .flatMap((sentence) => clauses(sentence.trim()))
+  /* A name such as "Supplies!" ends no sentence: what follows it in lower case goes on with the sentence. */
+  const joined: string[] = [];
+  for (const sentence of sentences.map((part) => part.trim()).filter((part) => part.length > 0)) {
+    if (joined.length > 0 && /^\p{Ll}/u.test(sentence)) {
+      joined[joined.length - 1] += ` ${sentence}`;
+    } else {
+      joined.push(sentence);
+    }
+  }
+  return joined
+    .flatMap(clauses)
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
 }
@@ -145,7 +154,10 @@ const VOICES_WAIT_MS = 1000;
  */
 export function useSpeech() {
   const [speaking, setSpeaking] = useState(false);
-  /* The text under way, with the utterances reading it. The browser drops their events once nothing holds them, so they are held here until they end. */
+  /*
+   * The text under way, with the utterances reading it.
+   * The browser drops their events once nothing holds them, so they are held here until they end.
+   */
   const current = useRef<Reading | null>(null);
   const pending = useRef<string | null>(null);
   /* Known only in the browser; the server renders no voice, so the page it sends matches the first render. */
