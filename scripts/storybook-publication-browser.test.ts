@@ -79,7 +79,7 @@ describe('stopping a process', () => {
     vi.useFakeTimers();
     try {
       const process = processThatStopsOn();
-      await expect(stopProcess(process, 5000)).resolves.toBeUndefined();
+      await expect(stopProcess(process, 5000, 'Wrangler')).resolves.toBeUndefined();
       expect(process.kill).toHaveBeenCalledOnce();
       /* A pending shutdown timer would keep Bun alive for its whole duration after a passing run. */
       expect(vi.getTimerCount()).toBe(0);
@@ -90,6 +90,16 @@ describe('stopping a process', () => {
 
   test('names the process that ignored SIGKILL', async () => {
     const stuck: BrowserCheckProcess = { exited: new Promise(() => undefined), kill: vi.fn() };
-    await expect(stopProcess(stuck, 1, 'Wrangler')).rejects.toThrow('Wrangler did not stop after SIGKILL.');
+    vi.useFakeTimers();
+    try {
+      const stopping = expect(stopProcess(stuck, 1, 'Wrangler')).rejects.toThrow(
+        'Wrangler did not stop after SIGKILL.'
+      );
+      await vi.advanceTimersByTimeAsync(2);
+      await stopping;
+      expect(stuck.kill).toHaveBeenNthCalledWith(2, 'SIGKILL');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

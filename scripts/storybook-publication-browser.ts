@@ -31,11 +31,7 @@ function waitForProcess(process: BrowserCheckProcess, timeoutMs: number): Promis
 }
 
 /** Stops a process with SIGTERM, then SIGKILL, waiting up to the shutdown timeout after each. */
-export async function stopProcess(
-  process: BrowserCheckProcess,
-  shutdownTimeoutMs: number,
-  name = 'The Storybook browser process'
-) {
+export async function stopProcess(process: BrowserCheckProcess, shutdownTimeoutMs: number, name: string) {
   process.kill();
   if ((await waitForProcess(process, shutdownTimeoutMs)).kind === 'exit') {
     return;
@@ -55,7 +51,7 @@ async function runBrowserCheckAttempt(
   const process = spawn();
   const outcome = await waitForProcess(process, timeoutMs);
   if (outcome.kind === 'timeout') {
-    await stopProcess(process, shutdownTimeoutMs);
+    await stopProcess(process, shutdownTimeoutMs, 'The Storybook browser process');
     return {
       kind: 'retry',
       reason: `exceeded ${timeoutMs}ms`,

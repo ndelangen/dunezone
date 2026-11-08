@@ -18,11 +18,41 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type StoredObject = { key: string; bytes: number; uploaded: string };
 
-/** The part of a release record these checks read: each variant's name, the original it was encoded from, and its size where the record has one. */
-export type ReleaseVariant = { name: string; source: string; bytes?: number };
+/** The part of a release record these checks read: each variant's name, the original it was encoded from, and its size. */
+export type ReleaseVariant = { name: string; source: string; bytes: number };
 
 /** A variant some release record lists that the variant bucket lacks, or stores at another size. */
-export type MissingVariant = { name: string; bytes: number | null; stored: number | null };
+export type MissingVariant = { name: string; bytes: number; stored: number | null };
+
+const RECORD_KEY = /^releases\/(.+)\.json$/;
+const DEPLOYED_KEY = /^releases\/(.+)\.deployed$/;
+
+/**
+ * Why the release ledger cannot vouch for what production serves, or none when it can.
+ * The stored-variant check trusts the records it reads, so an empty ledger, an empty record, or a deployed marker whose record is gone would let it pass while proving nothing.
+ */
+export function ledgerProblems(
+  ledgerKeys: readonly string[],
+  records: readonly { key: string; variants: readonly ReleaseVariant[] }[]
+): string[] {
+  const problems: string[] = [];
+  if (records.length === 0) {
+    problems.push('the release ledger holds no release record');
+  }
+  for (const record of records) {
+    if (record.variants.length === 0) {
+      problems.push(`${record.key} lists no variants`);
+    }
+  }
+  const recorded = new Set(ledgerKeys.flatMap((key) => RECORD_KEY.exec(key)?.[1] ?? []));
+  for (const key of ledgerKeys) {
+    const release = DEPLOYED_KEY.exec(key)?.[1];
+    if (release !== undefined && !recorded.has(release)) {
+      problems.push(`${key} marks a release deployed whose record releases/${release}.json is gone`);
+    }
+  }
+  return problems;
+}
 
 /** Every variant a release record lists that the bucket listing lacks or holds at a different size, each name once. */
 export function missingVariants(
@@ -39,9 +69,8 @@ export function missingVariants(
   const missing = new Map<string, MissingVariant>();
   for (const variant of releases.flat()) {
     const bytes = stored.get(variant.name);
-    const expected = variant.bytes ?? null;
-    if (bytes === undefined || (expected !== null && bytes !== expected)) {
-      missing.set(variant.name, { name: variant.name, bytes: expected, stored: bytes ?? null });
+    if (bytes !== variant.bytes) {
+      missing.set(variant.name, { name: variant.name, bytes: variant.bytes, stored: bytes ?? null });
     }
   }
   return [...missing.values()].sort((left, right) => left.name.localeCompare(right.name));

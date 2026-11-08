@@ -499,6 +499,7 @@ test('deployment restores the proved variant entries before publishing skips the
   /* The record must be the one the verify step saves, at the path media-publish.ts reads by default. */
   expect(steps[restore].with?.path).toBe('.cache/media-verified');
   expect(steps[restore].with?.['restore-keys']).toBe('media-verified-');
+  expect(steps[restore].with?.key).toBe('media-verified-${{ github.run_id }}-${{ github.run_attempt }}');
   expect(steps[save].with).toMatchObject({ path: steps[restore].with?.path, key: steps[restore].with?.key });
   expect(publish).toBeGreaterThan(restore);
   expect(workerDeploy).toBeGreaterThan(publish);

@@ -99,7 +99,8 @@ bytes. It downloads every entry no earlier deploy proved plus a random sample of
 rest, and the deploy keeps the proved entries in the Actions cache (`media-verified-*`);
 `--all` downloads every entry. Publishing uses the same record and asks R2 only about the entries
 it lacks, since R2 objects are create-only and a proved entry stays stored; `--all` asks about
-every variant. [`docs/technical/media-runbooks.md`](../../docs/technical/media-runbooks.md)
+every variant. The monthly media report (`bun run media:gc`) watches that assumption: it fails when
+a variant any release record lists is missing from the bucket listing or stored at another size. [`docs/technical/media-runbooks.md`](../../docs/technical/media-runbooks.md)
 covers a deploy that stops here. No person holds the token. Local and CI Workers keep the
 raster copies, because their buckets are empty.
 
