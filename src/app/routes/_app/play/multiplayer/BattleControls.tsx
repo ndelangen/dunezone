@@ -604,14 +604,11 @@ function BattleSides(props: ActiveProps) {
     </Group>
   );
 }
-/*
- * Trial: with the "reach" build-up the pointer grows from the panel down to the marker once the panel has sprung up.
- * Read from <html data-trial-battle-pop> as the story pins it; any other page shows the pointer whole.
- */
+/* The panel's pointer grows from the panel down to the marker once the panel has sprung up. */
 function usePointerReach() {
   const motion = useMotionAllowed();
   /* The callout mounts with its battle, so the reach starts with it. */
-  const [grows] = useState(() => motion && document.documentElement.dataset.trialBattlePop === 'reach');
+  const [grows] = useState(motion);
   const [reach, setReach] = useState(grows ? 0 : 1);
   useEffect(() => {
     if (!grows) {

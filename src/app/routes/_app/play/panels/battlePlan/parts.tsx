@@ -1,4 +1,4 @@
-import { Popover, Slider, Tooltip, UnstyledButton } from '@mantine/core';
+import { Popover, Slider, Tooltip, UnstyledButton, VisuallyHidden } from '@mantine/core';
 /* oxlint-disable-next-line no-restricted-imports -- The battle plan's Ready toggle stacks its state over Undo, a shape no kit action has. */
 import { Button } from '@mantine/core';
 import type { BattleFace, BattlePlan, Disclosure } from '@shared/play/battle';
@@ -8,7 +8,7 @@ import { TooltipTarget } from '@ui/control/TooltipTarget';
 import clsx from 'clsx';
 import { Check, Diff, Eye, EyeOff, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -80,43 +80,100 @@ export function useBump(value: unknown) {
  * A number whose changed digits slide to their new value, each in its own slot like an odometer: up when the number grows, down when it shrinks.
  * Digits that did not change stay put.
  */
-/* A formatted strength's whole digits, sign included, and whatever follows them, such as a half. */
-function split(text: string): [string[], string[]] {
-  const [, whole = '', rest = ''] = /^([-−]?\d*)(.*)$/.exec(text) ?? [];
-  return [whole.split(''), rest.split('')];
+/*
+ * The strength as rolling wheels, like an odometer: a half wheel, then a wheel per whole place.
+ * Everything follows one count of halves, which a spring carries towards the plan's total, so a quick run of changes keeps rolling from wherever the wheels are.
+ */
+const HALF = ['', '½'];
+const FIGURES = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+/* About half a second to settle, with a hair of overshoot so the wheels land rather than stop. */
+const STIFFNESS = 150;
+const DAMPING = 19;
+
+/* Where a wheel stands for `halves`, counted in its own steps: it turns only while the wheel below it rolls over. */
+function wheelPosition(halves: number, size: number) {
+  const below = ((halves % size) + size) % size;
+  return Math.floor(halves / size) + Math.max(0, below - (size - 1));
 }
 
-function SlidingNumber({ value, format = formatStrength }: { value: number; format?: (value: number) => string }) {
-  const motion = useMotionAllowed();
-  const text = format(value);
-  const [shown, setShown] = useState({ value, text, previous: text, way: 'up', change: 0 });
-  if (shown.text !== text) {
-    setShown({ value, text, previous: shown.text, way: value > shown.value ? 'up' : 'down', change: shown.change + 1 });
-  }
-  /*
-   * A strength is whole digits and maybe a half after them, never a character that spans two code points.
-   * The whole digits line up from the right, so the ones stay the ones as the number gains or loses a place; the half keeps its own slot.
-   */
-  const [whole, half] = split(text);
-  const [wholeBefore, halfBefore] = split(shown.previous);
-  const slot = (key: string, char: string, old: string) =>
-    !motion || shown.change === 0 || old === char ? (
-      <span key={key}>{char}</span>
-    ) : (
-      <span key={`${key}-${shown.change}`} className={styles.digit}>
-        <span className={styles.digitOld} aria-hidden="true">
-          {old}
-        </span>
-        <span className={styles.digitNew}>{char}</span>
-      </span>
-    );
+/* How open a leading place is: shut below its first step, open from it on, opening as its wheel rolls in. */
+function leadOpen(position: number) {
+  return Math.min(1, Math.max(0, position));
+}
+
+function useSpring(target: number, motion: boolean) {
+  const [shown, setShown] = useState(target);
+  const state = useRef({ at: target, speed: 0 });
+  useEffect(() => {
+    if (!motion) {
+      state.current = { at: target, speed: 0 };
+      return;
+    }
+    let frame = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const spring = state.current;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      spring.speed += (STIFFNESS * (target - spring.at) - DAMPING * spring.speed) * dt;
+      spring.at += spring.speed * dt;
+      const settled = Math.abs(target - spring.at) < 0.002 && Math.abs(spring.speed) < 0.01;
+      if (settled) {
+        spring.at = target;
+        spring.speed = 0;
+      }
+      setShown(spring.at);
+      if (!settled) {
+        frame = requestAnimationFrame(step);
+      }
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [target, motion]);
+  return motion ? shown : target;
+}
+
+function Wheel({ faces, position, open, slot }: { faces: string[]; position: number; open: number; slot: string }) {
+  const turn = ((position % faces.length) + faces.length) % faces.length;
   return (
-    <span className={styles.digits} data-way={shown.way}>
-      {whole.map((char, index) => {
-        const place = whole.length - 1 - index;
-        return slot(`whole-${place}`, char, wholeBefore[wholeBefore.length - 1 - place] ?? '');
+    <span className={styles.wheel} aria-hidden="true" style={{ width: `calc(${slot} * ${open})`, opacity: open }}>
+      <span className={styles.wheelFaces} style={{ translate: `0 calc(${-turn} * var(--wheel-face))` }}>
+        {[...faces, faces[0]].map((face, index) => (
+          <span key={index}>{face}</span>
+        ))}
+      </span>
+    </span>
+  );
+}
+
+/** The strength on rolling wheels that carry it smoothly to each new total; a negative total, or reduced motion, shows as plain text. */
+function SlidingNumber({ value }: { value: number }) {
+  const motion = useMotionAllowed();
+  const halves = useSpring(value * 2, motion && value >= 0);
+  if (!motion || value < 0 || halves < 0) {
+    return <>{formatStrength(value)}</>;
+  }
+  const places = Math.max(1, String(Math.floor(Math.max(value, halves / 2))).length);
+  const half = ((halves % 2) + 2) % 2;
+  /* Below one, a bare half drops its nought, as the plain strength writes it. */
+  const units = halves <= 2 ? 1 - Math.min(half, 2 - half) : 1;
+  return (
+    <span className={styles.wheels}>
+      <VisuallyHidden>{formatStrength(value)}</VisuallyHidden>
+      {Array.from({ length: places }, (_, index) => {
+        const place = places - 1 - index;
+        const position = wheelPosition(halves, 2 * 10 ** place);
+        return (
+          <Wheel
+            key={place}
+            faces={FIGURES}
+            position={position}
+            open={place === 0 ? units : leadOpen(position)}
+            slot="1ch"
+          />
+        );
       })}
-      {half.map((char, index) => slot(`half-${index}`, char, halfBefore[index] ?? ''))}
+      <Wheel faces={HALF} position={halves} open={Math.min(half, 2 - half)} slot="1.35ch" />
     </span>
   );
 }

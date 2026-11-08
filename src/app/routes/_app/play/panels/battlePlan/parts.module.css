@@ -362,59 +362,28 @@
   }
 }
 
-/* The total's digits, each changed one sliding through its own slot to its new value (`SlidingNumber`). */
-.digits {
+/* The total on rolling wheels (`SlidingNumber`): each wheel a column of faces, scrolled to where the wheel stands. */
+.wheels {
+  --wheel-face: 1.2em;
+
   display: inline-flex;
 }
 
-.digit {
-  position: relative;
+.wheel {
   display: inline-block;
+  height: var(--wheel-face);
+  /* The face is taller than the total's tight line, so the figures are never cut; the line keeps its height. */
+  margin-block: calc((1em - var(--wheel-face)) / 2);
   overflow: hidden;
-  /* Room above and below the glyph inside the clip, so a tall figure is not cut by the total's tight line height. */
-  padding-block: 0.1em;
-  margin-block: -0.1em;
 }
 
-.digitNew {
-  display: block;
-  animation: digit-in-up 240ms cubic-bezier(0.2, 0.9, 0.3, 1.25);
+.wheelFaces {
+  display: flex;
+  flex-direction: column;
 }
 
-.digitOld {
-  position: absolute;
-  inset: 0.1em 0;
-  animation: digit-out-up 240ms ease-in forwards;
-}
-
-.digits[data-way="down"] .digitNew {
-  animation-name: digit-in-down;
-}
-
-.digits[data-way="down"] .digitOld {
-  animation-name: digit-out-down;
-}
-
-@keyframes digit-in-up {
-  from {
-    translate: 0 100%;
-  }
-}
-
-@keyframes digit-out-up {
-  to {
-    translate: 0 -100%;
-  }
-}
-
-@keyframes digit-in-down {
-  from {
-    translate: 0 -100%;
-  }
-}
-
-@keyframes digit-out-down {
-  to {
-    translate: 0 100%;
-  }
+.wheelFaces > span {
+  height: var(--wheel-face);
+  line-height: var(--wheel-face);
+  text-align: center;
 }
