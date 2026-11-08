@@ -385,7 +385,7 @@ jobs:
           path: storybook-static
         env:
           # v8.0.2 (the latest) prints Node's Buffer() deprecation on every download (actions/download-artifact#484).
-          NODE_NO_WARNINGS: "1"
+          NODE_OPTIONS: --disable-warning=DEP0005
 
       - name: Deploy isolated Storybook
         run: >-

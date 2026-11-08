@@ -61,9 +61,9 @@ function sandboxAsyncHooksInBrowser(): PluginOption {
 
 /**
  * The `ssr` environment's side-effect rule below drops unused Mantine imports from Rolldown 1.3.0 on.
- * The Rolldown inside vite-plus (1.2.14 here, still 1.2.16 in vite-plus 1.5.0) ignores that rule for an external import that another chunk also uses and leaves a bare `import "@mantine/core"`, so this blanks exactly that line in server chunks.
+ * The Rolldown inside vite-plus (1.2.14 in vite-plus 1.3.0, still 1.2.16 in vite-plus 1.5.0) ignores that rule for an external import that another chunk also uses and leaves a bare `import "@mantine/core"`, so this blanks exactly that line in server chunks.
  * The line stays (empty) so source maps keep their positions.
- * Delete this plugin once `vp build` leaves no such line without it.
+ * When a server build has no such line, the plugin warns that it can be deleted.
  */
 function unusedMantineImportOnServer(): PluginOption {
   const bareImport = /^import "@mantine\/core";$/mu;
@@ -72,16 +72,24 @@ function unusedMantineImportOnServer(): PluginOption {
     applyToEnvironment: (environment) => environment.name === 'ssr',
     /* Rolldown writes a chunk's external imports after `renderChunk`, so the finished chunk is edited here. */
     generateBundle(_options, bundle) {
+      let stripped = false;
       for (const output of Object.values(bundle)) {
         if (output.type === 'chunk' && bareImport.test(output.code)) {
           output.code = output.code.replace(bareImport, '');
+          stripped = true;
         }
+      }
+      if (!stripped) {
+        this.warn('No bare `import "@mantine/core"` left in the server build: delete unusedMantineImportOnServer.');
       }
     },
   };
 }
 
-/* One line of Vite's build report: an emitted file and its size, such as `dist/client/public/app-1a2b.js  3.20 kB │ gzip: 1.10 kB`. */
+/*
+ * Vite's build report, which vite-plus logs as one message whose first line is an emitted file and its size, such as `dist/client/index.html  0.17 kB`.
+ * If a later Vite logs it differently, the report simply prints again.
+ */
 const BUILD_REPORT_FILE_LINE = /^\S*dist\/\S+\s+[\d,.]+ kB/u;
 
 /**

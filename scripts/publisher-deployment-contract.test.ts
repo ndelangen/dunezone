@@ -466,8 +466,11 @@ test('PR CI rehearses the runtime; deployment assembles, then omits raster copie
   const runs = (job: { steps: { run?: string }[] }) => job.steps.map((step) => step.run ?? '');
   const rehearsalCommand = 'bun run scripts/verify-application-runtime-local.ts';
   /* Main only takes merges whose PR checks passed on an up-to-date branch, so the PR rehearsal covers the deployed tree. */
-  const verifyJobs = Object.values(readWorkflow('reusable-verify.yml').jobs) as { steps?: { run?: string }[] }[];
-  expect(verifyJobs.some((job) => job.steps && runs({ steps: job.steps }).includes(rehearsalCommand))).toBe(true);
+  const publisherRelease = readWorkflow('reusable-verify.yml').jobs.publisher_release;
+  const rehearsalStep = publisherRelease.steps.find((step: { run?: string }) => step.run === rehearsalCommand);
+  expect(publisherRelease.if).toBe('${{ !inputs.hosted_only && !inputs.draft }}');
+  /* Skipped only when an earlier pass verified identical publisher inputs (scripts/lib/ci-job-inputs.ts). */
+  expect(rehearsalStep?.if).toBe("steps.prior.outputs.reuse != 'true'");
   const commands = runs(readWorkflow('deploy-main.yml').jobs.deploy);
   const assembly = commands.indexOf('bun run publisher:assets');
   const omission = commands.indexOf('bun run publisher:omit-static-rasters');
