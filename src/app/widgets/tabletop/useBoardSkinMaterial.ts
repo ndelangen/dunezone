@@ -130,17 +130,10 @@ type BoardSkinMaterialProps = Readonly<{
 }>;
 
 /**
- * The board paint's material in the active look.
+ * The board paint's material in the active look, and whether a prepared look over the current artwork is on the board yet.
  * The skin is baked once, so every frame reads one texture;
  * a new look is baked and compiled off the frame, and the board keeps its current look, bake and all, until the new one is ready, so choosing a skin never stalls the table.
- * Meshes take it as their `material` prop: swapping an attached child material can restore a stale one.
- */
-export function useBoardSkinMaterial(props: BoardSkinMaterialProps) {
-  return useBoardSkinPaint(props).material;
-}
-
-/**
- * The board paint's material, and whether a prepared look over the current artwork is on the board yet.
+ * Meshes take the material as their `material` prop: swapping an attached child material can restore a stale one.
  * The table's opening waits on `ready`, so the board is painted in full before the frame lifts.
  */
 export function useBoardSkinPaint({
@@ -196,8 +189,9 @@ export function useBoardSkinPaint({
       },
       (error: unknown) => {
         if (!controller.signal.aborted) {
-          /* The board keeps its current look; say why the new one never came. */
+          /* The board keeps its current look, which is then the look it is painted in; say why the new one never came. */
           console.error('The board skin could not be prepared', error);
+          setPreparedOver({ map });
         }
       }
     );

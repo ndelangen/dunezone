@@ -37,6 +37,8 @@ const stars = (() => {
 })();
 
 /** The shell's fixed planet and independently turning SVG stars. */
+const LAYOUT_MARKS = '[data-page-layout-height], [data-voyage]';
+
 export function AppBackground({ motion }: { motion: boolean }) {
   const gradientId = useId();
   const background = useRef<HTMLDivElement>(null);
@@ -51,9 +53,12 @@ export function AppBackground({ motion }: { motion: boolean }) {
     }
     let timer: number | undefined;
     let suspended: boolean | undefined;
-    const synchronize = () => {
+    const synchronize = (initial = false) => {
       /* On the way to a table the planet is mid-flight on the compositor: turning it or the stars would repaint those huge layers mid-animation. */
-      if (suspended || document.documentElement.dataset.voyage || document.querySelector('[data-voyage]')) {
+      if (
+        !initial &&
+        (suspended || document.documentElement.dataset.voyage || document.querySelector('[data-voyage]'))
+      ) {
         return;
       }
       const now = new Date();
@@ -71,7 +76,7 @@ export function AppBackground({ motion }: { motion: boolean }) {
         element.style.opacity = String(twinkle(elapsed, star.duration, star.delay));
       }
     };
-    synchronize();
+    synchronize(true);
     if (!motion) {
       return;
     }
@@ -89,20 +94,18 @@ export function AppBackground({ motion }: { motion: boolean }) {
       if (!next) {
         synchronize();
         /* The orbits and twinkles step on a slow clock, scrolling included, so they never have to catch up; continuous CSS animations cost more CPU in Firefox for motion too slow to see between steps. */
-        timer = window.setInterval(synchronize, TICK_MS);
+        timer = window.setInterval(() => synchronize(), TICK_MS);
       }
     };
     refresh();
-    /* Fullscreen hides the background without resizing it; only page-layout changes can change that state. */
+    /* Fullscreen hides the background without resizing it, unless a voyage to a table keeps it up: only page-layout and voyage marks change that state. */
     const observer = new MutationObserver((records) => {
       if (
         records.some(
           (record) =>
             record.type === 'attributes' ||
             [...record.addedNodes, ...record.removedNodes].some(
-              (node) =>
-                node instanceof Element &&
-                (node.matches('[data-page-layout-height]') || node.querySelector('[data-page-layout-height]'))
+              (node) => node instanceof Element && (node.matches(LAYOUT_MARKS) || node.querySelector(LAYOUT_MARKS))
             )
         )
       ) {
@@ -115,9 +118,11 @@ export function AppBackground({ motion }: { motion: boolean }) {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ['data-page-layout-height'],
+        attributeFilter: ['data-page-layout-height', 'data-voyage'],
       });
     }
+    /* A departing page marks the document itself. */
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-voyage'] });
     document.addEventListener('visibilitychange', refresh);
     return () => {
       window.clearInterval(timer);

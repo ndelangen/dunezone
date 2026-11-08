@@ -28,8 +28,8 @@ import type { Dispatch, ReactNode } from 'react';
 
 import type { CreatableRuleset, CreatableRulesetPreview, useCreateGame } from '@db/play';
 import { GameNameInput } from '@app/pickers/GameNameInput';
-import { DepartureCover } from '@app/shell/DepartureCover';
-import { beginDeparture, endDeparture, leaveDeparture } from '@app/shell/voyage';
+import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
+import { beginDeparture, endDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './CreateGamePass.module.css';
 import { RulesetManifest } from './RulesetManifest';

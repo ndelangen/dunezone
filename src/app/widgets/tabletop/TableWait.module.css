@@ -11,7 +11,9 @@
   justify-items: center;
   gap: var(--space-md);
   padding-top: calc(var(--voyage-planet-y) + var(--voyage-planet-size) / 2 + 4.5rem);
-  overflow: hidden;
+  padding-bottom: var(--space-lg);
+  /* A short window scrolls the frame, so a notice and its way back stay reachable below the planet. */
+  overflow: hidden auto;
   background: transparent;
 }
 
@@ -81,9 +83,9 @@
   }
 }
 
-/* The moons circle the planet's centre, which sits at the same place in the frame as in the window. */
+/* The moons circle the planet's centre in the window, wherever the frame sits (below a page header, or scrolled). */
 .orrery {
-  position: absolute !important;
+  position: fixed !important;
   left: 50%;
   top: var(--voyage-planet-y);
   width: calc(var(--voyage-planet-size) * 1.7);

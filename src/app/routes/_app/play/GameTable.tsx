@@ -26,6 +26,7 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
+import { useMotionAllowed } from '@app/styles/motion';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { useCameraFollowsPhase } from '../../../widgets/tabletop/cameraFollowsPhase';
@@ -615,9 +616,11 @@ const TABLE_ARRIVAL_MS = 1600;
  * While it opens, the stage marks the voyage as arrived, so the shell's planet swells away behind the opening table.
  */
 function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening' | 'open' {
+  const motion = useMotionAllowed();
   const [phase, setPhase] = useState<'settling' | 'opening' | 'open'>('settling');
   useEffect(() => {
-    if (!sceneReady) {
+    /* Without motion the table shows at once when its scene is ready, and the waiting frame goes with it. */
+    if (!sceneReady || !motion) {
       return;
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -630,8 +633,11 @@ function useTableArrival(sceneReady: boolean): 'waiting' | 'settling' | 'opening
       idle();
       clearTimeout(timer);
     };
-  }, [sceneReady]);
-  return sceneReady ? phase : 'waiting';
+  }, [sceneReady, motion]);
+  if (!sceneReady) {
+    return 'waiting';
+  }
+  return motion ? phase : 'open';
 }
 
 /* The longest the iris waits for an idle moment after the scene is ready. */

@@ -21,8 +21,8 @@ import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
 import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
-import { riseRemaining } from '@app/shell/voyage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
+import { riseRemaining } from '@app/widgets/voyage/voyage';
 
 import { TableSession } from '../../../../db/tabletop/TableSession';
 import type { TableProjection } from '../../../../db/tabletop/TableSession';

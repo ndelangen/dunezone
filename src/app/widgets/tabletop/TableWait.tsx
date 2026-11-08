@@ -3,8 +3,8 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSc
 import type { ReactNode } from 'react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import { arriveDirectly, endDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
+import { arriveDirectly, endDeparture } from '@app/widgets/voyage/voyage';
 
 import styles from './TableWait.module.css';
 

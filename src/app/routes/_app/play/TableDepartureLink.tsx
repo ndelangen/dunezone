@@ -1,10 +1,10 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 
-import { DepartureCover } from '@app/shell/DepartureCover';
-import { beginDeparture, leaveDeparture } from '@app/shell/voyage';
 import { useMotionAllowed } from '@app/styles/motion';
+import { DepartureCover } from '@app/widgets/voyage/DepartureCover';
+import { beginDeparture, endDeparture, leaveDeparture } from '@app/widgets/voyage/voyage';
 
 import { loadHostedTable } from './hostedTableChunk';
 
@@ -19,16 +19,36 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
   const navigate = useNavigate();
   const motion = useMotionAllowed();
   const [departing, setDeparting] = useState(false);
-  useEffect(() => leaveDeparture, []);
+  const opening = useRef<number | undefined>(undefined);
   /*
-   * The departure takes the click before the link does: once it is prevented, the link leaves the navigation to the departure's own timer.
-   * It listens in the capture phase so a link that owns its click handler (Storybook's router mock) still departs.
+   * A page left during the departure (Back, another link) calls the departure off at once;
+   * a page left by the departure itself hands the planet on to the table's frame.
    */
+  useEffect(
+    () => () => {
+      if (opening.current === undefined) {
+        leaveDeparture();
+      } else {
+        window.clearTimeout(opening.current);
+        endDeparture();
+      }
+    },
+    []
+  );
   /* The table loads as the pointer reaches the link, so its first evaluation lands before the departure, not during the planet's rise. */
   const preload = () => {
     loadHostedTable().catch(() => {});
   };
+  /*
+   * The departure takes the click before the link does: once it is prevented, the link leaves the navigation to the departure's own timer.
+   * It listens in the capture phase so a link that owns its click handler (Storybook's router mock) still departs.
+   * A second press while departing (Enter on the focused link) does nothing.
+   */
   const depart = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (departing) {
+      event.preventDefault();
+      return;
+    }
     if (
       event.defaultPrevented ||
       !motion ||
@@ -43,7 +63,10 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
     event.preventDefault();
     beginDeparture();
     setDeparting(true);
-    window.setTimeout(() => void navigate({ to: '/play/$gameId', params: { gameId } }), DEPARTURE_MS);
+    opening.current = window.setTimeout(() => {
+      opening.current = undefined;
+      void navigate({ to: '/play/$gameId', params: { gameId } });
+    }, DEPARTURE_MS);
   };
   return (
     <>

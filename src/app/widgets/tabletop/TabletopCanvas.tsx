@@ -41,6 +41,9 @@ function TableLights() {
   );
 }
 
+/* A part that never lets go stops holding the scene after this long, so the renderer still settles to drawing on demand. */
+const HOLD_LIMIT_MS = 10_000;
+
 /* Reports the renderer's first frame, then the ready scene: a few frames painted after every hold let go. */
 function PaintedFrames({
   held,
@@ -51,7 +54,7 @@ function PaintedFrames({
   onStarted?: () => void;
   onReady?: () => void;
 }) {
-  const started = useRef(false);
+  const startedAt = useRef<number | null>(null);
   const frames = useRef(0);
   const complete = useRef(false);
   const pending = useRef<number | null>(null);
@@ -67,12 +70,12 @@ function PaintedFrames({
     if (complete.current) {
       return;
     }
-    if (!started.current) {
-      started.current = true;
+    if (startedAt.current === null) {
+      startedAt.current = performance.now();
       onStarted?.();
     }
     /* A held part restarts the count, so the frames that count are the ones that drew it. */
-    if (held()) {
+    if (held() && performance.now() - startedAt.current < HOLD_LIMIT_MS) {
       frames.current = 0;
       return;
     }
