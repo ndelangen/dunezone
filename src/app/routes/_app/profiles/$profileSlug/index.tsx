@@ -210,7 +210,7 @@ function ProfileDetailPage() {
   const navigate = useNavigate();
 
   if (!page) {
-    return <RouteNotFound size="compact" title="Profile" back={backToProfiles} noun="profile" />;
+    return <RouteNotFound title="Profile" back={backToProfiles} noun="profile" />;
   }
 
   const isSelf = currentProfile.data?._id === page.profile._id;

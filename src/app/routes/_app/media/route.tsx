@@ -1,6 +1,8 @@
 import { Anchor, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -23,7 +25,6 @@ import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavig
 import { filterCatalogue } from './mediaSearch';
 import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 import type { MediaSearch } from './mediaSearchParams';
-import { MediaShowcase } from './MediaShowcase';
 import { holdsArtwork, mediaTiles, variantLabel } from './mediaTiles';
 import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
@@ -58,8 +59,9 @@ function MediaPage() {
   const focused = focusedMedia(search);
   return (
     <PageLayout>
-      <PageLayout.Header size={overview ? 'compact' : 'default'}>
-        <MediaShowcase overview={overview} compact={overview} gallery={galleryLabel(search)} />
+      {/* No band: the catalogue opens straight on its galleries and a gallery on its filters (Norbert, 2026-11-08). The name stays for screen readers and search engines. */}
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={galleryLabel(search) ?? 'Media catalogue'} />
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
@@ -171,7 +173,7 @@ function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) 
   return `${total} matches`;
 }
 
-/* The gallery's name and the way back to every gallery sit above the title (see MediaShowcase), so this line only counts what the filters left. */
+/* The gallery's name sits in the page title and the way back in the toolbar, so this line only counts what the filters left. */
 function MediaResultCount({
   search,
   matches,
@@ -454,8 +456,10 @@ function MediaFilters({
 }>) {
   const active = Number(Boolean(search.subject)) + Number(Boolean(search.group)) + Number(search.kind !== 'all');
   return (
-    <Toolbar>
-      <Toolbar.Center>
+    <BackToolbar
+      label="Back to the media catalogue"
+      renderRoot={(props) => <Link {...props} to="/media" />}
+      center={
         <SearchRefine
           label="Media catalogue filters"
           search={{
@@ -471,22 +475,24 @@ function MediaFilters({
             content: <MediaRefinements search={search} catalogue={catalogue} updateSearch={updateSearch} />,
           }}
         />
-      </Toolbar.Center>
-      <Toolbar.Right label="Catalogue actions">
-        <Toolbar.Cluster kind="content">
-          {(search.q || search.subject || search.group) && (
-            <IconAction
-              label="Clear filters"
-              size="lg"
-              intent="neutral"
-              emphasis="standard"
-              icon={<X size={17} aria-hidden />}
-              onClick={() => updateSearch({ q: '', group: '', subject: undefined, item: undefined })}
-            />
-          )}
-        </Toolbar.Cluster>
-      </Toolbar.Right>
-    </Toolbar>
+      }
+      right={
+        <Toolbar.Right label="Catalogue actions">
+          <Toolbar.Cluster kind="content">
+            {(search.q || search.subject || search.group) && (
+              <IconAction
+                label="Clear filters"
+                size="lg"
+                intent="neutral"
+                emphasis="standard"
+                icon={<X size={17} aria-hidden />}
+                onClick={() => updateSearch({ q: '', group: '', subject: undefined, item: undefined })}
+              />
+            )}
+          </Toolbar.Cluster>
+        </Toolbar.Right>
+      }
+    />
   );
 }
 function MediaRefinements({

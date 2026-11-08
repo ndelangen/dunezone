@@ -54,8 +54,11 @@ export const OAuthError = meta.story({
   parameters: { identity: null },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'Sign-in error' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Sorry, something went wrong.' })).toBeVisible();
-    await expect(page.getByText('Code error: oauth_failed')).toBeVisible();
+    /* The band is collapsed, so its name and sentence are there for screen readers; the card shows them. */
+    await expect(
+      page.findByRole('heading', { name: 'Sign-in error' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+    await expect(within(page.getByRole('banner')).getByText(/Error code: oauth_failed\./u)).toBeInTheDocument();
+    await expect(page.getByRole('link', { name: 'Go home' })).toBeVisible();
   },
 });

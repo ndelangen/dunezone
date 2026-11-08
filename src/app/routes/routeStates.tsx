@@ -51,17 +51,21 @@ export function RouteLoadError({ title, size, back, what, error }: RouteLoadErro
 
 const capitalised = (noun: string) => `${noun[0]?.toUpperCase() ?? ''}${noun.slice(1)}`;
 
-export interface RouteNotFoundProps extends RouteStateFrame, NotFoundStateProps {}
+/** No `size`: a missing page collapses its band and deals the message as a card, so there is no band to match. */
+export interface RouteNotFoundProps extends Omit<RouteStateFrame, 'size'>, NotFoundStateProps {}
 
 /**
  * A page whose subject is not there: the page frame, the one not-found wording, and the tab title saying so.
  * Seventeen pages spelled this by hand in four wordings;
  * the noun is all that differs.
  */
-export function RouteNotFound({ title, size, back, noun, renamed }: RouteNotFoundProps) {
-  useLivePageTitle(`${capitalised(noun)} not found`);
-  /* One message, said once in the band, as the site's own 404 says it: a pane repeating "not found" under the name told the reader nothing new. */
-  return <PageMessage size={size} title={title} lede={notFoundSentence(noun, renamed)} back={back} />;
+export function RouteNotFound({ title, back, noun, renamed }: RouteNotFoundProps) {
+  const name = `${capitalised(noun)} not found`;
+  useLivePageTitle(name);
+  /* One message, dealt as a treachery card the way the site's own 404 deals it. */
+  return (
+    <PageMessage title={title} lede={notFoundSentence(noun, renamed)} back={back} card={{ name, code: 'Error 404' }} />
+  );
 }
 
 export interface DetailErrorOptions {
@@ -79,7 +83,7 @@ export function detailError({ noun, isMissing, back, renamed }: DetailErrorOptio
   const title = capitalised(noun);
   return function DetailError({ error }: ErrorComponentProps) {
     return isMissing(error) ? (
-      <RouteNotFound size="compact" title={title} back={back} noun={noun} renamed={renamed} />
+      <RouteNotFound title={title} back={back} noun={noun} renamed={renamed} />
     ) : (
       <RouteLoadError size="compact" title={title} back={back} what={`${title} could not be loaded`} error={error} />
     );

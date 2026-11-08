@@ -13,3 +13,14 @@
 .article :is(h2, h3) {
   text-wrap: balance;
 }
+
+/* The post's opening: the title, summary and byline in the reading column's measure, ruled off from the body. */
+.masthead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-width: 44rem;
+  margin-inline: auto;
+  padding-block-end: var(--space-md);
+  border-block-end: 1px solid var(--mantine-color-default-border);
+}

@@ -34,11 +34,12 @@ test('the persistent page hero contracts when navigating to a headerless route',
     TRANSITION_WAIT_MS
   );
 
-  const assetsLink = page.getByRole('link', { name: 'Assets', exact: true });
-  const [outcome] = await Promise.all([transitionOutcome, assetsLink.click()]);
+  /* The media catalogue has no band since the page header review (Norbert, 2026-11-08); the footer links to it from every page. */
+  const mediaLink = page.getByRole('link', { name: 'Media catalogue', exact: true });
+  const [outcome] = await Promise.all([transitionOutcome, mediaLink.click()]);
   expect(outcome).toBe('height transition ended');
 
-  await expect(page).toHaveURL(/\/assets\/?$/);
+  await expect(page).toHaveURL(/\/media\/?$/);
   const finalHeight = (await hero.boundingBox())?.height ?? 0;
   expect(finalHeight).toBeLessThan(initialHeight / 2);
 });

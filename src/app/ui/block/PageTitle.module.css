@@ -124,3 +124,20 @@
   color: var(--color-inverse);
   text-shadow: var(--text-shadow-inverse);
 }
+
+/*
+ * An inline header opens a reading page like an article: the name in the shields' display face, on the page's own paper rather than the artwork, so it keeps the page's text colour and casts no shadow.
+ * It shares the hero's face, line height and tracking; only the ink and size differ.
+ */
+:global([data-page-layout-header-size="inline"]) .title {
+  font-family: "C_Desdemona", sans-serif;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+:global([data-page-layout-header-size="inline"]) .lede {
+  max-width: none;
+  color: var(--mantine-color-dimmed);
+}

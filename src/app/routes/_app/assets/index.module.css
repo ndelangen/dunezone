@@ -45,3 +45,42 @@
     margin-inline: auto;
   }
 }
+
+/* The band's title on the left, the fan on the right; on a narrow band the fan drops under the title and scales down to the column. */
+.masthead {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.mastheadRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+/* The fan is drawn against a fixed 540 by 230 box; this slot keeps that ratio and scales the drawing to its own width, without clipping the cards that lean past it. */
+.mastheadFan {
+  flex: none;
+  align-self: center;
+  position: relative;
+  width: min(540px, 100%);
+  aspect-ratio: 540 / 230;
+  container-type: inline-size;
+}
+
+.mastheadFan > * {
+  transform: scale(calc(100cqw / 540px));
+  transform-origin: top left;
+}
+
+@container (width < 44rem) {
+  .mastheadRow {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .mastheadFan {
+    width: min(360px, 100%);
+  }
+}

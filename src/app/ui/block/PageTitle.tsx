@@ -2,7 +2,7 @@ import { Stack, Title } from '@mantine/core';
 import type { ReactNode } from 'react';
 
 import { Eyebrow } from '../content/Eyebrow';
-import { useInsidePageHeader } from '../layout/PageLayout';
+import { useInlinePageHeader, useInsidePageHeader } from '../layout/PageLayout';
 import styles from './PageTitle.module.css';
 
 /** What sits above the name: a classifier, or the way up. Both take the same place, so a page gives one or the other. */
@@ -44,6 +44,7 @@ export type PageTitleProps = PageTitleKicker & {
  *
  * **A page title belongs in `PageLayout.Header`.**
  * That is what makes the treatment here correct rather than conventional: the band is the only place the paper ink is set, so the eyebrow is always `inverse` and needs no argument.
+ * The one exception is an `inline` header, which sits on the page's own paper at the top of the content: there the eyebrow takes the accent ink and the name the display face in the page's text colour.
  * A page header sits on the masthead artwork at every declared size, since only the band's height varies, so the ink beneath the label never changes.
  * Rendering this outside the band warns in development.
  *
@@ -51,6 +52,7 @@ export type PageTitleProps = PageTitleKicker & {
  */
 export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede, action }: PageTitleProps) {
   const insideHeader = useInsidePageHeader();
+  const inline = useInlinePageHeader();
 
   if (import.meta.env.DEV && !insideHeader) {
     console.warn(
@@ -63,7 +65,7 @@ export function PageTitle({ title, eyebrow, breadcrumb, subtitle, lede, action }
 
   return (
     <Stack gap="var(--space-xs)" className={styles.root}>
-      {breadcrumb ?? (eyebrow === undefined ? null : <Eyebrow tone="inverse">{eyebrow}</Eyebrow>)}
+      {breadcrumb ?? (eyebrow === undefined ? null : <Eyebrow tone={inline ? 'accent' : 'inverse'}>{eyebrow}</Eyebrow>)}
       <Title order={1} className={styles.title}>
         {title}
       </Title>

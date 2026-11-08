@@ -29,9 +29,9 @@
   }
 }
 
-/* On a phone two cards side by side cut the names to a few letters; stacked, each keeps its name and date on one line (Norbert, 2026-11-07). */
+/* The featured factions are a desktop extra: on a phone they push the catalogue below the fold, so the header drops them (Norbert, 2026-11-08). */
 @container (width < 30rem) {
   .spotlightRail {
-    grid-template-columns: minmax(0, 1fr);
+    display: none;
   }
 }

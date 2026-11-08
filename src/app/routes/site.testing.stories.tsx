@@ -113,7 +113,7 @@ export const PublicationJobsNotAuthorized = meta.story({
   },
 });
 
-/** The third post, about the early projects: its title in the band, and links to the dune-assets repository and the Atreides page. */
+/** The third post, about the early projects: its title at the top of the reading column, and links to the dune-assets repository and the Atreides page. */
 export const BlogPostAllInOneDuneBoardGameWebapp = meta.story({
   args: { path: '/blog/all-in-one-dune-board-game-webapp' },
   play: async ({ canvasElement }) => {
@@ -136,7 +136,7 @@ export const BlogPostAllInOneDuneBoardGameWebapp = meta.story({
   },
 });
 
-/** The second post, about Tabletop Simulator: its title in the band, then screenshots, and links to the Workshop mods and the Iduali faction. */
+/** The second post, about Tabletop Simulator: its title at the top of the reading column, then screenshots, and links to the Workshop mods and the Iduali faction. */
 export const BlogPostTabletopSimulator = meta.story({
   args: { path: '/blog/tabletop-simulator' },
   play: async ({ canvasElement }) => {

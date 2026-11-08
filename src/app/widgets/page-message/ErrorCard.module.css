@@ -1,0 +1,5 @@
+/* The card fills a slot of at most 288px, narrower on a small phone so its tilt stays inside the column, tilted as if just dealt. */
+.card {
+  width: min(288px, 85%);
+  transform: rotate(-4deg);
+}
