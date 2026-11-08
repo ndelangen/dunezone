@@ -49,15 +49,7 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
       event.preventDefault();
       return;
     }
-    if (
-      event.defaultPrevented ||
-      !motion ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
+    if (!motion || !isPlainClick(event)) {
       return;
     }
     event.preventDefault();
@@ -81,4 +73,10 @@ export function TableDepartureLink({ gameId, ...rootProps }: Readonly<{ gameId: 
       {departing ? <DepartureCover /> : null}
     </>
   );
+}
+
+/* A primary click with no modifier that nothing else has taken: one that would follow the link in this tab. */
+function isPlainClick(event: MouseEvent<HTMLAnchorElement>) {
+  const modified = event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+  return !event.defaultPrevented && event.button === 0 && !modified;
 }
