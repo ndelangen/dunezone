@@ -1,5 +1,5 @@
 import { Stack } from '@mantine/core';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import type { LinkComponentProps, RegisteredRouter } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { TopicIcon } from '@ui/content/TopicIcon';
@@ -10,6 +10,9 @@ import { Surface } from '@ui/surface';
 import clsx from 'clsx';
 import { ArrowLeft } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
+
+import { ErrorCard } from './ErrorCard';
+import styles from './PageMessage.module.css';
 
 type BackProps<
   TFrom extends string = string,
@@ -73,6 +76,12 @@ export interface PageMessageProps {
   back?: ReactNode;
   /** What the page has to say: `PageState`, `LoadError`, `LoginGate`. Omit it when the lede says it all, and the page has no pane. */
   children?: ReactNode;
+  /**
+   * Deals the message onto the page as a treachery card instead of saying it in the band: the band collapses, and the card carries `card.name`, the code as its type, and the lede as its text.
+   * For an error a reader hits rather than waits on, such as a missing page or a failed sign-in (Norbert, 2026-11-08).
+   * Needs a `lede`.
+   */
+  card?: { name: string; code: string };
 }
 
 /**
@@ -90,7 +99,10 @@ export interface PageMessageProps {
  *
  * It exists because about seventeen sites framed these messages themselves, and the frames drifted apart while nobody was comparing them: some centred the header and some did not, some offered a way back inside the pane and some in a toolbar and some not at all, and the pane came at two paddings depending on which page you had reached.
  */
-export function PageMessage({ title, size = 'default', lede, back, children }: PageMessageProps) {
+export function PageMessage({ title, size = 'default', lede, back, children, card }: PageMessageProps) {
+  if (card && lede !== undefined) {
+    return <CardMessage title={title} lede={lede} back={back} card={card} />;
+  }
   return (
     <PageLayout>
       <PageLayout.Header size={size}>
@@ -104,6 +116,29 @@ export function PageMessage({ title, size = 'default', lede, back, children }: P
           <Surface padding="xl">{children}</Surface>
         </PageLayout.Content>
       )}
+    </PageLayout>
+  );
+}
+
+/* The band keeps the name and the sentence for screen readers and search engines; the card, which says the same, is what the eye gets. */
+function CardMessage({
+  title,
+  lede,
+  back,
+  card,
+}: Readonly<{ title: string; lede: string; back?: ReactNode; card: { name: string; code: string } }>) {
+  const { pathname } = useLocation();
+  return (
+    <PageLayout>
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={title} lede={lede} />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        <Stack align="center" gap="xl" className={styles.dealt}>
+          <ErrorCard name={card.name} code={card.code} text={lede} seed={pathname} />
+          {back}
+        </Stack>
+      </PageLayout.Content>
     </PageLayout>
   );
 }

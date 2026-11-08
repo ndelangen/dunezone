@@ -1,10 +1,9 @@
-/* oxlint-disable-next-line no-restricted-imports -- The catalogue's h1 sits under the masthead fan, which takes the header band. */
-import { Stack, Text, Title, UnstyledButton } from '@mantine/core';
+import { Stack, Text, UnstyledButton } from '@mantine/core';
 import { ASSET_TYPE_KEYS, ASSET_TYPES } from '@shared/assets/types';
 import type { AssetCategory, AssetType, AssetTypeDefinition } from '@shared/assets/types';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
-import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { PageLayout } from '@ui/layout/PageLayout';
 import type { CSSProperties } from 'react';
@@ -68,7 +67,7 @@ const PILE_GROUPS = PILE_ROWS.map(({ label, categories }) => ({
 
 function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
   return (
-    <Stack gap={4} align="center">
+    <div className={styles.mastheadFan}>
       <AssetPile
         decorative
         faces={cards.slice(0, 5)}
@@ -85,7 +84,7 @@ function MastheadFan({ cards }: { cards: AssetListEntry[] }) {
           };
         }}
       />
-    </Stack>
+    </div>
   );
 }
 
@@ -301,22 +300,22 @@ function AssetsLandingPage() {
 
   return (
     <PageLayout>
-      {fanCards.length > 0 ? (
-        <PageLayout.Header>
-          <MastheadFan cards={fanCards} />
-        </PageLayout.Header>
-      ) : null}
+      {/* The name on the band's left edge and the fan of the latest treachery cards on its right (Norbert, 2026-11-08). */}
+      <PageLayout.Header align="start">
+        <div className={styles.masthead}>
+          <div className={styles.mastheadRow}>
+            <PageTitle
+              eyebrow="Community assets"
+              title="Assets"
+              lede="Cards, decks, tokens and boards, made by the community."
+            />
+            {fanCards.length > 0 ? <MastheadFan cards={fanCards} /> : null}
+          </div>
+        </div>
+      </PageLayout.Header>
       <PageLayout.Content>
         {/* No width cap: the sections span the content column, so their edges align with the masthead band. */}
         <Stack gap="md">
-          {/* Not a PageTitle: the band here is the card fan, and it is absent while there are no treachery cards, so the name sits on the paper under it. */}
-          <Stack gap={2} align="center">
-            <Eyebrow>Community assets</Eyebrow>
-            <Title order={1}>Assets</Title>
-            <Text c="dimmed" ta="center">
-              Cards, decks, tokens and boards, made by the community.
-            </Text>
-          </Stack>
           {/* Open sections, as the tutorial catalogues group their tiles: the piles are the objects, so no frame or side label wraps them. */}
           {PILE_GROUPS.map((group) => (
             <Section key={group.label} title={group.label}>

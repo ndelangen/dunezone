@@ -1,0 +1,4 @@
+/* Room above the dealt card for its tilt and shadow, and below it before the footer. */
+.dealt {
+  padding-block: var(--space-xl);
+}

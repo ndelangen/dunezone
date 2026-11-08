@@ -1,6 +1,7 @@
 import { Anchor, Group, Select, Stack, Text, Tooltip } from '@mantine/core';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
+import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { helpLines } from '@ui/content/helpLines';
 import { TOPIC_ICON_TOPICS, TopicIcon } from '@ui/content/TopicIcon';
@@ -12,7 +13,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface';
 import { Card } from '@ui/surface/Card';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowRight, Image as ImageIcon, Info, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Image as ImageIcon, Info, X } from 'lucide-react';
 import { lazy, Suspense, useReducer, useState } from 'react';
 
 import { catalogueEntries as mediaEntries } from './mediaCatalogue';
@@ -23,7 +24,6 @@ import { mediaLocation, mediaPathSearch, validateMediaQuery } from './mediaNavig
 import { filterCatalogue } from './mediaSearch';
 import { iconLibraryLabels, mediaKinds } from './mediaSearchParams';
 import type { MediaSearch } from './mediaSearchParams';
-import { MediaShowcase } from './MediaShowcase';
 import { mediaTiles, variantLabel } from './mediaTiles';
 import type { MediaTile } from './mediaTiles';
 import styles from './route.module.css';
@@ -58,8 +58,9 @@ function MediaPage() {
   const focused = focusedMedia(search);
   return (
     <PageLayout>
-      <PageLayout.Header size={overview ? 'compact' : 'default'}>
-        <MediaShowcase overview={overview} compact={overview} gallery={galleryLabel(search)} />
+      {/* No band: the catalogue opens straight on its galleries and a gallery on its filters (Norbert, 2026-11-08). The name stays for screen readers and search engines. */}
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={galleryLabel(search) ?? 'Media catalogue'} />
       </PageLayout.Header>
       {!overview && (
         <PageLayout.Toolbar>
@@ -168,7 +169,7 @@ function resultCount(search: MediaSearch, matches: MediaEntry[], total: number) 
   return `${total} matches`;
 }
 
-/* The gallery's name and the way back to every gallery sit above the title (see MediaShowcase), so this line only counts what the filters left. */
+/* The gallery's name sits in the page title and the way back in the toolbar, so this line only counts what the filters left. */
 function MediaResultCount({
   search,
   matches,
@@ -407,6 +408,16 @@ function MediaFilters({
   const active = Number(Boolean(search.subject)) + Number(Boolean(search.group)) + Number(search.kind !== 'all');
   return (
     <Toolbar>
+      <Toolbar.Left label="Navigation">
+        <IconAction
+          label="Back to the media catalogue"
+          emphasis="standard"
+          intent="neutral"
+          size="lg"
+          renderRoot={(props) => <Link {...props} to="/media" />}
+          icon={<ArrowLeft size={17} aria-hidden />}
+        />
+      </Toolbar.Left>
       <Toolbar.Center>
         <SearchRefine
           label="Media catalogue filters"

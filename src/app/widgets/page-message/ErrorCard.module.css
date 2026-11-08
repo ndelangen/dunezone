@@ -1,0 +1,14 @@
+/* The card is drawn at its print size (900 by 1263) and scaled into a 288px slot, tilted as if just dealt. */
+.card {
+  width: 288px;
+  aspect-ratio: 900 / 1263;
+  transform: rotate(-4deg);
+  filter: drop-shadow(0 18px 30px rgb(from var(--color-shadow) r g b / 45%));
+}
+
+.frame {
+  width: 900px;
+  height: 1263px;
+  transform: scale(0.32);
+  transform-origin: top left;
+}

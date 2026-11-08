@@ -59,9 +59,18 @@ export interface RouteNotFoundProps extends RouteStateFrame, NotFoundStateProps 
  * the noun is all that differs.
  */
 export function RouteNotFound({ title, size, back, noun, renamed }: RouteNotFoundProps) {
-  useLivePageTitle(`${capitalised(noun)} not found`);
-  /* One message, said once in the band, as the site's own 404 says it: a pane repeating "not found" under the name told the reader nothing new. */
-  return <PageMessage size={size} title={title} lede={notFoundSentence(noun, renamed)} back={back} />;
+  const name = `${capitalised(noun)} not found`;
+  useLivePageTitle(name);
+  /* One message, dealt as a treachery card the way the site's own 404 deals it. */
+  return (
+    <PageMessage
+      size={size}
+      title={title}
+      lede={notFoundSentence(noun, renamed)}
+      back={back}
+      card={{ name, code: 'Error 404' }}
+    />
+  );
 }
 
 export interface DetailErrorOptions {

@@ -1,9 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { PageTitle } from '@ui/block/PageTitle';
-import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface';
 
 import { pageHead } from '@app/routes/pageTitle';
+import { PageMessage } from '@app/widgets/page-message/PageMessage';
 
 export const Route = createFileRoute('/_app/auth/error')({
   head: () => pageHead('Sign-in error'),
@@ -18,18 +16,14 @@ export const Route = createFileRoute('/_app/auth/error')({
 
 function AuthErrorPage() {
   const params = Route.useSearch();
+  const detail = params?.error ? ` Error code: ${params.error}.` : '';
 
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <PageTitle title="Sign-in error" />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        <Surface padding="lg">
-          <h2>Sorry, something went wrong.</h2>
-          {params?.error ? <p>Code error: {params.error}</p> : <p>An unspecified error occurred.</p>}
-        </Surface>
-      </PageLayout.Content>
-    </PageLayout>
+    <PageMessage
+      title="Sign-in error"
+      lede={`Sorry, something went wrong while signing you in.${detail}`}
+      back={<PageMessage.Home />}
+      card={{ name: 'Sign-in failed', code: 'Sign-in error' }}
+    />
   );
 }

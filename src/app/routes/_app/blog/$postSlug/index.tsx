@@ -1,7 +1,6 @@
-import { Stack } from '@mantine/core';
-import { createFileRoute, notFound } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageTitle } from '@ui/block/PageTitle';
-import { Breadcrumb } from '@ui/content/Breadcrumb';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { createElement, Suspense } from 'react';
 
@@ -66,21 +65,32 @@ function unlistedHead<T extends { meta?: unknown[] }>(unlisted: boolean, head: T
   return unlisted ? { ...head, meta: [...(head.meta ?? []), { name: 'robots', content: 'noindex' }] } : head;
 }
 
+/*
+ * A reading page with no band: the post opens in its own column with the big title, the byline and the summary, like a magazine article (Norbert, 2026-11-08).
+ * The collapsed band keeps the title and summary for screen readers and search engines, so the column's copies of them are hidden from the accessibility tree; the byline, whose author name is a link, stays readable.
+ */
 function BlogPostPage() {
   const { meta, author } = Route.useLoaderData();
 
   return (
     <PageLayout>
-      <PageLayout.Header size="compact">
-        <Stack gap="xs" align="center">
-          {/* The way up stands above the byline, where every other page below a list carries it; the byline sits between it and the title, so it stands in the stack rather than in PageTitle's breadcrumb slot. */}
-          <Breadcrumb to="/blog">Blog</Breadcrumb>
-          <AuthorByline date={meta.date} author={author} tone="inverse" />
-          <PageTitle title={meta.title} />
-        </Stack>
+      <PageLayout.Header size="collapsed">
+        <PageTitle title={meta.title} lede={meta.summary} />
       </PageLayout.Header>
+      <PageLayout.Toolbar>
+        <BackToolbar label="Back to the blog" renderRoot={(props) => <Link {...props} to="/blog" />} />
+      </PageLayout.Toolbar>
       <PageLayout.Content>
         <article className={styles.article}>
+          <div className={styles.masthead}>
+            <p className={styles.title} aria-hidden>
+              {meta.title}
+            </p>
+            <AuthorByline date={meta.date} author={author} />
+            <p className={styles.summary} aria-hidden>
+              {meta.summary}
+            </p>
+          </div>
           <Suspense>{createElement(blogPostBody(meta.slug))}</Suspense>
         </article>
       </PageLayout.Content>

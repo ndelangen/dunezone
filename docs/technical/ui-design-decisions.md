@@ -462,9 +462,17 @@ title stays for readers and search, and the toolbar's back arrow is the way up. 
 band's one left edge. The big-title pages (Home, Tutorials, Play, Blog, Future plans) centre a
 title card: the title, a gilt-ruled subtitle or a word above, and one line (Norbert, 2026-11-08).
 
+A blog post is a reading page with no band: its big title, byline and summary open the reading
+column, like a magazine article. The media catalogue has no band either and opens on its galleries.
+The assets overview puts its title on the band's left edge and the fan of the latest treachery cards
+on its right. A missing page or a failed sign-in collapses the band and deals the message as a
+treachery card, with the error code as its type and a decal picked from the address. Catalogue
+spotlights (New arrival, Freshly updated) show on desktop only (Norbert, 2026-11-08).
+
 *Convention. The kit carries it: `PageLayout.Header size="collapsed"` keeps the title out of
-sight, [`BackToolbar`](../../src/app/ui/block/BackToolbar.tsx) is a form's way back,
-and `PageLayout.Header align="start"` sets the content on the one left edge, so no page pads its
+sight (a page that shows its title elsewhere, such as a blog post's column or an error card, hides
+that copy from screen readers so the title is read once), `PageMessage`'s `card` deals the error
+card, [`BackToolbar`](../../src/app/ui/block/BackToolbar.tsx) is a form's way back, and `PageLayout.Header align="start"` sets the content on the one left edge, so no page pads its
 own title into place.*
 
 ### Nothing here yet is one dimmed line
@@ -480,8 +488,9 @@ it in one line too, with the way onward as a boxed `LabeledAction`, never a bare
 
 *Convention. The kit carries it: [`EmptyNote`](../../src/app/ui/content/EmptyNote.tsx) for the
 line, and [`EntityLinkList`](../../src/app/ui/list/EntityLinkList.tsx) for the links.
-`PageMessage` takes a `lede` for a message short enough to need no pane, which is how
-`RouteNotFound` and the site's 404 say a missing page; its `Back` and `Home` are `LabeledAction`s, and
+`PageMessage` takes a `lede` for a message short enough to need no pane, and with `card` it deals
+that sentence as a treachery card, which is how `RouteNotFound` and the site's 404 say a missing
+page; its `Back` and `Home` are `LabeledAction`s, and
 `LoginGate` puts its Log in under its sentence as one.*
 
 ### A frame is for something you pick, not for prose or for a group of framed things

@@ -45,3 +45,33 @@
     margin-inline: auto;
   }
 }
+
+/* The band's title on the left, the fan on the right; on a narrow band the fan drops under the title at a smaller size. */
+.masthead {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.mastheadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.mastheadFan {
+  flex: none;
+}
+
+@container (width < 44rem) {
+  .mastheadRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .mastheadFan {
+    align-self: center;
+    zoom: 0.6;
+  }
+}
