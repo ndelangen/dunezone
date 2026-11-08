@@ -99,14 +99,48 @@ export const OpensThroughAnIris = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     /* The runner's headless renderer may never report; the stage then opens on the fallback clock, at the page's next idle moment. */
-    await waitFor(() => expect(document.querySelector('.dune-play-stage')).toHaveAttribute('data-arrival', 'opening'), {
-      timeout: 30_000,
-      interval: 20,
+    const iris = await new Promise<{ animationName: string; mask: string; start: number; later: number }>((resolve) => {
+      /* The phase is caught as React commits it, and the iris is read by seeking its paused animation, so no frame or clock has to keep up. */
+      const check = () => {
+        const stage = document.querySelector<HTMLElement>('.dune-play-stage');
+        if (stage?.dataset.arrival !== 'opening') {
+          return;
+        }
+        observer.disconnect();
+        const shell = document.querySelector<HTMLElement>('.dune-play-shell')!;
+        const style = getComputedStyle(shell);
+        const animation = shell
+          .getAnimations()
+          .find(
+            (each): each is CSSAnimation => each instanceof CSSAnimation && each.animationName === 'dune-play-enter'
+          );
+        const radius = (at: number) => {
+          animation!.currentTime = at;
+          return Number.parseFloat(style.getPropertyValue('--dune-play-iris'));
+        };
+        animation?.pause();
+        const reading = {
+          animationName: style.animationName,
+          mask: style.maskImage || style.getPropertyValue('-webkit-mask-image'),
+          start: animation ? radius(0) : Number.NaN,
+          later: animation ? radius(1200) : Number.NaN,
+        };
+        animation?.play();
+        resolve(reading);
+      };
+      const observer = new MutationObserver(check);
+      observer.observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-arrival'],
+        childList: true,
+      });
+      check();
     });
     /* While it opens, the shell widens a radial mask out of the planet. */
-    const opening = getComputedStyle(document.querySelector('.dune-play-shell')!);
-    await expect(opening.animationName).toBe('dune-play-enter');
-    await expect(opening.maskImage || opening.getPropertyValue('-webkit-mask-image')).toContain('radial-gradient');
+    await expect(iris.animationName).toBe('dune-play-enter');
+    await expect(iris.mask).toContain('radial-gradient');
+    await expect(iris.later).toBeGreaterThan(iris.start);
     /* Once open, the mask is gone and so is the waiting frame. */
     const { shell } = await tablePage(canvasElement);
     await expect(getComputedStyle(shell).maskImage || 'none').toBe('none');
