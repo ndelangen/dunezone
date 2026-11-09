@@ -81,18 +81,19 @@ function LiveBattleWheel() {
 function WithBaseFactions({
   rulesetId,
   children,
-}: Readonly<{ rulesetId: Parameters<typeof useOrderedRulesetFactions>[0]; children: (factions?: readonly FactionChoice[]) => ReactNode }>) {
+}: Readonly<{
+  rulesetId: Parameters<typeof useOrderedRulesetFactions>[0];
+  children: (factions?: readonly FactionChoice[]) => ReactNode;
+}>) {
   const data = useOrderedRulesetFactions(rulesetId, BASE_FACTIONS);
   const factions = useMemo(
     () =>
-      data?.factions.map(
-        (faction): FactionChoice => ({
-          id: faction._id,
-          name: faction.name,
-          emblem: faction.emblem,
-          background: faction.background,
-        })
-      ),
+      data?.factions.map((faction): FactionChoice => ({
+        id: faction._id,
+        name: faction.name,
+        emblem: faction.emblem,
+        background: faction.background,
+      })),
     [data]
   );
   return children(factions);

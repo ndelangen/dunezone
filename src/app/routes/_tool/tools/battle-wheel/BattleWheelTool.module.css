@@ -339,6 +339,12 @@
   padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
 }
 
+.setupTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .setupLabel {
   margin: var(--space-sm) 0 0;
   color: var(--ui-muted);
@@ -397,7 +403,6 @@
   font-size: 12px;
   cursor: pointer;
 }
-
 
 .failed {
   margin: 0;

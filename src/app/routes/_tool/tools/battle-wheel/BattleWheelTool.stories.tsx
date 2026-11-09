@@ -5,9 +5,9 @@ import { expect, userEvent, within } from 'storybook/test';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
 
+import type { FactionChoice } from './battleWheel';
 import { STORY_FACTIONS, STORY_RULESETS } from './battleWheel.stories.fixture';
 import { BattleWheelTool } from './BattleWheelTool';
-import type { FactionChoice } from './battleWheel';
 import type { FactionSearch } from './BattleWheelTool';
 import type { WheelState } from './useBattleWheel';
 

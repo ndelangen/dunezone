@@ -1,4 +1,3 @@
-import { Drawer } from '@mantine/core';
 import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
@@ -9,7 +8,7 @@ import { useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
-import { TrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
+import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
@@ -144,12 +143,61 @@ export function BattleWheelTool({
           {faction ? (
             <IconAction label="Clear the wheel" emphasis="quiet" icon={<RotateCcw size={20} />} onClick={clear} />
           ) : null}
-          <IconAction
-            label="Ruleset and faction"
-            emphasis="quiet"
-            icon={<Settings2 size={20} />}
-            onClick={() => setSetup(true)}
-          />
+          <TrackerPopover opened={opened} onChange={(open) => setSetup(open)}>
+            <TrackerPopover.Target>
+              <IconAction
+                label="Ruleset and faction"
+                emphasis="quiet"
+                icon={<Settings2 size={20} />}
+                onClick={() => setSetup(true)}
+              />
+            </TrackerPopover.Target>
+            <TrackerPopover.Dropdown>
+              <div className={styles.setup}>
+                <p className={styles.setupTitle}>Ruleset and faction</p>
+                <p className={styles.setupLabel}>Your table’s Ruleset</p>
+                <div className={styles.rulesets}>
+                  {rulesets.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      className={styles.choice}
+                      aria-pressed={candidate.id === ruleset.id}
+                      onClick={() => chooseRuleset(candidate.id)}
+                    >
+                      <strong>{candidate.name}</strong>
+                      <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className={styles.setupLabel}>Your faction</p>
+                {starting ? null : <Pending>Loading the factions…</Pending>}
+                <div className={styles.factions}>
+                  {choices.map((candidate) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      className={styles.factionChoice}
+                      aria-pressed={candidate.id === faction?.id}
+                      disabled={loading !== null}
+                      onClick={() => pick(candidate)}
+                    >
+                      <span className={styles.factionToken}>
+                        <FactionToken faction={candidate} />
+                      </span>
+                      <span>{candidate.name}</span>
+                    </button>
+                  ))}
+                </div>
+                {loading ? <Pending>{`Reading ${loading}’s leaders and troops…`}</Pending> : null}
+                {failed ? (
+                  <p className={styles.failed}>{`${failed} could not be read. Try again, or pick another faction.`}</p>
+                ) : null}
+                <p className={styles.setupLabel}>Any faction on Dune Zone</p>
+                {opened ? <Search seated={faction ? [faction.id] : []} onPick={pick} /> : null}
+              </div>
+            </TrackerPopover.Dropdown>
+          </TrackerPopover>
         </header>
         {faction ? (
           <WheelBody
@@ -162,56 +210,6 @@ export function BattleWheelTool({
             </LabeledAction>
           </main>
         )}
-        <Drawer
-          opened={opened}
-          onClose={() => setSetup(false)}
-          withCloseButton={Boolean(faction)}
-          closeOnClickOutside={Boolean(faction)}
-          closeOnEscape={Boolean(faction)}
-          position="bottom"
-          size="auto"
-          title="Ruleset and faction"
-          classNames={{ body: styles.setup }}
-        >
-          <p className={styles.setupLabel}>Your table’s Ruleset</p>
-          <div className={styles.rulesets}>
-            {rulesets.map((candidate) => (
-              <button
-                key={candidate.id}
-                type="button"
-                className={styles.choice}
-                aria-pressed={candidate.id === ruleset.id}
-                onClick={() => chooseRuleset(candidate.id)}
-              >
-                <strong>{candidate.name}</strong>
-                <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
-              </button>
-            ))}
-          </div>
-          <p className={styles.setupLabel}>Your faction</p>
-          {starting ? null : <Pending>Loading the factions…</Pending>}
-          <div className={styles.factions}>
-            {choices.map((candidate) => (
-              <button
-                key={candidate.id}
-                type="button"
-                className={styles.factionChoice}
-                aria-pressed={candidate.id === faction?.id}
-                disabled={loading !== null}
-                onClick={() => pick(candidate)}
-              >
-                <span className={styles.factionToken}>
-                  <FactionToken faction={candidate} />
-                </span>
-                <span>{candidate.name}</span>
-              </button>
-            ))}
-          </div>
-          {loading ? <Pending>{`Reading ${loading}’s leaders and troops…`}</Pending> : null}
-          {failed ? <p className={styles.failed}>{`${failed} could not be read. Try again, or pick another faction.`}</p> : null}
-          <p className={styles.setupLabel}>Any faction on Dune Zone</p>
-          {opened ? <Search seated={faction ? [faction.id] : []} onPick={pick} /> : null}
-        </Drawer>
       </div>
     </TrackerTouch>
   );
@@ -303,6 +301,8 @@ function Stepper({
   icon?: ReactNode;
   detail?: string;
 }>) {
+  /* A thumb's width on a phone. */
+  const size = useActionSize();
   return (
     <div className={styles.stepper}>
       {icon ? <span className={styles.stepperIcon}>{icon}</span> : null}
@@ -312,7 +312,7 @@ function Stepper({
       </span>
       <IconAction
         label={`Fewer: ${label}`}
-        size="xl"
+        size={size}
         emphasis="standard"
         icon={<Minus size={22} />}
         disabled={value <= min}
@@ -321,7 +321,7 @@ function Stepper({
       <output className={styles.stepperValue}>{value}</output>
       <IconAction
         label={`More: ${label}`}
-        size="xl"
+        size={size}
         emphasis="standard"
         icon={<Plus size={22} />}
         disabled={value >= max}
@@ -419,7 +419,6 @@ function SpiceDot({ large }: Readonly<{ large?: boolean }>) {
   return <span className={clsx(styles.spiceDot, large && styles.spiceDotLarge)} aria-hidden />;
 }
 
-
 /* The answer stays on top while the thumb works below: total, then leader plus dial. */
 function WheelBody({ wheel }: Readonly<{ wheel: Wheel }>) {
   const { result } = wheel;
@@ -450,4 +449,3 @@ function WheelBody({ wheel }: Readonly<{ wheel: Wheel }>) {
     </main>
   );
 }
-

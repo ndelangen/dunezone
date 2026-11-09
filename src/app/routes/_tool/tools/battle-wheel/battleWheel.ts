@@ -90,7 +90,7 @@ export function leaderOf(faction: WheelFaction, plan: WheelPlan) {
   return faction.leaders.find((leader) => leader.id === plan.leaderId) ?? null;
 }
 
-export function leaderStrength(faction: WheelFaction, plan: WheelPlan) {
+function leaderStrength(faction: WheelFaction, plan: WheelPlan) {
   const leader = leaderOf(faction, plan);
   if (!leader) {
     return 0;

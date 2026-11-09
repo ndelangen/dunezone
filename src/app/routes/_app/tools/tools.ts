@@ -143,6 +143,7 @@ const TOOL_ENTRIES = [
       'Pick your leader and dial your troops on a phone, and see the dial and your total strength, counted the way your Ruleset dials, for any faction on Dune Zone.',
     icon: CircleGauge,
     art: '/tools/battle-wheel.webp',
+    largeArt: '/tools/battle-wheel-large.webp',
     group: 'During the game',
     capabilities: [
       { icon: Users, title: 'Any faction', detail: 'Its own leaders and troops.' },

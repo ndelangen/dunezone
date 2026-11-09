@@ -4,9 +4,10 @@ import { factionDefinitionSchema } from '@shared/play/capture';
 import type { WheelFaction } from './battleWheel';
 
 /**
- * A faction as the battle wheel reads it, from the definition a game captures (`playCatalogue.factionDefinition`):
- * its leaders with their strengths, and every troop face that can fight with its battle values and how many the faction owns.
- * A face without battle values stays out, as it does in a game; a leader whose strength is a letter (Zoal's X) is set at the battle.
+ * A faction as the battle wheel reads it, from the definition a game captures (`playCatalogue.factionDefinition`).
+ * It keeps the leaders with their strengths, and every troop face that can fight with its battle values and how many the faction owns.
+ * A face without battle values stays out, as it does in a game.
+ * A leader whose strength is a letter (Zoal's X) is set at the battle.
  * Null when the faction is gone or its definition does not parse.
  */
 export function wheelFactionFrom(raw: unknown): WheelFaction | null {
