@@ -1,6 +1,6 @@
 import { Stack, Text } from '@mantine/core';
 import { GITHUB_IDEAS, githubIssueHref } from '@shared/repository';
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
 import { BackToolbar } from '@ui/block/BackToolbar';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -14,18 +14,25 @@ import { ExternalLink, MessageCirclePlus } from 'lucide-react';
 import { pageHead } from '@app/routes/pageTitle';
 
 import styles from './$tool.module.css';
-import { toolAt } from './tools';
+import { FORMER_TOOL_SLUGS, toolAt, toolPath } from './tools';
 import type { Tool } from './tools';
 
 /*
  * A planned tool's address, holding its placeholder until the tool is built.
  * A built tool has its own static route at the same address, which wins over this one, so links and bookmarks keep working;
- * an unknown or built slug here is the router's 404.
+ * a slug the tool was renamed from redirects to its address now, and an unknown or built slug here is the router's 404.
  * Placeholders carry noindex and no canonical identity, and stay out of the sitemap, so only finished tools are indexed.
  */
 export const Route = createFileRoute('/_app/tools/$tool')({
   ssr: true,
-  beforeLoad: ({ params }) => {
+  beforeLoad: ({ params, location }) => {
+    const renamed = Object.hasOwn(FORMER_TOOL_SLUGS, params.tool) ? FORMER_TOOL_SLUGS[params.tool] : undefined;
+    if (renamed) {
+      throw redirect({
+        href: toolPath({ slug: renamed }) + location.searchStr + (location.hash ? '#' + encodeURI(location.hash) : ''),
+        statusCode: 301,
+      });
+    }
     const tool = toolAt(params.tool);
     if (!tool || tool.built) {
       throw notFound();

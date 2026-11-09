@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { TOOLS } from './_app/tools/tools';
+import { clearStoredGame } from './_tool/tools/spice-deck/spiceDeck.stories.fixture';
 import { expectWithinWidth } from './pagePlay';
 import { findTitledPage } from './site.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
@@ -31,6 +32,10 @@ export const Catalogue = meta.story({
       await expect(link).toHaveAttribute('target', '_blank');
       await expect(link).toHaveAttribute('rel', 'noopener');
     }
+    await expect(page.getByRole('link', { name: 'Spice deck (opens in a new tab)' })).toHaveAttribute(
+      'href',
+      '/tools/spice-deck'
+    );
   },
 });
 
@@ -71,5 +76,20 @@ export const ComingSoonPhone = meta.story({
   play: async ({ canvasElement }) => {
     const page = await findTitledPage(canvasElement, /^Faction draft$/);
     await expectWithinWidth(canvasElement, [page.getByRole('link', { name: 'Share an idea' })]);
+  },
+});
+
+/** The spice deck, the first tool built: at its own address, offering the spice deck of every Ruleset in the catalogue. */
+export const SpiceDeck = meta.story({
+  args: { path: '/tools/spice-deck' },
+  /* A game left by another story would open the table instead of the picker. */
+  beforeEach: clearStoredGame,
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Spice deck' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+    await expect(page.findByText('Pick the deck your table plays with')).resolves.toBeVisible();
   },
 });
