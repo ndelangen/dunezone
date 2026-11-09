@@ -29,6 +29,10 @@ export function useProviderSignIn() {
 export function useSignInProviders() {
   return useLiveQuery(api.accounts.providers, {});
 }
+/** The methods connected to the reader's account, `null` when signed out, or `undefined` while loading. */
+export function useConnectedSignInMethods() {
+  return useQuery(api.accounts.connectedMethods, {});
+}
 
 export type { AuthProvider } from '../../../convex/lib/accountMethods';
 /** The admin accounts page. Choosing a profile or another page changes the arguments, so the last answer stays on screen until the next one arrives rather than the form unmounting into a loading state. */

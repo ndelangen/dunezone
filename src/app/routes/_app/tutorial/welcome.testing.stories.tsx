@@ -16,7 +16,16 @@ import setup from './setup/setup.json';
 import { startAt } from './setup/tutorialSetup';
 import type { TutorialSetup } from './setup/tutorialSetup';
 
-const spoken = fn<(utterance: SpeechSynthesisUtterance) => void>();
+/* Each text is read in parts, sentence by sentence; a reading starts where the voice was last cancelled. */
+const parts: string[][] = [];
+const spoken = fn((utterance: SpeechSynthesisUtterance) => {
+  parts.at(-1)?.push(utterance.text);
+});
+const cancelled = fn(() => {
+  parts.push([]);
+});
+const readings = () => parts.filter((reading) => reading.length > 0);
+const lastReading = () => readings().at(-1)?.join(' ') ?? '';
 const preference = 'dunezone-tutorial:speaking-mode';
 let welcomeReadiness: { report: () => string; stop: () => void } | undefined;
 
@@ -35,9 +44,11 @@ const meta = testingPreview.meta({
     const synthesis = Object.getOwnPropertyDescriptor(window, 'speechSynthesis');
     localStorage.removeItem(preference);
     spoken.mockClear();
+    cancelled.mockClear();
+    parts.length = 0;
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
-      value: { speak: spoken, cancel: fn(), getVoices: () => [] },
+      value: { speak: spoken, cancel: cancelled, getVoices: () => [] },
     });
     return () => {
       if (saved === null) {
@@ -73,7 +84,7 @@ export const SpeakingMode = meta.story({
     const page = within(document.body);
     const banner = await page.findByRole('banner', { name: 'Chapter 1: Welcome' }, { timeout: 60_000 });
     const rail = within(banner);
-    await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(1), { timeout: 60_000 });
+    await waitForFrame(() => expect(readings()).toHaveLength(1), { timeout: 60_000 });
     const introduction = rail.getByText("Welcome! I'll show you around the table and help you get comfortable.");
     const shortcut = rail.getByText(/to turn speaking mode on or off/);
     const start = rail.getByText(/when you're ready to start\./);
@@ -82,7 +93,10 @@ export const SpeakingMode = meta.story({
     await expect(start.tagName).toBe('P');
     await expect(shortcut.getBoundingClientRect().top).toBeGreaterThan(introduction.getBoundingClientRect().bottom);
     await expect(start.getBoundingClientRect().top).toBeGreaterThan(shortcut.getBoundingClientRect().bottom);
-    await expect(spoken.mock.calls[0]![0].text.split('\n\n')).toHaveLength(3);
+    /* All three paragraphs are read, each in its own sentences. */
+    await expect(lastReading()).toMatch(/^Welcome! I'll show you around the table/);
+    await expect(lastReading()).toMatch(/to turn speaking mode on or off/);
+    await expect(lastReading()).toMatch(/when you're ready to start\.$/);
     const toggle = rail.getByRole('button', { name: 'Turn speaking mode on' });
     await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     /* This invitation intentionally pulses even with motion off. */
@@ -94,12 +108,12 @@ export const SpeakingMode = meta.story({
     await waitForFrame(() =>
       expect(document.querySelector('[data-tutorial-pointer]')?.getAttribute('d') ?? '').toContain('Q')
     );
-    await expect(spoken).toHaveBeenCalledTimes(1);
+    await expect(readings()).toHaveLength(1);
     await expect(getComputedStyle(toggle).animationName).toBe('none');
     await userEvent.keyboard('z');
-    await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(2));
-    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^Here's Arrakis/);
-    await expect(spoken.mock.calls.at(-1)![0].text).not.toMatch(/^Meet Arrakis/);
+    await waitForFrame(() => expect(readings()).toHaveLength(2));
+    await expect(lastReading()).toMatch(/^Here's Arrakis/);
+    await expect(lastReading()).not.toMatch(/^Meet Arrakis/);
     await expect(rail.getByRole('button', { name: 'Turn speaking mode off' })).toHaveAttribute('aria-pressed', 'true');
     const title = rail.getByText('Meet Arrakis');
     const row = title.closest('li')!;
@@ -110,15 +124,15 @@ export const SpeakingMode = meta.story({
     await expect(getComputedStyle(badge).fontFamily).toContain('C_Advokat_Modern');
     await expect(badge.getBoundingClientRect().width).toBeLessThan(30);
     await userEvent.keyboard('{Enter}');
-    await waitForFrame(() => expect(spoken).toHaveBeenCalledTimes(3));
-    await expect(spoken.mock.calls.at(-1)![0].text).toMatch(/^These faction tokens around the board/);
+    await waitForFrame(() => expect(readings()).toHaveLength(3));
+    await expect(lastReading()).toMatch(/^These faction tokens around the board/);
     await userEvent.click(rail.getByRole('button', { name: 'Turn speaking mode off' }));
     await userEvent.click(rail.getByRole('button', { name: 'Reset' }));
     await waitForFrame(() =>
       expect(rail.getByText('Welcome to the table').closest('li')).toHaveAttribute('data-state', 'current')
     );
     await expect(rail.getByRole('button', { name: 'Turn speaking mode on' })).toHaveAttribute('aria-pressed', 'false');
-    await expect(spoken).toHaveBeenCalledTimes(3);
+    await expect(readings()).toHaveLength(3);
   },
 });
 

@@ -44,4 +44,15 @@ describe('a faction sheet any viewer may read', () => {
     expect(sheet.leaders).toEqual(assetPublishingFaction.leaders);
     expect(Object.keys(sheet).sort()).toEqual(['background', 'emblem', 'leaders', 'rules']);
   });
+
+  it('leaves out the Treachery tracker rule, which only the room reads', () => {
+    const definition = factionCaptureSchema.shape.definition.parse({
+      ...assetPublishingFaction,
+      rules: { ...assetPublishingFaction.rules, treacheryTracker: true },
+    });
+    const sheet = publicFaction({ definition } as FactionCapture);
+
+    expect(definition.rules.treacheryTracker).toBe(true);
+    expect(sheet.rules).not.toHaveProperty('treacheryTracker');
+  });
 });

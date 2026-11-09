@@ -6,7 +6,7 @@
  * So a deploy records every entry it proved, and the next deploy downloads only the entries that record lacks, plus a random sample of the rest.
  * The sample is what catches a release that serves every URL wrongly, such as a broken handler.
  * An entry is its legacy path, variant name, SHA-256 and byte length, so a changed lock entry, recipe or encoder output is a new entry and is always downloaded.
- * The record is only ever a reason to skip a download: `media:publish` still checks every variant's stored integrity before the release goes live.
+ * The record is only ever a reason to skip asking R2: before the release goes live, `media:publish` asks about and uploads every entry the record lacks.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

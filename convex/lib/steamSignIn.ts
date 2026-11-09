@@ -2,7 +2,14 @@ import { parseSteamAssertion, STEAM_OPENID_ENDPOINT, steamConfirmed } from '../.
 
 const STEAM_TIMEOUT_MS = 10_000;
 
-export type SteamLogin = { steamId: string; nonce: string; name?: string; image?: string };
+export type SteamLogin = {
+  steamId: string;
+  nonce: string;
+  name?: string;
+  image?: string;
+  /** How the profile lookup went, kept so a blank profile can be explained without the deployment's logs. */
+  lookup: string;
+};
 
 /**
  * Checks a returned Steam assertion with Steam itself and, when a Web API key is configured, reads the player's public name and avatar.
@@ -27,7 +34,8 @@ export async function verifySteamLogin(
   if (!check.ok || !steamConfirmed(await check.text())) {
     return null;
   }
-  return { steamId: assertion.steamId, nonce: assertion.nonce, ...(await steamProfile(assertion.steamId)) };
+  const { lookup, ...profile } = await steamProfile(assertion.steamId);
+  return { steamId: assertion.steamId, nonce: assertion.nonce, ...profile, lookup };
 }
 
 /** The public name and avatar a Steam player summary carries, leaving out anything missing or unsafe to show. */
@@ -38,21 +46,34 @@ function playerProfile(player: Record<string, unknown> | undefined): { name?: st
 }
 
 /* The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
-async function steamProfile(steamId: string): Promise<{ name?: string; image?: string }> {
-  const key = process.env.STEAM_WEB_API_KEY;
+async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
+  const key = process.env.STEAM_WEB_API_KEY?.trim();
   if (!key) {
-    return {};
+    return blank('skipped: STEAM_WEB_API_KEY is not set');
   }
   try {
     const url = new URL('https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/');
     url.search = new URLSearchParams({ key, steamids: steamId }).toString();
-    const response = await fetch(url, { signal: AbortSignal.timeout(STEAM_TIMEOUT_MS) });
+    const response = await fetch(url.href, { signal: AbortSignal.timeout(STEAM_TIMEOUT_MS) });
     if (!response.ok) {
-      return {};
+      return blank(`failed with HTTP ${response.status}`);
     }
     const body = (await response.json()) as { response?: { players?: Record<string, unknown>[] } };
-    return playerProfile(body.response?.players?.[0]);
-  } catch {
-    return {};
+    const player = body.response?.players?.[0];
+    if (!player) {
+      return blank('returned no player');
+    }
+    const profile = playerProfile(player);
+    return { ...profile, lookup: profile.name ? 'ok' : 'returned a player without a name' };
+  } catch (error) {
+    /* An error can quote the request address, which carries the key. */
+    const reason = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown error';
+    return blank(`failed: ${reason.split(key).join('***').slice(0, 200)}`);
   }
+}
+
+/* The sign-in still succeeds without a name or avatar; the log says why, without the key. */
+function blank(reason: string) {
+  console.warn(`Steam profile lookup ${reason}`);
+  return { lookup: reason };
 }

@@ -53,6 +53,8 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
     board = loaded;
   });
   let blow: BoardChecks.SpiceBlow | undefined;
+  /* The revealed card, followed by its top card's ID, since a pile it lands on gets a new piece ID. */
+  const blowCard = () => pieces().find((piece) => blow && piece.items.at(-1)?.id === blow.card);
   const pieces = () => snapshot().table.pieces.filter((piece) => !piece.inventory);
   const mine = () => snapshot().bank?.factionId;
   const deck = (side: 'left' | 'right') => tableDeck(snapshot, side);
@@ -103,18 +105,22 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'spice',
       task: 'Turn over a Spice card',
       detail:
-        'Time for a Spice Blow! Drag the top card off the Spice deck on the right and drop it on the table. Hover over it and press {F} to flip it.\n\nStart dragging straight away to pick up one card rather than the whole deck. If you reveal Shai-Hulud, draw another card until one shows a spice amount.',
+        'Time for a Spice Blow! Drag the top card off the Spice deck on the right and drop it beside the deck. Hover over the card and press {F} to turn it face up.\n\nStart dragging straight away to take one card; holding first picks up the whole deck. If the whole deck turns over, press {F} over it again.',
       anchor: { kind: 'table', point: () => at(deck('right')) },
-      begin: () =>
-        new Set(
-          pieces()
-            .filter((piece) => piece.items[0]?.faceUp)
-            .map((piece) => piece.items[0]!.id)
+      /* The deck itself turned over shows its bottom card, which is no blow; a card drawn off it counts on its own or on top of a discard pile. */
+      begin: () => ({
+        deck: deck('right')?.id,
+        seen: new Set(
+          pieces().flatMap((piece) => {
+            const shown = board?.spiceBlow(snapshot(), piece);
+            return shown ? [shown.card] : [];
+          })
         ),
-      done: (seen) => {
+      }),
+      done: (start) => {
         for (const piece of pieces()) {
-          const revealed = !seen.has(piece.items[0]?.id ?? '') && board?.spiceBlow(piece);
-          if (revealed) {
+          const revealed = piece.id !== start.deck ? board?.spiceBlow(snapshot(), piece) : undefined;
+          if (revealed && !start.seen.has(revealed.card)) {
             blow = revealed;
             return true;
           }
@@ -126,30 +132,28 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
       id: 'place-spice',
       task: 'Place the Spice Blow',
       get detail() {
-        return `The card shows ${blow?.amount ?? 'its amount of'} spice in ${blow?.name ?? 'its named territory'}. Click M on the camera dial to see the Spice Bank. Hover over the bank and press a number key to spawn that much spice, then drag it onto that territory. {0} means ten; for more than ten, spawn another batch.\n\nThe spice must reach the board before you move on.`;
+        const amount = blow?.amount ?? 'its';
+        const where = blow?.name ?? 'the territory it names';
+        return `The card asks for ${amount} spice in ${where}, which now glows on the board. Right-click the card and choose Place ${amount} spice on ${where}.\n\nWith several cards face up, press {Space} and choose Spice blow to place them all at once.`;
       },
-      anchor: { kind: 'table', point: () => at(pieces().find(isSpicePiece)) ?? spiceBankSlot().position },
-      begin: () => ({
-        actions: players.acceptedActions().length,
-        existing: new Set(
+      anchor: { kind: 'table', point: () => at(blowCard()) ?? spiceBankSlot().position },
+      begin: () =>
+        new Set(
           pieces()
             .filter(isSpicePiece)
             .flatMap((piece) => piece.items.map((item) => item.id))
         ),
-      }),
-      done: (start) => {
+      /* Spice placed from the card or spawned from the bank by hand both count, once the card's amount lies in its territory. */
+      done: (existing) => {
         if (!blow || !board) {
           return false;
         }
-        const spawned = actsSince(start.actions).reduce(
-          (amount, { action }) => amount + (action.kind === 'spice-spawn' ? action.count : 0),
-          0
-        );
+        const territories = blow.territories;
         const placed = pieces()
-          .filter((piece) => isSpicePiece(piece) && board!.territory(snapshot(), piece) === blow!.territory)
+          .filter((piece) => isSpicePiece(piece) && territories.includes(board!.territory(snapshot(), piece) ?? ''))
           .flatMap((piece) => piece.items)
-          .filter((item) => !start.existing.has(item.id)).length;
-        return spawned >= blow.amount && placed === blow.amount;
+          .filter((item) => !existing.has(item.id)).length;
+        return placed >= blow.amount;
       },
     }),
     onTo(
@@ -301,7 +305,7 @@ function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[]
 /* One line for each part of the chapter, in the order it was played. */
 const learned = [
   'One press of Next phase moves the game one phase on, and the camera with it',
-  'Spice Blow: turn over a Spice card, then place its spice from the bank on the board',
+  'Spice Blow: turn over a Spice card, then right-click it to place its spice in the territory it lights',
   'Bidding: right-click the Treachery deck to draw a card',
   'Revival: the Tleilaxu Tanks lie below the board',
   'Ship a stack, move a stack to another territory, then mark your faction done',

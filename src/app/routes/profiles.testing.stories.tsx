@@ -189,6 +189,23 @@ export const SignInMethodsNeedARecentSignIn = meta.story({
   },
 });
 
+/**
+ * The way through that refusal: signing in again offers only the methods already connected to the profile.
+ * Discord or Steam would sign in to a separate account, so picking one there could never connect it.
+ */
+export const SignInAgainOffersConnectedMethods = meta.story({
+  args: { path: '/auth/login?redirect=%2Fprofiles%2Fcentral%2Fedit%3Ftab%3Dsign-in&reauthenticate=true' },
+  parameters: { database: db(googleConnected) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'Sign in again' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(1), {
+      timeout: 30_000,
+    });
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
+  },
+});
+
 const HOUR = 60 * 60_000;
 
 /**

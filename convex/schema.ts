@@ -626,6 +626,11 @@ export default defineSchema({
     .index('by_ruleset_slot', ['ruleset_id', 'slot']),
   /* Steam assertions already used to sign in, kept until they would be too old to accept anyway. */
   steam_openid_nonces: defineTable({ nonce: v.string(), expires_at: v.number() }).index('by_nonce', ['nonce']),
+  /* How each Steam login's last profile lookup went, so a blank name or avatar can be explained from the data alone. */
+  steam_profile_lookups: defineTable({ steam_id: v.string(), outcome: v.string(), checked_at: v.number() }).index(
+    'by_steam_id',
+    ['steam_id']
+  ),
   account_connections: defineTable({
     digest: v.string(),
     user_id: v.id('users'),

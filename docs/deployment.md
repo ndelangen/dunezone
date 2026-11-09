@@ -434,7 +434,9 @@ deploying. In every other case the `deploy` job runs:
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
     seconds. An unexpected refusal stops the check, and a token that never becomes usable fails at
     the deadline. Once ready, `bun run media:publish --rotated-token` uploads the
-    variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
+    variants R2 lacks to `/m`. It HEADs only the variants the `media-verified-*` Actions cache has not
+    already proved: R2 objects are create-only, so a proved variant stays stored, and a cache miss
+    HEADs them all. A failure here leaves the
     previous release serving; see [Media runbooks](./technical/media-runbooks.md).
     During that command's first minute, a write that reaches a stale bearer rechecks readiness and
     retries the identical write. That window is shared by the whole command, and ordinary publishing

@@ -76,10 +76,16 @@ bytes). The deploy's verify step fails after go-live, and the release is never m
 the ledger. Ship the fix as a new commit. Before merging, run the publisher locally and check one
 `/m` URL and one legacy URL; after the deploy, its verify step proves the sample again.
 
-**The verify step's record is suspect** (for example, after objects were changed outside the Worker).
-The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`) and
-downloads only new entries plus a random sample of 128. Delete those caches the same way (`--key media-verified-`) or run
-`bun run media:publish --verify --all` against production to download every entry again.
+**The verify step's record is suspect** (for example, after objects were changed outside the Worker, or the
+monthly media report, `.github/workflows/media-gc-report.yml`, listed `missingReleaseVariants` or `ledgerProblems`).
+The deploy keeps the variant entries it has proved in the Actions cache (`media-verified-*`), and
+publishing checks only new entries, while the verify step downloads new entries plus a random sample of 128. Delete those caches the same way
+(`--key media-verified-`) so the next deploy HEADs every variant and downloads every entry again.
+Those requests go through the Worker, which answers `/m` from the edge cache where it can, so a variant missing from R2
+can still look present until its cached copy expires. To put a missing variant back, purge its `/m` URL from the
+Cloudflare cache first; the next deploy's HEAD then misses and uploads it. The report compares names and sizes from
+the bucket listing, which carries no checksum, so it cannot see a same-size overwrite; only the Worker writes
+variants, and it refuses to overwrite one.
 
 ## The machine with the upload token is unavailable
 

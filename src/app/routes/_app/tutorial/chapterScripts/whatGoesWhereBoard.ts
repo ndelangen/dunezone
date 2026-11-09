@@ -1,39 +1,29 @@
 import { CENTER, RADIUS } from '@shared/boards/geometry';
 import { propertyId } from '@shared/boards/schema';
+import { boardTerritory } from '@shared/boards/tableTerritories';
 import { boardTerritoryAt } from '@shared/boards/territories';
 import type { GameSnapshot } from '@shared/play/protocol';
+import { revealedSpiceBlow } from '@shared/play/spiceBlowPlacement';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 
-import spiceBlows from '../setup/spiceBlows.json';
 import type { Piece } from './guideChecks';
 
-/* Loaded only while this chapter runs: the recorded card lookup supplies its printed amount and board territory. */
-export type SpiceBlow = Readonly<{ name: string; amount: number; territory: string }>;
+/* Loaded only while this chapter runs: board geometry names the territory a revealed card lights. */
+export type SpiceBlow = Readonly<{ card: string; amount: number; territories: readonly string[]; name: string }>;
 
-function revealedSpiceFront(piece: Piece): string | undefined {
-  if (piece.items.length !== 1) {
+/**
+ * The spice a pile on the table asks for, read from its face-up top card as the table reads it to light the territory and to offer Place spice: a revealed card counts wherever it lies, on its own or on top of a discard pile.
+ */
+export function spiceBlow(snapshot: GameSnapshot, piece: Piece): SpiceBlow | undefined {
+  const revealed = revealedSpiceBlow(piece);
+  if (!revealed) {
     return undefined;
   }
-  const face = piece.items[0];
-  if (!face?.faceUp) {
-    return undefined;
-  }
-  if (face.artwork?.type !== 'card-spice') {
-    return undefined;
-  }
-  return face.artwork.front;
-}
-
-export function spiceBlow(piece: Piece): SpiceBlow | undefined {
-  const front = revealedSpiceFront(piece);
-  if (!front) {
-    return undefined;
-  }
-  const card = spiceBlows.find(({ assetId }) => front.includes(`/spice-cards/${assetId}/`));
-  if (!card) {
-    return undefined;
-  }
-  return { name: card.name, amount: card.amount, territory: card.territory };
+  const { item, blow } = revealed;
+  const board = snapshot.board?.definition;
+  const first = blow.territories[0]!;
+  const name = (board && boardTerritory(board, first)?.name) ?? item.artwork?.name ?? first;
+  return { card: item.id, amount: blow.amount, territories: blow.territories, name };
 }
 
 export function territory(snapshot: GameSnapshot, piece: Pick<Piece, 'position'>): string | undefined {

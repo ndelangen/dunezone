@@ -11,7 +11,7 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight, History } from 'lucide-react';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import type { SVGProps } from 'react';
 import { FaSteam } from 'react-icons/fa6';
 import { SiDiscord } from 'react-icons/si';
@@ -21,6 +21,7 @@ import {
   noteSignInStarted,
   settleStartedSignIn,
   useLastSignInMethod,
+  useConnectedSignInMethods,
   useProviderSignIn,
   useSignInProviders,
 } from '@db/accounts';
@@ -254,9 +255,11 @@ function SignInPanel({
           Loading sign-in methods
         </StatusBadge>
       )}
-      <Text size="sm" className={styles.fine}>
-        No password to remember. Your first sign-in creates your account.
-      </Text>
+      {!reauthenticate && (
+        <Text size="sm" className={styles.fine}>
+          No password to remember. Your first sign-in creates your account.
+        </Text>
+      )}
     </Stack>
   );
 }
@@ -272,10 +275,28 @@ function ProviderMark({ provider }: Readonly<{ provider: AuthProvider }>) {
   }
 }
 
+/*
+ * Signing in again must land in the same account, and only a method already connected to it does:
+ * any other one signs in to a separate account, the way a first sign-in creates one.
+ * The connected methods are kept from while the reader was still signed in, since picking one signs out first.
+ */
+function useReauthenticationProviders(reauthenticate: boolean) {
+  const providers = useSignInProviders();
+  const connectedNow = useConnectedSignInMethods();
+  const [connected, setConnected] = useState<AuthProvider[] | null>(null);
+  if (reauthenticate && connected === null && connectedNow?.length) {
+    setConnected(connectedNow);
+  }
+  if (!reauthenticate || !providers || !connected) {
+    return providers;
+  }
+  return providers.filter((method) => connected.includes(method.provider));
+}
+
 function LoginPage() {
   const profile = useCurrentProfile();
-  const providers = useSignInProviders();
   const { redirect: returnTo, failed, reauthenticate = false } = Route.useSearch();
+  const providers = useReauthenticationProviders(reauthenticate);
   const navigate = useNavigate();
   const signedIn = Boolean(profile.data);
   /* The password form signs in without leaving the page, and a reader who is already signed in has nothing to do here either, so both go back to the page they came from. */
@@ -313,7 +334,7 @@ function LoginPage() {
             />
             <Text className={styles.lead}>
               {reauthenticate
-                ? 'Sign in once more to carry on where you were.'
+                ? 'Sign in once more, with a method already connected to your profile, to carry on where you were.'
                 : 'Build factions, write your own rulesets and play Dune with friends.'}
             </Text>
             <SignInPanel

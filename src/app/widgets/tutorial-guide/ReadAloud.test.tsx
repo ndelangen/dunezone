@@ -1,13 +1,14 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 
 import { stubMatchMedia } from '@app/routes/_app/play/multiplayer/jsdom.test.fixture';
 
 import { ReadAloud } from './ReadAloud';
+import { useSpeech } from './speech';
 
 stubMatchMedia();
 
@@ -18,16 +19,20 @@ afterEach(() => {
 });
 
 /* The browser's voice, as far as the button uses it: what it was asked to say, and when it was stopped. */
-function fakeVoice() {
+function fakeVoice(
+  voices: readonly Partial<SpeechSynthesisVoice>[] = [
+    { name: 'Microsoft Frank', lang: 'nl-NL', default: true, localService: true },
+    { name: 'Microsoft Hazel', lang: 'en-GB', default: false, localService: true },
+  ]
+) {
   const said: SpeechSynthesisUtterance[] = [];
-  const voice = {
+  const listed = { voices };
+  const voice = Object.assign(new EventTarget(), {
     speak: vi.fn((utterance: SpeechSynthesisUtterance) => said.push(utterance)),
     cancel: vi.fn(),
-    getVoices: () => [
-      { lang: 'nl-NL', default: true },
-      { lang: 'en-GB', default: false, localService: true },
-    ],
-  };
+    getVoices: () => listed.voices,
+    listed,
+  });
   vi.stubGlobal('speechSynthesis', voice);
   vi.stubGlobal(
     'SpeechSynthesisUtterance',
@@ -93,11 +98,12 @@ test('both choices survive leaving a chapter and opening another', () => {
 test('the Welcome introduction speaks without opting in, and Enter can leave it silent', () => {
   const { said } = fakeVoice();
   const view = render(content('Welcome. Press {Z} to hear each step.', 'welcome', true));
-  expect(said.at(-1)!.text).toBe('Welcome. Press the Z key to hear each step.');
+  /* Read sentence by sentence, so an online voice never falls silent partway. */
+  expect(said.map((utterance) => utterance.text)).toEqual(['Welcome.', 'Press the Z key to hear each step.']);
   expect(on().getAttribute('aria-pressed')).toBe('false');
   expect(on().hasAttribute('data-attention')).toBe(true);
   view.rerender(content('This is the table.', 'board'));
-  expect(said).toHaveLength(1);
+  expect(said).toHaveLength(2);
   expect(on().hasAttribute('data-attention')).toBe(false);
 });
 
@@ -224,4 +230,72 @@ test('blocked storage still allows speaking for the current chapter', () => {
 test('where the browser has no voice there is no button', () => {
   render(content('Open the controls.'));
   expect(screen.queryByRole('button')).toBeNull();
+});
+
+test('speaking is over only once the last sentence ends', () => {
+  const { said } = fakeVoice();
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('One. Two.'));
+  expect(said.map((utterance) => utterance.text)).toEqual(['One.', 'Two.']);
+  act(() => {
+    said[0]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    said[1]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(false);
+});
+
+test('a browser that lists its voices late is waited for, so the first text has the natural voice too', () => {
+  const { voice, said } = fakeVoice([]);
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('Welcome.'));
+  expect(said).toHaveLength(0);
+  expect(result.current.speaking).toBe(true);
+  voice.listed.voices = [
+    { name: 'Microsoft David - English (United States)', lang: 'en-US', default: true, localService: true },
+    { name: 'Google US English', lang: 'en-US', default: false, localService: false },
+  ];
+  act(() => {
+    voice.dispatchEvent(new Event('voiceschanged'));
+  });
+  expect(said.map((utterance) => utterance.text)).toEqual(['Welcome.']);
+  expect((said[0]!.voice as SpeechSynthesisVoice).name).toBe('Google US English');
+});
+
+test('an online voice that fails offline is followed by a voice on the machine, from where it failed', () => {
+  const { said } = fakeVoice([
+    { name: 'Microsoft David - English (United States)', lang: 'en-US', default: true, localService: true },
+    { name: 'Google US English', lang: 'en-US', default: false, localService: false },
+  ]);
+  const { result } = renderHook(() => useSpeech());
+  act(() => result.current.speak('One. Two. Three.'));
+  expect(said).toHaveLength(3);
+  const failed = new Event('error') as SpeechSynthesisErrorEvent;
+  Object.defineProperty(failed, 'error', { value: 'network' });
+  vi.useFakeTimers();
+  act(() => {
+    said[1]!.dispatchEvent(failed);
+    /* Chrome errors the parts it then drops too; one fallback follows, not one per part. */
+    said[2]!.dispatchEvent(failed);
+  });
+  /* Only once the error handler has returned, so Chrome's own next part cannot start it twice. */
+  expect(said).toHaveLength(3);
+  act(() => {
+    vi.runAllTimers();
+  });
+  vi.useRealTimers();
+  const again = said.slice(3);
+  expect(again.map((utterance) => utterance.text)).toEqual(['Two.', 'Three.']);
+  expect(again.every((utterance) => (utterance.voice as SpeechSynthesisVoice).localService)).toBe(true);
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    said[2]!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(true);
+  act(() => {
+    again.at(-1)!.dispatchEvent(new Event('end'));
+  });
+  expect(result.current.speaking).toBe(false);
 });

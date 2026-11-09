@@ -481,3 +481,28 @@ test('PR CI rehearses the runtime; deployment assembles, then omits raster copie
   expect(exactRelease).toBeGreaterThan(omission);
   expect(commands.some((command: string) => command.includes('retain-assets'))).toBe(false);
 });
+
+test('deployment restores the proved variant entries before publishing skips them', () => {
+  const workflow = parse(
+    readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
+  );
+  const steps: { name?: string; run?: string; uses?: string; with?: Record<string, string> }[] =
+    workflow.jobs.deploy.steps;
+  const restore = steps.findIndex(
+    (step) => step.uses?.startsWith('actions/cache/restore@') && step.name?.includes('variant entries')
+  );
+  const publish = steps.findIndex((step) => step.run?.includes('bun run media:publish --rotated-token'));
+  const workerDeploy = steps.findIndex((step) => step.run?.includes('--config workers/publisher/wrangler.jsonc --tag'));
+  const verify = steps.findIndex((step) => step.run?.includes('bun run media:publish --verify'));
+  const save = steps.findIndex((step) => step.uses?.startsWith('actions/cache/save@'));
+  expect(restore).toBeGreaterThan(-1);
+  /* The record must be the one the verify step saves, at the path media-publish.ts reads by default. */
+  expect(steps[restore].with?.path).toBe('.cache/media-verified');
+  expect(steps[restore].with?.['restore-keys']).toBe('media-verified-');
+  expect(steps[restore].with?.key).toBe('media-verified-${{ github.run_id }}-${{ github.run_attempt }}');
+  expect(steps[save].with).toMatchObject({ path: steps[restore].with?.path, key: steps[restore].with?.key });
+  expect(publish).toBeGreaterThan(restore);
+  expect(workerDeploy).toBeGreaterThan(publish);
+  expect(verify).toBeGreaterThan(workerDeploy);
+  expect(save).toBeGreaterThan(verify);
+});

@@ -1,5 +1,5 @@
 /**
- * The R2 media collection report (#1888 step 9): a dry run of the retention rules that lists what a collection could remove.
+ * The R2 media report (#1888 step 9): a dry run of the retention rules that lists what a collection could remove, and a check that every variant any release record lists is still stored at its published size, which fails the run when one is not.
  *
  * Bun run media:gc
  *
@@ -12,7 +12,7 @@
 import sharp from 'sharp';
 
 import type { RasterLock } from '../src/shared/media/rasterLock';
-import { planCollection } from './lib/media-gc';
+import { ledgerProblems, missingVariants, planCollection } from './lib/media-gc';
 import type { ReleaseVariant, StoredObject } from './lib/media-gc';
 import { readRasterLock } from './lib/raster-lock';
 import { planVariants } from './media-variants';
@@ -105,17 +105,28 @@ function storedObject(item: ListedObject): StoredObject {
   return { key: item.key, bytes: item.size, uploaded: item.last_modified };
 }
 
-/** Every object in a bucket, following the cursor until the listing says it is complete. */
-async function listBucket(listing: Listing, listed: StoredObject[] = []): Promise<StoredObject[]> {
+/**
+ * Every object in a bucket, following any cursor a page returns.
+ * Both `is_truncated` and `cursor` are optional in Cloudflare's schema, so a cursor alone continues the listing, and a truncated page without one, or a cursor that repeats, stops it with an error.
+ */
+async function listBucket(
+  listing: Listing,
+  listed: StoredObject[] = [],
+  seen: ReadonlySet<string> = new Set()
+): Promise<StoredObject[]> {
   const page = await readPage(listing);
   const objects = [...listed, ...page.result.map(storedObject)];
-  if (!page.result_info?.is_truncated) {
+  const cursor = page.result_info?.cursor;
+  if (!cursor) {
+    if (page.result_info?.is_truncated) {
+      throw new Error(`Listing ${listing.bucket} was truncated without a cursor`);
+    }
     return objects;
   }
-  if (!page.result_info.cursor) {
-    throw new Error(`Listing ${listing.bucket} was truncated without a cursor`);
+  if (seen.has(cursor)) {
+    throw new Error(`Listing ${listing.bucket} returned the same cursor twice`);
   }
-  return listBucket({ bucket: listing.bucket, cursor: page.result_info.cursor }, objects);
+  return listBucket({ bucket: listing.bucket, cursor }, objects, new Set([...seen, cursor]));
 }
 
 /** The variants one prepared release record lists. */
@@ -126,15 +137,20 @@ async function readRelease(key: string): Promise<ReleaseVariant[]> {
   if (!response.ok) {
     throw new Error(`Reading ${key} failed with HTTP ${response.status}`);
   }
-  const record = (await response.json()) as { variants?: { name?: unknown; source?: unknown }[] };
+  const record = (await response.json()) as { variants?: { name?: unknown; source?: unknown; bytes?: unknown }[] };
   if (!Array.isArray(record.variants)) {
     throw new Error(`${key} has no variant list`);
   }
   return record.variants.map((variant) => {
-    if (typeof variant.name !== 'string' || typeof variant.source !== 'string') {
-      throw new Error(`${key} lists a variant without a name or source`);
+    if (
+      typeof variant.name !== 'string' ||
+      typeof variant.source !== 'string' ||
+      !Number.isSafeInteger(variant.bytes) ||
+      (variant.bytes as number) <= 0
+    ) {
+      throw new Error(`${key} lists a variant without a name, source or positive size`);
     }
-    return { name: variant.name, source: variant.source };
+    return { name: variant.name, source: variant.source, bytes: variant.bytes as number };
   });
 }
 
@@ -177,19 +193,20 @@ function planNames(lock: RasterLock): string[] {
   );
 }
 
-const [sources, variants, ledger, pulls] = await Promise.all([
+/*
+ * The ledger is listed before the variant bucket, and only the records that listing found are read.
+ * A deploy writes a record only after every variant it lists is stored, so each record read here names variants that were stored before the variant listing began; a deploy running alongside this report can only add variants no record read here names.
+ */
+const ledgerKeys = (await listBucket({ bucket: RELEASE_BUCKET })).map((object) => object.key);
+const recordKeys = ledgerKeys.filter((key) => key.startsWith('releases/') && key.endsWith('.json'));
+const [records, sources, variants, pullLocks] = await Promise.all([
+  Promise.all(recordKeys.map(async (key) => ({ key, variants: await readRelease(key) }))),
   listBucket({ bucket: SOURCE_BUCKET }),
   listBucket({ bucket: VARIANT_BUCKET }),
-  listBucket({ bucket: RELEASE_BUCKET }),
-  openPullRequests(),
+  openPullRequests().then((pulls) => Promise.all(pulls.map(pullRequestLock))),
 ]);
-const recordKeys = ledger
-  .map((object) => object.key)
-  .filter((key) => key.startsWith('releases/') && key.endsWith('.json'));
-const [releases, pullLocks] = await Promise.all([
-  Promise.all(recordKeys.map(readRelease)),
-  Promise.all(pulls.map(pullRequestLock)),
-]);
+const releases = records.map((record) => record.variants);
+const problems = ledgerProblems(ledgerKeys, records);
 
 const plan = planCollection({
   sources,
@@ -199,6 +216,7 @@ const plan = planCollection({
   planNames,
   now: new Date(),
 });
+const missing = missingVariants(variants, releases);
 const summary = (report: (typeof plan)['sources']) => ({
   ...report,
   candidateBytes: report.candidates.reduce((total, object) => total + object.bytes, 0),
@@ -208,11 +226,24 @@ console.log(
     {
       mode: 'dry-run',
       releases: releases.length,
-      openPullRequests: pulls.length,
+      openPullRequests: pullLocks.length,
       sources: summary(plan.sources),
       variants: summary(plan.variants),
+      ledgerProblems: problems,
+      missingReleaseVariants: missing,
     },
     null,
     2
   )
 );
+if (problems.length > 0) {
+  console.error(`The release ledger cannot vouch for stored media: ${problems.join('; ')}.`);
+}
+if (missing.length > 0) {
+  console.error(
+    `${missing.length} variant(s) a release record lists are missing from ${VARIANT_BUCKET} or stored at another size; see docs/technical/media-runbooks.md.`
+  );
+}
+if (problems.length > 0 || missing.length > 0) {
+  process.exit(1);
+}
