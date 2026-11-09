@@ -197,8 +197,10 @@ let spotter: Spotter | undefined;
 let stream: Stream | undefined;
 const answer = (message: FromSpotter) => self.postMessage(message);
 
-self.onmessage = async ({ data }: MessageEvent<ToSpotter>) => {
+/* No async syntax: the Storybook build requires workers to be lowered to plain promises. */
+self.onmessage = ({ data }: MessageEvent<ToSpotter>) => {
   if (data.type === 'load') {
+    const fail = (error: unknown) => answer({ type: 'failed', reason: String(error) });
     try {
       (globalThis as unknown as { process: unknown }).process = nodeProcess;
       for (const [name, buffer] of Object.entries(data.model)) {
@@ -210,31 +212,34 @@ self.onmessage = async ({ data }: MessageEvent<ToSpotter>) => {
         print: () => undefined,
         printErr: () => undefined,
       };
-      await factory(engine);
-      const { createKws } = load(data.kws) as { createKws: (engine: unknown, config: unknown) => Spotter };
-      spotter = createKws(engine, {
-        featConfig: { samplingRate: 16_000, featureDim: 80 },
-        modelConfig: {
-          transducer: { encoder: '/encoder', decoder: '/decoder', joiner: '/joiner' },
-          tokens: '/tokens',
-          provider: 'cpu',
-          modelType: '',
-          numThreads: 1,
-          debug: 0,
-          modelingUnit: 'bpe',
-          bpeVocab: '',
-        },
-        maxActivePaths: 4,
-        numTrailingBlanks: 1,
-        /* Tuned on ten generated voices with and without chatter: no wrong bids, few misses. */
-        keywordsScore: 1.5,
-        keywordsThreshold: 0.12,
-        keywords: data.keywords,
-      });
-      stream = spotter.createStream();
-      answer({ type: 'ready' });
+      factory(engine)
+        .then(() => {
+          const { createKws } = load(data.kws) as { createKws: (engine: unknown, config: unknown) => Spotter };
+          spotter = createKws(engine, {
+            featConfig: { samplingRate: 16_000, featureDim: 80 },
+            modelConfig: {
+              transducer: { encoder: '/encoder', decoder: '/decoder', joiner: '/joiner' },
+              tokens: '/tokens',
+              provider: 'cpu',
+              modelType: '',
+              numThreads: 1,
+              debug: 0,
+              modelingUnit: 'bpe',
+              bpeVocab: '',
+            },
+            maxActivePaths: 4,
+            numTrailingBlanks: 1,
+            /* Tuned on ten generated voices with and without chatter: no wrong bids, few misses. */
+            keywordsScore: 1.5,
+            keywordsThreshold: 0.12,
+            keywords: data.keywords,
+          });
+          stream = spotter.createStream();
+          answer({ type: 'ready' });
+        })
+        .catch(fail);
     } catch (error) {
-      answer({ type: 'failed', reason: String(error) });
+      fail(error);
     }
     return;
   }
