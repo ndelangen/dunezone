@@ -1,7 +1,10 @@
 name: Cloudflare live drift
 
 on:
-  pull_request_target:
+  # Not pull_request_target: GitHub blocks that trigger in public repositories from 2 December 2026
+  # (brownouts on 9 and 16 November). The job still checks out trusted main, never the PR head.
+  # A fork pull request gets no secrets, so its audit fails; open such a change from a branch in this repository instead.
+  pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review, edited]
   merge_group:
@@ -28,9 +31,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout trusted base revision
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 NOSONAR: checks out the base revision, never the fork head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 NOSONAR: checks out the base branch, never the pull request head
         with:
-          ref: ${{ github.event_name == 'merge_group' && github.event.repository.default_branch || github.sha }}
+          # base_ref is the PR's target branch (main); a merge group audits the default branch; a manual run audits its ref.
+          ref: ${{ github.base_ref || github.event_name == 'merge_group' && github.event.repository.default_branch || github.sha }}
           persist-credentials: false
 
       - name: Setup Bun
