@@ -114,9 +114,21 @@ export function usePredictionLocket() {
     globalThis.addEventListener?.('storage', onStorage);
     return () => globalThis.removeEventListener?.('storage', onStorage);
   }, []);
-  const pickFaction = useCallback((faction: LocketFaction) => setState((now) => ({ ...now, faction })), []);
-  const pickTurn = useCallback((turn: number) => setState((now) => ({ ...now, turn })), []);
-  const pickTimeZone = useCallback((timeZone: string) => setState((now) => ({ ...now, timeZone })), []);
+  /*
+   * A pick changes the draft only while nothing is locked in storage: another tab's lock may be saved before its storage event
+   * reaches this tab, and this tab's draft, saved over it, would erase that lock. The lock wins and this tab shows it.
+   */
+  const editDraft = useCallback((change: Partial<Pick<LocketState, 'faction' | 'turn' | 'timeZone'>>) => {
+    const stored = read();
+    if (stored?.locked) {
+      setState(stored);
+      return;
+    }
+    setState((now) => ({ ...now, ...change }));
+  }, []);
+  const pickFaction = useCallback((faction: LocketFaction) => editDraft({ faction }), [editDraft]);
+  const pickTurn = useCallback((turn: number) => editDraft({ turn }), [editDraft]);
+  const pickTimeZone = useCallback((timeZone: string) => editDraft({ timeZone }), [editDraft]);
   /* Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way. */
   const lock = useCallback((prediction: Omit<LockedPrediction, 'revealed'>) => {
     /*
