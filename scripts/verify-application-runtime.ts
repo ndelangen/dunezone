@@ -163,12 +163,15 @@ try {
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = pathname.endsWith('/runtime-manual?edition=1');
     const html = await response.text();
-    if (TOOL_PAGES.includes(pathname)) {
-      /* A standalone tool has no app header, so it neither shows nor preloads the header poster. */
-      assert.ok(!html.includes(`/public/${bandPoster}`), `${pathname} asks for the header poster it does not show`);
-    } else {
+    /* A standalone tool page has no app header, so no band poster; every other page shows the one it preloads. */
+    if (!TOOL_PAGES.includes(pathname)) {
       assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
       assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
+    } else {
+      assert.ok(
+        !html.includes(`/public/${bandPoster}`),
+        `${pathname} is a standalone tool and carries the app's poster`
+      );
     }
     if (BLOG_POST_PAGES.includes(pathname) && !LISTED_BLOG_POST_PAGES.includes(pathname)) {
       /* An unlisted post is shared by link only, so it alone asks not to be indexed. */
@@ -291,14 +294,6 @@ try {
       assert.equal(head.status, 200);
       assert.equal(head.headers.get('X-Public-Cache'), 'hit');
       assert.equal(await head.text(), '');
-    } else if (TOOL_PAGES.includes(pathname)) {
-      /* A built tool shares its catalogue tile picture, not a rendered card. */
-      const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
-      assert.ok(image, `${pathname} has no social image URL`);
-      assert.match(new URL(image).pathname, /^\/tools\/[\w-]+\.webp$/, pathname);
-      const picture = await worker.fetch(new URL(image).pathname);
-      assert.equal(picture.status, 200, pathname);
-      assert.match(picture.headers.get('Content-Type') ?? '', /image\/webp/, pathname);
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
       /* The galleries share one card template, and so do the blog posts, so one render covers each. */
@@ -308,25 +303,33 @@ try {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
-      assert.equal(imageUrl.pathname, '/social/image.png');
-      /* Cold renders share the global 20-per-10-second budget.
-       * Pace them at one per second; repeated cache reads need no delay.
-       */
-      await delay(Math.max(0, nextSocialProbeAt - performance.now()));
-      nextSocialProbeAt = performance.now() + 1000;
-      const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(png.status, 200, pathname);
-      assert.equal(png.headers.get('Content-Type'), 'image/png');
-      assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
-      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(
-        imageHit.headers.get('X-Public-Cache'),
-        'hit',
-        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
-      );
-      assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
-      assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
-      await imageHit.arrayBuffer();
+      if (TOOL_PAGES.includes(pathname) && imageUrl.pathname.startsWith('/tools/')) {
+        /* A tool with its own picture shares that static WebP instead of a rendered card. */
+        const art = await worker.fetch(imageUrl.pathname);
+        assert.equal(art.status, 200, `${pathname} shares a missing picture ${imageUrl.pathname}`);
+        assert.equal(art.headers.get('Content-Type'), 'image/webp');
+        await art.arrayBuffer();
+      } else {
+        assert.equal(imageUrl.pathname, '/social/image.png');
+        /* Cold renders share the global 20-per-10-second budget.
+         * Pace them at one per second; repeated cache reads need no delay.
+         */
+        await delay(Math.max(0, nextSocialProbeAt - performance.now()));
+        nextSocialProbeAt = performance.now() + 1000;
+        const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
+        assert.equal(png.status, 200, pathname);
+        assert.equal(png.headers.get('Content-Type'), 'image/png');
+        assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
+        const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
+        assert.equal(
+          imageHit.headers.get('X-Public-Cache'),
+          'hit',
+          `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+        );
+        assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
+        assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
+        await imageHit.arrayBuffer();
+      }
     }
 
     const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]!);

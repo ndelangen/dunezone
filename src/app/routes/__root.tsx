@@ -37,7 +37,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
-      /* The primary text faces; the app layout preloads its header artwork. */
+      /* The primary text faces; the header artwork is preloaded by the app layout, the only one that shows it. */
       {
         rel: 'preload',
         as: 'font',

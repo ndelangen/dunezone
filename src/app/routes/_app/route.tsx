@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_app')({
      Client hydration still runs them, so a head whose own loader can throw notFound passes its match to `pageHead`. */
   head: ({ match }) => ({
     ...(match.status === 'notFound' ? pageHead('Page not found') : {}),
-    /* The header artwork; the standalone tools have no header, so only this layout asks for it early. */
+    /* The header artwork, which only the app's own pages show; a standalone tool has no header. */
     links: [{ rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' }],
     scripts: [MOTION_BEFORE_HYDRATION],
   }),

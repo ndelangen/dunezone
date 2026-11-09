@@ -9,7 +9,7 @@ export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-p
  * A planned tool's placeholder stays out.
  * A test holds this list to the tools registry's `built` flags.
  */
-export const TOOL_PAGES: string[] = ['/tools/atreides-treachery-tracker'];
+export const TOOL_PAGES: string[] = ['/tools/atreides-treachery-tracker', '/tools/spice-deck'];
 
 /**
  * The script nonce a built tool page is prerendered with, at `/tools/<slug>/index.html` in the build.
