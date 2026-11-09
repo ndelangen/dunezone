@@ -143,9 +143,16 @@ async function offerOf(ctx: MutationCtx, userId: Id<'users'>, provider: AuthProv
   return option;
 }
 
-/** Whether a picture differs from every form the profile already shows it in. */
-function showsPicture(profile: Doc<'profiles'>, image: string): boolean {
-  return [profile.avatar?.url, profile.avatar?.source_url, profile.avatar_url].includes(image);
+/** The name the profile would take from an option: none when the rules refuse it or the profile has it already. */
+function nameToTake(option: LinkedAccountOption, profile: Doc<'profiles'>): string | null {
+  const { displayName } = option;
+  return displayName !== null && displayName !== profile.username ? displayName : null;
+}
+
+/** The picture the profile would take from an option: none when the profile already shows it in some form. */
+function pictureToTake(option: LinkedAccountOption, profile: Doc<'profiles'>): string | null {
+  const shown = [profile.avatar?.url, profile.avatar?.source_url, profile.avatar_url];
+  return option.image !== null && !shown.includes(option.image) ? option.image : null;
 }
 
 /** The address a renamed profile takes; the old one keeps redirecting when it changes. */
@@ -174,8 +181,8 @@ export async function applyLinkedAccountProfile(
 ): Promise<AppliedLinkedAccount> {
   const profile = await activeProfileOf(ctx, userId);
   const option = await offerOf(ctx, userId, provider);
-  const username = option.displayName !== null && option.displayName !== profile.username ? option.displayName : null;
-  const image = option.image !== null && !showsPicture(profile, option.image) ? option.image : null;
+  const username = nameToTake(option, profile);
+  const image = pictureToTake(option, profile);
   if (username === null && image === null) {
     return { profile, name: false, avatar: false };
   }

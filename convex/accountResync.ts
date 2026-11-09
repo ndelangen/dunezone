@@ -3,7 +3,7 @@ import type { Infer } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { action, internalQuery } from './_generated/server';
-import type { ActionCtx } from './_generated/server';
+import type { ActionCtx, MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { authProviderValidator } from './lib/accountMethods';
 import {
@@ -109,13 +109,16 @@ export const recordLive = internalMutation({
   },
 });
 
+/** Gives the reader's profile what one connected method reports. */
+async function applyFor(ctx: MutationCtx, provider: LinkedAccountOption['provider']): Promise<Applied> {
+  const userId = await requireAuthUserId(ctx);
+  return appliedSummary(provider, await applyLinkedAccountProfile(ctx, userId, provider));
+}
+
 export const applyInternal = internalMutation({
   args: { provider: authProviderValidator },
   returns: appliedValidator,
-  handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    return appliedSummary(args.provider, await applyLinkedAccountProfile(ctx, userId, args.provider));
-  },
+  handler: (ctx, args) => applyFor(ctx, args.provider),
 });
 
 /**
@@ -177,8 +180,5 @@ export const resync = action({
 export const apply = mutation({
   args: { provider: authProviderValidator },
   returns: appliedValidator,
-  handler: async (ctx, args) => {
-    const userId = await requireAuthUserId(ctx);
-    return appliedSummary(args.provider, await applyLinkedAccountProfile(ctx, userId, args.provider));
-  },
+  handler: (ctx, args) => applyFor(ctx, args.provider),
 });
