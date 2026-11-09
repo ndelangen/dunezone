@@ -1,0 +1,11 @@
+/* A chooser on a phone: a sheet from the bottom, as wide as the screen, clear of the home indicator. */
+.sheet {
+  border-top-left-radius: var(--mantine-radius-lg);
+  border-top-right-radius: var(--mantine-radius-lg);
+  background: var(--ui-raised);
+  color: var(--ui-text);
+}
+
+.sheetBody {
+  padding-bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom, 0px));
+}

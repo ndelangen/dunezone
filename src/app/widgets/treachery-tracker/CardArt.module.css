@@ -89,3 +89,10 @@
 [data-kind="worthless"] {
   --kind: var(--ui-umber);
 }
+
+/* The whole card at the top of a sheet on a phone. */
+.sheetCard {
+  display: block;
+  margin: 0 auto var(--mantine-spacing-sm);
+  border-radius: 6px;
+}

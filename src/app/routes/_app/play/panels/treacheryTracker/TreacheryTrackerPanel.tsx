@@ -5,12 +5,13 @@ import { rosterFactionIds } from '@shared/play/protocol';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
+import { AuctionTracker } from '@app/widgets/treachery-tracker/AuctionTracker';
+import { CARD_KINDS } from '@app/widgets/treachery-tracker/tracker';
+import type { CardDef, CardKind } from '@app/widgets/treachery-tracker/tracker';
+
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { factionToken } from '../../multiplayer/FactionTokenFace';
-import { AuctionTracker } from './AuctionTracker';
 import { tableFacts } from './tableFacts';
-import { CARD_KINDS } from './tracker';
-import type { CardDef, CardKind } from './tracker';
 import { storageKey, trackerStore } from './trackerStore';
 import type { TrackerStore } from './trackerStore';
 import type { TrackerSeat } from './useTrackerSeat';

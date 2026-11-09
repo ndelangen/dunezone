@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
+import { newTracker, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import type { CardDef, TrackerAction, TrackerState } from '@app/widgets/treachery-tracker/tracker';
+
 import { followTable } from './tableFeed';
 import type { TableFacts, TableMemory } from './tableFeed';
-import { newTracker, trackerReducer } from './tracker';
-import type { CardDef, TrackerAction, TrackerState } from './tracker';
 
 /** The tracker a seat keeps, and what it already followed from the table. */
 type Kept = Readonly<{ state: TrackerState; memory: TableMemory | undefined }>;

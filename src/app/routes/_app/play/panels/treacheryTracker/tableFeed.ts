@@ -4,8 +4,8 @@
  * A peek is followed once per table card, so reading the same table again, or after a reload, changes nothing,
  * and a card dismissed as never up for bid stays dismissed.
  */
-import { onBid, reservedCards, trackerReducer, unplaced } from './tracker';
-import type { TrackerState } from './tracker';
+import { onBid, reservedCards, trackerReducer, unplaced } from '@app/widgets/treachery-tracker/tracker';
+import type { TrackerState } from '@app/widgets/treachery-tracker/tracker';
 
 /** A card on the table as the viewer sees it: the table's item id and the face it shows. */
 type SeenCard = Readonly<{ item: string; face: string }>;
