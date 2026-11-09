@@ -211,6 +211,9 @@ export type ToolSlug = (typeof TOOL_ENTRIES)[number]['slug'];
 
 export const TOOLS: readonly Tool[] = TOOL_ENTRIES;
 
+/** Slugs a tool was renamed from, to the slug it has now: links and bookmarks to the old address keep working. */
+export const FORMER_TOOL_SLUGS: Readonly<Record<string, ToolSlug>> = { 'spice-deck-tracker': 'spice-deck' };
+
 export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);
 }

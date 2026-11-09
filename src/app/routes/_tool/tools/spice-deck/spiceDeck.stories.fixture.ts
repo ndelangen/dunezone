@@ -2,7 +2,7 @@ import decks from '@shared/play/fixtures/dreamrulesDecks.json';
 
 import { blowAll, newGame, nextTurn } from './spiceDeck';
 import type { SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
-import type { SpiceDeckChoice } from './spiceDeckSupply';
+import { SPICE_DECK_STORAGE_KEY } from './useSpiceDeckGame';
 
 const href = (path: string) => new URL(path, location.origin).href;
 
@@ -32,21 +32,15 @@ const BASE_SPICE: SpiceDeckDef = {
   cards: cards.slice(0, 16),
 };
 
-const STORY_DECK_DEFS: readonly SpiceDeckDef[] = [
-  { ...DREAMRULES_SPICE, id: 'dreamrules' },
-  { ...BASE_SPICE, id: 'gf9' },
-  { ...BASE_SPICE, id: 'kiss', name: 'KISS Spice Deck', ruleset: 'KISS' },
-];
+/** Opens the page on this game: the page reads it from this browser's storage, as a reload at the table would. */
+export function seedStoredGame(game: SpiceDeckGame) {
+  window.localStorage.setItem(SPICE_DECK_STORAGE_KEY, JSON.stringify({ game, undo: [] }));
+}
 
-/** The rulesets' spice decks as the picker lists them, by ruleset name. */
-export const STORY_DECKS: readonly SpiceDeckChoice[] = STORY_DECK_DEFS.map(({ id, name, ruleset }) => ({
-  id,
-  name,
-  ruleset: ruleset!,
-}));
-
-/** Reads a picked deck's cards, as the page reads them from the catalogue. */
-export const loadStoryDeck = async (choice: SpiceDeckChoice) => STORY_DECK_DEFS.find((deck) => deck.id === choice.id)!;
+/** Opens the page with no game kept, on the deck picker. */
+export function clearStoredGame() {
+  window.localStorage.removeItem(SPICE_DECK_STORAGE_KEY);
+}
 
 /** A repeatable shuffle, so every story shows the same game. */
 function seeded(seed: number): () => number {
