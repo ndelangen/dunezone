@@ -85,6 +85,10 @@ function HeldPreview({ card, children }: Readonly<{ card: CardCopy; children: Re
   const peeked = useRef(false);
   const press = () => {
     peeked.current = false;
+    /* A second finger on the same card starts the hold over, so no earlier timer is left to open the card later. */
+    if (timer.current) {
+      clearTimeout(timer.current);
+    }
     timer.current = setTimeout(() => {
       peeked.current = true;
       setHeld(true);

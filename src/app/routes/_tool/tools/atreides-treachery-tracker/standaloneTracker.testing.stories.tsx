@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { TouchSurface } from '@ui/surface/TouchSheet';
 import { useState } from 'react';
-import { expect, waitFor, within } from 'storybook/test';
+import { expect, fn, waitFor, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 import { CardPreview } from '@app/widgets/treachery-tracker/CardArt';
@@ -33,15 +33,19 @@ export const AddAFaction = meta.story({
 
 /** Removing factions down to one: the tracker needs at least two at the table. */
 export const TooFewFactions = meta.story({
-  render: () => <StorySetup deck={{ status: 'ready', defs: DREAMRULES_DECK }} />,
-  play: async ({ canvasElement, userEvent }) => {
+  args: { onStart: fn() },
+  render: ({ onStart }) => <StorySetup deck={{ status: 'ready', defs: DREAMRULES_DECK }} onStart={onStart} />,
+  play: async ({ args, canvasElement, userEvent }) => {
     const canvas = within(canvasElement);
     for (const name of ['House Harkonnen', 'Emperor', 'Spacing Guild', 'Fremen', 'Bene Gesserit']) {
       await userEvent.click(canvas.getByRole('button', { name: `Remove ${name}` }));
     }
-    await expect(canvas.getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
-      'Seat at least two factions.'
-    );
+    const start = canvas.getByRole('button', { name: 'Start tracking' });
+    await expect(start).toHaveAccessibleDescription('Seat at least two factions.');
+    await userEvent.click(start);
+    start.focus();
+    await userEvent.keyboard('{Enter}');
+    await expect(args.onStart).not.toHaveBeenCalled();
   },
 });
 

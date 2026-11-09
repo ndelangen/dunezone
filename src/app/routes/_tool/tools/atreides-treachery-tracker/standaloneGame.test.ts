@@ -59,3 +59,44 @@ test('a page that mounts again reads what another tab saved while it was away', 
   expect(savedGame.get()!.state.hands.harkonnen).toHaveLength(1);
   stop();
 });
+
+test('a saved card whose origin names a hand outside the game does not open', () => {
+  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const card = game.state.copies[0]!.id;
+  const slot = { id: 's1', card, from: { at: 'hand', faction: 'fremen', slot: 's0' } };
+  const stop = savedGame.subscribe(() => {});
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ ...game, state: { ...game.state, hands: { ...game.state.hands, harkonnen: [slot] } } })
+  );
+  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
+  expect(savedGame.get()).toBeNull();
+  stop();
+});
+
+test('another tab clearing storage clears the game here too', () => {
+  const stop = savedGame.subscribe(() => {});
+  savedGame.set(startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK));
+  window.localStorage.clear();
+  /* A clear reaches other tabs as a storage event with no key. */
+  window.dispatchEvent(new StorageEvent('storage', { key: null }));
+  expect(savedGame.get()).toBeNull();
+  stop();
+});
+
+test('a game the browser will not save says so until a save works', () => {
+  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const setItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = () => {
+    throw new DOMException('Full', 'QuotaExceededError');
+  };
+  try {
+    savedGame.set(game);
+    expect(savedGame.unsaved()).toBe(true);
+    expect(savedGame.get()).toEqual(game);
+  } finally {
+    Storage.prototype.setItem = setItem;
+  }
+  savedGame.set(game);
+  expect(savedGame.unsaved()).toBe(false);
+});

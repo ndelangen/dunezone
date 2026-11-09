@@ -47,7 +47,25 @@ const defSchema = z.object({
   face: z.string(),
   count: z.number().int().positive(),
 });
-const slotSchema = z.object({ id: z.string(), card: z.string().nullable() });
+/* Where a card in a hand came from, so Take back can return it: the discard pile, or another hand, which may have had it from elsewhere. */
+type SavedOrigin = { at: 'discard' } | { at: 'hand'; faction: string; slot: string; from?: SavedOrigin | undefined };
+const originSchema: z.ZodType<SavedOrigin> = z.lazy(() =>
+  z.union([
+    z.object({ at: z.literal('discard') }),
+    z.object({ at: z.literal('hand'), faction: z.string(), slot: z.string(), from: originSchema.optional() }),
+  ])
+);
+const slotSchema = z.object({ id: z.string(), card: z.string().nullable(), from: originSchema.optional() });
+
+/* Every hand an origin names is a hand of this game, so taking a card back never sends it to a hand no one sees. */
+function originsAtTable(origin: SavedOrigin | undefined, hands: Readonly<Record<string, unknown>>): boolean {
+  for (let at = origin; at && at.at === 'hand'; at = at.from) {
+    if (!(at.faction in hands)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /* A saved game is opened only when it holds together: every card it names is one of its own copies, no card is in two places, and no slot id is used twice. */
 const gameSchema = z
@@ -76,7 +94,8 @@ const gameSchema = z
     return (
       named.every((card) => ids.has(card)) &&
       consistentTracker(state) &&
-      factions.every((faction) => faction.id in state.hands)
+      factions.every((faction) => faction.id in state.hands) &&
+      Object.values(state.hands).every((slots) => slots.every((slot) => originsAtTable(slot.from, state.hands)))
     );
   });
 
@@ -90,16 +109,18 @@ function loadGame(): StandaloneGame | null {
   }
 }
 
-/* Saves the game in this browser, or forgets it when `game` is null. */
-function saveGame(game: StandaloneGame | null) {
+/* Saves the game in this browser, or forgets it when `game` is null; false when the browser would not keep it. */
+function saveGame(game: StandaloneGame | null): boolean {
   try {
     if (game) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
     } else {
       window.localStorage.removeItem(STORAGE_KEY);
     }
+    return true;
   } catch {
-    /* A full or blocked storage only loses the game on reload. */
+    /* A full or blocked storage keeps the game only until the page closes; the page says so. */
+    return false;
   }
 }
 
@@ -108,10 +129,13 @@ function saveGame(game: StandaloneGame | null) {
  * Another tab that saves the game is followed here, so neither tab writes over the other's moves.
  */
 let read: { game: StandaloneGame | null } | undefined;
+/* Whether the last change failed to save, so the game lives only in this page until a save works again. */
+let unsaved = false;
 const listeners = new Set<() => void>();
 
 function onStorage(event: StorageEvent) {
-  if (event.key === STORAGE_KEY) {
+  /* A null key is storage cleared as a whole, which takes the saved game with it. */
+  if (event.key === STORAGE_KEY || event.key === null) {
     read = undefined;
     listeners.forEach((listener) => listener());
   }
@@ -137,8 +161,10 @@ export const savedGame = {
     return read.game;
   },
   getServer: (): StandaloneGame | null | undefined => undefined,
+  /** Whether the game on screen is not saved, because the browser would not keep the last change. */
+  unsaved: (): boolean => unsaved,
   set: (game: StandaloneGame | null) => {
-    saveGame(game);
+    unsaved = !saveGame(game);
     read = { game };
     listeners.forEach((listener) => listener());
   },

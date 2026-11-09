@@ -61,7 +61,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
           <span>{pile.length}</span>
         </UnstyledButton>
       </SheetPopover.Target>
-      <SheetPopover.Dropdown className={styles.dropdown}>
+      <SheetPopover.Dropdown label="Discard pile" className={styles.dropdown}>
         {moving ? (
           <Stack gap="xs">
             <Text size="xs" className={styles.caption}>

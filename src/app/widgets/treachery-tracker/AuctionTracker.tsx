@@ -140,7 +140,7 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
           onClick={() => setOpen((was) => !was)}
         />
       </SheetPopover.Target>
-      <SheetPopover.Dropdown className={styles.dropdown}>
+      <SheetPopover.Dropdown label="Pick the card up next" className={styles.dropdown}>
         {drawable ? (
           <CardChooser
             state={state}
@@ -198,7 +198,7 @@ function AuctionEnd({
               />
             </span>
           </SheetPopover.Target>
-          <SheetPopover.Dropdown className={styles.dropdown}>
+          <SheetPopover.Dropdown label="It's this card" className={styles.dropdown}>
             <CardChooser
               state={state}
               allowUnknown={false}
@@ -268,7 +268,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
             />
           </span>
         </SheetPopover.Target>
-        <SheetPopover.Dropdown className={styles.dropdown}>
+        <SheetPopover.Dropdown label="Card up next" className={styles.dropdown}>
           <CardChooser
             state={state}
             allowUnknown={false}
@@ -377,7 +377,7 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
           <HolderMark holder={holder} />
         </span>
       </SheetPopover.Target>
-      <SheetPopover.Dropdown className={styles.dropdown}>
+      <SheetPopover.Dropdown label={name} className={styles.dropdown}>
         <SheetCard card={copy} />
         {waiting ? null : (
           <Text size="sm" className={styles.dim}>

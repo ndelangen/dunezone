@@ -189,7 +189,7 @@ export function AddCard({
       <SheetPopover.Target>
         <AddAction label={`Add a card to ${faction.name}`} size={size} onClick={() => setOpen((was) => !was)} />
       </SheetPopover.Target>
-      <SheetPopover.Dropdown className={styles.dropdown}>
+      <SheetPopover.Dropdown label={`Add a card to ${faction.name}`} className={styles.dropdown}>
         <CardChooser
           state={state}
           allowUnknown
@@ -340,7 +340,7 @@ export function SlotChip({
           </CardPreview>
         </span>
       </SheetPopover.Target>
-      <SheetPopover.Dropdown className={styles.dropdown} miw={200}>
+      <SheetPopover.Dropdown label={card ? card.def.name : 'Unknown card'} className={styles.dropdown} miw={200}>
         <SheetCard card={card} />
         <SlotStep
           mode={mode}
@@ -397,7 +397,7 @@ export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy
           />
         );
         return touch ? (
-          <KindSliceSheet key={group} slice={slice}>
+          <KindSliceSheet key={group} label={`${groupCount(group, count)} left`} slice={slice}>
             <GroupList group={group} copies={copies} />
           </KindSliceSheet>
         ) : (
@@ -415,14 +415,15 @@ export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy
 
 /* A slice of the deck bar on a phone: a tap lists its cards in a sheet. */
 function KindSliceSheet({
+  label,
   slice,
   children,
-}: Readonly<{ slice: (onClick: () => void) => ReactNode; children: ReactNode }>) {
+}: Readonly<{ label: string; slice: (onClick: () => void) => ReactNode; children: ReactNode }>) {
   const [open, setOpen] = useState(false);
   return (
     <SheetPopover opened={open} onChange={setOpen}>
       <SheetPopover.Target>{slice(() => setOpen((was) => !was))}</SheetPopover.Target>
-      <SheetPopover.Dropdown>{children}</SheetPopover.Dropdown>
+      <SheetPopover.Dropdown label={label}>{children}</SheetPopover.Dropdown>
     </SheetPopover>
   );
 }
@@ -450,6 +451,8 @@ export function GroupList({
     }
   }
   const lines = [...byName.values()];
+  /* A card a thumb picks from a phone's sheet gets a thumb-high row. */
+  const touch = useTouchSurface();
   return (
     <Stack gap={4}>
       <Text size="xs" className={styles.caption}>
@@ -472,6 +475,7 @@ export function GroupList({
             <UnstyledButton
               key={copy.def.key}
               className={`${styles.kindLine} ${styles.menuLine}`}
+              data-touch={touch ? 'true' : 'false'}
               onClick={() => onPick(copy)}
             >
               {line}

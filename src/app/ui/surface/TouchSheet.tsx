@@ -69,7 +69,18 @@ function Target({ children }: Readonly<{ children: ReactNode }>) {
   return use(SheetContext) ? children : <Popover.Target>{children}</Popover.Target>;
 }
 
-function Dropdown({ children, className, miw }: Readonly<{ children: ReactNode; className?: string; miw?: number }>) {
+function Dropdown({
+  label,
+  children,
+  className,
+  miw,
+}: Readonly<{
+  /** What the sheet is for, read out as the sheet's name on a phone, where the sheet is a dialog of its own. */
+  label: string;
+  children: ReactNode;
+  className?: string;
+  miw?: number;
+}>) {
   const sheet = use(SheetContext);
   if (!sheet) {
     return (
@@ -83,6 +94,7 @@ function Dropdown({ children, className, miw }: Readonly<{ children: ReactNode; 
       opened={sheet.opened}
       onClose={sheet.onClose}
       position="bottom"
+      title={label}
       /* A thumb-sized, named close button: a screen reader cannot reach the tap outside, and a phone has no Escape key. */
       withCloseButton
       closeButtonProps={{ 'aria-label': 'Close', size: 'xl' }}
@@ -91,6 +103,7 @@ function Dropdown({ children, className, miw }: Readonly<{ children: ReactNode; 
         inner: styles.sheetInner,
         content: styles.sheet,
         header: styles.sheetHeader,
+        title: styles.sheetTitle,
         body: styles.sheetBody,
       }}
     >

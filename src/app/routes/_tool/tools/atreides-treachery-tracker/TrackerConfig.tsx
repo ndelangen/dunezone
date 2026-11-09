@@ -240,7 +240,7 @@ function AddFaction({
           Add a faction
         </LabeledAction>
       </SheetPopover.Target>
-      <SheetPopover.Dropdown>
+      <SheetPopover.Dropdown label="Add a faction">
         {/* The search mounts only while it is open, so it reads the catalogue only then. */}
         {open ? (
           <Search

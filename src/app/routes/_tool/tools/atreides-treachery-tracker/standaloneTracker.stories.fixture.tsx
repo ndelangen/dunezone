@@ -36,7 +36,11 @@ const StorySearch: FactionSearch = ({ seated, onPick }) => {
   );
 };
 
-export function StorySetup({ deck, loading }: Readonly<{ deck: SetupDeck; loading?: boolean }>) {
+export function StorySetup({
+  deck,
+  loading,
+  onStart = () => {},
+}: Readonly<{ deck: SetupDeck; loading?: boolean; onStart?: () => void }>) {
   const [config, setConfig] = useState<TrackerConfig>({ ruleset: 'dreamrules', seats: FACTIONS });
   const [query, setQuery] = useState('');
   return (
@@ -48,7 +52,7 @@ export function StorySetup({ deck, loading }: Readonly<{ deck: SetupDeck; loadin
       deck={deck}
       config={loading ? { ...config, seats: undefined } : config}
       onChange={setConfig}
-      onStart={() => {}}
+      onStart={onStart}
       search={StorySearch}
     />
   );

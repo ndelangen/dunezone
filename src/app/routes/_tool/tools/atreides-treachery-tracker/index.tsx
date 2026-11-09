@@ -1,7 +1,10 @@
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { BookOpen } from 'lucide-react';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
@@ -50,10 +53,17 @@ type RulesetId = RulesetCatalogueEntry['id'];
 function TreacheryTrackerPage() {
   /* The saved game is read once the page is in the browser: the server has no storage, and renders the page's frame. */
   const game = useSyncExternalStore(savedGame.subscribe, savedGame.get, savedGame.getServer);
+  const unsaved = useSyncExternalStore(savedGame.subscribe, savedGame.unsaved, () => false);
   const keep = savedGame.set;
   /* A page of its own, with no app around it: the title and lede until a game starts, then the game fills the screen. */
   return (
     <main className={styles.page}>
+      {game && unsaved ? (
+        <Notice tone="caution" title="Not saved" live>
+          This browser would not save the game, so closing the page loses it. Private browsing or a full phone can cause
+          this.
+        </Notice>
+      ) : null}
       {game ? (
         <TrackerGame
           game={game}
@@ -75,6 +85,23 @@ function TreacheryTrackerPage() {
   );
 }
 
+/* No Ruleset to track a deck from: the catalogue is empty, or holds only Rulesets kept for trying things out. */
+function NoRulesets() {
+  return (
+    <Notice
+      tone="caution"
+      title="No Rulesets yet"
+      action={
+        <LabeledAction icon={<BookOpen size={16} />} renderRoot={(props) => <Link {...props} to="/rulesets" />}>
+          Browse Rulesets
+        </LabeledAction>
+      }
+    >
+      The tracker needs a Ruleset with a Treachery deck, and Dune Zone has none to offer right now.
+    </Notice>
+  );
+}
+
 /* The setup: the Rulesets to pick from, the default one picked, and the base six seated until the player changes them. */
 function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }>) {
   const setup = useTrackerToolSetup({ preferredSlug: DEFAULT_RULESET, baseSlug: BASE_RULESET, seats: BASE_SEATS });
@@ -92,7 +119,7 @@ function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }
   /* The fallback comes from the catalogue the setup opened with, so a search that finds nothing never clears the form. */
   const chosen = picked ?? setup.preferred ?? setup.rulesets.find((entry) => !HIDDEN_RULESETS.has(entry.slug));
   if (!chosen) {
-    return null;
+    return <NoRulesets />;
   }
   const rulesets = withChosen(listed, chosen);
   return (

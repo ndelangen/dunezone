@@ -13,7 +13,7 @@ function Chooser() {
       <SheetPopover.Target>
         <Button onClick={() => setOpened((was) => !was)}>Choose a stronghold</Button>
       </SheetPopover.Target>
-      <SheetPopover.Dropdown>
+      <SheetPopover.Dropdown label="Choose a stronghold">
         <Text size="sm">Arrakeen, Carthag, Sietch Tabr, Habbanya Sietch or Tuek’s Sietch.</Text>
       </SheetPopover.Dropdown>
     </SheetPopover>

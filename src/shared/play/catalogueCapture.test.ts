@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
+import { publishingCustomDeckCardback } from '../assets/fixtures/publishingDeckCardback';
+import { publishingTreacheryCard } from '../assets/fixtures/publishingTreacheryCard';
 import { CatalogueCapture, playReadiness } from './catalogueCapture';
 import type { CatalogueReads } from './catalogueCapture';
 import { arrakisBoardCapture } from './fixtures/board';
@@ -7,16 +9,48 @@ import { arrakisBoardCapture } from './fixtures/board';
 const ORIGIN = 'https://dune.zone';
 
 /* A catalogue that answers only what each test gives it; anything else reads as absent. */
-function catalogue(answers: { rulesets?: Record<string, unknown>; factions?: Record<string, unknown> }) {
+function catalogue(answers: {
+  rulesets?: Record<string, unknown>;
+  factions?: Record<string, unknown>;
+  assets?: Record<string, unknown>;
+}) {
   const reads: CatalogueReads = {
     rulesetSupply: async (id) => answers.rulesets?.[id] ?? null,
     factionDefinition: async (id) => answers.factions?.[id] ?? null,
-    assetSupply: async () => null,
+    assetSupply: async (selection) => answers.assets?.[selection.slug] ?? null,
   };
   return new CatalogueCapture(reads, ORIGIN);
 }
 
 const kiss = { id: 'kiss', slug: 'kiss', name: 'KISS' };
+
+/* A Treachery card and a deck of two copies of each card, as the catalogue supplies them. */
+const blankSupply = { members: [], membersTruncated: false, backToken: null, backDeck: null };
+function cardSupply(id: string) {
+  return {
+    ...blankSupply,
+    asset: { id, type: 'card-treachery', slug: id, name: id, data: publishingTreacheryCard },
+    front: `/published/cards/${id}/card.jpg`,
+    back: null,
+    backMode: null,
+  };
+}
+function deckSupply(id: string, cards: ReturnType<typeof cardSupply>[]) {
+  return {
+    ...blankSupply,
+    asset: {
+      id,
+      type: 'deck',
+      slug: id,
+      name: id,
+      data: { name: id, about: '', cardback: publishingCustomDeckCardback },
+    },
+    members: cards.map((card) => ({ ...card, count: 2 })),
+    front: null,
+    back: `/published/decks/${id}/cardback.jpg`,
+    backMode: 'authored-cardback',
+  };
+}
 
 describe('playReadiness', () => {
   it('names both required decks of a ruleset that slots none, by their labels', async () => {
@@ -116,6 +150,28 @@ describe('captureTreacheryDeck', () => {
     const capture = catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } });
     await expect(capture.captureRuleset('kiss')).rejects.toThrow('This ruleset has no usable board.');
     await expect(capture.captureTreacheryDeck('kiss')).resolves.toBeNull();
+  });
+
+  it('captures the slotted deck of a ruleset without a board', async () => {
+    const deck = deckSupply('treachery-deck', [cardSupply('card-one'), cardSupply('card-two')]);
+    const capture = catalogue({
+      rulesets: {
+        kiss: {
+          ruleset: kiss,
+          board: null,
+          slots: [
+            { slot: 'treachery', asset: { id: 'treachery-deck', slug: 'treachery-deck', name: 'Cards', type: 'deck' } },
+          ],
+        },
+      },
+      assets: { 'treachery-deck': deck },
+    });
+    const captured = await capture.captureTreacheryDeck('kiss');
+    expect(captured?.asset).toMatchObject({ id: 'treachery-deck', type: 'deck' });
+    expect(captured?.contents?.members).toEqual([
+      { assetId: 'card-one', count: 2 },
+      { assetId: 'card-two', count: 2 },
+    ]);
   });
 
   it('says why a slotted deck cannot be used, rather than calling it missing', async () => {

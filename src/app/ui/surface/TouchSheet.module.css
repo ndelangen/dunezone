@@ -36,3 +36,13 @@
   padding-block: var(--mantine-spacing-xs) 0;
   background: transparent;
 }
+
+/* The sheet's name, for a screen reader only: the chooser under it already shows what the sheet is for. */
+.sheetTitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

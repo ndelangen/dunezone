@@ -302,7 +302,10 @@ export const trackerToolSetup = publicQuery({
       catalogueEntryBySlug(ctx, args.preferredSlug),
       catalogueEntryBySlug(ctx, args.baseSlug),
     ]);
-    const seats = base ? (await listOrderedRulesetFactions(ctx, base.id, args.seats)).factions : [];
+    /* Read past links to deleted factions, so the table still starts with `seats` live factions where the base ruleset has them. */
+    const seats = base
+      ? (await listOrderedRulesetFactions(ctx, base.id, RULESET_FACTION_LIMIT)).factions.slice(0, args.seats)
+      : [];
     return { rulesets: first.entries, preferred, base, seats };
   },
 });

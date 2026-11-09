@@ -204,6 +204,19 @@ describe('the treachery tracker tool’s setup', () => {
     expect(setup.seats.map((faction) => faction.name)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
   });
 
+  test('seats past a deleted faction, so the table still starts full', async () => {
+    const fixture = await orderFixture();
+    await fixture.t.run(async (rawCtx) => {
+      await applicationTriggers.wrapDB(rawCtx).db.patch(fixture.factionIds[1], { is_deleted: true });
+    });
+    const setup = await fixture.t.query(api.rulesets.trackerToolSetup, {
+      preferredSlug: 'missing',
+      baseSlug: fixture.ruleset.slug,
+      seats: 3,
+    });
+    expect(setup.seats.map((faction) => faction.name)).toEqual(['Atreides', 'Choam', 'Duncan']);
+  });
+
   test('seats nobody when the base ruleset is gone', async () => {
     const fixture = await orderFixture();
     const setup = await fixture.t.query(api.rulesets.trackerToolSetup, {
