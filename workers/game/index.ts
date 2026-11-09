@@ -1157,7 +1157,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (request.protocol !== PLAY_PROTOCOL_VERSION) {
-      this.refuseProtocol(socket, request.protocol);
+      this.refuseProtocol(socket, request.protocol ?? 0);
       return;
     }
     connection.admitting = true;
@@ -1172,6 +1172,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private refuseProtocol(socket: WebSocket, protocol: number) {
     this.disconnect(socket);
     if (protocol < PLAY_PROTOCOL_VERSION) {
+      /* A page from before 4426 existed knows only that a frame it cannot read means refresh; a current page reads the close code. */
+      socket.send(JSON.stringify({ type: 'outdated-page' }));
       socket.close(OUTDATED_PAGE_CLOSE_CODE, 'Refresh the page to continue.');
       return;
     }

@@ -204,7 +204,10 @@ before a deploy can meet a newer Worker. Every `admit` message names the page's
 `PLAY_PROTOCOL_VERSION` (`src/shared/play/protocol.ts`), and the room admits only its own version,
 before it checks the pass or sends anything about the table. An older page is closed with
 `OUTDATED_PAGE_CLOSE_CODE` (4426) and stops with "This table needs a newer version of the page.
-Refresh to continue.", the same line it shows when a frame from the Worker does not parse. A newer
+Refresh to continue.", the same line it shows when a frame from the Worker does not parse. A page
+built before versioning sends no version and is treated as older; since it does not know 4426, the
+room first sends it an `outdated-page` frame outside the protocol, which such a page cannot parse and
+answers with that same line. A newer
 page, which meets a Worker that is not updated yet, is closed with 1012 like a restart and tries
 again.
 

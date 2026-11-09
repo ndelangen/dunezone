@@ -141,6 +141,8 @@ export interface NativeConnection {
   socket: NonNullable<Awaited<ReturnType<Miniflare['dispatchFetch']>>['webSocket']>;
   messages: NativeMessage[];
   unapplied: Extract<NativeMessage, { type: 'update' }>[];
+  /* Frames the room sends on purpose outside the protocol, which only a page from before them fails to read. */
+  outsideProtocol: unknown[];
   keepalives: number;
   closed: boolean;
   closeCode: number | null;
@@ -651,6 +653,7 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
     socket,
     messages: [],
     unapplied: [],
+    outsideProtocol: [],
     keepalives: 0,
     closed: false,
     closeCode: null,
@@ -682,6 +685,11 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
       return;
     }
     const raw: unknown = JSON.parse(event.data);
+    if ((raw as { type?: unknown }).type === 'outdated-page') {
+      connection.outsideProtocol.push(raw);
+      wake();
+      return;
+    }
     serverMessageSchema.parse(raw);
     optionalClockSchema.parse(raw);
     // Keep the original frame, including unexpected fields that privacy assertions must observe.

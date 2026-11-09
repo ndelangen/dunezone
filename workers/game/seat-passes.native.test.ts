@@ -68,6 +68,13 @@ describe('Seat passes admit players without the room asking Convex about them', 
     expect(older.closeCode).toBe(OUTDATED_PAGE_CLOSE_CODE);
     const newer = await refusedWith(fixturePass('b'), PLAY_PROTOCOL_VERSION + 1);
     expect(newer.closeCode).toBe(1012);
+    /* A page built before versioning sends no protocol, and gets a frame it cannot read, which it answers by asking for a refresh. */
+    const unversioned = await openGame(runtime);
+    unversioned.send({ type: 'admit', pass: await fixturePass('b') });
+    await eventually(() => unversioned.closed, 'unversioned socket closed');
+    expect(unversioned.closeCode).toBe(OUTDATED_PAGE_CLOSE_CODE);
+    expect(unversioned.outsideProtocol).toEqual([{ type: 'outdated-page' }]);
+    expect(unversioned.messages).toEqual([]);
     for (const connection of [older, newer]) {
       expect(connection.messages.some((message) => message.type === 'view' || message.type === 'admission')).toBe(
         false

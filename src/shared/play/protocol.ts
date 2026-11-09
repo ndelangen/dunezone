@@ -270,8 +270,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('admit'),
-    /* The protocol the page speaks, `PLAY_PROTOCOL_VERSION` when it was built; the Worker admits only its own. */
-    protocol: count,
+    /* The protocol the page speaks, `PLAY_PROTOCOL_VERSION` when it was built; the Worker admits only its own, and a page built before versioning sends none. */
+    protocol: count.optional(),
     /* A page proves who it is with its seat pass for this game. */
     pass: seatPassSchema,
     /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
