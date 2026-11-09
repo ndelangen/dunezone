@@ -1,6 +1,7 @@
 import { Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -646,6 +647,14 @@ function FactionDetailContent({
                         <InlineFormattedTextSource source={data.rules.revivalText} />
                       </Text>
                     </Section>
+                    {data.rules.treacheryTracker ? (
+                      <>
+                        <Divider />
+                        <Section title="Treachery tracker">
+                          <Text size="sm">{TREACHERY_TRACKER_RULE}</Text>
+                        </Section>
+                      </>
+                    ) : null}
                   </Stack>
                 </Surface>
               </Section>
