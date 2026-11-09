@@ -159,7 +159,7 @@ function SeatList({
       onDragEnd={({ active, over }: DragEndEvent) => {
         const from = indexOf(String(active.id));
         const to = over ? indexOf(String(over.id)) : -1;
-        if (from >= 0 && to >= 0 && from !== to) {
+        if (movesASeat(from, to)) {
           onSeats(arrayMove([...seats], from, to));
         }
       }}
@@ -181,6 +181,11 @@ function SeatList({
       </SortableContext>
     </DndContext>
   );
+}
+
+/* A drop moves a seat when both ends are seats and they differ. */
+function movesASeat(from: number, to: number) {
+  return Math.min(from, to) >= 0 && from !== to;
 }
 
 /* One faction at the table: its drag handle, its token and name, and its Remove button. */

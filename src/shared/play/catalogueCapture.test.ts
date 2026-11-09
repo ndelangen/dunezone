@@ -118,6 +118,21 @@ describe('captureTreacheryDeck', () => {
     await expect(capture.captureTreacheryDeck('kiss')).resolves.toBeNull();
   });
 
+  it('says why a slotted deck cannot be used, rather than calling it missing', async () => {
+    const capture = catalogue({
+      rulesets: {
+        kiss: {
+          ruleset: kiss,
+          board: null,
+          slots: [{ slot: 'treachery', asset: { id: 'cards', slug: 'cards', name: 'Cards', type: 'deck' } }],
+        },
+      },
+    });
+    await expect(capture.captureTreacheryDeck('kiss')).rejects.toThrow(
+      'The Treachery deck cannot be used. This asset has no complete playable definition.'
+    );
+  });
+
   it('refuses a ruleset the catalogue does not have', async () => {
     await expect(catalogue({}).captureTreacheryDeck('gone')).rejects.toThrow('This ruleset is not available.');
   });

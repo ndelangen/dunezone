@@ -89,9 +89,8 @@ function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }
   }
   const words = query.trim();
   /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
-  const listed = (words && found?.query === words ? found.entries : setup.rulesets).filter(
-    (entry) => !HIDDEN_RULESETS.has(entry.slug)
-  );
+  const searched = found?.query === words ? found.entries : null;
+  const listed = ((words && searched) || setup.rulesets).filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
   const chosen = picked ?? setup.preferred ?? listed[0];
   if (!chosen) {
     return null;
@@ -212,10 +211,10 @@ function gameFrom(
   seats: readonly FactionToken[] | undefined,
   deck: SetupDeck
 ): StandaloneGame | null {
-  if (!ruleset || !seats || deck.status !== 'ready') {
+  if (deck.status !== 'ready') {
     return null;
   }
-  return startGame({ id: ruleset.id, name: ruleset.name }, seats, deck.defs);
+  return ruleset && seats ? startGame({ id: ruleset.id, name: ruleset.name }, seats, deck.defs) : null;
 }
 
 /* How far a catalogue read has got, in the search list's words; anything else means it has read them all. */

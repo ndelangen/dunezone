@@ -94,6 +94,7 @@ export class CatalogueCapture {
 
   /**
    * The ruleset's Treachery deck alone, captured as a game keeps it, or null when it has none.
+   * A slotted deck that cannot be captured is refused with its first problem.
    * The standalone Treachery tracker copies only this deck, so it neither needs a board nor waits for the other slots.
    */
   async captureTreacheryDeck(rulesetId: string): Promise<RulesetCapture['decks']['treachery']> {
@@ -101,7 +102,16 @@ export class CatalogueCapture {
     if (!supply) {
       throw new GameRejection('This ruleset is not available.');
     }
-    const [deck] = await this.captureSlots('treachery', supply, []);
+    if (!supply.slots.some((entry) => entry.slot === 'treachery')) {
+      return null;
+    }
+    /* A deck that is slotted but cannot be used says why, so the player is not told the Ruleset has none. */
+    const problems: CaptureProblem[] = [];
+    const [deck] = await this.captureSlots('treachery', supply, problems);
+    const [problem] = problems;
+    if (problem) {
+      throw new GameRejection(`The Treachery deck cannot be used. ${problem.reason}`);
+    }
     return deck ?? null;
   }
 
