@@ -13,8 +13,8 @@ import type { ComponentType, ReactNode } from 'react';
 
 import { readWheelFaction, useBattleWheelRulesets } from '@app/db/battleWheelTool';
 import { useOrderedRulesetFactions } from '@app/db/rulesets';
+import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
-import { LiveFactionSearch } from '@app/routes/_tool/tools/LiveFactionSearch';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
 import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';

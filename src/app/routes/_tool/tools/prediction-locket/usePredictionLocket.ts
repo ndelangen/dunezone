@@ -135,8 +135,8 @@ export function lockTimeText(lockedAt: number, timeZone: string, locale?: string
   }).format(lockedAt);
 }
 
-/* A zone this browser cannot show a time in, kept from a browser that could, falls back to UTC rather than losing the lock. */
-function shownZone(timeZone: string): string {
+/** The zone a time is shown in: a zone this browser cannot show, kept from a browser that could, falls back to UTC rather than losing the lock. */
+export function shownZone(timeZone: string): string {
   try {
     new Intl.DateTimeFormat(undefined, { timeZone });
     return timeZone;

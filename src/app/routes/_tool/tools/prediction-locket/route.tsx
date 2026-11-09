@@ -12,15 +12,23 @@ import type { ComponentType, ReactNode } from 'react';
 
 import { readLockTime } from '@app/db/predictionLocketTool';
 import { useTrackerToolSetup } from '@app/db/rulesets';
+import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
-import { LiveFactionSearch } from '@app/routes/_tool/tools/LiveFactionSearch';
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
 import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { Token } from '@game/assets/faction/token/Token';
 
 import styles from './route.module.css';
-import { cityOf, knownCities, lockTimeText, phoneTimeZone, TURNS, usePredictionLocket } from './usePredictionLocket';
+import {
+  cityOf,
+  knownCities,
+  lockTimeText,
+  phoneTimeZone,
+  shownZone,
+  TURNS,
+  usePredictionLocket,
+} from './usePredictionLocket';
 import type { City, LocketFaction, LocketState, LockedPrediction } from './usePredictionLocket';
 
 /*
@@ -341,6 +349,8 @@ function LockedView({
   onNew,
 }: Readonly<{ locked: LockedPrediction; onReveal: () => void; onNew: () => void }>) {
   const [peeking, setPeeking] = useState(false);
+  /* One zone for the time and its caption, so a fallback to UTC is called UTC. */
+  const zone = shownZone(locked.timeZone);
   const size = useActionSize();
   const shown = locked.revealed || peeking;
   return (
@@ -366,8 +376,8 @@ function LockedView({
         </div>
         <div className={styles.stamp}>
           <span className={styles.stampLabel}>Locked</span>
-          <span className={styles.stampTime}>{lockTimeText(locked.lockedAt, locked.timeZone)}</span>
-          <span className={styles.stampCity}>{cityOf(locked.timeZone).name} time, by Dune Zone’s clock</span>
+          <span className={styles.stampTime}>{lockTimeText(locked.lockedAt, zone)}</span>
+          <span className={styles.stampCity}>{cityOf(zone).name} time, by Dune Zone’s clock</span>
         </div>
       </main>
       <footer className={styles.dock}>
