@@ -87,7 +87,9 @@ type ProfileEditEvent =
   | {
       kind: 'saved';
       entry: { username: string; avatarUrl: string; bggProfileUrl: string; defaultGroupId: string | null };
-    };
+    }
+  /* A sign-in method's name and picture landed on the profile; the other fields keep whatever the reader typed. */
+  | { kind: 'resynced'; username: string; avatarUrl: string };
 
 function openingState(initial: {
   username: string;
@@ -107,6 +109,11 @@ function reduceProfileEdit(state: ProfileEditState, event: ProfileEditEvent): Pr
       return { ...state, data: { ...state.data, ...event.update } };
     case 'saved':
       return openingState(event.entry);
+    case 'resynced':
+      return {
+        data: { ...state.data, username: event.username, avatarUrl: event.avatarUrl },
+        baseline: { ...state.baseline, username: event.username, avatarUrl: event.avatarUrl },
+      };
   }
 }
 type LoadedAvatarPreview = { url: string; status: 'ready' | 'unavailable' };
@@ -312,8 +319,14 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
       dispatch({ kind: 'saved', entry })
   );
 
+  const [resync, dispatchResync] = useReducer(reduceResync, { busy: null, error: null, outcome: { kind: 'idle' } });
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    /* A save over a resync in flight would put the draft's old picture back over the one just taken. */
+    if (update.isPending || resync.busy !== null) {
+      return;
+    }
     if (!draftCheck.success) {
       focusInvalidField(warnings[0]?.field);
       return;
@@ -346,17 +359,19 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
     );
   };
 
-  /* A resync changes the profile outside the form, so the form takes the result as a save. A new address follows on its own, once the page learns of it. */
-  const resynced = (applied: LinkedAccountApplied) =>
-    commitSaved({
+  /*
+   * A resync changes the name and picture outside the form, so those two fields take the result as saved;
+   * an edit to the other fields stays unsaved. A new address follows on its own, once the page learns of it.
+   */
+  const resynced = header.releasing((applied: LinkedAccountApplied) =>
+    dispatch({
+      kind: 'resynced',
       username: applied.profile.username ?? '',
       avatarUrl: applied.profile.avatar_url ?? '',
-      bggProfileUrl: applied.profile.bgg_profile_url ?? '',
-      defaultGroupId: applied.profile.default_group_id ?? null,
-    });
+    })
+  );
   const resyncLinked = useResyncLinkedAccounts();
   const applyLinked = useApplyLinkedAccount();
-  const [resync, dispatchResync] = useReducer(reduceResync, { busy: null, error: null, outcome: { kind: 'idle' } });
   const runResync = async () => {
     dispatchResync({ kind: 'started', action: 'resync' });
     try {
@@ -539,6 +554,7 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
               account={settings.account}
               returnTo={settingsTabPath(initial.slug, 'sign-in')}
               resync={resync}
+              saving={update.isPending}
               onTake={(provider) => void chooseLinked(provider)}
             />
           ) : (
@@ -609,9 +625,11 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
                 ? 'Your sign-in methods are still loading.'
                 : merging
                   ? 'Sign-in methods are locked while the profile merge runs.'
-                  : resync.busy === 'apply'
-                    ? 'A pick is still being taken.'
-                    : undefined
+                  : update.isPending
+                    ? 'The profile is still being saved.'
+                    : resync.busy === 'apply'
+                      ? 'A pick is still being taken.'
+                      : undefined
             }
             onClick={() => {
               /* The answer lands on each method's row, so the tab that holds them opens first. */
@@ -631,7 +649,7 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
             type="submit"
             form={formId}
             loading={update.isPending}
-            disabled={!isDirty || update.isPending}
+            disabled={!isDirty || update.isPending || resync.busy !== null}
             icon={<Save size={17} aria-hidden />}
           />
         </Toolbar.Cluster>
@@ -719,19 +737,8 @@ function ProfileSettingsPage() {
       break;
   }
 
-  if (renamed) {
-    return (
-      <RoutePending
-        title="Profile settings"
-        back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
-        loading="Following your profile to its new address"
-      >
-        Your profile's address changed with its name.
-      </RoutePending>
-    );
-  }
-
-  if (viewer.profile.slug !== profileSlug) {
+  /* While the address catches up with a rename, the editor stays as it is: the route is the same, so its tab and its answer survive the new address. */
+  if (!renamed && viewer.profile.slug !== profileSlug) {
     /* The way out is the reader's own settings rather than a step backwards: they asked for this
        page and there is a version of it that is theirs. */
     return (
@@ -841,7 +848,7 @@ function LinkedAccountOffer({
     <Group justify="space-between" align="center">
       <Group gap="sm" wrap="nowrap" align="center">
         <NameDisc name={option.name ?? from} src={option.image} size={44} />
-        <Stack gap={2}>
+        <Stack gap="xs">
           <Text fw={650}>{option.name ?? 'No name reported'}</Text>
           <Text size="sm" c="dimmed">
             {applied
@@ -883,6 +890,7 @@ function SignInMethods({
   account,
   returnTo,
   resync,
+  saving,
   onTake,
 }: {
   account: NonNullable<ProfileSettingsData['account']>;
@@ -890,6 +898,8 @@ function SignInMethods({
   returnTo: string;
   /** Where the toolbar's Resync stands; each connected method's row shows its part of the answer. */
   resync: ResyncState;
+  /** Whether the form is being saved: a pick taken meanwhile would be overwritten by the save. */
+  saving: boolean;
   /** The reader takes one method's name and picture from its row. */
   onTake: (provider: AuthProvider) => void;
 }) {
@@ -960,7 +970,9 @@ function SignInMethods({
             option={option}
             applied={applied}
             busy={resync.busy === 'apply'}
-            disabled={!!resync.busy || !!state.busy || account.merging || (!option.displayName && !option.image)}
+            disabled={
+              !!resync.busy || saving || !!state.busy || account.merging || (!option.displayName && !option.image)
+            }
             onTake={() => onTake(method.provider)}
           />
         ) : null;

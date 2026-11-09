@@ -407,7 +407,25 @@ describe('profile settings page', () => {
         replace: true,
       });
       expect(view.queryByText('This is not your profile')).toBeNull();
-      expect(view.getByText('Following your profile to its new address')).not.toBeNull();
+      /* The editor stays as it was: on the Sign-in methods tab, with Google's row still saying what it gave. */
+      expect(view.getByRole('tab', { name: 'Sign-in methods' }).getAttribute('aria-selected')).toBe('true');
+      expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
+    });
+
+    it('leaves an unsaved edit to another field alone when a method is applied', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'applied', applied: applied('google'), options: [googleOption] });
+      const view = await renderPage();
+      fireEvent.change(view.getByRole('textbox', { name: 'BoardGameGeek profile URL' }), {
+        target: { value: 'https://boardgamegeek.com/user/norbert' },
+      });
+      await resyncFromToolbar(view);
+      await chooseTab(view, 'Profile');
+      expect((view.getByRole('textbox', { name: 'Display name' }) as HTMLInputElement).value).toBe('NorbertdeLangen');
+      expect((view.getByRole('textbox', { name: 'BoardGameGeek profile URL' }) as HTMLInputElement).value).toBe(
+        'https://boardgamegeek.com/user/norbert'
+      );
+      /* The edit is still unsaved, so Save stays available. */
+      expect((view.getByRole('button', { name: 'Save profile' }) as HTMLButtonElement).disabled).toBe(false);
     });
 
     it('shows each method\u2019s offer on its row when several report something, and takes the chosen one', async () => {

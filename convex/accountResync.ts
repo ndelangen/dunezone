@@ -91,21 +91,30 @@ export const linked = internalQuery({
   },
 });
 
-/** Keeps what a live lookup found for one of the reader's methods. */
+/**
+ * Keeps what a live lookup found for one of the reader's methods.
+ * The lookup was for one provider account.
+ * When another account of that provider has taken its place meanwhile, nothing is kept.
+ */
 export const recordLive = internalMutation({
   args: {
     provider: authProviderValidator,
+    providerAccountId: v.string(),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
   },
-  returns: v.null(),
+  returns: v.boolean(),
   handler: async (ctx, args) => {
     const userId = await requireAuthUserId(ctx);
-    await recordLinkedAccountProfile(ctx, userId, args.provider, {
-      name: args.name,
-      image: args.image,
-    });
-    return null;
+    const account = await ctx.db
+      .query('authAccounts')
+      .withIndex('userIdAndProvider', (q) => q.eq('userId', userId).eq('provider', args.provider))
+      .first();
+    if (account?.providerAccountId !== args.providerAccountId) {
+      return false;
+    }
+    await recordLinkedAccountProfile(ctx, userId, args.provider, { name: args.name, image: args.image });
+    return true;
   },
 });
 
@@ -128,18 +137,18 @@ export const applyInternal = internalMutation({
  * One method with something to offer is applied at once;
  * several leave the choice to the reader.
  */
-/** Asks Steam for the reader's current name and picture and keeps what it finds; returns whether anything was recorded. */
-async function refreshSteam(ctx: ActionCtx, steamId: string): Promise<boolean> {
+/** Asks Steam for the reader's current name and picture and keeps what it finds, as long as that Steam account is still the connected one. */
+async function refreshSteam(ctx: ActionCtx, steamId: string): Promise<void> {
   const live = await steamProfile(steamId);
   if (!live.name && !live.image) {
-    return false;
+    return;
   }
   await ctx.runMutation(internal.accountResync.recordLive, {
     provider: 'steam',
+    providerAccountId: steamId,
     ...(live.name ? { name: live.name } : {}),
     ...(live.image ? { image: live.image } : {}),
   });
-  return true;
 }
 
 /** One method with something to offer is applied at once; several leave the choice to the reader. */
@@ -170,8 +179,11 @@ export const resync = action({
     const linkedNow = (): Promise<Linked> => ctx.runQuery(internal.accountResync.linked, {});
     const recorded = await linkedNow();
     const steam = recorded.steamId !== null && recorded.options.some((option) => option.provider === 'steam');
-    const refreshed = steam && (await refreshSteam(ctx, recorded.steamId!));
-    const { options } = refreshed ? await linkedNow() : recorded;
+    if (steam) {
+      await refreshSteam(ctx, recorded.steamId!);
+    }
+    /* Read again after the lookup, so the offer reflects what Steam said and whichever accounts are connected now. */
+    const { options } = steam ? await linkedNow() : recorded;
     return await settle(ctx, options);
   },
 });

@@ -2,7 +2,7 @@ import { profileUserEditFormSchema } from '../../src/shared/profiles/validation'
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { accountStateOf } from './accountLifecycle';
-import { accountMethods } from './accountMethods';
+import { accountMethods, requireUnlockedAccount } from './accountMethods';
 import type { AuthProvider } from './accountMethods';
 import { recordFormerSlug } from './formerSlugs';
 import { scheduleAvatarRehostIfPending } from './profileAvatar';
@@ -118,7 +118,9 @@ export type AppliedLinkedAccount = {
   avatar: boolean;
 };
 
+/** The reader's active profile, once no merge is rewriting the account: a resync landing mid-merge would undo what the merge confirmed. */
 async function activeProfileOf(ctx: MutationCtx, userId: Id<'users'>): Promise<Doc<'profiles'>> {
+  await requireUnlockedAccount(ctx, userId, false);
   const profile = await ctx.db
     .query('profiles')
     .withIndex('by_user_id', (q) => q.eq('user_id', userId))

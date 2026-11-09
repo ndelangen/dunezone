@@ -6,7 +6,6 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { account, restoreAuthEnvironment, setup, stubAuthEnvironment } from './authAccount.test.fixture';
 import type { AuthProvider } from './lib/accountMethods';
-import { displayNameFrom } from './lib/linkedAccountProfiles';
 
 beforeEach(stubAuthEnvironment);
 afterEach(() => {
@@ -40,6 +39,7 @@ function connect(t: Fixture, userId: Id<'users'>, provider: AuthProvider, provid
 const profileOf = (t: Fixture, profileId: Id<'profiles'>) => t.run((ctx) => ctx.db.get(profileId));
 
 describe('display names from provider names', () => {
+  /* Driven through the resync itself: the reduction is read off the option the one connected method offers. */
   test.each([
     ['Norbert de Langen', 'NorbertdeLangen'],
     ['René Müller', 'ReneMuller'],
@@ -47,10 +47,21 @@ describe('display names from provider names', () => {
     ['steam_player-99', 'steamplayer99'],
     ['Bo', null],
     ['12345', '12345'],
-    ['', null],
-    [null, null],
-  ])('%j becomes %j', (name, expected) => {
-    expect(displayNameFrom(name)).toBe(expected);
+  ])('%j becomes %j', async (name, expected) => {
+    const t = setup();
+    const own = await account(t, 'oldname', 'google');
+    await recorded(t, own.userId, 'google', { name, image: null });
+    const result = await viewer(t, own).action(api.accountResync.resync, {});
+    expect(result.options).toEqual([expect.objectContaining({ provider: 'google', name, displayName: expected })]);
+    expect(result.kind).toBe(expected === null ? 'nothing' : 'applied');
+  });
+
+  test('an empty report offers no name', async () => {
+    const t = setup();
+    const own = await account(t, 'oldname', 'google');
+    await recorded(t, own.userId, 'google', { name: null, image: null });
+    const result = await viewer(t, own).action(api.accountResync.resync, {});
+    expect(result).toMatchObject({ kind: 'nothing', options: [{ provider: 'google', name: null, displayName: null }] });
   });
 });
 
@@ -238,6 +249,46 @@ describe('resync', () => {
     const me = viewer(t, own);
     await expect(me.mutation(api.accountResync.apply, { provider: 'steam' })).rejects.toThrow('not connected');
     await expect(me.mutation(api.accountResync.apply, { provider: 'discord' })).rejects.toThrow('not reported');
+  });
+
+  test('a resync is refused while a merge rewrites the account', async () => {
+    const t = setup();
+    const own = await account(t, 'oldname', 'google');
+    await recorded(t, own.userId, 'google', { name: 'Norbert de Langen', image: null });
+    await t.run(async (ctx) => {
+      const operationId = await ctx.db.insert('account_merge_operations', {
+        source_user_id: own.userId,
+        source_profile_id: own.profileId,
+        target_user_id: own.userId,
+        target_profile_id: own.profileId,
+        requested_by: own.userId,
+        source_name: 'other',
+        target_name: 'oldname',
+        target_slug: 'oldname',
+        state: 'running',
+        phase: 0,
+        error: null,
+        created_at: Date.now(),
+        completed_at: null,
+      });
+      await ctx.db.patch(own.userId, { account_merge_operation_id: operationId });
+    });
+    await expect(viewer(t, own).action(api.accountResync.resync, {})).rejects.toThrow('merge in progress');
+    expect((await profileOf(t, own.profileId))?.username).toBe('oldname');
+  });
+
+  test('what Steam said about an account that is no longer the connected one is not kept', async () => {
+    const t = setup();
+    const own = await account(t, 'oldname', 'steam');
+    await t.run((ctx) => ctx.db.patch(own.authId, { providerAccountId: '76561197960287930' }));
+    const kept = await viewer(t, own).mutation(internal.accountResync.recordLive, {
+      provider: 'steam',
+      providerAccountId: '76561197960000000',
+      name: 'Someone Else',
+    });
+    expect(kept).toBe(false);
+    const rows = await t.run((ctx) => ctx.db.query('linked_account_profiles').collect());
+    expect(rows).toEqual([]);
   });
 
   test('Steam is asked live, and what it says is kept for next time', async () => {

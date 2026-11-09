@@ -203,7 +203,7 @@ export const ResyncTakesTheOnlyMethod = meta.story({
       page.findByText('Name and picture updated from Google.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
     await expect(page.getByText('Central Command')).toBeVisible();
-    /* The new name moved the profile to a new address, which the page follows before its tabs are back. */
+    /* The new name moved the profile to a new address, which the page follows with the editor still on screen. */
     await waitFor(
       async () => {
         await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
