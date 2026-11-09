@@ -1,6 +1,7 @@
 /* A phone held at the table: the turn and its controls above, the one big action within the thumb's reach. */
 .tool {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   min-height: 100dvh;
   background: var(--ui-ground);
@@ -458,6 +459,7 @@
 }
 
 .deckChoice {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--space-md);

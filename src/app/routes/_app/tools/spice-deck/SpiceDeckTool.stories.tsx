@@ -8,10 +8,10 @@ import type { SpiceDeckVariant } from './SpiceDeckTool';
 /*
  * The spice deck tool's six looks, for Norbert to pick one (2026-11-09). Every story is a phone at the table in turn 3
  * of a GF9 game, just after a Spice Blow in which Shai-Hulud came up on both piles. Everything is live: the big button
- * turns the next card, and the game is kept in this browser until the story is opened again.
+ * turns the next card, and the game is kept in this browser's storage, so a reload carries on (Settings > New game starts over).
  */
 const meta = preview.meta({
-  title: 'Pages/Tools/Spice deck',
+  title: 'Tools/Spice deck',
   parameters: { layout: 'fullscreen' },
   globals: { viewport: { value: 'appMobile' } },
 });
@@ -19,13 +19,6 @@ const meta = preview.meta({
 const variantStory = (variant: SpiceDeckVariant) => {
   const storageKey = `spice-deck-story-${variant}`;
   return {
-    beforeEach: () => {
-      try {
-        localStorage.removeItem(storageKey);
-      } catch {
-        /* Nothing stored. */
-      }
-    },
     render: () => (
       <SpiceDeckTool variant={variant} storageKey={storageKey} initial={storyGame(3)} decks={STORY_DECKS} />
     ),
@@ -82,13 +75,6 @@ export const Voice = meta.story({
 
 /** Before a game: the deck the table plays with, and the two Spice Blow rules a ruleset may change. */
 export const PickADeck = meta.story({
-  beforeEach: () => {
-    try {
-      localStorage.removeItem('spice-deck-story-picker');
-    } catch {
-      /* Nothing stored. */
-    }
-  },
   render: () => <SpiceDeckTool variant="piles" storageKey="spice-deck-story-picker" decks={STORY_DECKS} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: /GF9 Spice Deck/ })).toBeVisible();
