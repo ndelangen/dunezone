@@ -123,8 +123,8 @@ test('finds a live deck behind many deleted decks that held the same card', asyn
   expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
 });
 
-test('lists the decks it can count within a query’s reads, a Ruleset’s deck among them, when the catalogue is far larger', async () => {
-  const t = applicationTest({ transactionLimits: true });
+/* 400 decks of the same 45 cards, written a few at a time to stay inside each write's own limits, and a Ruleset slotting the last. */
+async function seedLargeCatalogue(t: ReturnType<typeof applicationTest>) {
   const { owner, cards } = await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
     const cards = [];
@@ -194,6 +194,12 @@ test('lists the decks it can count within a query’s reads, a Ruleset’s deck 
     });
     await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: slotted, slot: 'treachery' });
   });
+  return slotted;
+}
+
+test('lists the decks it can count within a query’s reads, a Ruleset’s deck among them, when the catalogue is far larger', async () => {
+  const t = applicationTest({ transactionLimits: true });
+  const slotted = await seedLargeCatalogue(t);
   const decks = await t.query(api.treacheryTrackerTool.decks, {});
   expect(decks.length).toBeGreaterThan(20);
   expect(decks[0]).toMatchObject({ id: slotted, cards: 45, rulesets: [{ slug: 'dreamrules', name: 'Dreamrules' }] });

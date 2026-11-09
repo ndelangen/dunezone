@@ -163,6 +163,39 @@ async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>) {
   );
 }
 
+/* What counting one deck needs: the cards read so far, the reads left, and the cardback presets resolved so far. */
+type Counting = Readonly<{
+  known: Map<Id<'assets'>, Doc<'assets'> | null>;
+  budget: Budget;
+  presets: CardbackPresetMemo;
+}>;
+
+/* One deck as the list offers it; null when it is no live deck with cards, and 'out of reads' once the budget cannot count it whole. */
+async function choiceFor(ctx: QueryCtx, id: Id<'assets'>, { known, budget, presets }: Counting) {
+  if (budget.left < READS_PER_DECK) {
+    return 'out of reads' as const;
+  }
+  budget.left -= READS_PER_DECK;
+  const row = await ctx.db.get('assets', id);
+  if (!isLiveDeck(row)) {
+    return null;
+  }
+  const cards = await copiesIn(ctx, row, known, budget);
+  if (cards === undefined) {
+    return 'out of reads' as const;
+  }
+  /* A deck with no live card left in it has nothing to track. */
+  if (cards === 0) {
+    return null;
+  }
+  const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
+  return { id: row._id, slug: row.slug, name: assetDisplayName(row), cards, back: back?.href ?? null, rulesets };
+}
+
+function isLiveDeck(row: Doc<'assets'> | null): row is Doc<'assets'> {
+  return row !== null && !row.is_deleted && row.type === 'deck';
+}
+
 /**
  * Every live deck with live Treachery cards, which the standalone Treachery tracker lets a player pick any of, several at once.
  * Each names the Rulesets that slot it, so the tool can start from a Ruleset's deck and the player can tell decks of one name apart.
@@ -179,31 +212,13 @@ export const decks = publicQuery({
     /* A deck at a time, a Ruleset's first, so a card two decks share is read once and the budget ends on whole decks. */
     const choices = [];
     for (const id of new Set([...slotted, ...found])) {
-      if (budget.left < READS_PER_DECK) {
+      const choice = await choiceFor(ctx, id, { known, budget, presets });
+      if (choice === 'out of reads') {
         break;
       }
-      budget.left -= READS_PER_DECK;
-      const row = await ctx.db.get('assets', id);
-      if (!row || row.is_deleted || row.type !== 'deck') {
-        continue;
+      if (choice) {
+        choices.push(choice);
       }
-      const cards = await copiesIn(ctx, row, known, budget);
-      if (cards === undefined) {
-        break;
-      }
-      /* A deck with no live card left in it has nothing to track. */
-      if (cards === 0) {
-        continue;
-      }
-      const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
-      choices.push({
-        id: row._id,
-        slug: row.slug,
-        name: assetDisplayName(row),
-        cards,
-        back: back?.href ?? null,
-        rulesets,
-      });
     }
     /* A Ruleset's deck first, then by name, so the decks a game is played with lead the list. */
     return choices.sort(

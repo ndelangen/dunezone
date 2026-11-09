@@ -161,6 +161,11 @@ const config = defineConfig({
   server: {
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
+  /*
+   * The preview server the build prerenders the tool pages through, bound to one address.
+   * The prerender fetches it from the build's own busy process, and a dual-stack `localhost` gave up on IPv6 after 250 ms and fell back to an IPv4 address nothing listened on, crashing the build in CI.
+   */
+  preview: { host: '127.0.0.1' },
   test: {
     /* Standalone HTML exports need the compiled CSS Module classes and declarations, as they have no browser module loader. */
     css: { include: [/\.module\.css(?:\?.*)?$/, /\.css\?inline$/], modules: { classNameStrategy: 'scoped' } },
