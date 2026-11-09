@@ -233,8 +233,8 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
       if (voiceOn.current) {
         speech.speak(
           mode === 'aside'
-            ? revealSentence(game, reveal)
-            : `${reshuffled ? 'The deck is reshuffled. ' : ''}${pileName(game, blow.pile)}. ${revealSentence(game, reveal)}`
+            ? revealSentence(game, reveal, blow.turn)
+            : `${reshuffled ? 'The deck is reshuffled. ' : ''}${pileName(game, blow.pile)}. ${revealSentence(game, reveal, blow.turn)}`
         );
       }
     };
@@ -267,9 +267,10 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
       if (command === 'undo') {
         session.undo();
       } else if (command === 'repeat') {
-        const reveal = game.blows.at(-1)?.reveals.at(-1);
-        if (reveal) {
-          speech.speak(revealSentence(game, reveal));
+        const blow = game.blows.at(-1);
+        const reveal = blow?.reveals.at(-1);
+        if (blow && reveal) {
+          speech.speak(revealSentence(game, reveal, blow.turn));
         }
       } else if (command === 'next') {
         session.act(nextTurn);
@@ -684,11 +685,36 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
   );
 }
 
-/** The next cards, shown big to the one holding the phone; a tap anywhere puts them away again. */
+/**
+ * The next cards, shown big to the one holding the phone, until they put them away again.
+ * A modal dialog: focus moves inside, the game behind it cannot be reached, and focus goes back to Peek when it closes.
+ */
 function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => void }>) {
   const next = peekAt(game);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (element && !element.open) {
+      element.showModal();
+    }
+    return () => {
+      if (element?.open) {
+        element.close();
+      }
+      before?.focus();
+    };
+  }, []);
   return (
-    <div className={styles.peek} role="dialog" aria-label="The next spice cards">
+    <dialog
+      ref={dialog}
+      className={styles.peek}
+      aria-label="The next spice cards"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
       <p className={styles.peekTitle}>
         {next.length > 1 ? `The next ${next.length} cards, the next first` : 'The next card'}
       </p>
@@ -702,7 +728,7 @@ function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => 
       <LabeledAction emphasis="strong" size="lg" icon={<EyeOff size={20} />} onClick={onClose}>
         Hide and put the phone back
       </LabeledAction>
-    </div>
+    </dialog>
   );
 }
 
@@ -753,6 +779,13 @@ function RevealLine({ game, reveal, turn }: Readonly<{ game: SpiceDeckGame; reve
     return (
       <li className={styles.line} data-kind="spice">
         <strong>{card.amount} spice</strong> in {card.name}
+      </li>
+    );
+  }
+  if (reveal.kind === 'special') {
+    return (
+      <li className={styles.line} data-kind="special">
+        <strong>{card.name}</strong>: follow the card
       </li>
     );
   }

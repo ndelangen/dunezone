@@ -80,6 +80,11 @@ export const Peek = meta.story({
       timeout: 15_000,
     });
     await expect(page.getByText('The next 2 cards, the next first')).toBeVisible();
+    /* A modal: focus is inside it, so the game's buttons behind it cannot be reached. */
+    const dialog = page.getByRole('dialog', { name: 'The next spice cards' });
+    await expect(dialog).toContainElement(canvasElement.ownerDocument.activeElement as HTMLElement);
+    await userEvent.click(page.getByRole('button', { name: 'Hide and put the phone back' }));
+    await expect(page.queryByRole('dialog', { name: 'The next spice cards' })).not.toBeInTheDocument();
   },
 });
 

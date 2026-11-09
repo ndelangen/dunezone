@@ -100,6 +100,13 @@
   position: fixed;
   inset: 0;
   z-index: 10;
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -107,6 +114,10 @@
   gap: var(--space-md);
   padding: var(--space-md);
   background: rgb(0 0 0 / 0.92);
+}
+
+.peek:not([open]) {
+  display: none;
 }
 
 .peekTitle {
@@ -250,6 +261,10 @@
 
 .line[data-kind="worm"] {
   border-color: var(--ui-negative-fill);
+}
+
+.line[data-kind="special"] {
+  border-color: var(--ui-brass);
 }
 
 .line[data-kind="aside"] {

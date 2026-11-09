@@ -29,3 +29,26 @@ test('a deck the catalogue sent only in part is not played', () => {
     spiceDeckFromSupply({ id: 'cut', name: 'Cut deck', ruleset: 'Cut' }, { ...supply, membersTruncated: true })
   ).toThrow(/more cards/);
 });
+
+test('a card with no spice is Shai-Hulud only when it names a worm; others are special cards the players follow', () => {
+  /* Each card copies the shape of a member the catalogue sent, with its own name. */
+  const custom = (id: string, name: string, subName: string) => ({
+    ...supply.members[0]!,
+    asset: { id, slug: id, type: 'card-custom', name, data: { name, subName } },
+    count: 1,
+  });
+  const gf9 = spiceDeckFromSupply(
+    { id: 'gf9', name: 'GF9 Spice Deck', ruleset: 'GF9' },
+    {
+      ...supply,
+      members: [
+        custom('worm', 'GF9 Shai-Hulud', 'Sandworm alert'),
+        custom('maker', 'GF9 Great Maker', 'Sandworm alert special'),
+        custom('trout', 'GF9 Sandtrout', 'Spice blow special'),
+        custom('discovery', 'GF9 Old Gap', 'Discovery spice blow'),
+      ],
+    }
+  );
+  expect(gf9.cards.filter(isWorm).map((card) => card.key)).toEqual(['worm', 'maker']);
+  expect(gf9.cards.filter((card) => card.special).map((card) => card.key)).toEqual(['trout', 'discovery']);
+});

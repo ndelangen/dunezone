@@ -14,6 +14,8 @@ export type SpiceCardDef = Readonly<{
   name: string;
   /** The spice it blows; none for Shai-Hulud, which names no territory. */
   amount?: number;
+  /** A card that is neither a spice card nor Shai-Hulud, such as Sandtrout or a Discovery blow: its own text says what happens. */
+  special?: boolean;
   /** The card's face. */
   face?: string;
   count: number;
@@ -31,6 +33,8 @@ export type SpiceDeckDef = Readonly<{
 /** One card turned over, and what it did. */
 export type Reveal = Readonly<
   | { card: string; kind: 'spice' }
+  /** A special card: it ends the pile's blow like a spice card, and the players follow its text. */
+  | { card: string; kind: 'special' }
   /** A card the players set aside, to be shuffled back into the deck when the next turn starts. */
   | { card: string; kind: 'set-aside' }
   /** Shai-Hulud from the second turn on: `devours` is the card whose territory it eats, when the pile had one. */
@@ -74,7 +78,11 @@ export function cardOf(game: SpiceDeckGame, copy: string): SpiceCardDef {
   return game.deck.cards.find((card) => card.key === key)!;
 }
 
-export const isWorm = (card: SpiceCardDef) => card.amount === undefined;
+export const isWorm = (card: SpiceCardDef) => card.amount === undefined && !card.special;
+
+/* A card that ends its pile's blow: a spice card, or a special card the players follow. */
+const endsBlow = (reveal: Reveal | undefined): reveal is Extract<Reveal, { kind: 'spice' | 'special' }> =>
+  reveal?.kind === 'spice' || reveal?.kind === 'special';
 
 function shuffled<T>(items: readonly T[], random: Random): T[] {
   const out = [...items];
@@ -106,10 +114,10 @@ export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = 
   };
 }
 
-/** The spice card a Shai-Hulud on this pile would devour: the newest spice card under any Shai-Hulud on top. */
+/** The spice card a Shai-Hulud on this pile would devour: the newest spice card under it; a special card names no territory. */
 function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | undefined {
   for (let i = pile.length - 1; i >= 0; i--) {
-    if (!isWorm(cardOf(game, pile[i]!))) {
+    if (cardOf(game, pile[i]!).amount !== undefined) {
       return pile[i];
     }
   }
@@ -119,12 +127,12 @@ function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | 
 /** A pile's blow this turn that has not yet landed a spice card: the one a further card on that pile adds to. */
 function openBlow(game: SpiceDeckGame, pile: number): Blow | undefined {
   const last = game.blows.findLast((blow) => blow.turn === game.turn && blow.pile === pile);
-  return last && last.reveals.at(-1)?.kind !== 'spice' ? last : undefined;
+  return last && !endsBlow(last.reveals.at(-1)) ? last : undefined;
 }
 
 /** Whether a pile has landed a spice card this turn. */
 const pileBlown = (game: SpiceDeckGame, pile: number) =>
-  game.blows.some((blow) => blow.turn === game.turn && blow.pile === pile && blow.reveals.at(-1)?.kind === 'spice');
+  game.blows.some((blow) => blow.turn === game.turn && blow.pile === pile && endsBlow(blow.reveals.at(-1)));
 
 /** The first pile not yet blown this turn, the one the rulebook's order turns next; none once every pile has. */
 export function nextPile(game: SpiceDeckGame): number | undefined {
@@ -160,7 +168,7 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
   const pile = discards[pileIndex]!;
   if (!isWorm(card)) {
     pile.push(copy);
-    reveals.push({ card: copy, kind: 'spice' });
+    reveals.push({ card: copy, kind: card.special ? 'special' : 'spice' });
   } else {
     const devours = territoryUnder(game, pile);
     pile.push(copy);
@@ -176,7 +184,7 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
 export function lastPlayed(game: SpiceDeckGame): { blow: Blow; card: string } | undefined {
   const blow = game.blows.at(-1);
   const reveal = blow?.reveals.at(-1);
-  if (!blow || blow.turn !== game.turn || (reveal?.kind !== 'spice' && reveal?.kind !== 'worm')) {
+  if (!blow || blow.turn !== game.turn || (!endsBlow(reveal) && reveal?.kind !== 'worm')) {
     return undefined;
   }
   return game.discards[blow.pile]?.at(-1) === reveal.card ? { blow, card: reveal.card } : undefined;
@@ -261,14 +269,20 @@ export function wormChance(game: SpiceDeckGame): number {
   return worms / game.draw.length;
 }
 
-/** One turned card as a sentence for the table, as the voice reads it. */
-export function revealSentence(game: SpiceDeckGame, reveal: Reveal): string {
+/** One turned card as a sentence for the table, as the voice reads it, for the turn it came up on. */
+export function revealSentence(game: SpiceDeckGame, reveal: Reveal, turn = game.turn): string {
   if (reveal.kind === 'reshuffle') {
     return 'The deck ran out, so the spice piles are shuffled into a new deck.';
   }
   const card = cardOf(game, reveal.card);
   if (reveal.kind === 'set-aside') {
     return `${card.name} is set aside, to be shuffled back into the deck next turn.`;
+  }
+  if (reveal.kind === 'special') {
+    return `${card.name}. Follow the card.`;
+  }
+  if (reveal.kind === 'worm' && turn === 1) {
+    return 'Shai-Hulud on turn 1. Set it aside and draw again.';
   }
   if (reveal.kind === 'worm') {
     return reveal.devours
@@ -280,6 +294,6 @@ export function revealSentence(game: SpiceDeckGame, reveal: Reveal): string {
 
 /** A blow as a sentence for the table. */
 export function blowSentence(game: SpiceDeckGame, blow: Blow): string {
-  const parts = blow.reveals.map((reveal) => revealSentence(game, reveal));
+  const parts = blow.reveals.map((reveal) => revealSentence(game, reveal, blow.turn));
   return `Spice pile ${game.piles > 1 ? pileLetter(blow.pile) : ''}: ${parts.join(' ')}`.replace(' :', ':');
 }

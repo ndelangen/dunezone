@@ -12,6 +12,7 @@ import {
   nextTurn,
   remaining,
   revealOne,
+  revealSentence,
   setAsideLast,
   wormChance,
 } from './spiceDeck';
@@ -126,6 +127,30 @@ describe('Spice Blow', () => {
     const game = blowAll(stacked(['old-gap#1', 'broken-land#1'], 1), keepOrder);
     expect(game.discards).toEqual([['old-gap#1']]);
     expect(game.blows).toHaveLength(1);
+  });
+
+  test('a special card ends its blow, names no territory for a Shai-Hulud, and does not count as one', () => {
+    const special: SpiceDeckDef = {
+      ...DECK,
+      cards: [...DECK.cards, { key: 'sandtrout', name: 'Sandtrout', special: true, count: 1 }],
+    };
+    let game: SpiceDeckGame = { ...newGame(special, Math.random, { piles: 1 }), draw: ['shai-hulud#1', 'sandtrout#1'] };
+    expect(wormChance(game)).toBe(0.5);
+    game = blowPile(game, keepOrder);
+    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'sandtrout#1', kind: 'special' }]);
+    expect(spiceBlowOver(game)).toBe(true);
+    expect(lastPlayed(game)?.card).toBe('sandtrout#1');
+    expect(blowSentence(game, game.blows.at(-1)!)).toBe('Spice pile: Sandtrout. Follow the card.');
+    game = revealOne(nextTurn(game, keepOrder), keepOrder);
+    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm' }]);
+  });
+
+  test('a Shai-Hulud on the first turn is read out as set aside and draw again', () => {
+    const game = revealOne(stacked(['old-gap#1', 'shai-hulud#1']), keepOrder, 0);
+    const turnOne = revealOne(game, keepOrder, 0);
+    const worm = turnOne.blows.at(-1)!.reveals.at(-1)!;
+    expect(revealSentence(turnOne, worm)).toBe('Shai-Hulud on turn 1. Set it aside and draw again.');
+    expect(revealSentence(turnOne, worm, 2)).toBe('Shai-Hulud! It devours everything in Old Gap.');
   });
 
   test('a deck with no spice card stops blowing instead of reshuffling forever', () => {

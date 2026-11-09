@@ -17,9 +17,18 @@ function amountOf(type: string, data: unknown): number | undefined {
   return typeof stored === 'number' && stored > 0 ? stored : undefined;
 }
 
+/* A Shai-Hulud, or a card the rules resolve as one, such as Great Maker, names a worm on its face or its subtitle. */
+const WORM = /shai[\s-]?hulud|sandworm|great maker/i;
+
+function namesWorm(name: string, data: unknown): boolean {
+  const subName = data && typeof data === 'object' ? (data as { subName?: unknown }).subName : undefined;
+  return WORM.test(name) || (typeof subName === 'string' && WORM.test(subName));
+}
+
 /**
  * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
- * A card that blows no spice, such as Shai-Hulud, is a worm to the tool.
+ * A card that blows no spice is Shai-Hulud when it names a worm;
+ * any other, such as Sandtrout or a Discovery blow, is a special card the players follow.
  * Throws for a deck the catalogue sent only in part.
  */
 export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
@@ -36,6 +45,7 @@ export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply
       count,
       ...(front ? { face: front } : {}),
       ...(amount === undefined ? {} : { amount }),
+      ...(amount === undefined && !namesWorm(asset.name, asset.data) ? { special: true } : {}),
     };
   });
   return {
