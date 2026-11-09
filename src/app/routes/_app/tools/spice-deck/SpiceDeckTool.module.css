@@ -240,16 +240,16 @@
   top: 0;
   left: 0;
   z-index: 1;
-  border: 4px solid var(--ui-caution);
-  border-radius: 6% / 4.5%;
-  box-shadow: 0 0 24px var(--ui-caution);
+  border-radius: 12px;
+  outline: 4px solid var(--ui-caution);
+  filter: drop-shadow(0 0 10px var(--ui-caution));
   opacity: 0;
   pointer-events: none;
 }
 
 .ring[data-kind="worm"] {
-  border-color: var(--ui-negative-fill);
-  box-shadow: 0 0 24px var(--ui-negative-fill);
+  outline-color: var(--ui-negative-fill);
+  filter: drop-shadow(0 0 10px var(--ui-negative-fill));
 }
 
 /* The card on its way: placed by its animation from the table's top left corner. */

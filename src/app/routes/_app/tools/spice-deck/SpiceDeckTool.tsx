@@ -368,17 +368,19 @@ function Table({
       { duration: FLIGHT_MS, fill: 'forwards' }
     );
     const impact = FLIGHT_MS * IMPACT;
-    /* The landing: a ring bursts from the pile and the pile jolts under the card. */
+    /* The landing: a ring bursts out from the pile's edge and the pile jolts under the card. */
     if (ring.current) {
-      ring.current.style.transform = `translate(${to.x}px, ${to.y}px)`;
+      ring.current.style.left = `${to.x}px`;
+      ring.current.style.top = `${to.y}px`;
       ring.current.style.width = `${to.w}px`;
       ring.current.style.height = `${to.h}px`;
     }
     const burst = ring.current?.animate(
+      /* It grows by the same distance on every side, whatever the card's shape. */
       [
-        { opacity: 0, scale: '0.9' },
-        { opacity: 0.9, scale: '1', offset: 0.1 },
-        { opacity: 0, scale: '1.45' },
+        { opacity: 0, outlineOffset: '-4px' },
+        { opacity: 0.95, outlineOffset: '0px', offset: 0.1 },
+        { opacity: 0, outlineOffset: '36px' },
       ],
       { duration: 520, delay: impact, easing: 'ease-out', fill: 'both' }
     );
