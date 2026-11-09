@@ -1,0 +1,202 @@
+/*
+ * Auction first, on one grid: every token and card is 36 px, every gap 8 px, and the token column is the same width in every section.
+ * Sections are split by a rule, never boxed, so the window stays the only panel.
+ */
+
+.tracker {
+  --unit: var(--space-xs);
+  --glyph: 36px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--ink, var(--ui-text));
+}
+
+.section,
+.onBid,
+.hands {
+  padding-block: var(--space-sm);
+}
+
+/* Every section runs to the window's sides, so the rules between them span the whole window. */
+.tracker > * {
+  margin-inline: calc(-1 * var(--window-body-pad-inline, 0px));
+  padding-inline: var(--window-body-pad-inline, 0px);
+}
+
+.section + .section,
+.onBid + .section,
+.section + .hands,
+.hands + .section {
+  border-top: 1px solid var(--edge, var(--ui-edge));
+}
+
+.caption {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.dim {
+  color: var(--ink-dim, var(--ui-muted));
+}
+
+.dropdown {
+  background: var(--ui-raised);
+  border-color: var(--edge, var(--ui-edge));
+  color: var(--ui-text);
+}
+
+/* On bid: the whole card at the left, the question and the tokens beside it. */
+.onBid {
+  display: grid;
+  padding-top: 0;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+.bidCard img,
+.bidUnknown {
+  display: block;
+  width: 80px;
+  aspect-ratio: 900 / 1263;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgb(from var(--ui-black) r g b / 0.6);
+}
+
+.bidUnknown {
+  display: grid;
+  box-sizing: border-box;
+  place-items: center;
+  border: 2px dashed rgb(from var(--ui-muted) r g b / 0.5);
+  background: var(--ui-recess);
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 32px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.bidUnknown[data-empty="true"] {
+  border-style: solid;
+  border-color: rgb(from var(--ui-muted) r g b / 0.2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.bidUnknown[data-empty="true"]:hover {
+  border-color: rgb(from var(--ui-muted) r g b / 0.5);
+  background: var(--ui-hover);
+}
+
+.bidSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--unit);
+  min-width: 0;
+}
+
+.nextUp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--unit);
+}
+
+/* One turn's auction. */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  margin-bottom: var(--unit);
+}
+
+.turnStep {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.turnLabel {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--unit);
+}
+
+.auctionCard {
+  position: relative;
+  display: inline-flex;
+  border-radius: 50%;
+}
+
+.auctionCard[data-waiting="true"] {
+  outline: 2px solid var(--ui-caution);
+  outline-offset: 2px;
+}
+
+.cardButton {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.holder {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: inline-flex;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--ui-ground);
+}
+
+.discardedMark {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgb(from var(--ui-ground) r g b / 0.6);
+  pointer-events: none;
+}
+
+/* The hands: the token, the cards with the plus after them, and the note button, on the same columns in every row. */
+.hands {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.handRow {
+  display: grid;
+  grid-template-columns: var(--glyph) minmax(0, 1fr) 28px;
+  column-gap: var(--space-sm);
+  row-gap: 4px;
+  align-items: center;
+}
+
+.handCards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--unit);
+  min-height: var(--glyph);
+}
+
+.note {
+  grid-column: 2 / 4;
+}
+
+.note[data-text] {
+  color: var(--ink-dim, var(--ui-muted));
+  font-style: italic;
+}

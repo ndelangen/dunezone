@@ -1,0 +1,184 @@
+/* The pieces every tracker view shares: the pickers, the card chooser, a hand's card menu and the deck's makeup by kind. */
+
+.caption {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.dropdown {
+  background: var(--ui-raised);
+  border-color: var(--edge, var(--ui-edge));
+  color: var(--ui-text);
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tokenButton {
+  border-radius: 50%;
+  transition: transform 120ms ease-out;
+}
+
+.tokenButton:hover,
+.tokenButton:focus-visible {
+  transform: scale(1.12);
+}
+
+.glyphRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.glyphButton,
+.slotButton {
+  position: relative;
+  display: inline-flex;
+  border-radius: 999px;
+  transition: transform 120ms ease-out;
+}
+
+.glyphButton:hover,
+.glyphButton:focus-visible {
+  transform: scale(1.12);
+}
+
+.badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 14px;
+  box-shadow: 0 0 0 1.5px var(--ui-raised);
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--ui-ground);
+  color: var(--ui-highlight);
+  font-size: 9px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.chooser {
+  padding: 4px;
+}
+
+.chooser .glyphRow {
+  gap: 6px;
+}
+
+.chooserUnknown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.chooserUnknown:hover,
+.menuLine:hover {
+  background: var(--ui-hover);
+}
+
+.menuLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.menuIcon {
+  display: inline-grid;
+  width: 16px;
+  place-items: center;
+  color: var(--ui-brass);
+}
+
+/* The deck's makeup by kind, in the palette's roles: weapons the negative fill, defenses progress, specials positive, worthless umber. */
+.kindBar {
+  display: flex;
+  overflow: hidden;
+  gap: 1px;
+  border-radius: 3px;
+  background: var(--ui-recess);
+}
+
+.kindBar span {
+  flex-basis: 0;
+}
+
+.kindSlice {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  cursor: help;
+  background: var(--kind);
+  transition: filter 120ms ease-out;
+}
+
+.kindSlice:hover,
+.kindSlice:focus-visible {
+  filter: brightness(1.35);
+  outline: none;
+}
+
+.kindList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, auto));
+  gap: 6px var(--space-sm);
+}
+
+.kindLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.kindLeft {
+  color: var(--ui-highlight);
+  font-size: 12px;
+}
+
+/* Weapons and defenses each sit as a poison | projectile pair. */
+.groupRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+/* Specials outnumber the worthless cards beside them, so they take the wider column. */
+.groupRow[data-row="special"] {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+/* Poison and projectile share their kind's colour; the projectile half is a lighter tint of it, so the pair reads as one kind in two parts. */
+.kindSlice[data-group$="-projectile"] {
+  background: color-mix(in oklab, var(--kind) 70%, var(--ui-white));
+}
+
+/* Hover growth is motion: a viewer who asked for less motion sees the hover without it, unless the app was told motion is fine. */
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.tokenButton, .glyphButton, .slotButton, .kindSlice) {
+    transition: none;
+  }
+
+  :global(html:not([data-motion="ok"])) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
+    transform: none;
+  }
+}
+
+/* The site's own Motion setting holds even when the system allows motion. */
+:global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton, .slotButton, .kindSlice) {
+  transition: none;
+}
+
+:global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
+  transform: none;
+}

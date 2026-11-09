@@ -1,4 +1,4 @@
-import { Divider, Group, NumberInput, Radio, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { Divider, Group, NumberInput, Radio, Stack, Switch, TextInput } from '@mantine/core';
 import { factionSpecialRuleLabel, factionSpecialRuleLabels } from '@shared/factions/specialRule';
 import { Section } from '@ui/block/Section';
 import { ControlBlock } from '@ui/control/ControlBlock';
@@ -18,7 +18,7 @@ function advisory(blank: boolean, text: string) {
 function SetupFields({ form }: { form: FactionFormApi }) {
   return (
     <Stack component="section" gap="md" aria-label="Setup and revival">
-      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+      <Stack gap="md">
         <Stack gap="md">
           <form.Field name="rules.startText">
             {(field) => {
@@ -68,29 +68,51 @@ function SetupFields({ form }: { form: FactionFormApi }) {
           </form.Field>
         </Stack>
 
-        <form.Field name="rules.spiceCount">
-          {(field) => (
-            <ControlBlock
-              title="Starting spice"
-              description="Rendered in At start as “Starting spice: N”; use a positive whole number."
-              inputId="rules-spice"
-              input={(fieldProps) => (
-                <NumberInput
-                  {...fieldProps}
-                  min={1}
-                  step={1}
-                  allowDecimal={false}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(value) =>
-                    field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
-                  }
-                />
-              )}
-            />
-          )}
-        </form.Field>
-      </SimpleGrid>
+        <Stack gap="md">
+          <form.Field name="rules.spiceCount">
+            {(field) => (
+              <ControlBlock
+                title="Starting spice"
+                description="Rendered in At start as “Starting spice: N”; use a positive whole number."
+                inputId="rules-spice"
+                input={(fieldProps) => (
+                  <NumberInput
+                    {...fieldProps}
+                    min={1}
+                    step={1}
+                    allowDecimal={false}
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(value) =>
+                      field.handleChange(typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 1)
+                    }
+                  />
+                )}
+              />
+            )}
+          </form.Field>
+
+          <form.Field name="rules.treacheryTracker">
+            {(field) => (
+              <ControlBlock
+                title="Treachery tracker"
+                description={
+                  'In Play, this faction can open a private tracker of every Treachery card:\nwho won it, and what is left in the deck.\nFor a faction that sees cards before they are bid on, as Atreides does.'
+                }
+                inputId="rules-treachery-tracker"
+                input={(fieldProps) => (
+                  <Switch
+                    {...fieldProps}
+                    checked={field.state.value ?? false}
+                    onBlur={field.handleBlur}
+                    onChange={(event) => field.handleChange(event.currentTarget.checked || undefined)}
+                  />
+                )}
+              />
+            )}
+          </form.Field>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }

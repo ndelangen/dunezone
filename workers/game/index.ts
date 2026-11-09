@@ -224,9 +224,14 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
-const isPageRead = (message: ClientMessage): message is PageRead =>
-  message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
+const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
+  'log-history',
+  'spice-history',
+  'faction',
+  'treachery-deck',
+]);
+const isPageRead = (message: ClientMessage): message is PageRead => PAGE_READS.has(message.type);
 type ConversationRequest = Extract<
   ClientMessage,
   { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
@@ -1637,7 +1642,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
-  private sendPage(socket: WebSocket, message: PageRead) {
+  private sendPage(socket: WebSocket, message: PageRead, connection: Connection) {
     switch (message.type) {
       case 'log-history':
         this.send(socket, {
@@ -1657,6 +1662,12 @@ export class GameRoom extends DurableObject<GameEnv> {
           faction: this.session.publicFaction(message.factionId),
         });
         return;
+      case 'treachery-deck':
+        this.send(socket, {
+          type: 'treachery-deck',
+          cards: this.session.treacheryDeck(connection.viewer?.viewerSeat ?? null),
+        });
+        return;
     }
   }
 
@@ -1666,7 +1677,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Exclude<ClientMessage, { type: 'admit' | 'pass' | 'catalogue' | 'pointer' | 'pose' | 'telemetry' }>
   ) {
     if (isPageRead(message)) {
-      this.sendPage(socket, message);
+      this.sendPage(socket, message, connection);
       return;
     }
     if (isConversationRequest(message)) {

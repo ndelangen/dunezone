@@ -53,6 +53,7 @@ import { spiceGiftSchema, spiceReserveActionSchema, spiceReserveSchema, spiceTra
 import { swapActionSchema, swappingStateSchema } from './swapping';
 import { heldTechTokenSchema } from './techToken';
 import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
+import { treacheryDeckSchema } from './treacheryDeck';
 
 const factionArtworkSchema = z.record(
   z.string(),
@@ -314,6 +315,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   /* A seated faction's starting sheet as the game captured it; nothing when the game holds no capture of it. */
   z.strictObject({ type: z.literal('faction'), factionId: id }),
+  /* The game's Treachery deck as the tracker reads it; only a faction whose rules allow the tracker asks. */
+  z.strictObject({ type: z.literal('treachery-deck') }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
   /* A browser's periodic account of how the table felt, in whole milliseconds; the room only logs it. */
@@ -401,6 +404,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     more: z.boolean(),
   }),
   z.object({ type: z.literal('faction'), factionId: id, faction: publicFactionSchema.nullable() }),
+  z.object({ type: z.literal('treachery-deck'), cards: treacheryDeckSchema.nullable() }),
   z.object({
     type: z.literal('catalogue'),
     requestId: id,
