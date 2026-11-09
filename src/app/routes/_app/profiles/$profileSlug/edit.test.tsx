@@ -316,14 +316,14 @@ describe('profile settings page', () => {
 
   describe('name and picture from a sign-in method', () => {
     const googleOption = {
-      provider: 'google',
+      provider: 'google' as const,
       name: 'Norbert de Langen',
       displayName: 'NorbertdeLangen',
       image: 'https://lh3.example/photo.jpg',
       syncedAt: 1,
     };
     const discordOption = {
-      provider: 'discord',
+      provider: 'discord' as const,
       name: 'Bo',
       displayName: null,
       image: 'https://cdn.discordapp.com/a.png',
@@ -360,6 +360,14 @@ describe('profile settings page', () => {
       await act(async () => {
         fireEvent.click(view.getByRole('button', { name: 'Resync name and picture' }));
       });
+    };
+    /* Both methods connected, the resync answering as given, and the toolbar's Resync pressed. */
+    const resyncBothWith = async (result: Accounts.LinkedAccountResync) => {
+      bothConnected();
+      mocks.resyncLinked.mockResolvedValue(result);
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      return view;
     };
 
     it('opens the Sign-in methods tab, applies the one method at once, and the form takes the result', async () => {
@@ -428,11 +436,8 @@ describe('profile settings page', () => {
     });
 
     it('shows each method\u2019s offer on its row when several report something, and takes the chosen one', async () => {
-      bothConnected();
-      mocks.resyncLinked.mockResolvedValue({ kind: 'choose', options: [googleOption, discordOption] });
       mocks.applyLinked.mockResolvedValue({ ...applied('discord'), name: false });
-      const view = await renderPage();
-      await resyncFromToolbar(view);
+      const view = await resyncBothWith({ kind: 'choose', options: [googleOption, discordOption] });
       expect(view.getByText('Takes the name NorbertdeLangen and picture.')).not.toBeNull();
       expect(view.getByText(/“Bo” does not fit a display name/)).not.toBeNull();
       expect(view.getByRole('button', { name: 'Take Google name and picture' })).not.toBeNull();
@@ -448,13 +453,10 @@ describe('profile settings page', () => {
     });
 
     it('offers a sign-in on the row of a method that has never reported, which comes back to this tab', async () => {
-      bothConnected();
-      mocks.resyncLinked.mockResolvedValue({
+      const view = await resyncBothWith({
         kind: 'choose',
         options: [{ ...googleOption, name: null, displayName: null, image: null, syncedAt: null }, discordOption],
       });
-      const view = await renderPage();
-      await resyncFromToolbar(view);
       expect(view.getByText('Not asked yet')).not.toBeNull();
       expect(view.getByRole('button', { name: 'Take Discord name and picture' })).not.toBeNull();
       await act(async () => {
@@ -464,16 +466,13 @@ describe('profile settings page', () => {
     });
 
     it('says on each row when a method reported nothing the profile could take', async () => {
-      bothConnected();
-      mocks.resyncLinked.mockResolvedValue({
+      const view = await resyncBothWith({
         kind: 'nothing',
         options: [
           { ...googleOption, name: null, displayName: null, image: null },
           { ...discordOption, name: null, image: null },
         ],
       });
-      const view = await renderPage();
-      await resyncFromToolbar(view);
       /* The row says it, and the disabled Take repeats it as its reason. */
       expect(view.getAllByText('Google reported nothing the profile could take.')).toHaveLength(2);
       expect(view.getAllByText('Discord reported nothing the profile could take.')).toHaveLength(2);
