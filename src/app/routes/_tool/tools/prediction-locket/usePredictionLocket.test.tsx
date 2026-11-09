@@ -46,7 +46,7 @@ test('says when the prediction itself could not be saved', () => {
   expect(result.current.state.locked).toMatchObject({ faction: fremen, turn: 6 });
 });
 
-test("a pick in a stale tab never erases a lock another tab already saved", () => {
+test('a pick in a stale tab never erases a lock another tab already saved', () => {
   const locking = renderHook(() => usePredictionLocket());
   const stale = renderHook(() => usePredictionLocket());
   act(() => locking.result.current.lock({ faction: fremen, turn: 6, timeZone: 'Europe/Amsterdam', lockedAt: 1 }));
