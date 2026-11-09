@@ -36,9 +36,9 @@ export const browserGameRuntime: GameRuntime = {
     return () => document.removeEventListener('visibilitychange', changed);
   },
   onSignedOut(listener) {
-    /* A storage event reaches every other tab of the origin; a null key is the whole storage cleared. */
+    /* A storage event reaches every other tab of the origin; only the token's removal from local storage is a sign-out. */
     const changed = (event: StorageEvent) => {
-      if ((event.key === null || event.key === storedAuthTokenKey()) && event.newValue === null) {
+      if (event.storageArea === window.localStorage && event.key === storedAuthTokenKey() && event.newValue === null) {
         listener();
       }
     };

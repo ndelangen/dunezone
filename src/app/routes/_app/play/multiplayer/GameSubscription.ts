@@ -129,22 +129,9 @@ export class GameSubscription {
     this.stopLongTasks?.();
     this.stopLongTasks = undefined;
     clearInterval(this.telemetryTimer);
-    this.stopPasses?.();
-    this.stopPasses = undefined;
     this.stopSignedOut?.();
     this.stopSignedOut = undefined;
-    clearTimeout(this.passTimer);
-    ++this.generation;
-    clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = undefined;
-    clearTimeout(this.admissionTimer);
-    clearInterval(this.keepaliveTimer);
-    clearTimeout(this.admissionAttempt?.timer);
-    this.admissionAttempt = undefined;
-    this.admissionRequest = undefined;
-    const socket = this.socket;
-    this.socket = null;
-    socket?.close();
+    this.disconnect();
     this.current = null;
     this.wireView = null;
     this.resyncing = false;
@@ -153,15 +140,13 @@ export class GameSubscription {
     this.retryReason = null;
   }
 
-  /**
-   * Another tab signed out: the socket closes here, in the storage event, rather than when the page's auth gate unmounts the table (#2379).
-   * Tearing down a drawn table can hold the main thread for many seconds on a slow GPU, and the socket must not outlive the sign-out by that long.
-   * The pending admission and any reconnect are dropped with it, so nothing reopens the table on the old pass.
-   */
-  private signedOut() {
-    if (!this.listener) {
-      return;
-    }
+  /** Closes the socket and drops everything that could open another: the pass watch and renewal, a pending admission, a waiting reconnect. */
+  private disconnect() {
+    this.stopPasses?.();
+    this.stopPasses = undefined;
+    clearTimeout(this.passTimer);
+    this.passTimer = undefined;
+    this.renewing = undefined;
     ++this.generation;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = undefined;
@@ -170,11 +155,20 @@ export class GameSubscription {
     clearTimeout(this.admissionAttempt?.timer);
     this.admissionAttempt = undefined;
     this.admissionRequest = undefined;
-    clearTimeout(this.passTimer);
-    this.passTimer = undefined;
     const socket = this.socket;
     this.socket = null;
     socket?.close();
+  }
+
+  /**
+   * Another tab signed out: the socket closes here, in the storage event, rather than when the page's auth gate unmounts the table (#2379).
+   * Tearing down a drawn table can hold the main thread for many seconds on a slow GPU, and the Worker must not keep serving the signed-out tab that long.
+   */
+  private signedOut() {
+    if (!this.listener) {
+      return;
+    }
+    this.disconnect();
     this.changeStatus('denied', 'Sign in again to access the table.');
   }
 
