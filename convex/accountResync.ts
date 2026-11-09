@@ -149,13 +149,6 @@ export const applyInternal = internalMutation({
   handler: (ctx, args) => applyFor(ctx, args.provider),
 });
 
-/**
- * Pulls the name and picture from the reader's connected sign-in methods.
- * Steam is asked live, since its public profile needs no token from the reader;
- * Google and Discord offer what they reported at the last sign-in with them.
- * One method with something to offer is applied at once;
- * several leave the choice to the reader.
- */
 /** Asks Steam for the reader's current name and picture and keeps what it finds, as long as that Steam account is still the connected one. */
 async function refreshSteam(ctx: ActionCtx, steamId: string): Promise<void> {
   const live = await steamProfile(steamId);

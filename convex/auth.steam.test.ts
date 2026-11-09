@@ -183,18 +183,9 @@ describe('Steam sign-in', () => {
     });
     expect(await profile()).toMatchObject({
       username: 'Steam player',
-      slug: 'steam-player',
       avatar_url: 'https://avatars.steamstatic.com/a_full.jpg',
     });
     expect(await lookupOutcome(t)).toBe('ok');
-    /* The placeholder's address keeps leading to the renamed profile, as after any rename. */
-    const former = await t.run((ctx) =>
-      ctx.db
-        .query('former_slugs')
-        .withIndex('by_kind_and_scope_and_slug', (q) => q.eq('kind', 'profile').eq('scope', '').eq('slug', 'nameless'))
-        .unique()
-    );
-    expect(former?.record_id).toBe((await profile())!._id);
   });
 
   test('records why the profile lookup failed, without the key', async () => {

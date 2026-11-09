@@ -370,6 +370,10 @@ describe('resync', () => {
       expect(result).toMatchObject({ kind: 'applied', applied: { profile: { username: 'MuadDib' } } });
     }
     expect(steamFetch).toHaveBeenCalledTimes(5);
+    /* The budget is each account's own: someone else is still asked live. */
+    const other = await account(t, 'othername', 'steam');
+    await viewer(t, other).action(api.accountResync.resync, {});
+    expect(steamFetch).toHaveBeenCalledTimes(6);
     await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
