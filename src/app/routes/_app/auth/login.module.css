@@ -37,7 +37,7 @@
 /* Discord's own blurple, as Google keeps its four colours in its mark. */
 .provider[data-provider="discord"],
 .provider[data-provider="discord"]:hover:not(:disabled) {
-  --provider-bg: #5865f2;
+  --provider-bg: var(--provider-discord);
   background-color: var(--provider-bg);
   color: var(--color-inverse);
 }
