@@ -49,8 +49,9 @@ const onTo = (snapshot: () => GameSnapshot, id: string, phase: string, detail: s
 function tasks(snapshot: () => GameSnapshot, players: TablePlayers): GuideTask[] {
   /* Geometry and the recorded catalogue stay out of the chapter list's initial bundle. */
   let board: typeof BoardChecks | undefined;
-  void import('./whatGoesWhereBoard').then((loaded) => {
-    board = loaded;
+  /* Destructured so knip sees which exports are used; it cannot follow a module namespace into another variable. */
+  void import('./whatGoesWhereBoard').then(({ spiceBlow, territory }) => {
+    board = { spiceBlow, territory };
   });
   let blow: BoardChecks.SpiceBlow | undefined;
   /* The revealed card, followed by its top card's ID, since a pile it lands on gets a new piece ID. */
