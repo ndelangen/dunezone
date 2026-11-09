@@ -89,7 +89,8 @@ function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }
   }
   const words = query.trim();
   const listed = listedRulesets(setup.rulesets, words, found);
-  const chosen = picked ?? setup.preferred ?? listed[0];
+  /* The fallback comes from the catalogue the setup opened with, so a search that finds nothing never clears the form. */
+  const chosen = picked ?? setup.preferred ?? setup.rulesets.find((entry) => !HIDDEN_RULESETS.has(entry.slug));
   if (!chosen) {
     return null;
   }
