@@ -343,3 +343,6 @@ A faction's declaration that its hand is full, separate from its Auction hand co
 
 **Persistent pass**:
 A player's standing choice to pass their bidding turns in the IRL bidding tool until they switch it off. It survives raises, auctions, Reset and phase changes without changing Full status, Auction hand count or Auction hand limit.
+
+**Recovery copy**:
+A phone's latest received state of an IRL bidding table, kept so the player can make that phone the central device. Restoring it creates a new table and join code, with the auction paused for the table to check and Resume while the other phones rejoin.
