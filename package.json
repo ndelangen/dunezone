@@ -263,7 +263,7 @@
     "@react-three/fiber@10.0.0-alpha.5": "patches/@react-three%2Ffiber@10.0.0-alpha.5.patch",
     "@floating-ui/dom@1.8.0": "patches/@floating-ui%2Fdom@1.8.0.patch",
     "@storybook/react@10.6.2": "patches/@storybook%2Freact@10.6.2.patch",
-    "miniflare@5.20261023.3-beta": "patches/miniflare@5.20261023.3-beta.patch",
+    "miniflare@5.20261104.0-beta": "patches/miniflare@5.20261104.0-beta.patch",
     "convex@1.49.0": "patches/convex@1.49.0.patch"
   }
 }
