@@ -12,7 +12,10 @@ function bidPeek(snapshot: GameSnapshot, faces: ReadonlySet<string>): TableFacts
   const piece = snapshot.peek?.piece;
   const item = piece?.kind === 'card' && piece.items.length === 1 ? piece.items[0] : undefined;
   const face = item?.artwork?.front;
-  if (!item || item.faceUp || !face || !faces.has(face) || !handCountsShowing(snapshot.phase, snapshot.phases)) {
+  /* The peek shows every face; the card on the table is what lies face down. */
+  const onTable = snapshot.table.pieces.find((candidate) => candidate.id === piece?.id)?.items[0];
+  const hidden = onTable?.id === item?.id && onTable?.faceUp === false;
+  if (!item || !hidden || !face || !faces.has(face) || !handCountsShowing(snapshot.phase, snapshot.phases)) {
     return null;
   }
   return { item: item.id, face };
