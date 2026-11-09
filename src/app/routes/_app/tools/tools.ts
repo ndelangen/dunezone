@@ -46,6 +46,8 @@ export type Tool = Readonly<{
   icon: LucideIcon;
   /** The tile's picture, once the tool is built; until then the tile shows the tool's mark as a placeholder. */
   art?: string;
+  /** The same picture at twice the size, 1280 by 800, where a tool has one: the picture its links share, and the homepage's when it features the tool. */
+  largeArt?: string;
   group: ToolGroup;
   /** Three things the tool will do, shown on its placeholder page. */
   capabilities: readonly [ToolCapability, ToolCapability, ToolCapability];
@@ -124,6 +126,7 @@ const TOOL_ENTRIES = [
       'Pick your ruleset’s spice deck and tap a spice pile to turn over its card. The phone shuffles, keeps the discard piles and says what Shai-Hulud devours.',
     icon: Layers,
     art: '/tools/spice-deck.webp',
+    largeArt: '/tools/spice-deck-large.webp',
     group: 'During the game',
     capabilities: [
       { icon: Layers, title: 'Your deck', detail: 'The spice deck of any ruleset.' },
