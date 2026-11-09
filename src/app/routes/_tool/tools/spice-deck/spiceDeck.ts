@@ -17,9 +17,8 @@ export type SpiceCardDef = Readonly<{
   /** A card that is neither a spice card nor Shai-Hulud, such as Sandtrout or a Discovery blow: its own text says what happens. */
   special?: boolean;
   /**
-   * A special card that blows in a territory, such as a Discovery or mine blow: like a spice card it ends its pile's blow and
-   * is what a Shai-Hulud above it devours, whether or not the catalogue knows its amount. A special card without one, such as
-   * Sandtrout, leaves the pile waiting for another card.
+   * A special card that blows in a territory, such as a Discovery or mine blow: like a spice card it ends its pile's blow and is what a Shai-Hulud above it devours, whether or not the catalogue knows its amount.
+   * A special card without one, such as Sandtrout, leaves the pile waiting for another card.
    */
   territory?: boolean;
   /** The card's face. */
