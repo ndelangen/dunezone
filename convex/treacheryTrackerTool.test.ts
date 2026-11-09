@@ -237,3 +237,74 @@ test('reads on past a card’s first share of the reads, so a live deck behind m
   const decks = await t.query(api.treacheryTrackerTool.decks, {});
   expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
 }, 60_000);
+
+/* An asset of the given type in a test catalogue. */
+function insertAsset(
+  ctx: MutationCtx,
+  owner: Id<'users'>,
+  type: string,
+  slug: string,
+  data: unknown,
+  is_deleted = false
+) {
+  return ctx.db.insert('assets', {
+    owner_id: owner,
+    type,
+    data,
+    slug,
+    created_at: stamp,
+    updated_at: stamp,
+    is_deleted,
+    group_id: null,
+  });
+}
+
+test('a deleted deck costs only its lookup, so many of them ahead of a live deck still leave it listed', async () => {
+  const t = applicationTest({ transactionLimits: true });
+  await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    const card = await insertAsset(ctx, owner, 'card-treachery', 'lasgun', publishingTreacheryCard);
+    for (let index = 0; index <= 400; index++) {
+      const name = index === 400 ? 'Live Deck' : `Old Deck ${index}`;
+      const data = { name, about: '', cardback: publishingCustomDeckCardback };
+      const deck = await insertAsset(ctx, owner, 'deck', `deck-${index}`, data, index < 400);
+      await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
+    }
+  });
+  const decks = await t.query(api.treacheryTrackerTool.decks, {});
+  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
+}, 60_000);
+
+test('stays inside a query’s calls when many decks mix one Treachery card with many others', async () => {
+  const t = applicationTest({ transactionLimits: true });
+  const { owner, card } = await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    return { owner, card: await insertAsset(ctx, owner, 'card-treachery', 'lasgun', publishingTreacheryCard) };
+  });
+  for (let batch = 0; batch < 10; batch++) {
+    await t.run(async (ctx) => {
+      for (let index = 0; index < 20; index++) {
+        const number = batch * 20 + index;
+        const data = {
+          name: `Mixed ${String(number).padStart(3, '0')}`,
+          about: '',
+          cardback: publishingCustomDeckCardback,
+        };
+        const deck = await insertAsset(ctx, owner, 'deck', `mixed-${number}`, data);
+        await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
+        for (let other = 0; other < 20; other++) {
+          const custom = await insertAsset(ctx, owner, 'card-custom', `custom-${number}-${other}`, {});
+          await ctx.db.insert('asset_relations', {
+            from_asset_id: deck,
+            to_asset_id: custom,
+            kind: 'deck-card',
+            count: 1,
+          });
+        }
+      }
+    });
+  }
+  const decks = await t.query(api.treacheryTrackerTool.decks, {});
+  expect(decks.length).toBeGreaterThan(0);
+  expect(decks.every((deck) => deck.cards === 21)).toBe(true);
+}, 60_000);

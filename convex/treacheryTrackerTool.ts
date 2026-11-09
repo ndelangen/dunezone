@@ -25,6 +25,15 @@ const READ_BUDGET = 24_000;
 const FIND_BUDGET = 10_000;
 /* The most a deck's Rulesets and back read besides its cards. */
 const READS_PER_DECK = 60;
+/*
+ * The database calls one answer may make, well inside the 4,096 a query may make.
+ * Each index range and each document fetched counts as one.
+ */
+const CALL_BUDGET = 3000;
+/* At most this many of the calls go to finding decks. */
+const FIND_CALLS = 1500;
+/* The most calls a deck's Rulesets and back make besides its cards. */
+const CALLS_PER_DECK = 10;
 /* A Ruleset for trying things out, never named to a table. */
 const HIDDEN_RULESETS = new Set(['test']);
 
@@ -40,8 +49,8 @@ const treacheryDeckChoiceValidator = v.object({
   rulesets: v.array(v.object({ slug: v.string(), name: v.string() })),
 });
 
-/* The rows this answer may still read. */
-type Budget = { left: number };
+/* The rows this answer may still read, and the database calls it may still make. */
+type Budget = { left: number; calls: number };
 
 /* Each item read in turn of batches, so a large catalogue never has more than READS_AT_ONCE reads in flight. */
 async function inBatches<T, R>(items: readonly T[], read: (item: T) => Promise<R>): Promise<R[]> {
@@ -56,6 +65,7 @@ async function inBatches<T, R>(items: readonly T[], read: (item: T) => Promise<R
 async function rulesetDecks(ctx: QueryCtx, budget: Budget) {
   const rulesets = (await ctx.db.query('rulesets').take(RULESET_LIMIT)).filter((ruleset) => !ruleset.is_deleted);
   budget.left -= rulesets.length;
+  budget.calls -= 1 + rulesets.length;
   const slots = await inBatches(rulesets, (ruleset) =>
     ctx.db
       .query('ruleset_asset_slots')
@@ -100,15 +110,23 @@ async function decksWithTreachery(ctx: QueryCtx, budget: Budget) {
     .withIndex('by_type_deleted', (q) => q.eq('type', 'card-treachery').eq('is_deleted', false))
     .take(CARD_LIMIT);
   budget.left -= cards.length;
+  budget.calls -= 1;
   const known = new Map<Id<'assets'>, Doc<'assets'> | null>(cards.map((card) => [card._id, card]));
   const found: Id<'assets'>[] = [];
   let findLeft = Math.min(FIND_BUDGET, budget.left);
+  const callsAtStart = budget.calls;
+  /* A round makes one call a card it reads on, so it starts only while the finding calls cover it. */
+  const callsCover = (count: number) => callsAtStart - budget.calls + count <= FIND_CALLS;
   let pending: Reading[] = cards.map((card) => ({ card, read: 0, after: undefined }));
   /* Rounds, each sharing what is left among the cards not read to the end, so a card cut short in one round is read on in the next. */
   for (let each = Math.floor(findLeft / pending.length); pending.length > 0 && each >= 1;) {
+    if (!callsCover(pending.length)) {
+      break;
+    }
     const round = await readRound(ctx, pending, each);
     findLeft -= round.rows.length;
     budget.left -= round.rows.length;
+    budget.calls -= pending.length;
     found.push(...round.rows.map((membership) => membership.from_asset_id));
     pending = round.next;
     each = pending.length > 0 ? Math.floor(findLeft / pending.length) : 0;
@@ -133,16 +151,18 @@ async function copiesIn(
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', DECK_CARD))
     .take(most + 1);
   budget.left -= relations.length;
+  budget.calls -= 1;
   if (relations.length > most) {
     return undefined;
   }
   let total = 0;
   for (const relation of relations) {
     if (!known.has(relation.to_asset_id)) {
-      if (budget.left < 1) {
+      if (budget.left < 1 || budget.calls < 1) {
         return undefined;
       }
       budget.left -= 1;
+      budget.calls -= 1;
       known.set(relation.to_asset_id, await ctx.db.get('assets', relation.to_asset_id));
     }
     const card = known.get(relation.to_asset_id);
@@ -175,14 +195,18 @@ type Counting = Readonly<{
 
 /* One deck as the list offers it; null when it is no live deck with cards, and 'out of reads' once the budget cannot count it whole. */
 async function choiceFor(ctx: QueryCtx, id: Id<'assets'>, { known, budget, presets }: Counting) {
-  if (budget.left < READS_PER_DECK) {
+  /* The lookup alone is charged until the deck proves live, so a deleted deck costs one read. */
+  if (budget.left < 1 + READS_PER_DECK || budget.calls < 2 + CALLS_PER_DECK) {
     return 'out of reads' as const;
   }
-  budget.left -= READS_PER_DECK;
+  budget.left -= 1;
+  budget.calls -= 1;
   const row = await ctx.db.get('assets', id);
   if (!isLiveDeck(row)) {
     return null;
   }
+  budget.left -= READS_PER_DECK;
+  budget.calls -= CALLS_PER_DECK;
   const cards = await copiesIn(ctx, row, known, budget);
   if (cards === undefined) {
     return 'out of reads' as const;
@@ -208,7 +232,7 @@ export const decks = publicQuery({
   args: {},
   returns: v.array(treacheryDeckChoiceValidator),
   handler: async (ctx) => {
-    const budget: Budget = { left: READ_BUDGET };
+    const budget: Budget = { left: READ_BUDGET, calls: CALL_BUDGET };
     const slotted = await rulesetDecks(ctx, budget);
     const { found, known } = await decksWithTreachery(ctx, budget);
     const presets: CardbackPresetMemo = new Map();
