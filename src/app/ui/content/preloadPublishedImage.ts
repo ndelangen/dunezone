@@ -3,8 +3,6 @@
  * The full capture is fetched, and marked decoded, so every `PublishedImage` of it on the page draws that copy from the browser's cache and appears at once.
  */
 
-import { useEffect, useState } from 'react';
-
 import { markDecoded } from './imageArrival';
 
 /** An image that has not loaded by then counts as done, so one stalled request cannot hold whatever waits on it. */
@@ -64,27 +62,4 @@ export async function preloadPublishedImages(
       })
     )
   );
-}
-
-/**
- * Preloads every image while the caller is mounted, and counts them in: `done` of `total`, and `ready` once all are.
- * A new list starts the count again.
- * Images already in count at once.
- */
-export function usePreloadedImages(srcs: readonly string[]) {
-  const key = [...new Set(srcs)].join('\n');
-  const [progress, setProgress] = useState({ key, done: 0, total: new Set(srcs).size });
-  useEffect(() => {
-    let live = true;
-    void preloadPublishedImages(key ? key.split('\n') : [], (done, total) => {
-      if (live) {
-        setProgress({ key, done, total });
-      }
-    });
-    return () => {
-      live = false;
-    };
-  }, [key]);
-  const current = progress.key === key ? progress : { key, done: 0, total: key ? key.split('\n').length : 0 };
-  return { done: current.done, total: current.total, ready: current.done >= current.total };
 }
