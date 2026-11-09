@@ -33,16 +33,16 @@ export const BoardGameGeekLink = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const field = await page.findByRole('textbox', { name: 'BoardGameGeek profile URL' }, { timeout: 30_000 });
-    await userEvent.type(field, 'https://boardgamegeek.com/user/ExamplePlayer');
+    await userEvent.type(field, 'https://boardgamegeek.com/profile/ExamplePlayer');
     await userEvent.click(page.getByRole('tab', { name: 'Sign-in methods' }));
     await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
     await expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
-      'https://boardgamegeek.com/user/ExamplePlayer'
+      'https://boardgamegeek.com/profile/ExamplePlayer'
     );
     await userEvent.click(page.getByRole('button', { name: 'Save profile' }));
     await waitFor(() => expect(page.getByRole('button', { name: 'Save profile' })).toBeDisabled());
     await expect(page.getByRole('textbox', { name: 'BoardGameGeek profile URL' })).toHaveValue(
-      'https://boardgamegeek.com/user/ExamplePlayer'
+      'https://boardgamegeek.com/profile/ExamplePlayer'
     );
   },
 });
@@ -476,14 +476,14 @@ export const BoardGameGeekProfileLink = meta.story({
     database: db((baseline) => {
       const profile = baseline.profiles.find((row) => row.slug === 'central');
       if (profile) {
-        profile.bgg_profile_url = 'https://boardgamegeek.com/user/ExamplePlayer';
+        profile.bgg_profile_url = 'https://boardgamegeek.com/profile/ExamplePlayer';
       }
     }),
   },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     const link = await page.findByRole('link', { name: 'View BGG profile' }, { timeout: 30_000 });
-    await expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/user/ExamplePlayer');
+    await expect(link).toHaveAttribute('href', 'https://boardgamegeek.com/profile/ExamplePlayer');
     await expect(page.getByText('Unverified')).toBeVisible();
   },
 });
