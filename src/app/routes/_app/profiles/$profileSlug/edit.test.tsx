@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   disconnectMethod: vi.fn(),
   signOutEverywhere: vi.fn(),
+  resyncLinked: vi.fn(),
+  applyLinked: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -80,6 +82,8 @@ vi.mock('@db/accounts', async (importOriginal) => ({
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => mocks.disconnectMethod,
   useSignOutEverywhere: () => mocks.signOutEverywhere,
+  useResyncLinkedAccounts: () => mocks.resyncLinked,
+  useApplyLinkedAccount: () => mocks.applyLinked,
 }));
 
 import { Route } from './edit.route';
@@ -153,6 +157,8 @@ beforeEach(() => {
   mocks.signOut.mockReset().mockResolvedValue(undefined);
   mocks.disconnectMethod.mockReset().mockResolvedValue(undefined);
   mocks.signOutEverywhere.mockReset().mockResolvedValue(null);
+  mocks.resyncLinked.mockReset();
+  mocks.applyLinked.mockReset();
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -306,6 +312,124 @@ describe('profile settings page', () => {
     const view = await mountPage();
     expect((await view.findByRole('tab', { name: 'Sign-in methods' })).getAttribute('aria-selected')).toBe('true');
     expect(view.getByRole('button', { name: 'Connect Discord' })).not.toBeNull();
+  });
+
+  describe('name and picture from a sign-in method', () => {
+    const applied = (provider: 'google' | 'discord', slug = 'owner-profile') => ({
+      provider,
+      name: true,
+      avatar: true,
+      profile: {
+        username: 'NorbertdeLangen',
+        avatar_url: 'https://lh3.example/photo.jpg',
+        bgg_profile_url: null,
+        default_group_id: null,
+        slug,
+      },
+    });
+
+    it('applies the one method at once and the form takes the result', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'applied', applied: applied('google') });
+      const view = await renderPage();
+      await chooseTab(view, 'Sign-in methods');
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync' }));
+      });
+      expect(mocks.resyncLinked).toHaveBeenCalledWith({});
+      expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
+      await chooseTab(view, 'Profile');
+      expect((view.getByRole('textbox', { name: 'Display name' }) as HTMLInputElement).value).toBe('NorbertdeLangen');
+      expect((view.getByRole('textbox', { name: 'Avatar image URL' }) as HTMLInputElement).value).toBe(
+        'https://lh3.example/photo.jpg'
+      );
+      expect(mocks.navigate).not.toHaveBeenCalled();
+    });
+
+    it('follows the profile to its new address when the name changed it, keeping the tab', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'applied', applied: applied('google', 'norbertdelangen') });
+      const view = await renderPage();
+      await chooseTab(view, 'Sign-in methods');
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync' }));
+      });
+      expect(mocks.navigate).not.toHaveBeenCalled();
+      /* The live profile learns of the rename; the address still names the old one. */
+      mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile: { ...profile, slug: 'norbertdelangen' } });
+      await act(async () => {
+        view.rerender(
+          <MantineProvider theme={appContentTheme}>
+            <ProfilePage />
+          </MantineProvider>
+        );
+      });
+      expect(mocks.navigate).toHaveBeenCalledWith({
+        to: '/profiles/$profileSlug/edit',
+        params: { profileSlug: 'norbertdelangen' },
+        search: true,
+        replace: true,
+      });
+      expect(view.queryByText('This is not your profile')).toBeNull();
+      expect(view.getByText('Following your profile to its new address')).not.toBeNull();
+    });
+
+    it('offers a choice when several methods report something, and applies the chosen one', async () => {
+      mocks.resyncLinked.mockResolvedValue({
+        kind: 'choose',
+        options: [
+          {
+            provider: 'google',
+            name: 'Norbert de Langen',
+            displayName: 'NorbertdeLangen',
+            image: 'https://lh3.example/photo.jpg',
+            syncedAt: 1,
+          },
+          {
+            provider: 'discord',
+            name: 'Bo',
+            displayName: null,
+            image: 'https://cdn.discordapp.com/a.png',
+            syncedAt: 1,
+          },
+        ],
+      });
+      mocks.applyLinked.mockResolvedValue({ ...applied('discord'), name: false });
+      const view = await renderPage();
+      await chooseTab(view, 'Sign-in methods');
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync' }));
+      });
+      const list = view.getByRole('list', { name: 'Sign-in methods with a name or picture to offer' });
+      expect(list.querySelectorAll('[role="listitem"]')).toHaveLength(2);
+      expect(view.getByText('Takes the name NorbertdeLangen and picture.')).not.toBeNull();
+      expect(view.getByText(/“Bo” does not fit a display name/)).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Use Discord name and picture' }));
+      });
+      expect(mocks.applyLinked).toHaveBeenCalledWith({ provider: 'discord' });
+      expect(view.queryByRole('list', { name: 'Sign-in methods with a name or picture to offer' })).toBeNull();
+      expect(view.getByText(/Picture updated from Discord/)).not.toBeNull();
+    });
+
+    it('says when no method has reported anything yet', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'nothing', options: [] });
+      const view = await renderPage();
+      await chooseTab(view, 'Sign-in methods');
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync' }));
+      });
+      expect(view.getByText(/has reported a name or picture yet/)).not.toBeNull();
+    });
+
+    it('shows a failed resync as an error on the tab', async () => {
+      mocks.resyncLinked.mockRejectedValue(new Error('Steam did not answer.'));
+      const view = await renderPage();
+      await chooseTab(view, 'Sign-in methods');
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync' }));
+      });
+      expect(view.getByRole('alert').textContent).toContain('Steam did not answer.');
+      expect(view.getByRole('button', { name: 'Resync' })).toHaveProperty('disabled', false);
+    });
   });
 
   it('offers to sign in again when connecting a method needs a recent sign-in', async () => {

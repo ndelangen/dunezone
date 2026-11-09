@@ -4,27 +4,43 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
+import { NameDisc } from '@ui/content/NameDisc';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Link2, LogOut, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
-import { useId, useReducer, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  CircleUserRound,
+  Link2,
+  LogOut,
+  Palette,
+  RefreshCw,
+  Save,
+  Trash2,
+  Unlink,
+  UsersRound,
+} from 'lucide-react';
+import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 import { authProviderNames } from '@db/accounts';
 import {
   holdAuthConnection,
   needsRecentSignIn,
+  useApplyLinkedAccount,
   useBeginAuthConnection,
   useProviderSignIn,
   useDisconnectAuthMethod,
+  useResyncLinkedAccounts,
   useSignOutEverywhere,
 } from '@db/accounts';
-import type { AuthProvider } from '@db/accounts';
+import type { AuthProvider, LinkedAccountApplied, LinkedAccountOption, LinkedAccountResync } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
@@ -329,6 +345,15 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
     );
   };
 
+  /* A resync changes the profile outside the form, so the form takes the result as a save. A new address follows on its own, once the page learns of it. */
+  const resynced = (applied: LinkedAccountApplied) =>
+    commitSaved({
+      username: applied.profile.username ?? '',
+      avatarUrl: applied.profile.avatar_url ?? '',
+      bggProfileUrl: applied.profile.bgg_profile_url ?? '',
+      defaultGroupId: applied.profile.default_group_id ?? null,
+    });
+
   const panelError = <ActionError subject="Profile" verb="save" error={mutationError} />;
 
   const tabs = [
@@ -475,7 +500,11 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
               Checking your connected accounts.
             </PageState>
           ) : settings.account ? (
-            <SignInMethods account={settings.account} returnTo={settingsTabPath(initial.slug, 'sign-in')} />
+            <SignInMethods
+              account={settings.account}
+              returnTo={settingsTabPath(initial.slug, 'sign-in')}
+              onApplied={resynced}
+            />
           ) : (
             <PageState kind="absent" title="Sign-in methods unavailable">
               Sign in again to manage your account.
@@ -578,7 +607,29 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
 function ProfileSettingsPage() {
   const { profileSlug } = Route.useParams();
   const { tab = 'profile' } = Route.useSearch();
+  const navigate = useNavigate();
   const viewer = useSessionViewer();
+  const viewerSlug = viewer.kind === 'profile' ? viewer.profile.slug : null;
+  /*
+   * A rename the page did not submit, a resync for one, changes the address while the reader is on it.
+   * The address the page opened on is remembered, so that one mismatch is followed to the new address instead of being read as somebody else's profile.
+   */
+  const [openedOn, setOpenedOn] = useState<string | null>(() => (viewerSlug === profileSlug ? profileSlug : null));
+  if (viewerSlug === profileSlug && openedOn !== profileSlug) {
+    /* Remembered during render, as soon as the address and the profile agree, so a later mismatch is judged against it at once. */
+    setOpenedOn(profileSlug);
+  }
+  const renamed = viewerSlug !== null && viewerSlug !== profileSlug && openedOn === profileSlug;
+  useLayoutEffect(() => {
+    if (renamed) {
+      void navigate({
+        to: '/profiles/$profileSlug/edit',
+        params: { profileSlug: viewerSlug },
+        search: true,
+        replace: true,
+      });
+    }
+  }, [navigate, renamed, viewerSlug]);
 
   switch (viewer.kind) {
     case 'pending':
@@ -604,6 +655,18 @@ function ProfileSettingsPage() {
       break;
   }
 
+  if (renamed) {
+    return (
+      <RoutePending
+        title="Profile settings"
+        back={<PageMessage.Back to="/profiles">Back to profiles</PageMessage.Back>}
+        loading="Following your profile to its new address"
+      >
+        Your profile's address changed with its name.
+      </RoutePending>
+    );
+  }
+
   if (viewer.profile.slug !== profileSlug) {
     /* The way out is the reader's own settings rather than a step backwards: they asked for this
        page and there is a version of it that is theirs. */
@@ -623,43 +686,148 @@ function ProfileSettingsPage() {
     );
   }
 
-  return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} initialTab={tab} />;
+  /* Keyed by the profile, not its address: a rename from the Sign-in methods tab keeps the tab and its answer on screen. */
+  return <EditableProfilePage key={viewer.profile._id} initial={viewer.profile} initialTab={tab} />;
 }
 
-/* The tab's one busy action: a provider being connected or disconnected, or the sign-out of every session. */
-type SignInMethodsAction = AuthProvider | 'everywhere';
+/* The tab's one busy action: a provider being connected or disconnected, the sign-out of every session, or a resync and the choice it can end in. */
+type SignInMethodsAction = AuthProvider | 'everywhere' | 'resync' | 'apply';
+/* Where the resync stands: not asked, offering a choice, finished with what the profile took, or finding nothing to take. */
+type ResyncState = LinkedAccountResync | { kind: 'idle' };
 /* The failure is kept as thrown, since a refusal that asks for a fresh sign-in is told apart by its data, not its words. */
-type SignInMethodsState = { busy: SignInMethodsAction | null; error: Error | string | null };
+type SignInMethodsState = { busy: SignInMethodsAction | null; error: Error | string | null; resync: ResyncState };
 type SignInMethodsEvent =
   | { kind: 'started'; provider: SignInMethodsAction }
   | { kind: 'failed'; error: unknown; fallback: string }
+  | { kind: 'resynced'; result: LinkedAccountResync }
   | { kind: 'settled' };
 
 function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEvent): SignInMethodsState {
   switch (event.kind) {
     case 'started':
-      return { busy: event.provider, error: null };
+      /* A new resync clears the last answer; the other actions leave it standing. */
+      return {
+        ...state,
+        busy: event.provider,
+        error: null,
+        ...(event.provider === 'resync' ? { resync: { kind: 'idle' } } : {}),
+      };
     case 'failed':
       return { ...state, error: event.error instanceof Error ? event.error : event.fallback };
+    case 'resynced':
+      return { ...state, resync: event.result };
     case 'settled':
       return { ...state, busy: null };
   }
 }
 
+/** What the profile took from a method, in a sentence. */
+function appliedWords(applied: LinkedAccountApplied): string {
+  const from = authProviderNames[applied.provider];
+  if (applied.name && applied.avatar) {
+    return `Name and picture updated from ${from}.`;
+  }
+  if (applied.name) {
+    return `Name updated from ${from}. Its picture was already yours, or it has none.`;
+  }
+  if (applied.avatar) {
+    return `Picture updated from ${from}. Its name was already yours, or does not fit a display name.`;
+  }
+  return `Your profile already matches ${from}.`;
+}
+
+/** One connected method's offer: its picture and name, and what the profile would take from it. */
+function LinkedAccountChoice({
+  option,
+  busy,
+  disabled,
+  onChoose,
+}: {
+  option: LinkedAccountOption;
+  busy: boolean;
+  disabled: boolean;
+  onChoose: () => void;
+}) {
+  const from = authProviderNames[option.provider];
+  const takes = [option.displayName ? `name ${option.displayName}` : null, option.image ? 'picture' : null].filter(
+    (part) => part !== null
+  );
+  const refused = option.name && !option.displayName ? ` “${option.name}” does not fit a display name.` : '';
+  return (
+    <Group justify="space-between" wrap="nowrap" align="center">
+      <Group gap="sm" wrap="nowrap" align="center">
+        <NameDisc name={option.name ?? from} src={option.image} size={44} />
+        <Stack gap={2}>
+          <Text fw={650}>{from}</Text>
+          <Text size="sm" c="dimmed">
+            {takes.length > 0 ? `Takes the ${takes.join(' and ')}.` : 'Nothing to take yet.'}
+            {refused}
+          </Text>
+        </Stack>
+      </Group>
+      <LabeledAction
+        accessibleName={`Use ${from} name and picture`}
+        icon={<Check size={17} aria-hidden />}
+        intent="positive"
+        busy={busy}
+        disabledReason={
+          disabled
+            ? takes.length === 0
+              ? `Sign in with ${from} once, so it can report a name or picture.`
+              : 'Another change is still running.'
+            : undefined
+        }
+        onClick={onChoose}
+      >
+        Use
+      </LabeledAction>
+    </Group>
+  );
+}
+
 function SignInMethods({
   account,
   returnTo,
+  onApplied,
 }: {
   account: NonNullable<ProfileSettingsData['account']>;
   /** This tab's address, for the re-sign-in a refused change can ask for. */
   returnTo: string;
+  /** The profile took a method's name or picture; the page's form has to agree. */
+  onApplied: (applied: LinkedAccountApplied) => void;
 }) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
   const revokeSessions = useSignOutEverywhere();
+  const resyncLinked = useResyncLinkedAccounts();
+  const applyLinked = useApplyLinkedAccount();
   const { signOut } = useAuthActions();
   const signIn = useProviderSignIn();
-  const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
+  const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null, resync: { kind: 'idle' } });
+  const resync = async () => {
+    dispatch({ kind: 'started', provider: 'resync' });
+    try {
+      const result = await resyncLinked({});
+      dispatch({ kind: 'resynced', result });
+      if (result.kind === 'applied') {
+        onApplied(result.applied);
+      }
+    } catch (error) {
+      dispatch({ kind: 'failed', error, fallback: 'The sign-in methods could not be asked for a name and picture.' });
+    }
+    dispatch({ kind: 'settled' });
+  };
+  const choose = async (provider: AuthProvider) => {
+    dispatch({ kind: 'started', provider: 'apply' });
+    try {
+      const applied = await applyLinked({ provider });
+      dispatch({ kind: 'resynced', result: { kind: 'applied', applied } });
+      onApplied(applied);
+    } catch (error) {
+      dispatch({ kind: 'failed', error, fallback: 'The name and picture could not be taken.' });
+    }
+    dispatch({ kind: 'settled' });
+  };
   const connect = async (provider: AuthProvider) => {
     dispatch({ kind: 'started', provider });
     try {
@@ -759,6 +927,62 @@ function SignInMethods({
           />
         );
       })}
+      <ControlBlock
+        title="Name and picture from a sign-in method"
+        description={
+          'Takes the name and picture your connected methods report.\nSteam is asked now. Google and Discord offer what they sent at your last sign-in with them.\nOne method applies at once; with several you pick one.\nA name is made to fit: letters and numbers only.'
+        }
+        input={
+          <Stack gap="sm">
+            <Group justify="space-between" align="center">
+              {state.resync.kind === 'applied' ? (
+                <StatusBadge tone="positive" live>
+                  {appliedWords(state.resync.applied)}
+                </StatusBadge>
+              ) : state.resync.kind === 'nothing' ? (
+                <Text size="sm" role="status">
+                  None of your sign-in methods has reported a name or picture yet. Sign in with one of them, then try
+                  again.
+                </Text>
+              ) : state.resync.kind === 'choose' ? (
+                <Text size="sm" role="status">
+                  Several methods have something to offer. Pick the one your profile should take.
+                </Text>
+              ) : (
+                <Text size="sm">Pulls your name and picture from your connected sign-in methods.</Text>
+              )}
+              <LabeledAction
+                icon={<RefreshCw size={17} aria-hidden />}
+                busy={state.busy === 'resync'}
+                disabledReason={
+                  account.merging
+                    ? 'Sign-in methods are locked while the profile merge runs.'
+                    : state.busy && state.busy !== 'resync'
+                      ? 'Another change is still running.'
+                      : undefined
+                }
+                onClick={() => void resync()}
+              >
+                Resync
+              </LabeledAction>
+            </Group>
+            {state.resync.kind === 'choose' ? (
+              <Stack gap="sm" role="list" aria-label="Sign-in methods with a name or picture to offer">
+                {state.resync.options.map((option) => (
+                  <Box key={option.provider} role="listitem">
+                    <LinkedAccountChoice
+                      option={option}
+                      busy={state.busy === 'apply'}
+                      disabled={!!state.busy || (!option.displayName && !option.image)}
+                      onChoose={() => void choose(option.provider)}
+                    />
+                  </Box>
+                ))}
+              </Stack>
+            ) : null}
+          </Stack>
+        }
+      />
       <ControlBlock
         title="Sign out on all devices"
         description={

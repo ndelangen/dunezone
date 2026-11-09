@@ -42,6 +42,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'account_connections',
     'steam_openid_nonces',
     'steam_profile_lookups',
+    'linked_account_profiles',
     'account_merge_operations',
     'account_deletion_operations',
     'account_deletion_items',
