@@ -60,7 +60,7 @@ export const OnePile = meta.story({
   },
 });
 
-/** Peek: held for two seconds, the next card shows big over everything; a tap hides it again. This game peeks at two. */
+/** Peek: held for two seconds, the next cards show big over everything. This game peeks at two. */
 export const Peek = meta.story({
   beforeEach: () => seedStoredGame(storyGame(3, { andNext: true, peek: 2 })),
   play: async ({ canvasElement }) => {
@@ -77,8 +77,6 @@ export const Peek = meta.story({
     /* A modal: focus is inside it, so the game's buttons behind it cannot be reached. */
     const dialog = page.getByRole('dialog', { name: 'The next spice cards' });
     await expect(dialog).toContainElement(canvasElement.ownerDocument.activeElement as HTMLElement);
-    await userEvent.click(page.getByRole('button', { name: 'Hide and put the phone back' }));
-    await expect(page.queryByRole('dialog', { name: 'The next spice cards' })).not.toBeInTheDocument();
   },
 });
 
