@@ -10,8 +10,8 @@ import type { RawData } from 'ws';
 
 import { api, internal } from '../convex/_generated/api.ts';
 import type { Id } from '../convex/_generated/dataModel.ts';
-import { PLAY_PROTOCOL_VERSION } from '../src/shared/play/protocolVersion.ts';
 import type { ClientMessage, PieceAction, ServerMessage } from '../src/shared/play/protocol.ts';
+import { PLAY_PROTOCOL_VERSION } from '../src/shared/play/protocolVersion.ts';
 import type { RoomView } from '../src/shared/play/updates.ts';
 import { setAdminAuth, adminMutationReference } from './lib/convex-admin.ts';
 import { required } from './verify-hosted-types.ts';
