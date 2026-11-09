@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ChirpReceiver, modulate } from './chirpModem';
-import type { Heard } from './chirpModem';
+import type { Heard, MessageKind } from './chirpModem';
 
 /* A repeatable noise source, so a failure can be replayed. */
 function noise(seed: number) {
@@ -29,9 +29,9 @@ function room(
   return out;
 }
 
-function hear(samples: Float32Array, rate: number, chunk = 2048): Heard[] {
+function hear(samples: Float32Array, rate: number, kind: MessageKind = 'command', chunk = 2048): Heard[] {
   const heard: Heard[] = [];
-  const receiver = new ChirpReceiver(rate, (message) => heard.push(message));
+  const receiver = new ChirpReceiver(rate, kind, (message) => heard.push(message));
   for (let at = 0; at < samples.length; at += chunk) {
     receiver.push(samples.subarray(at, at + chunk));
   }
@@ -50,11 +50,11 @@ describe('the chirp radio', () => {
     }
   });
 
-  it('tells a call from a command', () => {
+  it('hears only its own direction', () => {
     const signal = modulate('call', [1, 3, 0, 2, 11], rate);
-    expect(hear(room(signal, { lead: 3000, level: 1, noisePower: 0.01 }), rate)).toEqual([
-      { kind: 'call', symbols: [1, 3, 0, 2, 11] },
-    ]);
+    const sound = room(signal, { lead: 3000, level: 1, noisePower: 0.01 });
+    expect(hear(sound, rate, 'call')).toEqual([{ kind: 'call', symbols: [1, 3, 0, 2, 11] }]);
+    expect(hear(sound, rate, 'command')).toEqual([]);
   });
 
   it('reads a message quieter than the noise around it', () => {

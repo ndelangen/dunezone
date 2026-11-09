@@ -56,23 +56,50 @@ async function playMessage(
   out.disconnect();
 }
 
-/** Plays a remote's command. */
-export function playTune(command: RemoteCommand): Promise<void> {
-  return playMessage('command', encode(command));
+/** Plays a remote's command, three times over unless `once`. */
+export function playTune(command: RemoteCommand, { once = false } = {}): Promise<void> {
+  return playMessage('command', encode(command), { repeats: once ? 1 : REPEATS });
 }
 
-/** Plays the tablet's call to the remotes; a check-in that only repeats the last call plays once. */
-export function playCall(call: Call, { checkIn = false } = {}): Promise<void> {
-  return playMessage('call', encodeCall(call), { repeats: checkIn ? 1 : REPEATS });
+/** Plays the tablet's call to the remotes, once. */
+export function playCall(call: Call): Promise<void> {
+  return playMessage('call', encodeCall(call), { repeats: 1 });
 }
 
-/** How often the tablet repeats itself, so a phone can tell it still hears the tablet. */
-export const CHECK_IN_MS = 10_000;
-/** How long a phone goes without hearing the tablet before it says so. */
-export const LOST_MS = 25_000;
+/*
+ * The linked table takes turns on the air (Norbert, 2026-11-09: the tablet broadcasts all the time, so a phone always
+ * knows whether it hears the tablet). The tablet plays its call, then stays quiet for GAP_MS; a phone sends only in
+ * that quiet, right after it hears a call end, so the tablet never talks over a phone.
+ */
+export const GAP_MS = 900;
+/** How long a phone goes without hearing the tablet before it says so: a few broadcasts missed in a row. */
+export const LOST_MS = 4000;
 
-/* How long a message's copies keep arriving: a later copy within this time is the same message, not a new one. */
-const SAME_MESSAGE_MS = 2600;
+/** While `on`, the tablet broadcasts without end: each turn on the air plays what `next` says now. */
+export function useBroadcast(on: boolean, next: () => Call) {
+  const latest = useRef(next);
+  useEffect(() => {
+    latest.current = next;
+  }, [next]);
+  useEffect(() => {
+    if (!on) {
+      return;
+    }
+    let live = true;
+    void (async () => {
+      while (live) {
+        await playCall(latest.current());
+        await new Promise((done) => setTimeout(done, GAP_MS));
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [on]);
+}
+
+/* How long a command's copies keep arriving: a later copy within this time is the same command, not a new one. */
+const SAME_MESSAGE_MS = 4000;
 
 export type ListenState = 'off' | 'asking' | 'listening' | 'refused';
 
@@ -99,6 +126,8 @@ export function useToneListener({
   /* How the microphone answered: nothing yet while the browser asks. */
   const [micAnswer, setMicAnswer] = useState<'granted' | 'refused' | undefined>(undefined);
   const [level, setLevel] = useState(0);
+  /* A remote hears the tablet's calls; the tablet hears commands. Each sweeps its own way. */
+  const hears: MessageKind = onCall ? 'call' : 'command';
   const handlers = useRef({ onCommand, onMisheard, onCall });
   useEffect(() => {
     handlers.current = { onCommand, onMisheard, onCall };
@@ -118,12 +147,13 @@ export function useToneListener({
     tap.connect(mute).connect(context.destination);
     /* When each message was last heard, so its other copies are let go, whatever was heard between them. */
     const seen = new Map<string, number>();
-    const receiver = new ChirpReceiver(context.sampleRate, (heard: Heard) => {
+    const receiver = new ChirpReceiver(context.sampleRate, hears, (heard: Heard) => {
       const key = `${heard.kind}:${heard.symbols.join(',')}`;
       const now = performance.now();
       const before = seen.get(key);
       seen.set(key, now);
-      if (before !== undefined && now - before < SAME_MESSAGE_MS) {
+      /* Every call counts, since the tablet repeats it on purpose; a command's extra copies do not. */
+      if (heard.kind === 'command' && before !== undefined && now - before < SAME_MESSAGE_MS) {
         return;
       }
       if (heard.kind === 'command') {
@@ -183,7 +213,7 @@ export function useToneListener({
       stream?.getTracks().forEach((track) => track.stop());
       setMicAnswer(undefined);
     };
-  }, [on, mic, loopback]);
+  }, [on, mic, loopback, hears]);
   const state: ListenState =
     !on || (!mic && !loopback)
       ? 'off'

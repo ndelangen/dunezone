@@ -2,9 +2,13 @@
  * The sound remotes' radio, built to be heard in a noisy room (Norbert, 2026-11-09) and not by the people in it:
  * chirp spread spectrum, as LoRa radios use, high in the band at 18 to 20 kHz. Most adults hear nothing up there,
  * chatter and music carry almost no energy there, and phone speakers and microphones still reach it at the 44.1 and
- * 48 kHz rates browsers record at. Every symbol is one sweep up across the band, started at one of 128 points; the
- * receiver multiplies what it hears by the sweep's mirror image, which squeezes the whole sweep's energy into a single
- * frequency while noise stays spread out (about 21 dB of gain).
+ * 48 kHz rates browsers record at.
+ *
+ * The two directions sweep opposite ways (Norbert, 2026-11-09: the tablet broadcasts all the time, so phones always
+ * know whether they still hear it): phones' commands sweep up, the tablet's calls sweep down. Every symbol is one sweep
+ * across the band, started at one of 128 points; the receiver multiplies what it hears by its own direction's mirror
+ * image, which squeezes a matching sweep's energy into a single frequency while noise, and a sweep the other way,
+ * stay spread out (about 21 dB of gain). So the tablet can talk without drowning what it listens for.
  *
  * A message is three plain sweeps (the preamble, which also tells the receiver where each symbol starts), one sweep
  * that says what kind of message follows, then its symbols, each 0 to 15, spread 8 points apart so a small timing error
@@ -12,6 +16,8 @@
  * next, so the joins do not click.
  */
 
+/** What a message is: a phone's command (4 symbols) or the tablet's call (5 symbols). */
+export type MessageKind = 'command' | 'call';
 export const LOW_HZ = 18_000;
 export const BAND_HZ = 2000;
 /** Points on the sweep: the sweep lasts CHIPS / BAND_HZ seconds. */
@@ -20,13 +26,11 @@ export const SYMBOL_S = CHIPS / BAND_HZ;
 const SPACING = CHIPS / 16;
 const PREAMBLE = 3;
 
-/** What follows the preamble: a remote's command (4 symbols) or the tablet's call (5 symbols). */
-export type MessageKind = 'command' | 'call';
 const KIND_SHIFT: Readonly<Record<MessageKind, number>> = { command: CHIPS / 4, call: (CHIPS * 3) / 4 };
 const KIND_LENGTH: Readonly<Record<MessageKind, number>> = { command: 4, call: 5 };
 
-/** The sweep's phase at time t (s) into a symbol that starts `shift` points along it. */
-function sweepPhase(t: number, shift: number): number {
+/** The sweep's phase at time t (s) into a symbol that starts `shift` points along it; a call's sweep runs down. */
+function sweepPhase(t: number, shift: number, kind: MessageKind): number {
   /* Frequency runs from LOW + BAND·shift/CHIPS up to the top, wraps to the bottom and runs on to the start point. */
   const start = shift / CHIPS;
   const u = t / SYMBOL_S;
@@ -34,7 +38,7 @@ function sweepPhase(t: number, shift: number): number {
   const wrapped = u + start >= 1;
   /* Phase is the integral of frequency: LOW·t + BAND·SYMBOL·(position²/2), minus the jump at the wrap. */
   const sweep = BAND_HZ * SYMBOL_S * ((position * position) / 2 - (start * start) / 2 + (wrapped ? 0.5 : 0));
-  return 2 * Math.PI * (LOW_HZ * t + sweep);
+  return kind === 'command' ? 2 * Math.PI * (LOW_HZ * t + sweep) : 2 * Math.PI * ((LOW_HZ + BAND_HZ) * t - sweep);
 }
 
 /** A message's sound, as samples at `rate`, softly faded in and out so it never clicks. */
@@ -47,9 +51,9 @@ export function modulate(kind: MessageKind, symbols: readonly number[], rate: nu
   let offset = 0;
   shifts.forEach((shift, index) => {
     for (let n = 0; n < perSymbol; n++) {
-      out[index * perSymbol + n] = Math.cos(offset + sweepPhase(n / rate, shift));
+      out[index * perSymbol + n] = Math.cos(offset + sweepPhase(n / rate, shift, kind));
     }
-    offset += sweepPhase(perSymbol / rate, shift);
+    offset += sweepPhase(perSymbol / rate, shift, kind);
   });
   for (let n = 0; n < fade; n++) {
     out[n]! *= n / fade;
@@ -97,7 +101,13 @@ export type Reading = Readonly<{ shift: number; clarity: number }>;
 /**
  * Reads one symbol starting at `from`: mixes the samples with the plain sweep's mirror image, averages each chip's samples (which also folds the wrap onto the same point), and finds the strongest of the CHIPS points.
  */
-export function readSymbol(samples: Float32Array, from: number, rate: number, mirror: Float64Array[]): Reading {
+export function readSymbol(
+  samples: Float32Array,
+  from: number,
+  rate: number,
+  mirror: Float64Array[],
+  kind: MessageKind = 'command'
+): Reading {
   const re = new Float64Array(CHIPS);
   const im = new Float64Array(CHIPS);
   const perChip = rate / BAND_HZ;
@@ -127,18 +137,19 @@ export function readSymbol(samples: Float32Array, from: number, rate: number, mi
       best = bin;
     }
   }
-  /* Mixed down, a sweep started `shift` points along is a steady tone that lands in bin `shift`. */
+  /* Mixed down, a sweep started `shift` points along is a steady tone in bin `shift`; a downward one, in bin -shift. */
+  best = kind === 'command' ? best : (CHIPS - best) % CHIPS;
   const rest = (total - bestPower) / (CHIPS - 1) || 1e-12;
   return { shift: best, clarity: bestPower / rest };
 }
 
 /** The plain sweep's mirror image at `rate`: what every symbol is multiplied by to read it. */
-export function mirrorSweep(rate: number): Float64Array[] {
+export function mirrorSweep(rate: number, kind: MessageKind): Float64Array[] {
   const length = Math.ceil(SYMBOL_S * rate);
   const cos = new Float64Array(length);
   const sin = new Float64Array(length);
   for (let n = 0; n < length; n++) {
-    const phase = sweepPhase(n / rate, 0);
+    const phase = sweepPhase(n / rate, 0, kind);
     cos[n] = Math.cos(phase);
     sin[n] = -Math.sin(phase);
   }
@@ -171,10 +182,12 @@ export class ChirpReceiver {
 
   constructor(
     private readonly rate: number,
+    /** The one kind of message this receiver hears: each has its own band. */
+    private readonly kind: MessageKind,
     private readonly onMessage: (heard: Heard) => void
   ) {
     this.perSymbol = Math.round(SYMBOL_S * rate);
-    this.mirror = mirrorSweep(rate);
+    this.mirror = mirrorSweep(rate, kind);
   }
 
   push(samples: Float32Array) {
@@ -200,7 +213,7 @@ export class ChirpReceiver {
     if (from < 0 || from + this.perSymbol > this.buffer.length) {
       return undefined;
     }
-    return readSymbol(this.buffer, from, this.rate, this.mirror);
+    return readSymbol(this.buffer, from, this.rate, this.mirror, this.kind);
   }
 
   private run() {
@@ -247,7 +260,7 @@ export class ChirpReceiver {
       if (near(0)) {
         return;
       }
-      const kind = (Object.keys(KIND_SHIFT) as MessageKind[]).find((candidate) => near(KIND_SHIFT[candidate]));
+      const kind = near(KIND_SHIFT[this.kind]) ? this.kind : undefined;
       if (!kind) {
         this.unlock();
         return;
