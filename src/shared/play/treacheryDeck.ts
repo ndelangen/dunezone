@@ -41,6 +41,13 @@ function definitionOfItem(contents: DeckContents): (itemId: string) => Definitio
   };
 }
 
+/* Every captured card that shows a face, with its own id and printed name. */
+function deckFaces(contents: DeckContents): { id: string; face: string; name: string }[] {
+  return contents.pieces
+    .flatMap((piece) => piece.items)
+    .flatMap(({ id, artwork }) => (artwork?.front ? [{ id, face: artwork.front, name: artwork.name ?? '' }] : []));
+}
+
 /** The captured Treachery deck's cards, one entry per distinct card with its copies; nothing when the game captured no deck. */
 export function treacheryDeckCards(capture: RulesetCapture | undefined): TreacheryDeckCard[] | null {
   const contents = capture?.decks.treachery?.contents;
@@ -49,14 +56,9 @@ export function treacheryDeckCards(capture: RulesetCapture | undefined): Treache
   }
   const definitionOf = definitionOfItem(contents);
   const cards = new Map<string, TreacheryDeckCard>();
-  for (const { id, artwork } of contents.pieces.flatMap((piece) => piece.items)) {
-    const face = artwork?.front;
-    if (!face) {
-      continue;
-    }
+  for (const { id, face, name } of deckFaces(contents)) {
     const definition = definitionOf(id);
     const key = definition?.id ?? face;
-    const name = artwork.name ?? '';
     const count = (cards.get(key)?.count ?? 0) + 1;
     cards.set(key, { key, name, detail: cardText(definition)?.subName ?? '', face, count });
   }

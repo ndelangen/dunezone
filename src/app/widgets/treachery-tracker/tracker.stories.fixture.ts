@@ -100,7 +100,7 @@ export function midGameTracker(): TrackerState {
     { kind: 'place', card: 'snooper#1', at: 'discard' },
   ];
   const state = steps.reduce(
-    trackerReducer,
+    (tracker, step) => trackerReducer(tracker, step),
     newTracker(
       DREAMRULES_DECK,
       FACTIONS.map((faction) => faction.id)
