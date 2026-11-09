@@ -72,7 +72,7 @@ function SpiceDeckPage() {
       </PageLayout.Header>
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={<div className={styles.tool} />}>
-          <LiveSpiceDeck />
+          <SpiceDeckTool storageKey={SPICE_DECK_STORAGE_KEY} />
         </ClientOnly>
       </PageLayout.Content>
     </PageLayout>
@@ -82,8 +82,44 @@ function SpiceDeckPage() {
 const SPICE_DECK_LEDE =
   'Run the Dune board game’s spice deck on a phone: pick your Ruleset’s deck, tap a spice pile to turn over its card, and see what Shai-Hulud devours.';
 
-/* The decks come from the rulesets in the catalogue; a picked deck's cards are read once and then live in the stored game. */
-function LiveSpiceDeck() {
+/*
+ * The spice deck tool: a phone at a real table runs the spice deck, so nobody shuffles or sorts cards.
+ * The spice piles are the buttons: a tap on a pile draws the top card off the deck, turns it over and lays it on that pile,
+ * every card the same way, Shai-Hulud included. The tool never draws on by itself; the players decide what comes next
+ * (Norbert, 2026-11-09). The draw pile and the set-aside spot are off screen: cards fly in from above, and a Shai-Hulud
+ * the rules set aside lands on its pile first, then leaves to the side.
+ */
+
+function SpiceDeckTool({ storageKey }: Readonly<{ storageKey: string }>) {
+  const session = useSpiceDeckGame(storageKey);
+  const { game } = session;
+  /* Picking another deck keeps the game until the new deck is in, so backing out or a deck that fails to load loses nothing. */
+  const [choosing, setChoosing] = useState(false);
+  if (!game || choosing) {
+    return (
+      <CatalogueDeckPicker
+        onStart={(deck, rules) => {
+          session.start(newGame(deck, session.random, rules));
+          setChoosing(false);
+        }}
+        onBack={game ? () => setChoosing(false) : undefined}
+      />
+    );
+  }
+  return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
+}
+
+type PickerActions = Readonly<{
+  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
+  /** Back to the game being played, when there is one. */
+  onBack?: () => void;
+}>;
+
+/*
+ * The picker with the catalogue's decks: the rulesets that slot one, and a picked deck's cards read once to live in the stored game.
+ * Only the picker subscribes to the catalogue, so a table mid-game holds no query open.
+ */
+function CatalogueDeckPicker(actions: PickerActions) {
   const { data } = useSpiceDeckChoices();
   const decks = useMemo(
     () => data?.map((entry) => ({ id: entry.rulesetId, name: entry.deck.name, ruleset: entry.ruleset })),
@@ -100,45 +136,7 @@ function LiveSpiceDeck() {
     },
     [data]
   );
-  return <SpiceDeckTool storageKey={SPICE_DECK_STORAGE_KEY} decks={decks} loadDeck={loadDeck} />;
-}
-
-/*
- * The spice deck tool: a phone at a real table runs the spice deck, so nobody shuffles or sorts cards.
- * The spice piles are the buttons: a tap on a pile draws the top card off the deck, turns it over and lays it on that pile,
- * every card the same way, Shai-Hulud included. The tool never draws on by itself; the players decide what comes next
- * (Norbert, 2026-11-09). The draw pile and the set-aside spot are off screen: cards fly in from above, and a Shai-Hulud
- * the rules set aside lands on its pile first, then leaves to the side.
- */
-
-type ToolProps = Readonly<{
-  /** Where this browser keeps the game. */
-  storageKey: string;
-  /** The decks a new game can be played with, by ruleset; undefined while they load. */
-  decks: readonly SpiceDeckChoice[] | undefined;
-  /** Reads a deck's cards once the table picks it. */
-  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
-}>;
-
-function SpiceDeckTool({ storageKey, decks, loadDeck }: ToolProps) {
-  const session = useSpiceDeckGame(storageKey);
-  const { game } = session;
-  /* Picking another deck keeps the game until the new deck is in, so backing out or a deck that fails to load loses nothing. */
-  const [choosing, setChoosing] = useState(false);
-  if (!game || choosing) {
-    return (
-      <DeckPicker
-        decks={decks}
-        loadDeck={loadDeck}
-        onStart={(deck, rules) => {
-          session.start(newGame(deck, session.random, rules));
-          setChoosing(false);
-        }}
-        onBack={game ? () => setChoosing(false) : undefined}
-      />
-    );
-  }
-  return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
+  return <DeckPicker decks={decks} loadDeck={loadDeck} {...actions} />;
 }
 
 /* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
@@ -147,13 +145,13 @@ function DeckPicker({
   loadDeck,
   onStart,
   onBack,
-}: Readonly<{
-  decks: readonly SpiceDeckChoice[] | undefined;
-  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
-  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
-  /** Back to the game being played, when there is one. */
-  onBack?: () => void;
-}>) {
+}: PickerActions &
+  Readonly<{
+    /** The decks a new game can be played with, by ruleset; undefined while they load. */
+    decks: readonly SpiceDeckChoice[] | undefined;
+    /** Reads a deck's cards once the table picks it. */
+    loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
+  }>) {
   const [piles, setPiles] = useState(1);
   const [peek, setPeek] = useState(1);
   const [loading, setLoading] = useState<string | null>(null);
@@ -209,6 +207,7 @@ function DeckPicker({
                 max={MOST_PILES}
                 clampBehavior="strict"
                 allowDecimal={false}
+                disabled={loading !== null}
                 value={piles}
                 onChange={(value) => setPiles(typeof value === 'number' ? value : 1)}
               />
@@ -226,6 +225,7 @@ function DeckPicker({
                 max={MOST_PEEK}
                 clampBehavior="strict"
                 allowDecimal={false}
+                disabled={loading !== null}
                 value={peek}
                 onChange={(value) => setPeek(typeof value === 'number' ? value : 1)}
               />
