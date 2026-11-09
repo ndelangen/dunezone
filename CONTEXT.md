@@ -346,3 +346,6 @@ A player's standing choice to pass their bidding turns in the IRL bidding tool u
 
 **Recovery copy**:
 A phone's latest received state of an IRL bidding table, kept so the player can make that phone the central device. Restoring it creates a new table and join code, with the auction paused for the table to check and Resume while the other phones rejoin.
+
+**Bidding opportunity**:
+One faction's chance to bid or pass on the current card in the IRL bidding tool. The first valid bid or pass received by the central device ends that opportunity; another action intended for it cannot become the next player's action.
