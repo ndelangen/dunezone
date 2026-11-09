@@ -1,15 +1,13 @@
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { BackToolbar } from '@ui/block/BackToolbar';
+import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
-import { PageLayout } from '@ui/layout/PageLayout';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useTreacheryDeck } from '@app/db/play';
 import { useOrderedRulesetFactions, useRulesetCataloguePage } from '@app/db/rulesets';
 import type { RulesetCatalogueEntry } from '@app/db/rulesets';
-import { publicPageHead } from '@app/routes/publicPage';
+import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import { playGame, savedGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
@@ -25,16 +23,13 @@ import styles from './index.module.css';
  * Public, signed out, made for a phone: pick a Ruleset and its factions, then track every Treachery card.
  * The game is kept in this browser only.
  */
-export const Route = createFileRoute('/_app/tools/atreides-treachery-tracker/')({
+export const Route = createFileRoute('/_tool/tools/atreides-treachery-tracker/')({
   ssr: true,
-  head: () =>
-    publicPageHead({
-      name: 'Treachery card tracker',
-      kind: 'Tools',
-      pathname: '/tools/atreides-treachery-tracker',
+  head: ({ match }) =>
+    toolPageHead('atreides-treachery-tracker', {
       description:
         'Track every Treachery card in your game of Dune from your phone: what came up for bid, who holds what, and what is left in the deck. Free, no account, any Ruleset.',
-      social: { kind: 'Tools', shape: 'portrait' },
+      match,
     }),
   component: TreacheryTrackerPage,
 });
@@ -50,37 +45,27 @@ function TreacheryTrackerPage() {
   /* The saved game is read once the page is in the browser: the server has no storage, and renders the page's frame. */
   const game = useSyncExternalStore(savedGame.subscribe, savedGame.get, savedGame.getServer);
   const keep = savedGame.set;
+  /* A page of its own, with no app around it: the title and lede until a game starts, then the game fills the screen. */
   return (
-    <PageLayout>
-      <PageLayout.Header>
-        <PageTitle
-          title="Treachery tracker"
-          subtitle="A Dune Zone tool"
-          lede={
-            game
-              ? undefined
-              : 'Track every Treachery card through bidding, hands and discards, so you know what is left in the deck. Saved on this phone, no account needed.'
-          }
+    <main className={styles.page}>
+      {game ? (
+        <TrackerGame
+          game={game}
+          onAction={(action) => keep(playGame(game, action))}
+          onTurn={(turn) => keep({ ...game, turn })}
+          onClear={() => keep(null)}
         />
-      </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <BackToolbar label="All tools" renderRoot={(props) => <Link {...props} to="/tools" />} />
-      </PageLayout.Toolbar>
-      <PageLayout.Content>
-        <div className={styles.column}>
-          {game === undefined ? <Pending>Loading your game…</Pending> : null}
-          {game === null ? <Setup onStart={keep} /> : null}
-          {game ? (
-            <TrackerGame
-              game={game}
-              onAction={(action) => keep(playGame(game, action))}
-              onTurn={(turn) => keep({ ...game, turn })}
-              onClear={() => keep(null)}
-            />
-          ) : null}
+      ) : (
+        <div className={styles.setup}>
+          <PageTitle
+            title="Treachery tracker"
+            subtitle="A Dune Zone tool"
+            lede="Track every Treachery card through bidding, hands and discards, so you know what is left in the deck. Saved on this phone, no account needed."
+          />
+          {game === undefined ? <Pending>Loading your game…</Pending> : <Setup onStart={keep} />}
         </div>
-      </PageLayout.Content>
-    </PageLayout>
+      )}
+    </main>
   );
 }
 

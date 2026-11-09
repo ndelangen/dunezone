@@ -1,6 +1,0 @@
-/* The tracker keeps a phone's width on a wider screen, so it reads the same at the table and on a laptop. */
-.column {
-  width: 100%;
-  max-width: 480px;
-  margin-inline: auto;
-}

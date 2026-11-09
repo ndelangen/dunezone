@@ -1,0 +1,15 @@
+/* The tool on its own page: a phone's width, kept on a wider screen so it reads the same at the table and on a laptop. */
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  padding-inline: var(--mantine-spacing-md);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+  padding-block: var(--mantine-spacing-lg);
+}

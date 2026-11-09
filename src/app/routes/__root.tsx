@@ -67,7 +67,10 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const appDocument = useMatches({ select: (matches) => matches.some((match) => match.routeId === '/_app') });
+  /* The app and the standalone tools both wear the dark theme. */
+  const appDocument = useMatches({
+    select: (matches) => matches.some((match) => match.routeId === '/_app' || match.routeId === '/_tool'),
+  });
   /* Storybook already owns the document and supplies the isolated database and auth providers.
      The generated route tree still passes through this production root in every page story. */
   if (import.meta.env.STORYBOOK) {

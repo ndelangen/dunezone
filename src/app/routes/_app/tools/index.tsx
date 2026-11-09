@@ -35,8 +35,11 @@ const ROWS: readonly CatalogueRow[] = TOOL_GROUPS.map((group) => ({
       </ThemeIcon>
     ),
     built: tool.built === true,
-    /* Built or not, a tool lives at /tools/<slug>: its own route once built, its placeholder until then. */
-    link: { to: '/tools/$tool', params: { tool: tool.slug } },
+    /*
+     * Built or not, a tool lives at /tools/<slug>: its own route once built, its placeholder until then.
+     * A built tool is a page of its own, without the app around it, so it opens in a tab of its own (Norbert, 2026-11-09).
+     */
+    link: { to: '/tools/$tool', params: { tool: tool.slug }, ...(tool.built ? { target: '_blank' } : {}) },
   })),
 }));
 

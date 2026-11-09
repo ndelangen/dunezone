@@ -25,6 +25,9 @@ export const Catalogue = meta.story({
       'href',
       '/tools/atreides-treachery-tracker'
     );
+    /* A built tool is a page of its own, so it opens in a tab of its own. */
+    await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute('target', '_blank');
+    await expect(page.getByRole('link', { name: 'Battle calculator' })).not.toHaveAttribute('target');
   },
 });
 
@@ -47,13 +50,15 @@ export const ComingSoon = meta.story({
   },
 });
 
-/** The Treachery tracker, the first built tool, on a phone: the Ruleset and its factions to set up, then Start tracking. */
+/** The Treachery tracker, the first built tool, on a phone and without the app around it: the Ruleset and its factions to set up, then Start tracking. */
 export const TreacheryTracker = meta.story({
   args: { path: '/tools/atreides-treachery-tracker' },
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
     const page = await findTitledPage(canvasElement, /^Treachery tracker$/);
     await expect(page.findByRole('button', { name: 'Start tracking' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('banner')).toBeNull();
+    await expect(page.queryByRole('contentinfo')).toBeNull();
   },
 });
 
