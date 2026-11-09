@@ -4,6 +4,7 @@ import { createRootRoute, HeadContent, Scripts, useMatches } from '@tanstack/rea
 import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
 import { SignInCallback } from '@app/shell/SignInCallback';
+import { installStaleBundleReload } from '@app/shell/staleBundleReload';
 
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
@@ -14,6 +15,11 @@ import '@fontsource/lato/latin-italic.css';
 import '../styles/fonts.css';
 import '../styles/page.css';
 import '../styles/tokens.css';
+
+/* Installed as the entry runs, before hydration starts loading the matched routes' chunks; Storybook serves its own bundle, which no deploy replaces. */
+if (typeof window !== 'undefined' && !import.meta.env.STORYBOOK) {
+  installStaleBundleReload();
+}
 
 export const Route = createRootRoute({
   ssr: true,
