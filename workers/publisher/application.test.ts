@@ -167,7 +167,7 @@ describe('prerendered tool pages', () => {
   test('a tool not in this release is rendered on the server as before', async () => {
     const render = vi.fn(async () => new Response('rendered'));
     const response = await handleApplicationRequest(
-      new Request('https://dune.zone/tools/battle-calculator'),
+      new Request('https://dune.zone/tools/faction-draft'),
       { ...env, ASSETS: assets },
       render
     );

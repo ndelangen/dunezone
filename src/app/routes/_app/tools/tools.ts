@@ -1,24 +1,17 @@
 import {
   CircleGauge,
-  ClipboardList,
   Eye,
   Download,
   Gamepad2,
-  Hourglass,
   Image,
   Layers,
-  ListChecks,
   Lock,
-  MapPin,
   Percent,
   Printer,
   Scissors,
   ScrollText,
   Shuffle,
   Smartphone,
-  Sparkles,
-  Swords,
-  Timer,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -73,20 +66,6 @@ const TOOL_ENTRIES = [
       { icon: Users, title: 'Any table', detail: 'Two to ten players, any Ruleset.' },
       { icon: Shuffle, title: 'Fair modes', detail: 'Random, draft, or pick and ban.' },
       { icon: Smartphone, title: 'One phone', detail: 'Pass it round, picks stay secret.' },
-    ],
-  },
-  {
-    slug: 'setup-checklist',
-    title: 'Setup checklist',
-    goal: 'Lay out the board for the factions in play, step by step',
-    statement:
-      'Every starting force, spice pile, card and traitor for the factions at your table, in the order the Ruleset sets them up.',
-    icon: ClipboardList,
-    group: 'Before the game',
-    capabilities: [
-      { icon: ListChecks, title: 'Step by step', detail: 'Tick each step as the table does it.' },
-      { icon: MapPin, title: 'Where it goes', detail: 'Starting territories and forces.' },
-      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Custom factions set up too.' },
     ],
   },
   {
@@ -153,34 +132,6 @@ const TOOL_ENTRIES = [
       { icon: Smartphone, title: 'At the table', detail: 'One phone per player, no wheel to turn.' },
     ],
     built: true,
-  },
-  {
-    slug: 'round-tracker',
-    title: 'Round tracker',
-    goal: 'Follow the turn and phase, with every faction ability that happens in it',
-    statement:
-      'Keep the turn and phase for the whole table, with a reminder of each faction ability that happens in the phase, so nothing is forgotten.',
-    icon: Hourglass,
-    group: 'During the game',
-    capabilities: [
-      { icon: Hourglass, title: 'Turn and phase', detail: 'Where the game is, at a glance.' },
-      { icon: Sparkles, title: 'Abilities', detail: 'What each faction can do now.' },
-      { icon: Timer, title: 'Bid timer', detail: 'Keep bidding moving.' },
-    ],
-  },
-  {
-    slug: 'battle-calculator',
-    title: 'Battle calculator',
-    goal: 'Dial both battle plans and see who wins and what each side loses',
-    statement:
-      'Set both battle plans, with leaders, dialled forces, spice and cards, and see who wins and what each side loses before you commit.',
-    icon: Swords,
-    group: 'During the game',
-    capabilities: [
-      { icon: Swords, title: 'Both plans', detail: 'Leaders, forces, spice and cards.' },
-      { icon: ListChecks, title: 'The outcome', detail: 'Who wins and every loss.' },
-      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Faction combat rules included.' },
-    ],
   },
   {
     slug: 'tts-faction-exporter',
