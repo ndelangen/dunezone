@@ -276,3 +276,21 @@ export const OfflineVoiceTablet = meta.story({
     await expect(canvas.getByText('Spacing Guild?')).toBeVisible();
   },
 });
+
+/** I. Offline voice with the tiny listener: a 10 MB download once, then it hears the auction offline in any browser. */
+export const OfflineVoiceTinyPhone = meta.story({
+  render: () => <OfflineVoice storageKey="bidding-story-offline-tiny-phone" initial={midAuction()} listener="tiny" />,
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: '“bid plus one”' }));
+    await expect(canvas.getByText('Fremen?')).toBeVisible();
+  },
+});
+
+/** I. The tiny listener on an iPad in the middle of the table, where the browser's own recogniser is not offline. */
+export const OfflineVoiceTinyTablet = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  render: () => <OfflineVoice storageKey="bidding-story-offline-tiny-tablet" initial={midAuction()} listener="tiny" />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Spacing Guild?')).toBeVisible();
+  },
+});

@@ -9,6 +9,8 @@ import styles from './Bidding.module.css';
 import { Arena } from './LinkedTable';
 import { readSpoken, useEngine, useOfflineHearing } from './offlineHearing';
 import type { Engine, EngineState } from './offlineHearing';
+import { LISTENER_MB, useTinyListener } from './tinyListener';
+import type { ListenerState } from './tinyListener';
 import { useAuctionGame } from './useAuctionGame';
 
 /*
@@ -26,7 +28,14 @@ export function OfflineVoice({
   storageKey,
   initial,
   allowOnline = false,
-}: Readonly<{ storageKey: string; initial: AuctionGame; allowOnline?: boolean }>) {
+  listener = 'browser',
+}: Readonly<{
+  storageKey: string;
+  initial: AuctionGame;
+  allowOnline?: boolean;
+  /** Who hears: the browser's own speech recognition, or the tiny keyword listener that runs in any browser. */
+  listener?: 'browser' | 'tiny';
+}>) {
   const session = useAuctionGame(storageKey, initial);
   const { game } = session;
   const [voice, setVoice] = useState(true);
@@ -60,7 +69,11 @@ export function OfflineVoice({
     [game, session]
   );
   /* It never hears itself: listening pauses while it speaks. */
-  const { refused } = useOfflineHearing(listen && state === 'ready' && !speech.speaking, engine, onPhrase);
+  const tiny = listener === 'tiny';
+  const browserHearing = useOfflineHearing(!tiny && listen && state === 'ready' && !speech.speaking, engine, onPhrase);
+  const tinyHearing = useTinyListener(tiny, listen && !speech.speaking, onPhrase);
+  const ready = tiny ? tinyHearing.state === 'ready' : state === 'ready';
+  const refused = tiny ? tinyHearing.refused : browserHearing.refused;
   const turn = seatOf(game, toBid(game));
   return (
     <div className={styles.tool}>
@@ -79,13 +92,17 @@ export function OfflineVoice({
           </div>
         </div>
         <div className={styles.offlineSide}>
-          <EngineLine engine={engine} state={state} refused={refused} onInstall={install} />
+          {tiny ? (
+            <TinyLine state={tinyHearing.state} refused={refused} onInstall={tinyHearing.install} />
+          ) : (
+            <EngineLine engine={engine} state={state} refused={refused} onInstall={install} />
+          )}
           <LabeledAction
             emphasis={listen ? 'standard' : 'strong'}
             size="lg"
             icon={listen ? <MicOff size={18} /> : <Mic size={18} />}
             pressed={listen}
-            disabledReason={state === 'ready' ? undefined : 'Speech recognition is not ready on this device yet.'}
+            disabledReason={ready ? undefined : 'Speech recognition is not ready on this device yet.'}
             onClick={() => setListen(!listen)}
           >
             {listen ? 'Stop listening' : 'Listen to the table'}
@@ -113,6 +130,55 @@ export function OfflineVoice({
         </div>
       </main>
     </div>
+  );
+}
+
+/** The tiny listener's state, in a line: to download, downloading, ready offline, or failed. */
+function TinyLine({
+  state,
+  refused,
+  onInstall,
+}: Readonly<{ state: ListenerState; refused: boolean; onInstall: () => void }>) {
+  if (refused) {
+    return (
+      <p className={styles.engine} data-state="off">
+        The microphone was refused.
+      </p>
+    );
+  }
+  if (state === 'checking') {
+    return <p className={styles.engine}>Looking for the listener on this device…</p>;
+  }
+  if (state === 'downloadable') {
+    return (
+      <div className={styles.engine} data-state="off">
+        <span>
+          A tiny listener that knows only the auction’s words. One download of about {LISTENER_MB} MB, then it works
+          offline.
+        </span>
+        <LabeledAction size="xs" icon={<Download size={14} />} onClick={onInstall}>
+          Download
+        </LabeledAction>
+      </div>
+    );
+  }
+  if (state === 'downloading') {
+    return <p className={styles.engine}>Getting the listener ready…</p>;
+  }
+  if (state === 'failed') {
+    return (
+      <div className={styles.engine} data-state="off">
+        <span>The listener could not be downloaded.</span>
+        <LabeledAction size="xs" icon={<Download size={14} />} onClick={onInstall}>
+          Try again
+        </LabeledAction>
+      </div>
+    );
+  }
+  return (
+    <p className={styles.engine} data-state="on">
+      <WifiOff size={14} aria-hidden /> Hears on this device: works offline.
+    </p>
   );
 }
 
