@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 
 /*
@@ -101,14 +101,34 @@ function storageWorks(): boolean {
 export function usePredictionLocket() {
   const [state, setState] = useState<LocketState>(() => read() ?? FRESH);
   const [kept, setKept] = useState(storageWorks);
-  useEffect(() => {
-    write(state);
-  }, [state]);
+  /* The locket as this tab last saw or saved it, for the changes below to build on without waiting for a render. */
+  const current = useRef(state);
+  /*
+   * Every change is saved the moment it is made, in the same step that checks storage, so nothing written later can land
+   * on top of a lock another tab saved in between: no change waits for a render to be saved.
+   */
+  const commit = useCallback((next: LocketState): boolean => {
+    current.current = next;
+    setState(next);
+    return write(next);
+  }, []);
+  /* Takes what another tab saved, when it holds a lock this tab must not write over. */
+  const adoptStoredLock = useCallback((): boolean => {
+    const stored = read();
+    if (!stored?.locked) {
+      return false;
+    }
+    current.current = stored;
+    setState(stored);
+    return true;
+  }, []);
   /* Another tab of the tool changed the locket: take its state, so this tab never writes an older one over a lock made there. */
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
       if (event.key === PREDICTION_LOCKET_STORAGE_KEY) {
-        setState(read() ?? FRESH);
+        const stored = read() ?? FRESH;
+        current.current = stored;
+        setState(stored);
       }
     };
     globalThis.addEventListener?.('storage', onStorage);
@@ -118,44 +138,41 @@ export function usePredictionLocket() {
    * A pick changes the draft only while nothing is locked in storage: another tab's lock may be saved before its storage event
    * reaches this tab, and this tab's draft, saved over it, would erase that lock. The lock wins and this tab shows it.
    */
-  const editDraft = useCallback((change: Partial<Pick<LocketState, 'faction' | 'turn' | 'timeZone'>>) => {
-    const stored = read();
-    if (stored?.locked) {
-      setState(stored);
-      return;
-    }
-    setState((now) => ({ ...now, ...change }));
-  }, []);
+  const editDraft = useCallback(
+    (change: Partial<Pick<LocketState, 'faction' | 'turn' | 'timeZone'>>) => {
+      if (!adoptStoredLock()) {
+        commit({ ...current.current, ...change });
+      }
+    },
+    [adoptStoredLock, commit]
+  );
   const pickFaction = useCallback((faction: LocketFaction) => editDraft({ faction }), [editDraft]);
   const pickTurn = useCallback((turn: number) => editDraft({ turn }), [editDraft]);
   const pickTimeZone = useCallback((timeZone: string) => editDraft({ timeZone }), [editDraft]);
-  /* Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way. */
-  const lock = useCallback((prediction: Omit<LockedPrediction, 'revealed'>) => {
-    /*
-     * Checked against what is stored, not this tab's state: another tab's lock may be saved before its storage event reaches this tab.
-     * That lock wins, and this tab's late answer never replaces it.
-     */
-    const stored = read();
-    if (stored?.locked) {
-      setState(stored);
-      return;
-    }
-    const next: LocketState = {
-      faction: null,
-      turn: null,
-      timeZone: prediction.timeZone,
-      locked: { ...prediction, revealed: false },
-    };
-    /* Saved at once, so the locked view knows whether a reload would keep it. */
-    setKept(write(next));
-    setState(next);
-  }, []);
-  const reveal = useCallback(
-    () => setState((now) => (now.locked ? { ...now, locked: { ...now.locked, revealed: true } } : now)),
-    []
+  /*
+   * Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way.
+   * A lock already in storage, perhaps from another tab whose storage event has not arrived, wins over this late answer.
+   */
+  const lock = useCallback(
+    (prediction: Omit<LockedPrediction, 'revealed'>) => {
+      if (adoptStoredLock()) {
+        return;
+      }
+      /* Whether the save held, so the locked view knows whether a reload would keep it. */
+      setKept(
+        commit({ faction: null, turn: null, timeZone: prediction.timeZone, locked: { ...prediction, revealed: false } })
+      );
+    },
+    [adoptStoredLock, commit]
   );
-  /* The city stays named for the next prediction. */
-  const clear = useCallback(() => setState((now) => ({ ...FRESH, timeZone: now.timeZone })), []);
+  const reveal = useCallback(() => {
+    const { locked } = current.current;
+    if (locked) {
+      commit({ ...current.current, locked: { ...locked, revealed: true } });
+    }
+  }, [commit]);
+  /* Clearing is the one change that may replace a lock; the city stays named for the next prediction. */
+  const clear = useCallback(() => commit({ ...FRESH, timeZone: current.current.timeZone }), [commit]);
   return { state, kept, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear };
 }
 
