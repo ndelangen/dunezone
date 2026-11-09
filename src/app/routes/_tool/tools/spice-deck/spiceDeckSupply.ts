@@ -55,7 +55,8 @@ function assertPlayable(choice: SpiceDeckChoice, supply: AssetSupply) {
 /**
  * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
  * A card that blows no spice is Shai-Hulud when it names a worm;
- * any other, such as Sandtrout, is a special card the players follow, and so is a Discovery or mine blow, spice or not.
+ * any other, such as Sandtrout, is a special card the players follow, and so is a Discovery or mine blow, spice or not;
+ * those two blow in a territory, which a later Shai-Hulud devours.
  * Throws for a deck the catalogue sent only in part.
  */
 export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
@@ -70,6 +71,7 @@ export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply
       ...(front ? { face: front } : {}),
       ...(amount === undefined ? {} : { amount }),
       ...(isSpecial(amount, asset.name, asset.data) ? { special: true } : {}),
+      ...(namesFollow(asset.data) ? { territory: true } : {}),
     };
   });
   return {

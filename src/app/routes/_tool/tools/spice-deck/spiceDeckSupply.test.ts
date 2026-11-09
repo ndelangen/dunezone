@@ -52,6 +52,8 @@ test('a card with no spice is Shai-Hulud only when it names a worm; others are s
   );
   expect(gf9.cards.filter(isWorm).map((card) => card.key)).toEqual(['worm', 'maker']);
   expect(gf9.cards.filter((card) => card.special).map((card) => card.key)).toEqual(['trout', 'discovery']);
+  /* A Discovery blow names its territory even with no amount the catalogue reads; Sandtrout names none. */
+  expect(gf9.cards.filter((card) => card.territory).map((card) => card.key)).toEqual(['discovery']);
 });
 
 test('a deck with a card whose face is not published is not played', () => {
