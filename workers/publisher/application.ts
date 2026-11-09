@@ -1,4 +1,4 @@
-import { RECORDLESS_PUBLIC_PAGES } from '../../src/shared/recordlessPublicPages';
+import { PRERENDERED_PAGE_NONCE, RECORDLESS_PUBLIC_PAGES, TOOL_PAGES } from '../../src/shared/recordlessPublicPages';
 import { CACHED_NONCE_HEADER, secureApplicationResponse } from './application-security';
 import { PUBLIC_CACHE_SECONDS, publicCachedResponse } from './public-cache';
 import type { PublicCache } from './public-cache';
@@ -69,36 +69,68 @@ function isPublicAssetPage(segments: string[]): boolean {
   return !((segments.length === 3 && slug === 'create') || (segments.length === 4 && action === 'edit'));
 }
 
+/**
+ * A built tool's page as the build prerendered it (`tools/<slug>/index.html`), marked with its placeholder nonce for delivery to replace.
+ * The same build prerenders every page in TOOL_PAGES and fails if one does not render, so the file is there whenever this release lists the page.
+ * Without Static Assets (as in the application tests) the page is rendered on the server instead.
+ */
+async function prerenderedPage(url: URL, assets: Fetcher | undefined): Promise<Response | null> {
+  const page = url.pathname.replace(/\/$/, '');
+  if (!assets || !TOOL_PAGES.includes(page)) {
+    return null;
+  }
+  const file = await assets.fetch(new Request(new URL(`${page}/index.html`, url)));
+  if (!file.ok) {
+    await file.body?.cancel();
+    return null;
+  }
+  const result = new Response(file.body, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  result.headers.set(CACHED_NONCE_HEADER, PRERENDERED_PAGE_NONCE);
+  result.headers.set('X-Prerendered', '1');
+  return result;
+}
+
 /** Only anonymous public document reads cross into the application server. */
 export async function handleApplicationRequest(
   request: Request,
-  env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'>,
+  env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'> & Partial<Pick<Env, 'ASSETS'>>,
   render: (request: Request, nonce: string) => Promise<Response>,
   cache?: PublicCache
 ): Promise<Response | null> {
-  if (!['GET', 'HEAD'].includes(request.method) || !isPublicPage(new URL(request.url).pathname)) {
+  if (!['GET', 'HEAD'].includes(request.method)) {
     return null;
   }
-  const response = await publicCachedResponse(
-    cache,
-    new URL(request.url),
-    'html',
-    async () => {
-      const nonce = crypto.randomUUID().replaceAll('-', '');
-      const result = await render(
-        new Request(request.url, {
-          headers: { Accept: 'text/html', 'X-Application-Nonce': nonce },
-          signal: request.signal,
-        }),
-        nonce
-      );
-      const publicResult = new Response(result.body, result);
-      publicResult.headers.set('X-Public-Renders', '1');
-      publicResult.headers.set(CACHED_NONCE_HEADER, nonce);
-      return publicResult;
-    },
-    () => PUBLIC_CACHE_SECONDS.html
-  );
+  const url = new URL(request.url);
+  /* A prerendered tool page is only ever delivered at its own address, with its security headers and a fresh nonce. */
+  const prerenderedFile = /^(\/tools\/[^/]+)\/index\.html$/.exec(url.pathname)?.[1];
+  if (prerenderedFile && TOOL_PAGES.includes(prerenderedFile)) {
+    return Response.redirect(new URL(prerenderedFile, url).href, 301);
+  }
+  if (!isPublicPage(url.pathname)) {
+    return null;
+  }
+  const response =
+    (await prerenderedPage(url, env.ASSETS)) ??
+    (await publicCachedResponse(
+      cache,
+      new URL(request.url),
+      'html',
+      async () => {
+        const nonce = crypto.randomUUID().replaceAll('-', '');
+        const result = await render(
+          new Request(request.url, {
+            headers: { Accept: 'text/html', 'X-Application-Nonce': nonce },
+            signal: request.signal,
+          }),
+          nonce
+        );
+        const publicResult = new Response(result.body, result);
+        publicResult.headers.set('X-Public-Renders', '1');
+        publicResult.headers.set(CACHED_NONCE_HEADER, nonce);
+        return publicResult;
+      },
+      () => PUBLIC_CACHE_SECONDS.html
+    ));
   const headers = new Headers(response.headers);
   headers.delete('Set-Cookie');
   headers.set('X-Frame-Options', 'SAMEORIGIN');

@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vite-plus/test';
 
-import { CONTRIBUTING_SUBPAGES } from '../../src/shared/recordlessPublicPages';
+import { CONTRIBUTING_SUBPAGES, TOOL_PAGES } from '../../src/shared/recordlessPublicPages';
 import { handleApplicationRequest } from './application';
 
 const env: Pick<Env, 'CF_VERSION_METADATA' | 'GIT_SHA' | 'CONVEX_CLOUD_BASE_URL'> = {
@@ -115,5 +115,40 @@ describe('anonymous application dispatch', () => {
     expect(await response?.text()).toBe('');
     expect(await handleApplicationRequest(new Request(request, { method: 'POST' }), env, render)).toBeNull();
     expect(render).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('prerendered tool pages', () => {
+  const page = '/tools/example-tool';
+  const assets = {
+    fetch: vi.fn(async (request: Request) =>
+      new URL(request.url).pathname === `${page}/index.html`
+        ? new Response('<html></html>')
+        : new Response('missing', { status: 404 })
+    ),
+  } as unknown as Fetcher;
+
+  function withBuiltTool<T>(run: () => Promise<T>): Promise<T> {
+    TOOL_PAGES.push(page);
+    return run().finally(() => TOOL_PAGES.splice(TOOL_PAGES.indexOf(page), 1));
+  }
+
+  test("the file's own address redirects to the page", async () => {
+    const response = await withBuiltTool(() =>
+      handleApplicationRequest(new Request(`https://dune.zone${page}/index.html`), { ...env, ASSETS: assets }, vi.fn())
+    );
+    expect(response?.status).toBe(301);
+    expect(response?.headers.get('Location')).toBe(`https://dune.zone${page}`);
+  });
+
+  test('a tool not in this release is rendered on the server as before', async () => {
+    const render = vi.fn(async () => new Response('rendered'));
+    const response = await handleApplicationRequest(
+      new Request('https://dune.zone/tools/battle-calculator'),
+      { ...env, ASSETS: assets },
+      render
+    );
+    expect(render).toHaveBeenCalledOnce();
+    expect(await response?.text()).toBe('rendered');
   });
 });

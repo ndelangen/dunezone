@@ -12,6 +12,12 @@ export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-p
 export const TOOL_PAGES: string[] = [];
 
 /**
+ * The script nonce a built tool page is prerendered with, at `/tools/<slug>/index.html` in the build.
+ * The Worker serves that file in place of a server render and swaps this placeholder for a fresh nonce on every delivery, as it does for a cached render.
+ */
+export const PRERENDERED_PAGE_NONCE = '0'.repeat(32);
+
+/**
  * The tutorial catalogues and every tutorial that is built: public, server-rendered and in the landing sitemap.
  * Play chapters live below `/tutorial`, creator tutorials below `/create`;
  * tests hold this list to the routes and chapter scripts.

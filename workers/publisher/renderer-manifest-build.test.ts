@@ -159,6 +159,9 @@ describe('current Renderer manifest digest', () => {
     'obj/troop/atreides.obj',
     // The band video is app chrome.
     'video/band.mp4',
+    // The standalone tools' tile pictures and prerendered pages.
+    'tools/spice-deck.webp',
+    'tools/spice-deck/index.html',
   ])('excludes application-only or generated release asset %s', (assetPath) => {
     expect(isRendererManifestAsset(assetPath)).toBe(false);
   });
