@@ -1,13 +1,13 @@
-import { profileUserEditFormSchema } from "../../src/shared/profiles/validation";
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
-import { accountStateOf } from "./accountLifecycle";
-import { accountMethods } from "./accountMethods";
-import type { AuthProvider } from "./accountMethods";
-import { recordFormerSlug } from "./formerSlugs";
-import { scheduleAvatarRehostIfPending } from "./profileAvatar";
-import { allocateProfileSlug } from "./profileSlugs";
-import { nowIso, slugify } from "./utils";
+import { profileUserEditFormSchema } from '../../src/shared/profiles/validation';
+import type { Doc, Id } from '../_generated/dataModel';
+import type { MutationCtx, QueryCtx } from '../_generated/server';
+import { accountStateOf } from './accountLifecycle';
+import { accountMethods } from './accountMethods';
+import type { AuthProvider } from './accountMethods';
+import { recordFormerSlug } from './formerSlugs';
+import { scheduleAvatarRehostIfPending } from './profileAvatar';
+import { allocateProfileSlug } from './profileSlugs';
+import { nowIso, slugify } from './utils';
 
 /** What a sign-in provider reported about its account: either may be missing. */
 export type ProviderDetails = { name?: string | null; image?: string | null };
@@ -34,16 +34,14 @@ const displayNameSchema = profileUserEditFormSchema.shape.username;
  * "ALLCAPS" becomes "Allcaps";
  * "Bo" becomes nothing, so the name is left alone.
  */
-export function displayNameFrom(
-  name: string | null | undefined,
-): string | null {
+export function displayNameFrom(name: string | null | undefined): string | null {
   if (!name) {
     return null;
   }
   let candidate = name
-    .normalize("NFKD")
-    .replace(/\p{M}/gu, "")
-    .replace(/[^A-Za-z0-9]+/g, "")
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^A-Za-z0-9]+/g, '')
     .slice(0, 30);
   if (/[A-Z]/.test(candidate) && candidate === candidate.toUpperCase()) {
     candidate = candidate[0] + candidate.slice(1).toLowerCase();
@@ -52,22 +50,20 @@ export function displayNameFrom(
 }
 
 function cleanName(name: string | null | undefined): string | null {
-  const trimmed = typeof name === "string" ? name.trim().slice(0, 64) : "";
+  const trimmed = typeof name === 'string' ? name.trim().slice(0, 64) : '';
   return trimmed || null;
 }
 
 function cleanImage(image: string | null | undefined): string | null {
-  return typeof image === "string" && image.startsWith("https://")
-    ? image
-    : null;
+  return typeof image === 'string' && image.startsWith('https://') ? image : null;
 }
 
 /** Keeps what a provider reported at a sign-in, replacing what it reported before. The record is the provider's, not the profile's: a later resync reads it. */
 export async function recordLinkedAccountProfile(
   ctx: MutationCtx,
-  userId: Id<"users">,
+  userId: Id<'users'>,
   provider: AuthProvider,
-  details: ProviderDetails,
+  details: ProviderDetails
 ): Promise<void> {
   const row = {
     user_id: userId,
@@ -77,14 +73,10 @@ export async function recordLinkedAccountProfile(
     synced_at: Date.now(),
   };
   const existing = await ctx.db
-    .query("linked_account_profiles")
-    .withIndex("by_user_id_and_provider", (q) =>
-      q.eq("user_id", userId).eq("provider", provider),
-    )
+    .query('linked_account_profiles')
+    .withIndex('by_user_id_and_provider', (q) => q.eq('user_id', userId).eq('provider', provider))
     .unique();
-  await (existing
-    ? ctx.db.replace(existing._id, row)
-    : ctx.db.insert("linked_account_profiles", row));
+  await (existing ? ctx.db.replace(existing._id, row) : ctx.db.insert('linked_account_profiles', row));
 }
 
 /**
@@ -92,21 +84,14 @@ export async function recordLinkedAccountProfile(
  * A method that signed in before these records were kept has no record;
  * when it is the account's only method, what the account itself holds is that method's report.
  */
-export async function linkedAccountOptions(
-  ctx: QueryCtx,
-  userId: Id<"users">,
-): Promise<LinkedAccountOption[]> {
-  const connected = (await accountMethods(ctx, userId)).filter(
-    (method) => method.connected,
-  );
+export async function linkedAccountOptions(ctx: QueryCtx, userId: Id<'users'>): Promise<LinkedAccountOption[]> {
+  const connected = (await accountMethods(ctx, userId)).filter((method) => method.connected);
   const user = connected.length === 1 ? await ctx.db.get(userId) : null;
   return await Promise.all(
     connected.map(async ({ provider }) => {
       const record = await ctx.db
-        .query("linked_account_profiles")
-        .withIndex("by_user_id_and_provider", (q) =>
-          q.eq("user_id", userId).eq("provider", provider),
-        )
+        .query('linked_account_profiles')
+        .withIndex('by_user_id_and_provider', (q) => q.eq('user_id', userId).eq('provider', provider))
         .unique();
       const name = record ? record.name : cleanName(user?.name);
       const image = record ? record.image : cleanImage(user?.image);
@@ -117,7 +102,7 @@ export async function linkedAccountOptions(
         image,
         syncedAt: record?.synced_at ?? null,
       };
-    }),
+    })
   );
 }
 
@@ -127,66 +112,49 @@ export function offersSomething(option: LinkedAccountOption): boolean {
 }
 
 export type AppliedLinkedAccount = {
-  profile: Doc<"profiles">;
+  profile: Doc<'profiles'>;
   /** Which of the two the profile took; a name the rules refuse, or a picture it already shows, is not taken. */
   name: boolean;
   avatar: boolean;
 };
 
-async function activeProfileOf(
-  ctx: MutationCtx,
-  userId: Id<"users">,
-): Promise<Doc<"profiles">> {
+async function activeProfileOf(ctx: MutationCtx, userId: Id<'users'>): Promise<Doc<'profiles'>> {
   const profile = await ctx.db
-    .query("profiles")
-    .withIndex("by_user_id", (q) => q.eq("user_id", userId))
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', userId))
     .unique();
-  if (!profile || accountStateOf(profile) !== "active") {
-    throw new Error("Profile not found");
+  if (!profile || accountStateOf(profile) !== 'active') {
+    throw new Error('Profile not found');
   }
   return profile;
 }
 
 /** The offer of one connected method, or why there is none. */
-async function offerOf(
-  ctx: MutationCtx,
-  userId: Id<"users">,
-  provider: AuthProvider,
-): Promise<LinkedAccountOption> {
-  const option = (await linkedAccountOptions(ctx, userId)).find(
-    (candidate) => candidate.provider === provider,
-  );
+async function offerOf(ctx: MutationCtx, userId: Id<'users'>, provider: AuthProvider): Promise<LinkedAccountOption> {
+  const option = (await linkedAccountOptions(ctx, userId)).find((candidate) => candidate.provider === provider);
   if (!option) {
-    throw new Error("This sign-in method is not connected.");
+    throw new Error('This sign-in method is not connected.');
   }
   if (!offersSomething(option)) {
     throw new Error(
-      "This sign-in method has not reported a name or picture yet. Sign in with it once, then try again.",
+      'This sign-in method has not reported a name or picture yet. Sign in with it once, then try again.'
     );
   }
   return option;
 }
 
 /** Whether a picture differs from every form the profile already shows it in. */
-function showsPicture(profile: Doc<"profiles">, image: string): boolean {
-  return [
-    profile.avatar?.url,
-    profile.avatar?.source_url,
-    profile.avatar_url,
-  ].includes(image);
+function showsPicture(profile: Doc<'profiles'>, image: string): boolean {
+  return [profile.avatar?.url, profile.avatar?.source_url, profile.avatar_url].includes(image);
 }
 
 /** The address a renamed profile takes; the old one keeps redirecting when it changes. */
-async function slugAfterRename(
-  ctx: MutationCtx,
-  profile: Doc<"profiles">,
-  username: string,
-): Promise<string> {
+async function slugAfterRename(ctx: MutationCtx, profile: Doc<'profiles'>, username: string): Promise<string> {
   const slug = await allocateProfileSlug(ctx, slugify(username), profile);
   if (slug !== profile.slug) {
     await recordFormerSlug(ctx, {
-      kind: "profile",
-      scope: "",
+      kind: 'profile',
+      scope: '',
       slug: profile.slug,
       record_id: profile._id,
     });
@@ -201,26 +169,18 @@ async function slugAfterRename(
  */
 export async function applyLinkedAccountProfile(
   ctx: MutationCtx,
-  userId: Id<"users">,
-  provider: AuthProvider,
+  userId: Id<'users'>,
+  provider: AuthProvider
 ): Promise<AppliedLinkedAccount> {
   const profile = await activeProfileOf(ctx, userId);
   const option = await offerOf(ctx, userId, provider);
-  const username =
-    option.displayName !== null && option.displayName !== profile.username
-      ? option.displayName
-      : null;
-  const image =
-    option.image !== null && !showsPicture(profile, option.image)
-      ? option.image
-      : null;
+  const username = option.displayName !== null && option.displayName !== profile.username ? option.displayName : null;
+  const image = option.image !== null && !showsPicture(profile, option.image) ? option.image : null;
   if (username === null && image === null) {
     return { profile, name: false, avatar: false };
   }
   await ctx.db.patch(profile._id, {
-    ...(username !== null
-      ? { username, slug: await slugAfterRename(ctx, profile, username) }
-      : {}),
+    ...(username !== null ? { username, slug: await slugAfterRename(ctx, profile, username) } : {}),
     ...(image !== null ? { avatar_url: image, avatar: null } : {}),
     updated_at: nowIso(),
   });
