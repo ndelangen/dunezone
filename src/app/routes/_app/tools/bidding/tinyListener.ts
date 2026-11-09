@@ -10,7 +10,8 @@ import type { FromSpotter, ToSpotter } from './keywordSpotter.worker';
  */
 
 const ENGINE = 'https://cdn.jsdelivr.net/npm/sherpa-onnx@2.0.1/';
-const MODEL = 'https://huggingface.co/csukuangfj/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01/resolve/main/';
+/* The model is served with the tools, from the sherpa-onnx `kws-models` release (Apache-2.0). */
+const MODEL = '/tools/bidding-listener/';
 
 /** Where each file comes from; stories and tests may point it elsewhere. */
 export const LISTENER_FILES = {
@@ -172,29 +173,6 @@ export function useTinyListener(enabled: boolean, on: boolean, onPhrase: (phrase
     handler.current = onPhrase;
   }, [onPhrase]);
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    let live = true;
-    void isStored().then((stored) => {
-      if (!live) {
-        return;
-      }
-      if (stored) {
-        start();
-      } else {
-        setState((now) => (now === 'checking' ? 'downloadable' : now));
-      }
-    });
-    return () => {
-      live = false;
-      worker.current?.terminate();
-      worker.current = undefined;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `start` only reads refs and setters
-  }, [enabled]);
-
   function start() {
     if (worker.current) {
       return;
@@ -255,6 +233,28 @@ export function useTinyListener(enabled: boolean, on: boolean, onPhrase: (phrase
       }
     })();
   }
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    let live = true;
+    void isStored().then((stored) => {
+      if (!live) {
+        return;
+      }
+      if (stored) {
+        start();
+      } else {
+        setState((now) => (now === 'checking' ? 'downloadable' : now));
+      }
+    });
+    return () => {
+      live = false;
+      worker.current?.terminate();
+      worker.current = undefined;
+    };
+  }, [enabled]);
 
   useEffect(() => {
     const spotter = worker.current;
