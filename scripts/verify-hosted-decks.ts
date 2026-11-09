@@ -125,14 +125,19 @@ export async function verifyDecks({
   );
   assert.ok(await b.page.evaluate(() => (window.hostedPlayScenes?.length ?? 0) > 0), 'No three.js scene was observed.');
   assert.equal(await b.page.evaluate(texturedFaces, backPath), 0);
-  /* Lifted before any capture, so both first retries, 5 s after their failures, find the publisher answering. */
   outage.on = false;
   await capture(b, 'published-images-during-outage');
+  /*
+   * A slow runner can take longer than the 5 s first retry to see both failures, so the images may have failed again and backed off.
+   * Retries double up to 60 s (publishedFaceRetry.ts), so waiting one full interval past that still proves recovery.
+   */
+  const recovery = 65_000;
   await until(
     async () => (await b.page.evaluate(texturedFaces, backPath)) > 0,
-    'The deck back texture did not recover after the outage.'
+    'The deck back texture did not recover after the outage.',
+    recovery
   );
-  await dealtControl.locator('[data-phase="shown"] img').waitFor();
+  await dealtControl.locator('[data-phase="shown"] img').waitFor({ timeout: recovery });
   await capture(b, 'published-images-after-outage');
   passed('A table texture and a hand image that failed to load recover once the publisher answers again');
 }
