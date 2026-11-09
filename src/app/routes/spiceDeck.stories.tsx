@@ -39,7 +39,7 @@ export const NewTurn = meta.story({
   },
 });
 
-/** One spice pile, the default, on the first turn. */
+/** One spice pile, the default, on the first turn: a tap turns the top card over and it lands on the pile. */
 export const OnePile = meta.story({
   beforeEach: () => seedStoredGame(storyGame(0, { piles: 1 })),
   play: async ({ canvasElement }) => {
@@ -47,7 +47,16 @@ export const OnePile = meta.story({
     await userEvent.click(
       await page.findByRole('button', { name: 'Turn over a card onto spice pile' }, { timeout: 30_000 })
     );
-    await expect(page.getByText(/left · \d+% Shai-Hulud/)).toBeVisible();
+    /* The pile counts the card only once it has landed (0 while it flies), and the flying card leaves the table. */
+    await waitForFrame(
+      () => {
+        expect(page.getByText('Spice pile · 1')).toBeVisible();
+        expect(canvasElement.ownerDocument.querySelector('[data-turn]')).toBeNull();
+      },
+      { timeout: 15_000 }
+    );
+    const pile = page.getByRole('button', { name: 'Turn over a card onto spice pile' });
+    await expect(within(pile).getByRole('img')).toBeVisible();
   },
 });
 
