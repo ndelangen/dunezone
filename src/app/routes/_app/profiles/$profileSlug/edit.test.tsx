@@ -447,18 +447,36 @@ describe('profile settings page', () => {
       expect(view.queryByText('Takes the name NorbertdeLangen and picture.')).toBeNull();
     });
 
-    it('says on each row when no method has reported anything yet', async () => {
+    it('offers a sign-in on the row of a method that has never reported, which comes back to this tab', async () => {
+      bothConnected();
+      mocks.resyncLinked.mockResolvedValue({
+        kind: 'choose',
+        options: [{ ...googleOption, name: null, displayName: null, image: null, syncedAt: null }, discordOption],
+      });
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      expect(view.getByText('Not asked yet')).not.toBeNull();
+      expect(view.getByRole('button', { name: 'Take Discord name and picture' })).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Sign in with Google to get its name and picture' }));
+      });
+      expect(mocks.signIn).toHaveBeenCalledWith('google', { redirectTo: '/profiles/owner-profile/edit?tab=sign-in' });
+    });
+
+    it('says on each row when a method reported nothing the profile could take', async () => {
       bothConnected();
       mocks.resyncLinked.mockResolvedValue({
         kind: 'nothing',
         options: [
-          { ...googleOption, name: null, displayName: null, image: null, syncedAt: null },
-          { ...discordOption, name: null, image: null, syncedAt: null },
+          { ...googleOption, name: null, displayName: null, image: null },
+          { ...discordOption, name: null, image: null },
         ],
       });
       const view = await renderPage();
       await resyncFromToolbar(view);
-      expect(view.getAllByText(/Nothing reported yet/)).toHaveLength(2);
+      /* The row says it, and the disabled Take repeats it as its reason. */
+      expect(view.getAllByText('Google reported nothing the profile could take.')).toHaveLength(2);
+      expect(view.getAllByText('Discord reported nothing the profile could take.')).toHaveLength(2);
       expect(view.getByRole('button', { name: 'Take Google name and picture' }).getAttribute('aria-disabled')).toBe(
         'true'
       );

@@ -20,6 +20,7 @@ import {
   Check,
   CircleUserRound,
   Link2,
+  LogIn,
   LogOut,
   Palette,
   RefreshCw,
@@ -834,53 +835,74 @@ function appliedWords(applied: LinkedAccountApplied): string {
   return `Your profile already matches ${from}.`;
 }
 
-/** What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it. */
+/**
+ * What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it.
+ * A method that has never reported, because its last sign-in came before reports were kept, offers a sign-in with it instead: that sign-in is what makes it report.
+ */
 function LinkedAccountOffer({
   option,
   busy,
   disabled,
   onTake,
+  onSignIn,
 }: {
   option: LinkedAccountOption;
   busy: boolean;
   disabled: boolean;
   onTake: () => void;
+  onSignIn: () => void;
 }) {
   const from = authProviderNames[option.provider];
   const takes = [option.displayName ? `name ${option.displayName}` : null, option.image ? 'picture' : null].filter(
     (part) => part !== null
   );
+  const unasked = option.syncedAt === null && takes.length === 0;
   const refused = option.name && !option.displayName ? ` “${option.name}” does not fit a display name.` : '';
   return (
     <Group justify="space-between" align="center">
       <Group gap="sm" wrap="nowrap" align="center">
         <NameDisc name={option.name ?? from} src={option.image} size={44} />
         <Stack gap="xs">
-          <Text fw={650}>{option.name ?? 'No name reported'}</Text>
+          <Text fw={650}>{option.name ?? (unasked ? 'Not asked yet' : 'No name reported')}</Text>
           <Text size="sm" c="dimmed">
             {takes.length > 0
               ? `Takes the ${takes.join(' and ')}.`
-              : `Nothing reported yet. Sign in with ${from} once, so it can report a name or picture.`}
+              : unasked
+                ? `Sign in with ${from} once and it reports its name and picture; you come straight back here.`
+                : `${from} reported nothing the profile could take.`}
             {refused}
           </Text>
         </Stack>
       </Group>
-      <LabeledAction
-        accessibleName={`Take ${from} name and picture`}
-        icon={<Check size={17} aria-hidden />}
-        intent="positive"
-        busy={busy}
-        disabledReason={
-          disabled
-            ? takes.length === 0
-              ? `${from} has not reported a name or picture yet.`
-              : 'Another change is still running.'
-            : undefined
-        }
-        onClick={onTake}
-      >
-        Take
-      </LabeledAction>
+      {unasked ? (
+        <LabeledAction
+          accessibleName={`Sign in with ${from} to get its name and picture`}
+          icon={<LogIn size={17} aria-hidden />}
+          intent="neutral"
+          busy={busy}
+          disabledReason={disabled ? 'Another change is still running.' : undefined}
+          onClick={onSignIn}
+        >
+          Sign in
+        </LabeledAction>
+      ) : (
+        <LabeledAction
+          accessibleName={`Take ${from} name and picture`}
+          icon={<Check size={17} aria-hidden />}
+          intent="positive"
+          busy={busy}
+          disabledReason={
+            disabled
+              ? takes.length === 0
+                ? `${from} reported nothing the profile could take.`
+                : 'Another change is still running.'
+              : undefined
+          }
+          onClick={onTake}
+        >
+          Take
+        </LabeledAction>
+      )}
     </Group>
   );
 }
@@ -914,6 +936,16 @@ function SignInMethods({
       const intent = await begin({ provider });
       holdAuthConnection(intent.token);
       await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
+    } catch (error) {
+      dispatch({ kind: 'failed', error, fallback: 'The sign-in could not start.' });
+    }
+    dispatch({ kind: 'settled' });
+  };
+  /* A sign-in with a method that is already connected only makes it report its name and picture, and lands back on this tab. */
+  const refresh = async (provider: AuthProvider) => {
+    dispatch({ kind: 'started', provider });
+    try {
+      await signIn(provider, { redirectTo: returnTo });
     } catch (error) {
       dispatch({ kind: 'failed', error, fallback: 'The sign-in could not start.' });
     }
@@ -973,11 +1005,16 @@ function SignInMethods({
         ) : option ? (
           <LinkedAccountOffer
             option={option}
-            busy={resync.busy === 'apply'}
+            busy={resync.busy === 'apply' || state.busy === method.provider}
             disabled={
-              !!resync.busy || saving || !!state.busy || account.merging || (!option.displayName && !option.image)
+              !!resync.busy ||
+              saving ||
+              !!state.busy ||
+              account.merging ||
+              (option.syncedAt !== null && !option.displayName && !option.image)
             }
             onTake={() => onTake(method.provider)}
+            onSignIn={() => void refresh(method.provider)}
           />
         ) : null;
         const canDisconnect = account.methods.some(

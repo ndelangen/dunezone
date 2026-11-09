@@ -214,6 +214,42 @@ export const ResyncTakesTheOnlyMethod = meta.story({
   },
 });
 
+/**
+ * One method with something to offer beside one that has never reported: nothing is taken on its own.
+ * Discord's row offers its name and picture.
+ * Google's row offers the sign-in that makes it report, returning to this tab.
+ */
+export const ResyncOffersASignIn = meta.story({
+  args: { path: '/profiles/central/edit?tab=sign-in' },
+  parameters: {
+    database: db((baseline) => {
+      googleConnected(baseline);
+      baseline.authAccounts.push({
+        userId: ref('storybook-viewer'),
+        provider: 'discord',
+        providerAccountId: 'discord-story',
+      });
+      baseline.linked_account_profiles.push({
+        user_id: ref('storybook-viewer'),
+        provider: 'discord',
+        name: 'Ixian Envoy',
+        image: DISCORD_PICTURE,
+        synced_at: STORYBOOK_NOW - 3_600_000,
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Resync name and picture' }, { timeout: 30_000 }));
+    await expect(
+      page.findByText('Takes the name IxianEnvoy and picture.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByText('Not asked yet')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in with Google to get its name and picture' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Take Discord name and picture' })).toBeVisible();
+  },
+});
+
 /** Two methods with something to offer: each method's row shows what it reports, the reader takes one, and the offers are gone. */
 export const ResyncOffersAChoice = meta.story({
   args: { path: '/profiles/central/edit?tab=sign-in' },

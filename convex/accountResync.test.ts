@@ -190,6 +190,22 @@ describe('resync', () => {
     });
   });
 
+  test('one report beside a method that has never reported is offered, not taken', async () => {
+    const t = setup();
+    const own = await account(t, 'oldname', 'google');
+    await connect(t, own.userId, 'discord');
+    await recorded(t, own.userId, 'discord', { name: 'discordian', image: null });
+    const result = await viewer(t, own).action(api.accountResync.resync, {});
+    expect(result).toMatchObject({
+      kind: 'choose',
+      options: [
+        { provider: 'google', name: null, displayName: null, image: null, syncedAt: null },
+        { provider: 'discord', displayName: 'discordian', syncedAt: 1000 },
+      ],
+    });
+    expect(await profileOf(t, own.profileId)).toMatchObject({ username: 'oldname' });
+  });
+
   test('several methods with reports: the reader chooses, then one applies', async () => {
     const t = setup();
     const own = await account(t, 'oldname', 'google');
