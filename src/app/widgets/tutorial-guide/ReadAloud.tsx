@@ -5,9 +5,9 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import type { MouseEvent } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
+import { spokenText, useSpeech } from '@app/widgets/speech/speech';
 
 import styles from './ReadAloud.module.css';
-import { spokenText, useSpeech } from './speech';
 
 /* A voice at work: three bars that rise and fall out of step, or hold still at their own heights without motion. */
 function Speaking() {

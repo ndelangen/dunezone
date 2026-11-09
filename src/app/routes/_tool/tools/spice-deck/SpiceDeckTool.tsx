@@ -2,12 +2,24 @@ import { Menu, NumberInput } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
-import { ArrowRight, Eye, EyeOff, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Layers,
+  Mic,
+  RotateCcw,
+  Settings2,
+  Shuffle,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
-import { useSpeech } from '@app/widgets/tutorial-guide/speech';
+import { useSpeech } from '@app/widgets/speech/speech';
 
 import {
   blowsOfTurn,
@@ -57,16 +69,22 @@ type ToolProps = Readonly<{
 export function SpiceDeckTool({ storageKey, initial, decks, loadDeck }: ToolProps) {
   const session = useSpiceDeckGame(storageKey, initial);
   const { game } = session;
-  if (!game) {
+  /* Picking another deck keeps the game until the new deck is in, so backing out or a deck that fails to load loses nothing. */
+  const [choosing, setChoosing] = useState(false);
+  if (!game || choosing) {
     return (
       <DeckPicker
         decks={decks}
         loadDeck={loadDeck}
-        onStart={(deck, rules) => session.start(newGame(deck, session.random, rules))}
+        onStart={(deck, rules) => {
+          session.start(newGame(deck, session.random, rules));
+          setChoosing(false);
+        }}
+        onBack={game ? () => setChoosing(false) : undefined}
       />
     );
   }
-  return <Playing session={session} game={game} />;
+  return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
 }
 
 /* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
@@ -74,10 +92,13 @@ function DeckPicker({
   decks,
   loadDeck,
   onStart,
+  onBack,
 }: Readonly<{
   decks: readonly SpiceDeckChoice[] | undefined;
   loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
   onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
+  /** Back to the game being played, when there is one. */
+  onBack?: () => void;
 }>) {
   const [piles, setPiles] = useState(1);
   const [peek, setPeek] = useState(1);
@@ -101,6 +122,15 @@ function DeckPicker({
           <span className={styles.turnNumber}>Spice deck</span>
           <span className={styles.deckName}>Pick the deck your table plays with</span>
         </div>
+        {onBack ? (
+          <IconAction
+            label="Back to the game"
+            emphasis="quiet"
+            intent="neutral"
+            icon={<ArrowLeft size={20} />}
+            onClick={onBack}
+          />
+        ) : null}
       </header>
       <main className={styles.body}>
         <div className={styles.pickRules}>
@@ -220,7 +250,11 @@ const CARD_ON_ITS_WAY = 'A card is on its way to its pile.';
 /* A card's width to its height. */
 const CARD_RATIO = 900 / 1263;
 
-function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame }>) {
+function Playing({
+  session,
+  game,
+  onPickDeck,
+}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; onPickDeck: () => void }>) {
   const motion = useMotionAllowed();
   const speech = useSpeech();
   const [voice, setVoice] = useState(false);
@@ -362,7 +396,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
             onClick={() => setListen(!listen)}
           />
         ) : null}
-        <GameMenu session={session} game={game} />
+        <GameMenu session={session} game={game} onPickDeck={onPickDeck} />
       </header>
       <main className={styles.body}>
         <Table game={game} flight={flight} onPile={turnOver} />
@@ -758,7 +792,12 @@ function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => 
   );
 }
 
-function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame }>) {
+/* Both start over without losing the game: a new game is taken back with Undo, and picking another deck keeps this one until the new deck is in. */
+function GameMenu({
+  session,
+  game,
+  onPickDeck,
+}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; onPickDeck: () => void }>) {
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -772,7 +811,7 @@ function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game:
         >
           New game, same deck
         </Menu.Item>
-        <Menu.Item onClick={() => session.start(undefined)}>Pick another deck</Menu.Item>
+        <Menu.Item onClick={onPickDeck}>Pick another deck</Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );

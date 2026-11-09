@@ -88,15 +88,25 @@ export const Peek = meta.story({
   },
 });
 
-/** Before a game: the ruleset whose deck the table plays with, how many spice piles, and how many cards a peek shows. Picking one starts the game. */
+/**
+ * Before a game: the ruleset whose deck the table plays with, how many spice piles, and how many cards a peek shows.
+ * Picking one starts the game.
+ * Settings > Pick another deck comes back here with the game kept, so backing out returns to it.
+ */
 export const PickADeck = meta.story({
   /* Picking a deck starts a game in this browser's storage; each visit starts from the picker again. */
   beforeEach: () => {
     window.localStorage.removeItem('spice-deck-story-picker');
   },
   render: () => <SpiceDeckTool storageKey="spice-deck-story-picker" decks={STORY_DECKS} loadDeck={loadStoryDeck} />,
-  play: async ({ canvas }) => {
+  play: async ({ canvas, canvasElement }) => {
     await userEvent.click(canvas.getByRole('button', { name: /KISS/ }));
     await expect(await canvas.findByRole('button', { name: 'Turn over a card onto spice pile' })).toBeEnabled();
+    await userEvent.click(canvas.getByRole('button', { name: 'Game settings' }));
+    await userEvent.click(
+      await within(canvasElement.ownerDocument.body).findByRole('menuitem', { name: 'Pick another deck' })
+    );
+    await userEvent.click(await canvas.findByRole('button', { name: 'Back to the game' }));
+    await expect(await canvas.findByText(/^KISS Spice Deck · \d+ left/)).toBeVisible();
   },
 });

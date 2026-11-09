@@ -13,7 +13,7 @@ type LastStep = Readonly<{ id: number; kind: StepKind }>;
 
 type Saved = Readonly<{ game: SpiceDeckGame; undo: readonly SpiceDeckGame[]; last?: LastStep }>;
 
-/* Every earlier game shares the current one's deck, so the deck is stored once, with the current game; only the steps are stored with it. */
+/* Earlier games mostly share the current one's deck, so that deck is stored once, with the current game; a game from before another deck was picked keeps its own. */
 type StoredStep = Omit<SpiceDeckGame, 'deck'>;
 type Stored = Readonly<{ game: SpiceDeckGame; undo: readonly (StoredStep | SpiceDeckGame)[] }>;
 
@@ -31,7 +31,7 @@ function read(key: string): Saved | undefined {
       return undefined;
     }
     const { deck } = stored.game;
-    return { game: stored.game, undo: stored.undo.map((step) => ({ ...step, deck })) };
+    return { game: stored.game, undo: stored.undo.map((step) => ({ deck, ...step })) };
   } catch {
     return undefined;
   }
@@ -39,7 +39,13 @@ function read(key: string): Saved | undefined {
 
 const stored = (saved: Saved, depth: number): Stored => ({
   game: saved.game,
-  undo: saved.undo.slice(-depth).map(({ deck: _deck, ...step }) => step),
+  undo: saved.undo.slice(-depth).map((step) => {
+    if (step.deck.id !== saved.game.deck.id) {
+      return step;
+    }
+    const { deck: _deck, ...rest } = step;
+    return rest;
+  }),
 });
 
 function write(key: string, saved: Saved | undefined) {
@@ -77,8 +83,8 @@ export type SpiceDeckSession = Readonly<{
   act: (step: (game: SpiceDeckGame, random: Random) => SpiceDeckGame, kind?: StepKind) => void;
   undo: () => void;
   canUndo: boolean;
-  /** Starts over, with a new game or none (back to choosing a deck). */
-  start: (game: SpiceDeckGame | undefined) => void;
+  /** Starts a new game, with this deck or another; the game it replaces can be taken back like any step. */
+  start: (game: SpiceDeckGame) => void;
   random: Random;
 }>;
 
@@ -121,7 +127,19 @@ export function useSpiceDeckGame(storageKey: string, initial?: SpiceDeckGame, ra
       ),
     []
   );
-  const start = useCallback((game: SpiceDeckGame | undefined) => setSaved(game ? { game, undo: [] } : undefined), []);
+  const start = useCallback(
+    (game: SpiceDeckGame) =>
+      setSaved((current) =>
+        current
+          ? {
+              game,
+              undo: [...current.undo, current.game].slice(-UNDO_DEPTH),
+              last: { id: (current.last?.id ?? 0) + 1, kind: 'other' },
+            }
+          : { game, undo: [] }
+      ),
+    []
+  );
   return {
     game: saved?.game,
     last: saved?.last,
