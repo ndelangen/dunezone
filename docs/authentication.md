@@ -138,7 +138,9 @@ and the Steam sign-in keeps the player summary. The settings page's toolbar **Re
 (`convex/accountResync.ts`) pulls from those records: Steam is asked live through the Web API, since
 its public profile needs no token from the reader, while Google and Discord offer what they sent at the
 last sign-in with them, because no OAuth token is kept. One method with something to offer is applied
-at once; several are offered on their rows and the reader takes one, which ends the offer. A provider name is reduced to a display name
+at once; several are offered on their rows and the reader takes one, which ends the offer. A method whose
+last sign-in came before these records existed has nothing to offer; its row offers a sign-in with it, which
+makes it report and returns to the tab, and nothing is applied on its own while such a method is connected. A provider name is reduced to a display name
 (letters and digits, five to thirty, not all capitals) or left out when it cannot be; a new picture goes
 through the avatar rehost, and a rename records the former address like a save from the form.
 
