@@ -1113,3 +1113,20 @@
     font-size: 56px;
   }
 }
+
+/* H: what the phone knows about its link: linking, linked, or no longer hearing the tablet. */
+.linkState {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-muted);
+}
+
+.linkState[data-state="linked"] {
+  color: var(--ui-positive);
+}
+
+.linkState[data-state="lost"] {
+  color: var(--ui-negative);
+  font-weight: 600;
+}

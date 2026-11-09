@@ -27,8 +27,12 @@ function audio() {
 export const REPEATS = 3;
 const REPEAT_GAP_S = 0.12;
 
-/* Plays a message REPEATS times, a short gap between copies. */
-async function playMessage(kind: MessageKind, symbols: readonly number[], { volume = 0.5 } = {}): Promise<void> {
+/* Plays a message `repeats` times, a short gap between copies. */
+async function playMessage(
+  kind: MessageKind,
+  symbols: readonly number[],
+  { volume = 0.5, repeats = REPEATS } = {}
+): Promise<void> {
   const { context, bus } = audio();
   if (context.state === 'suspended') {
     await context.resume();
@@ -41,7 +45,7 @@ async function playMessage(kind: MessageKind, symbols: readonly number[], { volu
   out.connect(context.destination);
   out.connect(bus);
   let at = context.currentTime + 0.05;
-  for (let repeat = 0; repeat < REPEATS; repeat++) {
+  for (let repeat = 0; repeat < repeats; repeat++) {
     const source = context.createBufferSource();
     source.buffer = copy;
     source.connect(out);
@@ -57,10 +61,15 @@ export function playTune(command: RemoteCommand): Promise<void> {
   return playMessage('command', encode(command));
 }
 
-/** Plays the tablet's call to the remotes. */
-export function playCall(call: Call): Promise<void> {
-  return playMessage('call', encodeCall(call));
+/** Plays the tablet's call to the remotes; a check-in that only repeats the last call plays once. */
+export function playCall(call: Call, { checkIn = false } = {}): Promise<void> {
+  return playMessage('call', encodeCall(call), { repeats: checkIn ? 1 : REPEATS });
 }
+
+/** How often the tablet repeats itself, so a phone can tell it still hears the tablet. */
+export const CHECK_IN_MS = 10_000;
+/** How long a phone goes without hearing the tablet before it says so. */
+export const LOST_MS = 25_000;
 
 /* How long a message's copies keep arriving: a later copy within this time is the same message, not a new one. */
 const SAME_MESSAGE_MS = 2600;

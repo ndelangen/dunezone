@@ -53,13 +53,23 @@ export function decode(symbols: readonly number[]): RemoteCommand | undefined {
 }
 
 /** The tablet's call: whose bid it is, the bid to beat, and the seconds to answer (0 when untimed). */
-export type Call = Readonly<{ seat: number; beat: number; seconds: number }>;
+/**
+ * The tablet's call: whose bid it is, the bid to beat and the seconds per bid.
+ * A `welcome` call instead tells that seat's phone the tablet heard it link (Norbert, 2026-11-09: a phone must know whether it is really connected).
+ */
+export type Call = Readonly<{ seat: number; beat: number; seconds: number; welcome?: boolean }>;
+
+/* The seconds symbol that marks a welcome; bid timers run 5 to 70 seconds. */
+const WELCOME = 15;
+export const MAX_SECONDS = 70;
 
 /* Seconds go in steps of five, up to 75. */
 const SECONDS_STEP = 5;
 
 export function encodeCall(call: Call): number[] {
-  const seconds = Math.min(15, Math.round(call.seconds / SECONDS_STEP));
+  const seconds = call.welcome
+    ? WELCOME
+    : Math.min(MAX_SECONDS / SECONDS_STEP, Math.round(call.seconds / SECONDS_STEP));
   const beat = Math.min(253, call.beat);
   const high = beat >> 4;
   const low = beat & 15;
@@ -73,6 +83,9 @@ export function decodeCall(symbols: readonly number[]): Call | undefined {
   }
   if (sum !== (check(seat!, high!, low!) + seconds! * 13) % 16) {
     return undefined;
+  }
+  if (seconds === WELCOME) {
+    return { seat: seat!, beat: 0, seconds: 0, welcome: true };
   }
   return { seat: seat!, beat: high! * 16 + low!, seconds: seconds! * SECONDS_STEP };
 }

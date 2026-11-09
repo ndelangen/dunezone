@@ -1,27 +1,28 @@
 /*
- * The sound remotes' radio, built to be heard in a noisy room (Norbert, 2026-11-09): chirp spread spectrum, as LoRa
- * radios use. Every symbol is one sweep up across the whole band, 4 to 8 kHz, started at one of 256 points; the
+ * The sound remotes' radio, built to be heard in a noisy room (Norbert, 2026-11-09) and not by the people in it:
+ * chirp spread spectrum, as LoRa radios use, high in the band at 18 to 20 kHz. Most adults hear nothing up there,
+ * chatter and music carry almost no energy there, and phone speakers and microphones still reach it at the 44.1 and
+ * 48 kHz rates browsers record at. Every symbol is one sweep up across the band, started at one of 128 points; the
  * receiver multiplies what it hears by the sweep's mirror image, which squeezes the whole sweep's energy into a single
- * frequency while chatter, clatter and music stay spread out. That gain (about 24 dB) lets a tune be read even when it
- * is quieter than the room. The band sits above most of a voice's energy and well inside what phone speakers and
- * microphones handle; above 17 kHz both fall away, so near-silent ultrasound would be far easier to lose.
+ * frequency while noise stays spread out (about 21 dB of gain).
  *
  * A message is three plain sweeps (the preamble, which also tells the receiver where each symbol starts), one sweep
- * that says what kind of message follows, then its symbols, each 0 to 15, spread 16 points apart so a small timing
- * error never turns one symbol into another. Every symbol lasts 64 ms; a remote's command takes about half a second.
+ * that says what kind of message follows, then its symbols, each 0 to 15, spread 8 points apart so a small timing error
+ * never turns one symbol into another. Every symbol lasts 64 ms, and the phase runs on unbroken from one sweep to the
+ * next, so the joins do not click.
  */
 
-export const LOW_HZ = 4000;
-export const BAND_HZ = 4000;
+export const LOW_HZ = 18_000;
+export const BAND_HZ = 2000;
 /** Points on the sweep: the sweep lasts CHIPS / BAND_HZ seconds. */
-export const CHIPS = 256;
+export const CHIPS = 128;
 export const SYMBOL_S = CHIPS / BAND_HZ;
 const SPACING = CHIPS / 16;
 const PREAMBLE = 3;
 
 /** What follows the preamble: a remote's command (4 symbols) or the tablet's call (5 symbols). */
 export type MessageKind = 'command' | 'call';
-const KIND_SHIFT: Readonly<Record<MessageKind, number>> = { command: 64, call: 192 };
+const KIND_SHIFT: Readonly<Record<MessageKind, number>> = { command: CHIPS / 4, call: (CHIPS * 3) / 4 };
 const KIND_LENGTH: Readonly<Record<MessageKind, number>> = { command: 4, call: 5 };
 
 /** The sweep's phase at time t (s) into a symbol that starts `shift` points along it. */
@@ -41,11 +42,14 @@ export function modulate(kind: MessageKind, symbols: readonly number[], rate: nu
   const shifts = [...Array<number>(PREAMBLE).fill(0), KIND_SHIFT[kind], ...symbols.map((symbol) => symbol * SPACING)];
   const perSymbol = Math.round(SYMBOL_S * rate);
   const out = new Float32Array(perSymbol * shifts.length);
-  const fade = Math.round(0.004 * rate);
+  const fade = Math.round(0.01 * rate);
+  /* Each sweep starts where the last one's phase ended, so the joins do not click. */
+  let offset = 0;
   shifts.forEach((shift, index) => {
     for (let n = 0; n < perSymbol; n++) {
-      out[index * perSymbol + n] = Math.cos(sweepPhase(n / rate, shift));
+      out[index * perSymbol + n] = Math.cos(offset + sweepPhase(n / rate, shift));
     }
+    offset += sweepPhase(perSymbol / rate, shift);
   });
   for (let n = 0; n < fade; n++) {
     out[n]! *= n / fade;
@@ -91,7 +95,7 @@ function fft(re: Float64Array, im: Float64Array) {
 export type Reading = Readonly<{ shift: number; clarity: number }>;
 
 /**
- * Reads one symbol starting at `from`: mixes the samples with the plain sweep's mirror image, averages each chip's samples (which also folds the wrap onto the same point), and finds the strongest of the 256 points.
+ * Reads one symbol starting at `from`: mixes the samples with the plain sweep's mirror image, averages each chip's samples (which also folds the wrap onto the same point), and finds the strongest of the CHIPS points.
  */
 export function readSymbol(samples: Float32Array, from: number, rate: number, mirror: Float64Array[]): Reading {
   const re = new Float64Array(CHIPS);

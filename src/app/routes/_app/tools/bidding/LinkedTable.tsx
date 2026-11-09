@@ -2,7 +2,7 @@ import { Switch } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Stepper } from '@ui/control/Stepper';
-import { Check, Gavel, Hand, Mic, MicOff, Plus, Smartphone, Vibrate } from 'lucide-react';
+import { Check, Gavel, Hand, Mic, MicOff, Plus, Smartphone, Vibrate, WifiOff } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
@@ -16,8 +16,9 @@ import { DEFAULT_LIMIT, highBid, newAuction, pass, phaseOver, seatOf, shortName,
 import type { AuctionGame, AuctionSeat } from './auction';
 import { AuctionHeader, bidToBeat, CardUp, PhaseOver, ResultLine, SeatToken, useAuctioneerVoice } from './AuctionParts';
 import styles from './Bidding.module.css';
+import { MAX_SECONDS } from './soundCode';
 import type { Call, RemoteCommand } from './soundCode';
-import { playCall, playTune, useToneListener } from './soundRemote';
+import { CHECK_IN_MS, LOST_MS, playCall, playTune, useToneListener } from './soundRemote';
 import { runRemote } from './SoundRemotes';
 import type { HeardLine } from './SoundRemotes';
 import { useAuctionGame } from './useAuctionGame';
@@ -104,9 +105,23 @@ export function LinkedTablet({
     onCommand: (command) => {
       if (command.kind === 'join' && command.seat < setup.seats.length) {
         setLinked((was) => (was.includes(command.seat) ? was : [...was, command.seat]));
+        /* Tells the phone the tablet heard it, so it knows it is linked. */
+        void playCall({ seat: command.seat, beat: 0, seconds: 0, welcome: true });
       }
     },
   });
+  /* While phones wait for bidding, the tablet checks in now and then, so a phone can tell it still hears the tablet. */
+  const lastLinked = linked.at(-1);
+  useEffect(() => {
+    if (game !== undefined || lastLinked === undefined) {
+      return;
+    }
+    const timer = setInterval(
+      () => void playCall({ seat: lastLinked, beat: 0, seconds: 0, welcome: true }, { checkIn: true }),
+      CHECK_IN_MS
+    );
+    return () => clearInterval(timer);
+  }, [game, lastLinked]);
   if (game) {
     return (
       <LinkedBidding
@@ -163,7 +178,7 @@ export function LinkedTablet({
                       label="Seconds per bid"
                       value={setup.seconds}
                       min={5}
-                      max={75}
+                      max={MAX_SECONDS}
                       step={5}
                       onChange={(seconds) => setSetup({ ...setup, seconds })}
                       size="sm"
@@ -283,6 +298,7 @@ function LinkedBidding({
     (command: RemoteCommand) => {
       if (command.kind === 'join') {
         onLinked(command.seat);
+        void playCall({ seat: command.seat, beat: 0, seconds: 0, welcome: true });
       }
       const { text, taken } = runRemote(session, command);
       note(text, taken);
@@ -306,6 +322,9 @@ function LinkedBidding({
     }
     const call: Call = { seat: turnIndex, beat: highBid(game)?.amount ?? 0, seconds };
     void playCall(call);
+    /* Then it repeats the call now and then: a phone that missed it catches up, and every phone knows it still hears the tablet. */
+    const timer = setInterval(() => void playCall(call, { checkIn: true }), CHECK_IN_MS);
+    return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a new bid to call is what plays
   }, [key]);
 
@@ -379,6 +398,9 @@ export function LinkedRemote({
   const [seat, setSeat] = useState<number | undefined>(joined ? storySeat : undefined);
   const [mic, setMic] = useState(false);
   const [call, setCall] = useState<(Call & { at: number }) | undefined>(undefined);
+  /* Whether the tablet confirmed it heard this phone link, and when the phone last heard the tablet at all. */
+  const [welcomed, setWelcomed] = useState(Boolean(joined));
+  const [heardAt, setHeardAt] = useState<number | undefined>(undefined);
   const [amount, setAmount] = useState({ beat: 0, value: 1 });
   const [playing, setPlaying] = useState(false);
   const [now, setNow] = useState(() => performance.now());
@@ -388,7 +410,22 @@ export function LinkedRemote({
     mic,
     loopback,
     onCall: (heard) => {
-      setCall({ ...heard, at: performance.now() });
+      const at = performance.now();
+      setHeardAt(at);
+      if (heard.welcome) {
+        if (heard.seat === seat) {
+          setWelcomed(true);
+        }
+        return;
+      }
+      /* Hearing the bidding means the tablet hears the table, this phone included. */
+      setWelcomed(true);
+      const same = call !== undefined && call.seat === heard.seat && call.beat === heard.beat;
+      if (same) {
+        /* A repeat of the call it already has: the countdown runs on. */
+        return;
+      }
+      setCall({ ...heard, at });
       if (heard.seat === seat) {
         /* Android buzzes; an iPhone has no web vibration, so the screen flashes instead. */
         navigator.vibrate?.([180, 80, 180]);
@@ -396,13 +433,16 @@ export function LinkedRemote({
     },
   });
   const mine = call !== undefined && call.seat === seat;
+  /* The clock ticks fast while it counts down, and slowly otherwise to notice a lost tablet. */
+  const counting = mine && Boolean(call?.seconds);
   useEffect(() => {
-    if (!mine || !call?.seconds) {
+    if (seat === undefined) {
       return;
     }
-    const timer = setInterval(() => setNow(performance.now()), 200);
+    const timer = setInterval(() => setNow(performance.now()), counting ? 200 : 1000);
     return () => clearInterval(timer);
-  }, [mine, call]);
+  }, [seat, counting]);
+  const lost = heardAt !== undefined && now - heardAt > LOST_MS;
 
   const send = (command: RemoteCommand) => {
     if (playing) {
@@ -425,6 +465,7 @@ export function LinkedRemote({
                 data-suggested={index === storySeat || undefined}
                 onClick={() => {
                   setSeat(index);
+                  setWelcomed(false);
                   /* A real phone listens for its turn as soon as it links. */
                   setMic(!loopback);
                   send({ seat: index, kind: 'join' });
@@ -452,7 +493,19 @@ export function LinkedRemote({
         </span>
         <span>
           <strong>{shortName(faction)}</strong>
-          <small className={styles.muted}>{playing ? 'Playing…' : 'Linked to the tablet'}</small>
+          <small className={styles.linkState} data-state={lost ? 'lost' : welcomed ? 'linked' : 'linking'}>
+            {playing ? (
+              'Playing…'
+            ) : lost ? (
+              <>
+                <WifiOff size={12} aria-hidden /> Can’t hear the tablet
+              </>
+            ) : welcomed ? (
+              'Linked to the tablet'
+            ) : (
+              'Linking… hold the phone near the tablet'
+            )}
+          </small>
         </span>
       </div>
       {mine ? (
@@ -502,7 +555,14 @@ export function LinkedRemote({
           Listen for my turn
         </LabeledAction>
         {mine ? null : (
-          <LabeledAction size="xs" icon={<Plus size={14} />} onClick={() => send({ seat, kind: 'join' })}>
+          <LabeledAction
+            size="xs"
+            icon={<Plus size={14} />}
+            onClick={() => {
+              setWelcomed(false);
+              send({ seat, kind: 'join' });
+            }}
+          >
             Link again
           </LabeledAction>
         )}
