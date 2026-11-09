@@ -113,7 +113,7 @@ export const CONTRIBUTING_SUBPAGES = [
  * Record-less pages the page header links to, so the footer leaves them out;
  * every other one needs a footer link.
  */
-export const HEADER_PUBLIC_PAGES = ['/blog'];
+export const HEADER_PUBLIC_PAGES = ['/tools', '/blog'];
 
 /**
  * The media library's game galleries, by path slug.
