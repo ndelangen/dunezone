@@ -124,6 +124,24 @@ test('finds a live deck behind many deleted decks that held the same card', asyn
 });
 
 /* 400 decks of the same 45 cards, written a few at a time to stay inside each write's own limits, and a Ruleset slotting the last. */
+/* One deck of the large catalogue, holding one copy of each card. */
+async function seedDeck(ctx: MutationCtx, owner: Id<'users'>, number: number, cards: readonly Id<'assets'>[]) {
+  const deck = await ctx.db.insert('assets', {
+    owner_id: owner,
+    type: 'deck',
+    data: { name: `Deck ${String(number).padStart(3, '0')}`, about: '', cardback: publishingCustomDeckCardback },
+    slug: `deck-${number}`,
+    created_at: stamp,
+    updated_at: stamp,
+    is_deleted: false,
+    group_id: null,
+  });
+  for (const card of cards) {
+    await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
+  }
+  return deck;
+}
+
 async function seedLargeCatalogue(t: ReturnType<typeof applicationTest>) {
   const { owner, cards } = await t.run(async (ctx) => {
     const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
@@ -144,42 +162,16 @@ async function seedLargeCatalogue(t: ReturnType<typeof applicationTest>) {
     }
     return { owner, cards };
   });
-  const deckIds: Id<'assets'>[] = [];
+  let slotted: Id<'assets'> | undefined;
   for (let batch = 0; batch < 20; batch++) {
-    deckIds.push(
-      ...(await t.run(async (ctx) => {
-        const made = [];
-        for (let index = 0; index < 20; index++) {
-          const number = batch * 20 + index;
-          const deck = await ctx.db.insert('assets', {
-            owner_id: owner,
-            type: 'deck',
-            data: {
-              name: `Deck ${String(number).padStart(3, '0')}`,
-              about: '',
-              cardback: publishingCustomDeckCardback,
-            },
-            slug: `deck-${number}`,
-            created_at: stamp,
-            updated_at: stamp,
-            is_deleted: false,
-            group_id: null,
-          });
-          for (const card of cards) {
-            await ctx.db.insert('asset_relations', {
-              from_asset_id: deck,
-              to_asset_id: card,
-              kind: 'deck-card',
-              count: 1,
-            });
-          }
-          made.push(deck);
-        }
-        return made;
-      }))
-    );
+    slotted = await t.run(async (ctx) => {
+      let last;
+      for (let index = 0; index < 20; index++) {
+        last = await seedDeck(ctx, owner, batch * 20 + index, cards);
+      }
+      return last;
+    });
   }
-  const slotted = deckIds.at(-1)!;
   await t.run(async (ctx) => {
     const ruleset = await ctx.db.insert('rulesets', {
       name: 'Dreamrules',
@@ -192,9 +184,9 @@ async function seedLargeCatalogue(t: ReturnType<typeof applicationTest>) {
       created_at: stamp,
       updated_at: stamp,
     });
-    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: slotted, slot: 'treachery' });
+    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: slotted!, slot: 'treachery' });
   });
-  return slotted;
+  return slotted!;
 }
 
 test('lists the decks it can count within a query’s reads, a Ruleset’s deck among them, when the catalogue is far larger', async () => {
