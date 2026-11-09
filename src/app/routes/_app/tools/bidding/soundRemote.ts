@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { CALL_HZ, callReader, callTune, commandReader, GAP_MS, START_HZ, SYMBOL_HZ, TONE_MS, tune } from './soundCode';
-import type { Call, RemoteCommand, Tone } from './soundCode';
+import { ChirpReceiver, modulate } from './chirpModem';
+import type { Heard, MessageKind } from './chirpModem';
+import { decode, decodeCall, encode, encodeCall } from './soundCode';
+import type { Call, RemoteCommand } from './soundCode';
 
 /*
- * The sound remotes' audio: a phone plays a command's tune through its speaker, and the tablet hears it with its
- * microphone. One page can also hear its own remotes directly, without the air in between (`loopback`), so the
- * prototype can be tried on one laptop with the sound off.
+ * The sound remotes' audio: a phone plays a command through its speaker, and the tablet hears it with its microphone;
+ * the tablet's call travels the other way. Every message is sent three times in a row (Norbert, 2026-11-09), so one
+ * lost to a laugh or a dropped die still arrives; the receiver takes the first copy and ignores its echoes.
+ * One page can also hear its own sounds directly, without the air in between (`loopback`), so the prototype can be
+ * tried on one laptop.
  */
 
 let shared: { context: AudioContext; bus: GainNode } | undefined;
 
-/** The page's one audio context, and the bus its remotes play into besides the speaker. */
+/** The page's one audio context, and the bus everything it plays also goes into. */
 function audio() {
   if (!shared) {
     const context = new AudioContext();
@@ -20,70 +24,52 @@ function audio() {
   return shared;
 }
 
-/** Plays a remote's command. */
-export function playTune(command: RemoteCommand): Promise<void> {
-  return playTones(tune(command));
-}
+export const REPEATS = 3;
+const REPEAT_GAP_S = 0.12;
 
-/** Plays the tablet's call to the remotes. */
-export function playCall(call: Call): Promise<void> {
-  return playTones(callTune(call));
-}
-
-/* Plays tones in turn, each with a soft start and end, so the tune is a chirp and not a click. */
-async function playTones(tones: readonly number[], { volume = 0.35 } = {}): Promise<void> {
+/* Plays a message REPEATS times, a short gap between copies. */
+async function playMessage(kind: MessageKind, symbols: readonly number[], { volume = 0.5 } = {}): Promise<void> {
   const { context, bus } = audio();
   if (context.state === 'suspended') {
     await context.resume();
   }
+  const samples = modulate(kind, symbols, context.sampleRate);
+  const copy = context.createBuffer(1, samples.length, context.sampleRate);
+  copy.copyToChannel(samples, 0);
   const out = context.createGain();
   out.gain.value = volume;
   out.connect(context.destination);
   out.connect(bus);
   let at = context.currentTime + 0.05;
-  for (const hz of tones) {
-    const tone = context.createOscillator();
-    const shape = context.createGain();
-    tone.frequency.value = hz;
-    shape.gain.setValueAtTime(0, at);
-    shape.gain.linearRampToValueAtTime(1, at + 0.008);
-    shape.gain.setValueAtTime(1, at + TONE_MS / 1000 - 0.008);
-    shape.gain.linearRampToValueAtTime(0, at + TONE_MS / 1000);
-    tone.connect(shape).connect(out);
-    tone.start(at);
-    tone.stop(at + TONE_MS / 1000);
-    at += (TONE_MS + GAP_MS) / 1000;
+  for (let repeat = 0; repeat < REPEATS; repeat++) {
+    const source = context.createBufferSource();
+    source.buffer = copy;
+    source.connect(out);
+    source.start(at);
+    at += copy.duration + REPEAT_GAP_S;
   }
-  await new Promise((done) => setTimeout(done, (at - context.currentTime) * 1000 + 50));
+  await new Promise((done) => setTimeout(done, (at - context.currentTime) * 1000));
   out.disconnect();
 }
 
-/* How loud a tone must be, and how far above the next loudest, to count as heard (dB). */
-const FLOOR_DB = -75;
-const MARGIN_DB = 12;
-
-/** The tone in one spectrum, if one of ours stands out clearly. */
-function toneIn(spectrum: Float32Array, binHz: number): { tone: Tone; level: number } {
-  const levelAt = (hz: number) => {
-    const bin = Math.round(hz / binHz);
-    return Math.max(spectrum[bin - 1] ?? -Infinity, spectrum[bin]!, spectrum[bin + 1] ?? -Infinity);
-  };
-  const candidates: [Tone, number][] = [
-    ['call', levelAt(CALL_HZ)],
-    ['start', levelAt(START_HZ)],
-    ...SYMBOL_HZ.map((hz, index): [Tone, number] => [index, levelAt(hz)]),
-  ];
-  candidates.sort((a, b) => b[1] - a[1]);
-  const [best, next] = candidates;
-  const heard = best![1] > FLOOR_DB && best![1] - next![1] > MARGIN_DB;
-  return { tone: heard ? best![0] : null, level: best![1] };
+/** Plays a remote's command. */
+export function playTune(command: RemoteCommand): Promise<void> {
+  return playMessage('command', encode(command));
 }
+
+/** Plays the tablet's call to the remotes. */
+export function playCall(call: Call): Promise<void> {
+  return playMessage('call', encodeCall(call));
+}
+
+/* How long a message's copies keep arriving: a later copy within this time is the same message, not a new one. */
+const SAME_MESSAGE_MS = 2600;
 
 export type ListenState = 'off' | 'asking' | 'listening' | 'refused';
 
 /**
- * Hears remotes while `on`: through the microphone when `mic`, and the page's own remotes when `loopback`.
- * Hands over each whole command, and says when a tune was heard but did not hold together.
+ * Hears messages while `on`: through the microphone when `mic`, and the page's own sounds when `loopback`.
+ * Hands over each command and call once, however many of its copies arrive, and says when one did not hold together.
  */
 export function useToneListener({
   on,
@@ -103,7 +89,7 @@ export function useToneListener({
 }>): { state: ListenState; level: number } {
   /* How the microphone answered: nothing yet while the browser asks. */
   const [micAnswer, setMicAnswer] = useState<'granted' | 'refused' | undefined>(undefined);
-  const [level, setLevel] = useState(-120);
+  const [level, setLevel] = useState(0);
   const handlers = useRef({ onCommand, onMisheard, onCall });
   useEffect(() => {
     handlers.current = { onCommand, onMisheard, onCall };
@@ -114,27 +100,54 @@ export function useToneListener({
       return;
     }
     const { context, bus } = audio();
-    const analyser = context.createAnalyser();
-    analyser.fftSize = 1024;
-    analyser.smoothingTimeConstant = 0;
-    const spectrum = new Float32Array(analyser.frequencyBinCount);
-    const binHz = context.sampleRate / analyser.fftSize;
-    const readers = [
-      commandReader(
-        (command) => handlers.current.onCommand?.(command),
-        () => handlers.current.onMisheard?.()
-      ),
-      callReader((call) => handlers.current.onCall?.(call)),
-    ];
+    const mix = context.createGain();
+    /* The browser hands raw samples over in blocks; nothing of it reaches the speaker. */
+    const tap = context.createScriptProcessor(2048, 1, 1);
+    const mute = context.createGain();
+    mute.gain.value = 0;
+    mix.connect(tap);
+    tap.connect(mute).connect(context.destination);
+    /* When each message was last heard, so its other copies are let go, whatever was heard between them. */
+    const seen = new Map<string, number>();
+    const receiver = new ChirpReceiver(context.sampleRate, (heard: Heard) => {
+      const key = `${heard.kind}:${heard.symbols.join(',')}`;
+      const now = performance.now();
+      const before = seen.get(key);
+      seen.set(key, now);
+      if (before !== undefined && now - before < SAME_MESSAGE_MS) {
+        return;
+      }
+      if (heard.kind === 'command') {
+        const command = decode(heard.symbols);
+        if (command) {
+          handlers.current.onCommand?.(command);
+        } else {
+          handlers.current.onMisheard?.();
+        }
+      } else {
+        const call = decodeCall(heard.symbols);
+        if (call) {
+          handlers.current.onCall?.(call);
+        }
+      }
+    });
+    let blocks = 0;
+    tap.onaudioprocess = (event) => {
+      receiver.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      /* The meter moves a few times a second. */
+      if (++blocks % 6 === 0) {
+        setLevel(Math.min(1, Math.log10(1 + receiver.clarity) / 2));
+      }
+    };
     let stream: MediaStream | undefined;
     let source: MediaStreamAudioSourceNode | undefined;
     let stopped = false;
     if (loopback) {
-      bus.connect(analyser);
+      bus.connect(mix);
     }
     if (mic) {
       void navigator.mediaDevices
-        /* The phone's tune is the signal here, so the browser must not clean it away as echo or noise. */
+        /* The tune is the signal here, so the browser must not clean it away as echo or noise. */
         ?.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
         .then((granted) => {
           if (stopped) {
@@ -143,29 +156,21 @@ export function useToneListener({
           }
           stream = granted;
           source = context.createMediaStreamSource(granted);
-          source.connect(analyser);
+          source.connect(mix);
           setMicAnswer('granted');
         })
         .catch(() => setMicAnswer('refused'));
     }
     void context.resume();
-    let shown = 0;
-    const timer = setInterval(() => {
-      analyser.getFloatFrequencyData(spectrum);
-      const heard = toneIn(spectrum, binHz);
-      readers.forEach((reader) => reader.hear(heard.tone));
-      /* The meter moves a few times a second; the reading itself runs every 10 ms. */
-      if (++shown % 8 === 0) {
-        setLevel(heard.level);
-      }
-    }, 10);
     return () => {
       stopped = true;
-      clearInterval(timer);
+      tap.onaudioprocess = null;
       if (loopback) {
-        bus.disconnect(analyser);
+        bus.disconnect(mix);
       }
       source?.disconnect();
+      mix.disconnect();
+      tap.disconnect();
       stream?.getTracks().forEach((track) => track.stop());
       setMicAnswer(undefined);
     };

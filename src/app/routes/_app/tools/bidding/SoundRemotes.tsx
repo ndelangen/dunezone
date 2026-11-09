@@ -105,8 +105,8 @@ export function ListeningTablet({
     onMisheard: () => note('Heard a remote, but not clearly. Play it again.', false),
   });
   const turn = seatOf(game, toBid(game));
-  /* The meter: how loud the loudest of the remotes' tones is, from silence (-100 dB) to loud (-30 dB). */
-  const meter = Math.min(1, Math.max(0, (level + 100) / 70));
+  /* The meter: how clearly a remote's sweep stands out of the room, from not at all to plainly. */
+  const meter = level;
   return (
     <div className={styles.tool}>
       <AuctionHeader session={session} voice={voice} onVoice={setVoice} />

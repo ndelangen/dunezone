@@ -374,7 +374,7 @@ function LinkedBidding({
           <span
             className={styles.meter}
             data-state="listening"
-            style={{ '--level': Math.min(1, Math.max(0, (level + 100) / 70)) } as CSSProperties}
+            style={{ '--level': level } as CSSProperties}
             aria-hidden
           />
           <ol className={styles.heardLog} aria-label="What it heard">
