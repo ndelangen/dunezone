@@ -45,6 +45,7 @@ const recognitionClass = (): RecognitionClass | undefined => {
 /* The words the auction listens for, so the recogniser favours them over anything that sounds alike. */
 const EXPECTED = [
   'bid',
+  'plus',
   'pass',
   'reset',
   'one',
@@ -168,7 +169,9 @@ export function useOfflineHearing(on: boolean, engine: Engine, onPhrase: (phrase
 }
 
 /** What a phrase asks: a bid of an amount, a pass, a reset, or nothing the auction knows. */
-export type Spoken = Readonly<{ kind: 'bid'; amount: number }> | Readonly<{ kind: 'pass' | 'reset' | 'other' }>;
+export type Spoken =
+  | Readonly<{ kind: 'bid'; amount: number }>
+  | Readonly<{ kind: 'raise' | 'pass' | 'reset' | 'other' }>;
 
 const NUMBERS = [
   'zero',
@@ -203,12 +206,17 @@ const ALIKE: Readonly<Record<string, number>> = { won: 1, to: 2, too: 2, for: 4,
 export function readSpoken(phrase: string): Spoken {
   const words = phrase
     .toLowerCase()
+    .replace(/\+/g, ' plus ')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .split(/\s+/)
     .filter(Boolean);
   for (let index = words.length - 1; index >= 0; index--) {
     const word = words[index]!;
     if (word === 'bid' || word === 'bids' || word === 'bit') {
+      /* "bid plus one" bids one more than the bid to beat (Norbert, 2026-11-09). */
+      if (words[index + 1] === 'plus' && ['1', 'one', 'won'].includes(words[index + 2] ?? '')) {
+        return { kind: 'raise' };
+      }
       const next = words[index + 1];
       const amount =
         next === undefined

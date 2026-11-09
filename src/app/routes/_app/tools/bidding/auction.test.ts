@@ -78,5 +78,8 @@ describe('offline voice', () => {
     expect(readSpoken('I have 4 cards')).toEqual({ kind: 'other' });
     expect(readSpoken('pass')).toEqual({ kind: 'pass' });
     expect(readSpoken('reset')).toEqual({ kind: 'reset' });
+    expect(readSpoken('bid plus one')).toEqual({ kind: 'raise' });
+    expect(readSpoken('Bid +1')).toEqual({ kind: 'raise' });
+    expect(readSpoken('plus one')).toEqual({ kind: 'other' });
   });
 });

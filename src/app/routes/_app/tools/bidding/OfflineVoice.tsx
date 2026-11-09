@@ -2,7 +2,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { Download, Mic, MicOff, WifiOff } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
-import { bid, pass, phaseOver, seatOf, shortName, toBid } from './auction';
+import { bid, leastBid, pass, phaseOver, seatOf, shortName, toBid } from './auction';
 import type { AuctionGame } from './auction';
 import { AuctionHeader, bidToBeat, PhaseOver, ResultLine, useAuctioneerVoice } from './AuctionParts';
 import styles from './Bidding.module.css';
@@ -18,7 +18,7 @@ import { useAuctionGame } from './useAuctionGame';
  */
 
 /* Phrases to try where nobody is speaking: each runs exactly as if it was heard. */
-const TRY = ['bid 3', 'pass', 'bid four', 'reset', 'four'];
+const TRY = ['bid 3', 'bid plus one', 'pass', 'bid four', 'reset', 'four'];
 
 type Line = Readonly<{ key: number; phrase: string; answer: string }>;
 
@@ -45,11 +45,15 @@ export function OfflineVoice({
         answer = 'Taken back.';
       } else if (spoken.kind === 'pass' && who) {
         answer = session.act(pass) ?? `${shortName(who.faction)} passes.`;
+      } else if (spoken.kind === 'raise' && who) {
+        const amount = leastBid(game);
+        answer =
+          session.act((current) => bid(current, leastBid(current))) ?? `${shortName(who.faction)} bids ${amount}.`;
       } else if (spoken.kind === 'bid' && who) {
         answer =
           session.act((current) => bid(current, spoken.amount)) ?? `${shortName(who.faction)} bids ${spoken.amount}.`;
       } else {
-        answer = 'Not for the auction: say “bid” and a number, “pass” or “reset”.';
+        answer = 'Not for the auction: say “bid” and a number, “bid plus one”, “pass” or “reset”.';
       }
       setHeard((lines) => [{ key: (lines[0]?.key ?? 0) + 1, phrase, answer }, ...lines].slice(0, 4));
     },
@@ -86,7 +90,9 @@ export function OfflineVoice({
           >
             {listen ? 'Stop listening' : 'Listen to the table'}
           </LabeledAction>
-          <p className={styles.muted}>Say “bid” and a number, “pass”, or “reset” to take the last one back.</p>
+          <p className={styles.muted}>
+            Say “bid” and a number, “bid plus one” to beat the bid by one, “pass”, or “reset” to take the last one back.
+          </p>
           <ResultLine game={game} />
           <section className={styles.heard} aria-label="What it heard">
             <ol>
