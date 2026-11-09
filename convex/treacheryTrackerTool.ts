@@ -10,8 +10,8 @@ import type { CardbackPresetMemo } from './lib/cardbackPresets';
 
 /* Far more Treachery cards than the catalogue holds; one card row and its deck memberships each keeps the answer inside a query's reads. */
 const CARD_LIMIT = 2000;
-/* A card is in a handful of decks at most. */
-const DECKS_PER_CARD = 20;
+/* Every deck a card was ever put in, deleted decks included, since deleting a deck keeps its rows; far more than any card is in. */
+const DECKS_PER_CARD = 500;
 /* A Ruleset for trying things out, never named to a table. */
 const HIDDEN_RULESETS = new Set(['test']);
 
@@ -19,7 +19,7 @@ const treacheryDeckChoiceValidator = v.object({
   id: v.id('assets'),
   slug: v.string(),
   name: v.string(),
-  /** Copies in the deck, counted from its membership rows. */
+  /** Live copies in the deck, of every card it holds, as the tracker copies them. */
   cards: v.number(),
   /** The deck's published back, or null while it has none. */
   back: v.union(v.string(), v.null()),
@@ -46,10 +46,10 @@ async function decksWithTreachery(ctx: QueryCtx) {
   return decks.filter((deck): deck is Doc<'assets'> => deck !== null && !deck.is_deleted && deck.type === 'deck');
 }
 
-/* The deck's live Treachery copies, read as the capture reads its members, so the count matches the cards a game copies. */
+/* The deck's live copies of every card, read as the capture reads its members, so the count matches the cards the tracker copies. */
 async function copiesIn(ctx: QueryCtx, deck: Doc<'assets'>) {
   const { entries } = await membersOf(ctx, deck._id, DECK_CARD);
-  return entries.reduce((total, entry) => total + (entry.row.type === 'card-treachery' ? entry.count : 0), 0);
+  return entries.reduce((total, entry) => total + entry.count, 0);
 }
 
 async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>) {
@@ -81,9 +81,6 @@ export const decks = publicQuery({
     const choices = await Promise.all(
       rows.map(async (row) => {
         const cards = await copiesIn(ctx, row);
-        if (cards === 0) {
-          return null;
-        }
         const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
         return { id: row._id, slug: row.slug, name: assetDisplayName(row), cards, back: back?.href ?? null, rulesets };
       })

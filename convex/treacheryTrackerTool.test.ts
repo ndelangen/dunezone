@@ -77,7 +77,7 @@ async function seed(ctx: MutationCtx) {
   });
 }
 
-test('offers every live deck holding live Treachery cards, whatever its first card, a Ruleset’s first, with its live Treachery copies and the live Rulesets that slot it', async () => {
+test('offers every live deck holding live Treachery cards, whatever its first card, a Ruleset’s first, with its live copies and the live Rulesets that slot it', async () => {
   const t = applicationTest();
   await t.run(seed);
   const decks = await t.query(api.treacheryTrackerTool.decks, {});
@@ -88,6 +88,37 @@ test('offers every live deck holding live Treachery cards, whatever its first ca
       cards: 5,
       rulesets: [{ slug: 'dreamrules', name: 'Dreamrules' }],
     },
-    { name: 'Homebrew Weapons', slug: 'homebrew-weapons', cards: 3, rulesets: [] },
+    { name: 'Homebrew Weapons', slug: 'homebrew-weapons', cards: 4, rulesets: [] },
   ]);
+});
+
+test('finds a live deck behind many deleted decks that held the same card', async () => {
+  const t = applicationTest();
+  await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    const asset = (type: string, slug: string, data: unknown, is_deleted = false) =>
+      ctx.db.insert('assets', {
+        owner_id: owner,
+        type,
+        data,
+        slug,
+        created_at: stamp,
+        updated_at: stamp,
+        is_deleted,
+        group_id: null,
+      });
+    const card = await asset('card-treachery', 'lasgun', publishingTreacheryCard);
+    for (let index = 0; index <= 30; index++) {
+      const name = index === 30 ? 'Live Deck' : `Old Deck ${index}`;
+      const deck = await asset(
+        'deck',
+        `deck-${index}`,
+        { name, about: '', cardback: publishingCustomDeckCardback },
+        index < 30
+      );
+      await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
+    }
+  });
+  const decks = await t.query(api.treacheryTrackerTool.decks, {});
+  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
 });
