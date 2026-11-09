@@ -48,3 +48,14 @@ test('a saved game with one slot id in two hands does not open', () => {
   expect(savedGame.get()).toBeNull();
   stop();
 });
+
+test('a page that mounts again reads what another tab saved while it was away', () => {
+  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  savedGame.set(game);
+  const moved = playGame(game, { kind: 'add', faction: 'harkonnen', card: null });
+  /* Another tab saves while nothing here listens, so no storage event reaches this one. */
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(moved));
+  const stop = savedGame.subscribe(() => {});
+  expect(savedGame.get()!.state.hands.harkonnen).toHaveLength(1);
+  stop();
+});

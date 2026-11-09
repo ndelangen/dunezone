@@ -120,6 +120,8 @@ function onStorage(event: StorageEvent) {
 export const savedGame = {
   subscribe: (listener: () => void) => {
     if (listeners.size === 0) {
+      /* Nothing followed storage while no one listened: another tab may have saved since. */
+      read = undefined;
       window.addEventListener('storage', onStorage);
     }
     listeners.add(listener);

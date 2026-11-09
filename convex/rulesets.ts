@@ -41,6 +41,7 @@ import { requireAuthUserId } from './lib/policy';
 import { rulesetCatalogueOrderOf } from './lib/rulesetCatalogue';
 import {
   listOrderedRulesetFactions,
+  loadPublicRulesetBySlug,
   loadRulesetPageBySlug,
   RULESET_FACTION_LIMIT,
   loadRulesetPublicDetailPageBySlug,
@@ -253,26 +254,57 @@ export const detailPage = publicQuery({
   handler: async (ctx, args) => await loadRulesetPublicDetailPageBySlug(ctx, args.slug),
 });
 
+/** A ruleset's faction as a list draws it: its name, its address and enough to draw its token. */
+const orderedFactionValidator = v.object({
+  _id: v.id('factions'),
+  slug: v.string(),
+  name: v.string(),
+  /** Enough to draw the faction's token beside its name. */
+  emblem: catalogueFactionDataValidator.fields.emblem,
+  background: catalogueFactionDataValidator.fields.background,
+  /** When the faction last changed, the cache token of its published token. */
+  updated_at: v.string(),
+});
+
 /** A ruleset's first live factions in its own order, one cached answer for every viewer: the edit page's list, which loads more by asking for more. */
 export const orderedFactions = publicQuery({
   args: { rulesetId: v.id('rulesets'), limit: v.number() },
   returns: v.object({
-    factions: v.array(
-      v.object({
-        _id: v.id('factions'),
-        slug: v.string(),
-        name: v.string(),
-        /** Enough to draw the faction's token beside its name. */
-        emblem: catalogueFactionDataValidator.fields.emblem,
-        background: catalogueFactionDataValidator.fields.background,
-        /** When the faction last changed, the cache token of its published token. */
-        updated_at: v.string(),
-      })
-    ),
+    factions: v.array(orderedFactionValidator),
     /** True when links remain past `limit`, which a larger limit loads. */
     hasMore: v.boolean(),
   }),
   handler: async (ctx, args) => await listOrderedRulesetFactions(ctx, args.rulesetId, args.limit),
+});
+
+/** The tile of a live ruleset found by its slug, or null. */
+async function catalogueEntryBySlug(ctx: QueryCtx, slug: string) {
+  const ruleset = await loadPublicRulesetBySlug(ctx, slug);
+  if (!ruleset) {
+    return null;
+  }
+  return { id: ruleset._id, slug: ruleset.slug, name: ruleset.name, coverThumbUrl: rulesetCoverThumbUrl(ruleset) };
+}
+
+/** What the standalone Treachery tracker's setup opens on, one answer for every viewer: the first rulesets by name, the default and base rulesets, and the base one's first factions as the starting seats. */
+export const trackerToolSetup = publicQuery({
+  args: { preferredSlug: v.string(), baseSlug: v.string(), seats: v.number() },
+  returns: v.object({
+    rulesets: v.array(rulesetCatalogueEntryValidator),
+    preferred: v.union(rulesetCatalogueEntryValidator, v.null()),
+    base: v.union(rulesetCatalogueEntryValidator, v.null()),
+    /** The base ruleset's first factions in its own order; empty when there is no base ruleset. */
+    seats: v.array(orderedFactionValidator),
+  }),
+  handler: async (ctx, args) => {
+    const [first, preferred, base] = await Promise.all([
+      loadCataloguePage(ctx, { sort: 'name' }),
+      catalogueEntryBySlug(ctx, args.preferredSlug),
+      catalogueEntryBySlug(ctx, args.baseSlug),
+    ]);
+    const seats = base ? (await listOrderedRulesetFactions(ctx, base.id, args.seats)).factions : [];
+    return { rulesets: first.entries, preferred, base, seats };
+  },
 });
 
 /**

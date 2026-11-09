@@ -102,6 +102,8 @@
 .bidActions,
 .nextUp {
   display: flex;
+  /* On a narrow phone the thumb-sized buttons run onto a second line rather than off the screen. */
+  flex-wrap: wrap;
   gap: var(--unit);
 }
 

@@ -2,12 +2,12 @@ import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useTreacheryDeck } from '@app/db/play';
 import type { TreacheryDeckRead } from '@app/db/play';
-import { useOrderedRulesetFactions, useRulesetCataloguePage } from '@app/db/rulesets';
+import { useRulesetCataloguePage, useTrackerToolSetup } from '@app/db/rulesets';
 import type { RulesetCatalogueEntry } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
@@ -39,8 +39,8 @@ export const Route = createFileRoute('/_tool/tools/atreides-treachery-tracker/')
 });
 
 /* The deck tracked by default, and the Ruleset whose first six factions, in its own order, are the base six seated at the start. */
-const DEFAULT_RULESET = { slug: 'dreamrules', name: 'Dreamrules' };
-const BASE_RULESET = { slug: 'gf9', name: 'GF9' };
+const DEFAULT_RULESET = 'dreamrules';
+const BASE_RULESET = 'gf9';
 const BASE_SEATS = 6;
 /* A Ruleset for trying things out, never offered at a table. */
 const HIDDEN_RULESETS = new Set(['test']);
@@ -77,48 +77,57 @@ function TreacheryTrackerPage() {
 
 /* The setup: the Rulesets to pick from, the default one picked, and the base six seated until the player changes them. */
 function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }>) {
+  const setup = useTrackerToolSetup({ preferredSlug: DEFAULT_RULESET, baseSlug: BASE_RULESET, seats: BASE_SEATS });
   const [query, setQuery] = useState('');
-  const choices = useRulesetChoices(query.trim());
+  /* What a search found, kept with the words it answers, so a stale answer never lists under new words. */
+  const [found, setFound] = useState<{ query: string; entries: RulesetEntry[] } | null>(null);
   const [picked, setPicked] = useState<RulesetEntry | null>(null);
   const [seats, setSeats] = useState<readonly FactionToken[] | null>(null);
-  if (!choices) {
+  const base = useMemo(() => setup?.seats.map(seatOf), [setup]);
+  if (!setup) {
     return <Pending>Loading the Rulesets…</Pending>;
   }
-  const chosen = picked ?? choices.preferred ?? choices.listed[0];
-  const baseEntry = choices.base ?? chosen;
-  if (!chosen || !baseEntry) {
+  const words = query.trim();
+  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
+  const listed = (words && found?.query === words ? found.entries : setup.rulesets).filter(
+    (entry) => !HIDDEN_RULESETS.has(entry.slug)
+  );
+  const chosen = picked ?? setup.preferred ?? listed[0];
+  if (!chosen) {
     return null;
   }
-  const rulesets = withChosen(choices.listed, chosen);
+  const rulesets = withChosen(listed, chosen);
   return (
-    <BaseSeats
-      rulesets={rulesets}
-      rulesetId={chosen.id}
-      baseId={baseEntry.id}
-      seats={seats}
-      onSeats={setSeats}
-      onPick={(id) => setPicked(rulesets.find((entry) => entry.id === id) ?? null)}
-      onRulesetSearch={setQuery}
-      onStart={onStart}
-    />
+    <>
+      {/* The search is mounted only while the player types in the Ruleset field. */}
+      {words ? <RulesetSearch query={words} onFound={setFound} /> : null}
+      <RulesetSetup
+        key={chosen.id}
+        rulesets={rulesets}
+        rulesetId={chosen.id}
+        base={setup.base ? base : []}
+        seats={seats}
+        onSeats={setSeats}
+        onPick={(id) => setPicked(rulesets.find((entry) => entry.id === id) ?? null)}
+        onRulesetSearch={setQuery}
+        onStart={onStart}
+      />
+    </>
   );
 }
 
-/* The Rulesets to list, the default one and the base one; undefined until all three have been read. */
-function useRulesetChoices(
-  query: string
-): { listed: RulesetEntry[]; preferred: RulesetEntry | null; base: RulesetEntry | null } | undefined {
-  const first = useRulesetCataloguePage({ sort: 'name' }).data;
-  const matching = useRulesetCataloguePage(query ? { q: query } : { sort: 'name' }).data;
-  /* The default and the base are found by name, so they are there however many Rulesets come before them. */
-  const preferred = useNamedRuleset(DEFAULT_RULESET);
-  const base = useNamedRuleset(BASE_RULESET);
-  if (!first || preferred === undefined || base === undefined) {
-    return undefined;
-  }
-  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
-  const listed = (matching ?? first).entries.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
-  return { listed, preferred, base };
+/* The Rulesets matching what the player types, read only while there are words to match. */
+function RulesetSearch({
+  query,
+  onFound,
+}: Readonly<{ query: string; onFound: (found: { query: string; entries: RulesetEntry[] }) => void }>) {
+  const matching = useRulesetCataloguePage({ q: query }).data;
+  useEffect(() => {
+    if (matching) {
+      onFound({ query, entries: matching.entries });
+    }
+  }, [matching, query, onFound]);
+  return null;
 }
 
 /* The listed Rulesets, with the chosen one first when the search left it out, so the field can still name it. */
@@ -128,16 +137,9 @@ function withChosen(listed: RulesetEntry[], chosen: RulesetEntry): RulesetEntry[
 
 type RulesetEntry = RulesetCatalogueEntry;
 
-/* A Ruleset found by its name, matched on its slug: undefined while the search runs, null when there is none. */
-function useNamedRuleset({ slug, name }: Readonly<{ slug: string; name: string }>): RulesetEntry | null | undefined {
-  const found = useRulesetCataloguePage({ q: name }).data;
-  return found ? (found.entries.find((entry) => entry.slug === slug) ?? null) : undefined;
-}
-
-/* Reads the base six once, above the Ruleset's own setup, so picking another Ruleset does not read them again. */
-function BaseSeats({ baseId, ...setup }: Readonly<Omit<RulesetSetupProps, 'base'> & { baseId: RulesetId }>) {
-  const base = useBaseSeats(baseId);
-  return <RulesetSetup key={setup.rulesetId} {...setup} base={base} />;
+/* A base faction as a seat: its id, name and published token. */
+function seatOf(faction: { _id: string; name: string; updated_at: string }): FactionToken {
+  return { id: faction._id, name: faction.name, src: publishedHref('faction-token', faction._id, faction.updated_at) };
 }
 
 /* One Ruleset's setup, reading its Treachery deck, with the factions seated so far or the base six. */
@@ -214,20 +216,6 @@ function gameFrom(
     return null;
   }
   return startGame({ id: ruleset.id, name: ruleset.name }, seats, deck.defs);
-}
-
-/* The base six: the first factions of the base Ruleset, in its own order, each with its published token. */
-function useBaseSeats(rulesetId: RulesetId): readonly FactionToken[] | undefined {
-  const data = useOrderedRulesetFactions(rulesetId, BASE_SEATS);
-  return useMemo(
-    () =>
-      data?.factions.map((faction) => ({
-        id: faction._id,
-        name: faction.name,
-        src: publishedHref('faction-token', faction._id, faction.updated_at),
-      })),
-    [data]
-  );
 }
 
 /* How far a catalogue read has got, in the search list's words; anything else means it has read them all. */
