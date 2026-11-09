@@ -85,6 +85,16 @@ jobs:
           test -x "$chromium_path"
           "$chromium_path" --version
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Cache the pinned Convex backend
+        if: steps.closure.outputs.run == 'true'
+        # GitHub's release asset host answered 504s for every download on 9 Nov 2026, failing all three shards
+        # before any flow. The launcher keeps the archive here under its digest and verifies it on reuse, so a
+        # restored copy from an older pin is just a miss.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/dunezone/convex-backend
+          key: convex-backend-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/verify-hosted-play-stack.ts') }}
+          restore-keys: convex-backend-${{ runner.os }}-${{ runner.arch }}-
       - name: Run the ${{ matrix.shard }} shard
         if: steps.closure.outputs.run == 'true'
         # The generated-images step above already wrote the image and vector output.
@@ -182,6 +192,13 @@ jobs:
           test -x "$chromium_path"
           "$chromium_path" --version
           echo "CHROMIUM=$chromium_path" >> "$GITHUB_ENV"
+      - name: Cache the pinned Convex backend
+        # As in hosted_play.
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/dunezone/convex-backend
+          key: convex-backend-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/verify-hosted-play-stack.ts') }}
+          restore-keys: convex-backend-${{ runner.os }}-${{ runner.arch }}-
       - name: Run the regular flow expecting WebGPU
         # The generated-images step above already wrote the image and vector output.
         run: bun --no-env-file scripts/verify-hosted-play-stack.ts --skip-generate --stop-on-failure --shard regular --browser-only --browser "$CHROMIUM" --expect-renderer webgpu

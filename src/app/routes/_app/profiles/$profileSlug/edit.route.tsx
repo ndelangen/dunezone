@@ -4,27 +4,44 @@ import { profileSlugBaseFromName, profileUserEditFormSchema } from '@shared/prof
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageState } from '@ui/block/PageState';
+import { NameDisc } from '@ui/content/NameDisc';
+import { Pending } from '@ui/content/Pending';
 import { SlugRenameNotice } from '@ui/content/SlugRenameNotice';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
 import { Toolbar } from '@ui/surface/Toolbar';
-import { ArrowLeft, CircleUserRound, Link2, LogOut, Palette, Save, Trash2, Unlink, UsersRound } from 'lucide-react';
-import { useId, useReducer, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  Check,
+  CircleUserRound,
+  Link2,
+  LogOut,
+  Palette,
+  RefreshCw,
+  Save,
+  Trash2,
+  Unlink,
+  UsersRound,
+} from 'lucide-react';
+import { useId, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 import { authProviderNames } from '@db/accounts';
 import {
   holdAuthConnection,
   needsRecentSignIn,
+  useApplyLinkedAccount,
   useBeginAuthConnection,
   useProviderSignIn,
   useDisconnectAuthMethod,
+  useResyncLinkedAccounts,
   useSignOutEverywhere,
 } from '@db/accounts';
-import type { AuthProvider } from '@db/accounts';
+import type { AuthProvider, LinkedAccountApplied, LinkedAccountOption, LinkedAccountResync } from '@db/accounts';
 import { useProfileSettings, useSessionViewer, useUpdateCurrentProfile } from '@db/profiles';
 import type { CurrentProfileEntry, ProfileSettingsData, ProfileUserEditInput } from '@db/profiles';
 import { pageHead } from '@app/routes/pageTitle';
@@ -70,7 +87,9 @@ type ProfileEditEvent =
   | {
       kind: 'saved';
       entry: { username: string; avatarUrl: string; bggProfileUrl: string; defaultGroupId: string | null };
-    };
+    }
+  /* A sign-in method's name and picture landed on the profile; the other fields keep whatever the reader typed. */
+  | { kind: 'resynced'; username: string; avatarUrl: string };
 
 function openingState(initial: {
   username: string;
@@ -90,6 +109,11 @@ function reduceProfileEdit(state: ProfileEditState, event: ProfileEditEvent): Pr
       return { ...state, data: { ...state.data, ...event.update } };
     case 'saved':
       return openingState(event.entry);
+    case 'resynced':
+      return {
+        data: { ...state.data, username: event.username, avatarUrl: event.avatarUrl },
+        baseline: { ...state.baseline, username: event.username, avatarUrl: event.avatarUrl },
+      };
   }
 }
 type LoadedAvatarPreview = { url: string; status: 'ready' | 'unavailable' };
@@ -295,8 +319,14 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
       dispatch({ kind: 'saved', entry })
   );
 
+  const [resync, dispatchResync] = useReducer(reduceResync, { busy: null, error: null, outcome: { kind: 'idle' } });
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    /* A save over a resync in flight would put the draft's old picture back over the one just taken. */
+    if (update.isPending || resync.busy !== null) {
+      return;
+    }
     if (!draftCheck.success) {
       focusInvalidField(warnings[0]?.field);
       return;
@@ -328,6 +358,49 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
       }
     );
   };
+
+  /*
+   * A resync changes the name and picture outside the form, so those two fields take the result as saved;
+   * an edit to the other fields stays unsaved. A new address follows on its own, once the page learns of it.
+   */
+  const resynced = header.releasing((applied: LinkedAccountApplied) =>
+    dispatch({
+      kind: 'resynced',
+      username: applied.profile.username ?? '',
+      avatarUrl: applied.profile.avatar_url ?? '',
+    })
+  );
+  const resyncLinked = useResyncLinkedAccounts();
+  const applyLinked = useApplyLinkedAccount();
+  const runResync = async () => {
+    dispatchResync({ kind: 'started', action: 'resync' });
+    try {
+      const result = await resyncLinked({});
+      dispatchResync({ kind: 'resynced', result });
+      if (result.kind === 'applied') {
+        resynced(result.applied);
+      }
+    } catch (error) {
+      dispatchResync({
+        kind: 'failed',
+        error,
+        fallback: 'The sign-in methods could not be asked for a name and picture.',
+      });
+    }
+    dispatchResync({ kind: 'settled' });
+  };
+  const chooseLinked = async (provider: AuthProvider) => {
+    dispatchResync({ kind: 'started', action: 'apply' });
+    try {
+      const applied = await applyLinked({ provider });
+      dispatchResync({ kind: 'applied', applied });
+      resynced(applied);
+    } catch (error) {
+      dispatchResync({ kind: 'failed', error, fallback: 'The name and picture could not be taken.' });
+    }
+    dispatchResync({ kind: 'settled' });
+  };
+  const merging = settings?.account?.merging ?? false;
 
   const panelError = <ActionError subject="Profile" verb="save" error={mutationError} />;
 
@@ -400,7 +473,7 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
                 type="url"
                 value={bggProfileUrl}
                 onChange={(event) => dispatch({ kind: 'patch', update: { bggProfileUrl: event.target.value } })}
-                placeholder="https://boardgamegeek.com/user/yourname"
+                placeholder="https://boardgamegeek.com/profile/yourname"
                 autoComplete="off"
                 maxLength={500}
               />
@@ -475,7 +548,13 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
               Checking your connected accounts.
             </PageState>
           ) : settings.account ? (
-            <SignInMethods account={settings.account} returnTo={settingsTabPath(initial.slug, 'sign-in')} />
+            <SignInMethods
+              account={settings.account}
+              returnTo={settingsTabPath(initial.slug, 'sign-in')}
+              resync={resync}
+              saving={update.isPending}
+              onTake={(provider) => void chooseLinked(provider)}
+            />
           ) : (
             <PageState kind="absent" title="Sign-in methods unavailable">
               Sign in again to manage your account.
@@ -529,6 +608,36 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
         />
       </Toolbar.Left>
       <Toolbar.Right label="Editing actions">
+        <Toolbar.Cluster kind="content">
+          <IconAction
+            label="Resync name and picture"
+            tooltip={
+              'Resync name and picture from your sign-in methods.\nSteam is asked now; Google and Discord offer what they sent at your last sign-in.\nOne method applies at once; with several you pick one.'
+            }
+            emphasis="standard"
+            intent="neutral"
+            size="lg"
+            loading={resync.busy === 'resync'}
+            disabledReason={
+              settings === undefined
+                ? 'Your sign-in methods are still loading.'
+                : merging
+                  ? 'Sign-in methods are locked while the profile merge runs.'
+                  : update.isPending
+                    ? 'The profile is still being saved.'
+                    : resync.busy === 'apply'
+                      ? 'A pick is still being taken.'
+                      : undefined
+            }
+            onClick={() => {
+              /* The answer lands on each method's row, so the tab that holds them opens first. */
+              setActiveTab('sign-in');
+              header.settle();
+              void runResync();
+            }}
+            icon={<RefreshCw size={17} aria-hidden />}
+          />
+        </Toolbar.Cluster>
         <Toolbar.Cluster kind="commit">
           <IconAction
             label="Save profile"
@@ -538,7 +647,7 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
             type="submit"
             form={formId}
             loading={update.isPending}
-            disabled={!isDirty || update.isPending}
+            disabled={!isDirty || update.isPending || resync.busy !== null}
             icon={<Save size={17} aria-hidden />}
           />
         </Toolbar.Cluster>
@@ -578,7 +687,29 @@ export const Route = createFileRoute('/_app/profiles/$profileSlug/edit')({
 function ProfileSettingsPage() {
   const { profileSlug } = Route.useParams();
   const { tab = 'profile' } = Route.useSearch();
+  const navigate = useNavigate();
   const viewer = useSessionViewer();
+  const viewerSlug = viewer.kind === 'profile' ? viewer.profile.slug : null;
+  /*
+   * A rename the page did not submit, a resync for one, changes the address while the reader is on it.
+   * The address the page opened on is remembered, so that one mismatch is followed to the new address instead of being read as somebody else's profile.
+   */
+  const [openedOn, setOpenedOn] = useState<string | null>(() => (viewerSlug === profileSlug ? profileSlug : null));
+  if (viewerSlug === profileSlug && openedOn !== profileSlug) {
+    /* Remembered during render, as soon as the address and the profile agree, so a later mismatch is judged against it at once. */
+    setOpenedOn(profileSlug);
+  }
+  const renamed = viewerSlug !== null && viewerSlug !== profileSlug && openedOn === profileSlug;
+  useLayoutEffect(() => {
+    if (renamed) {
+      void navigate({
+        to: '/profiles/$profileSlug/edit',
+        params: { profileSlug: viewerSlug },
+        search: true,
+        replace: true,
+      });
+    }
+  }, [navigate, renamed, viewerSlug]);
 
   switch (viewer.kind) {
     case 'pending':
@@ -604,7 +735,8 @@ function ProfileSettingsPage() {
       break;
   }
 
-  if (viewer.profile.slug !== profileSlug) {
+  /* While the address catches up with a rename, the editor stays as it is: the route is the same, so its tab and its answer survive the new address. */
+  if (!renamed && viewer.profile.slug !== profileSlug) {
     /* The way out is the reader's own settings rather than a step backwards: they asked for this
        page and there is a version of it that is theirs. */
     return (
@@ -623,7 +755,8 @@ function ProfileSettingsPage() {
     );
   }
 
-  return <EditableProfilePage key={viewer.profile.slug} initial={viewer.profile} initialTab={tab} />;
+  /* Keyed by the profile, not its address: a rename from the Sign-in methods tab keeps the tab and its answer on screen. */
+  return <EditableProfilePage key={viewer.profile._id} initial={viewer.profile} initialTab={tab} />;
 }
 
 /* The tab's one busy action: a provider being connected or disconnected, or the sign-out of every session. */
@@ -646,13 +779,128 @@ function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEven
   }
 }
 
+/*
+ * Where the resync stands: not asked, offering a choice, finding nothing to take, or done.
+ * Done is the end of it: the rows show no offers any more, and one line says what the profile took.
+ */
+type ResyncOutcome =
+  | Exclude<LinkedAccountResync, { kind: 'applied' }>
+  | { kind: 'idle' }
+  | { kind: 'done'; applied: LinkedAccountApplied };
+type ResyncState = { busy: 'resync' | 'apply' | null; error: Error | string | null; outcome: ResyncOutcome };
+type ResyncEvent =
+  | { kind: 'started'; action: 'resync' | 'apply' }
+  | { kind: 'failed'; error: unknown; fallback: string }
+  | { kind: 'resynced'; result: LinkedAccountResync }
+  | { kind: 'applied'; applied: LinkedAccountApplied }
+  | { kind: 'settled' };
+
+function reduceResync(state: ResyncState, event: ResyncEvent): ResyncState {
+  switch (event.kind) {
+    case 'started':
+      /* A new resync clears the last answer; a pick from the list keeps the list until its answer lands. */
+      return {
+        ...state,
+        busy: event.action,
+        error: null,
+        ...(event.action === 'resync' ? { outcome: { kind: 'idle' } } : {}),
+      };
+    case 'failed':
+      return { ...state, error: event.error instanceof Error ? event.error : event.fallback };
+    case 'resynced':
+      return {
+        ...state,
+        outcome: event.result.kind === 'applied' ? { kind: 'done', applied: event.result.applied } : event.result,
+      };
+    case 'applied':
+      return { ...state, outcome: { kind: 'done', applied: event.applied } };
+    case 'settled':
+      return { ...state, busy: null };
+  }
+}
+
+/** What the profile took from a method, in a sentence. */
+function appliedWords(applied: LinkedAccountApplied): string {
+  const from = authProviderNames[applied.provider];
+  if (applied.name && applied.avatar) {
+    return `Name and picture updated from ${from}.`;
+  }
+  if (applied.name) {
+    return `Name updated from ${from}. Its picture was already yours, or it has none.`;
+  }
+  if (applied.avatar) {
+    return `Picture updated from ${from}. Its name was already yours, or does not fit a display name.`;
+  }
+  return `Your profile already matches ${from}.`;
+}
+
+/** What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it. */
+function LinkedAccountOffer({
+  option,
+  busy,
+  disabled,
+  onTake,
+}: {
+  option: LinkedAccountOption;
+  busy: boolean;
+  disabled: boolean;
+  onTake: () => void;
+}) {
+  const from = authProviderNames[option.provider];
+  const takes = [option.displayName ? `name ${option.displayName}` : null, option.image ? 'picture' : null].filter(
+    (part) => part !== null
+  );
+  const refused = option.name && !option.displayName ? ` “${option.name}” does not fit a display name.` : '';
+  return (
+    <Group justify="space-between" align="center">
+      <Group gap="sm" wrap="nowrap" align="center">
+        <NameDisc name={option.name ?? from} src={option.image} size={44} />
+        <Stack gap="xs">
+          <Text fw={650}>{option.name ?? 'No name reported'}</Text>
+          <Text size="sm" c="dimmed">
+            {takes.length > 0
+              ? `Takes the ${takes.join(' and ')}.`
+              : `Nothing reported yet. Sign in with ${from} once, so it can report a name or picture.`}
+            {refused}
+          </Text>
+        </Stack>
+      </Group>
+      <LabeledAction
+        accessibleName={`Take ${from} name and picture`}
+        icon={<Check size={17} aria-hidden />}
+        intent="positive"
+        busy={busy}
+        disabledReason={
+          disabled
+            ? takes.length === 0
+              ? `${from} has not reported a name or picture yet.`
+              : 'Another change is still running.'
+            : undefined
+        }
+        onClick={onTake}
+      >
+        Take
+      </LabeledAction>
+    </Group>
+  );
+}
+
 function SignInMethods({
   account,
   returnTo,
+  resync,
+  saving,
+  onTake,
 }: {
   account: NonNullable<ProfileSettingsData['account']>;
   /** This tab's address, for the re-sign-in a refused change can ask for. */
   returnTo: string;
+  /** Where the toolbar's Resync stands; each connected method's row shows its part of the answer. */
+  resync: ResyncState;
+  /** Whether the form is being saved: a pick taken meanwhile would be overwritten by the save. */
+  saving: boolean;
+  /** The reader takes one method's name and picture from its row. */
+  onTake: (provider: AuthProvider) => void;
 }) {
   const begin = useBeginAuthConnection();
   const disconnect = useDisconnectAuthMethod();
@@ -706,8 +954,32 @@ function SignInMethods({
         error={state.error}
         action={needsRecentSignIn(state.error) ? <SignInAgainAction returnTo={returnTo} /> : undefined}
       />
+      <ActionError subject="Name and picture" verb="update" error={resync.error} />
+      {resync.outcome.kind === 'done' && (
+        <StatusBadge tone="positive" live>
+          {appliedWords(resync.outcome.applied)}
+        </StatusBadge>
+      )}
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
+        const { outcome } = resync;
+        /* Offers are shown while the choice is open; once the profile took one, the rows are rows again. */
+        const option =
+          outcome.kind === 'choose' || outcome.kind === 'nothing'
+            ? outcome.options.find((candidate) => candidate.provider === method.provider)
+            : null;
+        const offer = !method.connected ? null : resync.busy === 'resync' ? (
+          <Pending>{`Asking ${name}`}</Pending>
+        ) : option ? (
+          <LinkedAccountOffer
+            option={option}
+            busy={resync.busy === 'apply'}
+            disabled={
+              !!resync.busy || saving || !!state.busy || account.merging || (!option.displayName && !option.image)
+            }
+            onTake={() => onTake(method.provider)}
+          />
+        ) : null;
         const canDisconnect = account.methods.some(
           (other) => other.provider !== method.provider && other.connected && other.available
         );
@@ -728,33 +1000,36 @@ function SignInMethods({
                 : 'Sign in with this provider to connect it.\nIf it already has a profile, review the merge first.'
             }
             input={
-              <Group justify="space-between">
-                <StatusBadge tone={method.connected ? 'positive' : 'neutral'} live>
-                  {status}
-                </StatusBadge>
-                {method.connected ? (
-                  <HoldAction
-                    label={`Disconnect ${name}`}
-                    verb="remove"
-                    size="lg"
-                    icon={<Unlink size={17} aria-hidden />}
-                    pending={state.busy === method.provider}
-                    disabled={!!state.busy || account.merging || !canDisconnect}
-                    onConfirm={() => void remove(method.provider)}
-                  />
-                ) : (
-                  <IconAction
-                    label={`Connect ${name}`}
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    icon={<Link2 size={17} aria-hidden />}
-                    loading={state.busy === method.provider}
-                    disabled={!!state.busy || account.merging || !method.available}
-                    onClick={() => void connect(method.provider)}
-                  />
-                )}
-              </Group>
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <StatusBadge tone={method.connected ? 'positive' : 'neutral'} live>
+                    {status}
+                  </StatusBadge>
+                  {method.connected ? (
+                    <HoldAction
+                      label={`Disconnect ${name}`}
+                      verb="remove"
+                      size="lg"
+                      icon={<Unlink size={17} aria-hidden />}
+                      pending={state.busy === method.provider}
+                      disabled={!!state.busy || account.merging || !canDisconnect}
+                      onConfirm={() => void remove(method.provider)}
+                    />
+                  ) : (
+                    <IconAction
+                      label={`Connect ${name}`}
+                      emphasis="standard"
+                      intent="neutral"
+                      size="lg"
+                      icon={<Link2 size={17} aria-hidden />}
+                      loading={state.busy === method.provider}
+                      disabled={!!state.busy || account.merging || !method.available}
+                      onClick={() => void connect(method.provider)}
+                    />
+                  )}
+                </Group>
+                {offer}
+              </Stack>
             }
           />
         );

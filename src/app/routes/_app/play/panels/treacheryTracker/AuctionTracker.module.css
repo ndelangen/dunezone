@@ -99,9 +99,9 @@
   min-width: 0;
 }
 
+.bidActions,
 .nextUp {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--unit);
 }
 

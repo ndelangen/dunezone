@@ -132,6 +132,16 @@ A `profiles` document is created in Convex when an auth user is created or updat
 
 If a legacy user has no profile, the client's `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `profiles.session` returns a `userId` whose `profile` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.route.tsx).
 
+Each sign-in also records what the provider reported, by provider, in `linked_account_profiles`
+(`convex/lib/linkedAccountProfiles.ts`): the OAuth callback keeps Google's and Discord's name and picture,
+and the Steam sign-in keeps the player summary. The settings page's toolbar **Resync** action
+(`convex/accountResync.ts`) pulls from those records: Steam is asked live through the Web API, since
+its public profile needs no token from the reader, while Google and Discord offer what they sent at the
+last sign-in with them, because no OAuth token is kept. One method with something to offer is applied
+at once; several are offered on their rows and the reader takes one, which ends the offer. A provider name is reduced to a display name
+(letters and digits, five to thirty, not all capitals) or left out when it cannot be; a new picture goes
+through the avatar rehost, and a rename records the former address like a save from the form.
+
 **Hooks**: `useCurrentProfile()`, `useDefaultGroupPreference()`, `useProfileBySlug(slug)`,
 `useProfileDirectoryPage(args)`, `useUpdateCurrentProfile()`. Profile lookups are slug-based, never by id.
 
@@ -142,7 +152,8 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 A profile may also have a public BoardGameGeek profile link, edited in the Profile tab and saved
 with the rest of the draft. Its ownership is unverified. It cannot sign anyone in, satisfy the
 last-method guard or authorize a profile merge. Clearing the URL and saving removes the link.
-Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query strings and fragments.
+Only HTTPS BoardGameGeek profile URLs (`/user/<name>` or `/profile/<name>`) are accepted; saves store them
+as `https://boardgamegeek.com/profile/<name>` without query strings or fragments.
 The kept profile retains its own link during a merge.
 
 The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.

@@ -1,35 +1,25 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { gameMeta, install } from './game.stories.fixture';
-import { DREAMRULES_DECK } from './panels/treacheryTracker/tracker.stories.fixture';
+import { install } from './game.stories.fixture';
 import { openTab } from './playing.stories.fixture';
-import { playingSnapshot, productTransport } from './product.stories.fixture';
+import { sandboxReady } from './sandbox.stories.fixture';
+import { atreidesSandbox, trackerMeta } from './treacheryTracker.stories.fixture';
 
-const meta = preview.meta({
-  ...gameMeta,
-  title: 'Play/Treachery tracker',
-  /* The stories load the table chunk before they render, so its cold first load falls outside their first wait (#1302). */
-  loaders: [
-    async () => {
-      await import('./multiplayer/HostedTable');
-    },
-  ],
-});
+const meta = preview.meta({ ...trackerMeta, title: 'Play/Treachery tracker' });
 
-/* The room answers seat 2's deck read, as it does for a faction whose rules keep the tracker; the deck is the Dreamrules deck. */
-function trackerTransport() {
-  return productTransport('seat-2', playingSnapshot('seat-2'), {
-    treacheryDeck: DREAMRULES_DECK.map(({ key, name, detail, face, count }) => ({ key, name, detail, face, count })),
-  });
-}
-
-/** A faction whose rules allow it opens the Treachery tracker under Yours: a fresh copy of the game's deck, and the seated factions in seat order. */
-export const AtTheTable = meta.story({
+/**
+ * A live table to try the tracker by hand: the recorded game at the Bidding phase, viewed as House Atreides.
+ * Draw a card off the Treachery deck, or Pull one out while peeking at the deck, then right-click it and Peek: the tracker puts it up for bid.
+ * Click a faction token to record who won it, or dismiss it with "Not up for bid".
+ * The Play debugger panel restarts the table.
+ */
+export const Sandbox = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  beforeEach: install(trackerTransport),
+  beforeEach: install(atreidesSandbox),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
+    await sandboxReady(page);
     await openTab(page, 'Treachery tracker');
     await expect(page.findByText(/^Deck \d+/, undefined, { timeout: 30_000 })).resolves.toBeVisible();
   },

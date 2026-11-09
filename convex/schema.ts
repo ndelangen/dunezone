@@ -631,6 +631,14 @@ export default defineSchema({
     'by_steam_id',
     ['steam_id']
   ),
+  /* The name and picture each connected sign-in method last reported, so a profile can take them again later without the provider's token. */
+  linked_account_profiles: defineTable({
+    user_id: v.id('users'),
+    provider: authProviderValidator,
+    name: v.union(v.string(), v.null()),
+    image: v.union(v.string(), v.null()),
+    synced_at: v.number(),
+  }).index('by_user_id_and_provider', ['user_id', 'provider']),
   account_connections: defineTable({
     digest: v.string(),
     user_id: v.id('users'),

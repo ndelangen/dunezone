@@ -1,6 +1,7 @@
 import { useAuthActions } from '@convex-dev/auth/react';
 import { INACTIVE_ACCOUNT_SIGN_IN, RECENT_SIGN_IN_REQUIRED } from '@shared/authDestination';
-import { useMutation, useQuery } from 'convex/react';
+import { useAction, useMutation, useQuery } from 'convex/react';
+import type { FunctionReturnType } from 'convex/server';
 import { ConvexError } from 'convex/values';
 import { useState, useSyncExternalStore } from 'react';
 
@@ -69,6 +70,21 @@ export function useDisconnectAuthMethod() {
 }
 export function useSignOutEverywhere() {
   return useMutation(api.accounts.signOutEverywhere);
+}
+
+export type LinkedAccountResync = FunctionReturnType<typeof api.accountResync.resync>;
+/** What one connected sign-in method offers the profile: its name, that name made to fit a display name, and its picture. */
+export type LinkedAccountOption = Extract<LinkedAccountResync, { kind: 'choose' }>['options'][number];
+/** What the profile took from a method, with the profile as it stands after. */
+export type LinkedAccountApplied = Extract<LinkedAccountResync, { kind: 'applied' }>['applied'];
+
+/** Pulls the name and picture from the connected sign-in methods: one method is applied at once, several are offered. */
+export function useResyncLinkedAccounts() {
+  return useAction(api.accountResync.resync);
+}
+/** Gives the profile what one chosen method offers, after a resync offered several. */
+export function useApplyLinkedAccount() {
+  return useMutation(api.accountResync.apply);
 }
 
 const subscribeToNothing = () => () => {};

@@ -1,6 +1,7 @@
 import { Box, ColorSwatch, Divider, Flex, Group, SimpleGrid, Stack, Text, Tooltip } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { factionSpecialRuleLabel } from '@shared/factions/specialRule';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
 import { troopBattleFaces } from '@shared/factions/troopBattle';
 import type { TroopFaceBattleValues } from '@shared/factions/troopBattle';
 import { createFileRoute, Link, notFound } from '@tanstack/react-router';
@@ -646,6 +647,7 @@ function FactionDetailContent({
                         <InlineFormattedTextSource source={data.rules.revivalText} />
                       </Text>
                     </Section>
+                    <TreacheryTrackerSection keeps={data.rules.treacheryTracker} />
                   </Stack>
                 </Surface>
               </Section>
@@ -696,6 +698,21 @@ function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
           </EntityLinkList>
         </Card>
       ) : null}
+    </>
+  );
+}
+
+/* The faction keeps a private Treachery tracker in Play, under its setup rules; nothing when it does not. */
+function TreacheryTrackerSection({ keeps }: Readonly<{ keeps?: boolean }>) {
+  if (!keeps) {
+    return null;
+  }
+  return (
+    <>
+      <Divider />
+      <Section title="Treachery tracker">
+        <Text size="sm">{TREACHERY_TRACKER_RULE}</Text>
+      </Section>
     </>
   );
 }
