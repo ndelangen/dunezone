@@ -47,6 +47,12 @@ export function gridCards(page: ReturnType<typeof within>, name: RegExp) {
   return within(page.getByRole('main')).queryAllByRole('link', { name });
 }
 
+/** The story faction with its rules keeping the Treachery tracker, as the published Atreides will. */
+export const withTreacheryTracker = db((baseline) => {
+  const data = baseline.factions[0]!.data;
+  data.rules = { ...data.rules, treacheryTracker: true };
+});
+
 export const withTroopDetails = db((baseline) => {
   const data = baseline.factions[0]!.data;
   const art = data.troops[0]!;

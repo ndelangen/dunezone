@@ -63,14 +63,16 @@ function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Read
             onPick={(faction) => onAction({ kind: 'win', sighting: onBid.id, faction })}
           />
         ) : null}
-        {onBid ? (
-          <AuctionEnd sighting={onBid} state={state} onAction={onAction} />
-        ) : (
+        {onBid ? null : (
           <Text size="sm" className={styles.dim}>
             Click the empty card to put the next one up for bid.
           </Text>
         )}
-        <NextUp state={state} onAction={onAction} tableTurn={tableTurn} />
+        {/* Ending this auction and lining up the next card share one row. */}
+        <div className={styles.bidActions}>
+          {onBid ? <AuctionEnd sighting={onBid} state={state} onAction={onAction} /> : null}
+          <NextUp state={state} onAction={onAction} tableTurn={tableTurn} />
+        </div>
       </div>
     </section>
   );
