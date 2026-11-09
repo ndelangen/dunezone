@@ -22,6 +22,10 @@ function isPublicPage(pathname: string): boolean {
     return false;
   }
   const [root, type, slug] = segments;
+  /* The tools: the catalogue and one page per tool; the tiles' pictures beside them (`/tools/<name>.webp`) stay static assets. */
+  if (root === 'tools') {
+    return segments.length === 1 || (segments.length === 2 && !type!.includes('.'));
+  }
   /* Unknown descendants reach the router's 404, as under every other public root. */
   if (RECORDLESS_PUBLIC_PAGES.includes(`/${root}`)) {
     return true;

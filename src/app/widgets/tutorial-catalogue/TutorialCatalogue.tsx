@@ -39,6 +39,8 @@ type CatalogueTile = Readonly<{
   placeholder?: ReactNode;
   /** Where the tile opens. */
   link?: LinkProps;
+  /** Whether the link opens in a tab of its own, as a built tool does from the tools catalogue. */
+  newTab?: boolean;
   /** Whether it is ready; by default a tile with a link is, and one without is coming soon. A tool not yet built still opens its placeholder page. */
   built?: boolean;
 }>;
@@ -99,8 +101,13 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
           )}
           <Text id={titleId} fw={700} lh={1.3}>
             {tile.link ? (
-              <Link {...tile.link} className={styles.open}>
+              <Link
+                {...tile.link}
+                className={styles.open}
+                {...(tile.newTab ? { target: '_blank', rel: 'noopener' } : {})}
+              >
                 {title}
+                {tile.newTab ? <VisuallyHidden component="span"> (opens in a new tab)</VisuallyHidden> : null}
               </Link>
             ) : (
               title
