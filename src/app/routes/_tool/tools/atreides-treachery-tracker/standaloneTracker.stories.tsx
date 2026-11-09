@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { expect, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
 import { playGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import type { SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { TrackerGame, TrackerSetup } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
-import type { TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
+import type { FactionSearch, TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
 
 const RULESETS = [
   { id: 'dreamrules', name: 'Dreamrules' },
@@ -33,20 +35,39 @@ function PlayableGame() {
   );
 }
 
+/* Every faction the story's search knows: the table's six, and two more without a published token yet. */
+const MORE_FACTIONS: readonly FactionToken[] = [
+  ...FACTIONS,
+  { id: 'ixians', name: 'Ixians' },
+  { id: 'tleilaxu', name: 'Tleilaxu' },
+];
+
+/* The search the page hands the setup, over the story's factions instead of the catalogue. */
+const StorySearch: FactionSearch = ({ seated, onPick }) => {
+  const [query, setQuery] = useState('');
+  return (
+    <FactionSearchList
+      query={query}
+      onQuery={setQuery}
+      factions={MORE_FACTIONS.filter((faction) => faction.name.toLowerCase().includes(query.trim().toLowerCase()))}
+      seated={seated}
+      status="done"
+      onMore={() => {}}
+      onPick={onPick}
+    />
+  );
+};
+
 function Setup({ deck, loading }: Readonly<{ deck: SetupDeck; loading?: boolean }>) {
-  const [config, setConfig] = useState<TrackerConfig>({
-    ruleset: 'dreamrules',
-    order: FACTIONS.map((faction) => faction.id),
-    playing: FACTIONS.map((faction) => faction.id),
-  });
+  const [config, setConfig] = useState<TrackerConfig>({ ruleset: 'dreamrules', seats: FACTIONS });
   return (
     <TrackerSetup
       rulesets={RULESETS}
-      factions={loading ? undefined : FACTIONS}
       deck={deck}
-      config={config}
+      config={loading ? { ...config, seats: undefined } : config}
       onChange={setConfig}
       onStart={() => {}}
+      search={StorySearch}
     />
   );
 }
@@ -73,11 +94,42 @@ export const Tracker = meta.story({
   },
 });
 
-/** Setting up: the Ruleset, which of its factions play and in what seat order, then Start tracking. */
+/** Setting up: the Ruleset whose deck is tracked, and the factions at the table in seat order, the base six to start with. */
 export const SetUp = meta.story({
   render: () => <Setup deck={{ status: 'ready', defs: DREAMRULES_DECK }} />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText('A Treachery deck of 45 cards, 33 different.')).toBeVisible();
+    await expect(within(canvasElement).getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
+  },
+});
+
+/** Any faction on Dune Zone can sit at the table: Add a faction searches them all, and a faction can be removed again. */
+export const AddAFaction = meta.story({
+  render: () => <Setup deck={{ status: 'ready', defs: DREAMRULES_DECK }} />,
+  play: async ({ canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Emperor' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Add a faction' }));
+    await expect(await body.findByRole('button', { name: 'House Atreides is at the table' })).toBeDisabled();
+    await userEvent.click(body.getByRole('button', { name: 'Add Ixians' }));
+    await expect(canvas.getByText('Ixians')).toBeVisible();
+    await expect(canvas.queryByText('Emperor')).toBeNull();
+    await expect(canvas.getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
+  },
+});
+
+/** Removing factions down to one: the tracker needs at least two at the table. */
+export const TooFewFactions = meta.story({
+  render: () => <Setup deck={{ status: 'ready', defs: DREAMRULES_DECK }} />,
+  play: async ({ canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    for (const name of ['House Harkonnen', 'Emperor', 'Spacing Guild', 'Fremen', 'Bene Gesserit']) {
+      await userEvent.click(canvas.getByRole('button', { name: `Remove ${name}` }));
+    }
+    await expect(canvas.getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
+      'Seat at least two factions.'
+    );
   },
 });
 

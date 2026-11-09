@@ -1,12 +1,9 @@
 import { Text } from '@mantine/core';
-import { Pending } from '@ui/content/Pending';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Minus, Play, Plus, RotateCcw } from 'lucide-react';
 import { useEffect } from 'react';
-
-import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 import { AuctionTracker } from './AuctionTracker';
 import type { TrackerSection } from './AuctionTracker';
@@ -14,7 +11,7 @@ import type { StandaloneGame } from './standaloneGame';
 import styles from './StandaloneTracker.module.css';
 import type { CardDef, TrackerAction } from './tracker';
 import { TrackerConfigPanel } from './TrackerConfig';
-import type { TrackerConfig } from './TrackerConfig';
+import type { FactionSearch, TrackerConfig } from './TrackerConfig';
 import { TrackerTouch } from './TrackerSurface';
 
 /*
@@ -28,44 +25,34 @@ export type SetupDeck =
   | Readonly<{ status: 'ready'; defs: readonly CardDef[] }>
   | Readonly<{ status: 'missing'; reason: string }>;
 
-/**
- * The setup: the Ruleset, its factions playing in seat order, and the start.
- * `factions` is undefined while the Ruleset's factions load.
- */
+/** The setup: the Ruleset, the factions at the table in seat order, and the start. */
 export function TrackerSetup({
   rulesets,
-  factions,
   deck,
   config,
   onChange,
   onStart,
+  search,
 }: Readonly<{
   rulesets: readonly { id: string; name: string }[];
-  factions: readonly FactionToken[] | undefined;
   deck: SetupDeck;
   config: TrackerConfig;
   onChange: (config: TrackerConfig) => void;
   onStart: () => void;
+  search: FactionSearch;
 }>) {
-  const playing = config.order.filter((id) => config.playing.includes(id));
   const reason =
-    deck.status === 'loading' || factions === undefined
+    deck.status === 'loading' || config.seats === undefined
       ? 'The Ruleset is still loading.'
       : deck.status === 'missing'
         ? deck.reason
-        : playing.length < 2
-          ? 'Switch on at least two factions.'
+        : config.seats.length < 2
+          ? 'Seat at least two factions.'
           : undefined;
   return (
     <TrackerTouch>
       <div className={styles.setup}>
-        <TrackerConfigPanel
-          rulesets={rulesets}
-          factions={factions ?? []}
-          config={factions ? config : { ...config, order: [] }}
-          onChange={onChange}
-        />
-        {factions === undefined ? <Pending>Loading the factions…</Pending> : null}
+        <TrackerConfigPanel rulesets={rulesets} config={config} onChange={onChange} search={search} />
         <div className={styles.start}>
           <DeckLine deck={deck} />
           <LabeledAction

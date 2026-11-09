@@ -37,8 +37,8 @@
   min-height: 52px;
 }
 
-.row[data-playing="false"] > :not(:last-child) {
-  opacity: 0.45;
+.add {
+  margin-top: var(--unit, 8px);
 }
 
 .who {
@@ -46,8 +46,6 @@
   gap: var(--unit, 8px);
   align-items: center;
   min-width: 0;
-  min-height: 100%;
-  cursor: pointer;
 }
 
 .name {
