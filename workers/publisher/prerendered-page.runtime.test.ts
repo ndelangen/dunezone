@@ -22,9 +22,15 @@ test('workerd serves a prerendered tool page with a fresh nonce and the page sec
         };
         export default {
           async fetch(request, env) {
-            const response = await handleApplicationRequest(request, { ...env, ASSETS }, async () => {
-              throw new Error('A prerendered page is never rendered on the server');
-            });
+            const cache = { storage: await caches.open('public'), release: 'release-a' };
+            const response = await handleApplicationRequest(
+              request,
+              { ...env, ASSETS },
+              async () => {
+                throw new Error('A prerendered page is never rendered on the server');
+              },
+              cache
+            );
             return response ?? new Response('unhandled', { status: 599 });
           },
         };`,
@@ -69,7 +75,17 @@ test('workerd serves a prerendered tool page with a fresh nonce and the page sec
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Application-Render-Nonce')).toBeNull();
     expect(response.headers.get('X-Application-Release')).toBe('release-a');
+    expect(response.headers.get('X-Public-Cache')).toBe('miss');
+    expect(response.headers.get('X-Public-Renders')).toBe('0');
+    const hit = await mf.dispatchFetch(`https://dune.zone${page}`);
+    const hitHtml = await hit.text();
+    expect(hit.headers.get('X-Public-Cache')).toBe('hit');
+    const hitNonce = /'nonce-([^']+)'/.exec(hit.headers.get('Content-Security-Policy')!)?.[1];
+    expect(hitNonce).toMatch(/^[a-f0-9]{32}$/);
+    expect(hitNonce).not.toBe(nonce);
+    expect(hitHtml).toContain(`<script nonce="${hitNonce}">boot()</script>`);
   } finally {
     await mf.dispose();
   }
+  /* Bundling the publisher's application module and starting workerd take most of this on a short-on-CPU runner, as in auth.runtime.test.ts. */
 }, 20_000);

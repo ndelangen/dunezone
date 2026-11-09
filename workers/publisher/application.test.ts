@@ -120,12 +120,10 @@ describe('anonymous application dispatch', () => {
 
 describe('prerendered tool pages', () => {
   const page = '/tools/example-tool';
+  /* Static Assets answer a missing file with the app shell, not a 404. */
+  const shell = '<html><head><script>boot()</script></head></html>';
   const assets = {
-    fetch: vi.fn(async (request: Request) =>
-      new URL(request.url).pathname === `${page}/index.html`
-        ? new Response('<html></html>')
-        : new Response('missing', { status: 404 })
-    ),
+    fetch: vi.fn(async () => new Response(shell, { headers: { 'Content-Type': 'text/html' } })),
   } as unknown as Fetcher;
 
   function withBuiltTool<T>(run: () => Promise<T>): Promise<T> {
@@ -133,12 +131,37 @@ describe('prerendered tool pages', () => {
     return run().finally(() => TOOL_PAGES.splice(TOOL_PAGES.indexOf(page), 1));
   }
 
-  test("the file's own address redirects to the page", async () => {
+  test.each([
+    [`${page}/index.html`, `https://dune.zone${page}`],
+    [`${page}/index%2Ehtml`, `https://dune.zone${page}`],
+    [`${page}/index.html?seats=6`, `https://dune.zone${page}?seats=6`],
+  ])("the file's own address %s redirects to the page", async (address, location) => {
     const response = await withBuiltTool(() =>
-      handleApplicationRequest(new Request(`https://dune.zone${page}/index.html`), { ...env, ASSETS: assets }, vi.fn())
+      handleApplicationRequest(new Request(`https://dune.zone${address}`), { ...env, ASSETS: assets }, vi.fn())
     );
     expect(response?.status).toBe(301);
-    expect(response?.headers.get('Location')).toBe(`https://dune.zone${page}`);
+    expect(response?.headers.get('Location')).toBe(location);
+  });
+
+  test.each([`${page}/`, `${page}?seats=6`])(
+    'another spelling of the page (%s) goes to the server render, which canonicalizes it',
+    async (address) => {
+      const render = vi.fn(async () => new Response('rendered'));
+      const response = await withBuiltTool(() =>
+        handleApplicationRequest(new Request(`https://dune.zone${address}`), { ...env, ASSETS: assets }, render)
+      );
+      expect(render).toHaveBeenCalledOnce();
+      expect(await response?.text()).toBe('rendered');
+    }
+  );
+
+  test('a missing prerendered file is rendered on the server, not answered with the app shell', async () => {
+    const render = vi.fn(async () => new Response('rendered'));
+    const response = await withBuiltTool(() =>
+      handleApplicationRequest(new Request(`https://dune.zone${page}`), { ...env, ASSETS: assets }, render)
+    );
+    expect(render).toHaveBeenCalledOnce();
+    expect(await response?.text()).toBe('rendered');
   });
 
   test('a tool not in this release is rendered on the server as before', async () => {

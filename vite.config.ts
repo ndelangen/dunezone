@@ -316,7 +316,7 @@ const config = defineConfig({
        */
       pages: TOOL_PAGES.map((path) => ({
         path,
-        prerender: { enabled: true, headers: { 'X-Application-Nonce': PRERENDERED_PAGE_NONCE } },
+        prerender: { enabled: true, headers: { Connection: 'close', 'X-Application-Nonce': PRERENDERED_PAGE_NONCE } },
       })),
       spa: {
         enabled: true,

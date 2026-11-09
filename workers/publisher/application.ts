@@ -71,23 +71,34 @@ function isPublicAssetPage(segments: string[]): boolean {
 
 /**
  * A built tool's page as the build prerendered it (`tools/<slug>/index.html`), marked with its placeholder nonce for delivery to replace.
- * The same build prerenders every page in TOOL_PAGES and fails if one does not render, so the file is there whenever this release lists the page.
- * Without Static Assets (as in the application tests) the page is rendered on the server instead.
+ * Only the canonical address with no query is served from the build;
+ * any other spelling goes to the server render, which redirects it to the canonical address.
+ * Static Assets answer a missing file with the app shell, so a file without the placeholder nonce is not the page, and the server renders it instead.
  */
 async function prerenderedPage(url: URL, assets: Fetcher | undefined): Promise<Response | null> {
-  const page = url.pathname.replace(/\/$/, '');
-  if (!assets || !TOOL_PAGES.includes(page)) {
+  if (!assets || url.search || !TOOL_PAGES.includes(url.pathname)) {
     return null;
   }
-  const file = await assets.fetch(new Request(new URL(`${page}/index.html`, url)));
-  if (!file.ok) {
-    await file.body?.cancel();
+  const file = await assets.fetch(new Request(new URL(`${url.pathname}/index.html`, url)));
+  const html = file.ok ? await file.text() : (await file.body?.cancel(), '');
+  if (!html.includes(`nonce="${PRERENDERED_PAGE_NONCE}"`)) {
     return null;
   }
-  const result = new Response(file.body, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
-  result.headers.set(CACHED_NONCE_HEADER, PRERENDERED_PAGE_NONCE);
-  result.headers.set('X-Prerendered', '1');
-  return result;
+  return new Response(html, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Public-Renders': '0',
+      [CACHED_NONCE_HEADER]: PRERENDERED_PAGE_NONCE,
+    },
+  });
+}
+
+function decodedPathname(pathname: string): string {
+  try {
+    return decodeURIComponent(pathname);
+  } catch {
+    return pathname;
+  }
 }
 
 /** Only anonymous public document reads cross into the application server. */
@@ -102,35 +113,37 @@ export async function handleApplicationRequest(
   }
   const url = new URL(request.url);
   /* A prerendered tool page is only ever delivered at its own address, with its security headers and a fresh nonce. */
-  const prerenderedFile = /^(\/tools\/[^/]+)\/index\.html$/.exec(url.pathname)?.[1];
+  const prerenderedFile = /^(\/tools\/[^/]+)\/index\.html$/i.exec(decodedPathname(url.pathname))?.[1];
   if (prerenderedFile && TOOL_PAGES.includes(prerenderedFile)) {
-    return Response.redirect(new URL(prerenderedFile, url).href, 301);
+    return Response.redirect(new URL(prerenderedFile + url.search, url).href, 301);
   }
   if (!isPublicPage(url.pathname)) {
     return null;
   }
-  const response =
-    (await prerenderedPage(url, env.ASSETS)) ??
-    (await publicCachedResponse(
-      cache,
-      new URL(request.url),
-      'html',
-      async () => {
-        const nonce = crypto.randomUUID().replaceAll('-', '');
-        const result = await render(
-          new Request(request.url, {
-            headers: { Accept: 'text/html', 'X-Application-Nonce': nonce },
-            signal: request.signal,
-          }),
-          nonce
-        );
-        const publicResult = new Response(result.body, result);
-        publicResult.headers.set('X-Public-Renders', '1');
-        publicResult.headers.set(CACHED_NONCE_HEADER, nonce);
-        return publicResult;
-      },
-      () => PUBLIC_CACHE_SECONDS.html
-    ));
+  const response = await publicCachedResponse(
+    cache,
+    url,
+    'html',
+    async () => {
+      const prerendered = await prerenderedPage(url, env.ASSETS);
+      if (prerendered) {
+        return prerendered;
+      }
+      const nonce = crypto.randomUUID().replaceAll('-', '');
+      const result = await render(
+        new Request(request.url, {
+          headers: { Accept: 'text/html', 'X-Application-Nonce': nonce },
+          signal: request.signal,
+        }),
+        nonce
+      );
+      const publicResult = new Response(result.body, result);
+      publicResult.headers.set('X-Public-Renders', '1');
+      publicResult.headers.set(CACHED_NONCE_HEADER, nonce);
+      return publicResult;
+    },
+    () => PUBLIC_CACHE_SECONDS.html
+  );
   const headers = new Headers(response.headers);
   headers.delete('Set-Cookie');
   headers.set('X-Frame-Options', 'SAMEORIGIN');
