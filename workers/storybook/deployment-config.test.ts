@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, test, vi } from 'vite-plus/test';
 
+import { SEEDED_FACTION_TOKENS, seededTokenFixture } from '../../.storybook/seededFactionTokens';
 import worker, { isMediaPath } from './index';
 
 const config = JSON.parse(
@@ -38,6 +39,7 @@ describe('public Storybook deployment', () => {
         '!/published/boards/*',
         '!/published/round-tokens/00000000000000000000*',
         '!/published/pointer-tokens/00000000000000000000*',
+        '!/published/faction-tokens/0000000000000000000*',
       ],
     });
   });
@@ -62,6 +64,8 @@ describe('public Storybook deployment', () => {
       expect(isMediaPath('/published/round-tokens/ns7ccz318tqavsz7nkfv5hq4gh8gnn7h/token.jpg')).toBe(true);
       expect(isMediaPath('/published/pointer-tokens/00000000000000000000010063assets/token.jpg')).toBe(false);
       expect(isMediaPath('/published/pointer-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg')).toBe(true);
+      expect(isMediaPath('/published/faction-tokens/000000000000000000010006factions/token.jpg')).toBe(false);
+      expect(isMediaPath('/published/faction-tokens/ns70y1ghbeqpcbnncy5j19hqcn8gc85p/token.jpg')).toBe(true);
       expect(isMediaPath('/iframe.html')).toBe(false);
       expect(isMediaPath('/media/x')).toBe(false);
 
@@ -95,4 +99,14 @@ describe('public Storybook deployment', () => {
       upstream.mockRestore();
     }
   });
+});
+
+test('the static Storybook answers each seeded faction with its own token, ahead of the catch-all', () => {
+  const redirects = readFileSync(path.resolve(process.cwd(), '.storybook/static/_redirects'), 'utf8').split('\n');
+  const catchAll = redirects.findIndex((line) => line.startsWith('/published/faction-tokens/:id/'));
+  for (const [id, slug] of Object.entries(SEEDED_FACTION_TOKENS)) {
+    const line = redirects.indexOf(`/published/faction-tokens/${id}/token.jpg ${seededTokenFixture(slug)} 200`);
+    expect(line).toBeGreaterThanOrEqual(0);
+    expect(line).toBeLessThan(catchAll);
+  }
 });

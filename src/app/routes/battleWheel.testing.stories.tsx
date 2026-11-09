@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { SEEDED_FACTION_TOKENS } from '@sb/seededFactionTokens';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 
@@ -40,5 +41,28 @@ export const DropsSpiceTheTroopsNoLongerUse = meta.story({
     await userEvent.click(more);
     await userEvent.click(more);
     await expect(page.getByText('Pays 1 spice')).toBeVisible();
+  },
+});
+
+/** The search shows each seeded faction with its own token, so the ids Storybook answers with product tokens still name these factions. */
+export const SearchShowsEachFactionsToken = meta.story({
+  beforeEach: clearStoredWheel,
+  play: async ({ canvasElement }) => {
+    const page = pageOf(canvasElement);
+    const search = await page.findByRole('searchbox', { name: 'Search factions' }, { timeout: 30_000 });
+    const names: Record<string, string> = {
+      'house-atreides': 'House Atreides',
+      'house-harkonnen': 'House Harkonnen',
+      emperor: 'Emperor',
+      'spacing-guild': 'Spacing Guild',
+      fremen: 'Fremen',
+      'bene-gesserit': 'Bene Gesserit',
+    };
+    for (const [id, slug] of Object.entries(SEEDED_FACTION_TOKENS)) {
+      await userEvent.clear(search);
+      await userEvent.type(search, names[slug]!);
+      const row = await page.findByRole('button', { name: `Add ${names[slug]}` }, { timeout: 30_000 });
+      await waitFor(() => expect(row.querySelector('img')?.getAttribute('src')).toContain(`/faction-tokens/${id}/`));
+    }
   },
 });
