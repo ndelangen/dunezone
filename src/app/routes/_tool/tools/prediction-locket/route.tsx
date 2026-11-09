@@ -6,7 +6,7 @@ import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ChevronRight, Eye, Lock, LockOpen, MapPin, RotateCcw, Search } from 'lucide-react';
+import { ChevronRight, Eye, Lock, LockOpen, MapPin, Minus, Plus, RotateCcw, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
@@ -289,6 +289,19 @@ function PickTurn({ turn, onPick }: Readonly<{ turn: number | null; onPick: (tur
             {candidate}
           </button>
         ))}
+      </div>
+      <div className={styles.stepper}>
+        <IconAction
+          label="Earlier turn"
+          size="xl"
+          icon={<Minus size={22} />}
+          disabledReason={!turn || turn <= 1 ? 'Turn 1 is the first.' : undefined}
+          onClick={() => turn && onPick(turn - 1)}
+        />
+        <span className={styles.stepperTurn} aria-live="polite">
+          {turn ? `Turn ${turn}` : 'No turn yet'}
+        </span>
+        <IconAction label="Later turn" size="xl" icon={<Plus size={22} />} onClick={() => onPick((turn ?? 0) + 1)} />
       </div>
     </section>
   );

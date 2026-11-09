@@ -37,7 +37,7 @@ export type LocketState = Readonly<{
 /** Where this browser keeps the locket. */
 export const PREDICTION_LOCKET_STORAGE_KEY = 'dunezone.tools.prediction-locket';
 
-/** The turns offered: a game of Dune lasts ten. */
+/** The turns offered one tap each: a game of Dune usually lasts ten. Any later turn is a step past them (Norbert, 2026-11-09). */
 export const TURNS = 10;
 
 const FRESH: LocketState = { faction: null, turn: null, timeZone: null, locked: null };
@@ -56,12 +56,12 @@ const factionSchema = z.looseObject({ id: z.string(), name: z.string() });
 const storedSchema = z.object({
   version: z.literal(STORED_VERSION),
   faction: factionSchema.nullable(),
-  turn: z.number().int().min(1).max(TURNS).nullable(),
+  turn: z.number().int().min(1).nullable(),
   timeZone: zoneSchema.nullable(),
   locked: z
     .object({
       faction: factionSchema,
-      turn: z.number().int().min(1).max(TURNS),
+      turn: z.number().int().min(1),
       lockedAt: z.number(),
       timeZone: zoneSchema,
       revealed: z.boolean(),

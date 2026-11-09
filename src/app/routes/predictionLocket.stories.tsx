@@ -51,6 +51,15 @@ export const Picked = meta.story({
   },
 });
 
+/** Any turn, not only the first ten: turn 14, stepped past the ten taps. */
+export const LateTurn = meta.story({
+  beforeEach: () =>
+    seedStoredLocket({ faction: storyFaction('fremen'), turn: 14, timeZone: STORY_TIME_ZONE, locked: null }),
+  play: async ({ canvasElement }) => {
+    await expect(await pageOf(canvasElement).findByText('Turn 14', {}, { timeout: 30_000 })).toBeVisible();
+  },
+});
+
 /** Locked: the prediction is hidden, the time it was locked, in Amsterdam time, is not. */
 export const Locked = meta.story({
   beforeEach: () => seedStoredLocket(storyLocked('fremen', 6, false)),

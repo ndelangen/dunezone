@@ -327,3 +327,17 @@
   font-size: 13px;
   line-height: 1.4;
 }
+
+/* Past the ten taps: any later turn, a step at a time. */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.stepperTurn {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
