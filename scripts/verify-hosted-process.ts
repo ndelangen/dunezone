@@ -40,30 +40,49 @@ export async function verifyProcess(
     signal: child.signalCode,
   };
   if (result.status !== 'passed') {
-    const reportLine = readFileSync(logPath, 'utf8')
-      .split('\n')
-      .findLast((line) => line.startsWith('REPORT '));
-    if (reportLine) {
-      const reportPath = path.resolve(reportLine.slice('REPORT '.length));
-      const reports = path.resolve(path.dirname(logPath), 'browser') + path.sep;
-      if (!reportPath.startsWith(reports) || path.basename(reportPath) !== 'report.json') {
-        throw new Error('The verifier reported a file outside its browser evidence.');
-      }
-      const report = JSON.parse(readFileSync(reportPath, 'utf8'));
-      if (result.status === 'timed_out' || !report.failure) {
-        const previousFailure = report.failure;
-        report.failure = {
-          ...previousFailure,
-          name: previousFailure?.name ?? (result.status === 'timed_out' ? 'VerifierTimeout' : 'VerifierExit'),
-          message:
-            result.status === 'timed_out'
-              ? `The verifier did not exit within its ${timeoutMs / 1000} s process limit.${previousFailure ? ` Browser failure: ${previousFailure.message}` : ''}`
-              : `The verifier exited with code ${result.exitCode ?? 'none'}, signal ${result.signal ?? 'none'}.`,
-          afterCheck: previousFailure?.afterCheck ?? report.checks?.at(-1)?.name ?? 'Startup',
-        };
-        writeFileSync(reportPath, JSON.stringify(report, null, 2));
-      }
-    }
+    recordProcessFailure(result, logPath);
   }
   return result;
+}
+
+function currentBrowserReport(logPath: string): string | undefined {
+  const reportLine = readFileSync(logPath, 'utf8')
+    .split('\n')
+    .findLast((line) => line.startsWith('REPORT '));
+  if (!reportLine) {
+    return undefined;
+  }
+  const reportPath = path.resolve(reportLine.slice('REPORT '.length));
+  const reports = path.resolve(path.dirname(logPath), 'browser') + path.sep;
+  if (!reportPath.startsWith(reports) || path.basename(reportPath) !== 'report.json') {
+    throw new Error('The verifier reported a file outside its browser evidence.');
+  }
+  return reportPath;
+}
+
+function processFailureMessage(result: VerificationResult): string {
+  return result.status === 'timed_out'
+    ? `The verifier did not exit within its ${result.timeoutMs / 1000} s process limit.`
+    : `The verifier exited with code ${result.exitCode ?? 'none'}, signal ${result.signal ?? 'none'}.`;
+}
+
+function recordProcessFailure(result: VerificationResult, logPath: string) {
+  const reportPath = currentBrowserReport(logPath);
+  if (!reportPath) {
+    return;
+  }
+  const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  const previousFailure = report.failure;
+  if (previousFailure && result.status !== 'timed_out') {
+    return;
+  }
+  const message = processFailureMessage(result);
+  report.failure = previousFailure
+    ? { ...previousFailure, message: `${message} Browser failure: ${previousFailure.message}` }
+    : {
+        name: result.status === 'timed_out' ? 'VerifierTimeout' : 'VerifierExit',
+        message,
+        afterCheck: report.checks?.at(-1)?.name ?? 'Startup',
+      };
+  writeFileSync(reportPath, JSON.stringify(report, null, 2));
 }
