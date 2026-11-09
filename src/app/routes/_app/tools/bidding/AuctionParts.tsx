@@ -6,7 +6,7 @@ import { ArrowRight, Gavel, Hand, RotateCcw, Settings2, Volume2, VolumeX } from 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { FactionTokenFace } from '@app/routes/_app/play/multiplayer/FactionTokenFace';
+import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import { useSpeech } from '@app/widgets/tutorial-guide/speech';
 
 import {

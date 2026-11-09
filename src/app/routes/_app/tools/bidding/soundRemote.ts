@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { GAP_MS, START_HZ, SYMBOL_HZ, TONE_MS, ToneReader, tune } from './soundCode';
-import type { RemoteCommand, Tone } from './soundCode';
+import { CALL_HZ, callReader, callTune, commandReader, GAP_MS, START_HZ, SYMBOL_HZ, TONE_MS, tune } from './soundCode';
+import type { Call, RemoteCommand, Tone } from './soundCode';
 
 /*
  * The sound remotes' audio: a phone plays a command's tune through its speaker, and the tablet hears it with its
@@ -20,8 +20,18 @@ function audio() {
   return shared;
 }
 
-/** Plays a command's tune: each tone with a soft start and end, so it is a chirp and not a click. */
-export async function playTune(command: RemoteCommand, { volume = 0.35 } = {}): Promise<void> {
+/** Plays a remote's command. */
+export function playTune(command: RemoteCommand): Promise<void> {
+  return playTones(tune(command));
+}
+
+/** Plays the tablet's call to the remotes. */
+export function playCall(call: Call): Promise<void> {
+  return playTones(callTune(call));
+}
+
+/* Plays tones in turn, each with a soft start and end, so the tune is a chirp and not a click. */
+async function playTones(tones: readonly number[], { volume = 0.35 } = {}): Promise<void> {
   const { context, bus } = audio();
   if (context.state === 'suspended') {
     await context.resume();
@@ -31,7 +41,7 @@ export async function playTune(command: RemoteCommand, { volume = 0.35 } = {}): 
   out.connect(context.destination);
   out.connect(bus);
   let at = context.currentTime + 0.05;
-  for (const hz of tune(command)) {
+  for (const hz of tones) {
     const tone = context.createOscillator();
     const shape = context.createGain();
     tone.frequency.value = hz;
@@ -59,6 +69,7 @@ function toneIn(spectrum: Float32Array, binHz: number): { tone: Tone; level: num
     return Math.max(spectrum[bin - 1] ?? -Infinity, spectrum[bin]!, spectrum[bin + 1] ?? -Infinity);
   };
   const candidates: [Tone, number][] = [
+    ['call', levelAt(CALL_HZ)],
     ['start', levelAt(START_HZ)],
     ...SYMBOL_HZ.map((hz, index): [Tone, number] => [index, levelAt(hz)]),
   ];
@@ -80,20 +91,23 @@ export function useToneListener({
   loopback,
   onCommand,
   onMisheard,
+  onCall,
 }: Readonly<{
   on: boolean;
   mic: boolean;
   loopback: boolean;
-  onCommand: (command: RemoteCommand) => void;
+  onCommand?: (command: RemoteCommand) => void;
   onMisheard?: () => void;
+  /** For a remote: the tablet's calls. */
+  onCall?: (call: Call) => void;
 }>): { state: ListenState; level: number } {
   /* How the microphone answered: nothing yet while the browser asks. */
   const [micAnswer, setMicAnswer] = useState<'granted' | 'refused' | undefined>(undefined);
   const [level, setLevel] = useState(-120);
-  const handlers = useRef({ onCommand, onMisheard });
+  const handlers = useRef({ onCommand, onMisheard, onCall });
   useEffect(() => {
-    handlers.current = { onCommand, onMisheard };
-  }, [onCommand, onMisheard]);
+    handlers.current = { onCommand, onMisheard, onCall };
+  }, [onCommand, onMisheard, onCall]);
 
   useEffect(() => {
     if (!on || (!mic && !loopback)) {
@@ -105,10 +119,13 @@ export function useToneListener({
     analyser.smoothingTimeConstant = 0;
     const spectrum = new Float32Array(analyser.frequencyBinCount);
     const binHz = context.sampleRate / analyser.fftSize;
-    const reader = new ToneReader(
-      (command) => handlers.current.onCommand(command),
-      () => handlers.current.onMisheard?.()
-    );
+    const readers = [
+      commandReader(
+        (command) => handlers.current.onCommand?.(command),
+        () => handlers.current.onMisheard?.()
+      ),
+      callReader((call) => handlers.current.onCall?.(call)),
+    ];
     let stream: MediaStream | undefined;
     let source: MediaStreamAudioSourceNode | undefined;
     let stopped = false;
@@ -136,7 +153,7 @@ export function useToneListener({
     const timer = setInterval(() => {
       analyser.getFloatFrequencyData(spectrum);
       const heard = toneIn(spectrum, binHz);
-      reader.hear(heard.tone);
+      readers.forEach((reader) => reader.hear(heard.tone));
       /* The meter moves a few times a second; the reading itself runs every 10 ms. */
       if (++shown % 8 === 0) {
         setLevel(heard.level);

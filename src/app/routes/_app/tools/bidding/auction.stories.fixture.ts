@@ -1,4 +1,4 @@
-import type { FactionToken } from '@app/routes/_app/play/multiplayer/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 import { bid, DEFAULT_LIMIT, newAuction, pass } from './auction';
 import type { AuctionGame, AuctionSeat } from './auction';

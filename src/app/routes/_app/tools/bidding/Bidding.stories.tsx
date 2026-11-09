@@ -1,8 +1,14 @@
 import preview from '@sb/preview';
+import { useState } from 'react';
 import { expect, userEvent } from 'storybook/test';
 
-import { freshAuction, midAuction, STORY_FACTIONS } from './auction.stories.fixture';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
+import type { FactionSearch } from '@app/widgets/treachery-tracker/TrackerConfig';
+
+import { freshAuction, midAuction, STORY_DECK, STORY_FACTIONS } from './auction.stories.fixture';
 import { GavelClock as GavelClockTool } from './GavelClock';
+import { LinkedRemote, LinkedTable, LinkedTablet } from './LinkedTable';
 import { PassThePhone as PassThePhoneTool } from './PassThePhone';
 import { BidderPhone, PhonesAtTheTable } from './PhonesAtTheTable';
 import { RefereeScript } from './RefereeScript';
@@ -149,5 +155,90 @@ export const SoundRemotePhone = meta.story({
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Spacing Guild' }));
     await expect(canvas.getByRole('button', { name: 'Pass' })).toBeVisible();
+  },
+});
+
+const STORY_RULESETS = [
+  { id: 'gf9', name: 'GF9' },
+  { id: 'dreamrules', name: 'Dreamrules' },
+];
+
+/* Every faction the story's search knows: the base six, and two more without a published token yet. */
+const MORE_FACTIONS: readonly FactionToken[] = [
+  ...STORY_FACTIONS,
+  { id: 'ixians', name: 'Ixians' },
+  { id: 'tleilaxu', name: 'Tleilaxu' },
+];
+
+/* The search the page hands the setup, over the story's factions instead of the catalogue. */
+const StorySearch: FactionSearch = ({ seated, onPick }) => {
+  const [query, setQuery] = useState('');
+  return (
+    <FactionSearchList
+      query={query}
+      onQuery={setQuery}
+      factions={MORE_FACTIONS.filter((faction) => faction.name.toLowerCase().includes(query.trim().toLowerCase()))}
+      seated={seated}
+      status="done"
+      onMore={() => {}}
+      onPick={onPick}
+    />
+  );
+};
+
+const linked = {
+  rulesets: STORY_RULESETS,
+  baseSix: STORY_FACTIONS,
+  search: StorySearch,
+  deck: STORY_DECK,
+};
+
+/**
+ * H.
+ * The linked table, from the start: the tablet seats the base six (add, remove, reorder) and sets the bid timer;
+ * each phone picks its faction, which plays a join tune the tablet hears.
+ * Sound on: the phones and the tablet play through this computer's speaker and hear each other directly.
+ */
+export const LinkedTableSetup = meta.story({
+  globals: { viewport: { value: undefined } },
+  render: () => <LinkedTable storageKey="bidding-story-linked-setup" {...linked} />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Set up the table')).toBeVisible();
+  },
+});
+
+/** H. The linked table bidding: every phone linked, a 15 second timer, the arrow on Atreides and its phone buzzing. */
+export const LinkedTableBidding = meta.story({
+  globals: { viewport: { value: undefined } },
+  render: () => (
+    <LinkedTable
+      storageKey="bidding-story-linked-bidding"
+      {...linked}
+      started={{ setup: { seats: STORY_FACTIONS, seconds: 15, ruleset: 'gf9' }, linked: [0, 1, 2, 3, 4, 5] }}
+    />
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Atreides to bid')).toBeVisible();
+  },
+});
+
+/** H. The tablet's setup on its own, at tablet size. */
+export const LinkedTabletSetup = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  render: () => <LinkedTablet storageKey="bidding-story-linked-tablet" {...linked} />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: /Start bidding/ })).toBeVisible();
+  },
+});
+
+/** H. A phone as a player opens it from the tablet's code: pick your faction to link it. */
+export const LinkedPhone = meta.story({
+  render: () => (
+    <div style={{ height: '100dvh' }}>
+      <LinkedRemote factions={STORY_FACTIONS} />
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Which faction are you?')).toBeVisible();
   },
 });

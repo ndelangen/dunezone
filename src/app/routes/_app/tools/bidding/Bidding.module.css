@@ -372,7 +372,7 @@
 }
 
 .phoneFrame {
-  min-height: 330px;
+  height: 380px;
   border: 6px solid var(--ui-raised);
   border-radius: 22px;
   overflow: hidden;
@@ -412,6 +412,7 @@
 }
 
 .phone {
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -777,7 +778,7 @@
 
 .remotePick {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: var(--space-xs);
   margin: 0;
   padding: 0;
@@ -796,6 +797,7 @@
   color: var(--ui-text);
   font: inherit;
   font-size: 13px;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -820,4 +822,223 @@
   margin: auto 0 0;
   color: var(--ui-muted);
   font-size: 12px;
+}
+
+/* H: the linked table. The setup, then the arena: the seats round the edge, an arrow to the bidder, the clock in the middle. */
+.tallFrame {
+  height: 720px;
+}
+
+.setupBody {
+  padding: var(--space-md);
+}
+
+.setupColumns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-lg);
+}
+
+.setupSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.timerField {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.linkPanel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.linkPanel .joinCode {
+  margin-left: 0;
+}
+
+.linkList {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.linkList li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.linkList li[data-linked] svg {
+  color: var(--ui-positive);
+}
+
+.linkedBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+}
+
+.arena {
+  position: relative;
+  container-type: size;
+  width: min(100%, 420px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.arenaSeat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(40cqmin) rotate(calc(-1 * var(--angle)));
+}
+
+.arenaName {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.arenaSeat[data-turn] .arenaName {
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+/* The arrow: from the middle out to the bidder's seat. */
+.arrow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 30cqmin;
+  transform: rotate(var(--angle));
+  transform-origin: top center;
+}
+
+.arrow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 6px;
+  height: calc(100% - 14px);
+  border-radius: 3px;
+  background: var(--ui-highlight);
+}
+
+.arrow::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -11px;
+  border-top: 16px solid var(--ui-highlight);
+  border-right: 11px solid transparent;
+  border-left: 11px solid transparent;
+}
+
+.arrow[data-motion] {
+  transition: transform 450ms cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+
+.arenaMiddle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 34cqmin;
+  height: 34cqmin;
+  border-radius: 50%;
+  background: conic-gradient(var(--ui-highlight) calc(var(--left) * 360deg), var(--ui-raised) 0);
+  transform: translate(-50%, -50%);
+}
+
+.arenaMiddle::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--ui-ground);
+}
+
+.arenaMiddle[data-low] {
+  background: conic-gradient(var(--ui-caution) calc(var(--left) * 360deg), var(--ui-raised) 0);
+}
+
+.arenaMiddle .cardUp {
+  position: relative;
+  width: 15cqmin !important;
+}
+
+.arenaMiddle .cardCaption {
+  display: none;
+}
+
+.arenaCall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.phoneClock {
+  margin-left: auto;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--ui-raised);
+  font-variant-numeric: tabular-nums;
+}
+
+.phoneYours {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phone[data-mine] {
+  animation: called 0.5s ease-out 2;
+}
+
+@keyframes called {
+  50% {
+    background: var(--ui-selected);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="on"]) .phone[data-mine] {
+    animation: none;
+  }
+}
+
+.remoteFoot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: auto;
+}
+
+.remoteFaction[data-suggested] {
+  border-color: var(--ui-highlight);
 }

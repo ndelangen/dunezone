@@ -4,8 +4,8 @@ import { Gavel, Hand, Mic, MicOff, Plus, Volume2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { CSSProperties } from 'react';
 
-import { FactionTokenFace } from '@app/routes/_app/play/multiplayer/FactionTokenFace';
-import type { FactionToken } from '@app/routes/_app/play/multiplayer/FactionTokenFace';
+import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 import { bid, leastBid, pass, phaseOver, seatOf, shortName, toBid } from './auction';
 import type { AuctionGame } from './auction';
@@ -43,7 +43,39 @@ export function SoundRemotes({ storageKey, initial }: Readonly<{ storageKey: str
   );
 }
 
-type HeardLine = Readonly<{ key: number; text: string; taken: boolean }>;
+export type HeardLine = Readonly<{ key: number; text: string; taken: boolean }>;
+
+/**
+ * Runs what a remote said, if it is that seat's bid: the tablet decides, the remote only asks.
+ * Says what was heard and whether it was taken, for the tablet's log.
+ */
+export function runRemote(session: AuctionSession, command: RemoteCommand): { text: string; taken: boolean } {
+  const { game } = session;
+  const seat = game.seats[command.seat];
+  if (!seat) {
+    return { text: `Heard seat ${command.seat + 1}, who is not at this table.`, taken: false };
+  }
+  const name = shortName(seat.faction);
+  if (command.kind === 'join') {
+    return { text: `${name}’s phone is linked.`, taken: true };
+  }
+  const said =
+    command.kind === 'pass'
+      ? `${name}: pass`
+      : command.kind === 'raise'
+        ? `${name}: one more (${leastBid(game)})`
+        : `${name}: bid ${command.amount}`;
+  if (toBid(game) !== seat.faction.id) {
+    const turn = seatOf(game, toBid(game));
+    return { text: `${said}, but it is ${turn ? `${shortName(turn.faction)}’s` : 'nobody’s'} bid.`, taken: false };
+  }
+  const refused = session.act((current) =>
+    command.kind === 'pass'
+      ? pass(current)
+      : bid(current, command.kind === 'raise' ? leastBid(current) : command.amount)
+  );
+  return { text: refused ? `${said}: ${refused}` : said, taken: !refused };
+}
 
 /** The tablet in the middle: it listens for the remotes' tunes and runs the auction from what it hears. */
 export function ListeningTablet({
@@ -60,31 +92,10 @@ export function ListeningTablet({
 
   const onCommand = useCallback(
     (command: RemoteCommand) => {
-      const seat = game.seats[command.seat];
-      if (!seat) {
-        note(`Heard seat ${command.seat + 1}, who is not at this table.`, false);
-        return;
-      }
-      const name = shortName(seat.faction);
-      const said =
-        command.kind === 'pass'
-          ? `${name}: pass`
-          : command.kind === 'raise'
-            ? `${name}: one more (${leastBid(game)})`
-            : `${name}: bid ${command.amount}`;
-      if (toBid(game) !== seat.faction.id) {
-        const turn = seatOf(game, toBid(game));
-        note(`${said}, but it is ${turn ? `${shortName(turn.faction)}’s` : 'nobody’s'} bid.`, false);
-        return;
-      }
-      const refused = session.act((current) =>
-        command.kind === 'pass'
-          ? pass(current)
-          : bid(current, command.kind === 'raise' ? leastBid(current) : command.amount)
-      );
-      note(refused ? `${said}: ${refused}` : said, !refused);
+      const { text, taken } = runRemote(session, command);
+      note(text, taken);
     },
-    [game, session]
+    [session]
   );
   const { state, level } = useToneListener({
     on: true,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { decode, encode, ToneReader } from './soundCode';
+import { callReader, commandReader, decode, decodeCall, encode, encodeCall } from './soundCode';
 import type { RemoteCommand, Tone } from './soundCode';
 
 describe('the sound code', () => {
@@ -9,6 +9,7 @@ describe('the sound code', () => {
     { seat: 5, kind: 'bid', amount: 17 },
     { seat: 15, kind: 'raise' },
     { seat: 3, kind: 'bid', amount: 1 },
+    { seat: 6, kind: 'join' },
   ])('carries %o there and back', (command) => {
     expect(decode(encode(command))).toEqual(command);
   });
@@ -29,7 +30,7 @@ describe('the tone reader', () => {
 
   it('reads a whole message, two equal symbols in a row included', () => {
     const got: RemoteCommand[] = [];
-    const reader = new ToneReader((command) => got.push(command));
+    const reader = commandReader((command) => got.push(command));
     const command: RemoteCommand = { seat: 1, kind: 'bid', amount: 17 };
     heard(['start', ...encode(command)]).forEach((tone) => reader.hear(tone));
     expect(encode(command)[1]).toBe(encode(command)[2]);
@@ -38,8 +39,33 @@ describe('the tone reader', () => {
 
   it('ignores a blip too short to be a tone', () => {
     const got: RemoteCommand[] = [];
-    const reader = new ToneReader((command) => got.push(command));
+    const reader = commandReader((command) => got.push(command));
     [...heard([7], 2), ...heard(['start', ...encode({ seat: 4, kind: 'pass' })])].forEach((tone) => reader.hear(tone));
     expect(got).toEqual([{ seat: 4, kind: 'pass' }]);
+  });
+});
+
+describe('the tablet’s call', () => {
+  it('carries whose bid it is, the bid to beat and the time to answer', () => {
+    expect(decodeCall(encodeCall({ seat: 3, beat: 17, seconds: 15 }))).toEqual({ seat: 3, beat: 17, seconds: 15 });
+  });
+
+  it('is read only by a call reader, and a remote’s command only by a command reader', () => {
+    const calls: unknown[] = [];
+    const commands: unknown[] = [];
+    const tones = (start: 'start' | 'call', symbols: number[]) =>
+      [start, ...symbols].flatMap((tone) => [...Array(9).fill(tone), ...Array(4).fill(null)]);
+    const heard = [
+      ...tones('call', encodeCall({ seat: 1, beat: 2, seconds: 20 })),
+      ...tones('start', encode({ seat: 2, kind: 'pass' })),
+    ];
+    const calling = callReader((call) => calls.push(call));
+    const commanding = commandReader((command) => commands.push(command));
+    heard.forEach((tone) => {
+      calling.hear(tone);
+      commanding.hear(tone);
+    });
+    expect(calls).toEqual([{ seat: 1, beat: 2, seconds: 20 }]);
+    expect(commands).toEqual([{ seat: 2, kind: 'pass' }]);
   });
 });

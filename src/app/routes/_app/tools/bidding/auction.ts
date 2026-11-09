@@ -1,7 +1,7 @@
 import { applyBidding, BiddingRefusal, idleBidding } from '@shared/play/bidding';
 import type { BiddingAction, BiddingContext, BiddingState } from '@shared/play/bidding';
 
-import type { FactionToken } from '@app/routes/_app/play/multiplayer/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
 /*
  * The Bidding phase at a real table, run by a phone or a tablet: the cards are physical, the auctioneer is digital.
