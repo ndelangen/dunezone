@@ -100,6 +100,10 @@ export function LinkedTablet({
   /* Before bidding, the tablet's broadcast welcomes each linked phone in turn, a newly linked one first. */
   const welcomes = useRef<number[]>([]);
   const rotation = useRef(0);
+  const { announce } = useBroadcast(game === undefined, linked.join(','), () => {
+    const seat = welcomes.current.shift() ?? linked[rotation.current++ % Math.max(1, linked.length)] ?? NOBODY;
+    return { seat, beat: 0, seconds: 0, welcome: true };
+  });
   /* Before bidding, the tablet only listens for phones joining. */
   useToneListener({
     on: game === undefined,
@@ -109,12 +113,9 @@ export function LinkedTablet({
       if (command.kind === 'join' && command.seat < setup.seats.length) {
         setLinked((was) => (was.includes(command.seat) ? was : [...was, command.seat]));
         welcomes.current.push(command.seat);
+        announce();
       }
     },
-  });
-  useBroadcast(game === undefined, () => {
-    const seat = welcomes.current.shift() ?? linked[rotation.current++ % Math.max(1, linked.length)] ?? NOBODY;
-    return { seat, beat: 0, seconds: 0, welcome: true };
   });
   if (game) {
     return (
@@ -260,8 +261,8 @@ function useBidClock(key: string, seconds: number, onOut: () => void): number {
 
 /* A seat no faction sits in: a welcome to it only says the tablet is there. */
 const NOBODY = 15;
-/* A tune lasts under a second and a frame of ticks 1.5 s: the answer comes within this long. */
-const RETRY_MS = 2600;
+/* The phone's tune and the tablet's answer each last under a second: the answer comes within this long. */
+const RETRY_MS = 3000;
 
 /* The bid as the tablet calls it: whose it is and what it must beat. */
 const callKey = (game: AuctionGame) =>
@@ -293,41 +294,41 @@ function LinkedBidding({
   const [heard, setHeard] = useState<readonly HeardLine[]>([]);
   const note = (text: string, taken: boolean) =>
     setHeard((lines) => [{ key: (lines[0]?.key ?? 0) + 1, text, taken }, ...lines].slice(0, 4));
-  /* Phones that linked during bidding, to welcome on the next broadcast. */
-  const welcomes = useRef<number[]>([]);
-  const onCommand = useCallback(
-    (command: RemoteCommand) => {
-      if (command.kind === 'join') {
-        onLinked(command.seat);
-        welcomes.current.push(command.seat);
-      }
-      const { text, taken } = runRemote(session, command);
-      note(text, taken);
-    },
-    [onLinked, session]
-  );
-  const { level } = useToneListener({ on: true, mic, loopback, onCommand });
-
   const key = callKey(game);
   const turnIndex = game.seats.findIndex((seat) => seat.faction.id === toBid(game));
-  const left = useBidClock(
-    key,
-    turnIndex >= 0 ? seconds : 0,
-    useCallback(() => session.act(pass), [session])
-  );
-
   /*
-   * The tablet broadcasts the bid without end: whose it is, the bid to beat, and the time. A phone that just linked is
-   * welcomed first; once the phase is over, the broadcast only says the tablet is there.
+   * The tablet calls the bid whenever it changes: whose it is, the bid to beat, and the time. A phone that just linked
+   * is welcomed first; once the phase is over, the call only says the tablet is there.
    */
   const call: Call =
     turnIndex >= 0
       ? { seat: turnIndex, beat: highBid(game)?.amount ?? 0, seconds }
       : { seat: NOBODY, beat: 0, seconds: 0, welcome: true };
-  useBroadcast(true, () => {
+  /* Phones that linked during bidding, to welcome on the next call. */
+  const welcomes = useRef<number[]>([]);
+  const { announce } = useBroadcast(true, `${call.seat}:${call.beat}:${call.welcome === true}`, () => {
     const seat = welcomes.current.shift();
     return seat === undefined ? call : { seat, beat: 0, seconds: 0, welcome: true };
   });
+  const onCommand = useCallback(
+    (command: RemoteCommand) => {
+      if (command.kind === 'join') {
+        onLinked(command.seat);
+        welcomes.current.push(command.seat);
+        announce();
+      }
+      const { text, taken } = runRemote(session, command);
+      note(text, taken);
+    },
+    [onLinked, session, announce]
+  );
+  const { level } = useToneListener({ on: true, mic, loopback, onCommand });
+
+  const left = useBidClock(
+    key,
+    turnIndex >= 0 ? seconds : 0,
+    useCallback(() => session.act(pass), [session])
+  );
 
   const turn = seatOf(game, toBid(game));
   const fraction = seconds > 0 ? left / (seconds * 1000) : 1;
@@ -406,8 +407,8 @@ export function LinkedRemote({
   const [amount, setAmount] = useState({ beat: 0, value: 1 });
   const [now, setNow] = useState(() => performance.now());
   /*
-   * A command plays at once, over the tablet's ticks; it plays again until the tablet's ticks show it heard (a welcome,
-   * or a new call), three tries in all, giving the tablet a whole frame to answer each time.
+   * A command plays at once; it plays again until the tablet's call shows it heard (a welcome, or a new call), three
+   * tries in all, giving the tablet time to answer each time.
    */
   const pending = useRef<{ command: RemoteCommand; tries: number; before: string; sentAt: number } | undefined>(
     undefined
@@ -420,21 +421,13 @@ export function LinkedRemote({
     on: true,
     mic,
     loopback,
-    onCall: (heard) => {
+    onBeat: () => {
       const at = performance.now();
       setHeardAt(at);
+      /* No answer by now: play the command again, three tries in all. */
       const waiting = pending.current;
-      if (waiting) {
-        const answered =
-          waiting.command.kind === 'join'
-            ? heard.welcome === true && heard.seat === waiting.command.seat
-            : !heard.welcome && callId(heard) !== waiting.before;
-        if (answered) {
-          pending.current = undefined;
-          setSending(false);
-        } else if (at - waiting.sentAt < RETRY_MS) {
-          /* This frame may have started before the tablet heard it. */
-        } else if (waiting.tries >= 3) {
+      if (waiting && at - waiting.sentAt >= RETRY_MS) {
+        if (waiting.tries >= 3) {
           pending.current = undefined;
           setSending(false);
           setUnheard(true);
@@ -443,6 +436,20 @@ export function LinkedRemote({
           waiting.sentAt = at;
           void playTune(waiting.command, { once: true });
         }
+      }
+    },
+    onCall: (heard) => {
+      const at = performance.now();
+      setHeardAt(at);
+      const waiting = pending.current;
+      if (
+        waiting &&
+        (waiting.command.kind === 'join'
+          ? heard.welcome === true && heard.seat === waiting.command.seat
+          : !heard.welcome && callId(heard) !== waiting.before)
+      ) {
+        pending.current = undefined;
+        setSending(false);
       }
       if (seat === undefined) {
         return;

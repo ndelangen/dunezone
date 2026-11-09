@@ -1,10 +1,11 @@
 /*
- * The phones' voice: a short tune of bell-like notes (Norbert, 2026-11-09: the chirps were unpleasant, and the high
+ * The table's voice: short tunes of bell-like notes (Norbert, 2026-11-09: the chirps were unpleasant, and the high
  * whine reached children's ears; sound that people hear should at least be pleasant). Every note is one of sixteen on a
  * pentatonic scale from A4 (440 Hz) up three octaves, so any tune the symbols make sounds in key.
  *
- * A command is six notes, 130 ms apart: two fixed opening notes (an octave leap, A5 to A6, which tells the listener a
- * tune is starting and when), then its four symbols. The tablet's clock ticks above 4.5 kHz, out of the way.
+ * Notes are 130 ms apart. Two fixed opening notes tell the listener a tune is starting, when, and whose: a phone's
+ * command leaps up an octave (A5 to A6) and has four symbols, the tablet's call leaps down (A6 to A5) and has five.
+ * The tablet's clock knocks above 4 kHz, out of the way.
  */
 
 const SCALE = [0, 2, 4, 7, 9];
@@ -16,20 +17,23 @@ export const NOTE_HZ: readonly number[] = Array.from(
 const NOTE_S = 0.1;
 /** From one note's start to the next one's. */
 export const STEP_S = 0.13;
-const OPENING = [5, 10] as const;
-/** How long a tune lasts, for the four symbols of a command. */
-export const TUNE_S = (OPENING.length + 4) * STEP_S;
+/** Whose tune: a phone's command or the tablet's call. */
+export type TuneKind = 'command' | 'call';
+const OPENING: Readonly<Record<TuneKind, readonly [number, number]>> = { command: [5, 10], call: [10, 5] };
+const SYMBOLS: Readonly<Record<TuneKind, number>> = { command: 4, call: 5 };
+/** How long the longer tune lasts. */
+export const TUNE_S = (2 + 5) * STEP_S;
 
-/* A bell's shape: a soft 6 ms strike, a slow fade, and a gentle stop. */
+/* A bell's shape: a soft 10 ms strike, a slow fade, and a gentle stop. */
 function envelope(t: number): number {
-  const strike = Math.min(1, t / 0.006);
+  const strike = Math.min(1, t / 0.01);
   const stop = Math.max(0, Math.min(1, (NOTE_S - t) / 0.015));
   return Math.sin((strike * Math.PI) / 2) ** 2 * Math.exp(-t / 0.15) * stop;
 }
 
 /** A tune's sound, as samples at `rate`: the opening, then a note per symbol. */
-export function tune(symbols: readonly number[], rate: number): Float32Array<ArrayBuffer> {
-  const notes = [...OPENING, ...symbols];
+export function tune(kind: TuneKind, symbols: readonly number[], rate: number): Float32Array<ArrayBuffer> {
+  const notes = [...OPENING[kind], ...symbols];
   const step = Math.round(STEP_S * rate);
   const length = Math.round(NOTE_S * rate);
   const out = new Float32Array(step * (notes.length - 1) + length);
@@ -84,6 +88,7 @@ export class NoteReceiver {
 
   constructor(
     private readonly rate: number,
+    private readonly kind: TuneKind,
     private readonly onTune: (symbols: number[]) => void
   ) {
     this.window = Math.round(0.04 * rate);
@@ -138,7 +143,7 @@ export class NoteReceiver {
         /* The middle of the next symbol's note. */
         const at =
           this.tuneAt +
-          Math.round((OPENING.length + this.read.length) * STEP_S * this.rate + (NOTE_S / 2) * this.rate) -
+          Math.round((2 + this.read.length) * STEP_S * this.rate + (NOTE_S / 2) * this.rate) -
           Math.round(this.window / 2);
         const heard = this.hear(at);
         if (!heard) {
@@ -150,7 +155,7 @@ export class NoteReceiver {
           continue;
         }
         this.read.push(heard.note);
-        if (this.read.length === 4) {
+        if (this.read.length === SYMBOLS[this.kind]) {
           this.onTune(this.read);
           this.read = [];
           this.tuneAt = undefined;
@@ -171,11 +176,11 @@ export class NoteReceiver {
       if (this.run?.note === note) {
         this.run.length++;
       } else {
-        if (this.run?.note === OPENING[0] && this.run.length >= 3) {
+        if (this.run?.note === OPENING[this.kind][0] && this.run.length >= 3) {
           this.opened = this.run.start;
         }
         this.run = { note, start: this.cursor, length: 1 };
-        if (note === OPENING[1] && this.opened !== undefined) {
+        if (note === OPENING[this.kind][1] && this.opened !== undefined) {
           const apart = (this.cursor - this.opened) / this.rate;
           if (Math.abs(apart - STEP_S) < 0.03) {
             /* A window first hears a note when it is about half inside it. */

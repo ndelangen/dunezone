@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { TickReceiver, tickFrame } from './clockTicks';
+import { BEAT_S, ClockListener, beat } from './clockTicks';
 import { NoteReceiver, tune } from './noteTunes';
+import type { TuneKind } from './noteTunes';
 
 /* A repeatable noise source, so a failure can be replayed. */
 function noise(seed: number) {
@@ -40,88 +41,85 @@ function feed(receiver: { push(samples: Float32Array): void }, samples: Float32A
   }
 }
 
-const ticks = (samples: Float32Array, rate: number) => {
-  const heard: number[][] = [];
-  feed(new TickReceiver(rate, (symbols) => heard.push(symbols)), samples);
+const beats = (samples: Float32Array, rate: number) => {
+  let heard = 0;
+  feed(new ClockListener(rate, () => heard++), samples);
   return heard;
 };
-const notes = (samples: Float32Array, rate: number) => {
+const notes = (samples: Float32Array, rate: number, kind: TuneKind = 'command') => {
   const heard: number[][] = [];
-  feed(new NoteReceiver(rate, (symbols) => heard.push(symbols)), samples);
+  feed(new NoteReceiver(rate, kind, (symbols) => heard.push(symbols)), samples);
   return heard;
 };
+
+/* The clock's beats from `from` for `count` seconds, alternating tick and tock. */
+const clock = (rate: number, count: number, from = 0) =>
+  Array.from({ length: count }, (_, index) => ({
+    signal: beat(index % 2 === 1, rate),
+    at: from + Math.round(index * BEAT_S * rate),
+  }));
 
 describe('the tablet clock', () => {
   const rate = 48_000;
 
-  it('reads a frame wherever it starts', () => {
-    for (const at of [0, 1234, 5000, 7777]) {
-      expect(ticks(room([{ signal: tickFrame([3, 0, 15, 9, 6], rate), at }]), rate)).toEqual([[3, 0, 15, 9, 6]]);
-    }
+  it('hears every beat after the first', () => {
+    expect(beats(room(clock(rate, 6, 1234)), rate)).toBe(5);
   });
 
-  it('reads frames back to back, at 44.1 kHz too', () => {
+  it('hears the beats in noise and under a tune, at 44.1 kHz too', () => {
     for (const r of [48_000, 44_100]) {
-      const a = tickFrame([1, 2, 3, 4, 5], r);
-      const b = tickFrame([15, 14, 0, 7, 8], r);
-      expect(
-        ticks(
-          room(
-            [
-              { signal: a, at: 300 },
-              { signal: b, at: 300 + a.length },
-            ],
-            { noisePower: 0.01 }
-          ),
-          r
-        )
-      ).toEqual([
-        [1, 2, 3, 4, 5],
-        [15, 14, 0, 7, 8],
-      ]);
+      const sound = room([...clock(r, 5, 500), { signal: tune('command', [15, 14, 13, 12], r), at: 9000 }], {
+        noisePower: 0.001,
+      });
+      expect(beats(sound, r)).toBe(4);
     }
   });
 
-  it('reads a frame in noise as loud as the ticks', () => {
-    for (const seed of [1, 2, 3]) {
-      const sound = room([{ signal: tickFrame([5, 1, 1, 12, 0], rate), at: 4321 }], { noisePower: 0.05, seed });
-      expect(ticks(sound, rate)).toEqual([[5, 1, 1, 12, 0]]);
-    }
-  });
-
-  it('hears nothing in noise alone, nor in a phone’s tune', () => {
-    expect(ticks(room([{ signal: new Float32Array(48_000), at: 0 }], { noisePower: 1 }), rate)).toEqual([]);
-    expect(ticks(room([{ signal: tune([1, 2, 3, 4], rate), at: 100 }]), rate)).toEqual([]);
+  it('hears no clock in noise alone, nor in tunes', () => {
+    expect(beats(room([{ signal: new Float32Array(5 * rate), at: 0 }], { noisePower: 1 }), rate)).toBe(0);
+    expect(
+      beats(
+        room([
+          { signal: tune('call', [1, 2, 3, 4, 5], rate), at: 100 },
+          { signal: tune('command', [15, 15, 15, 15], rate), at: Math.round(rate * 0.77) },
+        ]),
+        rate
+      )
+    ).toBe(0);
   });
 });
 
-describe('the phone tunes', () => {
+describe('the tunes', () => {
   const rate = 48_000;
 
   it('reads a tune wherever it starts, at 44.1 kHz too', () => {
     for (const r of [48_000, 44_100]) {
       for (const at of [0, 1234, 5000]) {
-        expect(notes(room([{ signal: tune([3, 0, 15, 9], r), at }]), r)).toEqual([[3, 0, 15, 9]]);
+        expect(notes(room([{ signal: tune('command', [3, 0, 15, 9], r), at }]), r)).toEqual([[3, 0, 15, 9]]);
       }
     }
   });
 
   it('reads repeated notes and the opening notes as symbols', () => {
-    expect(notes(room([{ signal: tune([5, 5, 10, 10], rate), at: 500 }]), rate)).toEqual([[5, 5, 10, 10]]);
+    expect(notes(room([{ signal: tune('command', [5, 5, 10, 10], rate), at: 500 }]), rate)).toEqual([[5, 5, 10, 10]]);
   });
 
-  it('reads a tune while the clock ticks over it, in some noise', () => {
-    const clock = tickFrame([1, 2, 3, 4, 5], rate);
+  it('tells a phone’s tune from the tablet’s', () => {
+    const sound = room([
+      { signal: tune('call', [1, 2, 3, 4, 5], rate), at: 300 },
+      { signal: tune('command', [6, 7, 8, 9], rate), at: rate },
+    ]);
+    expect(notes(sound, rate, 'call')).toEqual([[1, 2, 3, 4, 5]]);
+    expect(notes(sound, rate, 'command')).toEqual([[6, 7, 8, 9]]);
+  });
+
+  it('reads a tune while the clock knocks over it, in some noise', () => {
     for (const seed of [1, 2, 3]) {
-      const sound = room(
-        [
-          { signal: clock, at: 0, level: 2 },
-          { signal: tune([7, 12, 0, 3], rate), at: 3000 },
-        ],
-        { noisePower: 0.02, seed }
-      );
+      const sound = room([...clock(rate, 3), { signal: tune('command', [7, 12, 0, 3], rate), at: rate - 2000 }], {
+        noisePower: 0.02,
+        seed,
+      });
       expect(notes(sound, rate)).toEqual([[7, 12, 0, 3]]);
-      expect(ticks(sound, rate)).toEqual([[1, 2, 3, 4, 5]]);
     }
   });
 

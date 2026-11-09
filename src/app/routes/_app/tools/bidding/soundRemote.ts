@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { FRAME_S, TickReceiver, tickFrame } from './clockTicks';
+import { BEAT_S, ClockListener, beat } from './clockTicks';
 import { NoteReceiver, tune } from './noteTunes';
 import { decode, decodeCall, encode, encodeCall } from './soundCode';
 import type { Call, RemoteCommand } from './soundCode';
 
 /*
  * The sound remotes' audio: a phone plays a command as a short tune (noteTunes.ts), and the tablet hears it with its
- * microphone; the tablet answers as a ticking clock (clockTicks.ts). The two sit in different bands, so both can sound
- * at once. A command is sent three times in a row (Norbert, 2026-11-09), so one lost to a laugh or a dropped die still
+ * microphone; the tablet answers with tunes of its own when something changes, and ticks like a clock in between
+ * (clockTicks.ts) so a phone always knows it is near. A command is sent three times in a row (Norbert, 2026-11-09), so one lost to a laugh or a dropped die still
  * arrives; the receiver takes the first copy and ignores its echoes.
  * One page can also hear its own sounds directly, without the air in between (`loopback`), so the prototype can be
  * tried on one laptop.
@@ -58,41 +58,87 @@ async function play(
 
 /** Plays a remote's command, three times over unless `once`. */
 export function playTune(command: RemoteCommand, { once = false } = {}): Promise<void> {
-  return play((rate) => tune(encode(command), rate), { repeats: once ? 1 : REPEATS });
+  return play((rate) => tune('command', encode(command), rate), { repeats: once ? 1 : REPEATS });
 }
 
-/** Plays the tablet's call to the remotes: one frame of the clock's ticks. */
+/** Plays the tablet's call to the remotes, once. */
 export function playCall(call: Call): Promise<void> {
-  return play((rate) => tickFrame(encodeCall(call), rate), { repeats: 1, volume: 0.35, gap: 0 });
+  return play((rate) => tune('call', encodeCall(call), rate), { repeats: 1, volume: 0.4 });
 }
 
-/*
- * The tablet ticks without end (Norbert, 2026-11-09: a continuous sound, so a phone always knows whether it hears the
- * tablet, which sounds like a clock). Each frame of ticks says what the tablet says now.
- */
-/** How long a phone goes without hearing the tablet before it says so: about three frames missed in a row. */
-export const LOST_MS = Math.round(FRAME_S * 3 * 1000) + 500;
+/** How long a phone goes without hearing the clock before it says so: four beats missed in a row. */
+export const LOST_MS = Math.round(BEAT_S * 4.5 * 1000);
+/* A change is called twice, a moment apart, in case a laugh covered the first; and the call is refreshed now and then. */
+const AGAIN_MS = 1200;
+const REFRESH_MS = 15_000;
 
-/** While `on`, the tablet broadcasts without end: each turn on the air plays what `next` says now. */
-export function useBroadcast(on: boolean, next: () => Call) {
+const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
+
+/**
+ * While `on`, the tablet ticks like a clock, once a second (Norbert, 2026-11-09), and plays its call as a tune whenever
+ * `key` changes or `announce` is asked for, then again now and then.
+ * Each tune plays what `next` says at that moment.
+ */
+export function useBroadcast(on: boolean, key: string, next: () => Call): { announce: () => void } {
   const latest = useRef(next);
+  const urgent = useRef(0);
   useEffect(() => {
     latest.current = next;
   }, [next]);
   useEffect(() => {
+    urgent.current = 2;
+  }, [key]);
+  useEffect(() => {
     if (!on) {
       return;
     }
+    const { context, bus } = audio();
+    const out = context.createGain();
+    out.gain.value = 0.6;
+    out.connect(context.destination);
+    out.connect(bus);
+    const sounds = [false, true].map((tock) => {
+      const samples = beat(tock, context.sampleRate);
+      const buffer = context.createBuffer(1, samples.length, context.sampleRate);
+      buffer.copyToChannel(samples, 0);
+      return buffer;
+    });
+    /* The beats are set on the audio clock a little ahead, so they keep perfect time whatever the page is doing. */
+    let at = context.currentTime + 0.1;
+    let count = 0;
+    const schedule = () => {
+      while (at < context.currentTime + 1.5) {
+        const source = context.createBufferSource();
+        source.buffer = sounds[count++ % 2]!;
+        source.connect(out);
+        source.start(at);
+        at += BEAT_S;
+      }
+    };
+    schedule();
+    const timer = setInterval(schedule, 250);
     let live = true;
+    let calledAt = 0;
     void (async () => {
       while (live) {
+        const due = urgent.current > 0 || performance.now() - calledAt > REFRESH_MS;
+        if (!due) {
+          await sleep(100);
+          continue;
+        }
+        urgent.current = Math.max(0, urgent.current - 1);
+        calledAt = performance.now();
         await playCall(latest.current());
+        await sleep(urgent.current > 0 ? AGAIN_MS : 100);
       }
     })();
     return () => {
       live = false;
+      clearInterval(timer);
+      setTimeout(() => out.disconnect(), 1600);
     };
   }, [on]);
+  return { announce: () => (urgent.current = 2) };
 }
 
 /* How long a command's copies keep arriving: a later copy within this time is the same command, not a new one. */
@@ -111,6 +157,7 @@ export function useToneListener({
   onCommand,
   onMisheard,
   onCall,
+  onBeat,
 }: Readonly<{
   on: boolean;
   mic: boolean;
@@ -119,16 +166,18 @@ export function useToneListener({
   onMisheard?: () => void;
   /** For a remote: the tablet's calls. */
   onCall?: (call: Call) => void;
+  /** For a remote: each beat of the tablet's clock. */
+  onBeat?: () => void;
 }>): { state: ListenState; level: number } {
   /* How the microphone answered: nothing yet while the browser asks. */
   const [micAnswer, setMicAnswer] = useState<'granted' | 'refused' | undefined>(undefined);
   const [level, setLevel] = useState(0);
-  /* A remote hears the tablet's ticks; the tablet hears the phones' tunes. */
+  /* A remote hears the tablet's tunes and clock; the tablet hears the phones' tunes. */
   const hears = onCall ? 'call' : 'command';
-  const handlers = useRef({ onCommand, onMisheard, onCall });
+  const handlers = useRef({ onCommand, onMisheard, onCall, onBeat });
   useEffect(() => {
-    handlers.current = { onCommand, onMisheard, onCall };
-  }, [onCommand, onMisheard, onCall]);
+    handlers.current = { onCommand, onMisheard, onCall, onBeat };
+  }, [onCommand, onMisheard, onCall, onBeat]);
 
   useEffect(() => {
     if (!on || (!mic && !loopback)) {
@@ -159,8 +208,8 @@ export function useToneListener({
         handlers.current.onMisheard?.();
       }
     };
-    /* Every frame counts, since the tablet repeats it on purpose. */
-    const onFrame = (symbols: number[]) => {
+    /* Every call counts, since the tablet repeats it on purpose. */
+    const onCallSymbols = (symbols: number[]) => {
       const call = decodeCall(symbols);
       if (call) {
         handlers.current.onCall?.(call);
@@ -168,11 +217,15 @@ export function useToneListener({
     };
     const receiver =
       hears === 'call'
-        ? new TickReceiver(context.sampleRate, onFrame)
-        : new NoteReceiver(context.sampleRate, onCommandSymbols);
+        ? new NoteReceiver(context.sampleRate, 'call', onCallSymbols)
+        : new NoteReceiver(context.sampleRate, 'command', onCommandSymbols);
+    const clock =
+      hears === 'call' ? new ClockListener(context.sampleRate, () => handlers.current.onBeat?.()) : undefined;
     let blocks = 0;
     tap.onaudioprocess = (event) => {
-      receiver.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      const block = new Float32Array(event.inputBuffer.getChannelData(0));
+      receiver.push(block);
+      clock?.push(block);
       /* The meter moves a few times a second. */
       if (++blocks % 6 === 0) {
         setLevel(Math.min(1, Math.log10(1 + receiver.clarity) / 2));
