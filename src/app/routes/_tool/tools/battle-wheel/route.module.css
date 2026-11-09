@@ -1,0 +1,412 @@
+/* A phone held at the table: who you are on top, the wheel and its answer in the middle, the controls under the thumb. */
+.tool {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* The fullscreen layout hides overflow, so the tool scrolls itself: a landscape phone or a faction with many troops still reaches every control. */
+  height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.who {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.emblem,
+.factionToken {
+  display: block;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.emblem svg,
+.factionToken svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.factionToken {
+  width: 48px;
+  height: 48px;
+}
+
+.whoWords {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.factionName {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.rulesetName {
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-md);
+}
+
+.bodyFlush {
+  padding: 0;
+  gap: 0;
+}
+
+.padded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.leaderBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.leaderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: var(--space-xs);
+}
+
+.leaderButton {
+  flex: 0 0 72px;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  opacity: 0.55;
+  scroll-snap-align: start;
+  transition:
+    opacity 120ms,
+    transform 120ms,
+    border-color 120ms;
+}
+
+.leaderButton[aria-pressed="true"] {
+  border-color: var(--ui-brass);
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.disc {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.disc svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.leaderName {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: 12px;
+  background: var(--ui-recess);
+}
+
+.stepperIcon {
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: 50%;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+}
+
+.stepperIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.stepperWords {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.stepperLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.stepperDetail {
+  display: block;
+  color: var(--ui-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.stepperValue {
+  min-width: 2ch;
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.spiceDot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--ui-highlight), var(--ui-brass) 60%, var(--ui-umber));
+}
+
+.spiceDotLarge {
+  width: 40px;
+  height: 40px;
+}
+
+.spiceNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border-radius: 12px;
+  background: var(--ui-recess);
+  font-size: 14px;
+}
+
+.spiceTiers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: 12px;
+  background: var(--ui-recess);
+}
+
+.tierButtons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.tier {
+  min-height: 48px;
+  padding: 4px;
+  border: 1px solid var(--ui-raised);
+  border-radius: 10px;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tier[aria-pressed="true"] {
+  border-color: var(--ui-brass);
+  background: var(--ui-selected);
+}
+
+.tier:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.payLine {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.scoreLabel {
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.scoreBand {
+  position: sticky;
+  top: 61px;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.scoreCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.scoreOp {
+  padding-bottom: 8px;
+  color: var(--ui-muted);
+  font-size: 26px;
+}
+
+.scoreSmall {
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 40px;
+  line-height: 1;
+}
+
+.scoreBig {
+  color: var(--ui-highlight);
+  font-family: "C_Advokat_Modern", sans-serif;
+  font-size: 72px;
+  line-height: 1;
+}
+
+.payLine {
+  padding-top: var(--space-xs);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+}
+
+.setupTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.setupLabel {
+  margin: var(--space-sm) 0 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rulesets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  border: 1px solid var(--ui-raised);
+  border-radius: 10px;
+  background: var(--ui-recess);
+  color: var(--ui-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice span {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.choice[aria-pressed="true"],
+.factionChoice[aria-pressed="true"] {
+  border-color: var(--ui-brass);
+  background: var(--ui-selected);
+}
+
+.factions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.factionChoice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs);
+  border: 1px solid var(--ui-raised);
+  border-radius: 10px;
+  background: var(--ui-recess);
+  color: var(--ui-text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.failed {
+  margin: 0;
+  color: var(--ui-negative);
+  font-size: 14px;
+}
