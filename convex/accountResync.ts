@@ -151,13 +151,18 @@ async function refreshSteam(ctx: ActionCtx, steamId: string): Promise<void> {
   });
 }
 
-/** One method with something to offer is applied at once; several leave the choice to the reader. */
+/**
+ * One method with something to offer is applied at once.
+ * Several leave the choice to the reader, and so does one offer beside a method that has never reported.
+ * The reader may want that method's name once it has signed in, so nothing is taken for them yet.
+ */
 async function settle(ctx: ActionCtx, options: LinkedAccountOption[]): Promise<ResyncResult> {
   const offering = options.filter(offersSomething);
   if (offering.length === 0) {
     return { kind: 'nothing', options };
   }
-  if (offering.length > 1) {
+  const unasked = options.some((option) => option.syncedAt === null && !offersSomething(option));
+  if (offering.length > 1 || unasked) {
     return { kind: 'choose', options };
   }
   const applied: Applied = await ctx.runMutation(internal.accountResync.applyInternal, {

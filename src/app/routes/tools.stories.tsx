@@ -24,13 +24,16 @@ export const Catalogue = meta.story({
     await expect(page.getByRole('list', { name: 'Make and export' })).toBeVisible();
     await expect(page.getAllByRole('listitem')).toHaveLength(TOOLS.length);
     await expect(page.getAllByText('Coming soon')).toHaveLength(TOOLS.filter((tool) => !tool.built).length);
-    await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute(
+    /* A built tool's link also says it opens in a new tab, so its name is matched from the start. */
+    await expect(page.getByRole('link', { name: /^Treachery tracker/ })).toHaveAttribute(
       'href',
       '/tools/atreides-treachery-tracker'
     );
-    /* A built tool is a page of its own, so it opens in a tab of its own. */
-    await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute('target', '_blank');
-    await expect(page.getByRole('link', { name: 'Battle calculator' })).not.toHaveAttribute('target');
+    for (const tool of TOOLS.filter((entry) => entry.built)) {
+      const link = page.getByRole('link', { name: `${tool.title} (opens in a new tab)` });
+      await expect(link).toHaveAttribute('target', '_blank');
+      await expect(link).toHaveAttribute('rel', 'noopener');
+    }
   },
 });
 

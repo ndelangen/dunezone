@@ -20,6 +20,7 @@ import { quietBuildReportInCi } from './scripts/lib/quietBuildReport.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 import { unsyncedMediaPreview } from './scripts/lib/unsyncedMediaPreview.ts';
+import { PRERENDERED_PAGE_NONCE, TOOL_PAGES } from './src/shared/recordlessPublicPages.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -309,6 +310,14 @@ const config = defineConfig({
         concurrency: Math.max(1, os.cpus().length),
         crawlLinks: false,
       },
+      /**
+       * Each built tool is a static page, prerendered to `tools/<slug>/index.html` and served by the Worker in place of a server render.
+       * It renders with a placeholder nonce that every delivery swaps for a fresh one.
+       */
+      pages: TOOL_PAGES.map((path) => ({
+        path,
+        prerender: { enabled: true, headers: { Connection: 'close', 'X-Application-Nonce': PRERENDERED_PAGE_NONCE } },
+      })),
       spa: {
         enabled: true,
         prerender: {
