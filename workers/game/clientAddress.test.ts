@@ -16,11 +16,17 @@ describe('a visitor address for per-visitor limits', () => {
     expect(networkOf('2001:0DB8:0001:0002::9')).toBe('2001:db8:1:2::/64');
     expect(networkOf('2001:db8::1')).toBe('2001:db8:0:0::/64');
     expect(networkOf('::1')).toBe('0:0:0:0::/64');
+    expect(networkOf('2001::1:2:3:192.0.2.1')).toBe(networkOf('2001:0:0:1:2:3:c000:201'));
+    expect(networkOf('2001::1:2:3:192.0.2.1')).toBe('2001:0:0:1::/64');
   });
 
   it('applies only to a deployed Worker that was told the address', () => {
     expect(clientAddress(from('2001:db8:1:2::a'), deployed)).toBe(clientAddress(from('2001:db8:1:2::b'), deployed));
     expect(clientAddress(from(), deployed)).toBeUndefined();
+    const pseudo = new Request('https://dune.zone/', {
+      headers: { 'CF-Connecting-IP': '240.0.0.1', 'CF-Connecting-IPv6': '2001:db8:1:2::a' },
+    });
+    expect(clientAddress(pseudo, deployed)).toBe('2001:db8:1:2::/64');
     expect(clientAddress(from('203.0.113.7'), local)).toBeUndefined();
   });
 });

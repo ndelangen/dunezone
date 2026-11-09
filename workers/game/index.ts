@@ -997,17 +997,21 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Whether a new connection may wait for admission: the room has a waiting place left, and the visitor has not taken their share. */
+  private hasWaitingPlace(address: string | undefined) {
+    const waiting = [...this.connections.values()].filter((connection) => !connection.viewer);
+    if (waiting.length >= PENDING_CONNECTION_LIMIT) {
+      return false;
+    }
+    return !address || waiting.filter((connection) => connection.client === address).length < CLIENT_PENDING_LIMIT;
+  }
+
   private openSocket(request: Request): Response {
     if (!this.metadata!.confirmed || !isApplicationSocket(request, this.env.APPLICATION_ORIGIN)) {
       return refused();
     }
     const address = clientAddress(request, this.env);
-    const waiting = [...this.connections.values()].filter((connection) => !connection.viewer);
-    if (
-      this.connections.size >= 128 ||
-      waiting.length >= PENDING_CONNECTION_LIMIT ||
-      (address && waiting.filter((connection) => connection.client === address).length >= CLIENT_PENDING_LIMIT)
-    ) {
+    if (this.connections.size >= 128 || !this.hasWaitingPlace(address)) {
       return refused();
     }
     const [client, server] = Object.values(new WebSocketPair());
