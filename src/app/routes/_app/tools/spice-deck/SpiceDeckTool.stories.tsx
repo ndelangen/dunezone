@@ -7,7 +7,7 @@ import type { SpiceDeckVariant } from './SpiceDeckTool';
 
 /*
  * The spice deck tool's six looks, for Norbert to pick one (2026-11-09). Every story is a phone at the table in turn 3
- * of a GF9 game, just after a Spice Blow in which Shai-Hulud came up on both piles. Everything is live: the big button
+ * of a GF9 game set up with two spice piles, just after a Spice Blow in which Shai-Hulud came up on both piles. Everything is live: the big button
  * turns the next card, and the game is kept in this browser's storage, so a reload carries on (Settings > New game starts over).
  */
 const meta = preview.meta({
@@ -29,7 +29,7 @@ const variantStory = (variant: SpiceDeckVariant) => {
 export const Piles = meta.story({
   ...variantStory('piles'),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Pile A · 2')).toBeVisible();
+    await expect(canvas.getByText('Spice pile A · 4')).toBeVisible();
   },
 });
 
@@ -69,7 +69,7 @@ export const Odds = meta.story({
 export const Voice = meta.story({
   ...variantStory('voice'),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/Say “spice blow”/)).toBeVisible();
+    await expect(canvas.getByText('Say “spice blow”, “next turn”, “repeat” or “undo”.')).toBeVisible();
   },
 });
 

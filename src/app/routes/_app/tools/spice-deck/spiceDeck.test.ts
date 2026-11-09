@@ -69,7 +69,7 @@ describe('Spice Blow', () => {
     expect(game.discards[0]).toEqual(['old-gap#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']);
     expect(nexus(game)).toBe(true);
     expect(blowSentence(game, game.blows.at(-1)!)).toBe(
-      'Spice Blow A: Shai-Hulud! It devours everything in Old Gap. Shai-Hulud! It devours everything in Old Gap. 8 spice in Red Chasm.'
+      'Spice pile A: Shai-Hulud! It devours everything in Old Gap. Shai-Hulud! It devours everything in Old Gap. 8 spice in Red Chasm.'
     );
   });
 

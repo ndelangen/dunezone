@@ -1,4 +1,4 @@
-import { Menu, Radio, Stack, Switch } from '@mantine/core';
+import { Menu, NumberInput, Switch } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -22,7 +22,8 @@ import {
   newGame,
   nexus,
   nextTurn,
-  PILE_NAMES,
+  MOST_PILES,
+  pileLetter,
   remaining,
   revealOne,
   spiceBlowOver,
@@ -67,7 +68,7 @@ function DeckPicker({
   decks,
   onStart,
 }: Readonly<{ decks: readonly SpiceDeckDef[]; onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void }>) {
-  const [piles, setPiles] = useState<1 | 2>(2);
+  const [piles, setPiles] = useState(1);
   const [limit, setLimit] = useState(false);
   return (
     <div className={styles.tool}>
@@ -80,16 +81,19 @@ function DeckPicker({
       <main className={styles.body}>
         <div className={styles.pickRules}>
           <ControlBlock
-            title="Discard piles"
-            description="The rulebook turns a card for pile A, then one for pile B, every turn. Some rulesets use one."
-            input={
-              <Radio.Group value={String(piles)} onChange={(value) => setPiles(value === '1' ? 1 : 2)}>
-                <Stack gap="xs">
-                  <Radio value="2" label="Two, A and B" />
-                  <Radio value="1" label="One" />
-                </Stack>
-              </Radio.Group>
-            }
+            title="How many spice piles?"
+            description={'A card is turned over for each pile, every turn.\nThe rulebook plays two, A and B.'}
+            input={(field) => (
+              <NumberInput
+                {...field}
+                min={1}
+                max={MOST_PILES}
+                clampBehavior="strict"
+                allowDecimal={false}
+                value={piles}
+                onChange={(value) => setPiles(typeof value === 'number' ? value : 1)}
+              />
+            )}
           />
           <Switch
             checked={limit}
@@ -123,15 +127,17 @@ function DeckPicker({
 }
 
 const pileName = (game: SpiceDeckGame, pile: number) =>
-  game.piles > 1 ? `Spice Blow ${PILE_NAMES[pile]}` : 'Spice Blow';
+  game.piles > 1 ? `Spice pile ${pileLetter(pile)}` : 'Spice pile';
 
 /* The one step the big button takes next, as its words. */
 function nextStep(game: SpiceDeckGame, oneCard: boolean): string {
   if (!spiceBlowOver(game)) {
     if (oneCard) {
-      return currentBlow(game) ? 'Turn over another card' : `Turn over a card for ${PILE_NAMES[game.pile]}`;
+      return currentBlow(game)
+        ? 'Turn over another card'
+        : `Turn over a card for ${pileName(game, game.pile).toLowerCase()}`;
     }
-    return pileName(game, game.pile);
+    return `Blow ${pileName(game, game.pile).toLowerCase()}`;
   }
   return `Start turn ${game.turn + 1}`;
 }
@@ -271,17 +277,6 @@ function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game:
           New game, same deck
         </Menu.Item>
         <Menu.Item onClick={() => session.start(undefined)}>Pick another deck</Menu.Item>
-        <Menu.Divider />
-        <Menu.Label>Discard piles</Menu.Label>
-        {([2, 1] as const).map((piles) => (
-          <Menu.Item
-            key={piles}
-            disabled={game.turn > 1 || game.blows.length > 0}
-            onClick={() => session.start(newGame(game.deck, session.random, { ...rulesOf(game), piles }))}
-          >
-            {piles === 2 ? 'Two, A and B' : 'One'} {game.piles === piles ? '✓' : ''}
-          </Menu.Item>
-        ))}
       </Menu.Dropdown>
     </Menu>
   );
@@ -327,7 +322,7 @@ function CardFace({ game, copy, className }: Readonly<{ game: SpiceDeckGame; cop
 /** What one turned card asks of the table, in a line. */
 function RevealLine({ game, reveal }: Readonly<{ game: SpiceDeckGame; reveal: Reveal }>) {
   if (reveal.kind === 'reshuffle') {
-    return <li className={styles.line}>The deck ran out: both discard piles shuffled into a new deck.</li>;
+    return <li className={styles.line}>The deck ran out: the spice piles shuffled into a new deck.</li>;
   }
   const card = cardOf(game, reveal.card);
   if (reveal.kind === 'spice') {
@@ -399,7 +394,7 @@ function PilesBody({ game }: Readonly<{ game: SpiceDeckGame }>) {
           <figure key={index} className={styles.pile} data-next={index === game.pile || undefined}>
             <CardFace game={game} copy={pile.at(-1)} />
             <figcaption>
-              {game.piles > 1 ? `Pile ${PILE_NAMES[index]}` : 'Discard pile'} · {pile.length}
+              {pileName(game, index)} · {pile.length}
             </figcaption>
           </figure>
         ))}
@@ -476,7 +471,7 @@ function LogBody({ game }: Readonly<{ game: SpiceDeckGame }>) {
               <div key={blow.pile} className={styles.logRow}>
                 <CardFace game={game} copy={spice?.card ?? undefined} className={styles.logThumb} />
                 <div>
-                  {game.piles > 1 ? <span className={styles.pileTag}>{PILE_NAMES[blow.pile]}</span> : null}
+                  {game.piles > 1 ? <span className={styles.pileTag}>{pileLetter(blow.pile)}</span> : null}
                   <BlowLines game={game} blow={blow} />
                 </div>
               </div>
@@ -499,7 +494,7 @@ function CardByCardBody({ game }: Readonly<{ game: SpiceDeckGame }>) {
     if (!reveal || reveal.card === null) {
       return spiceBlowOver(game)
         ? 'The Spice Blow is over.'
-        : `Turn over the top card for ${pileName(game, game.pile)}.`;
+        : `Turn over the top card for ${pileName(game, game.pile).toLowerCase()}.`;
     }
     if (reveal.kind === 'spice') {
       return (

@@ -51,7 +51,7 @@ export function seeded(seed: number): () => number {
 /** A game played through the given turns' Spice Blows, then on to the next turn with nothing turned yet. */
 export function storyGame(turns: number, seed = STORY_SEED, deck = BASE_SPICE): SpiceDeckGame {
   const random = seeded(seed);
-  let game = newGame(deck, random);
+  let game = newGame(deck, random, { piles: 2 });
   for (let turn = 1; turn <= turns; turn++) {
     game = blowAll(turn === 1 ? game : nextTurn(game), random);
   }

@@ -1,9 +1,9 @@
 /*
  * The spice deck tool's game: a spice deck run for a table that plays with everything but the cards.
  * It follows the rulebook's Spice Blow: each turn turns over a card for every discard pile in order (A, then B),
- * drawing again past every Shai-Hulud until a spice card lands. On the first turn a Shai-Hulud is set aside and shuffled
+ * for every discard pile the table plays with (the rulebook's A and B), drawing again past every Shai-Hulud until a spice card lands. On the first turn a Shai-Hulud is set aside and shuffled
  * back once the Spice Blow is over; from the second turn on it devours the territory of the spice card below it on its
- * pile, and a Nexus follows the Spice Blow. An empty deck is made again from both discard piles, shuffled.
+ * pile, and a Nexus follows the Spice Blow. An empty deck is made again from all the discard piles, shuffled.
  * Pure and serialisable: the page keeps it in the browser's own storage, and every step is undoable.
  */
 
@@ -46,8 +46,8 @@ export type Blow = Readonly<{ turn: number; pile: number; reveals: readonly Reve
 export type SpiceDeckGame = Readonly<{
   version: 1;
   deck: SpiceDeckDef;
-  /** Discard piles, and so blows, per turn: the rulebook's A and B, or a single pile. */
-  piles: 1 | 2;
+  /** Discard piles, and so blows, per turn: the rulebook's A and B, or as many as the table plays with. */
+  piles: number;
   /** How many Shai-Huluds count in one Spice Blow; any more are ignored and shuffled back. None means all count. */
   wormsPerPhase?: number;
   turn: number;
@@ -64,7 +64,11 @@ export type SpiceDeckGame = Readonly<{
 
 export type Random = () => number;
 
-export const PILE_NAMES = ['A', 'B'] as const;
+/** The most discard piles a table can ask for; more than the deck has spice cards for a few turns would make no game. */
+export const MOST_PILES = 6;
+
+/** A pile's name, A, B, C and on, as the rulebook names its two. */
+export const pileLetter = (pile: number) => String.fromCodePoint(65 + pile);
 
 export const copyKey = (copy: string) => copy.slice(0, copy.lastIndexOf('#'));
 
@@ -84,9 +88,9 @@ function shuffled<T>(items: readonly T[], random: Random): T[] {
   return out;
 }
 
-export type SpiceRules = Readonly<{ piles: 1 | 2; wormsPerPhase?: number }>;
+export type SpiceRules = Readonly<{ piles: number; wormsPerPhase?: number }>;
 
-export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 2 }): SpiceDeckGame {
+export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 1 }): SpiceDeckGame {
   const { piles, wormsPerPhase } = rules;
   const copies = deck.cards.flatMap((card) => Array.from({ length: card.count }, (_, n) => `${card.key}#${n + 1}`));
   return {
@@ -236,7 +240,7 @@ export function wormChance(game: SpiceDeckGame): number {
 export function blowSentence(game: SpiceDeckGame, blow: Blow): string {
   const parts = blow.reveals.map((reveal) => {
     if (reveal.kind === 'reshuffle') {
-      return 'The deck ran out, so both discard piles are shuffled into a new deck.';
+      return 'The deck ran out, so the spice piles are shuffled into a new deck.';
     }
     const card = cardOf(game, reveal.card);
     if (reveal.kind === 'ignored') {
@@ -252,5 +256,5 @@ export function blowSentence(game: SpiceDeckGame, blow: Blow): string {
     }
     return `${card.amount} spice in ${card.name}.`;
   });
-  return `Spice Blow ${game.piles > 1 ? PILE_NAMES[blow.pile] : ''}: ${parts.join(' ')}`.replace(' :', ':');
+  return `Spice pile ${game.piles > 1 ? pileLetter(blow.pile) : ''}: ${parts.join(' ')}`.replace(' :', ':');
 }
