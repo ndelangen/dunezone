@@ -1,3 +1,4 @@
+import discoverySpiceCards from '@shared/assets/fixtures/discoverySpiceCards.json';
 import { assetSupplySchema } from '@shared/play/capture';
 import { expect, test } from 'vite-plus/test';
 
@@ -51,6 +52,8 @@ test('a card with no spice is Shai-Hulud only when it names a worm; others are s
   );
   expect(gf9.cards.filter(isWorm).map((card) => card.key)).toEqual(['worm', 'maker']);
   expect(gf9.cards.filter((card) => card.special).map((card) => card.key)).toEqual(['trout', 'discovery']);
+  /* A Discovery blow names its territory even with no amount the catalogue reads; Sandtrout names none. */
+  expect(gf9.cards.filter((card) => card.territory).map((card) => card.key)).toEqual(['discovery']);
 });
 
 test('a deck with a card whose face is not published is not played', () => {
@@ -58,4 +61,29 @@ test('a deck with a card whose face is not published is not played', () => {
   expect(() => spiceDeckFromSupply({ id: 'faceless', name: 'Faceless deck', ruleset: 'Faceless' }, faceless)).toThrow(
     /not published/
   );
+});
+
+test('a Discovery blow is a special card the players follow, though it carries spice', () => {
+  const sihaya = discoverySpiceCards.find((card) => card.name === 'Sihaya Ridge')!;
+  const discovery = spiceDeckFromSupply(
+    { id: 'discovery', name: 'Discovery Spice Deck', ruleset: 'GF9' },
+    {
+      ...supply,
+      members: [
+        {
+          ...supply.members[0]!,
+          asset: { id: 'sihaya', slug: 'sihaya-ridge', type: 'card-spice', name: sihaya.name, data: sihaya },
+          count: 1,
+        },
+      ],
+    }
+  );
+  expect(discovery.cards[0]).toMatchObject({ key: 'sihaya', special: true });
+  expect(isWorm(discovery.cards[0]!)).toBe(false);
+});
+
+test('a mine blow is a special card the players follow, though it carries spice', () => {
+  const arsunt = deck.cards.find((card) => card.key === 'ns7bwpps78qcc50x0brmn2n5198gr7tc');
+  expect(arsunt).toMatchObject({ name: 'Arsunt', special: true });
+  expect(deck.cards.filter((card) => card.special)).toHaveLength(5);
 });

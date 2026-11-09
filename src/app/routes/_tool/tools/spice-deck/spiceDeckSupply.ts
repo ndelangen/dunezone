@@ -20,10 +20,26 @@ function amountOf(type: string, data: unknown): number | undefined {
 /* A Shai-Hulud, or a card the rules resolve as one, such as Great Maker, names a worm on its face or its subtitle. */
 const WORM = /shai[\s-]?hulud|sandworm|great maker/i;
 
-function namesWorm(name: string, data: unknown): boolean {
+const subNameOf = (data: unknown) => {
   const subName = data && typeof data === 'object' ? (data as { subName?: unknown }).subName : undefined;
-  return WORM.test(name) || (typeof subName === 'string' && WORM.test(subName));
+  return typeof subName === 'string' ? subName : '';
+};
+
+function namesWorm(name: string, data: unknown): boolean {
+  return WORM.test(name) || WORM.test(subNameOf(data));
 }
+
+/*
+ * Blows that carry an amount yet do more than place spice, so the players follow the card: a Discovery blow first destroys
+ * what is in its territory and places a Discovery token, and a mine blow adds a spice mine (Dreamrules: "Spice Blow - Mine").
+ */
+const FOLLOW = /discovery|\bmine\b/i;
+
+const namesFollow = (data: unknown) => FOLLOW.test(subNameOf(data));
+
+/* A card the players follow rather than read as plain spice or a worm: one that blows no spice and names no worm, or a Discovery or mine blow. */
+const isSpecial = (amount: number | undefined, name: string, data: unknown) =>
+  namesFollow(data) || (amount === undefined && !namesWorm(name, data));
 
 function assertPlayable(choice: SpiceDeckChoice, supply: AssetSupply) {
   /* A deck read in part would leave cards out and get the odds wrong, so it is not played at all. */
@@ -39,7 +55,8 @@ function assertPlayable(choice: SpiceDeckChoice, supply: AssetSupply) {
 /**
  * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
  * A card that blows no spice is Shai-Hulud when it names a worm;
- * any other, such as Sandtrout or a Discovery blow, is a special card the players follow.
+ * any other, such as Sandtrout, is a special card the players follow, and so is a Discovery or mine blow, spice or not;
+ * those two blow in a territory, which a later Shai-Hulud devours.
  * Throws for a deck the catalogue sent only in part.
  */
 export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
@@ -53,7 +70,8 @@ export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply
       count,
       ...(front ? { face: front } : {}),
       ...(amount === undefined ? {} : { amount }),
-      ...(amount === undefined && !namesWorm(asset.name, asset.data) ? { special: true } : {}),
+      ...(isSpecial(amount, asset.name, asset.data) ? { special: true } : {}),
+      ...(namesFollow(asset.data) ? { territory: true } : {}),
     };
   });
   return {

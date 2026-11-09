@@ -16,7 +16,7 @@ import {
   setAsideLast,
   wormChance,
 } from './spiceDeck';
-import type { SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
+import type { Blow, SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
 
 const DECK: SpiceDeckDef = {
   id: 'test',
@@ -127,20 +127,29 @@ describe('Spice Blow', () => {
     expect(game.blows).toHaveLength(1);
   });
 
-  test('a special card ends its blow, names no territory for a Shai-Hulud, and does not count as one', () => {
+  test('Sandtrout leaves its pile waiting; a Discovery blow ends it and is what a later Shai-Hulud devours', () => {
     const special: SpiceDeckDef = {
       ...DECK,
-      cards: [...DECK.cards, { key: 'sandtrout', name: 'Sandtrout', special: true, count: 1 }],
+      cards: [
+        ...DECK.cards,
+        { key: 'sandtrout', name: 'Sandtrout', special: true, count: 1 },
+        { key: 'sihaya', name: 'Sihaya Ridge', special: true, territory: true, count: 1 },
+      ],
     };
-    let game: SpiceDeckGame = { ...newGame(special, Math.random, { piles: 1 }), draw: ['shai-hulud#1', 'sandtrout#1'] };
-    expect(wormChance(game)).toBe(0.5);
-    game = blowPile(game, keepOrder);
+    let game: SpiceDeckGame = {
+      ...newGame(special, Math.random, { piles: 2 }),
+      draw: ['shai-hulud#1', 'sihaya#1', 'sandtrout#1'],
+    };
+    expect(wormChance(game)).toBe(1 / 3);
+    game = revealOne(game, keepOrder);
     expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'sandtrout#1', kind: 'special' }]);
-    expect(spiceBlowOver(game)).toBe(true);
-    expect(lastPlayed(game)?.card).toBe('sandtrout#1');
-    expect(blowSentence(game, game.blows.at(-1)!)).toBe('Spice pile: Sandtrout. Follow the card.');
-    game = revealOne(nextTurn(game, keepOrder), keepOrder);
-    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm' }]);
+    expect(nextPile(game)).toBe(0);
+    expect(blowSentence(game, game.blows.at(-1)!)).toBe('Spice pile A: Sandtrout. Follow the card.');
+    game = revealOne(game, keepOrder);
+    expect(game.blows.at(-1)!.reveals.map((reveal) => reveal.kind)).toEqual(['special', 'special']);
+    expect(nextPile(game)).toBe(1);
+    game = revealOne(nextTurn(game, keepOrder), keepOrder, 0);
+    expect(game.blows.at(-1)!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm', devours: 'sihaya#1' }]);
   });
 
   test('a Shai-Hulud on the first turn is read out as set aside and draw again', () => {
@@ -183,5 +192,21 @@ describe('a game read back from storage', () => {
     const game = stacked(['old-gap#1']);
     expect(isPlayable({ ...game, discards: undefined as unknown as SpiceDeckGame['discards'] })).toBe(false);
     expect(isPlayable({ ...game, draw: ['sietch-tabr#1'] })).toBe(false);
+  });
+
+  test('is not when a blow lacks its cards or names a card not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    const blow = { turn: 1, pile: 0, reveals: [{ card: 'old-gap#1', kind: 'spice' as const }] };
+    expect(isPlayable({ ...game, blows: [blow] })).toBe(true);
+    expect(isPlayable({ ...game, blows: [{ turn: 1, pile: 0 } as unknown as Blow] })).toBe(false);
+    expect(isPlayable({ ...game, blows: [{ ...blow, reveals: [{ card: 'sietch-tabr#1', kind: 'spice' }] }] })).toBe(
+      false
+    );
+    expect(
+      isPlayable({
+        ...game,
+        blows: [{ ...blow, reveals: [{ card: 'shai-hulud#1', kind: 'worm', devours: 'nowhere#1' }] }],
+      })
+    ).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, within } from 'storybook/test';
+import { waitForFrame } from '@sb/storyWaits';
+import { expect, fireEvent, userEvent, within } from 'storybook/test';
 
 import { seedStoredGame, storyGame } from './_tool/tools/spice-deck/spiceDeck.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
@@ -27,5 +28,22 @@ export const PickAnotherDeck = meta.story({
     await expect(await page.findByText('Pick the deck your table plays with')).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Back to the game' }));
     await expect(await page.findByText('Spice pile A · 4')).toBeVisible();
+  },
+});
+
+/** A tap on Hide closes the peek and the table is back. */
+export const PeekHides = meta.story({
+  beforeEach: () => seedStoredGame(storyGame(3, { andNext: true, peek: 2 })),
+  play: async ({ canvasElement }) => {
+    const page = pageOf(canvasElement);
+    await fireEvent.pointerDown(
+      await page.findByRole('button', { name: 'Hold to peek at the next card' }, { timeout: 30_000 }),
+      { isPrimary: true, button: 0 }
+    );
+    await waitForFrame(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {
+      timeout: 15_000,
+    });
+    await userEvent.click(page.getByRole('button', { name: 'Hide and put the phone back' }));
+    await expect(page.queryByRole('dialog', { name: 'The next spice cards' })).not.toBeInTheDocument();
   },
 });

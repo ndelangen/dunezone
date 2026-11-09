@@ -16,6 +16,11 @@ export type SpiceCardDef = Readonly<{
   amount?: number;
   /** A card that is neither a spice card nor Shai-Hulud, such as Sandtrout or a Discovery blow: its own text says what happens. */
   special?: boolean;
+  /**
+   * A special card that blows in a territory, such as a Discovery or mine blow: like a spice card it ends its pile's blow and is what a Shai-Hulud above it devours, whether or not the catalogue knows its amount.
+   * A special card without one, such as Sandtrout, leaves the pile waiting for another card.
+   */
+  territory?: boolean;
   /** The card's face. */
   face?: string;
   count: number;
@@ -80,9 +85,12 @@ export function cardOf(game: SpiceDeckGame, copy: string): SpiceCardDef {
 
 export const isWorm = (card: SpiceCardDef) => card.amount === undefined && !card.special;
 
-/* A card that ends its pile's blow: a spice card, or a special card the players follow. */
-const endsBlow = (reveal: Reveal | undefined): reveal is Extract<Reveal, { kind: 'spice' | 'special' }> =>
-  reveal?.kind === 'spice' || reveal?.kind === 'special';
+/* A card that names a territory: a spice card, or a special card that blows in one. */
+const namesTerritory = (card: SpiceCardDef) => card.amount !== undefined || card.territory === true;
+
+/* A card that ends its pile's blow: a spice card, or a special card that blows in a territory. */
+const endsBlow = (game: SpiceDeckGame, reveal: Reveal | undefined) =>
+  reveal?.kind === 'spice' || (reveal?.kind === 'special' && namesTerritory(cardOf(game, reveal.card)));
 
 function shuffled<T>(items: readonly T[], random: Random): T[] {
   const out = [...items];
@@ -115,10 +123,10 @@ export function newGame(deck: SpiceDeckDef, random: Random, rules?: SpiceRules):
   };
 }
 
-/** The spice card a Shai-Hulud on this pile would devour: the newest spice card under it; a special card names no territory. */
+/** The card a Shai-Hulud on this pile would devour: the newest one under it that names a territory; Sandtrout names none. */
 function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | undefined {
   for (let i = pile.length - 1; i >= 0; i--) {
-    if (cardOf(game, pile[i]!).amount !== undefined) {
+    if (namesTerritory(cardOf(game, pile[i]!))) {
       return pile[i];
     }
   }
@@ -128,12 +136,12 @@ function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | 
 /** A pile's blow this turn that has not yet landed a spice card: the one a further card on that pile adds to. */
 function openBlow(game: SpiceDeckGame, pile: number): Blow | undefined {
   const last = game.blows.findLast((blow) => blow.turn === game.turn && blow.pile === pile);
-  return last && !endsBlow(last.reveals.at(-1)) ? last : undefined;
+  return last && !endsBlow(game, last.reveals.at(-1)) ? last : undefined;
 }
 
 /** Whether a pile has landed a spice card this turn. */
 const pileBlown = (game: SpiceDeckGame, pile: number) =>
-  game.blows.some((blow) => blow.turn === game.turn && blow.pile === pile && endsBlow(blow.reveals.at(-1)));
+  game.blows.some((blow) => blow.turn === game.turn && blow.pile === pile && endsBlow(game, blow.reveals.at(-1)));
 
 /** The first pile not yet blown this turn, the one the rulebook's order turns next; none once every pile has. */
 export function nextPile(game: SpiceDeckGame): number | undefined {
@@ -272,16 +280,38 @@ export function wormChance(game: SpiceDeckGame): number {
 const isCopyList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((copy) => typeof copy === 'string');
 
-/** Whether a game read back from storage is whole: its piles are lists of cards, and every card is one of its deck's. */
-export function isPlayable(game: SpiceDeckGame): boolean {
-  if (!Array.isArray(game.deck?.cards) || !Array.isArray(game.blows) || !Array.isArray(game.discards)) {
-    return false;
+/** Whether the game's piles are all lists of cards. */
+const hasPiles = (game: SpiceDeckGame) =>
+  Array.isArray(game.deck?.cards) &&
+  isCopyList(game.draw) &&
+  isCopyList(game.setAside) &&
+  Array.isArray(game.discards) &&
+  game.discards.every(isCopyList);
+
+/** Whether a turned card names cards of the deck: a reshuffle names none, Shai-Hulud may name what it devoured. */
+const revealKnown = (reveal: Reveal, known: (copy: unknown) => boolean) => {
+  if (reveal?.kind === 'reshuffle') {
+    return true;
   }
-  if (!isCopyList(game.draw) || !isCopyList(game.setAside) || !game.discards.every(isCopyList)) {
+  return known(reveal?.card) && (reveal.kind !== 'worm' || reveal.devours === undefined || known(reveal.devours));
+};
+
+/** Whether a blow is a turn, a pile and the cards it turned. */
+const blowKnown = (blow: Blow, known: (copy: unknown) => boolean) =>
+  Number.isInteger(blow?.turn) &&
+  Number.isInteger(blow?.pile) &&
+  Array.isArray(blow.reveals) &&
+  blow.reveals.every((reveal) => revealKnown(reveal, known));
+
+/** Whether a game read back from storage is whole: its piles and blows are lists of cards, and every card is one of its deck's. */
+export function isPlayable(game: SpiceDeckGame): boolean {
+  if (!hasPiles(game) || !Array.isArray(game.blows)) {
     return false;
   }
   const keys = new Set(game.deck.cards.map((card) => card.key));
-  return [game.draw, game.setAside, ...game.discards].every((pile) => pile.every((copy) => keys.has(copyKey(copy))));
+  const known = (copy: unknown) => typeof copy === 'string' && keys.has(copyKey(copy));
+  const piles = [game.draw, game.setAside, ...game.discards];
+  return piles.every((pile) => pile.every(known)) && game.blows.every((blow) => blowKnown(blow, known));
 }
 
 /** One turned card as a sentence for the table, as the voice reads it, for the turn it came up on. */
