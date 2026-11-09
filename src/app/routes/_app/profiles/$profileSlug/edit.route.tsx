@@ -375,11 +375,11 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
     dispatchResync({ kind: 'settled' });
   };
   const chooseLinked = async (provider: AuthProvider) => {
+    /* The list the pick came from stays, so the other rows keep saying what they offered. */
+    const options = resync.outcome.kind === 'idle' ? [] : resync.outcome.options;
     dispatchResync({ kind: 'started', action: 'apply' });
     try {
       const applied = await applyLinked({ provider });
-      /* The list the pick came from stays, so the other rows keep saying what they offered. */
-      const options = resync.outcome.kind === 'idle' ? [] : resync.outcome.options;
       dispatchResync({ kind: 'resynced', result: { kind: 'applied', applied, options } });
       resynced(applied);
     } catch (error) {
