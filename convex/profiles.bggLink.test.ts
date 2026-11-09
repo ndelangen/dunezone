@@ -35,15 +35,15 @@ test('a BGG link is normalized, public, preserved by older saves and removed by 
     bgg_profile_url: ' https://www.boardgamegeek.com/user/Example%20Player/?ref=share#profile ',
   });
   expect((await t.query(api.profiles.pageBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBe(
-    'https://boardgamegeek.com/user/Example%20Player'
+    'https://boardgamegeek.com/profile/Example%20Player'
   );
   const olderSave = await owner.mutation(api.profiles.updateCurrent, profileInput);
-  expect(olderSave.profile.bgg_profile_url).toBe('https://boardgamegeek.com/user/Example%20Player');
+  expect(olderSave.profile.bgg_profile_url).toBe('https://boardgamegeek.com/profile/Example%20Player');
   await owner.mutation(api.profiles.updateCurrent, { ...profileInput, bgg_profile_url: '   ' });
   expect((await t.query(api.profiles.pageBySlug, { slug: 'exampleplayer' })).profile.bgg_profile_url).toBeUndefined();
 });
 
-test('a BGG /profile/ link is accepted and keeps its form', async () => {
+test('a BGG /profile/ link is accepted', async () => {
   const { t, owner } = await setup();
   await owner.mutation(api.profiles.updateCurrent, {
     ...profileInput,

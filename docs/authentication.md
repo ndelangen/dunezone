@@ -142,7 +142,8 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 A profile may also have a public BoardGameGeek profile link, edited in the Profile tab and saved
 with the rest of the draft. Its ownership is unverified. It cannot sign anyone in, satisfy the
 last-method guard or authorize a profile merge. Clearing the URL and saving removes the link.
-Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query strings and fragments.
+Only HTTPS BoardGameGeek profile URLs (`/user/<name>` or `/profile/<name>`) are accepted; saves store them
+as `https://boardgamegeek.com/profile/<name>` without query strings or fragments.
 The kept profile retains its own link during a merge.
 
 The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.
