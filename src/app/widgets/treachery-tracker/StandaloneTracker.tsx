@@ -4,6 +4,7 @@ import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Minus, Play, Plus, RotateCcw } from 'lucide-react';
+import { useEffect } from 'react';
 
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
@@ -107,9 +108,11 @@ function DeckLine({ deck }: Readonly<{ deck: SetupDeck }>) {
 }
 
 /**
- * A game being tracked, drawn for a phone in the layout Norbert picked of three on 2026-11-09.
- * The turn, the Ruleset and the card on bid stay pinned at the top.
- * The auction, hands and deck scroll beneath them.
+ * A game being tracked, on a phone held in one hand.
+ * The card on bid and the turn sit at the foot of the screen, under the thumb.
+ * The auction, hands and deck scroll above them.
+ * The Ruleset and the clear action sit at the top, out of the thumb's way.
+ * The screen stays on while the game is open, so the phone is ready when it is picked up.
  */
 export function TrackerGame({
   game,
@@ -122,6 +125,7 @@ export function TrackerGame({
   onTurn: (turn: number) => void;
   onClear: () => void;
 }>) {
+  useScreenAwake();
   const tracker = (sections?: readonly TrackerSection[]) => (
     <AuctionTracker
       factions={game.factions}
@@ -134,37 +138,75 @@ export function TrackerGame({
   return (
     <TrackerTouch>
       <div className={styles.game}>
-        <div className={styles.pinned}>
-          <header className={styles.bar}>
-            <div className={styles.turn}>
-              <IconAction
-                label="Turn before"
-                icon={<Minus size={17} />}
-                size="lg"
-                emphasis="quiet"
-                disabledReason={game.turn > 1 ? undefined : 'This is the first turn.'}
-                onClick={() => onTurn(game.turn - 1)}
-              />
-              <Text fw={700} className={styles.turnLabel} aria-live="polite">
-                {`Turn ${game.turn}`}
-              </Text>
-              <IconAction
-                label="Next turn"
-                icon={<Plus size={17} />}
-                size="lg"
-                emphasis="quiet"
-                onClick={() => onTurn(game.turn + 1)}
-              />
-            </div>
-            <Text size="sm" className={styles.ruleset} truncate>
-              {game.ruleset.name}
-            </Text>
-            <HoldAction label="Clear this game" verb="clear" icon={<RotateCcw size={17} />} onConfirm={onClear} />
-          </header>
+        <header className={styles.bar}>
+          <Text size="sm" className={styles.ruleset} truncate>
+            {game.ruleset.name}
+          </Text>
+          <HoldAction
+            label="Clear this game"
+            verb="clear"
+            size="2.75rem"
+            icon={<RotateCcw size={18} />}
+            onConfirm={onClear}
+          />
+        </header>
+        <div className={styles.scroll}>{tracker(['auctions', 'hands', 'deck'])}</div>
+        <div className={styles.dock}>
           {tracker(['bid'])}
+          <div className={styles.turn}>
+            <IconAction
+              label="Turn before"
+              icon={<Minus size={20} />}
+              size="xl"
+              emphasis="standard"
+              disabledReason={game.turn > 1 ? undefined : 'This is the first turn.'}
+              onClick={() => onTurn(game.turn - 1)}
+            />
+            <Text fw={700} size="lg" className={styles.turnLabel} aria-live="polite">
+              {`Turn ${game.turn}`}
+            </Text>
+            <IconAction
+              label="Next turn"
+              icon={<Plus size={20} />}
+              size="xl"
+              emphasis="standard"
+              onClick={() => onTurn(game.turn + 1)}
+            />
+          </div>
         </div>
-        {tracker(['auctions', 'hands', 'deck'])}
       </div>
     </TrackerTouch>
   );
+}
+
+/* Keeps the screen on while the game is open, and asks again when the page comes back into view, since the browser lets go of it whenever the page is hidden. */
+function useScreenAwake() {
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    let gone = false;
+    const ask = () => {
+      if (document.visibilityState !== 'visible' || !('wakeLock' in navigator)) {
+        return;
+      }
+      navigator.wakeLock.request('screen').then(
+        (sentinel) => {
+          if (gone) {
+            void sentinel.release();
+          } else {
+            lock = sentinel;
+          }
+        },
+        () => {
+          /* Low battery or a browser without it: the screen dims as usual. */
+        }
+      );
+    };
+    ask();
+    document.addEventListener('visibilitychange', ask);
+    return () => {
+      gone = true;
+      document.removeEventListener('visibilitychange', ask);
+      void lock?.release();
+    };
+  }, []);
 }

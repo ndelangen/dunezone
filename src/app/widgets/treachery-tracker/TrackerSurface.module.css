@@ -17,3 +17,9 @@
 .sheetBody {
   padding-bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom, 0px));
 }
+
+/* Held in one hand: a tap acts at once, without the browser's double-tap zoom or its grey flash. */
+.handHeld {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}

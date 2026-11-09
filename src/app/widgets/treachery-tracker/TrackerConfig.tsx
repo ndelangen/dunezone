@@ -10,6 +10,7 @@ import { Select, Switch, Text } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
+import { useId } from 'react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
@@ -50,6 +51,7 @@ export function TrackerConfigPanel({
   );
   const byId = new Map(factions.map((faction) => [faction.id, faction]));
   const touch = useTrackerTouch();
+  const switchIds = useId();
   return (
     <div className={styles.config}>
       <section>
@@ -60,7 +62,7 @@ export function TrackerConfigPanel({
           input={(fieldProps) => (
             <Select
               {...fieldProps}
-              size={touch ? 'md' : 'sm'}
+              size={touch ? 'lg' : 'sm'}
               data={rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
               value={config.ruleset}
               allowDeselect={false}
@@ -102,12 +104,16 @@ export function TrackerConfigPanel({
                         data-touch={touch ? 'true' : 'false'}
                       >
                         <SortableReorderHandle label={`Move ${faction.name}`} emphasis="silent" {...handle} />
-                        <FactionTokenFace token={faction} size={touch ? 36 : 28} />
-                        <Text size="sm" className={styles.name}>
-                          {faction.name}
-                        </Text>
+                        {/* The faction's token and name switch it too, so the whole row answers a thumb. */}
+                        <label className={styles.who} htmlFor={`${switchIds}-${id}`}>
+                          <FactionTokenFace token={faction} size={touch ? 36 : 28} />
+                          <Text size="sm" component="span" className={styles.name}>
+                            {faction.name}
+                          </Text>
+                        </label>
                         <Switch
-                          size={touch ? 'md' : 'sm'}
+                          id={`${switchIds}-${id}`}
+                          size={touch ? 'lg' : 'sm'}
                           checked={playing}
                           aria-label={`${faction.name} plays`}
                           onChange={(event) =>

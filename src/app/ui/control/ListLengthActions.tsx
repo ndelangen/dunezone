@@ -3,6 +3,7 @@ import { Minus, Plus } from 'lucide-react';
 import type { Ref } from 'react';
 
 import { IconAction } from './IconAction';
+import type { IconActionProps } from './IconAction';
 
 /**
  * The small plus this app grows collections with, in the confirm tone a creating action takes, on its own.
@@ -19,14 +20,16 @@ export function AddAction({
   disabled?: boolean;
   onClick?: () => void;
   ref?: Ref<HTMLButtonElement>;
+  /** Small in a list's foot by default; a phone held in one hand asks for a thumb's width. */
+  size?: IconActionProps['size'];
 }) {
   return (
     <IconAction
+      size="sm"
       {...iconActionProps}
       label={label}
       emphasis="standard"
       intent="positive"
-      size="sm"
       icon={<Plus size={15} aria-hidden />}
     />
   );

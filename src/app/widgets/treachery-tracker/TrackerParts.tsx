@@ -21,7 +21,7 @@ import {
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TrackerParts.module.css';
-import { TrackerPopover, useTrackerTouch } from './TrackerSurface';
+import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
 export type TrackerViewProps = Readonly<{
@@ -161,10 +161,11 @@ export function AddCard({
   onAction: (action: TrackerAction) => void;
 }>) {
   const [open, setOpen] = useState(false);
+  const size = useActionSize();
   return (
     <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
       <TrackerPopover.Target>
-        <AddAction label={`Add a card to ${faction.name}`} onClick={() => setOpen((was) => !was)} />
+        <AddAction label={`Add a card to ${faction.name}`} size={size} onClick={() => setOpen((was) => !was)} />
       </TrackerPopover.Target>
       <TrackerPopover.Dropdown className={styles.dropdown}>
         <CardChooser
@@ -344,11 +345,13 @@ export function MenuLine({
 }
 
 /** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. Each slice lists its cards on hover, or on a tap on a phone. */
-export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
+export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
   const total = copies.length || 1;
   const touch = useTrackerTouch();
+  /* Held in one hand, the bar is tall enough for a thumb to tap a slice. */
+  const barHeight = height ?? (touch ? 24 : 10);
   return (
-    <div className={styles.kindBar} style={{ height }} aria-label={kindSummary(copies)}>
+    <div className={styles.kindBar} style={{ height: barHeight }} aria-label={kindSummary(copies)}>
       {CARD_GROUPS.map((group) => {
         const count = copies.filter((copy) => groupOf(copy.def) === group).length;
         if (count === 0) {

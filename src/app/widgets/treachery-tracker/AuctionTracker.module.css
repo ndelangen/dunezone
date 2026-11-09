@@ -200,3 +200,10 @@
   color: var(--ink-dim, var(--ui-muted));
   font-style: italic;
 }
+
+/* Held in one hand, each card of the auction answers a thumb across its whole 44 px cell. */
+:global([data-tracker-touch]) .auctionCard::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}

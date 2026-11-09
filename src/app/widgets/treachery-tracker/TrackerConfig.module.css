@@ -25,7 +25,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: var(--unit, 8px);
   align-items: center;
   min-height: 36px;
@@ -33,12 +33,21 @@
 
 /* A thumb's height per row on a phone. */
 .row[data-touch="true"] {
-  grid-template-columns: 40px 36px minmax(0, 1fr) auto;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   min-height: 52px;
 }
 
 .row[data-playing="false"] > :not(:last-child) {
   opacity: 0.45;
+}
+
+.who {
+  display: flex;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-width: 0;
+  min-height: 100%;
+  cursor: pointer;
 }
 
 .name {
