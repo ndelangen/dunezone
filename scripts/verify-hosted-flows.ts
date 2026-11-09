@@ -46,8 +46,9 @@ export const browserFlows = {
     startsInPlay: true,
     shard: 'protocol',
   },
+  /* Passing runs on CI took 270 to 470 s in early November 2026 against a 480 s budget, so a slow runner timed out mid-flow. The budget only bounds a stuck run. */
   battles: {
-    timeoutMs: 480_000,
+    timeoutMs: 720_000,
     separateBrowserPeer: 'player-b',
     keepsFrames: true,
     needsCatalogue: true,

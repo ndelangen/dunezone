@@ -178,6 +178,8 @@ describe('scheduled production deployment shape', () => {
       '/faq/*',
       '/future-plans',
       '/future-plans/*',
+      '/tools',
+      '/tools/*',
       '/privacy',
       '/privacy/*',
       '/blog',

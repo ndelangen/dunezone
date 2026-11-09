@@ -1,5 +1,6 @@
 /* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
 import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { GITHUB_BACKLOG, GITHUB_IDEAS, GITHUB_REPOSITORY } from '@shared/repository';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
@@ -58,9 +59,6 @@ export const Route = createFileRoute('/_app/future-plans/')({
 });
 
 const COMPLETED_ANCHOR = 'completed';
-const GITHUB_REPOSITORY = 'https://github.com/ndelangen/dunezone';
-const GITHUB_IDEAS = `${GITHUB_REPOSITORY}/issues/new/choose`;
-const GITHUB_BACKLOG = `${GITHUB_REPOSITORY}/issues`;
 
 /** Where a shipped capability lives: a public, indexable page. */
 type BuiltAt = '/rulesets' | '/faq';
@@ -80,6 +78,8 @@ type FuturePlan = {
   statement: string;
   icon: ReactNode;
   capabilities: Capability[];
+  /** A page on the site where the territory can already be explored. */
+  explore?: { label: string; to: '/tools' };
 };
 
 const FUTURE_PLANS: FuturePlan[] = [
@@ -191,6 +191,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     id: 'tools',
     title: 'Give every faction its perfect table tool',
     shortTitle: 'Build better tools',
+    explore: { label: 'See every planned tool', to: '/tools' },
     statement: 'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
     icon: <Wrench />,
     capabilities: [
@@ -332,6 +333,11 @@ function FuturePlansPage() {
                       <Text className={styles.statement} c="dimmed" mt="sm">
                         {plan.statement}
                       </Text>
+                      {plan.explore ? (
+                        <Anchor component={Link} to={plan.explore.to} fw={700} mt="md" display="inline-block">
+                          {plan.explore.label} <ArrowRight size={15} aria-hidden />
+                        </Anchor>
+                      ) : null}
                     </Grid.Col>
                   </Grid>
                   <Box ml={{ base: 0, sm: '16.6667%' }}>
