@@ -41,7 +41,7 @@ describe('tools catalogue head', () => {
   test('lists the built tools for search, under a breadcrumb back home', () => {
     /* One planned tool, whichever the registry holds now, so the list stays to the one built tool. */
     const [built] = TOOLS;
-    const planned = { ...TOOLS[1]!, built: false };
+    const { built: _wasBuilt, ...planned } = TOOLS[1]!;
     const graph = graphOf(toolsIndexHead([{ ...built, built: true }, planned]));
     expect(graph[0]).toMatchObject({
       '@type': 'BreadcrumbList',
