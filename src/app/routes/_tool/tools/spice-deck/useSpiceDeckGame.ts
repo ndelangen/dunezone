@@ -100,6 +100,9 @@ function stepBack(current: Saved | undefined): Saved | undefined {
 
 const nextStep = (current: Saved, kind: StepKind): LastStep => ({ id: (current.last?.id ?? 0) + 1, kind });
 
+/** Where this browser keeps the spice deck tool's game. */
+export const SPICE_DECK_STORAGE_KEY = 'dunezone.tools.spice-deck';
+
 export type SpiceDeckSession = Readonly<{
   game: SpiceDeckGame | undefined;
   /** What the last step did, so the page knows what to animate; undefined for the game as it loaded. */

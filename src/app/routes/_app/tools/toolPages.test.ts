@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { TOOL_PAGES } from '@shared/recordlessPublicPages';
 import { expect, test } from 'vite-plus/test';
 
-import { toolPath, TOOLS } from './tools';
+import { FORMER_TOOL_SLUGS, toolAt, toolPath, TOOLS } from './tools';
 
 /*
  * The sitemap lists only TOOL_PAGES below /tools, so a built tool missing from it would never be submitted,
@@ -24,4 +24,11 @@ test('every built tool has its own route at its placeholder address', () => {
 
 test('every tool has a unique slug', () => {
   expect(new Set(TOOLS.map((tool) => tool.slug)).size).toBe(TOOLS.length);
+});
+
+test('a former slug names a tool that exists, and no tool still has it', () => {
+  for (const [former, current] of Object.entries(FORMER_TOOL_SLUGS)) {
+    expect(toolAt(current), former).toBeDefined();
+    expect(toolAt(former), former).toBeUndefined();
+  }
 });

@@ -20,6 +20,7 @@ import {
   Check,
   CircleUserRound,
   Link2,
+  LogIn,
   LogOut,
   Palette,
   RefreshCw,
@@ -834,52 +835,60 @@ function appliedWords(applied: LinkedAccountApplied): string {
   return `Your profile already matches ${from}.`;
 }
 
-/** What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it. */
+/**
+ * What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it.
+ * A method that has never reported, because its last sign-in came before reports were kept, offers a sign-in with it instead: that sign-in is what makes it report.
+ */
 function LinkedAccountOffer({
   option,
   busy,
   disabled,
   onTake,
+  onSignIn,
 }: {
   option: LinkedAccountOption;
   busy: boolean;
   disabled: boolean;
   onTake: () => void;
+  onSignIn: () => void;
 }) {
   const from = authProviderNames[option.provider];
   const takes = [option.displayName ? `name ${option.displayName}` : null, option.image ? 'picture' : null].filter(
     (part) => part !== null
   );
+  const unasked = option.syncedAt === null && takes.length === 0;
   const refused = option.name && !option.displayName ? ` “${option.name}” does not fit a display name.` : '';
   return (
     <Group justify="space-between" align="center">
       <Group gap="sm" wrap="nowrap" align="center">
         <NameDisc name={option.name ?? from} src={option.image} size={44} />
         <Stack gap="xs">
-          <Text fw={650}>{option.name ?? 'No name reported'}</Text>
+          <Text fw={650}>{option.name ?? (unasked ? 'Not asked yet' : 'No name reported')}</Text>
           <Text size="sm" c="dimmed">
             {takes.length > 0
               ? `Takes the ${takes.join(' and ')}.`
-              : `Nothing reported yet. Sign in with ${from} once, so it can report a name or picture.`}
+              : unasked
+                ? `Sign in with ${from} once and it reports its name and picture; you come straight back here.`
+                : `${from} reported nothing the profile could take.`}
             {refused}
           </Text>
         </Stack>
       </Group>
       <LabeledAction
-        accessibleName={`Take ${from} name and picture`}
-        icon={<Check size={17} aria-hidden />}
-        intent="positive"
+        accessibleName={unasked ? `Sign in with ${from} to get its name and picture` : `Take ${from} name and picture`}
+        icon={unasked ? <LogIn size={17} aria-hidden /> : <Check size={17} aria-hidden />}
+        intent={unasked ? 'neutral' : 'positive'}
         busy={busy}
         disabledReason={
-          disabled
-            ? takes.length === 0
-              ? `${from} has not reported a name or picture yet.`
+          !disabled
+            ? undefined
+            : !unasked && takes.length === 0
+              ? `${from} reported nothing the profile could take.`
               : 'Another change is still running.'
-            : undefined
         }
-        onClick={onTake}
+        onClick={unasked ? onSignIn : onTake}
       >
-        Take
+        {unasked ? 'Sign in' : 'Take'}
       </LabeledAction>
     </Group>
   );
@@ -908,38 +917,36 @@ function SignInMethods({
   const { signOut } = useAuthActions();
   const signIn = useProviderSignIn();
   const [state, dispatch] = useReducer(reduceSignInMethods, { busy: null, error: null });
-  const connect = async (provider: AuthProvider) => {
-    dispatch({ kind: 'started', provider });
+  /* Each action marks its row busy, keeps a refusal's words or falls back to its own, and settles. */
+  const attempt = async (busy: SignInMethodsAction, fallback: string, work: () => Promise<unknown>) => {
+    dispatch({ kind: 'started', provider: busy });
     try {
+      await work();
+    } catch (error) {
+      dispatch({ kind: 'failed', error, fallback });
+    }
+    dispatch({ kind: 'settled' });
+  };
+  const connect = (provider: AuthProvider) =>
+    attempt(provider, 'The sign-in could not start.', async () => {
       const intent = await begin({ provider });
       holdAuthConnection(intent.token);
       await signIn(provider, { redirectTo: `/profiles/${encodeURIComponent(intent.slug)}/connect` });
-    } catch (error) {
-      dispatch({ kind: 'failed', error, fallback: 'The sign-in could not start.' });
-    }
-    dispatch({ kind: 'settled' });
-  };
-  const remove = async (provider: AuthProvider) => {
-    dispatch({ kind: 'started', provider });
-    try {
+    });
+  /* A sign-in with a method that is already connected only makes it report its name and picture, and lands back on this tab. */
+  const refresh = (provider: AuthProvider) =>
+    attempt(provider, 'The sign-in could not start.', () => signIn(provider, { redirectTo: returnTo }));
+  const remove = (provider: AuthProvider) =>
+    attempt(provider, 'The sign-in method could not be disconnected.', async () => {
       await disconnect({ provider });
       await signOut();
-    } catch (error) {
-      dispatch({ kind: 'failed', error, fallback: 'The sign-in method could not be disconnected.' });
-    }
-    dispatch({ kind: 'settled' });
-  };
+    });
   /* The server ends every session first, this one included; clearing this browser's tokens then only makes the page agree. */
-  const signOutEverywhere = async () => {
-    dispatch({ kind: 'started', provider: 'everywhere' });
-    try {
+  const signOutEverywhere = () =>
+    attempt('everywhere', 'The sign-out could not finish.', async () => {
       await revokeSessions({});
       await signOut();
-    } catch (error) {
-      dispatch({ kind: 'failed', error, fallback: 'The sign-out could not finish.' });
-    }
-    dispatch({ kind: 'settled' });
-  };
+    });
   return (
     <Stack gap="md">
       <Text size="sm">Connect a sign-in method to use it for this profile. Keep at least one connected.</Text>
@@ -973,11 +980,16 @@ function SignInMethods({
         ) : option ? (
           <LinkedAccountOffer
             option={option}
-            busy={resync.busy === 'apply'}
+            busy={resync.busy === 'apply' || state.busy === method.provider}
             disabled={
-              !!resync.busy || saving || !!state.busy || account.merging || (!option.displayName && !option.image)
+              !!resync.busy ||
+              saving ||
+              !!state.busy ||
+              account.merging ||
+              (option.syncedAt !== null && !option.displayName && !option.image)
             }
             onTake={() => onTake(method.provider)}
+            onSignIn={() => void refresh(method.provider)}
           />
         ) : null;
         const canDisconnect = account.methods.some(
