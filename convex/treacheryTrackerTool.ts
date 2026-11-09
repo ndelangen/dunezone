@@ -23,8 +23,12 @@ const RULESET_LIMIT = 500;
 const READ_BUDGET = 24_000;
 /* At most this much of the budget goes to finding decks, so some is always left to count them. */
 const FIND_BUDGET = 10_000;
-/* The most a deck's Rulesets and back read besides its cards. */
-const READS_PER_DECK = 60;
+/* A deck's slots read at most; more Rulesets than any deck is played by. */
+const SLOTS_PER_DECK = 50;
+/* The most a deck's back reads and calls. */
+const BACK_READS = 3;
+/* The most a deck's Rulesets and back read besides its cards: every slot row, every Ruleset, and the back. */
+const READS_PER_DECK = 2 * SLOTS_PER_DECK + BACK_READS;
 /*
  * The database calls one answer may make, well inside the 4,096 a query may make.
  * Each index range and each document fetched counts as one.
@@ -32,8 +36,8 @@ const READS_PER_DECK = 60;
 const CALL_BUDGET = 3000;
 /* At most this many of the calls go to finding decks. */
 const FIND_CALLS = 1500;
-/* The most calls a deck's Rulesets and back make besides its cards. */
-const CALLS_PER_DECK = 10;
+/* The most calls a deck's Rulesets and back make besides its cards: the slot range, every Ruleset, and the back. */
+const CALLS_PER_DECK = 1 + SLOTS_PER_DECK + BACK_READS;
 /* A Ruleset for trying things out, never named to a table. */
 const HIDDEN_RULESETS = new Set(['test']);
 
@@ -171,14 +175,16 @@ async function copiesIn(
   return total;
 }
 
-async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>) {
+/* The live Rulesets that slot the deck as their Treachery deck, charging what it reads. */
+async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>, budget: Budget) {
   const slots = await ctx.db
     .query('ruleset_asset_slots')
     .withIndex('by_asset', (q) => q.eq('asset_id', deck._id))
-    .take(50);
-  const rulesets = await Promise.all(
-    slots.filter((slot) => slot.slot === 'treachery').map((slot) => ctx.db.get('rulesets', slot.ruleset_id))
-  );
+    .take(SLOTS_PER_DECK);
+  const treachery = slots.filter((slot) => slot.slot === 'treachery');
+  budget.left -= slots.length + treachery.length;
+  budget.calls -= 1 + treachery.length;
+  const rulesets = await Promise.all(treachery.map((slot) => ctx.db.get('rulesets', slot.ruleset_id)));
   return rulesets.flatMap((ruleset) =>
     ruleset && !ruleset.is_deleted && !HIDDEN_RULESETS.has(ruleset.slug)
       ? [{ slug: ruleset.slug, name: ruleset.name }]
@@ -205,8 +211,6 @@ async function choiceFor(ctx: QueryCtx, id: Id<'assets'>, { known, budget, prese
   if (!isLiveDeck(row)) {
     return null;
   }
-  budget.left -= READS_PER_DECK;
-  budget.calls -= CALLS_PER_DECK;
   const cards = await copiesIn(ctx, row, known, budget);
   if (cards === undefined) {
     return 'out of reads' as const;
@@ -215,7 +219,10 @@ async function choiceFor(ctx: QueryCtx, id: Id<'assets'>, { known, budget, prese
   if (cards === 0) {
     return null;
   }
-  const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
+  /* The Rulesets and back are charged what they read, and the check above kept room for the most they can. */
+  budget.left -= BACK_READS;
+  budget.calls -= BACK_READS;
+  const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row, budget)]);
   return { id: row._id, slug: row.slug, name: assetDisplayName(row), cards, back: back?.href ?? null, rulesets };
 }
 
