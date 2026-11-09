@@ -170,7 +170,8 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
     reveals.push(devours ? { card: copy, kind: 'worm', devours } : { card: copy, kind: 'worm' });
   }
   const blow: Blow = { turn: game.turn, pile: pileIndex, reveals };
-  const blows = open ? game.blows.map((entry) => (entry === open ? blow : entry)) : [...game.blows, blow];
+  /* The blow just added to goes last, so the newest card is always the last blow's last card, whichever pile it went to. */
+  const blows = [...game.blows.filter((entry) => entry !== open), blow];
   return { ...game, draw, discards, blows, pile: pileIndex };
 }
 

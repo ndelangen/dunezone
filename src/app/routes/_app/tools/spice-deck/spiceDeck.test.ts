@@ -107,6 +107,21 @@ describe('Spice Blow', () => {
     expect(game.blows.at(-1)!.reveals).toHaveLength(2);
   });
 
+  test('a card onto a pile whose blow is still open is the newest, after a card on another pile', () => {
+    let game = nextTurn(
+      blowAll(stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'red-chasm#1', 'shai-hulud#2']), keepOrder),
+      keepOrder
+    );
+    game = revealOne(game, keepOrder, 0);
+    game = revealOne(game, keepOrder, 1);
+    game = revealOne(game, keepOrder, 0);
+    expect(game.blows.at(-1)).toMatchObject({
+      pile: 0,
+      reveals: [{ kind: 'worm' }, { card: 'shai-hulud#2', kind: 'worm' }],
+    });
+    expect(lastPlayed(game)?.card).toBe('shai-hulud#2');
+  });
+
   test('a single pile blows once a turn', () => {
     const game = blowAll(stacked(['old-gap#1', 'broken-land#1'], 1), keepOrder);
     expect(game.discards).toEqual([['old-gap#1']]);
