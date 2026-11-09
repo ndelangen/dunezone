@@ -15,6 +15,8 @@ export const HOMEPAGE_LEASE_MS = 5 * 60_000;
 export const HOMEPAGE_RENEW_MS = 2 * 60_000;
 export const HOMEPAGE_TICKET_TTL_MS = 30_000;
 export const HOMEPAGE_CONNECTION_LIMIT = 128;
+/* One address may hold this many of the table's sockets, so a single visitor cannot fill it and lock everyone else out. */
+export const HOMEPAGE_CLIENT_CONNECTION_LIMIT = 16;
 export const HOMEPAGE_EDITOR_LIMIT = 24;
 export const HOMEPAGE_FRAME_LIMIT = 2048;
 export const homepageTicketSchema = z.string().regex(/^[a-f0-9]{64}$/);
