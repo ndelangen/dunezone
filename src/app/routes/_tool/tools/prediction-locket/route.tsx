@@ -403,11 +403,18 @@ function PickCity({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (ti
           ) : null}
         </TrackerPopover.Dropdown>
       </TrackerPopover>
+      <p id="locket-city-why" className={styles.why}>
+        {CITY_WHY}
+      </p>
     </section>
   );
 }
 
 const CITY_RESULTS = 40;
+
+/* Why the city matters, and that it goes nowhere (Norbert, 2026-11-09). */
+const CITY_WHY =
+  'Pick any city in your own time zone. The lock time is shown in that city’s time, so it has to be right for the table to trust it. Your city never leaves this phone, and nothing is logged.';
 
 function CitySearch({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (timeZone: string) => void }>) {
   const [query, setQuery] = useState('');
@@ -418,6 +425,7 @@ function CitySearch({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (
     : cities;
   return (
     <div className={styles.citySearch}>
+      <p className={styles.why}>{CITY_WHY}</p>
       <TextInput
         type="search"
         aria-label="Search cities"

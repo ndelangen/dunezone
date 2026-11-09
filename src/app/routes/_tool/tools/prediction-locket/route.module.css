@@ -320,3 +320,10 @@
   margin: 0;
   color: var(--ui-muted);
 }
+
+.why {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
