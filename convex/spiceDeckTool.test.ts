@@ -40,9 +40,11 @@ async function seed(ctx: MutationCtx) {
   await slot(await ruleset('Retired', true), await deck('Retired Spice Deck'));
   await slot(await ruleset('Gone deck'), await deck('Gone Spice Deck', true));
   await ruleset('No spice');
+  /* The Ruleset for trying things out, which no tool offers at a table. */
+  await slot(await ruleset('Test'), await deck('Test Spice Deck'));
 }
 
-test('offers the spice deck of every live ruleset that slots one, by ruleset name', async () => {
+test('offers the spice deck of every live ruleset that slots one, by ruleset name, never the test ruleset', async () => {
   const t = applicationTest();
   await t.run(seed);
   const decks = await t.query(api.spiceDeckTool.decks, {});
