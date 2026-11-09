@@ -17,7 +17,7 @@ const CATALOGUE = { name: 'Tools for the Dune board game', pathname: '/tools' } 
 const KIND = 'Tools';
 
 /** What the catalogue says in a search result and when shared. */
-export const TOOLS_DESCRIPTION =
+const TOOLS_DESCRIPTION =
   'Free phone-friendly helpers for playing the Dune board game at the table: a Treachery card tracker, spice deck, faction draft, battle calculator and more.';
 
 /** The /tools head: a collection page that lists the built tools, and a social card. */
@@ -45,6 +45,8 @@ type ToolHeadOptions = {
 /**
  * A built tool's head, named by its registry title so the catalogue's list and the page agree.
  * The share picture is the tool's tile picture (`art` in the registry), and a tool without one shares a social card instead.
+ * Public for the built tools' routes, which ship from their own branches.
+ * @public
  */
 export function toolPageHead(slug: ToolSlug, options: ToolHeadOptions) {
   return toolHead(
