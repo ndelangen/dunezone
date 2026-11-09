@@ -38,8 +38,8 @@ const appliedValidator = v.object({
 });
 
 const resyncResultValidator = v.union(
-  /* One connected method with something to offer: the profile took it. */
-  v.object({ kind: v.literal('applied'), applied: appliedValidator }),
+  /* One connected method with something to offer: the profile took it. The others are listed too, so the page can say they offered nothing. */
+  v.object({ kind: v.literal('applied'), applied: appliedValidator, options: v.array(optionValidator) }),
   /* Several methods with something to offer: the reader picks one. */
   v.object({ kind: v.literal('choose'), options: v.array(optionValidator) }),
   /* No connected method has reported a name or picture yet. */
@@ -135,7 +135,7 @@ export const resync = action({
       const applied: Applied = await ctx.runMutation(internal.accountResync.applyInternal, {
         provider: offering[0]!.provider,
       });
-      return { kind: 'applied', applied };
+      return { kind: 'applied', applied, options };
     }
     return { kind: 'choose', options };
   },

@@ -134,7 +134,7 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 
 Each sign-in also records what the provider reported, by provider, in `linked_account_profiles`
 (`convex/lib/linkedAccountProfiles.ts`): the OAuth callback keeps Google's and Discord's name and picture,
-and the Steam sign-in keeps the player summary. The Sign-in methods tab's **Resync** action
+and the Steam sign-in keeps the player summary. The settings page's toolbar **Resync** action
 (`convex/accountResync.ts`) pulls from those records: Steam is asked live through the Web API, since
 its public profile needs no token from the reader, while Google and Discord offer what they sent at the
 last sign-in with them, because no OAuth token is kept. One method with something to offer is applied
