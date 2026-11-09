@@ -1,7 +1,7 @@
 import { testingPreview } from '@sb/preview';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { StoryWheel, storyFaction } from './battleWheel.stories.fixture';
+import { StoryWheel } from './battleWheel.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Tools/Battle wheel',
@@ -24,19 +24,15 @@ export const DropsSpiceTheTroopsNoLongerUse = meta.story({
   render: () => (
     <StoryWheel
       name="testing-spice"
-      initial={{
-        rulesetId: 'gf9',
-        faction: storyFaction('emperor'),
-        plan: { leaderId: null, leaderX: 0, troops: { 'emperor-1': 3 }, spice: 3 },
-      }}
+      setup={{ rulesetId: 'gf9', faction: 'emperor', leader: false, troops: [0, 3], spice: 3 }}
     />
   ),
   play: async ({ canvas }) => {
-    const fewer = canvas.getByRole('button', { name: 'Fewer: Sardaukar' });
+    const fewer = canvas.getByRole('button', { name: 'Fewer: Saudarkar' });
     await userEvent.click(fewer);
     await userEvent.click(fewer);
-    await userEvent.click(canvas.getByRole('button', { name: 'More: Sardaukar' }));
-    await userEvent.click(canvas.getByRole('button', { name: 'More: Sardaukar' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'More: Saudarkar' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'More: Saudarkar' }));
     await expect(canvas.getByText('Pays 1 spice')).toBeVisible();
   },
 });

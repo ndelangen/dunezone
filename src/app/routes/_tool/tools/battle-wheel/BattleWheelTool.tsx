@@ -80,73 +80,29 @@ export function BattleWheelTool({
   rulesets,
   defaultRulesetId,
   factions: starting,
-  search: Search,
+  search,
   loadFaction,
 }: ToolProps) {
   const { state, setPlan, chooseRuleset, chooseFaction, clear } = useBattleWheel(storageKey, initial);
   const [setup, setSetup] = useState(false);
-  const [loading, setLoading] = useState<string | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
+  const reading = useFactionReading(loadFaction, (loaded) => {
+    chooseFaction(loaded);
+    setSetup(false);
+  });
   if (!rulesets || rulesets.length === 0) {
-    return (
-      <div className={styles.tool}>
-        <main className={styles.body}>
-          {rulesets ? (
-            <p className={styles.failed}>There is no Ruleset to count with yet.</p>
-          ) : (
-            <Pending>Loading the Rulesets…</Pending>
-          )}
-        </main>
-      </div>
-    );
+    return <NoRulesets loading={!rulesets} />;
   }
   const ruleset =
     rulesets.find((candidate) => candidate.id === state.rulesetId) ??
     rulesets.find((candidate) => candidate.id === defaultRulesetId) ??
     rulesets[0]!;
   const faction = state.faction;
-  const choices = [
-    ...(starting ?? []),
-    ...(state.recent ?? []).filter((recent) => !starting?.some((known) => known.id === recent.id)),
-  ];
-  /* One faction is read at a time; picking the faction already chosen reads it again, so an edit on Dune Zone reaches the wheel, and keeps the plan. */
-  const pick = (choice: Readonly<{ id: string; name: string }>) => {
-    if (loading !== null) {
-      return;
-    }
-    setLoading(choice.name);
-    setFailed(null);
-    void loadFaction(choice)
-      .then((loaded) => {
-        chooseFaction(loaded);
-        setSetup(false);
-      })
-      .catch(() => setFailed(choice.name))
-      .finally(() => setLoading(null));
-  };
   const opened = setup || !faction;
   return (
     <TrackerTouch>
       <div className={styles.tool}>
         <header className={styles.header}>
-          <button
-            type="button"
-            className={styles.who}
-            aria-label={faction ? `${faction.name} on ${ruleset.name}: change` : 'Pick your faction'}
-            onClick={() => setSetup(true)}
-          >
-            {faction ? (
-              <span className={styles.emblem}>
-                <FactionToken faction={faction} />
-              </span>
-            ) : null}
-            <span className={styles.whoWords}>
-              <span className={styles.factionName}>{faction?.name ?? 'Battle wheel'}</span>
-              <span className={styles.rulesetName}>
-                {ruleset.name} · {BATTLE_DIALING_OPTIONS[ruleset.dialing].label} dialing
-              </span>
-            </span>
-          </button>
+          <WhoButton faction={faction} ruleset={ruleset} onClick={() => setSetup(true)} />
           {faction ? (
             <IconAction label="Clear the wheel" emphasis="quiet" icon={<RotateCcw size={20} />} onClick={clear} />
           ) : null}
@@ -160,49 +116,16 @@ export function BattleWheelTool({
               />
             </TrackerPopover.Target>
             <TrackerPopover.Dropdown>
-              <div className={styles.setup}>
-                <p className={styles.setupTitle}>Ruleset and faction</p>
-                <p className={styles.setupLabel}>Your table’s Ruleset</p>
-                <div className={styles.rulesets}>
-                  {rulesets.map((candidate) => (
-                    <button
-                      key={candidate.id}
-                      type="button"
-                      className={styles.choice}
-                      aria-pressed={candidate.id === ruleset.id}
-                      onClick={() => chooseRuleset(candidate.id)}
-                    >
-                      <strong>{candidate.name}</strong>
-                      <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className={styles.setupLabel}>Your faction</p>
-                {starting ? null : <Pending>Loading the factions…</Pending>}
-                <div className={styles.factions}>
-                  {choices.map((candidate) => (
-                    <button
-                      key={candidate.id}
-                      type="button"
-                      className={styles.factionChoice}
-                      aria-pressed={candidate.id === faction?.id}
-                      disabled={loading !== null}
-                      onClick={() => pick(candidate)}
-                    >
-                      <span className={styles.factionToken}>
-                        <FactionToken faction={candidate} />
-                      </span>
-                      <span>{candidate.name}</span>
-                    </button>
-                  ))}
-                </div>
-                {loading ? <Pending>{`Reading ${loading}’s leaders and troops…`}</Pending> : null}
-                {failed ? (
-                  <p className={styles.failed}>{`${failed} could not be read. Try again, or pick another faction.`}</p>
-                ) : null}
-                <p className={styles.setupLabel}>Any faction on Dune Zone</p>
-                {opened ? <Search seated={faction ? [faction.id] : []} onPick={pick} /> : null}
-              </div>
+              <SetupSheet
+                rulesets={rulesets}
+                ruleset={ruleset}
+                onRuleset={chooseRuleset}
+                faction={faction}
+                choices={choicesOf(starting, state.recent)}
+                startingLoaded={starting !== undefined}
+                reading={reading}
+                search={opened ? search : null}
+              />
             </TrackerPopover.Dropdown>
           </TrackerPopover>
         </header>
@@ -225,6 +148,155 @@ export function BattleWheelTool({
         )}
       </div>
     </TrackerTouch>
+  );
+}
+
+/* While the Rulesets load, or when there are none to count with. */
+function NoRulesets({ loading }: Readonly<{ loading: boolean }>) {
+  return (
+    <div className={styles.tool}>
+      <main className={styles.body}>
+        {loading ? (
+          <Pending>Loading the Rulesets…</Pending>
+        ) : (
+          <p className={styles.failed}>There is no Ruleset to count with yet.</p>
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* The starting factions, then the ones picked lately that are not among them. */
+function choicesOf(starting: readonly FactionChoice[] | undefined, recent: readonly FactionChoice[] | undefined) {
+  const known = new Set(starting?.map((choice) => choice.id));
+  return [...(starting ?? []), ...(recent ?? []).filter((choice) => !known.has(choice.id))];
+}
+
+type FactionReading = Readonly<{
+  /** The faction being read, by name. */
+  loading: string | null;
+  /** The faction that could not be read last, by name. */
+  failed: string | null;
+  pick: (choice: Readonly<{ id: string; name: string }>) => void;
+}>;
+
+/*
+ * Reads a picked faction's leaders and troops, one faction at a time.
+ * Picking the faction already chosen reads it again, so an edit on Dune Zone reaches the wheel.
+ */
+function useFactionReading(
+  loadFaction: ToolProps['loadFaction'],
+  onRead: (faction: WheelFaction) => void
+): FactionReading {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const pick = (choice: Readonly<{ id: string; name: string }>) => {
+    if (loading !== null) {
+      return;
+    }
+    setLoading(choice.name);
+    setFailed(null);
+    void loadFaction(choice)
+      .then(onRead)
+      .catch(() => setFailed(choice.name))
+      .finally(() => setLoading(null));
+  };
+  return { loading, failed, pick };
+}
+
+/* The header's faction and Ruleset, which opens the setup sheet. */
+function WhoButton({
+  faction,
+  ruleset,
+  onClick,
+}: Readonly<{ faction: WheelFaction | null; ruleset: WheelRuleset; onClick: () => void }>) {
+  return (
+    <button
+      type="button"
+      className={styles.who}
+      aria-label={faction ? `${faction.name} on ${ruleset.name}: change` : 'Pick your faction'}
+      onClick={onClick}
+    >
+      {faction ? (
+        <span className={styles.emblem}>
+          <FactionToken faction={faction} />
+        </span>
+      ) : null}
+      <span className={styles.whoWords}>
+        <span className={styles.factionName}>{faction?.name ?? 'Battle wheel'}</span>
+        <span className={styles.rulesetName}>
+          {ruleset.name} · {BATTLE_DIALING_OPTIONS[ruleset.dialing].label} dialing
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/* The setup sheet: the table's Ruleset, the faction from the starting ones, and a search over every other. */
+function SetupSheet({
+  rulesets,
+  ruleset,
+  onRuleset,
+  faction,
+  choices,
+  startingLoaded,
+  reading,
+  search: Search,
+}: Readonly<{
+  rulesets: readonly WheelRuleset[];
+  ruleset: WheelRuleset;
+  onRuleset: (id: string) => void;
+  faction: WheelFaction | null;
+  choices: readonly FactionChoice[];
+  startingLoaded: boolean;
+  reading: FactionReading;
+  /** Mounted only while the sheet is open, so it reads nothing when closed. */
+  search: FactionSearch | null;
+}>) {
+  return (
+    <div className={styles.setup}>
+      <p className={styles.setupTitle}>Ruleset and faction</p>
+      <p className={styles.setupLabel}>Your table’s Ruleset</p>
+      <div className={styles.rulesets}>
+        {rulesets.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            className={styles.choice}
+            aria-pressed={candidate.id === ruleset.id}
+            onClick={() => onRuleset(candidate.id)}
+          >
+            <strong>{candidate.name}</strong>
+            <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
+          </button>
+        ))}
+      </div>
+      <p className={styles.setupLabel}>Your faction</p>
+      {startingLoaded ? null : <Pending>Loading the factions…</Pending>}
+      <div className={styles.factions}>
+        {choices.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            className={styles.factionChoice}
+            aria-pressed={candidate.id === faction?.id}
+            disabled={reading.loading !== null}
+            onClick={() => reading.pick(candidate)}
+          >
+            <span className={styles.factionToken}>
+              <FactionToken faction={candidate} />
+            </span>
+            <span>{candidate.name}</span>
+          </button>
+        ))}
+      </div>
+      {reading.loading ? <Pending>{`Reading ${reading.loading}’s leaders and troops…`}</Pending> : null}
+      {reading.failed ? (
+        <p className={styles.failed}>{`${reading.failed} could not be read. Try again, or pick another faction.`}</p>
+      ) : null}
+      <p className={styles.setupLabel}>Any faction on Dune Zone</p>
+      {Search ? <Search seated={faction ? [faction.id] : []} onPick={reading.pick} /> : null}
+    </div>
   );
 }
 
