@@ -32,6 +32,9 @@ type Recognition = {
   onerror: ((event: { error: string }) => void) | null;
 };
 
+/* Errors that another try would only repeat: no permission, no microphone to hear with, or no service to hear for it. */
+const FINAL_ERRORS = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'network']);
+
 type RecognitionClass = new () => Recognition;
 
 const recognitionClass = (): RecognitionClass | undefined => {
@@ -80,10 +83,12 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
       if (!active) {
         return;
       }
+      /* One step per hearing: a second command in the same event would act on the game before the first has landed. */
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const command = commandIn(event.results[i]?.[0]?.transcript ?? '');
         if (command) {
           handler.current(command);
+          return;
         }
       }
     };
@@ -93,7 +98,8 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
       }
     };
     recognition.onerror = (event) => {
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      /* Stop for good until the player switches listening on again. */
+      if (FINAL_ERRORS.has(event.error)) {
         active = false;
         setRefused(true);
       }

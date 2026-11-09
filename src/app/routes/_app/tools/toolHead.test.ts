@@ -128,6 +128,7 @@ describe('tools registry', () => {
     for (const tool of TOOLS.filter((entry) => entry.largeArt)) {
       expect(tool.art, tool.slug).toBeDefined();
       expect(tool.largeArt).toMatch(/^\/tools\/[\w-]+-large\.webp$/);
+      expect(tool.largeArt, tool.slug).toBe(tool.art?.replace(/\.webp$/, '-large.webp'));
       expect(webpSize(readFileSync(join(publicFolder, tool.largeArt!))), tool.slug).toEqual({
         width: TOOL_LARGE_ART.width,
         height: TOOL_LARGE_ART.height,

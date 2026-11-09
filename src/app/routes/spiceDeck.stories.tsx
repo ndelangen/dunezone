@@ -39,7 +39,7 @@ export const NewTurn = meta.story({
   },
 });
 
-/** One spice pile, the default, on the first turn. */
+/** One spice pile, the default, on the first turn: a tap turns the top card over and it lands on the pile. */
 export const OnePile = meta.story({
   beforeEach: () => seedStoredGame(storyGame(0, { piles: 1 })),
   play: async ({ canvasElement }) => {
@@ -47,7 +47,16 @@ export const OnePile = meta.story({
     await userEvent.click(
       await page.findByRole('button', { name: 'Turn over a card onto spice pile' }, { timeout: 30_000 })
     );
-    await expect(page.getByText(/left · \d+% Shai-Hulud/)).toBeVisible();
+    /* The pile counts the card only once it has landed (0 while it flies), and the flying card leaves the table. */
+    await waitForFrame(
+      async () => {
+        await expect(page.getByText('Spice pile · 1')).toBeVisible();
+        await expect(canvasElement.ownerDocument.querySelector('[data-turn]')).toBeNull();
+      },
+      { timeout: 15_000 }
+    );
+    const pile = page.getByRole('button', { name: 'Turn over a card onto spice pile' });
+    await expect(within(pile).getByRole('img')).toBeVisible();
   },
 });
 
@@ -57,7 +66,8 @@ export const Peek = meta.story({
   play: async ({ canvasElement }) => {
     const page = pageOf(canvasElement);
     await fireEvent.pointerDown(
-      await page.findByRole('button', { name: 'Hold to peek at the next card' }, { timeout: 30_000 })
+      await page.findByRole('button', { name: 'Hold to peek at the next card' }, { timeout: 30_000 }),
+      { isPrimary: true, button: 0 }
     );
     /* The peek opens after a two-second hold, a real timer; the bound covers that and a runner starved of frames for several seconds. */
     await waitForFrame(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {
@@ -69,22 +79,6 @@ export const Peek = meta.story({
     await expect(dialog).toContainElement(canvasElement.ownerDocument.activeElement as HTMLElement);
     await userEvent.click(page.getByRole('button', { name: 'Hide and put the phone back' }));
     await expect(page.queryByRole('dialog', { name: 'The next spice cards' })).not.toBeInTheDocument();
-  },
-});
-
-/**
- * Settings > Pick another deck opens the deck picker with the game kept: the ruleset whose deck the table plays with, how many spice piles, and how many cards a peek shows.
- * Backing out returns to the game.
- */
-export const PickAnotherDeck = meta.story({
-  beforeEach: () => seedStoredGame(storyGame(3)),
-  play: async ({ canvasElement }) => {
-    const page = pageOf(canvasElement);
-    await userEvent.click(await page.findByRole('button', { name: 'Game settings' }, { timeout: 30_000 }));
-    await userEvent.click(await page.findByRole('menuitem', { name: 'Pick another deck' }));
-    await expect(await page.findByText('Pick the deck your table plays with')).toBeVisible();
-    await userEvent.click(page.getByRole('button', { name: 'Back to the game' }));
-    await expect(await page.findByText('Spice pile A · 4')).toBeVisible();
   },
 });
 

@@ -4,11 +4,11 @@ import {
   blowAll,
   blowPile,
   blowSentence,
+  isPlayable,
   lastPlayed,
   nextPile,
   spiceBlowOver,
   newGame,
-  nexus,
   nextTurn,
   remaining,
   revealOne,
@@ -57,13 +57,12 @@ describe('Spice Blow', () => {
     expect(lastPlayed(game)).toBeUndefined();
     game = revealOne(game, keepOrder, 0);
     expect(game.blows[0]!.reveals.map((reveal) => reveal.kind)).toEqual(['set-aside', 'spice']);
-    expect(nexus(game)).toBe(false);
     game = nextTurn(game, keepOrder);
     expect(game.setAside).toEqual([]);
     expect(game.draw).toContain('shai-hulud#1');
   });
 
-  test('from the second turn on, Shai-Hulud devours the territory below it on its own pile, and a Nexus follows', () => {
+  test('from the second turn on, Shai-Hulud devours the territory below it on its own pile', () => {
     let game = blowAll(
       stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']),
       keepOrder
@@ -76,7 +75,6 @@ describe('Spice Blow', () => {
       { card: 'red-chasm#1', kind: 'spice' },
     ]);
     expect(game.discards[0]).toEqual(['old-gap#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']);
-    expect(nexus(game)).toBe(true);
     expect(blowSentence(game, game.blows.at(-1)!)).toBe(
       'Spice pile A: Shai-Hulud! It devours everything in Old Gap. Shai-Hulud! It devours everything in Old Gap. 8 spice in Red Chasm.'
     );
@@ -168,5 +166,22 @@ describe('Spice Blow', () => {
     const game = stacked(['old-gap#1', 'shai-hulud#1', 'broken-land#1', 'red-chasm#1']);
     expect(wormChance(game)).toBe(0.25);
     expect(remaining(game).find(({ card }) => card.key === 'shai-hulud')!.left).toBe(1);
+  });
+
+  test('with the deck run out, the odds come from the spice piles the next draw reshuffles', () => {
+    const game = { ...stacked([]), discards: [['old-gap#1', 'shai-hulud#1'], []] };
+    expect(wormChance(game)).toBe(0.5);
+  });
+});
+
+describe('a game read back from storage', () => {
+  test('is playable when every card belongs to its deck', () => {
+    expect(isPlayable(stacked(['old-gap#1', 'shai-hulud#1']))).toBe(true);
+  });
+
+  test('is not when a pile is missing or a card is not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    expect(isPlayable({ ...game, discards: undefined as unknown as SpiceDeckGame['discards'] })).toBe(false);
+    expect(isPlayable({ ...game, draw: ['sietch-tabr#1'] })).toBe(false);
   });
 });

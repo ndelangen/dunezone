@@ -303,25 +303,33 @@ try {
       const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1]?.replaceAll('&amp;', '&');
       assert.ok(image, `${pathname} has no social image URL`);
       const imageUrl = new URL(image);
-      assert.equal(imageUrl.pathname, '/social/image.png');
-      /* Cold renders share the global 20-per-10-second budget.
-       * Pace them at one per second; repeated cache reads need no delay.
-       */
-      await delay(Math.max(0, nextSocialProbeAt - performance.now()));
-      nextSocialProbeAt = performance.now() + 1000;
-      const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(png.status, 200, pathname);
-      assert.equal(png.headers.get('Content-Type'), 'image/png');
-      assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
-      const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
-      assert.equal(
-        imageHit.headers.get('X-Public-Cache'),
-        'hit',
-        `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
-      );
-      assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
-      assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
-      await imageHit.arrayBuffer();
+      if (TOOL_PAGES.includes(pathname) && imageUrl.pathname.startsWith('/tools/')) {
+        /* A tool with its own picture shares that static WebP instead of a rendered card. */
+        const art = await worker.fetch(imageUrl.pathname);
+        assert.equal(art.status, 200, `${pathname} shares a missing picture ${imageUrl.pathname}`);
+        assert.equal(art.headers.get('Content-Type'), 'image/webp');
+        await art.arrayBuffer();
+      } else {
+        assert.equal(imageUrl.pathname, '/social/image.png');
+        /* Cold renders share the global 20-per-10-second budget.
+         * Pace them at one per second; repeated cache reads need no delay.
+         */
+        await delay(Math.max(0, nextSocialProbeAt - performance.now()));
+        nextSocialProbeAt = performance.now() + 1000;
+        const png = await worker.fetch(imageUrl.pathname + imageUrl.search);
+        assert.equal(png.status, 200, pathname);
+        assert.equal(png.headers.get('Content-Type'), 'image/png');
+        assert.deepEqual(pngDimensions(new Uint8Array(await png.arrayBuffer())), { widthPx: 1200, heightPx: 630 });
+        const imageHit = await worker.fetch(imageUrl.pathname + imageUrl.search);
+        assert.equal(
+          imageHit.headers.get('X-Public-Cache'),
+          'hit',
+          `${pathname}: ${JSON.stringify(Object.fromEntries(imageHit.headers))}`
+        );
+        assert.equal(imageHit.headers.get('X-Public-Renders'), '0');
+        assert.equal(imageHit.headers.get('X-Public-Artwork-Reads'), '0');
+        await imageHit.arrayBuffer();
+      }
     }
 
     const scripts = [...html.matchAll(/<script[^>]+src="([^"]+)"/g)].map((match) => match[1]!);

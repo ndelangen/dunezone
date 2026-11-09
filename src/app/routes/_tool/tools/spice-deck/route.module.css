@@ -39,7 +39,22 @@
   line-height: 1.1;
 }
 
+.deckLine {
+  display: flex;
+  gap: 0.25em;
+  min-width: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* The odds never truncate; the deck's name gives way first. */
+.odds {
+  flex-shrink: 0;
+}
+
 .deckName {
+  min-width: 0;
   overflow: hidden;
   color: var(--ui-muted);
   font-size: 13px;
@@ -201,10 +216,16 @@
   --card-w: 45%;
   display: flex;
   flex-wrap: wrap;
-  align-content: center;
+  /* Safe: when the smallest cards still need more rows than fit, they start at the top and scroll instead of hiding under the header. */
+  align-content: safe center;
   justify-content: center;
   gap: 12px;
   height: calc(100dvh - var(--chrome) - 2 * var(--space-sm));
+  overflow-y: auto;
+  /* Room inside the scroll box for the next pile's outline, which would otherwise be clipped at the edge. */
+  box-sizing: border-box;
+  margin-inline: -8px;
+  padding: 8px;
 }
 
 .hint {
@@ -228,12 +249,6 @@
   outline: 2px dashed var(--ui-hover);
   outline-offset: -2px;
   background: transparent;
-}
-
-.card img {
-  display: block;
-  width: 100%;
-  height: 100%;
 }
 
 .lines {

@@ -2,6 +2,7 @@ import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
 import { TOOLS } from './_app/tools/tools';
+import { clearStoredGame } from './_tool/tools/spice-deck/spiceDeck.stories.fixture';
 import { expectWithinWidth } from './pagePlay';
 import { findTitledPage } from './site.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
@@ -81,6 +82,8 @@ export const ComingSoonPhone = meta.story({
 /** The spice deck, the first tool built: at its own address, offering the spice deck of every Ruleset in the catalogue. */
 export const SpiceDeck = meta.story({
   args: { path: '/tools/spice-deck' },
+  /* A game left by another story would open the table instead of the picker. */
+  beforeEach: clearStoredGame,
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
@@ -100,13 +103,5 @@ export const BattleWheel = meta.story({
     await expect(
       page.findByRole('heading', { level: 1, name: 'Battle wheel' }, { timeout: 30_000 })
     ).resolves.toBeInTheDocument();
-  },
-});
-
-/** The spice deck's address before it was built, which the catalogue once linked: it goes on to the tool. */
-export const FormerSpiceDeckAddress = meta.story({
-  args: { path: '/tools/spice-deck-tracker' },
-  play: async ({ canvasElement }) => {
-    await findTitledPage(canvasElement, /^Spice deck$/);
   },
 });

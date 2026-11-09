@@ -2,8 +2,8 @@
  * The spice deck tool's game: a spice deck run for a table that plays with everything but the cards.
  * Each tap turns one card over onto the spice pile the players chose (the rulebook plays two, A and B), whatever the card;
  * the players decide what happens next (Norbert, 2026-11-09). A Shai-Hulud notes the territory of the spice card below it
- * on its pile, which it devours, and one after the first turn brings a Nexus. A card the players set aside, as the rules
- * ask of a Shai-Hulud on the first turn, goes back into the deck when the next turn starts. An empty deck is made again
+ * on its pile, which it devours; whether a Nexus follows is the ruleset's, so the players call it. A card the players set
+ * aside, as the rules ask of a Shai-Hulud on the first turn, goes back into the deck when the next turn starts. An empty deck is made again
  * from all the spice piles, shuffled.
  * Pure and serialisable: the page keeps it in the browser's own storage, and every step is undoable.
  */
@@ -98,8 +98,9 @@ export type SpiceRules = Readonly<{ piles: number; peek?: number }>;
 /** The most cards a peek can show. */
 export const MOST_PEEK = 5;
 
-export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 1 }): SpiceDeckGame {
-  const { piles, peek = 1 } = rules;
+export function newGame(deck: SpiceDeckDef, random: Random, rules?: SpiceRules): SpiceDeckGame {
+  const piles = rules?.piles ?? 1;
+  const peek = rules?.peek ?? 1;
   const copies = deck.cards.flatMap((card) => Array.from({ length: card.count }, (_, n) => `${card.key}#${n + 1}`));
   return {
     version: 1,
@@ -243,10 +244,6 @@ export function nextTurn(game: SpiceDeckGame, random: Random): SpiceDeckGame {
   return { ...game, draw, setAside: [], turn: game.turn + 1 };
 }
 
-/** Whether a Nexus follows this turn's Spice Blow: a Shai-Hulud came up after the first turn. */
-export const nexus = (game: SpiceDeckGame, turn = game.turn) =>
-  turn > 1 && game.blows.some((blow) => blow.turn === turn && blow.reveals.some((reveal) => reveal.kind === 'worm'));
-
 export const blowsOfTurn = (game: SpiceDeckGame, turn = game.turn) => game.blows.filter((blow) => blow.turn === turn);
 
 /** The next cards off the deck, the next first, as many as a peek shows; fewer when the deck is nearly out. */
@@ -263,11 +260,28 @@ export function remaining(game: SpiceDeckGame): { card: SpiceCardDef; left: numb
 
 /** The chance the next card is Shai-Hulud, from the cards still face down; reshuffles are not foreseen. */
 export function wormChance(game: SpiceDeckGame): number {
-  if (game.draw.length === 0) {
+  /* An empty deck is made again from the spice piles on the next draw, so those are what the next card comes from. */
+  const cards = game.draw.length > 0 ? game.draw : game.discards.flat();
+  if (cards.length === 0) {
     return 0;
   }
-  const worms = game.draw.filter((copy) => isWorm(cardOf(game, copy))).length;
-  return worms / game.draw.length;
+  const worms = cards.filter((copy) => isWorm(cardOf(game, copy))).length;
+  return worms / cards.length;
+}
+
+const isCopyList = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((copy) => typeof copy === 'string');
+
+/** Whether a game read back from storage is whole: its piles are lists of cards, and every card is one of its deck's. */
+export function isPlayable(game: SpiceDeckGame): boolean {
+  if (!Array.isArray(game.deck?.cards) || !Array.isArray(game.blows) || !Array.isArray(game.discards)) {
+    return false;
+  }
+  if (!isCopyList(game.draw) || !isCopyList(game.setAside) || !game.discards.every(isCopyList)) {
+    return false;
+  }
+  const keys = new Set(game.deck.cards.map((card) => card.key));
+  return [game.draw, game.setAside, ...game.discards].every((pile) => pile.every((copy) => keys.has(copyKey(copy))));
 }
 
 /** One turned card as a sentence for the table, as the voice reads it, for the turn it came up on. */

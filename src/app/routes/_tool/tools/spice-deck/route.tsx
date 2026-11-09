@@ -1,6 +1,7 @@
 import { Menu, NumberInput } from '@mantine/core';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -72,7 +73,7 @@ function SpiceDeckPage() {
       </PageLayout.Header>
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={<div className={styles.tool} />}>
-          <LiveSpiceDeck />
+          <SpiceDeckTool storageKey={SPICE_DECK_STORAGE_KEY} />
         </ClientOnly>
       </PageLayout.Content>
     </PageLayout>
@@ -82,8 +83,44 @@ function SpiceDeckPage() {
 const SPICE_DECK_LEDE =
   'Run the Dune board game’s spice deck on a phone: pick your Ruleset’s deck, tap a spice pile to turn over its card, and see what Shai-Hulud devours.';
 
-/* The decks come from the rulesets in the catalogue; a picked deck's cards are read once and then live in the stored game. */
-function LiveSpiceDeck() {
+/*
+ * The spice deck tool: a phone at a real table runs the spice deck, so nobody shuffles or sorts cards.
+ * The spice piles are the buttons: a tap on a pile draws the top card off the deck, turns it over and lays it on that pile,
+ * every card the same way, Shai-Hulud included. The tool never draws on by itself; the players decide what comes next
+ * (Norbert, 2026-11-09). The draw pile and the set-aside spot are off screen: cards fly in from above, and a Shai-Hulud
+ * the rules set aside lands on its pile first, then leaves to the side.
+ */
+
+function SpiceDeckTool({ storageKey }: Readonly<{ storageKey: string }>) {
+  const session = useSpiceDeckGame(storageKey);
+  const { game } = session;
+  /* Picking another deck keeps the game until the new deck is in, so backing out or a deck that fails to load loses nothing. */
+  const [choosing, setChoosing] = useState(false);
+  if (!game || choosing) {
+    return (
+      <CatalogueDeckPicker
+        onStart={(deck, rules) => {
+          session.start(newGame(deck, session.random, rules));
+          setChoosing(false);
+        }}
+        onBack={game ? () => setChoosing(false) : undefined}
+      />
+    );
+  }
+  return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
+}
+
+type PickerActions = Readonly<{
+  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
+  /** Back to the game being played, when there is one. */
+  onBack?: () => void;
+}>;
+
+/*
+ * The picker with the catalogue's decks: the rulesets that slot one, and a picked deck's cards read once to live in the stored game.
+ * Only the picker subscribes to the catalogue, so a table mid-game holds no query open.
+ */
+function CatalogueDeckPicker(actions: PickerActions) {
   const { data } = useSpiceDeckChoices();
   const decks = useMemo(
     () => data?.map((entry) => ({ id: entry.rulesetId, name: entry.deck.name, ruleset: entry.ruleset })),
@@ -100,45 +137,7 @@ function LiveSpiceDeck() {
     },
     [data]
   );
-  return <SpiceDeckTool storageKey={SPICE_DECK_STORAGE_KEY} decks={decks} loadDeck={loadDeck} />;
-}
-
-/*
- * The spice deck tool: a phone at a real table runs the spice deck, so nobody shuffles or sorts cards.
- * The spice piles are the buttons: a tap on a pile draws the top card off the deck, turns it over and lays it on that pile,
- * every card the same way, Shai-Hulud included. The tool never draws on by itself; the players decide what comes next
- * (Norbert, 2026-11-09). The draw pile and the set-aside spot are off screen: cards fly in from above, and a Shai-Hulud
- * the rules set aside lands on its pile first, then leaves to the side.
- */
-
-type ToolProps = Readonly<{
-  /** Where this browser keeps the game. */
-  storageKey: string;
-  /** The decks a new game can be played with, by ruleset; undefined while they load. */
-  decks: readonly SpiceDeckChoice[] | undefined;
-  /** Reads a deck's cards once the table picks it. */
-  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
-}>;
-
-function SpiceDeckTool({ storageKey, decks, loadDeck }: ToolProps) {
-  const session = useSpiceDeckGame(storageKey);
-  const { game } = session;
-  /* Picking another deck keeps the game until the new deck is in, so backing out or a deck that fails to load loses nothing. */
-  const [choosing, setChoosing] = useState(false);
-  if (!game || choosing) {
-    return (
-      <DeckPicker
-        decks={decks}
-        loadDeck={loadDeck}
-        onStart={(deck, rules) => {
-          session.start(newGame(deck, session.random, rules));
-          setChoosing(false);
-        }}
-        onBack={game ? () => setChoosing(false) : undefined}
-      />
-    );
-  }
-  return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
+  return <DeckPicker decks={decks} loadDeck={loadDeck} {...actions} />;
 }
 
 /* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
@@ -147,13 +146,13 @@ function DeckPicker({
   loadDeck,
   onStart,
   onBack,
-}: Readonly<{
-  decks: readonly SpiceDeckChoice[] | undefined;
-  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
-  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
-  /** Back to the game being played, when there is one. */
-  onBack?: () => void;
-}>) {
+}: PickerActions &
+  Readonly<{
+    /** The decks a new game can be played with, by ruleset; undefined while they load. */
+    decks: readonly SpiceDeckChoice[] | undefined;
+    /** Reads a deck's cards once the table picks it. */
+    loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
+  }>) {
   const [piles, setPiles] = useState(1);
   const [peek, setPeek] = useState(1);
   const [loading, setLoading] = useState<string | null>(null);
@@ -209,6 +208,7 @@ function DeckPicker({
                 max={MOST_PILES}
                 clampBehavior="strict"
                 allowDecimal={false}
+                disabled={loading !== null}
                 value={piles}
                 onChange={(value) => setPiles(typeof value === 'number' ? value : 1)}
               />
@@ -226,6 +226,7 @@ function DeckPicker({
                 max={MOST_PEEK}
                 clampBehavior="strict"
                 allowDecimal={false}
+                disabled={loading !== null}
                 value={peek}
                 onChange={(value) => setPeek(typeof value === 'number' ? value : 1)}
               />
@@ -314,6 +315,8 @@ const SIDE_GAP = 6;
 const CARD_ON_ITS_WAY = 'A card is on its way to its pile.';
 /* A card's width to its height. */
 const CARD_RATIO = 900 / 1263;
+/* Height over width, as PublishedImage takes it. */
+const CARD_ASPECT = 1 / CARD_RATIO;
 
 function Playing({
   session,
@@ -333,7 +336,8 @@ function Playing({
    * A step is in flight until it lands; the step that landed last is remembered, so the flight is read off the game.
    */
   const lastId = session.last?.id;
-  const [landedId, setLandedId] = useState<number | undefined>(undefined);
+  /* The step already on the table when the table appears, back from the deck picker or a reload, has landed: it does not fly again. */
+  const [landedId, setLandedId] = useState<number | undefined>(() => session.last?.id);
   const step = useMemo(() => stepOf(game, session.last), [game, session.last]);
   const flight = useMemo<Flight | undefined>(
     () =>
@@ -423,9 +427,11 @@ function Playing({
       <header ref={header} className={styles.header}>
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
-          <span className={styles.deckName}>
-            {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·{' '}
-            {Math.round(wormChance(game) * 100)}% Shai-Hulud
+          <span className={styles.deckLine}>
+            <span className={styles.deckName}>
+              {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·
+            </span>
+            <span className={styles.odds}>{Math.round(wormChance(game) * 100)}% Shai-Hulud</span>
           </span>
         </div>
         <IconAction
@@ -461,7 +467,7 @@ function Playing({
             onClick={() => setListen(!listen)}
           />
         ) : null}
-        <GameMenu session={session} game={game} onPickDeck={onPickDeck} />
+        <GameMenu session={session} game={game} busy={busy} onPickDeck={onPickDeck} />
       </header>
       <main className={styles.body}>
         <Table game={game} flight={flight} onPile={turnOver} />
@@ -532,13 +538,17 @@ function Table({
       return;
     }
     const measure = () => {
+      /* The content box: the stage's padding is room for outlines, not for cards. */
       const { width, height } = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
       const gap = 12;
       const caption = 22;
       const widthFor = (across: number) => {
         const down = Math.ceil(pileCount / across);
-        const byWidth = (width - gap * (across - 1)) / across - 2 * (SIDE + SIDE_GAP);
-        const byHeight = ((height - gap * (down - 1)) / down - caption) * CARD_RATIO;
+        const byWidth = (width - padX - gap * (across - 1)) / across - 2 * (SIDE + SIDE_GAP);
+        const byHeight = ((height - padY - gap * (down - 1)) / down - caption) * CARD_RATIO;
         return Math.min(byWidth, byHeight);
       };
       const best = Math.max(...Array.from({ length: pileCount }, (_, index) => widthFor(index + 1)));
@@ -727,8 +737,8 @@ function Table({
 }
 
 /*
- * The Shai-Hulud that came up on a pile this turn, and what it means: the territory it devours, and a Nexus after the first
- * turn. It stays until the next turn, even once a spice card covers it; one the players set aside no longer counts.
+ * The Shai-Hulud that came up on a pile this turn, and the territory it devours. No Nexus line: some rulesets' Shai-Hulud
+ * bring none, and the deck can't tell which, so the players call it. It stays until the next turn, even once a spice card covers it; one the players set aside no longer counts.
  * A Shai-Hulud still flying to its pile is told once it lands.
  */
 function wormNotice(game: SpiceDeckGame, pile: number, flight: Flight | undefined): string | undefined {
@@ -742,8 +752,7 @@ function wormNotice(game: SpiceDeckGame, pile: number, flight: Flight | undefine
   if (game.turn === 1) {
     return 'Turn 1: set it aside';
   }
-  const devours = worm.devours ? `Devours ${cardOf(game, worm.devours).name}` : 'Nothing to devour';
-  return `${devours} · Nexus`;
+  return worm.devours ? `Devours ${cardOf(game, worm.devours).name}` : 'Nothing to devour';
 }
 
 /* A blow's lines as far as the table has seen: the card in flight is told once it lands. */
@@ -774,6 +783,7 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
       return;
     }
     setHolding(true);
+    clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setHolding(false);
       onPeek();
@@ -793,7 +803,17 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
         size="lg"
         icon={<Eye size={20} />}
         disabledReason={disabled ? 'No card to peek at right now.' : undefined}
-        onPointerDown={press}
+        onPointerDown={(event) => {
+          /* Only a primary press holds; a second finger or another button does nothing. */
+          if (!event.isPrimary || event.button !== 0) {
+            return;
+          }
+          /* Touch captures the pointer implicitly, which would swallow the leave that cancels a finger sliding off. */
+          if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          press();
+        }}
         onPointerUp={release}
         onPointerLeave={release}
         onPointerCancel={release}
@@ -861,8 +881,10 @@ function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => 
 function GameMenu({
   session,
   game,
+  busy,
   onPickDeck,
-}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; onPickDeck: () => void }>) {
+}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; busy: boolean; onPickDeck: () => void }>) {
+  /* While a card is on its way, the game is not swapped out under it, even from a menu opened before. */
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -872,11 +894,18 @@ function GameMenu({
         <Menu.Label>{game.deck.name}</Menu.Label>
         <Menu.Item
           leftSection={<Layers size={16} />}
-          onClick={() => session.start(newGame(game.deck, session.random, rulesOf(game)))}
+          disabled={busy}
+          onClick={() => {
+            if (!busy) {
+              session.start(newGame(game.deck, session.random, rulesOf(game)));
+            }
+          }}
         >
           New game, same deck
         </Menu.Item>
-        <Menu.Item onClick={onPickDeck}>Pick another deck</Menu.Item>
+        <Menu.Item disabled={busy} onClick={() => !busy && onPickDeck()}>
+          Pick another deck
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );
@@ -894,7 +923,14 @@ function CardFace({
   const src = back ? game.deck.back : card?.face;
   return (
     <span className={`${styles.card} ${className ?? ''}`} data-card data-empty={!src || undefined}>
-      {src ? <img src={src} alt={back ? 'Spice deck' : (card?.name ?? '')} draggable={false} /> : null}
+      {src ? (
+        <PublishedImage
+          src={src}
+          name={back ? 'Spice deck' : (card?.name ?? '')}
+          aspect={CARD_ASPECT}
+          radius="4.5% / 3.2%"
+        />
+      ) : null}
     </span>
   );
 }
