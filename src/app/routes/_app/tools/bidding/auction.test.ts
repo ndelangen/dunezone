@@ -51,7 +51,7 @@ describe('the auction', () => {
     expect(phaseOver(game)).toBe(true);
     expect(game.returned).toBe(2);
     expect(resultSentence(game, game.results[0]!)).toBe(
-      'Everyone passed. Put this card and the other 2 back on the deck.'
+      'No one took it. Put this card and the other 2 back on the deck.'
     );
   });
 

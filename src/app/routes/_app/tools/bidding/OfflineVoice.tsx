@@ -47,6 +47,14 @@ export function OfflineVoice({
   const onPhrase = useCallback(
     (phrase: string) => {
       const spoken = readSpoken(phrase);
+      if (spoken.kind === 'other' && speech.speaking) {
+        /* Most likely the auctioneer's own voice; it never says a command. */
+        return;
+      }
+      if (spoken.kind !== 'other') {
+        /* Nobody waits for the auctioneer to finish (Norbert, 2026-11-09): a command cuts it off. */
+        speech.stop();
+      }
       const who = seatOf(game, toBid(game));
       let answer: string;
       if (spoken.kind === 'reset') {
@@ -66,12 +74,12 @@ export function OfflineVoice({
       }
       setHeard((lines) => [{ key: (lines[0]?.key ?? 0) + 1, phrase, answer }, ...lines].slice(0, 4));
     },
-    [game, session]
+    [game, session, speech]
   );
-  /* It never hears itself: listening pauses while it speaks. */
+  /* It keeps listening while it speaks: none of its own lines holds a command. */
   const tiny = listener === 'tiny';
-  const browserHearing = useOfflineHearing(!tiny && listen && state === 'ready' && !speech.speaking, engine, onPhrase);
-  const tinyHearing = useTinyListener(tiny, listen && !speech.speaking, onPhrase);
+  const browserHearing = useOfflineHearing(!tiny && listen && state === 'ready', engine, onPhrase);
+  const tinyHearing = useTinyListener(tiny, listen, onPhrase);
   const ready = tiny ? tinyHearing.state === 'ready' : state === 'ready';
   const refused = tiny ? tinyHearing.refused : browserHearing.refused;
   const turn = seatOf(game, toBid(game));

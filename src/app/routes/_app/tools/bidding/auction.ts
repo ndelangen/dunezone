@@ -218,8 +218,8 @@ export function resultSentence(game: AuctionGame, result: AuctionResult): string
   if (result.faction === null) {
     const back = game.returned;
     return back > 0
-      ? `Everyone passed. Put this card and ${back === 1 ? 'the last card' : `the other ${back}`} back on the deck.`
-      : 'Everyone passed. Put the card back on the deck.';
+      ? `No one took it. Put this card and ${back === 1 ? 'the last card' : `the other ${back}`} back on the deck.`
+      : 'No one took it. Put the card back on the deck.';
   }
   const seat = seatOf(game, result.faction)!;
   const payee = seat.paid ? 'the bank' : payeeName(game);
