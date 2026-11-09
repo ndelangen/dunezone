@@ -116,12 +116,12 @@ export function usePredictionLocket() {
   /* Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way. */
   const lock = useCallback(
     (prediction: Omit<LockedPrediction, 'revealed'>) =>
-      setState({
-        faction: null,
-        turn: null,
-        timeZone: prediction.timeZone,
-        locked: { ...prediction, revealed: false },
-      }),
+      /* A lock another tab made while this one waited for the time wins: this tab's late answer never replaces it. */
+      setState((now) =>
+        now.locked
+          ? now
+          : { faction: null, turn: null, timeZone: prediction.timeZone, locked: { ...prediction, revealed: false } }
+      ),
     []
   );
   const reveal = useCallback(

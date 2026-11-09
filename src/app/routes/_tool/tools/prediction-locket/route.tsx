@@ -8,7 +8,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ChevronRight, Eye, Lock, LockOpen, MapPin, Minus, Plus, RotateCcw, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
 import { readLockTime } from '@app/db/predictionLocketTool';
@@ -160,11 +160,22 @@ function ThrowAway({ revealed, onClear }: Readonly<{ revealed: boolean; onClear:
 function useLocking(lockTime: () => Promise<number>, lock: (prediction: Omit<LockedPrediction, 'revealed'>) => void) {
   const [locking, setLocking] = useState(false);
   const [failed, setFailed] = useState(false);
+  /* Once the picking view is gone, say because another tab locked first, a late answer is dropped. */
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const start = async (prediction: Omit<LockedPrediction, 'revealed' | 'lockedAt'>) => {
     setLocking(true);
     setFailed(false);
     try {
-      lock({ ...prediction, lockedAt: await withinTime(lockTime(), LOCK_TIMEOUT_MS) });
+      const lockedAt = await withinTime(lockTime(), LOCK_TIMEOUT_MS);
+      if (mounted.current) {
+        lock({ ...prediction, lockedAt });
+      }
     } catch {
       setFailed(true);
     } finally {
