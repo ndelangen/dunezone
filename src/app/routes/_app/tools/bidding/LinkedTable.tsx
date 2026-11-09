@@ -94,7 +94,8 @@ export function LinkedTablet({
   const [game, setGame] = useState<AuctionGame | undefined>(() =>
     started ? newAuction(deck, started.setup.seats.map(auctionSeat), 1) : undefined
   );
-  const [mic, setMic] = useState(false);
+  /* A real tablet listens from the start; in a story, the page hears its own phones. */
+  const [mic, setMic] = useState(!loopback);
   /* Before bidding, the tablet only listens for phones joining. */
   useToneListener({
     on: game === undefined,
@@ -424,6 +425,8 @@ export function LinkedRemote({
                 data-suggested={index === storySeat || undefined}
                 onClick={() => {
                   setSeat(index);
+                  /* A real phone listens for its turn as soon as it links. */
+                  setMic(!loopback);
                   send({ seat: index, kind: 'join' });
                 }}
               >
