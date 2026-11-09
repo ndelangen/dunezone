@@ -132,7 +132,7 @@
 .kindList {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, auto));
-  gap: 6px 14px;
+  gap: 6px var(--space-sm);
 }
 
 .kindLine {

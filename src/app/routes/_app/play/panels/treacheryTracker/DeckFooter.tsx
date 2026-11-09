@@ -62,7 +62,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown}>
         {moving ? (
-          <Stack gap={10}>
+          <Stack gap="xs">
             <Text size="xs" className={styles.caption}>
               Where does {moving.def.name} go?
             </Text>
@@ -96,7 +96,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
             </MenuLine>
           </Stack>
         ) : (
-          <Stack gap={10}>
+          <Stack gap="xs">
             {pile.length === 0 ? (
               <Text size="sm" className={styles.dim}>
                 The discard pile is empty.

@@ -295,6 +295,14 @@ function sightingOf(state: TrackerState, id: string): Sighting {
   return sighting;
 }
 
+/* Only an unknown card still on bid can be named, and the card on bid came from the deck: a copy still there and not already on bid. */
+function canName(state: TrackerState, auction: Sighting, card: string): boolean {
+  if (auction.card !== null || !awaitingWinner(state, auction)) {
+    return false;
+  }
+  return placeOf(state, card).at === 'deck' && !reservedCards(state).has(card);
+}
+
 const HANDLERS: Handlers = {
   add: (state, { faction, card }) => (card ? addKnown(state, faction, card) : addUnknown(state, faction)),
   identify: (state, { faction, slot, card }) => {
@@ -349,15 +357,10 @@ const HANDLERS: Handlers = {
     const added = card ? addKnown(unnamed, action.faction, card) : addUnknown(unnamed, action.faction);
     return updateSighting(added, id, (entry) => ({ ...entry, card, slot }));
   },
-  name: (state, { sighting, card }) => {
-    const auction = sightingOf(state, sighting);
-    /* The card on bid came from the deck, so it can only be a copy still there and not already on bid. */
-    const free = placeOf(state, card).at === 'deck' && !reservedCards(state).has(card);
-    if (auction.card !== null || !awaitingWinner(state, auction) || !free) {
-      return state;
-    }
-    return updateSighting(state, sighting, (entry) => ({ ...entry, card }));
-  },
+  name: (state, { sighting, card }) =>
+    canName(state, sightingOf(state, sighting), card)
+      ? updateSighting(state, sighting, (entry) => ({ ...entry, card }))
+      : state,
   pass: (state, { sighting }) =>
     awaitingWinner(state, sightingOf(state, sighting))
       ? updateSighting(state, sighting, (entry) => ({ ...entry, done: true }))
