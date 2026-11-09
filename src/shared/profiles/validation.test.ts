@@ -24,6 +24,22 @@ describe('profileUserEditFormSchema', () => {
   });
 
   it.each([
+    ['https://boardgamegeek.com/profile/central419', 'https://boardgamegeek.com/profile/central419'],
+    ['https://www.boardgamegeek.com/profile/central419/', 'https://boardgamegeek.com/profile/central419'],
+    ['https://boardgamegeek.com/user/central419', 'https://boardgamegeek.com/user/central419'],
+  ])('accepts the BoardGameGeek profile URL %j', (bgg_profile_url, expected) => {
+    expect(profileUserEditFormSchema.parse({ ...valid, bgg_profile_url }).bgg_profile_url).toBe(expected);
+  });
+
+  it.each([
+    'https://boardgamegeek.com/profiles/central419',
+    'https://boardgamegeek.com/profile/',
+    'https://boardgamegeek.com/profile/central419/collection',
+  ])('rejects the BoardGameGeek URL %j', (bgg_profile_url) => {
+    expect(profileUserEditFormSchema.safeParse({ ...valid, bgg_profile_url }).success).toBe(false);
+  });
+
+  it.each([
     ['', 'Display name is required'],
     ['Abc', 'Display name must be at least 5 characters'],
     ['Story-Viewer', 'Display name may only contain letters and numbers'],
