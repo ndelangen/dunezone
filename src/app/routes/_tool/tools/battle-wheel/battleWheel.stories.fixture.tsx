@@ -1,4 +1,12 @@
-import type { WheelFaction, WheelRuleset } from './battleWheel';
+import { useState } from 'react';
+
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
+
+import type { FactionChoice, WheelFaction, WheelRuleset } from './battleWheel';
+import { BattleWheelTool } from './BattleWheelTool';
+import type { FactionSearch } from './BattleWheelTool';
+import type { WheelState } from './useBattleWheel';
 
 /*
  * Story data for the battle wheel prototypes: GF9's base factions plus the Ixians and Tleilaxu, copied from content/gf9.
@@ -726,3 +734,53 @@ export const STORY_RULESETS: readonly WheelRuleset[] = [
   { id: 'kiss', name: 'KISS', dialing: 'kiss' },
   { id: 'gf9-2-0', name: 'GF9 2.0', dialing: 'gf92' },
 ];
+
+export const storyFaction = (id: string) => STORY_FACTIONS.find((candidate) => candidate.id === id)!;
+
+/* The base game's six come first; search reaches every faction on Dune Zone. */
+const STARTING: readonly FactionChoice[] = STORY_FACTIONS.slice(0, 6);
+const PUBLISHED_TOKEN: Readonly<Record<string, string>> = {
+  atreides: 'house-atreides',
+  harkonnen: 'house-harkonnen',
+  emperor: 'emperor',
+  'spacing-guild': 'spacing-guild',
+  fremen: 'fremen',
+  'bene-gesserit': 'bene-gesserit',
+};
+const TOKENS: readonly FactionToken[] = STORY_FACTIONS.map((known) => ({
+  id: known.id,
+  name: known.name,
+  src: PUBLISHED_TOKEN[known.id] && `/play-fixtures/product/${PUBLISHED_TOKEN[known.id]}-token.jpg`,
+}));
+
+const StorySearch: FactionSearch = ({ seated, onPick }) => {
+  const [query, setQuery] = useState('');
+  const found = TOKENS.filter((token) => token.name.toLowerCase().includes(query.trim().toLowerCase()));
+  return (
+    <FactionSearchList
+      query={query}
+      onQuery={setQuery}
+      factions={found}
+      seated={seated}
+      status="done"
+      onMore={() => undefined}
+      onPick={onPick}
+    />
+  );
+};
+
+const loadStoryFaction = async (picked: Readonly<{ id: string }>) => storyFaction(picked.id);
+
+export function StoryWheel({ name, initial }: Readonly<{ name: string; initial?: WheelState }>) {
+  return (
+    <BattleWheelTool
+      storageKey={`battle-wheel-story-${name}`}
+      initial={initial}
+      rulesets={STORY_RULESETS}
+      defaultRulesetId="gf9"
+      factions={STARTING}
+      search={StorySearch}
+      loadFaction={loadStoryFaction}
+    />
+  );
+}

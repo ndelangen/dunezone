@@ -37,6 +37,7 @@ export function wheelFactionFrom(raw: unknown): WheelFaction | null {
               capable: true,
               ...values,
               count: troop.count,
+              troop: `troop-${troopIndex}`,
               image: face.image,
               star: face.star,
               hue: face.hue,

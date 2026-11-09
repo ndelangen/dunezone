@@ -1,3 +1,4 @@
+import { SPICE_STRENGTH_TIERS } from '@shared/play/battleDialing';
 import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
@@ -15,7 +16,9 @@ import { TroopToken } from '@game/assets/faction/troop/Troop';
 
 import {
   leaderOf,
+  mostOf,
   mostUsefulSpice,
+  settled,
   spiceChoices,
   strengthText,
   supportable,
@@ -88,7 +91,11 @@ export function BattleWheelTool({
     return (
       <div className={styles.tool}>
         <main className={styles.body}>
-          <Pending>Loading the Rulesets…</Pending>
+          {rulesets ? (
+            <p className={styles.failed}>There is no Ruleset to count with yet.</p>
+          ) : (
+            <Pending>Loading the Rulesets…</Pending>
+          )}
         </main>
       </div>
     );
@@ -102,9 +109,9 @@ export function BattleWheelTool({
     ...(starting ?? []),
     ...(state.recent ?? []).filter((recent) => !starting?.some((known) => known.id === recent.id)),
   ];
+  /* One faction is read at a time; picking the faction already chosen reads it again, so an edit on Dune Zone reaches the wheel, and keeps the plan. */
   const pick = (choice: Readonly<{ id: string; name: string }>) => {
-    if (choice.id === faction?.id) {
-      setSetup(false);
+    if (loading !== null) {
       return;
     }
     setLoading(choice.name);
@@ -201,7 +208,13 @@ export function BattleWheelTool({
         </header>
         {faction ? (
           <WheelBody
-            wheel={{ ruleset, faction, plan: state.plan, setPlan, result: wheelResult(ruleset, faction, state.plan) }}
+            wheel={{
+              ruleset,
+              faction,
+              plan: state.plan,
+              setPlan: (plan) => setPlan(settled(ruleset, faction, plan)),
+              result: wheelResult(ruleset, faction, state.plan),
+            }}
           />
         ) : (
           <main className={styles.body}>
@@ -351,8 +364,8 @@ function TroopSteppers({ wheel }: Readonly<{ wheel: Wheel }>) {
           detail={faceDetail(wheel, face)}
           value={plan.troops[face.id] ?? 0}
           min={0}
-          max={face.count}
-          onChange={(count) => setPlan(withTroops(plan, face, count))}
+          max={mostOf(faction, plan, face)}
+          onChange={(count) => setPlan(withTroops(faction, plan, face, count))}
         />
       ))}
     </div>
@@ -381,7 +394,7 @@ function SpiceControl({ wheel }: Readonly<{ wheel: Wheel }>) {
           <SpiceDot /> Spice strength
         </span>
         <div className={styles.tierButtons}>
-          {[0, 2, 4, 8].map((spice) => (
+          {[{ spice: 0, bonus: 0 }, ...SPICE_STRENGTH_TIERS].map(({ spice, bonus }) => (
             <button
               key={spice}
               type="button"
@@ -390,7 +403,7 @@ function SpiceControl({ wheel }: Readonly<{ wheel: Wheel }>) {
               aria-pressed={result.spice === spice}
               onClick={() => setPlan({ ...plan, spice })}
             >
-              {spice === 0 ? 'None' : `${spice} spice +${{ 2: 1, 4: 2, 8: 3 }[spice]}`}
+              {spice === 0 ? 'None' : `${spice} spice +${bonus}`}
             </button>
           ))}
         </div>

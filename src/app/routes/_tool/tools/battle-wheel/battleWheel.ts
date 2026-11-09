@@ -31,7 +31,10 @@ export type WheelLeader = Readonly<{
 /** A face the faction can dial, with how many of it the faction owns and how its token looks. */
 export type WheelFace = BattleFace &
   Readonly<{
+    /** How many tokens of this troop the faction owns. */
     count: number;
+    /** The troop the face belongs to: a troop's front and back are one set of tokens, so together they dial no more than its count. */
+    troop?: string;
     image: TroopRender['image'];
     star?: TroopRender['star'];
     hue?: string;
@@ -82,8 +85,24 @@ export type WheelResult = Readonly<{
   capped: boolean;
 }>;
 
+/* Each face's dialed count, within what the faction owns: a troop's faces share its tokens, the earlier face first. */
 function declared(plan: WheelPlan, faction: WheelFaction) {
-  return faction.faces.map((face) => ({ face, count: Math.max(0, Math.min(face.count, plan.troops[face.id] ?? 0)) }));
+  const used = new Map<string, number>();
+  return faction.faces.map((face) => {
+    const group = face.troop ?? face.id;
+    const left = face.count - (used.get(group) ?? 0);
+    const count = Math.max(0, Math.min(left, plan.troops[face.id] ?? 0));
+    used.set(group, (used.get(group) ?? 0) + count);
+    return { face, count };
+  });
+}
+
+/** The most of this face the plan can dial: the troop's tokens less those its other face dials. */
+export function mostOf(faction: WheelFaction, plan: WheelPlan, face: WheelFace) {
+  const others = faction.faces
+    .filter((other) => other.id !== face.id && (other.troop ?? other.id) === (face.troop ?? face.id))
+    .reduce((total, other) => total + (plan.troops[other.id] ?? 0), 0);
+  return Math.max(0, face.count - others);
 }
 
 export function leaderOf(faction: WheelFaction, plan: WheelPlan) {
@@ -111,10 +130,24 @@ export function mostUsefulSpice(ruleset: WheelRuleset, faction: WheelFaction, pl
       0
     );
   }
-  if (ruleset.dialing === 'gf92') {
-    return Math.max(...spiceChoices(ruleset, faction, plan));
-  }
   return 0;
+}
+
+/**
+ * The plan with its spice brought within what it can spend, so spice the player cannot see never comes back.
+ * Advanced spice beyond the troops it can support is dropped.
+ * A GF9 2.0 tier the dial no longer reaches falls to the highest it does.
+ */
+export function settled(ruleset: WheelRuleset, faction: WheelFaction, plan: WheelPlan): WheelPlan {
+  if (ruleset.dialing === 'advanced') {
+    const most = mostUsefulSpice(ruleset, faction, plan);
+    return plan.spice > most ? { ...plan, spice: most } : plan;
+  }
+  if (ruleset.dialing === 'gf92') {
+    const spice = spiceChoices(ruleset, faction, plan).findLast((choice) => choice <= plan.spice) ?? 0;
+    return spice === plan.spice ? plan : { ...plan, spice };
+  }
+  return plan;
 }
 
 /** The spice amounts a GF9 2.0 plan may spend at its dial. */
@@ -202,6 +235,9 @@ export function strengthText(value: number) {
 }
 
 /** The plan with one face's count changed, kept within what the faction owns. */
-export function withTroops(plan: WheelPlan, face: WheelFace, count: number): WheelPlan {
-  return { ...plan, troops: { ...plan.troops, [face.id]: Math.max(0, Math.min(face.count, count)) } };
+export function withTroops(faction: WheelFaction, plan: WheelPlan, face: WheelFace, count: number): WheelPlan {
+  return {
+    ...plan,
+    troops: { ...plan.troops, [face.id]: Math.max(0, Math.min(mostOf(faction, plan, face), count)) },
+  };
 }

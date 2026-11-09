@@ -56,14 +56,13 @@ function BattleWheelPage() {
 
 function LiveBattleWheel() {
   const { data } = useBattleWheelRulesets();
+  const shown = useMemo(() => data?.filter((entry) => !HIDDEN_RULESETS.has(entry.slug)), [data]);
   const rulesets = useMemo(
-    () =>
-      data
-        ?.filter((entry) => !HIDDEN_RULESETS.has(entry.slug))
-        .map((entry): WheelRuleset => ({ id: entry.rulesetId, name: entry.name, dialing: entry.dialing })),
-    [data]
+    () => shown?.map((entry): WheelRuleset => ({ id: entry.rulesetId, name: entry.name, dialing: entry.dialing })),
+    [shown]
   );
-  const base = data?.find((entry) => entry.slug === BASE_RULESET)?.rulesetId;
+  /* The base Ruleset's factions come first; without it, the first Ruleset's do, so the picker never waits on a Ruleset that is gone. */
+  const base = (shown?.find((entry) => entry.slug === BASE_RULESET) ?? shown?.[0])?.rulesetId;
   const tool = (factions?: readonly FactionChoice[]) => (
     <BattleWheelTool
       storageKey={STORAGE_KEY}
