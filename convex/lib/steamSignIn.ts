@@ -45,7 +45,7 @@ function playerProfile(player: Record<string, unknown> | undefined): { name?: st
   return { ...(name ? { name } : {}), ...(avatar.startsWith('https://') ? { image: avatar } : {}) };
 }
 
-/* The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
+/** Reads optional Steam profile defaults without making an unavailable Web API block sign-in. */
 async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
   const key = process.env.STEAM_WEB_API_KEY?.trim();
   if (!key) {
@@ -64,11 +64,15 @@ async function steamProfile(steamId: string): Promise<{ name?: string; image?: s
       return blank('returned no player');
     }
     const profile = playerProfile(player);
-    return { ...profile, lookup: profile.name ? 'ok' : 'returned a player without a name' };
+    const missing = [!profile.name && 'a name', !profile.image && 'a usable avatar'].filter(Boolean);
+    return { ...profile, lookup: missing.length ? `returned a player without ${missing.join(' or ')}` : 'ok' };
   } catch (error) {
-    /* An error can quote the request address, which carries the key. */
-    const reason = error instanceof Error ? `${error.name}: ${error.message}` : 'unknown error';
-    return blank(`failed: ${reason.split(key).join('***').slice(0, 200)}`);
+    /* Request error messages can contain credentials, so only fixed error categories leave this function. */
+    const reason =
+      error instanceof Error && ['AbortError', 'TimeoutError', 'TypeError', 'SyntaxError'].includes(error.name)
+        ? error.name
+        : 'unknown error';
+    return blank(`failed: ${reason}`);
   }
 }
 

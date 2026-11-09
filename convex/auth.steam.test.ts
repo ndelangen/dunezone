@@ -161,35 +161,38 @@ describe('Steam sign-in', () => {
     expect((await steamAccount(t))!.userId).toBe(first!.userId);
   });
 
-  test('a sign-in that finds the Steam profile names an account that started nameless', async () => {
-    vi.stubEnv('STEAM_WEB_API_KEY', '');
-    stubSteam();
-    const t = applicationTest();
-    await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
-    const account = await steamAccount(t);
-    const profile = () =>
-      t.run((ctx) =>
-        ctx.db
-          .query('profiles')
-          .withIndex('by_user_id', (q) => q.eq('user_id', account!.userId))
-          .unique()
-      );
-    expect(await profile()).toMatchObject({ username: 'nameless', avatar_url: null });
-    expect(await lookupOutcome(t)).toBe('skipped: STEAM_WEB_API_KEY is not set');
+  test('the next sign-in replaces a failed lookup outcome with its latest result', async () => {
     vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
+    const steamFetch = stubSteam();
+    const steam = steamFetch.getMockImplementation()!;
+    steamFetch.mockImplementation(async (input, init) =>
+      String(input instanceof Request ? input.url : input).startsWith('https://api.steampowered.com/')
+        ? new Response('Forbidden', { status: 403 })
+        : steam(input, init)
+    );
+    const t = applicationTest();
+    const signedIn = await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    expect(signedIn.tokens?.token).toEqual(expect.any(String));
+    expect(await lookupOutcome(t)).toBe('failed with HTTP 403');
+    stubSteam();
     await t.action(api.auth.signIn, {
       provider: 'steam',
       params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
     });
-    expect(await profile()).toMatchObject({
-      username: 'Steam player',
-      avatar_url: 'https://avatars.steamstatic.com/a_full.jpg',
-    });
     expect(await lookupOutcome(t)).toBe('ok');
   });
 
-  test('records why the profile lookup failed, without the key', async () => {
-    vi.stubEnv('STEAM_WEB_API_KEY', 'secret-key');
+  test('reports a name without a usable avatar as an incomplete lookup', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
+    stubSteam({ player: { personaname: 'Steam player', avatarfull: 'http://unsafe.example/avatar.jpg' } });
+    const t = applicationTest();
+    const signedIn = await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    expect(signedIn.tokens?.token).toEqual(expect.any(String));
+    expect(await lookupOutcome(t)).toBe('returned a player without a usable avatar');
+  });
+
+  test('records why the profile lookup failed without storing request details', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', 'secret key');
     const steamFetch = stubSteam();
     const t = applicationTest();
     const steam = steamFetch.getMockImplementation()!;
@@ -202,8 +205,8 @@ describe('Steam sign-in', () => {
     });
     await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
     const outcome = await lookupOutcome(t);
-    expect(outcome).toMatch(/^failed: TypeError: could not reach /);
-    expect(outcome).not.toContain('secret-key');
+    expect(outcome).toBe('failed: TypeError');
+    expect(outcome).not.toContain('secret');
   });
 
   test('stops asking Steam once the check budget is spent', async () => {
@@ -246,6 +249,7 @@ describe('Steam sign-in', () => {
   });
 
   test('a login whose account was deleted starts a new account', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
     stubSteam();
     const t = applicationTest();
     const deletedUserId = await t.run(async (raw) => {
@@ -260,6 +264,14 @@ describe('Steam sign-in', () => {
     expect(account!.userId).not.toBe(deletedUserId);
     await t.run(async (ctx) => {
       expect(await ctx.db.get(deletedUserId)).toMatchObject({ account_state: 'deleted' });
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', account!.userId))
+        .unique();
+      expect(profile).toMatchObject({
+        username: 'Steam player',
+        avatar_url: 'https://avatars.steamstatic.com/a_full.jpg',
+      });
     });
   });
 });

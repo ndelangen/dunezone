@@ -69,6 +69,11 @@ nonce once (`steam_openid_nonces`). Steam is offered whenever `SITE_URL` is set.
 `STEAM_WEB_API_KEY`, new accounts take the player's public Steam name and avatar; without it they start
 unnamed. The key is a Convex environment variable and is never committed.
 
+`steam_profile_lookups` keeps the latest lookup outcome and check time for each Steam identity.
+It distinguishes failed requests, missing profile fields, and complete results without storing request
+addresses or exception messages. A failed profile lookup does not prevent sign-in, and snapshots omit
+these diagnostic rows. A sign-in after account deletion creates a fresh profile from the provider defaults.
+
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old
 callback registration for rollback. Removing the two `CUSTOM_AUTH_*` variables
