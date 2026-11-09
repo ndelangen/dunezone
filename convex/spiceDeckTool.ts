@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { TOOL_HIDDEN_RULESETS } from '../src/shared/rulesets/hidden';
 import { publicQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
 import { rulesetDeck } from './lib/rulesetSlots';
@@ -21,10 +22,13 @@ export const decks = publicQuery({
   args: {},
   returns: v.array(spiceDeckChoiceValidator),
   handler: async (ctx) => {
-    const rulesets = await ctx.db
-      .query('rulesets')
-      .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
-      .take(RULESET_LIMIT);
+    /* A Ruleset for trying things out is never offered, as the other tools leave it out too. */
+    const rulesets = (
+      await ctx.db
+        .query('rulesets')
+        .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
+        .take(RULESET_LIMIT)
+    ).filter((ruleset) => !TOOL_HIDDEN_RULESETS.has(ruleset.slug));
     /* Every ruleset's slot and asset are read together rather than one ruleset after another. */
     const decks = await Promise.all(rulesets.map((ruleset) => rulesetDeck(ctx, ruleset._id, 'spice')));
     return rulesets.flatMap((ruleset, index) => {

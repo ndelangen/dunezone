@@ -1,5 +1,6 @@
 import { SPICE_STRENGTH_TIERS } from '@shared/play/battleDialing';
 import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
+import { TOOL_HIDDEN_RULESETS } from '@shared/rulesets/hidden';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
@@ -60,8 +61,6 @@ export const Route = createFileRoute('/_tool/tools/battle-wheel')({
 /* The Ruleset a first visit counts with, and whose first six factions, in its own order, are offered before any search. */
 const BASE_RULESET = 'gf9';
 const BASE_FACTIONS = 6;
-/* A Ruleset for trying things out, never offered at a table. */
-const HIDDEN_RULESETS = new Set(['test']);
 
 const BATTLE_WHEEL_LEDE =
   'The Dune board game’s battle wheel on a phone: pick your leader and dial your troops, and see the dial and your total strength, counted the way your Ruleset dials.';
@@ -84,7 +83,7 @@ function BattleWheelPage() {
 
 function LiveBattleWheel() {
   const { data } = useBattleWheelRulesets();
-  const shown = useMemo(() => data?.filter((entry) => !HIDDEN_RULESETS.has(entry.slug)), [data]);
+  const shown = useMemo(() => data?.filter((entry) => !TOOL_HIDDEN_RULESETS.has(entry.slug)), [data]);
   const rulesets = useMemo(
     () => shown?.map((entry): WheelRuleset => ({ id: entry.rulesetId, name: entry.name, dialing: entry.dialing })),
     [shown]

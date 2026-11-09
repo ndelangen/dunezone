@@ -357,6 +357,26 @@ describe('resync', () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers);
   });
 
+  test('past its budget a resync offers what Steam said last instead of asking again', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
+    const steamFetch = vi.fn(async () =>
+      Response.json({ response: { players: [{ personaname: 'Muad Dib', avatarfull: 'https://a.example/full.jpg' }] } })
+    );
+    vi.stubGlobal('fetch', steamFetch);
+    const t = setup();
+    const own = await account(t, 'oldname', 'steam');
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const result = await viewer(t, own).action(api.accountResync.resync, {});
+      expect(result).toMatchObject({ kind: 'applied', applied: { profile: { username: 'MuadDib' } } });
+    }
+    expect(steamFetch).toHaveBeenCalledTimes(5);
+    /* The budget is each account's own: someone else is still asked live. */
+    const other = await account(t, 'othername', 'steam');
+    await viewer(t, other).action(api.accountResync.resync, {});
+    expect(steamFetch).toHaveBeenCalledTimes(6);
+    await t.finishAllScheduledFunctions(vi.runAllTimers);
+  });
+
   test('a failed Steam lookup keeps the last report instead of blanking it', async () => {
     vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
     vi.stubGlobal(
