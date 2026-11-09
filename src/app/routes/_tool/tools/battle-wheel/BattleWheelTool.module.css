@@ -36,8 +36,7 @@
 }
 
 .emblem,
-.factionToken,
-.lockedToken {
+.factionToken {
   display: block;
   flex: 0 0 auto;
   width: 40px;
@@ -47,8 +46,7 @@
 }
 
 .emblem svg,
-.factionToken svg,
-.lockedToken svg {
+.factionToken svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -57,19 +55,6 @@
 .factionToken {
   width: 48px;
   height: 48px;
-}
-
-.lockedCover {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.lockedToken {
-  width: 45%;
-  height: auto;
-  aspect-ratio: 1;
 }
 
 .whoWords {
@@ -123,14 +108,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-}
-
-.leaderRow {
-  display: flex;
-  gap: var(--space-xs);
-  overflow-x: auto;
-  padding: 4px 2px;
-  scroll-snap-type: x mandatory;
 }
 
 .leaderGrid {
@@ -304,84 +281,6 @@
   text-align: center;
 }
 
-.wheelStage {
-  position: relative;
-  width: min(100%, 320px);
-  margin: 0 auto;
-  aspect-ratio: 1;
-}
-
-.wheelSvg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.wheelRim {
-  fill: var(--ui-umber);
-  stroke: var(--ui-brass);
-  stroke-width: 4;
-}
-
-.wheelTurn {
-  transform-box: view-box;
-  transform-origin: 150px 150px;
-  transition: transform 450ms cubic-bezier(0.3, 1.4, 0.5, 1);
-}
-
-.wheelNumber {
-  fill: var(--ui-paper);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 26px;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-
-.wheelWindow {
-  fill: none;
-  stroke: var(--ui-highlight);
-  stroke-width: 4;
-}
-
-.wheelHub {
-  fill: var(--ui-recess);
-  stroke: var(--ui-brass);
-  stroke-width: 3;
-}
-
-.wheelCentre {
-  position: absolute;
-  inset: 22%;
-  display: grid;
-  place-items: center;
-}
-
-.wheelDisc {
-  width: 100%;
-  height: 100%;
-}
-
-.wheelEmpty {
-  color: var(--ui-muted);
-  font-size: 15px;
-}
-
-.wheelHalf {
-  position: absolute;
-  top: 2%;
-  right: 28%;
-  color: var(--ui-highlight);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 26px;
-}
-
-.totalLine {
-  display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: var(--space-sm);
-}
-
 .totalLabel,
 .scoreLabel {
   color: var(--ui-muted);
@@ -389,12 +288,6 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-}
-
-.totalValue {
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 56px;
-  line-height: 1;
 }
 
 .scoreBand {
@@ -437,193 +330,6 @@
 
 .payLine {
   padding-top: var(--space-xs);
-}
-
-.tokenSection {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.tokenTitle {
-  margin: 0;
-}
-
-.tokenGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 6px;
-}
-
-.tokenButton {
-  overflow: hidden;
-  aspect-ratio: 1;
-  padding: 0;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  opacity: 0.3;
-  filter: grayscale(0.7);
-  transition:
-    opacity 100ms,
-    transform 100ms;
-}
-
-.tokenButton svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.tokenButton[aria-pressed="true"] {
-  border-color: var(--ui-brass);
-  opacity: 1;
-  filter: none;
-  transform: translateY(-2px);
-}
-
-.spiceToken {
-  background: radial-gradient(circle at 35% 35%, var(--ui-highlight), var(--ui-brass) 60%, var(--ui-umber));
-  color: var(--ui-black);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 20px;
-}
-
-.footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom));
-  background: var(--ui-recess);
-  border-top: 1px solid var(--ui-raised);
-}
-
-.footerScore {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  color: var(--ui-muted);
-}
-
-.footerScore strong {
-  color: var(--ui-text);
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 28px;
-}
-
-.footerTotal strong {
-  color: var(--ui-highlight);
-  font-size: 40px;
-}
-
-.bigNumbers {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
-
-.bigCell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-sm);
-  border-radius: 12px;
-  background: var(--ui-recess);
-}
-
-.bigDial {
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 64px;
-  line-height: 1;
-}
-
-.sliderRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-sm) var(--space-md);
-  border-radius: 12px;
-  background: var(--ui-recess);
-}
-
-.sliderHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.sliderToken {
-  overflow: hidden;
-  border-radius: 50%;
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
-}
-
-.sliderToken svg {
-  width: 100%;
-  height: 100%;
-}
-
-.revealBody {
-  justify-content: center;
-}
-
-.revealFace {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.revealDisc {
-  width: min(60vw, 240px);
-  height: min(60vw, 240px);
-}
-
-.revealDial {
-  font-family: "C_Advokat_Modern", sans-serif;
-  font-size: 120px;
-  line-height: 1;
-}
-
-.revealTotal {
-  color: var(--ui-muted);
-  font-size: 18px;
-}
-
-.lockedFace {
-  display: grid;
-  place-items: center;
-  min-height: 60dvh;
-  border: 3px solid var(--ui-brass);
-  border-radius: 50%;
-  background: radial-gradient(circle, var(--ui-recess), var(--ui-umber));
-  touch-action: none;
-  user-select: none;
-  aspect-ratio: 1;
-}
-
-.lockedFace:has(.revealFace) {
-  background: var(--ui-recess);
-}
-
-.lockedWords {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--ui-paper);
-  font-weight: 700;
-}
-
-.revealActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
 }
 
 .setup {
@@ -690,4 +396,11 @@
   color: var(--ui-text);
   font-size: 12px;
   cursor: pointer;
+}
+
+
+.failed {
+  margin: 0;
+  color: var(--ui-negative);
+  font-size: 14px;
 }

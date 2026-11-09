@@ -47,6 +47,9 @@ export type WheelFaction = Readonly<{
   faces: readonly WheelFace[];
 }>;
 
+/** A faction as the picker shows it, before its leaders and troops are read: enough to draw its token. */
+export type FactionChoice = Pick<WheelFaction, 'id' | 'name' | 'emblem' | 'background'>;
+
 export type WheelRuleset = Readonly<{ id: string; name: string; dialing: BattleDialing }>;
 
 /**

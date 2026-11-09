@@ -81,3 +81,15 @@ export const SpiceDeck = meta.story({
     await expect(page.findByText('Pick the deck your table plays with')).resolves.toBeVisible();
   },
 });
+
+/** The battle wheel: at its own address, counting a leader and troops the way the picked Ruleset dials. */
+export const BattleWheel = meta.story({
+  args: { path: '/tools/battle-wheel' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Battle wheel' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+  },
+});

@@ -1,4 +1,5 @@
 import {
+  CircleGauge,
   ClipboardList,
   Eye,
   Download,
@@ -26,7 +27,7 @@ import type { LucideIcon } from 'lucide-react';
  * The standalone tools at /tools: small helpers for a game of Dune at a real table.
  * Every tool is public, works signed out, is made for a phone first and follows the Ruleset the table plays.
  * Tools ship one at a time, like the tutorials: a tool not built shows as coming soon, and its address renders a placeholder that says what it will do.
- * The spice deck is the first built; each tool's route adds itself here by setting `built`.
+ * The spice deck was the first built; each tool's route adds itself here by setting `built`.
  */
 
 export type ToolGroup = 'Before the game' | 'During the game' | 'Make and export';
@@ -128,6 +129,22 @@ const TOOL_ENTRIES = [
       { icon: Layers, title: 'Your deck', detail: 'The spice deck of any ruleset.' },
       { icon: Percent, title: 'The odds', detail: 'The chance of Shai-Hulud next.' },
       { icon: Smartphone, title: 'At the table', detail: 'One phone, no cards to shuffle.' },
+    ],
+    built: true,
+  },
+  {
+    slug: 'battle-wheel',
+    title: 'Battle wheel',
+    goal: 'Dial a leader and troops, and see your dial and total strength',
+    statement:
+      'Pick your leader and dial your troops on a phone, and see the dial and your total strength, counted the way your Ruleset dials, for any faction on Dune Zone.',
+    icon: CircleGauge,
+    art: '/tools/battle-wheel.webp',
+    group: 'During the game',
+    capabilities: [
+      { icon: Users, title: 'Any faction', detail: 'Its own leaders and troops.' },
+      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Spice and dialing as your Ruleset counts.' },
+      { icon: Smartphone, title: 'At the table', detail: 'One phone per player, no wheel to turn.' },
     ],
     built: true,
   },
