@@ -184,7 +184,8 @@ function PickingView({
   const { locking, failed, start } = useLocking(lockTime, lock);
   const size = useActionSize();
   const onLock = () => {
-    if (state.faction && state.turn && !locking) {
+    /* Busy, the action ignores a second press, so only the picks need checking. */
+    if (state.faction && state.turn) {
       void start({ faction: state.faction, turn: state.turn, timeZone });
     }
   };
