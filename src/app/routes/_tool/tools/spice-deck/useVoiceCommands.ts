@@ -80,10 +80,12 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
       if (!active) {
         return;
       }
+      /* One step per hearing: a second command in the same event would act on the game before the first has landed. */
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const command = commandIn(event.results[i]?.[0]?.transcript ?? '');
         if (command) {
           handler.current(command);
+          return;
         }
       }
     };
@@ -93,7 +95,8 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
       }
     };
     recognition.onerror = (event) => {
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+      /* No permission or no microphone: stop for good until the player switches listening on again. */
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
         active = false;
         setRefused(true);
       }

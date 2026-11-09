@@ -532,13 +532,17 @@ function Table({
       return;
     }
     const measure = () => {
+      /* The content box: the stage's padding is room for outlines, not for cards. */
       const { width, height } = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
       const gap = 12;
       const caption = 22;
       const widthFor = (across: number) => {
         const down = Math.ceil(pileCount / across);
-        const byWidth = (width - gap * (across - 1)) / across - 2 * (SIDE + SIDE_GAP);
-        const byHeight = ((height - gap * (down - 1)) / down - caption) * CARD_RATIO;
+        const byWidth = (width - padX - gap * (across - 1)) / across - 2 * (SIDE + SIDE_GAP);
+        const byHeight = ((height - padY - gap * (down - 1)) / down - caption) * CARD_RATIO;
         return Math.min(byWidth, byHeight);
       };
       const best = Math.max(...Array.from({ length: pileCount }, (_, index) => widthFor(index + 1)));

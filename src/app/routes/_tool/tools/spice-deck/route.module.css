@@ -201,10 +201,16 @@
   --card-w: 45%;
   display: flex;
   flex-wrap: wrap;
-  align-content: center;
+  /* Safe: when the smallest cards still need more rows than fit, they start at the top and scroll instead of hiding under the header. */
+  align-content: safe center;
   justify-content: center;
   gap: 12px;
   height: calc(100dvh - var(--chrome) - 2 * var(--space-sm));
+  overflow-y: auto;
+  /* Room inside the scroll box for the next pile's outline, which would otherwise be clipped at the edge. */
+  box-sizing: border-box;
+  margin-inline: -8px;
+  padding: 8px;
 }
 
 .hint {
