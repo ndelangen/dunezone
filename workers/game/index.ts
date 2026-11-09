@@ -38,6 +38,8 @@ import type {
 } from '../../src/shared/play/protocol';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
+  OUTDATED_PAGE_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   PASS_EXPIRED_CLOSE_CODE,
@@ -1130,9 +1132,26 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.canAdmit(socket, connection)) {
       return;
     }
+    if (request.protocol !== PLAY_PROTOCOL_VERSION) {
+      this.refuseProtocol(socket, request.protocol);
+      return;
+    }
     connection.admitting = true;
     connection.replaces = request.replaces;
     await this.admitWithPass(socket, connection, request.pass);
+  }
+
+  /*
+   * A page on another protocol never sees the table. An older one, a tab opened before a deploy, is told to refresh and stops.
+   * A newer one meets a Worker that is not updated yet, so it closes as a restart does and the page tries again.
+   */
+  private refuseProtocol(socket: WebSocket, protocol: number) {
+    this.disconnect(socket);
+    if (protocol < PLAY_PROTOCOL_VERSION) {
+      socket.close(OUTDATED_PAGE_CLOSE_CODE, 'Refresh the page to continue.');
+      return;
+    }
+    socket.close(1012, 'The table is being updated.');
   }
 
   /*

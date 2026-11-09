@@ -36,6 +36,7 @@ import {
   serverMessageSchema,
   serverClockSchema,
 } from '../../src/shared/play/protocol.ts';
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol.ts';
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
@@ -732,7 +733,7 @@ export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> 
 /** Admits the suffix's synthetic account with a seat pass and waits for the first view. */
 export async function admitPlayer(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', pass: await fixturePass(suffix, overrides) });
+  connection.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass(suffix, overrides) });
   await connection.message('view');
   return connection;
 }

@@ -197,6 +197,21 @@ pointers expire on the Worker alone, which broadcasts each removal.
 Account deletion has a durable Convex notification with acknowledgment after the SQLite change, so
 a disconnected account can lose its seat without reconnecting first.
 
+### Protocol version
+
+The page and the game Worker deploy separately, and the Worker deploys first, so a tab opened
+before a deploy can meet a newer Worker. Every `admit` message names the page's
+`PLAY_PROTOCOL_VERSION` (`src/shared/play/protocol.ts`), and the room admits only its own version,
+before it checks the pass or sends anything about the table. An older page is closed with
+`OUTDATED_PAGE_CLOSE_CODE` (4426) and stops with "This table needs a newer version of the page.
+Refresh to continue.", the same line it shows when a frame from the Worker does not parse. A newer
+page, which meets a Worker that is not updated yet, is closed with 1012 like a restart and tries
+again.
+
+Bump the version in any change after which an older page could misread a message or send one the
+Worker now reads differently, even when every message still parses. A change that only adds an
+optional field both sides ignore when absent does not need it.
+
 ## Provisioning and transport
 
 A real game is provisioned when a signed-in player creates it (`playGames.createGame`). No operator
