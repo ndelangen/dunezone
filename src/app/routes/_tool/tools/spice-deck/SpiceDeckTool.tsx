@@ -183,13 +183,15 @@ type Step = Readonly<{ mode: 'deal' | 'aside'; blow: Blow; reveal: Extract<Revea
 /* The card the last step turned over or set aside, if it was one. */
 function stepOf(game: SpiceDeckGame, last: Readonly<{ kind: string }> | undefined): Step | undefined {
   const mode = last?.kind;
-  const blow = game.blows.at(-1);
-  const reveal = blow?.reveals.at(-1);
-  if ((mode !== 'deal' && mode !== 'aside') || !blow || !reveal || reveal.card === null) {
+  if (mode !== 'deal' && mode !== 'aside') {
     return undefined;
   }
-  return { mode, blow, reveal };
+  const blow = game.blows.at(-1);
+  const reveal = blow?.reveals.at(-1);
+  return blow && isCard(reveal) ? { mode, blow, reveal } : undefined;
 }
+
+const isCard = (reveal: Reveal | undefined): reveal is Step['reveal'] => reveal !== undefined && reveal.card !== null;
 
 /* A landed step as the voice reads it; a deal that found the deck empty reshuffled it first, and the table hears that before the card. */
 function stepSentence(game: SpiceDeckGame, { mode, blow, reveal }: Step): string {
