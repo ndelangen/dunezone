@@ -83,7 +83,12 @@ export const FACTIONS: readonly FactionToken[] = [
  * Hunter Seeker is up for bid now: Atreides has seen it, and nobody owns it yet.
  */
 export function midGameTracker(): TrackerState {
-  const steps: TrackerAction[] = [
+  /* A card comes up for bid in turn 1 and the faction named wins it. */
+  const bought = (card: string, faction: string): Step[] => [
+    { kind: 'bid', card, turn: 1 },
+    (tracker) => ({ kind: 'win', sighting: tracker.seen[0]!.id, faction }),
+  ];
+  const steps: Step[] = [
     { kind: 'add', faction: 'house-atreides', card: 'shield#1' },
     { kind: 'add', faction: 'house-harkonnen', card: null },
     { kind: 'add', faction: 'house-harkonnen', card: null },
@@ -91,32 +96,25 @@ export function midGameTracker(): TrackerState {
     { kind: 'add', faction: 'spacing-guild', card: null },
     { kind: 'add', faction: 'fremen', card: null },
     { kind: 'add', faction: 'bene-gesserit', card: null },
-    { kind: 'add', faction: 'house-harkonnen', card: 'crysknife#1' },
+    ...bought('crysknife#1', 'house-harkonnen'),
     { kind: 'add', faction: 'house-harkonnen', card: null },
-    { kind: 'add', faction: 'emperor', card: 'snooper#2' },
-    { kind: 'add', faction: 'house-atreides', card: 'karama#1' },
-    { kind: 'add', faction: 'fremen', card: 'weather-control#1' },
-    { kind: 'add', faction: 'bene-gesserit', card: 'chaumas#1' },
+    ...bought('snooper#2', 'emperor'),
+    ...bought('karama#1', 'house-atreides'),
+    ...bought('weather-control#1', 'fremen'),
+    ...bought('chaumas#1', 'bene-gesserit'),
+    ...bought('snooper#1', 'spacing-guild'),
     { kind: 'place', card: 'snooper#1', at: 'discard' },
+    { kind: 'bid', card: 'hunter-seeker#1', turn: 2 },
   ];
   const state = steps.reduce(
-    (tracker, step) => trackerReducer(tracker, step),
+    (tracker, step) => trackerReducer(tracker, typeof step === 'function' ? step(tracker) : step),
     newTracker(
       DREAMRULES_DECK,
       FACTIONS.map((faction) => faction.id)
     )
   );
-  return {
-    ...state,
-    notes: { emperor: 'No projectile defense: lost a leader to a Maula Pistol in turn 1' },
-    seen: [
-      { id: 'seen-hunter-seeker-1', card: 'hunter-seeker#1', turn: 2 },
-      { id: 'seen-snooper-1', card: 'snooper#1', turn: 1 },
-      { id: 'seen-chaumas-1', card: 'chaumas#1', turn: 1 },
-      { id: 'seen-weather-control-1', card: 'weather-control#1', turn: 1 },
-      { id: 'seen-karama-1', card: 'karama#1', turn: 1 },
-      { id: 'seen-snooper-2', card: 'snooper#2', turn: 1 },
-      { id: 'seen-crysknife-1', card: 'crysknife#1', turn: 1 },
-    ],
-  };
+  return { ...state, notes: { emperor: 'No projectile defense: lost a leader to a Maula Pistol in turn 1' } };
 }
+
+/* A step of the story's game: an action, or one built from the tracker so far, such as a win naming the newest auction. */
+type Step = TrackerAction | ((tracker: TrackerState) => TrackerAction);

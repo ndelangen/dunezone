@@ -2,7 +2,7 @@ import { HoverCard, Popover, Stack, Text, Tooltip, UnstyledButton } from '@manti
 import { AddAction } from '@ui/control/ListLengthActions';
 import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useReducer, useState } from 'react';
 
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
@@ -180,6 +180,18 @@ export function AddCard({
 
 type SlotMode = 'menu' | 'give' | 'identify' | 'discard';
 
+/* A hand card's popover: closed, or open at one step. Every event names the whole next state, so closing always returns it to the menu. */
+type SlotPopover = Readonly<{ open: boolean; mode: SlotMode }>;
+type SlotEvent = Readonly<{ type: 'open' } | { type: 'close' } | { type: 'step'; mode: SlotMode }>;
+const SLOT_CLOSED: SlotPopover = { open: false, mode: 'menu' };
+
+function slotPopover(_state: SlotPopover, event: SlotEvent): SlotPopover {
+  if (event.type === 'open') {
+    return { open: true, mode: 'menu' };
+  }
+  return event.type === 'close' ? SLOT_CLOSED : { open: true, mode: event.mode };
+}
+
 type SlotStepProps = Readonly<{
   faction: string;
   slot: Slot;
@@ -268,13 +280,10 @@ export function SlotChip({
   onAction: (action: TrackerAction) => void;
   children: ReactNode;
 }>) {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<SlotMode>('menu');
+  const [{ open, mode }, send] = useReducer(slotPopover, SLOT_CLOSED);
   const card = slot.card ? copyOf(state, slot.card) : null;
-  const close = () => {
-    setOpen(false);
-    setMode('menu');
-  };
+  const close = () => send({ type: 'close' });
+  const setMode = (next: SlotMode) => send({ type: 'step', mode: next });
   const act = (action: TrackerAction) => {
     onAction(action);
     close();
@@ -282,7 +291,7 @@ export function SlotChip({
   return (
     <Popover
       opened={open}
-      onChange={(next) => (next ? setOpen(true) : close())}
+      onChange={(next) => send({ type: next ? 'open' : 'close' })}
       position="bottom"
       withinPortal
       shadow="md"
@@ -294,7 +303,7 @@ export function SlotChip({
             <UnstyledButton
               className={styles.slotButton}
               aria-label={card ? card.def.name : 'Unknown card'}
-              onClick={() => (open ? close() : setOpen(true))}
+              onClick={() => send({ type: open ? 'close' : 'open' })}
             >
               {children}
             </UnstyledButton>

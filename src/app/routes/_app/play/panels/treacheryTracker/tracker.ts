@@ -38,8 +38,11 @@ export type CardDef = Readonly<{
 /** One physical card: a definition and which of its copies this is. */
 export type CardCopy = Readonly<{ id: string; def: CardDef; copy: number }>;
 
-/** Where a known card was before it went into a slot, so taking the slot back as a mistake returns it there. */
-type Origin = Readonly<{ at: 'discard' } | { at: 'hand'; faction: string; slot: string }>;
+/**
+ * Where a card was before it went into a slot, so taking the slot back as a mistake returns it there.
+ * A hand remembers that slot's own origin too, so taking back a chain of moves walks the card all the way back.
+ */
+type Origin = Readonly<{ at: 'discard' } | { at: 'hand'; faction: string; slot: string; from?: Origin }>;
 
 /**
  * A place in a faction's hand: a card Atreides knows, or one it only knows is there (`card` null).
@@ -196,7 +199,19 @@ function withoutCard(state: TrackerState, card: string): TrackerState {
 /* Where a known card is now, as the origin a slot that takes it remembers; the deck needs no memory. */
 function originOf(state: TrackerState, card: string): Origin | undefined {
   const place = placeOf(state, card);
-  return place.at === 'deck' ? undefined : place;
+  if (place.at !== 'hand') {
+    return place.at === 'deck' ? undefined : place;
+  }
+  return handOrigin(place.faction, findSlot(state, place.faction, place.slot));
+}
+
+function handOrigin(faction: string, slot: Slot): Origin {
+  return slot.from ? { at: 'hand', faction, slot: slot.id, from: slot.from } : { at: 'hand', faction, slot: slot.id };
+}
+
+/* The slot as it was in the hand it came from, with that slot's own origin. */
+function slotFrom(id: string, card: string | null, from: Origin | undefined): Slot {
+  return from ? { id, card, from } : { id, card };
 }
 
 /* The auction a card settles: the oldest one still waiting on that card. */
@@ -217,7 +232,13 @@ function restoreOrigin(state: TrackerState, slot: Slot): TrackerState {
   if (from.at === 'discard') {
     return { ...state, discard: [...state.discard, card] };
   }
-  return updateHand(state, from.faction, (slots) => [...slots, { id: from.slot, card }]);
+  return updateHand(state, from.faction, (slots) => [...slots, slotFrom(from.slot, card, from.from)]);
+}
+
+/* A card given on, taken back: it returns to the hand that gave it, as the same slot, so its auction still follows it. */
+function ungive(state: TrackerState, faction: string, slot: Slot, from: Extract<Origin, { at: 'hand' }>): TrackerState {
+  const removed = withoutSlot(state, faction, slot.id);
+  return updateHand(removed, from.faction, (slots) => [...slots, slotFrom(slot.id, slot.card, from.from)]);
 }
 
 function updateHand(state: TrackerState, faction: string, change: (slots: readonly Slot[]) => readonly Slot[]) {
@@ -291,10 +312,15 @@ const HANDLERS: Handlers = {
   },
   give: (state, { faction, slot, to }) => {
     const moving = findSlot(state, faction, slot);
-    return updateHand(withoutSlot(state, faction, slot), to, (slots) => [...slots, moving]);
+    /* The slot keeps its id, so its auction follows it, and remembers the hand it left. */
+    const given: Slot = { ...moving, from: handOrigin(faction, moving) };
+    return updateHand(withoutSlot(state, faction, slot), to, (slots) => [...slots, given]);
   },
   undo: (state, { faction, slot }) => {
     const taken = findSlot(state, faction, slot);
+    if (taken.from?.at === 'hand' && taken.from.slot === taken.id) {
+      return ungive(state, faction, taken, taken.from);
+    }
     const removed = withoutSlot(releaseSlots(state, new Set([slot]), true), faction, slot);
     /* A winner taken back leaves its card on bid again, in the deck, rather than where the card was before. */
     return state.seen.some((sighting) => sighting.slot === slot) ? removed : restoreOrigin(removed, taken);

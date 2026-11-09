@@ -1,14 +1,15 @@
 import { Popover, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ArrowDownToLine, ChevronLeft, ChevronRight, CircleHelp, Eye, Layers, NotebookPen, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
 import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import styles from './AuctionTracker.module.css';
 import { CardGlyph, CardPreview, UnknownGlyph, faceAt } from './CardArt';
 import { DeckFooter } from './DeckFooter';
-import { awaitingWinner, copyOf, currentTurn, onBid as cardOnBid, sightingCard } from './tracker';
+import { awaitingWinner, copyOf, currentTurn, drawPile, onBid as cardOnBid, sightingCard } from './tracker';
 import type { CardCopy, Sighting, TrackerAction } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
@@ -112,7 +113,7 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
       <Popover.Dropdown className={styles.dropdown}>
         <CardChooser
           state={state}
-          allowUnknown
+          allowUnknown={drawPile(state).count > 0}
           forBid
           onPick={(card) => {
             onAction({ kind: 'bid', card, turn });
@@ -199,6 +200,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
         icon={<CircleHelp size={15} />}
         size="sm"
         emphasis="quiet"
+        disabledReason={drawPile(state).count > 0 ? undefined : 'Every card is accounted for: none is left to draw.'}
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
       />
       <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
@@ -354,12 +356,15 @@ function HandNote({
   editing,
   onDone,
   onAction,
+  toggle,
 }: Readonly<{
   faction: FactionToken;
   note: string;
   editing: boolean;
   onDone: () => void;
   onAction: (action: TrackerAction) => void;
+  /** The button that opens and closes the editor: focus moving to it saves, and its own click closes. */
+  toggle: RefObject<HTMLButtonElement | null>;
 }>) {
   if (!editing) {
     return note ? (
@@ -379,7 +384,9 @@ function HandNote({
       aria-label={`Your note on ${faction.name}`}
       onBlur={(event) => {
         onAction({ kind: 'note', faction: faction.id, text: event.currentTarget.value.trim() });
-        onDone();
+        if (event.relatedTarget !== toggle.current) {
+          onDone();
+        }
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter') {
@@ -397,6 +404,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
   const slots = state.hands[faction.id] ?? [];
   const note = state.notes[faction.id] ?? '';
   const [editing, setEditing] = useState(false);
+  const toggle = useRef<HTMLButtonElement>(null);
   return (
     <div className={styles.handRow}>
       <FactionTokenFace token={faction} size={GLYPH} />
@@ -422,9 +430,17 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
         size="sm"
         emphasis="quiet"
         pressed={editing}
+        ref={toggle}
         onClick={() => setEditing((was) => !was)}
       />
-      <HandNote faction={faction} note={note} editing={editing} onDone={() => setEditing(false)} onAction={onAction} />
+      <HandNote
+        faction={faction}
+        note={note}
+        editing={editing}
+        onDone={() => setEditing(false)}
+        onAction={onAction}
+        toggle={toggle}
+      />
     </div>
   );
 }

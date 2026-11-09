@@ -317,3 +317,27 @@ test('a winner taken back as a mistake leaves the card it was named as on bid, i
   expect(placeOf(state, 'lasgun#1').at).toBe('deck');
   expect(state.hands.emperor).toEqual([]);
 });
+
+test('a card given on and taken back returns to the hand that gave it, still won at its auction', () => {
+  const state = run(
+    { kind: 'bid', card: null, turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' },
+    { kind: 'give', faction: 'emperor', slot: 'slot-2', to: 'atreides' },
+    { kind: 'undo', faction: 'atreides', slot: 'slot-2' }
+  );
+  expect(state.hands.emperor).toEqual([{ id: 'slot-2', card: null }]);
+  expect(state.hands.atreides).toEqual([]);
+  expect(onBid(state)).toBeUndefined();
+});
+
+test('taking back a chain of moves walks a card back to the discard pile it started in', () => {
+  const state = run(
+    { kind: 'place', card: 'lasgun#1', at: 'discard' },
+    { kind: 'add', faction: 'emperor', card: 'lasgun#1' },
+    { kind: 'add', faction: 'atreides', card: 'lasgun#1' },
+    { kind: 'undo', faction: 'atreides', slot: 'slot-2' },
+    { kind: 'undo', faction: 'emperor', slot: 'slot-1' }
+  );
+  expect(placeOf(state, 'lasgun#1').at).toBe('discard');
+  expect(Object.values(state.hands).flat()).toEqual([]);
+});
