@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect } from 'storybook/test';
 
 import { TOOLS } from './_app/tools/tools';
 import { expectWithinWidth } from './pagePlay';
