@@ -166,6 +166,7 @@ describe('AppRoot page header', () => {
       { href: '/glossary', label: 'Glossary' },
       { href: '/contributing', label: 'Contributing' },
       { href: '/future-plans', label: 'Future plans' },
+      { href: '/tools', label: 'Tools' },
       { href: '/privacy', label: 'Privacy policy' },
       {
         href: 'https://discord.com/invite/dune-tabletop-624609341886169117',

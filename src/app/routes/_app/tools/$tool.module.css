@@ -1,0 +1,12 @@
+/* A planned tool's page: the card asking readers to shape the tool. */
+.shape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md) var(--space-lg);
+}
+
+.shapeWords {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
