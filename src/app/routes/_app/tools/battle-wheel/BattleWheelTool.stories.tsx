@@ -1,9 +1,13 @@
 import preview from '@sb/preview';
+import { useState } from 'react';
 import { expect } from 'storybook/test';
+
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
 
 import { STORY_FACTIONS, STORY_RULESETS } from './battleWheel.stories.fixture';
 import { BattleWheelTool } from './BattleWheelTool';
-import type { WheelLook } from './BattleWheelTool';
+import type { FactionSearch, WheelLook } from './BattleWheelTool';
 import type { WheelState } from './useBattleWheel';
 
 /*
@@ -24,13 +28,49 @@ const EMPEROR: WheelState = {
   plan: { leaderId: 'emperor-0', leaderX: 0, troops: { 'emperor-0': 3, 'emperor-1': 2 }, spice: 2 },
 };
 
+/* The base game's six come first; search reaches every faction on Dune Zone (here, GF9's twelve). */
+const STARTING = STORY_FACTIONS.slice(0, 6);
+const PUBLISHED_TOKEN: Readonly<Record<string, string>> = {
+  atreides: 'house-atreides',
+  harkonnen: 'house-harkonnen',
+  emperor: 'emperor',
+  'spacing-guild': 'spacing-guild',
+  fremen: 'fremen',
+  'bene-gesserit': 'bene-gesserit',
+};
+const TOKENS: readonly FactionToken[] = STORY_FACTIONS.map((faction) => ({
+  id: faction.id,
+  name: faction.name,
+  src: PUBLISHED_TOKEN[faction.id] && `/play-fixtures/product/${PUBLISHED_TOKEN[faction.id]}-token.jpg`,
+}));
+
+const StorySearch: FactionSearch = ({ seated, onPick }) => {
+  const [query, setQuery] = useState('');
+  const found = TOKENS.filter((token) => token.name.toLowerCase().includes(query.trim().toLowerCase()));
+  return (
+    <FactionSearchList
+      query={query}
+      onQuery={setQuery}
+      factions={found}
+      seated={seated}
+      status="done"
+      onMore={() => undefined}
+      onPick={onPick}
+    />
+  );
+};
+
+const loadStoryFaction = async (token: FactionToken) => STORY_FACTIONS.find((faction) => faction.id === token.id)!;
+
 function story(look: WheelLook, initial: WheelState = EMPEROR, name: string = look) {
   return (
     <BattleWheelTool
       storageKey={`battle-wheel-story-${name}`}
       initial={initial}
       rulesets={STORY_RULESETS}
-      factions={STORY_FACTIONS}
+      factions={STARTING}
+      search={StorySearch}
+      loadFaction={loadStoryFaction}
       look={look}
     />
   );

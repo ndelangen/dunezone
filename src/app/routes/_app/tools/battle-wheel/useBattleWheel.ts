@@ -1,10 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { EMPTY_PLAN } from './battleWheel';
-import type { WheelPlan } from './battleWheel';
+import type { WheelFaction, WheelPlan } from './battleWheel';
 
 /* What this browser remembers between battles: the table's Ruleset, the player's faction and the plan on the wheel. */
-export type WheelState = Readonly<{ rulesetId: string; factionId: string; plan: WheelPlan }>;
+export type WheelState = Readonly<{
+  rulesetId: string;
+  factionId: string;
+  plan: WheelPlan;
+  /** Factions found by search and kept here, beside the starting ones, so they stay one tap away. */
+  added?: readonly WheelFaction[];
+}>;
 
 function read(storageKey: string): WheelState | null {
   try {
@@ -35,6 +41,16 @@ export function useBattleWheel(storageKey: string, initial: WheelState) {
       })),
     []
   );
+  const add = useCallback(
+    (faction: WheelFaction) =>
+      setState((was) => ({
+        ...was,
+        factionId: faction.id,
+        plan: faction.id === was.factionId ? was.plan : EMPTY_PLAN,
+        added: [...(was.added ?? []).filter((known) => known.id !== faction.id), faction],
+      })),
+    []
+  );
   const clear = useCallback(() => setState((was) => ({ ...was, plan: EMPTY_PLAN })), []);
-  return { state, setPlan, choose, clear };
+  return { state, setPlan, choose, add, clear };
 }

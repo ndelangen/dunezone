@@ -1,14 +1,18 @@
 import { Drawer, Slider } from '@mantine/core';
 import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
+import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import clsx from 'clsx';
 import { Check, Eye, Lock, Minus, Plus, RotateCcw, Settings2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { TrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { Token } from '@game/assets/faction/token/Token';
 import { TroopToken } from '@game/assets/faction/troop/Troop';
 
 import {
@@ -38,9 +42,18 @@ type ToolProps = Readonly<{
   storageKey: string;
   initial: WheelState;
   rulesets: readonly WheelRuleset[];
+  /** The factions offered first, before any search: the base game's six. */
   factions: readonly WheelFaction[];
+  /** A search over every faction on Dune Zone, handed in by the page, which reads the server. */
+  search: FactionSearch;
+  /** Reads a picked faction's leaders and troops. */
+  loadFaction: (token: FactionToken) => Promise<WheelFaction>;
   look: WheelLook;
 }>;
+
+export type FactionSearch = ComponentType<
+  Readonly<{ seated: readonly string[]; onPick: (faction: FactionToken) => void }>
+>;
 
 type Wheel = Readonly<{
   ruleset: WheelRuleset;
@@ -50,8 +63,21 @@ type Wheel = Readonly<{
   result: WheelResult;
 }>;
 
-export function BattleWheelTool({ storageKey, initial, rulesets, factions, look }: ToolProps) {
-  const { state, setPlan, choose, clear } = useBattleWheel(storageKey, initial);
+export function BattleWheelTool({
+  storageKey,
+  initial,
+  rulesets,
+  factions: starting,
+  search: Search,
+  loadFaction,
+  look,
+}: ToolProps) {
+  const { state, setPlan, choose, add, clear } = useBattleWheel(storageKey, initial);
+  const [loading, setLoading] = useState<string | null>(null);
+  const factions = [
+    ...starting,
+    ...(state.added ?? []).filter((added) => !starting.some((known) => known.id === added.id)),
+  ];
   const [setup, setSetup] = useState(false);
   const ruleset = rulesets.find((candidate) => candidate.id === state.rulesetId) ?? rulesets[0]!;
   const faction = factions.find((candidate) => candidate.id === state.factionId) ?? factions[0]!;
@@ -63,78 +89,100 @@ export function BattleWheelTool({ storageKey, initial, rulesets, factions, look 
     result: wheelResult(ruleset, faction, state.plan),
   };
   return (
-    <div className={styles.tool}>
-      <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.who}
-          aria-label={`${faction.name} on ${ruleset.name}: change`}
-          onClick={() => setSetup(true)}
-        >
-          <img className={styles.emblem} src={faction.emblem} alt="" />
-          <span className={styles.whoWords}>
-            <span className={styles.factionName}>{faction.name}</span>
-            <span className={styles.rulesetName}>
-              {ruleset.name} · {BATTLE_DIALING_OPTIONS[ruleset.dialing].label} dialing
+    <TrackerTouch>
+      <div className={styles.tool}>
+        <header className={styles.header}>
+          <button
+            type="button"
+            className={styles.who}
+            aria-label={`${faction.name} on ${ruleset.name}: change`}
+            onClick={() => setSetup(true)}
+          >
+            <span className={styles.emblem}>
+              <FactionToken faction={faction} />
             </span>
-          </span>
-        </button>
-        <IconAction label="Clear the wheel" emphasis="quiet" icon={<RotateCcw size={20} />} onClick={clear} />
-        <IconAction
-          label="Ruleset and faction"
-          emphasis="quiet"
-          icon={<Settings2 size={20} />}
-          onClick={() => setSetup(true)}
-        />
-      </header>
-      {look === 'wheel' ? <WheelLookBody wheel={wheel} /> : null}
-      {look === 'total' ? <TotalLookBody wheel={wheel} /> : null}
-      {look === 'tokens' ? <TokensLookBody wheel={wheel} /> : null}
-      {look === 'sliders' ? <SlidersLookBody wheel={wheel} /> : null}
-      {look === 'reveal' ? <RevealLookBody wheel={wheel} onDone={clear} /> : null}
-      <Drawer
-        opened={setup}
-        onClose={() => setSetup(false)}
-        position="bottom"
-        size="auto"
-        title="Ruleset and faction"
-        classNames={{ body: styles.setup }}
-      >
-        <p className={styles.setupLabel}>Your table’s Ruleset</p>
-        <div className={styles.rulesets}>
-          {rulesets.map((candidate) => (
-            <button
-              key={candidate.id}
-              type="button"
-              className={styles.choice}
-              aria-pressed={candidate.id === ruleset.id}
-              onClick={() => choose({ rulesetId: candidate.id })}
-            >
-              <strong>{candidate.name}</strong>
-              <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
-            </button>
-          ))}
-        </div>
-        <p className={styles.setupLabel}>Your faction</p>
-        <div className={styles.factions}>
-          {factions.map((candidate) => (
-            <button
-              key={candidate.id}
-              type="button"
-              className={styles.factionChoice}
-              aria-pressed={candidate.id === faction.id}
-              onClick={() => {
-                choose({ factionId: candidate.id });
-                setSetup(false);
+            <span className={styles.whoWords}>
+              <span className={styles.factionName}>{faction.name}</span>
+              <span className={styles.rulesetName}>
+                {ruleset.name} · {BATTLE_DIALING_OPTIONS[ruleset.dialing].label} dialing
+              </span>
+            </span>
+          </button>
+          <IconAction label="Clear the wheel" emphasis="quiet" icon={<RotateCcw size={20} />} onClick={clear} />
+          <IconAction
+            label="Ruleset and faction"
+            emphasis="quiet"
+            icon={<Settings2 size={20} />}
+            onClick={() => setSetup(true)}
+          />
+        </header>
+        {look === 'wheel' ? <WheelLookBody wheel={wheel} /> : null}
+        {look === 'total' ? <TotalLookBody wheel={wheel} /> : null}
+        {look === 'tokens' ? <TokensLookBody wheel={wheel} /> : null}
+        {look === 'sliders' ? <SlidersLookBody wheel={wheel} /> : null}
+        {look === 'reveal' ? <RevealLookBody wheel={wheel} onDone={clear} /> : null}
+        <Drawer
+          opened={setup}
+          onClose={() => setSetup(false)}
+          position="bottom"
+          size="auto"
+          title="Ruleset and faction"
+          classNames={{ body: styles.setup }}
+        >
+          <p className={styles.setupLabel}>Your table’s Ruleset</p>
+          <div className={styles.rulesets}>
+            {rulesets.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                className={styles.choice}
+                aria-pressed={candidate.id === ruleset.id}
+                onClick={() => choose({ rulesetId: candidate.id })}
+              >
+                <strong>{candidate.name}</strong>
+                <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
+              </button>
+            ))}
+          </div>
+          <p className={styles.setupLabel}>Your faction</p>
+          <div className={styles.factions}>
+            {factions.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                className={styles.factionChoice}
+                aria-pressed={candidate.id === faction.id}
+                onClick={() => {
+                  choose({ factionId: candidate.id });
+                  setSetup(false);
+                }}
+              >
+                <span className={styles.factionToken}>
+                  <FactionToken faction={candidate} />
+                </span>
+                <span>{candidate.name}</span>
+              </button>
+            ))}
+          </div>
+          <p className={styles.setupLabel}>Any faction on Dune Zone</p>
+          {loading ? <Pending>{`Reading ${loading}’s leaders and troops…`}</Pending> : null}
+          {setup ? (
+            <Search
+              seated={factions.map((known) => known.id)}
+              onPick={(token) => {
+                setLoading(token.name);
+                void loadFaction(token)
+                  .then((loaded) => {
+                    add(loaded);
+                    setSetup(false);
+                  })
+                  .finally(() => setLoading(null));
               }}
-            >
-              <img src={candidate.emblem} alt="" />
-              <span>{candidate.name}</span>
-            </button>
-          ))}
-        </div>
-      </Drawer>
-    </div>
+            />
+          ) : null}
+        </Drawer>
+      </div>
+    </TrackerTouch>
   );
 }
 
@@ -156,7 +204,7 @@ function Disc({
   );
 }
 
-function Token({ faction, face }: Readonly<{ faction: WheelFaction; face: WheelFace }>) {
+function TroopFace({ faction, face }: Readonly<{ faction: WheelFaction; face: WheelFace }>) {
   return (
     <TroopToken
       background={faction.background}
@@ -166,6 +214,11 @@ function Token({ faction, face }: Readonly<{ faction: WheelFaction; face: WheelF
       striped={face.striped}
     />
   );
+}
+
+/* The faction's own round token, as on the table. */
+function FactionToken({ faction }: Readonly<{ faction: WheelFaction }>) {
+  return <Token background={faction.background} emblem={faction.emblem} />;
 }
 
 /* Leaders as discs in a row the thumb scrolls; a tap picks one, a second tap puts it back. */
@@ -262,7 +315,7 @@ function TroopSteppers({ wheel }: Readonly<{ wheel: Wheel }>) {
       {faction.faces.map((face) => (
         <Stepper
           key={face.id}
-          icon={<Token faction={faction} face={face} />}
+          icon={<TroopFace faction={faction} face={face} />}
           label={face.name}
           detail={faceDetail(wheel, face)}
           value={plan.troops[face.id] ?? 0}
@@ -468,7 +521,7 @@ function TokensLookBody({ wheel }: Readonly<{ wheel: Wheel }>) {
                     aria-label={`Dial ${index + 1} ${face.name}`}
                     onClick={() => setPlan(withTroops(plan, face, index + 1 === count ? index : index + 1))}
                   >
-                    <Token faction={faction} face={face} />
+                    <TroopFace faction={faction} face={face} />
                   </button>
                 ))}
               </div>
@@ -541,7 +594,7 @@ function SlidersLookBody({ wheel }: Readonly<{ wheel: Wheel }>) {
         <div key={face.id} className={styles.sliderRow}>
           <div className={styles.sliderHead}>
             <span className={styles.sliderToken}>
-              <Token faction={faction} face={face} />
+              <TroopFace faction={faction} face={face} />
             </span>
             <span className={styles.stepperWords}>
               <span className={styles.stepperLabel}>{face.name}</span>
@@ -652,7 +705,6 @@ function RevealLookBody({ wheel, onDone }: Readonly<{ wheel: Wheel; onDone: () =
     <main className={clsx(styles.body, styles.revealBody)}>
       <div
         className={styles.lockedFace}
-        style={{ '--emblem': `url(${faction.emblem})` } as CSSProperties}
         onPointerDown={() => setPeeking(true)}
         onPointerUp={() => setPeeking(false)}
         onPointerLeave={() => setPeeking(false)}
@@ -661,8 +713,13 @@ function RevealLookBody({ wheel, onDone }: Readonly<{ wheel: Wheel; onDone: () =
         {peeking ? (
           face
         ) : (
-          <span className={styles.lockedWords}>
-            <Eye size={22} /> Hold to peek
+          <span className={styles.lockedCover}>
+            <span className={styles.lockedToken}>
+              <FactionToken faction={faction} />
+            </span>
+            <span className={styles.lockedWords}>
+              <Eye size={22} /> Hold to peek
+            </span>
           </span>
         )}
       </div>
