@@ -23,6 +23,7 @@ export const Default = meta.story({
     for (const [name, href] of [
       ['Glossary', '/glossary'],
       ['Future plans', '/future-plans'],
+      ['Tools', '/tools'],
       ['Privacy policy', '/privacy'],
       ['Source code', 'https://github.com/ndelangen/dunezone'],
     ]) {
