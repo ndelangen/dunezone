@@ -45,8 +45,8 @@ function playerProfile(player: Record<string, unknown> | undefined): { name?: st
   return { ...(name ? { name } : {}), ...(avatar.startsWith('https://') ? { image: avatar } : {}) };
 }
 
-/* The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
-async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
+/** The player's current public name and avatar. The profile is a convenience: a missing key, a private profile or a slow Steam API only leaves it blank. */
+export async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
   const key = process.env.STEAM_WEB_API_KEY?.trim();
   if (!key) {
     return blank('skipped: STEAM_WEB_API_KEY is not set');
