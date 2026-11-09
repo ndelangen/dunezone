@@ -59,7 +59,10 @@ async function startWorker(): Promise<Miniflare> {
 }
 
 /** Checks one delivery's security headers and that its markup carries the fresh nonce in place of the placeholder, and returns that nonce. */
-async function expectSecuredDelivery(response: Response, cacheState: 'miss' | 'hit'): Promise<string> {
+async function expectSecuredDelivery(
+  response: Awaited<ReturnType<Miniflare['dispatchFetch']>>,
+  cacheState: 'miss' | 'hit'
+): Promise<string> {
   const html = await response.text();
   const nonce = /'nonce-([^']+)'/.exec(response.headers.get('Content-Security-Policy')!)?.[1];
   expect(response.status).toBe(200);
