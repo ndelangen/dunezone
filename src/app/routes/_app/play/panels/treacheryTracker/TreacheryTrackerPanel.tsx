@@ -2,28 +2,17 @@ import { Text } from '@mantine/core';
 import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { tableProgressFor } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
-import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
+
+import { AuctionTracker } from '@app/widgets/treachery-tracker/AuctionTracker';
+import { cardDefs } from '@app/widgets/treachery-tracker/tracker';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { factionToken } from '../../multiplayer/FactionTokenFace';
-import { AuctionTracker } from './AuctionTracker';
 import { tableFacts } from './tableFacts';
-import { CARD_KINDS } from './tracker';
-import type { CardDef, CardKind } from './tracker';
 import { storageKey, trackerStore } from './trackerStore';
 import type { TrackerStore } from './trackerStore';
 import type { TrackerSeat } from './useTrackerSeat';
-
-/* A card's kind is the first word of the line under its name; a card without one counts as a special. */
-function kindOf(detail: string): CardKind {
-  const word = detail.split('-')[0]?.trim().toLowerCase();
-  return CARD_KINDS.find((kind) => kind === word) ?? 'special';
-}
-
-function cardDefs(cards: readonly TreacheryDeckCard[]): CardDef[] {
-  return cards.map((card) => ({ ...card, kind: kindOf(card.detail) }));
-}
 
 function TrackerAtTable({ store, table }: Readonly<{ store: TrackerStore; table: TableProjection }>) {
   const { state } = useSyncExternalStore(store.subscribe, store.get, store.get);

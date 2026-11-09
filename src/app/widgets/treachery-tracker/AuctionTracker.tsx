@@ -1,18 +1,20 @@
-import { Popover, Text, TextInput, UnstyledButton } from '@mantine/core';
+import { Text, TextInput, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
 import { ArrowDownToLine, ChevronLeft, ChevronRight, CircleHelp, Eye, Layers, NotebookPen, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
-import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
-import type { FactionToken } from '../../multiplayer/FactionTokenFace';
+import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+
 import styles from './AuctionTracker.module.css';
-import { CardGlyph, CardPreview, UnknownGlyph, faceAt } from './CardArt';
+import { CardGlyph, CardPreview, SheetCard, UnknownGlyph, faceAt } from './CardArt';
 import { DeckFooter } from './DeckFooter';
 import { awaitingWinner, copyOf, currentTurn, drawPile, onBid as cardOnBid, sightingCard } from './tracker';
 import type { CardCopy, Sighting, TrackerAction } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
+import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /* One size for every card and token in the hands, so the rows line up on a single grid. */
 const GLYPH = 36;
@@ -27,25 +29,40 @@ export function AuctionTracker({
   state,
   onAction,
   tableTurn,
-}: TrackerViewProps & Readonly<{ tableTurn?: number }>) {
+  sections = TRACKER_SECTIONS,
+}: TrackerViewProps &
+  Readonly<{
+    tableTurn?: number;
+    /** The parts to draw, all of them by default; a phone can show them one tab at a time. */
+    sections?: readonly TrackerSection[];
+  }>) {
   return (
     <div className={styles.tracker}>
-      <OnBid factions={factions} state={state} onAction={onAction} tableTurn={tableTurn} />
-      <Auctions factions={factions} state={state} onAction={onAction} />
-      <section className={styles.hands} aria-label="Hands">
-        {factions.map((faction) => (
-          <HandRow key={faction.id} faction={faction} factions={factions} state={state} onAction={onAction} />
-        ))}
-      </section>
-      <DeckFooter factions={factions} state={state} onAction={onAction} />
+      {sections.includes('bid') ? (
+        <OnBid factions={factions} state={state} onAction={onAction} tableTurn={tableTurn} />
+      ) : null}
+      {sections.includes('auctions') ? <Auctions factions={factions} state={state} onAction={onAction} /> : null}
+      {sections.includes('hands') ? (
+        <section className={styles.hands} aria-label="Hands">
+          {factions.map((faction) => (
+            <HandRow key={faction.id} faction={faction} factions={factions} state={state} onAction={onAction} />
+          ))}
+        </section>
+      ) : null}
+      {sections.includes('deck') ? <DeckFooter factions={factions} state={state} onAction={onAction} /> : null}
     </div>
   );
 }
+
+/** The tracker's parts, top to bottom: the card on bid, one turn's auction, the hands, and the deck. */
+export type TrackerSection = 'bid' | 'auctions' | 'hands' | 'deck';
+const TRACKER_SECTIONS: readonly TrackerSection[] = ['bid', 'auctions', 'hands', 'deck'];
 
 function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Readonly<{ tableTurn?: number }>) {
   const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
   const name = card?.def.name ?? 'the unknown card';
+  const touch = useTrackerTouch();
   return (
     <section className={styles.onBid} aria-label="On bid">
       <div className={styles.bidCard}>
@@ -65,7 +82,7 @@ function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Read
         ) : null}
         {onBid ? null : (
           <Text size="sm" className={styles.dim}>
-            Click the empty card to put the next one up for bid.
+            {`${touch ? 'Tap' : 'Click'} the empty card to put the next one up for bid.`}
           </Text>
         )}
         {/* Ending this auction and lining up the next card share one row. */}
@@ -107,16 +124,23 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
   const turn = currentTurn(state, tableTurn);
   const drawable = drawPile(state).count > 0;
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={CHOOSER_WIDTH}>
-      <Popover.Target>
+    <TrackerPopover
+      opened={open}
+      onChange={setOpen}
+      position="bottom-start"
+      withinPortal
+      shadow="md"
+      width={CHOOSER_WIDTH}
+    >
+      <TrackerPopover.Target>
         <UnstyledButton
           className={styles.bidUnknown}
           data-empty="true"
           aria-label="Pick the card up next"
           onClick={() => setOpen((was) => !was)}
         />
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+      </TrackerPopover.Target>
+      <TrackerPopover.Dropdown className={styles.dropdown}>
         {drawable ? (
           <CardChooser
             state={state}
@@ -130,8 +154,8 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
         ) : (
           <Text size="sm">{NOTHING_TO_DRAW}</Text>
         )}
-      </Popover.Dropdown>
-    </Popover>
+      </TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }
 
@@ -150,23 +174,31 @@ function AuctionEnd({
     canName?: boolean;
   }>) {
   const [naming, setNaming] = useState(false);
+  const actionSize = useActionSize();
   return (
     <div className={styles.nextUp}>
       {canName && sighting.card === null && (
-        <Popover opened={naming} onChange={setNaming} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
-          <Popover.Target>
+        <TrackerPopover
+          opened={naming}
+          onChange={setNaming}
+          position="bottom"
+          withinPortal
+          shadow="md"
+          width={CHOOSER_WIDTH}
+        >
+          <TrackerPopover.Target>
             <span>
               <IconAction
                 label="It's this card…"
                 icon={<Eye size={15} />}
-                size="sm"
+                size={actionSize}
                 emphasis="quiet"
                 pressed={naming}
                 onClick={() => setNaming((was) => !was)}
               />
             </span>
-          </Popover.Target>
-          <Popover.Dropdown className={styles.dropdown}>
+          </TrackerPopover.Target>
+          <TrackerPopover.Dropdown className={styles.dropdown}>
             <CardChooser
               state={state}
               allowUnknown={false}
@@ -178,20 +210,20 @@ function AuctionEnd({
                 setNaming(false);
               }}
             />
-          </Popover.Dropdown>
-        </Popover>
+          </TrackerPopover.Dropdown>
+        </TrackerPopover>
       )}
       <IconAction
         label="Nobody bid: back to the deck"
         icon={<ArrowDownToLine size={15} />}
-        size="sm"
+        size={actionSize}
         emphasis="quiet"
         onClick={() => onAction({ kind: 'pass', sighting: sighting.id })}
       />
       <IconAction
         label="Not up for bid (a mistake)"
         icon={<X size={15} />}
-        size="sm"
+        size={actionSize}
         emphasis="quiet"
         onClick={() => onAction({ kind: 'cancel', sighting: sighting.id })}
       />
@@ -202,6 +234,7 @@ function AuctionEnd({
 /** Putting the next card up for bid by hand: an unknown one, or one from the deck. In Play, peeking does this. */
 function NextUp({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
+  const actionSize = useActionSize();
   const turn = currentTurn(state, tableTurn);
   const drawable = drawPile(state).count > 0;
   return (
@@ -209,12 +242,12 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
       <IconAction
         label="Unknown card up next"
         icon={<CircleHelp size={15} />}
-        size="sm"
+        size={actionSize}
         emphasis="quiet"
         disabledReason={drawable ? undefined : NOTHING_TO_DRAW}
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
       />
-      <Popover
+      <TrackerPopover
         opened={open && drawable}
         onChange={setOpen}
         position="bottom"
@@ -222,20 +255,20 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
         shadow="md"
         width={CHOOSER_WIDTH}
       >
-        <Popover.Target>
+        <TrackerPopover.Target>
           <span>
             <IconAction
               label="Card up next…"
               icon={<Layers size={15} />}
-              size="sm"
+              size={actionSize}
               emphasis="quiet"
               pressed={open && drawable}
               disabledReason={drawable ? undefined : NOTHING_TO_DRAW}
               onClick={() => setOpen((was) => !was)}
             />
           </span>
-        </Popover.Target>
-        <Popover.Dropdown className={styles.dropdown}>
+        </TrackerPopover.Target>
+        <TrackerPopover.Dropdown className={styles.dropdown}>
           <CardChooser
             state={state}
             allowUnknown={false}
@@ -245,8 +278,8 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
               setOpen(false);
             }}
           />
-        </Popover.Dropdown>
-      </Popover>
+        </TrackerPopover.Dropdown>
+      </TrackerPopover>
     </div>
   );
 }
@@ -255,6 +288,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
 function Auctions({ factions, state, onAction }: TrackerViewProps) {
   const turns = [...new Set(state.seen.map((sighting) => sighting.turn))].sort((a, b) => b - a);
   const [picked, setPicked] = useState<number | null>(null);
+  const actionSize = useActionSize();
   const turn = picked !== null && turns.includes(picked) ? picked : turns[0];
   if (turn === undefined) {
     return null;
@@ -271,7 +305,7 @@ function Auctions({ factions, state, onAction }: TrackerViewProps) {
           <IconAction
             label="Earlier turn"
             icon={<ChevronLeft size={14} />}
-            size="sm"
+            size={actionSize}
             emphasis="quiet"
             disabledReason={index < turns.length - 1 ? undefined : 'This is the first auction.'}
             onClick={() => setPicked(turns[index + 1]!)}
@@ -282,7 +316,7 @@ function Auctions({ factions, state, onAction }: TrackerViewProps) {
           <IconAction
             label="Later turn"
             icon={<ChevronRight size={14} />}
-            size="sm"
+            size={actionSize}
             emphasis="quiet"
             disabledReason={index > 0 ? undefined : 'This is the latest auction.'}
             onClick={() => setPicked(turns[index - 1]!)}
@@ -325,8 +359,8 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
   const waiting = awaitingWinner(state, sighting);
   const name = copy?.def.name ?? 'Unknown card';
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
-      <Popover.Target>
+    <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
+      <TrackerPopover.Target>
         <span className={styles.auctionCard} data-waiting={waiting ? 'true' : 'false'}>
           <CardPreview card={copy}>
             <button
@@ -340,8 +374,9 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
           </CardPreview>
           <HolderMark holder={holder} />
         </span>
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+      </TrackerPopover.Target>
+      <TrackerPopover.Dropdown className={styles.dropdown}>
+        <SheetCard card={copy} />
         <Text size="xs" className={styles.caption} mb="xs">
           {name}: who won it?
         </Text>
@@ -363,8 +398,8 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
             setOpen(false);
           }}
         />
-      </Popover.Dropdown>
-    </Popover>
+      </TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }
 
@@ -424,6 +459,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
   const note = state.notes[faction.id] ?? '';
   const [editing, setEditing] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  const actionSize = useActionSize();
   return (
     <div className={styles.handRow}>
       <FactionTokenFace token={faction} size={GLYPH} />
@@ -446,7 +482,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
         label={note ? `Edit your note on ${faction.name}` : `Add a note on ${faction.name}`}
         tooltip={note ? undefined : 'Add a note, such as which cards they cannot have'}
         icon={<NotebookPen size={15} />}
-        size="sm"
+        size={actionSize}
         emphasis="quiet"
         pressed={editing}
         ref={toggle}

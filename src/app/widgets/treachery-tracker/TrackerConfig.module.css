@@ -1,0 +1,48 @@
+/* The tracker's setup: the deck it copies, and the factions at the table in seat order. */
+
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+}
+
+.caption {
+  margin-bottom: var(--unit, 8px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-height: 36px;
+}
+
+/* A thumb's height per row on a phone. */
+.row[data-touch="true"] {
+  grid-template-columns: 40px 36px minmax(0, 1fr) auto;
+  min-height: 52px;
+}
+
+.row[data-playing="false"] > :not(:last-child) {
+  opacity: 0.45;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

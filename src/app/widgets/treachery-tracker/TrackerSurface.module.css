@@ -1,0 +1,19 @@
+/* Pinned to the screen's left edge: a fixed pane with no left of its own lands wherever its portal sits in the page. */
+.sheetInner {
+  left: 0;
+}
+
+/* A chooser on a phone: a sheet from the bottom, as wide as the screen, clear of the home indicator. */
+.sheet {
+  /* As tall as its chooser, up to most of the screen; Mantine has no size for "auto", so the height is set here. */
+  height: auto;
+  max-height: 85dvh;
+  border-top-left-radius: var(--mantine-radius-lg);
+  border-top-right-radius: var(--mantine-radius-lg);
+  background: var(--ui-raised);
+  color: var(--ui-text);
+}
+
+.sheetBody {
+  padding-bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom, 0px));
+}

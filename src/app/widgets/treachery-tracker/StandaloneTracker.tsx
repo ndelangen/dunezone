@@ -1,0 +1,203 @@
+import { Text } from '@mantine/core';
+import { Pending } from '@ui/content/Pending';
+import { HoldAction } from '@ui/control/HoldAction';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Layers, Minus, Play, Plus, RotateCcw, Swords, Users } from 'lucide-react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+
+import { AuctionTracker } from './AuctionTracker';
+import type { TrackerSection } from './AuctionTracker';
+import type { StandaloneGame } from './standaloneGame';
+import styles from './StandaloneTracker.module.css';
+import type { CardDef, TrackerAction } from './tracker';
+import { TrackerConfigPanel } from './TrackerConfig';
+import type { TrackerConfig } from './TrackerConfig';
+import { TrackerTouch } from './TrackerSurface';
+
+/*
+ * The Treachery tracker on its own, for a game at a physical table (#2795): set up from a Ruleset, then tracked on a phone.
+ * Nothing here reads the server; the page hands it the Rulesets, the chosen one's deck and factions, and the saved game.
+ */
+
+/** The chosen Ruleset's Treachery deck as the setup sees it. */
+export type SetupDeck =
+  | Readonly<{ status: 'loading' }>
+  | Readonly<{ status: 'ready'; defs: readonly CardDef[] }>
+  | Readonly<{ status: 'missing'; reason: string }>;
+
+/**
+ * The setup: the Ruleset, its factions playing in seat order, and the start.
+ * `factions` is undefined while the Ruleset's factions load.
+ */
+export function TrackerSetup({
+  rulesets,
+  factions,
+  deck,
+  config,
+  onChange,
+  onStart,
+}: Readonly<{
+  rulesets: readonly { id: string; name: string }[];
+  factions: readonly FactionToken[] | undefined;
+  deck: SetupDeck;
+  config: TrackerConfig;
+  onChange: (config: TrackerConfig) => void;
+  onStart: () => void;
+}>) {
+  const playing = config.order.filter((id) => config.playing.includes(id));
+  const reason =
+    deck.status === 'loading' || factions === undefined
+      ? 'The Ruleset is still loading.'
+      : deck.status === 'missing'
+        ? deck.reason
+        : playing.length < 2
+          ? 'Switch on at least two factions.'
+          : undefined;
+  return (
+    <TrackerTouch>
+      <div className={styles.setup}>
+        <TrackerConfigPanel
+          rulesets={rulesets}
+          factions={factions ?? []}
+          config={factions ? config : { ...config, order: [] }}
+          onChange={onChange}
+        />
+        {factions === undefined ? <Pending>Loading the factions…</Pending> : null}
+        <div className={styles.start}>
+          <DeckLine deck={deck} />
+          <LabeledAction
+            emphasis="strong"
+            size="lg"
+            icon={<Play size={17} />}
+            disabledReason={reason}
+            onClick={onStart}
+          >
+            Start tracking
+          </LabeledAction>
+        </div>
+      </div>
+    </TrackerTouch>
+  );
+}
+
+/* What the tracker will start with: the deck's size, or why there is none. */
+function DeckLine({ deck }: Readonly<{ deck: SetupDeck }>) {
+  if (deck.status === 'loading') {
+    return (
+      <Text size="sm" className={styles.dim}>
+        Reading the Treachery deck…
+      </Text>
+    );
+  }
+  if (deck.status === 'missing') {
+    return (
+      <Text size="sm" className={styles.dim}>
+        {deck.reason}
+      </Text>
+    );
+  }
+  const copies = deck.defs.reduce((sum, def) => sum + def.count, 0);
+  return (
+    <Text size="sm" className={styles.dim}>
+      {`A Treachery deck of ${copies} cards, ${deck.defs.length} different.`}
+    </Text>
+  );
+}
+
+/** How the tracker sits on a phone: one long column, the card on bid pinned above the rest, or tabs along the bottom. */
+export type PhoneLayout = 'column' | 'pinned' | 'tabs';
+
+type Tab = Readonly<{ id: string; label: string; icon: ReactNode; sections: readonly TrackerSection[] }>;
+
+const TABS: readonly Tab[] = [
+  { id: 'bidding', label: 'Bidding', icon: <Swords size={17} />, sections: ['bid', 'auctions'] },
+  { id: 'hands', label: 'Hands', icon: <Users size={17} />, sections: ['hands'] },
+  { id: 'deck', label: 'Deck', icon: <Layers size={17} />, sections: ['deck'] },
+];
+
+/** A game being tracked: its Ruleset and turn above the tracker, drawn for a phone. */
+export function TrackerGame({
+  game,
+  layout = 'column',
+  onAction,
+  onTurn,
+  onClear,
+}: Readonly<{
+  game: StandaloneGame;
+  layout?: PhoneLayout;
+  onAction: (action: TrackerAction) => void;
+  onTurn: (turn: number) => void;
+  onClear: () => void;
+}>) {
+  const [tab, setTab] = useState(TABS[0]!.id);
+  const tracker = (sections?: readonly TrackerSection[]) => (
+    <AuctionTracker
+      factions={game.factions}
+      state={game.state}
+      onAction={onAction}
+      tableTurn={game.turn}
+      sections={sections}
+    />
+  );
+  return (
+    <TrackerTouch>
+      <div className={styles.game} data-layout={layout}>
+        <header className={styles.bar}>
+          <div className={styles.turn}>
+            <IconAction
+              label="Turn before"
+              icon={<Minus size={17} />}
+              size="lg"
+              emphasis="quiet"
+              disabledReason={game.turn > 1 ? undefined : 'This is the first turn.'}
+              onClick={() => onTurn(game.turn - 1)}
+            />
+            <Text fw={700} className={styles.turnLabel} aria-live="polite">
+              {`Turn ${game.turn}`}
+            </Text>
+            <IconAction
+              label="Next turn"
+              icon={<Plus size={17} />}
+              size="lg"
+              emphasis="quiet"
+              onClick={() => onTurn(game.turn + 1)}
+            />
+          </div>
+          <Text size="sm" className={styles.ruleset} truncate>
+            {game.ruleset.name}
+          </Text>
+          <HoldAction label="Clear this game" verb="clear" icon={<RotateCcw size={17} />} onConfirm={onClear} />
+        </header>
+        {layout === 'column' ? tracker() : null}
+        {layout === 'pinned' ? (
+          <>
+            <div className={styles.pinned}>{tracker(['bid'])}</div>
+            {tracker(['auctions', 'hands', 'deck'])}
+          </>
+        ) : null}
+        {layout === 'tabs' ? (
+          <>
+            {tracker(TABS.find((entry) => entry.id === tab)!.sections)}
+            <nav className={styles.tabs} aria-label="Tracker parts">
+              {TABS.map((entry) => (
+                <LabeledAction
+                  key={entry.id}
+                  icon={entry.icon}
+                  size="md"
+                  pressed={entry.id === tab}
+                  onClick={() => setTab(entry.id)}
+                >
+                  {entry.label}
+                </LabeledAction>
+              ))}
+            </nav>
+          </>
+        ) : null}
+      </div>
+    </TrackerTouch>
+  );
+}

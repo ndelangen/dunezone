@@ -109,6 +109,7 @@ export const TOOLS: readonly Tool[] = [
     icon: Eye,
     group: 'During the game',
     issue: 2795,
+    built: true,
     capabilities: [
       { icon: Eye, title: 'Every card', detail: 'Bought, played and discarded.' },
       { icon: Users, title: 'Every hand', detail: 'What each faction could be holding.' },

@@ -1,8 +1,9 @@
 import type { GameSnapshot } from '@shared/play/protocol';
 
+import { DREAMRULES_DECK } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
+
 import { gameMeta } from './game.stories.fixture';
 import { chapter } from './journey.stories.fixture';
-import { DREAMRULES_DECK } from './panels/treacheryTracker/tracker.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 import { sandboxTransport, seatOf } from './sandbox.stories.fixture';
 

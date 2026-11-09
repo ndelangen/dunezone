@@ -5,8 +5,15 @@
  * and a card dismissed as never up for bid stays dismissed for that auction.
  * A card nobody bought goes back to the deck, and when it comes up again in a later turn its peek is a new auction.
  */
-import { awaitingWinner, copyOf, onBid, reservedCards, trackerReducer, unplaced } from './tracker';
-import type { TrackerState } from './tracker';
+import {
+  awaitingWinner,
+  copyOf,
+  onBid,
+  reservedCards,
+  trackerReducer,
+  unplaced,
+} from '@app/widgets/treachery-tracker/tracker';
+import type { TrackerState } from '@app/widgets/treachery-tracker/tracker';
 
 /** A card on the table as the viewer sees it: the table's item id and the face it shows. */
 type SeenCard = Readonly<{ item: string; face: string }>;
