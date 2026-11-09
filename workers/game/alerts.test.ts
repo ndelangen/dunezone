@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { describe, expect, test, vi } from 'vite-plus/test';
 
 import type { AlertEnv, AlertMarkers } from './alerts';
@@ -6,6 +8,7 @@ import {
   ALERT_INTERVAL_SECONDS,
   ALERT_MARKER,
   ALERT_WEBHOOK_PATH,
+  ALERT_WEBHOOK_SECRET_SHA256,
   handleAlertWebhook,
 } from './alerts';
 
@@ -35,16 +38,25 @@ function relay(overrides: Partial<AlertEnv> = {}) {
   return { env, send, markers, stored };
 }
 
-const webhook = (body = '{"name":"New issue"}') =>
-  new Request(`https://dune.zone${ALERT_WEBHOOK_PATH}`, { method: 'POST', body });
+const SECRET = 'test-webhook-secret';
+const SECRET_SHA256 = createHash('sha256').update(SECRET).digest('hex');
+const webhook = (body = '{"name":"New issue"}', secret: string | null = SECRET) =>
+  new Request(`https://dune.zone${ALERT_WEBHOOK_PATH}`, {
+    method: 'POST',
+    body,
+    headers: secret === null ? {} : { 'cf-webhook-auth': secret },
+  });
+/* Every case runs against a known test secret; the deployed hash's secret lives only in the automation. */
+const handle = (...[request, pathname, env, context]: Parameters<typeof handleAlertWebhook>) =>
+  handleAlertWebhook(request, pathname, env, { secretSha256: SECRET_SHA256, ...context });
 
 describe('alert webhook relay', () => {
   test('leaves other paths and the unconfigured route to the game router', async () => {
     const { env, markers } = relay();
-    expect(await handleAlertWebhook(webhook(), '/__play/health', env, { markers, now: laterWindow() })).toBeNull();
+    expect(await handle(webhook(), '/__play/health', env, { markers, now: laterWindow() })).toBeNull();
     const unconfigured = relay({ ALERT_EMAIL_TO: undefined });
     expect(
-      await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, unconfigured.env, {
+      await handle(webhook(), ALERT_WEBHOOK_PATH, unconfigured.env, {
         markers: unconfigured.markers,
         now: laterWindow(),
       })
@@ -52,14 +64,32 @@ describe('alert webhook relay', () => {
     expect(unconfigured.send).not.toHaveBeenCalled();
   });
 
+  test('refuses a call without the automation secret, so it can neither send nor start the quiet interval', async () => {
+    const { env, send, markers } = relay();
+    const now = laterWindow();
+    for (const secret of [null, '', 'wrong', SECRET.slice(1), `${SECRET}x`]) {
+      const response = await handle(webhook(undefined, secret), ALERT_WEBHOOK_PATH, env, { markers, now });
+      expect(response?.status).toBe(401);
+    }
+    expect(send).not.toHaveBeenCalled();
+    expect((await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now }))?.status).toBe(202);
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  test('checks the deployed secret by its hash only', async () => {
+    const { env, send, markers } = relay();
+    const response = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: laterWindow() });
+    expect(response?.status).toBe(401);
+    expect(ALERT_WEBHOOK_SECRET_SHA256).toMatch(/^[0-9a-f]{64}$/u);
+    expect(send).not.toHaveBeenCalled();
+  });
+
   test('refuses anything but POST', async () => {
     const { env, send, markers } = relay();
-    const response = await handleAlertWebhook(
-      new Request(`https://dune.zone${ALERT_WEBHOOK_PATH}`),
-      ALERT_WEBHOOK_PATH,
-      env,
-      { markers, now: laterWindow() }
-    );
+    const response = await handle(new Request(`https://dune.zone${ALERT_WEBHOOK_PATH}`), ALERT_WEBHOOK_PATH, env, {
+      markers,
+      now: laterWindow(),
+    });
     expect(response?.status).toBe(405);
     expect(response?.headers.get('Allow')).toBe('POST');
     expect(send).not.toHaveBeenCalled();
@@ -67,7 +97,7 @@ describe('alert webhook relay', () => {
 
   test('emails a fixed nudge that carries nothing from the request', async () => {
     const { env, send, markers } = relay();
-    const response = await handleAlertWebhook(
+    const response = await handle(
       webhook('{"name":"<a href=https://phish.example>click</a>"}'),
       ALERT_WEBHOOK_PATH,
       env,
@@ -86,15 +116,15 @@ describe('alert webhook relay', () => {
   test('sends at most one email per interval in an isolate', async () => {
     const { env, send, markers, stored } = relay();
     const start = laterWindow();
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
+    await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
     stored.clear();
-    const repeat = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, {
+    const repeat = await handle(webhook(), ALERT_WEBHOOK_PATH, env, {
       markers,
       now: start + INTERVAL_MS - 1,
     });
     expect(repeat?.status).toBe(202);
     expect(send).toHaveBeenCalledTimes(1);
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS });
+    await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS });
     expect(send).toHaveBeenCalledTimes(2);
   });
 
@@ -102,11 +132,11 @@ describe('alert webhook relay', () => {
     const { env, send, markers, stored } = relay();
     const start = laterWindow();
     await markers.put(ALERT_MARKER, new Response(null));
-    const response = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
+    const response = await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start });
     expect(response?.status).toBe(202);
     expect(send).not.toHaveBeenCalled();
     stored.clear();
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS / 2 });
+    await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: start + INTERVAL_MS / 2 });
     expect(send).toHaveBeenCalledTimes(1);
   });
 
@@ -115,7 +145,7 @@ describe('alert webhook relay', () => {
       ALERT_EMAIL: { send: vi.fn(async () => Promise.reject(new TypeError('unverified'))) } as unknown as SendEmail,
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const response = await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: laterWindow() });
+    const response = await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now: laterWindow() });
     expect(response?.status).toBe(202);
     expect(warn).toHaveBeenCalledWith(JSON.stringify({ event: 'alert-email-failed', error: 'TypeError' }));
     warn.mockRestore();
@@ -125,8 +155,8 @@ describe('alert webhook relay', () => {
     const { env, send, markers } = relay();
     const now = laterWindow();
     await Promise.all([
-      handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now }),
-      handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now }),
+      handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now }),
+      handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers, now }),
     ]);
     expect(send).toHaveBeenCalledTimes(1);
   });
@@ -138,8 +168,8 @@ describe('alert webhook relay', () => {
       put: vi.fn(),
     } as unknown as AlertMarkers;
     const now = laterWindow();
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers: broken, now });
-    await handleAlertWebhook(webhook(), ALERT_WEBHOOK_PATH, env, { markers: broken, now: now + 1 });
+    await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers: broken, now });
+    await handle(webhook(), ALERT_WEBHOOK_PATH, env, { markers: broken, now: now + 1 });
     expect(send).toHaveBeenCalledTimes(1);
   });
 });
