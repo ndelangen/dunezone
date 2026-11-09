@@ -45,3 +45,32 @@ test('says when the prediction itself could not be saved', () => {
   expect(result.current.kept).toBe(false);
   expect(result.current.state.locked).toMatchObject({ faction: fremen, turn: 6 });
 });
+
+test('a pick in a stale tab never erases a lock another tab already saved', () => {
+  const locking = renderHook(() => usePredictionLocket());
+  const stale = renderHook(() => usePredictionLocket());
+  act(() => locking.result.current.lock({ faction: fremen, turn: 6, timeZone: 'Europe/Amsterdam', lockedAt: 1 }));
+  act(() => stale.result.current.pickTurn(3));
+  expect(stale.result.current.state.locked).toMatchObject({ faction: fremen, turn: 6, lockedAt: 1 });
+  const saved = JSON.parse(window.localStorage.getItem(PREDICTION_LOCKET_STORAGE_KEY) ?? '{}');
+  expect(saved.locked).toMatchObject({ faction: fremen, turn: 6, lockedAt: 1 });
+});
+
+test('a pick right after clearing starts a new draft, and the cleared prediction stays gone', () => {
+  const { result } = renderHook(() => usePredictionLocket());
+  act(() => result.current.lock({ faction: fremen, turn: 6, timeZone: 'Europe/Amsterdam', lockedAt: 1 }));
+  act(() => {
+    result.current.clear();
+    result.current.pickTurn(3);
+  });
+  expect(result.current.state).toMatchObject({ locked: null, turn: 3, timeZone: 'Europe/Amsterdam' });
+  const saved = JSON.parse(window.localStorage.getItem(PREDICTION_LOCKET_STORAGE_KEY) ?? '{}');
+  expect(saved).toMatchObject({ locked: null, turn: 3 });
+});
+
+test('every pick is saved at once, so no later write can land on a lock saved in between', () => {
+  const { result } = renderHook(() => usePredictionLocket());
+  act(() => result.current.pickTurn(4));
+  const saved = JSON.parse(window.localStorage.getItem(PREDICTION_LOCKET_STORAGE_KEY) ?? '{}');
+  expect(saved).toMatchObject({ turn: 4, locked: null });
+});
