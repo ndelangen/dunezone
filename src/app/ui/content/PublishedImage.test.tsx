@@ -1,13 +1,12 @@
 // @vitest-environment jsdom
 
-import { publishedImageRetryDelayMs } from '@shared/asset-publishing/publishedRetry';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
 import { markDecoded } from './imageArrival';
-import { PUBLISHED_IMAGE_RETRIES, PublishedImage } from './PublishedImage';
+import { PUBLISHED_IMAGE_RETRIES, PublishedImage, publishedImageRetryDelayMs } from './PublishedImage';
 
 /* jsdom neither fetches nor decodes images, so each probe's outcome is set by the test, one per retry. */
 const probeOutcomes: boolean[] = [];

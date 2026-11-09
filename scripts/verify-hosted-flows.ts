@@ -46,10 +46,7 @@ export const browserFlows = {
     startsInPlay: true,
     shard: 'protocol',
   },
-  /*
-   * Its three battles each step two players through placing, claiming, planning and Ready. A passing run took 459 s on 9 Nov 2026,
-   * and slower runners stopped at 480 s inside the third check on two heads that left battles unchanged (#2810), so it gets twelve minutes.
-   */
+  /* Passing runs on CI took 270 to 470 s in early November 2026 against a 480 s budget, so a slow runner timed out mid-flow. The budget only bounds a stuck run. */
   battles: {
     timeoutMs: 720_000,
     separateBrowserPeer: 'player-b',
