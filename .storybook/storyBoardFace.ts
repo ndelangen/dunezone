@@ -8,14 +8,14 @@ const fixture = (path: string) => fileURLToPath(new URL(`./static/play-fixtures/
 /*
  * Each published face a story can name, with the fixture that answers it.
  * Storybook ids are not production ids, so no story could name a real publication: Storybook's only board is Arrakis,
- * its seeded tokens use IDs beginning with twenty zeros.
+ * its seeded tokens use IDs beginning with a run of zeros.
  */
 const FIXTURES = [
   { path: /^\/published\/boards\/[^/]+\/board\.jpg$/, file: fixture('boards/arrakis-official.jpg') },
   { path: /^\/published\/round-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/karama.jpg') },
   { path: /^\/published\/pointer-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/hms.jpg') },
   /* The baseline's one faction is House Atreides, so a seeded faction's published token is the Atreides token. */
-  { path: /^\/published\/faction-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('product/house-atreides-token.jpg') },
+  { path: /^\/published\/faction-tokens\/0{10,}[^/]*\/token\.jpg$/, file: fixture('product/house-atreides-token.jpg') },
 ];
 
 /**
