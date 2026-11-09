@@ -1,5 +1,6 @@
 import { HoverCard, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { SheetPopover, useTouchActionSize, useInSheet, useTouchSurface } from '@ui/surface/TouchSheet';
 import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useReducer, useState } from 'react';
@@ -21,7 +22,6 @@ import {
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TrackerParts.module.css';
-import { TrackerPopover, useActionSize, useInSheet, useTrackerTouch } from './TrackerSurface';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
 export type TrackerViewProps = Readonly<{
@@ -44,7 +44,7 @@ export function FactionPicker({
   onPick: (faction: string) => void;
   except?: string;
 }>) {
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   const inSheet = useInSheet();
   if (touch && inSheet) {
     /* In a phone's sheet each faction is a thumb-high row with its name, since a thumb cannot hover for a tooltip. */
@@ -111,7 +111,7 @@ export function CardChooser({
   forBid?: boolean;
 }>) {
   const { seen, byName } = chooserCards(state, forBid);
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   const glyph = touch ? TOUCH_CHOOSER_GLYPH : CHOOSER_GLYPH;
   /* A card of the chooser: its glyph, and on a phone its name under it, since a thumb cannot hover for it. */
   const choice = (copy: CardCopy, left = 1) => (
@@ -183,13 +183,13 @@ export function AddCard({
   onAction: (action: TrackerAction) => void;
 }>) {
   const [open, setOpen] = useState(false);
-  const size = useActionSize();
+  const size = useTouchActionSize();
   return (
-    <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
-      <TrackerPopover.Target>
+    <SheetPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+      <SheetPopover.Target>
         <AddAction label={`Add a card to ${faction.name}`} size={size} onClick={() => setOpen((was) => !was)} />
-      </TrackerPopover.Target>
-      <TrackerPopover.Dropdown className={styles.dropdown}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown className={styles.dropdown}>
         <CardChooser
           state={state}
           allowUnknown
@@ -198,8 +198,8 @@ export function AddCard({
             setOpen(false);
           }}
         />
-      </TrackerPopover.Dropdown>
-    </TrackerPopover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -319,7 +319,7 @@ export function SlotChip({
     close();
   };
   return (
-    <TrackerPopover
+    <SheetPopover
       opened={open}
       onChange={(next) => send({ type: next ? 'open' : 'close' })}
       position="bottom"
@@ -327,7 +327,7 @@ export function SlotChip({
       shadow="md"
       width={mode === 'identify' || mode === 'discard' ? CHOOSER_WIDTH : 'target'}
     >
-      <TrackerPopover.Target>
+      <SheetPopover.Target>
         <span>
           <CardPreview card={card}>
             <UnstyledButton
@@ -339,8 +339,8 @@ export function SlotChip({
             </UnstyledButton>
           </CardPreview>
         </span>
-      </TrackerPopover.Target>
-      <TrackerPopover.Dropdown className={styles.dropdown} miw={200}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown className={styles.dropdown} miw={200}>
         <SheetCard card={card} />
         <SlotStep
           mode={mode}
@@ -353,8 +353,8 @@ export function SlotChip({
           setMode={setMode}
           close={close}
         />
-      </TrackerPopover.Dropdown>
-    </TrackerPopover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -363,7 +363,7 @@ export function MenuLine({
   onClick,
   children,
 }: Readonly<{ icon: ReactNode; onClick: () => void; children: ReactNode }>) {
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
     <UnstyledButton className={styles.menuLine} data-touch={touch ? 'true' : 'false'} onClick={onClick}>
       <span className={styles.menuIcon}>{icon}</span>
@@ -375,7 +375,7 @@ export function MenuLine({
 /** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. Each slice lists its cards on hover, or on a tap on a phone. */
 export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
   const total = copies.length || 1;
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   /* Held in one hand, the bar is tall enough for a thumb to tap a slice. */
   const barHeight = height ?? (touch ? 24 : 10);
   return (
@@ -420,10 +420,10 @@ function KindSliceSheet({
 }: Readonly<{ slice: (onClick: () => void) => ReactNode; children: ReactNode }>) {
   const [open, setOpen] = useState(false);
   return (
-    <TrackerPopover opened={open} onChange={setOpen}>
-      <TrackerPopover.Target>{slice(() => setOpen((was) => !was))}</TrackerPopover.Target>
-      <TrackerPopover.Dropdown>{children}</TrackerPopover.Dropdown>
-    </TrackerPopover>
+    <SheetPopover opened={open} onChange={setOpen}>
+      <SheetPopover.Target>{slice(() => setOpen((was) => !was))}</SheetPopover.Target>
+      <SheetPopover.Dropdown>{children}</SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 

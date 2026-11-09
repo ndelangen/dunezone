@@ -204,11 +204,11 @@
 }
 
 /* Held in one hand, each card of the auction answers a thumb across its whole 44 px cell: the larger target is the button's own, so a tap reaches it. */
-:global([data-tracker-touch]) .cardButton {
+:global([data-touch-surface]) .cardButton {
   position: relative;
 }
 
-:global([data-tracker-touch]) .cardButton::after {
+:global([data-touch-surface]) .cardButton::after {
   content: "";
   position: absolute;
   inset: -4px;

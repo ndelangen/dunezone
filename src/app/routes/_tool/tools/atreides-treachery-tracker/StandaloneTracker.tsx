@@ -2,13 +2,13 @@ import { Text } from '@mantine/core';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
+import { TouchSurface } from '@ui/surface/TouchSheet';
 import { Minus, Play, Plus, RotateCcw } from 'lucide-react';
 import { useEffect } from 'react';
 
 import { AuctionTracker } from '@app/widgets/treachery-tracker/AuctionTracker';
 import type { TrackerSection } from '@app/widgets/treachery-tracker/AuctionTracker';
 import type { CardDef, TrackerAction } from '@app/widgets/treachery-tracker/tracker';
-import { TrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 
 import type { StandaloneGame } from './standaloneGame';
 import styles from './StandaloneTracker.module.css';
@@ -53,7 +53,7 @@ export function TrackerSetup({
           ? 'Seat at least two factions.'
           : undefined;
   return (
-    <TrackerTouch>
+    <TouchSurface>
       <div className={styles.setup}>
         <TrackerConfigPanel
           rulesets={rulesets}
@@ -75,7 +75,7 @@ export function TrackerSetup({
           </LabeledAction>
         </div>
       </div>
-    </TrackerTouch>
+    </TouchSurface>
   );
 }
 
@@ -132,7 +132,7 @@ export function TrackerGame({
     />
   );
   return (
-    <TrackerTouch>
+    <TouchSurface>
       <div className={styles.game}>
         <header className={styles.bar}>
           <Text size="sm" className={styles.ruleset} truncate>
@@ -171,7 +171,7 @@ export function TrackerGame({
           </div>
         </div>
       </div>
-    </TrackerTouch>
+    </TouchSurface>
   );
 }
 

@@ -14,13 +14,13 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import type { SortableHandleProps } from '@ui/control/SortableReorderHandle';
+import { SheetPopover, useTouchActionSize, useTouchSurface } from '@ui/surface/TouchSheet';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-import { TrackerPopover, useActionSize, useTrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 
 import styles from './TrackerConfig.module.css';
 
@@ -102,7 +102,7 @@ function RulesetField({
   onPick: (ruleset: string) => void;
   onRulesetSearch: (query: string) => void;
 }>) {
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   /* What the player types while the list is open; null while it is closed, when the field shows the picked Ruleset. */
   const [search, setSearch] = useState<string | null>(null);
   const picked = rulesets.find((entry) => entry.id === ruleset)?.name ?? '';
@@ -198,8 +198,8 @@ function SeatRow({
   handle: SortableHandleProps;
   onRemove: () => void;
 }>) {
-  const touch = useTrackerTouch();
-  const actionSize = useActionSize();
+  const touch = useTouchSurface();
+  const actionSize = useTouchActionSize();
   return (
     <div className={styles.row} data-touch={touch ? 'true' : 'false'}>
       <SortableReorderHandle label={`Move ${faction.name}`} emphasis="silent" {...handle} />
@@ -227,10 +227,10 @@ function AddFaction({
   onPick,
 }: Readonly<{ search: FactionSearch; seated: readonly string[]; onPick: (faction: FactionToken) => void }>) {
   const [open, setOpen] = useState(false);
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
-    <TrackerPopover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={320}>
-      <TrackerPopover.Target>
+    <SheetPopover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={320}>
+      <SheetPopover.Target>
         <LabeledAction
           className={styles.add}
           size={touch ? 'lg' : 'compact-sm'}
@@ -239,8 +239,8 @@ function AddFaction({
         >
           Add a faction
         </LabeledAction>
-      </TrackerPopover.Target>
-      <TrackerPopover.Dropdown>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown>
         {/* The search mounts only while it is open, so it reads the catalogue only then. */}
         {open ? (
           <Search
@@ -251,7 +251,7 @@ function AddFaction({
             }}
           />
         ) : null}
-      </TrackerPopover.Dropdown>
-    </TrackerPopover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }

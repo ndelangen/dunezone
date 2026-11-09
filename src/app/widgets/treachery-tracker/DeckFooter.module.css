@@ -49,6 +49,6 @@
 }
 
 /* Held in one hand, the discard pile is a thumb's height. */
-:global([data-tracker-touch]) .discardButton {
+:global([data-touch-surface]) .discardButton {
   height: 44px;
 }

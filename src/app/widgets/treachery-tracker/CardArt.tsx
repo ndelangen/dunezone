@@ -1,10 +1,10 @@
 import { HoverCard } from '@mantine/core';
 import { publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
+import { useTouchSurface } from '@ui/surface/TouchSheet';
 import type { ReactNode } from 'react';
 
 import styles from './CardArt.module.css';
 import type { CardCopy } from './tracker';
-import { useTrackerTouch } from './TrackerSurface';
 
 /*
  * The tracker draws every card from its own published face, cropped: the round kind glyph from the top right corner,
@@ -54,7 +54,7 @@ export function UnknownGlyph({ size = 24 }: Readonly<{ size?: number }>) {
 /** Hovering anything that stands for a card shows the whole card, so a cropped glyph never hides what it is. */
 export function CardPreview({ card, children }: Readonly<{ card: CardCopy | null; children: ReactNode }>) {
   /* A phone has no hover: there the sheet a card opens shows the whole card. */
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   if (!card || touch) {
     return children;
   }
@@ -70,7 +70,7 @@ export function CardPreview({ card, children }: Readonly<{ card: CardCopy | null
 
 /** On a phone, a sheet opened from a card starts with the whole card: the tap that stands in for hovering it. */
 export function SheetCard({ card }: Readonly<{ card: CardCopy | null }>) {
-  if (!useTrackerTouch() || !card) {
+  if (!useTouchSurface() || !card) {
     return null;
   }
   return <img className={styles.sheetCard} src={faceAt(card.def.face, 160)} alt={card.def.name} width={160} />;

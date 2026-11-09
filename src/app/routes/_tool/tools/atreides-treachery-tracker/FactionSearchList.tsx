@@ -1,11 +1,11 @@
 import { ScrollArea, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { Pending } from '@ui/content/Pending';
 import { LoadMoreButton } from '@ui/control/LoadMoreButton';
+import { useTouchSurface } from '@ui/surface/TouchSheet';
 import { Check, Search } from 'lucide-react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-import { useTrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 
 import styles from './FactionSearchList.module.css';
 
@@ -34,7 +34,7 @@ export function FactionSearchList({
   onMore: () => void;
   onPick: (faction: FactionToken) => void;
 }>) {
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
     <div className={styles.search}>
       <TextInput
@@ -69,7 +69,7 @@ function FactionRow({
   here,
   onPick,
 }: Readonly<{ faction: FactionToken; here: boolean; onPick: (faction: FactionToken) => void }>) {
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
     <UnstyledButton
       className={styles.row}

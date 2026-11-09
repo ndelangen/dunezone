@@ -1,5 +1,6 @@
 import { Text, TextInput, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
+import { SheetPopover, useTouchActionSize, useTouchSurface } from '@ui/surface/TouchSheet';
 import { ArrowDownToLine, ChevronLeft, ChevronRight, CircleHelp, Eye, Layers, NotebookPen, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { RefObject } from 'react';
@@ -14,7 +15,6 @@ import { awaitingWinner, copyOf, currentTurn, drawPile, onBid as cardOnBid, sigh
 import type { CardCopy, Sighting, TrackerAction } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
-import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /* One size for every card and token in the hands, so the rows line up on a single grid. */
 const GLYPH = 36;
@@ -62,7 +62,7 @@ function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Read
   const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
   const name = card?.def.name ?? 'the unknown card';
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
     <section className={styles.onBid} aria-label="On bid">
       <div className={styles.bidCard}>
@@ -124,7 +124,7 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
   const turn = currentTurn(state, tableTurn);
   const drawable = drawPile(state).count > 0;
   return (
-    <TrackerPopover
+    <SheetPopover
       opened={open}
       onChange={setOpen}
       position="bottom-start"
@@ -132,15 +132,15 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
       shadow="md"
       width={CHOOSER_WIDTH}
     >
-      <TrackerPopover.Target>
+      <SheetPopover.Target>
         <UnstyledButton
           className={styles.bidUnknown}
           data-empty="true"
           aria-label="Pick the card up next"
           onClick={() => setOpen((was) => !was)}
         />
-      </TrackerPopover.Target>
-      <TrackerPopover.Dropdown className={styles.dropdown}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown className={styles.dropdown}>
         {drawable ? (
           <CardChooser
             state={state}
@@ -154,8 +154,8 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
         ) : (
           <Text size="sm">{NOTHING_TO_DRAW}</Text>
         )}
-      </TrackerPopover.Dropdown>
-    </TrackerPopover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -174,11 +174,11 @@ function AuctionEnd({
     canName?: boolean;
   }>) {
   const [naming, setNaming] = useState(false);
-  const actionSize = useActionSize();
+  const actionSize = useTouchActionSize();
   return (
     <div className={styles.nextUp}>
       {canName && sighting.card === null && (
-        <TrackerPopover
+        <SheetPopover
           opened={naming}
           onChange={setNaming}
           position="bottom"
@@ -186,7 +186,7 @@ function AuctionEnd({
           shadow="md"
           width={CHOOSER_WIDTH}
         >
-          <TrackerPopover.Target>
+          <SheetPopover.Target>
             <span>
               <IconAction
                 label="It's this card…"
@@ -197,8 +197,8 @@ function AuctionEnd({
                 onClick={() => setNaming((was) => !was)}
               />
             </span>
-          </TrackerPopover.Target>
-          <TrackerPopover.Dropdown className={styles.dropdown}>
+          </SheetPopover.Target>
+          <SheetPopover.Dropdown className={styles.dropdown}>
             <CardChooser
               state={state}
               allowUnknown={false}
@@ -210,8 +210,8 @@ function AuctionEnd({
                 setNaming(false);
               }}
             />
-          </TrackerPopover.Dropdown>
-        </TrackerPopover>
+          </SheetPopover.Dropdown>
+        </SheetPopover>
       )}
       <IconAction
         label="Nobody bid: back to the deck"
@@ -234,7 +234,7 @@ function AuctionEnd({
 /** Putting the next card up for bid by hand: an unknown one, or one from the deck. In Play, peeking does this. */
 function NextUp({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
-  const actionSize = useActionSize();
+  const actionSize = useTouchActionSize();
   const turn = currentTurn(state, tableTurn);
   const drawable = drawPile(state).count > 0;
   return (
@@ -247,7 +247,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
         disabledReason={drawable ? undefined : NOTHING_TO_DRAW}
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
       />
-      <TrackerPopover
+      <SheetPopover
         opened={open && drawable}
         onChange={setOpen}
         position="bottom"
@@ -255,7 +255,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
         shadow="md"
         width={CHOOSER_WIDTH}
       >
-        <TrackerPopover.Target>
+        <SheetPopover.Target>
           <span>
             <IconAction
               label="Card up next…"
@@ -267,8 +267,8 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
               onClick={() => setOpen((was) => !was)}
             />
           </span>
-        </TrackerPopover.Target>
-        <TrackerPopover.Dropdown className={styles.dropdown}>
+        </SheetPopover.Target>
+        <SheetPopover.Dropdown className={styles.dropdown}>
           <CardChooser
             state={state}
             allowUnknown={false}
@@ -278,8 +278,8 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
               setOpen(false);
             }}
           />
-        </TrackerPopover.Dropdown>
-      </TrackerPopover>
+        </SheetPopover.Dropdown>
+      </SheetPopover>
     </div>
   );
 }
@@ -288,7 +288,7 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
 function Auctions({ factions, state, onAction }: TrackerViewProps) {
   const turns = [...new Set(state.seen.map((sighting) => sighting.turn))].sort((a, b) => b - a);
   const [picked, setPicked] = useState<number | null>(null);
-  const actionSize = useActionSize();
+  const actionSize = useTouchActionSize();
   const turn = picked !== null && turns.includes(picked) ? picked : turns[0];
   if (turn === undefined) {
     return null;
@@ -359,10 +359,10 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
   const waiting = awaitingWinner(state, sighting);
   const name = copy?.def.name ?? 'Unknown card';
   /* A phone has no hover, so a tap on a finished auction's card opens a sheet that shows the card and who holds it. */
-  const touch = useTrackerTouch();
+  const touch = useTouchSurface();
   return (
-    <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
-      <TrackerPopover.Target>
+    <SheetPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
+      <SheetPopover.Target>
         <span className={styles.auctionCard} data-waiting={waiting ? 'true' : 'false'}>
           <CardPreview card={copy}>
             <button
@@ -376,8 +376,8 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
           </CardPreview>
           <HolderMark holder={holder} />
         </span>
-      </TrackerPopover.Target>
-      <TrackerPopover.Dropdown className={styles.dropdown}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown className={styles.dropdown}>
         <SheetCard card={copy} />
         {waiting ? null : (
           <Text size="sm" className={styles.dim}>
@@ -413,8 +413,8 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
             />
           </>
         ) : null}
-      </TrackerPopover.Dropdown>
-    </TrackerPopover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -474,7 +474,7 @@ function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Read
   const note = state.notes[faction.id] ?? '';
   const [editing, setEditing] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
-  const actionSize = useActionSize();
+  const actionSize = useTouchActionSize();
   return (
     <div className={styles.handRow}>
       <FactionTokenFace token={faction} size={GLYPH} />
