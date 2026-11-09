@@ -1,17 +1,22 @@
-import { isLocalIsolatedRuntime } from './localRuntime';
+/* Per-visitor limits protect the public site; the isolated local stack, hosted load runs and tests open every socket from one machine. */
+const LIMITED_ORIGIN = 'https://dune.zone';
 
 /**
  * The visitor's address as Cloudflare's edge reported it to the publisher, which hands the request on unchanged.
  * The game Worker has no public route, so the header comes from the publisher's own request: Cloudflare's edge sets it for a visitor, and only another Worker on the dune.zone zone could set it by hand.
- * Where the zone's Pseudo IPv4 setting rewrites an IPv6 visitor's address, the real one is in CF-Connecting-IPv6.
- * The isolated local stack and the native tests open every socket from one machine, and get no limit per address.
+ * CF-Connecting-IPv6 is read only when the zone's Pseudo IPv4 setting replaced the address with one from 240.0.0.0/4: otherwise the edge never sets it, and a copy the visitor sent could name any address.
  */
-export function clientAddress(request: Request, env: { GIT_SHA: string; APPLICATION_ORIGIN: string }) {
-  if (isLocalIsolatedRuntime(env)) {
+export function clientAddress(request: Request, env: { APPLICATION_ORIGIN: string }) {
+  if (env.APPLICATION_ORIGIN !== LIMITED_ORIGIN) {
     return undefined;
   }
-  const address = request.headers.get('CF-Connecting-IPv6') ?? request.headers.get('CF-Connecting-IP');
-  return address ? networkOf(address) : undefined;
+  const address = request.headers.get('CF-Connecting-IP');
+  if (!address) {
+    return undefined;
+  }
+  const pseudo = /^(\d{1,3})\./u.exec(address);
+  const original = pseudo && Number(pseudo[1]) >= 240 ? request.headers.get('CF-Connecting-IPv6') : null;
+  return networkOf(original ?? address);
 }
 
 /** An IPv4 address as it is; an IPv6 address by its /64 network, since one household or phone is given a whole /64 and can pick any address in it. */
@@ -32,7 +37,7 @@ export function networkOf(address: string) {
     .join(':')}::/64`;
 }
 
-/** A short digest of an address, so a socket's saved attachment never holds the address itself. */
+/** A short digest of an address, so a socket's saved attachment does not hold the address in plain text; an IPv4 address can still be recovered from it by trying them all. */
 export async function clientKey(address: string | undefined) {
   if (!address) {
     return undefined;

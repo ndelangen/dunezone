@@ -189,7 +189,9 @@ Live since 2026-10-01:
   deploy run 36937790739. Setting the secret in the dashboard blocked strict deploys until that run
   (`docs/deployment.md`, "Recovering from a dashboard edit"), so avoid dashboard edits to this
   Worker. The automation "Email alert relay" fires when an issue occurs once and posts to the route
-  above, with no webhook secret.
+  above. From PR #2847 (2026-11-09) its webhook secret must be the one whose hash is in
+  `alerts.ts`; setting it is a dashboard step, because the wrangler login lacks the Notifications
+  and Workers Observability permissions the API needs.
 - **Health Checks** against `/__play/health`. They need the Pro plan, and Norbert decided not to
   upgrade. The deploy smoke still reads that endpoint (section 2).
 

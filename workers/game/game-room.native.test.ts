@@ -55,7 +55,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     return { connection, view };
   }
 
-  it('lets one address hold only half the places that wait for admission', async () => {
+  it('lets one address hold only a quarter of the places that wait for admission', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'game', { APPLICATION_ORIGIN: 'https://dune.zone' });
     expect((await provision(runtime)).status).toBe(200);
     const sockets: { close(): void }[] = [];
     const open = async (address: string) => {
@@ -71,7 +74,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       return response.status;
     };
     try {
-      for (let index = 0; index < 8; index++) {
+      for (let index = 0; index < 4; index++) {
         expect(await open('203.0.113.7')).toBe(101);
       }
       expect(await open('203.0.113.7')).toBe(403);

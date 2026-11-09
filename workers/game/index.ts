@@ -81,7 +81,7 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
-  /* The visitor's address while the connection waits for admission, which bounds how many waiting places one visitor holds; never saved. */
+  /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
   client?: string;
   admitting: boolean;
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
@@ -182,10 +182,10 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
 }
 /*
  * A room holds this many connections that have not been admitted yet, each for at most PLAY_PENDING_TIMEOUT_MS.
- * One address may hold only half of them, so a single visitor who knows a game's address cannot keep its players from reconnecting.
+ * One address may hold only a quarter of them, so a visitor who knows a game's address needs four addresses to keep its players from reconnecting.
  */
 const PENDING_CONNECTION_LIMIT = 16;
-const CLIENT_PENDING_LIMIT = 8;
+const CLIENT_PENDING_LIMIT = 4;
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */

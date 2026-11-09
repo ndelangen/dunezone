@@ -114,12 +114,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
 
   async fetch(request: Request) {
     await this.diagnostics.run('refresh', () => this.refresh());
-    const address = await clientKey(clientAddress(request, this.env));
+    const visitor = await clientKey(clientAddress(request, this.env));
     /* Nothing awaits from here until the socket is counted, so two requests cannot both take the last place. */
     if (this.connections.size >= HOMEPAGE_CONNECTION_LIMIT) {
       return new Response('Table busy.', { status: 503 });
     }
-    if (address && this.clientConnections(address) >= HOMEPAGE_CLIENT_CONNECTION_LIMIT) {
+    if (visitor && this.clientConnections(visitor) >= HOMEPAGE_CLIENT_CONNECTION_LIMIT) {
       return new Response('Too many tables open.', { status: 429 });
     }
     const pair = new WebSocketPair();
@@ -133,7 +133,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         displayName: '',
         color: COLORS[this.connections.size % COLORS.length]!,
       },
-      ...(address ? { client: address } : {}),
+      ...(visitor ? { client: visitor } : {}),
       leaseUntil: 0,
       generation: 0,
       messages: 0,

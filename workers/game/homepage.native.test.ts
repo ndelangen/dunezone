@@ -60,6 +60,9 @@ async function command(connection: NativeConnection, action: PieceAction) {
 
 describe('the public homepage table', () => {
   it('lets one address hold only its share of the table, so a single visitor cannot fill it', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'homepage', { APPLICATION_ORIGIN: 'https://dune.zone' });
     const open = async (address: string) => {
       const response = await runtime.fetch('/__play/homepage/socket', {
         headers: { Origin: runtime.origin, Upgrade: 'websocket', 'CF-Connecting-IP': address },
