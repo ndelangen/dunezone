@@ -74,8 +74,8 @@ export async function verifyBattles(toolkit: HostedToolkit) {
         'Piece carry did not start.'
       );
     }
-    /* A native HTML drag keeps 25 steps; the two-step move was measured on pointer carries only. */
-    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag || localCarry ? 25 : carrySteps });
+    /* Native HTML drags keep 25 steps; the local battle marker uses the same two-point pointer path as a carried piece. */
+    await who.page.mouse.move(end.x, end.y, { steps: nativeDrag ? 25 : carrySteps });
     await who.page.mouse.up();
   }
   await drag(a, button(a, 'Drag Recovery token onto the table'), [-1.5, 0.38, 1.5]);
@@ -162,14 +162,7 @@ export async function verifyBattles(toolkit: HostedToolkit) {
   }
   await take(a, token.id);
   const battleCard = required(await draw(a), 'battleCard');
-  const target = await point(a, [0.95, 0.18, -3.05]);
-  const marker = button(a, 'Drag battle marker onto territory');
-  const bounds = await marker.boundingBox();
-  assert.ok(bounds);
-  await a.page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await a.page.mouse.down();
-  await a.page.mouse.move(target.x, target.y, { steps: 25 });
-  await a.page.mouse.up();
+  await drag(a, button(a, 'Drag battle marker onto territory'), [0.95, 0.18, -3.05]);
   await until(() => requireView(a).snapshot.battle, 'Marker drop did not start a battle.');
   await act(a, 'Claim left side');
   await act(b, 'Claim right side');
