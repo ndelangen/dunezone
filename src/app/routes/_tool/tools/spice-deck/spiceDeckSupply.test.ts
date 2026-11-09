@@ -52,3 +52,10 @@ test('a card with no spice is Shai-Hulud only when it names a worm; others are s
   expect(gf9.cards.filter(isWorm).map((card) => card.key)).toEqual(['worm', 'maker']);
   expect(gf9.cards.filter((card) => card.special).map((card) => card.key)).toEqual(['trout', 'discovery']);
 });
+
+test('a deck with a card whose face is not published is not played', () => {
+  const faceless = { ...supply, members: [{ ...supply.members[0]!, front: null }, ...supply.members.slice(1)] };
+  expect(() => spiceDeckFromSupply({ id: 'faceless', name: 'Faceless deck', ruleset: 'Faceless' }, faceless)).toThrow(
+    /not published/
+  );
+});

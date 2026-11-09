@@ -281,7 +281,8 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
     [busy, game, session, speech, turnOver]
   );
   /* Never listens while it speaks, or it would hear its own "spice". */
-  const { listening } = useVoiceCommands(listen && canListen && !speech.speaking, onCommand);
+  /* Nor while Peek shows the next cards: a command would change the game behind them. */
+  const { listening } = useVoiceCommands(listen && canListen && !speech.speaking && !peeking, onCommand);
 
   /* The header and footer heights, so the piles get the whole screen between them. */
   const header = useRef<HTMLElement>(null);
@@ -645,6 +646,12 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
     setHolding(false);
   };
   useEffect(() => () => clearTimeout(timer.current), []);
+  /* A hold cut short any way at all, focus moving off or the control turning disabled among them, never opens Peek. */
+  useEffect(() => {
+    if (disabled) {
+      clearTimeout(timer.current);
+    }
+  }, [disabled]);
   const press = () => {
     if (disabled) {
       return;
@@ -658,7 +665,7 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
   return (
     <span
       className={styles.hold}
-      data-holding={holding || undefined}
+      data-holding={(holding && !disabled) || undefined}
       style={{ '--hold-ms': `${PEEK_HOLD_MS}ms` } as CSSProperties}
     >
       <IconAction
@@ -680,6 +687,7 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
           }
         }}
         onKeyUp={release}
+        onBlur={release}
       />
     </span>
   );

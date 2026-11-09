@@ -36,6 +36,10 @@ export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply
   if (supply.membersTruncated) {
     throw new Error(`The ${choice.name} has more cards than the catalogue sends at once.`);
   }
+  /* A card with no face could not be shown on its pile or in a peek, so a deck missing one is not played. */
+  if (supply.members.some((member) => !member.front)) {
+    throw new Error(`The ${choice.name} has a card whose face is not published yet.`);
+  }
   const cards: SpiceCardDef[] = supply.members.map(({ asset, front, count }) => {
     const amount = amountOf(asset.type, asset.data);
     return {
