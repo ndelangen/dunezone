@@ -33,7 +33,7 @@ export type ToolGroup = 'Before the game' | 'During the game' | 'Make and export
 
 export const TOOL_GROUPS: readonly ToolGroup[] = ['Before the game', 'During the game', 'Make and export'];
 
-export type ToolCapability = Readonly<{ icon: LucideIcon; title: string; detail: string }>;
+type ToolCapability = Readonly<{ icon: LucideIcon; title: string; detail: string }>;
 
 export type Tool = Readonly<{
   slug: string;
