@@ -12,6 +12,7 @@ import {
   createRuntime,
   eventually,
   fixturePass,
+  gameId,
   isFullView,
   openGame,
   provision,
@@ -53,6 +54,39 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     const view = await connection.message('view');
     return { connection, view };
   }
+
+  it('lets one address hold only a quarter of the places that wait for admission', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'game', { APPLICATION_ORIGIN: 'https://dune.zone' });
+    expect((await provision(runtime)).status).toBe(200);
+    const sockets: { close(): void }[] = [];
+    const open = async (address: string) => {
+      const response = await runtime.fetch(`/__play/games/${gameId}/socket`, {
+        headers: { Origin: runtime.origin, Upgrade: 'websocket', 'CF-Connecting-IP': address },
+      });
+      if (response.webSocket) {
+        response.webSocket.accept();
+        sockets.push(response.webSocket);
+      } else {
+        await response.body?.cancel();
+      }
+      return response.status;
+    };
+    try {
+      for (let index = 0; index < 4; index++) {
+        expect(await open('203.0.113.7')).toBe(101);
+      }
+      expect(await open('203.0.113.7')).toBe(403);
+      /* Another visitor still reaches the table, and a player is still admitted. */
+      expect(await open('2001:db8::7')).toBe(101);
+      await admit();
+    } finally {
+      for (const socket of sockets) {
+        socket.close();
+      }
+    }
+  });
 
   it('answers a keepalive without treating it as a message', async () => {
     expect((await provision(runtime)).status).toBe(200);

@@ -56,6 +56,7 @@ import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
 import { bugReportGamePathPattern, isBugReportRequest } from './bugReportHttp';
 import { GameCatalogue } from './catalogue';
+import { clientAddress } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
@@ -80,6 +81,8 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
+  /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
+  client?: string;
   admitting: boolean;
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
@@ -134,6 +137,7 @@ type RememberedConnection = Pick<
 };
 function openConnection(
   state: Pick<Connection, 'connectionId' | 'openedAt'> &
+    Partial<Pick<Connection, 'client'>> &
     Partial<Pick<Connection, Exclude<keyof RememberedConnection, 'epoch' | 'revision'> | 'everAuthorized'>>
 ): Connection {
   return {
@@ -176,6 +180,12 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
   connection.rumbledAt = now;
   return sound;
 }
+/*
+ * A room holds this many connections that have not been admitted yet, each for at most PLAY_PENDING_TIMEOUT_MS.
+ * One address may hold only a quarter of them, so a visitor who knows a game's address needs four addresses to keep its players from reconnecting.
+ */
+const PENDING_CONNECTION_LIMIT = 16;
+const CLIENT_PENDING_LIMIT = 4;
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
@@ -987,19 +997,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Whether a new connection may wait for admission: the room has a waiting place left, and the visitor has not taken their share. */
+  private hasWaitingPlace(address: string | undefined) {
+    const waiting = [...this.connections.values()].filter((connection) => !connection.viewer);
+    if (waiting.length >= PENDING_CONNECTION_LIMIT) {
+      return false;
+    }
+    return !address || waiting.filter((connection) => connection.client === address).length < CLIENT_PENDING_LIMIT;
+  }
+
   private openSocket(request: Request): Response {
     if (!this.metadata!.confirmed || !isApplicationSocket(request, this.env.APPLICATION_ORIGIN)) {
       return refused();
     }
-    if (
-      this.connections.size >= 128 ||
-      [...this.connections.values()].filter((connection) => !connection.viewer).length >= 16
-    ) {
+    const address = clientAddress(request, this.env);
+    if (this.connections.size >= 128 || !this.hasWaitingPlace(address)) {
       return refused();
     }
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    this.connections.set(server, openConnection({ connectionId: crypto.randomUUID(), openedAt: Date.now() }));
+    this.connections.set(
+      server,
+      openConnection({
+        connectionId: crypto.randomUUID(),
+        openedAt: Date.now(),
+        ...(address ? { client: address } : {}),
+      })
+    );
     this.summary.connections(this.connections.size);
     this.ensureSweep();
     return new Response(null, { status: 101, webSocket: client });

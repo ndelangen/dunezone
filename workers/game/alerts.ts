@@ -1,14 +1,18 @@
 /*
  * Turns a Cloudflare Workers Issues webhook into an email (#1094 monitoring). Issues offers no email destination, so its
  * automation posts here and the Worker emails the inbox Email Routing verified for alerts; sending to a verified destination
- * is free on every plan. The route takes no credential: anyone can call it, so the email carries none of the request and only
- * says to look at the dashboard. At most one is sent per ten minutes: a marker in the Cache API holds that per Cloudflare
+ * is free on every plan. The automation sends its webhook secret in the `cf-webhook-auth` header, and the route answers only a
+ * request whose secret hashes to ALERT_WEBHOOK_SECRET_SHA256; otherwise anyone could send the email, and a fake call would
+ * start the quiet interval below and swallow a real alert. Only the hash lives here: the secret itself is kept only in the
+ * automation. The email still carries none of the request and only says to look at the dashboard. At most one is sent per ten minutes: a marker in the Cache API holds that per Cloudflare
  * location, and a timestamp in the isolate holds it even where the cache keeps nothing.
  * The recipient is the one Worker secret, `ALERT_EMAIL_TO`, which keeps the address out of the public repository; until it
  * is set the route is refused like any unknown path.
  */
 export const ALERT_WEBHOOK_PATH = '/__play/alerts/issues';
 export const ALERT_INTERVAL_SECONDS = 600;
+/* SHA-256 of the 256-bit random secret set on the dunezone-game Issues automation's generic webhook (2026-11-09). Rotate both together. */
+export const ALERT_WEBHOOK_SECRET_SHA256 = 'fdb75194b49bb085c7fc358e0ff230d08c5d46c9bf856c1acad1e088b30f7416';
 
 const ALERT_SENDER = 'alerting@dune.zone';
 export const ALERT_MARKER = 'https://alerts.invalid/last-sent';
@@ -80,12 +84,27 @@ async function sendAlert(binding: SendEmail, to: string): Promise<void> {
   }
 }
 
+/** Whether the request carries the automation's secret; comparing digests keeps the comparison the same length whatever was sent. */
+async function carriesSecret(request: Request, expectedSha256: string): Promise<boolean> {
+  const presented = request.headers.get('cf-webhook-auth');
+  if (!presented) {
+    return false;
+  }
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(presented)));
+  const hex = Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  let difference = hex.length ^ expectedSha256.length;
+  for (let index = 0; index < hex.length; index++) {
+    difference |= hex.charCodeAt(index) ^ (expectedSha256.charCodeAt(index) || 0);
+  }
+  return difference === 0;
+}
+
 /** Handles the webhook route, or returns null for every other request. */
 export async function handleAlertWebhook(
   request: Request,
   pathname: string,
   env: AlertEnv,
-  context: { markers: AlertMarkers; now?: number }
+  context: { markers: AlertMarkers; now?: number; secretSha256?: string }
 ): Promise<Response | null> {
   if (pathname !== ALERT_WEBHOOK_PATH || !env.ALERT_EMAIL_TO) {
     return null;
@@ -94,6 +113,9 @@ export async function handleAlertWebhook(
     return answer(405, { Allow: 'POST' });
   }
   await request.body?.cancel();
+  if (!(await carriesSecret(request, context.secretSha256 ?? ALERT_WEBHOOK_SECRET_SHA256))) {
+    return answer(401);
+  }
   if (!(await alreadySent(context.markers, context.now ?? Date.now()))) {
     await sendAlert(env.ALERT_EMAIL, env.ALERT_EMAIL_TO);
   }
