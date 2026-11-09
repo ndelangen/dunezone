@@ -25,13 +25,7 @@ function namesWorm(name: string, data: unknown): boolean {
   return WORM.test(name) || (typeof subName === 'string' && WORM.test(subName));
 }
 
-/**
- * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
- * A card that blows no spice is Shai-Hulud when it names a worm;
- * any other, such as Sandtrout or a Discovery blow, is a special card the players follow.
- * Throws for a deck the catalogue sent only in part.
- */
-export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
+function assertPlayable(choice: SpiceDeckChoice, supply: AssetSupply) {
   /* A deck read in part would leave cards out and get the odds wrong, so it is not played at all. */
   if (supply.membersTruncated) {
     throw new Error(`The ${choice.name} has more cards than the catalogue sends at once.`);
@@ -40,6 +34,16 @@ export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply
   if (supply.members.some((member) => !member.front)) {
     throw new Error(`The ${choice.name} has a card whose face is not published yet.`);
   }
+}
+
+/**
+ * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
+ * A card that blows no spice is Shai-Hulud when it names a worm;
+ * any other, such as Sandtrout or a Discovery blow, is a special card the players follow.
+ * Throws for a deck the catalogue sent only in part.
+ */
+export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
+  assertPlayable(choice, supply);
   const cards: SpiceCardDef[] = supply.members.map(({ asset, front, count }) => {
     const amount = amountOf(asset.type, asset.data);
     return {
