@@ -1,0 +1,17 @@
+.frame {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A fullscreen tool owns the whole window, as a fullscreen app page does (AppRoot.module.css):
+   the document does not scroll, and the page stylesheet's scrollbar gutters would otherwise inset it. */
+:global(html):has([data-tool-root] [data-page-layout-height="fullscreen"]),
+:global(body):has([data-tool-root] [data-page-layout-height="fullscreen"]) {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  scrollbar-gutter: auto;
+}

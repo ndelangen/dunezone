@@ -128,6 +128,17 @@ describe('Spice Blow', () => {
     expect(game.blows).toHaveLength(1);
   });
 
+  test('a deck with no spice card stops blowing instead of reshuffling forever', () => {
+    const worms: SpiceDeckDef = {
+      id: 'worms',
+      name: 'Worms',
+      cards: [{ key: 'shai-hulud', name: 'Shai-Hulud', count: 3 }],
+    };
+    const game = blowAll(newGame(worms, keepOrder, { piles: 1 }), keepOrder);
+    expect(spiceBlowOver(game)).toBe(false);
+    expect(game.discards.flat().length + game.draw.length).toBe(3);
+  });
+
   test('what is left and the chance of Shai-Hulud next', () => {
     const game = stacked(['old-gap#1', 'shai-hulud#1', 'broken-land#1', 'red-chasm#1']);
     expect(wormChance(game)).toBe(0.25);

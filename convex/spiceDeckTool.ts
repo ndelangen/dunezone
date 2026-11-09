@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 
 import { publicQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
+import { rulesetDeck } from './lib/rulesetSlots';
 
 /* Far more rulesets than the catalogue holds; one slot row and one asset row each keeps the answer inside a query's reads. */
 const RULESET_LIMIT = 200;
@@ -24,21 +25,19 @@ export const decks = publicQuery({
       .query('rulesets')
       .withIndex('by_deleted_name', (q) => q.eq('is_deleted', false))
       .take(RULESET_LIMIT);
-    const choices = [];
-    for (const ruleset of rulesets) {
-      const slot = await ctx.db
-        .query('ruleset_asset_slots')
-        .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', ruleset._id).eq('slot', 'spice'))
-        .first();
-      const deck = slot ? await ctx.db.get('assets', slot.asset_id) : null;
-      if (deck && !deck.is_deleted) {
-        choices.push({
-          rulesetId: ruleset._id,
-          ruleset: ruleset.name,
-          deck: { type: deck.type, slug: deck.slug, name: assetDisplayName(deck) },
-        });
-      }
-    }
-    return choices;
+    /* Every ruleset's slot and asset are read together rather than one ruleset after another. */
+    const decks = await Promise.all(rulesets.map((ruleset) => rulesetDeck(ctx, ruleset._id, 'spice')));
+    return rulesets.flatMap((ruleset, index) => {
+      const deck = decks[index];
+      return deck
+        ? [
+            {
+              rulesetId: ruleset._id,
+              ruleset: ruleset.name,
+              deck: { type: deck.type, slug: deck.slug, name: assetDisplayName(deck) },
+            },
+          ]
+        : [];
+    });
   },
 });

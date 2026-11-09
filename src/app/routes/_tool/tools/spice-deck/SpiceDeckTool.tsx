@@ -178,8 +178,6 @@ function DeckPicker({
 const pileName = (game: SpiceDeckGame, pile: number) =>
   game.piles > 1 ? `Spice pile ${pileLetter(pile)}` : 'Spice pile';
 
-const revealCount = (game: SpiceDeckGame) => game.blows.reduce((sum, blow) => sum + blow.reveals.length, 0);
-
 /** A card on its way: dealt from the deck onto a pile, or set aside off its pile. */
 type Flight = Readonly<{ key: number; pile: number; copy: string; mode: 'deal' | 'aside'; reveal: Reveal }>;
 
@@ -196,6 +194,7 @@ const SHOWCASE = 1.55;
 /* The columns either side of each pile: its letter on the left, its Shai-Hulud notice on the right. Always kept, so nothing moves when a notice shows. */
 const SIDE = 40;
 const SIDE_GAP = 6;
+const CARD_ON_ITS_WAY = 'A card is on its way to its pile.';
 /* A card's width to its height. */
 const CARD_RATIO = 900 / 1263;
 
@@ -209,29 +208,33 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   const [peeking, setPeeking] = useState(false);
 
   /*
-   * A new card turned over starts its flight onto its pile; a card set aside leaves its pile to the side.
-   * A step taken back, and the game as it loaded, show at once.
+   * A card turned over starts its flight onto its pile; a card set aside leaves its pile to the side.
+   * The session says what the last step was, so a step taken back, a new turn and the game as it loaded show at once.
    */
-  const seen = useRef({ reveals: revealCount(game), aside: game.setAside.length });
+  const lastId = session.last?.id;
+  /* Read aloud is read as the card lands, so switching it off while a card is on its way keeps it quiet. */
+  const voiceOn = useRef(voice);
   useEffect(() => {
-    const count = { reveals: revealCount(game), aside: game.setAside.length };
-    const dealt = count.reveals === seen.current.reveals + 1;
-    const setAside = count.reveals === seen.current.reveals && count.aside === seen.current.aside + 1;
-    seen.current = count;
+    voiceOn.current = voice;
+  }, [voice]);
+  useEffect(() => {
+    const kind = session.last?.kind;
     const blow = game.blows.at(-1);
     const reveal = blow?.reveals.at(-1);
-    if ((!dealt && !setAside) || !blow || !reveal || reveal.card === null) {
+    if ((kind !== 'deal' && kind !== 'aside') || !blow || !reveal || reveal.card === null) {
       setFlight(undefined);
       return;
     }
-    const mode = setAside ? 'aside' : 'deal';
+    const mode = kind;
+    /* A deal that found the deck empty reshuffled it first, and the table hears that before the card. */
+    const reshuffled = mode === 'deal' && blow.reveals.at(-2)?.kind === 'reshuffle';
     const landed = () => {
       setFlight(undefined);
-      if (voice) {
+      if (voiceOn.current) {
         speech.speak(
           mode === 'aside'
             ? revealSentence(game, reveal)
-            : `${pileName(game, blow.pile)}. ${revealSentence(game, reveal)}`
+            : `${reshuffled ? 'The deck is reshuffled. ' : ''}${pileName(game, blow.pile)}. ${revealSentence(game, reveal)}`
         );
       }
     };
@@ -239,23 +242,28 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
       landed();
       return;
     }
-    setFlight({ key: count.reveals * 100 + count.aside, pile: blow.pile, copy: reveal.card, mode, reveal });
+    setFlight({ key: lastId ?? 0, pile: blow.pile, copy: reveal.card, mode, reveal });
     const timer = setTimeout(landed, mode === 'aside' ? ASIDE_MS : FLIGHT_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new card or a card set aside starts a flight
-  }, [game]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new step starts a flight
+  }, [lastId]);
 
+  /* While a card is on its way, nothing else moves the game: the table sees each card land before the next step. */
+  const busy = flight !== undefined;
   const turnOver = useCallback(
     (pile: number) => {
-      if (!flight) {
-        session.act((current, random) => revealOne(current, random, pile));
+      if (!busy) {
+        session.act((current, random) => revealOne(current, random, pile), 'deal');
       }
     },
-    [flight, session]
+    [busy, session]
   );
 
   const onCommand = useCallback(
     (command: VoiceCommand) => {
+      if (busy && command !== 'repeat') {
+        return;
+      }
       if (command === 'undo') {
         session.undo();
       } else if (command === 'repeat') {
@@ -269,7 +277,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
         turnOver(nextPile(game) ?? 0);
       }
     },
-    [game, session, speech, turnOver]
+    [busy, game, session, speech, turnOver]
   );
   /* Never listens while it speaks, or it would hear its own "spice". */
   const { listening } = useVoiceCommands(listen && canListen && !speech.speaking, onCommand);
@@ -307,7 +315,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
           emphasis="quiet"
           intent="neutral"
           icon={<RotateCcw size={20} />}
-          disabledReason={session.canUndo ? undefined : 'Nothing to take back yet.'}
+          disabledReason={busy ? CARD_ON_ITS_WAY : session.canUndo ? undefined : 'Nothing to take back yet.'}
           onClick={session.undo}
         />
         <IconAction
@@ -350,7 +358,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
             disabledReason={
               lastPlayed(game) && !flight ? undefined : 'Turn a card over first: it sets aside the card just played.'
             }
-            onClick={() => session.act(setAsideLast)}
+            onClick={() => session.act(setAsideLast, 'aside')}
           >
             Set aside
           </LabeledAction>
@@ -360,6 +368,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
             className={styles.action}
             icon={<ArrowRight size={18} />}
             accessibleName={`Start turn ${game.turn + 1}`}
+            disabledReason={busy ? CARD_ON_ITS_WAY : undefined}
             onClick={() => session.act(nextTurn)}
           >
             {`Turn ${game.turn + 1}`}

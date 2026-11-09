@@ -50,8 +50,6 @@ export type SpiceDeckGame = Readonly<{
   /** How many cards a peek shows. */
   peek: number;
   turn: number;
-  /** The pile a card was last turned onto. */
-  pile: number;
   /** Card copies face down, the top last. A copy is `<key>#<n>`. */
   draw: readonly string[];
   discards: readonly (readonly string[])[];
@@ -101,7 +99,6 @@ export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = 
     piles,
     peek,
     turn: 1,
-    pile: 0,
     draw: shuffled(copies, random),
     discards: Array.from({ length: piles }, () => []),
     setAside: [],
@@ -172,7 +169,7 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
   const blow: Blow = { turn: game.turn, pile: pileIndex, reveals };
   /* The blow just added to goes last, so the newest card is always the last blow's last card, whichever pile it went to. */
   const blows = [...game.blows.filter((entry) => entry !== open), blow];
-  return { ...game, draw, discards, blows, pile: pileIndex };
+  return { ...game, draw, discards, blows };
 }
 
 /** The card just turned over, while it still lies on top of its pile: the one `setAsideLast` takes. */
@@ -207,10 +204,14 @@ export function setAsideLast(game: SpiceDeckGame): SpiceDeckGame {
 
 /** One whole blow: cards turned onto a pile until a spice card lands. */
 export function blowPile(game: SpiceDeckGame, random: Random, pile = nextPile(game) ?? 0): SpiceDeckGame {
+  /* A deck with no spice card would reshuffle forever, so the blow stops once it has been through the whole deck twice. */
+  const most = 2 * (game.draw.length + game.discards.flat().length) + 2;
   let next = game;
+  let turned = 0;
   do {
     next = revealOne(next, random, pile);
-  } while (canReveal(next) && !pileBlown(next, pile));
+    turned++;
+  } while (canReveal(next) && !pileBlown(next, pile) && turned < most);
   return next;
 }
 
@@ -219,6 +220,10 @@ export function blowAll(game: SpiceDeckGame, random: Random): SpiceDeckGame {
   let next = game;
   for (let pile = nextPile(next); pile !== undefined && canReveal(next); pile = nextPile(next)) {
     next = blowPile(next, random, pile);
+    /* A pile the whole deck could not blow is left, rather than tried again forever. */
+    if (!pileBlown(next, pile)) {
+      break;
+    }
   }
   return next;
 }
@@ -226,7 +231,7 @@ export function blowAll(game: SpiceDeckGame, random: Random): SpiceDeckGame {
 /** On to the next turn; any Shai-Hulud set aside this turn is shuffled back into the deck first. */
 export function nextTurn(game: SpiceDeckGame, random: Random): SpiceDeckGame {
   const draw = game.setAside.length > 0 ? shuffled([...game.draw, ...game.setAside], random) : game.draw;
-  return { ...game, draw, setAside: [], turn: game.turn + 1, pile: 0 };
+  return { ...game, draw, setAside: [], turn: game.turn + 1 };
 }
 
 /** Whether a Nexus follows this turn's Spice Blow: a Shai-Hulud came up after the first turn. */

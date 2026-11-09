@@ -20,12 +20,18 @@ function amountOf(type: string, data: unknown): number | undefined {
 /**
  * The deck as the tool plays it, from the catalogue's answer a game reads when it captures the deck.
  * A card that blows no spice, such as Shai-Hulud, is a worm to the tool.
+ * Throws for a deck the catalogue sent only in part.
  */
 export function spiceDeckFromSupply(choice: SpiceDeckChoice, supply: AssetSupply): SpiceDeckDef {
+  /* A deck read in part would leave cards out and get the odds wrong, so it is not played at all. */
+  if (supply.membersTruncated) {
+    throw new Error(`The ${choice.name} has more cards than the catalogue sends at once.`);
+  }
   const cards: SpiceCardDef[] = supply.members.map(({ asset, front, count }) => {
     const amount = amountOf(asset.type, asset.data);
     return {
-      key: asset.slug,
+      /* Slugs are unique per asset type, and a deck may hold cards of several types, so the catalogue id names the card. */
+      key: asset.id,
       name: asset.name,
       count,
       ...(front ? { face: front } : {}),

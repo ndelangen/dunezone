@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
-import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
+import { waitForFrame } from '@sb/storyWaits';
+import { expect, fireEvent, userEvent, within } from 'storybook/test';
 
 import { loadStoryDeck, STORY_DECKS, storyGame } from './spiceDeck.stories.fixture';
 import { SpiceDeckTool } from './SpiceDeckTool';
@@ -74,8 +75,9 @@ export const Peek = meta.story({
   play: async ({ canvas, canvasElement }) => {
     await fireEvent.pointerDown(canvas.getByRole('button', { name: 'Hold to peek at the next card' }));
     const page = within(canvasElement.ownerDocument.body);
-    await waitFor(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {
-      timeout: 4000,
+    /* The peek opens after a two-second hold, a real timer; the bound covers that and a runner starved of frames for several seconds. */
+    await waitForFrame(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {
+      timeout: 15_000,
     });
     await expect(page.getByText('The next 2 cards, the next first')).toBeVisible();
   },

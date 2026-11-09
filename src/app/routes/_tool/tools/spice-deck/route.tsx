@@ -4,7 +4,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { useCallback, useMemo } from 'react';
 
 import { readSpiceDeck, useSpiceDeckChoices } from '@app/db/spiceDeckTool';
-import { pageHead } from '@app/routes/pageTitle';
+import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 
 import { spiceDeckFromSupply } from './spiceDeckSupply';
 import type { SpiceDeckChoice } from './spiceDeckSupply';
@@ -13,11 +13,11 @@ import styles from './SpiceDeckTool.module.css';
 
 /*
  * The spice deck tool at /tools/spice-deck, the address its placeholder held.
- * Public and indexed: the server renders the frame, and the game, kept in this browser's storage, starts in the browser.
+ * A standalone page with no app chrome: public, indexed and the same HTML for every visitor; the game, kept in this browser's storage, starts in the browser.
  */
-export const Route = createFileRoute('/_app/tools/spice-deck')({
+export const Route = createFileRoute('/_tool/tools/spice-deck')({
   ssr: true,
-  head: () => pageHead('Spice deck', { kind: 'Tools' }),
+  head: ({ match }) => toolPageHead('spice-deck', { description: SPICE_DECK_LEDE, match }),
   component: SpiceDeckPage,
 });
 

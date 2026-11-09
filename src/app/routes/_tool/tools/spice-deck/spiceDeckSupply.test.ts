@@ -1,7 +1,7 @@
 import { assetSupplySchema } from '@shared/play/capture';
 import { expect, test } from 'vite-plus/test';
 
-import catalogue from '../../tutorial/setup/catalogue.json';
+import catalogue from '../../../_app/tutorial/setup/catalogue.json';
 import { isWorm } from './spiceDeck';
 import { spiceDeckFromSupply } from './spiceDeckSupply';
 
@@ -22,4 +22,10 @@ test('every card keeps its copies, its face and the spice it blows; Shai-Hulud b
 
 test('every card has a key of its own', () => {
   expect(new Set(deck.cards.map((card) => card.key)).size).toBe(deck.cards.length);
+});
+
+test('a deck the catalogue sent only in part is not played', () => {
+  expect(() =>
+    spiceDeckFromSupply({ id: 'cut', name: 'Cut deck', ruleset: 'Cut' }, { ...supply, membersTruncated: true })
+  ).toThrow(/more cards/);
 });

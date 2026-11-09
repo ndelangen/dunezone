@@ -25,8 +25,10 @@ type Recognition = {
   lang: string;
   start(): void;
   stop(): void;
+  abort(): void;
   onresult: ((event: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onend: (() => void) | null;
+  onstart: (() => void) | null;
   onerror: ((event: { error: string }) => void) | null;
 };
 
@@ -75,6 +77,9 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
     recognition.interimResults = false;
     recognition.lang = 'en';
     recognition.onresult = (event) => {
+      if (!active) {
+        return;
+      }
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const command = commandIn(event.results[i]?.[0]?.transcript ?? '');
         if (command) {
@@ -93,10 +98,15 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
         setRefused(true);
       }
     };
+    recognition.onstart = () => setRefused(false);
     recognition.start();
+    /* Aborted, not stopped: a stop still hands over what was already heard, which may be the start of the tool's own words. */
     return () => {
       active = false;
-      recognition.stop();
+      recognition.onresult = null;
+      recognition.onend = null;
+      recognition.onstart = null;
+      recognition.abort();
     };
   }, [on]);
   return { listening: on && !refused && recognitionClass() !== undefined };

@@ -61,3 +61,16 @@ export async function readRulesetAssetSlots(
 }
 
 type SlotReadOptions = { skipBoard?: boolean };
+
+/**
+ * A ruleset's live deck in a single-deck slot, or null: one slot row and one asset row, so a listing of every ruleset stays within a query's reads.
+ * What game creation and the spice deck tool both count as the ruleset's deck.
+ */
+export async function rulesetDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
+  const row = await ctx.db
+    .query('ruleset_asset_slots')
+    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
+    .first();
+  const asset = row ? await ctx.db.get('assets', row.asset_id) : null;
+  return asset && !asset.is_deleted ? asset : null;
+}
