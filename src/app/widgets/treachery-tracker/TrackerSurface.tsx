@@ -60,6 +60,11 @@ export function TrackerPopover({
   return <SheetContext value={{ opened, onClose: () => onChange(false) }}>{children}</SheetContext>;
 }
 
+/** Whether this part is drawn inside a phone's sheet, where a list of thumb-high rows beats a row of small tokens. */
+export function useInSheet(): boolean {
+  return use(SheetContext) !== null;
+}
+
 function Target({ children }: Readonly<{ children: ReactNode }>) {
   return use(SheetContext) ? children : <Popover.Target>{children}</Popover.Target>;
 }

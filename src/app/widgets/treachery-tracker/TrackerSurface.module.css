@@ -1,6 +1,11 @@
-/* Pinned to the screen's left edge: a fixed pane with no left of its own lands wherever its portal sits in the page. */
+/*
+ * Pinned to both screen edges: a fixed pane with no left of its own lands wherever its portal sits in the page.
+ * On a screen wider than a phone the sheet keeps the page's phone width, centred under it.
+ */
 .sheetInner {
   left: 0;
+  right: 0;
+  justify-content: center;
 }
 
 /* A chooser on a phone: a sheet from the bottom, as wide as the screen, clear of the home indicator. */
@@ -8,6 +13,7 @@
   /* As tall as its chooser, up to most of the screen; Mantine has no size for "auto", so the height is set here. */
   height: auto;
   max-height: 85dvh;
+  max-width: 480px;
   border-top-left-radius: var(--mantine-radius-lg);
   border-top-right-radius: var(--mantine-radius-lg);
   background: var(--ui-raised);

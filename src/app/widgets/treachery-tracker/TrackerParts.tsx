@@ -21,7 +21,7 @@ import {
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TrackerParts.module.css';
-import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
+import { TrackerPopover, useActionSize, useInSheet, useTrackerTouch } from './TrackerSurface';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
 export type TrackerViewProps = Readonly<{
@@ -44,6 +44,31 @@ export function FactionPicker({
   onPick: (faction: string) => void;
   except?: string;
 }>) {
+  const touch = useTrackerTouch();
+  const inSheet = useInSheet();
+  if (touch && inSheet) {
+    /* In a phone's sheet each faction is a thumb-high row with its name, since a thumb cannot hover for a tooltip. */
+    return (
+      <Stack gap={2}>
+        {factions
+          .filter((faction) => faction.id !== except)
+          .map((faction) => (
+            <UnstyledButton
+              key={faction.id}
+              className={styles.menuLine}
+              data-touch="true"
+              aria-label={label(faction)}
+              onClick={() => onPick(faction.id)}
+            >
+              <FactionTokenFace token={faction} size={36} />
+              <Text size="md" aria-hidden>
+                {faction.name}
+              </Text>
+            </UnstyledButton>
+          ))}
+      </Stack>
+    );
+  }
   return (
     <div className={styles.picker}>
       {factions
@@ -237,13 +262,18 @@ function SlotStep(props: SlotStepProps & Readonly<{ mode: SlotMode; close: () =>
   }
   if (mode === 'give') {
     return (
-      <FactionPicker
-        factions={factions}
-        except={faction}
-        size={26}
-        label={(to) => `Given to ${to.name}`}
-        onPick={(to) => act({ kind: 'give', faction, slot: slot.id, to })}
-      />
+      <Stack gap={6}>
+        <Text size="xs" className={styles.caption}>
+          Given to
+        </Text>
+        <FactionPicker
+          factions={factions}
+          except={faction}
+          size={26}
+          label={(to) => `Given to ${to.name}`}
+          onPick={(to) => act({ kind: 'give', faction, slot: slot.id, to })}
+        />
+      </Stack>
     );
   }
   return (
@@ -333,10 +363,11 @@ export function MenuLine({
   onClick,
   children,
 }: Readonly<{ icon: ReactNode; onClick: () => void; children: ReactNode }>) {
+  const touch = useTrackerTouch();
   return (
-    <UnstyledButton className={styles.menuLine} onClick={onClick}>
+    <UnstyledButton className={styles.menuLine} data-touch={touch ? 'true' : 'false'} onClick={onClick}>
       <span className={styles.menuIcon}>{icon}</span>
-      <Text size="sm">{children}</Text>
+      <Text size={touch ? 'md' : 'sm'}>{children}</Text>
     </UnstyledButton>
   );
 }

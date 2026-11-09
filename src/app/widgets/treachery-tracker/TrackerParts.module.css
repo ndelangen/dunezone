@@ -148,6 +148,23 @@
   color: var(--ui-brass);
 }
 
+/* Held in one hand: each line a thumb's height across the sheet, its icon and words larger. */
+.menuLine[data-touch="true"] {
+  gap: var(--space-sm);
+  min-height: 52px;
+  padding-inline: var(--space-sm);
+  border-radius: 8px;
+}
+
+.menuLine[data-touch="true"] .menuIcon {
+  width: 24px;
+}
+
+.menuLine[data-touch="true"] .menuIcon > svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* The deck's makeup by kind, in the palette's roles: weapons the negative fill, defenses progress, specials positive, worthless umber. */
 .kindBar {
   display: flex;
