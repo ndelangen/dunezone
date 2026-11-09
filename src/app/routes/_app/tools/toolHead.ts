@@ -29,7 +29,7 @@ const KIND = 'Tools';
 
 /** What the catalogue says in a search result and when shared. */
 const TOOLS_DESCRIPTION =
-  'Free phone-friendly helpers for playing the Dune board game at the table: a Treachery card tracker, spice deck, faction draft, battle calculator and more.';
+  'Free phone-friendly helpers for playing the Dune board game at the table: a Treachery card tracker, spice deck, battle wheel, faction draft and more.';
 
 /** The /tools head: a collection page that lists the built tools, and a social card. */
 export function toolsIndexHead(tools: readonly Tool[] = TOOLS) {

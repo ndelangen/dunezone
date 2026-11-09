@@ -585,8 +585,11 @@ else who calls it directly.
 ## Pull-request Cloudflare drift guard
 
 `.github/workflows/cloudflare-live-drift.yml` compares production Cloudflare state
-with trusted `main` on every pull request. It uses `pull_request_target`, checks out
-only the base SHA, and never executes pull-request-authored code.
+with trusted `main` on every pull request. It runs on `pull_request`, because GitHub
+blocks `pull_request_target` in public repositories from 2 December 2026. It checks out
+the base branch, not the pull request head, so the audit script is always main's. A fork
+pull request gets no secrets, so its audit fails; open such a change from a branch in this
+repository instead.
 
 Configure `CLOUDFLARE_READ_API_TOKEN` with only:
 

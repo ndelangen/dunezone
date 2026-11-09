@@ -24,7 +24,7 @@ const STORAGE_KEY = 'dune-zone:standalone-treachery-tracker';
 afterEach(() => savedGame.set(null));
 
 test('two changes from one tap both land, the second on top of the first', () => {
-  savedGame.set(startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK));
+  savedGame.set(startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK));
   savedGame.update((game) => playGame(game, { kind: 'add', faction: 'harkonnen', card: null }));
   const slot = savedGame.get()!.state.hands.harkonnen![0]!.id;
   const card = savedGame.get()!.state.copies[0]!.id;
@@ -36,7 +36,7 @@ test('two changes from one tap both land, the second on top of the first', () =>
 });
 
 test('a saved game with one slot id in two hands does not open', () => {
-  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const game = startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK);
   const slot = { id: 's1', card: null };
   const stop = savedGame.subscribe(() => {});
   window.localStorage.setItem(
@@ -50,7 +50,7 @@ test('a saved game with one slot id in two hands does not open', () => {
 });
 
 test('a page that mounts again reads what another tab saved while it was away', () => {
-  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const game = startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK);
   savedGame.set(game);
   const moved = playGame(game, { kind: 'add', faction: 'harkonnen', card: null });
   /* Another tab saves while nothing here listens, so no storage event reaches this one. */
@@ -64,7 +64,7 @@ test.each([
   ['no hand at all', {}],
   ['an extra hand no faction at the table holds', { fremen: [] }],
 ])('a saved card whose origin names a faction off the table, with %s, does not open', (_, extra) => {
-  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const game = startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK);
   const card = game.state.copies[0]!.id;
   const slot = { id: 's1', card, from: { at: 'hand', faction: 'fremen', slot: 's0' } };
   const stop = savedGame.subscribe(() => {});
@@ -79,7 +79,7 @@ test.each([
 
 test('another tab clearing storage clears the game here too', () => {
   const stop = savedGame.subscribe(() => {});
-  savedGame.set(startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK));
+  savedGame.set(startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK));
   window.localStorage.clear();
   /* A clear reaches other tabs as a storage event with no key. */
   window.dispatchEvent(new StorageEvent('storage', { key: null }));
@@ -88,7 +88,7 @@ test('another tab clearing storage clears the game here too', () => {
 });
 
 test('a game the browser will not save says so until a save works', () => {
-  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const game = startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK);
   const setItem = Storage.prototype.setItem;
   Storage.prototype.setItem = () => {
     throw new DOMException('Full', 'QuotaExceededError');
@@ -102,4 +102,16 @@ test('a game the browser will not save says so until a save works', () => {
   }
   savedGame.set(game);
   expect(savedGame.unsaved()).toBe(false);
+});
+
+test('a game saved before decks could be picked opens with its Ruleset’s deck as its one deck', () => {
+  const { decks: _, ...game } = startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DECK);
+  const stop = savedGame.subscribe(() => {});
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ ...game, ruleset: { id: 'dreamrules', name: 'Dreamrules' } })
+  );
+  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
+  expect(savedGame.get()?.decks).toEqual([{ id: 'dreamrules', name: 'Dreamrules' }]);
+  stop();
 });

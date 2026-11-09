@@ -237,7 +237,8 @@ function liveFetcher(
 describe('Cloudflare live drift check', () => {
   test('keeps the required audit workflow on trusted code for PRs and merge groups', () => {
     const workflow = readFileSync(path.resolve(process.cwd(), '.github/workflows/cloudflare-live-drift.yml'), 'utf8');
-    expect(workflow).toContain('pull_request_target:');
+    expect(workflow).toMatch(/^  pull_request:$/m);
+    expect(workflow).not.toMatch(/^  pull_request_target:/m);
     expect(workflow).toContain('merge_group:');
     expect(workflow).toContain('types: [checks_requested]');
     expect(workflow).toContain('branches: [main]');
@@ -246,7 +247,7 @@ describe('Cloudflare live drift check', () => {
     expect(workflow).toMatch(/actions\/checkout@[0-9a-f]{40} # v\d/);
     expect(workflow).toMatch(/oven-sh\/setup-bun@[0-9a-f]{40} # v[\d.]+/);
     expect(workflow).toContain(
-      `ref: $${'{'}{ github.event_name == 'merge_group' && github.event.repository.default_branch || github.sha }}`
+      `ref: $${'{'}{ github.base_ref || github.event_name == 'merge_group' && github.event.repository.default_branch || github.sha }}`
     );
     expect(workflow).not.toContain('github.event.pull_request.base.sha');
     expect(workflow).toContain('persist-credentials: false');

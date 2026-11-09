@@ -5,11 +5,11 @@ import { consistentTracker, newTracker, trackerReducer } from '@app/widgets/trea
 import type { CardDef, TrackerAction, TrackerState } from '@app/widgets/treachery-tracker/tracker';
 
 /**
- * A game tracked at a physical table: the Ruleset it plays, the factions in seat order, the turn, and the tracker.
- * The tracker carries its own copy of the deck, so a saved game opens without reading the Ruleset again, even offline.
+ * A game tracked at a physical table: the Treachery decks it plays together, the factions in seat order, the turn, and the tracker.
+ * The tracker carries its own copy of the cards, so a saved game opens without reading the decks again, even offline.
  */
 export type StandaloneGame = Readonly<{
-  ruleset: Readonly<{ id: string; name: string }>;
+  decks: readonly Readonly<{ id: string; name: string }>[];
   factions: readonly FactionToken[];
   turn: number;
   state: TrackerState;
@@ -17,12 +17,12 @@ export type StandaloneGame = Readonly<{
 
 /** A new game: the whole deck and every hand empty, in turn 1. */
 export function startGame(
-  ruleset: StandaloneGame['ruleset'],
+  decks: StandaloneGame['decks'],
   factions: readonly FactionToken[],
   defs: readonly CardDef[]
 ): StandaloneGame {
   return {
-    ruleset,
+    decks,
     factions,
     turn: 1,
     state: newTracker(
@@ -68,37 +68,46 @@ function originsAtTable(origin: SavedOrigin | undefined, seated: ReadonlySet<str
 }
 
 /* A saved game is opened only when it holds together: every card it names is one of its own copies, no card is in two places, and no slot id is used twice. */
-const gameSchema = z
-  .object({
-    ruleset: z.object({ id: z.string(), name: z.string() }),
-    factions: z.array(
-      z.object({ id: z.string(), name: z.string(), src: z.string().nullish(), color: z.string().optional() })
-    ),
-    turn: z.number().int().positive(),
-    state: z.object({
-      copies: z.array(z.object({ id: z.string(), def: defSchema, copy: z.number() })),
-      hands: z.record(z.string(), z.array(slotSchema.passthrough())),
-      discard: z.array(z.string()),
-      seen: z.array(z.object({ id: z.string(), turn: z.number(), card: z.string().nullable() }).passthrough()),
-      notes: z.record(z.string(), z.string()),
-      nextSlot: z.number(),
-    }),
-  })
-  .refine(({ factions, state }) => {
-    const ids = new Set(state.copies.map((copy) => copy.id));
-    const seated = new Set(factions.map((faction) => faction.id));
-    const named = [
-      ...Object.values(state.hands).flatMap((slots) => slots.flatMap((slot) => (slot.card ? [slot.card] : []))),
-      ...state.discard,
-      ...state.seen.flatMap((sighting) => (sighting.card ? [sighting.card] : [])),
-    ];
-    return (
-      named.every((card) => ids.has(card)) &&
-      consistentTracker(state) &&
-      factions.every((faction) => faction.id in state.hands) &&
-      Object.values(state.hands).every((slots) => slots.every((slot) => originsAtTable(slot.from, seated)))
-    );
-  });
+/* A game saved before decks could be picked named the one Ruleset it copied the deck of, which reads as that one deck. */
+const fromRuleset = (saved: unknown) =>
+  saved && typeof saved === 'object' && 'ruleset' in saved && !('decks' in saved)
+    ? { ...saved, decks: [saved.ruleset] }
+    : saved;
+
+const gameSchema = z.preprocess(
+  fromRuleset,
+  z
+    .object({
+      decks: z.array(z.object({ id: z.string(), name: z.string() })).min(1),
+      factions: z.array(
+        z.object({ id: z.string(), name: z.string(), src: z.string().nullish(), color: z.string().optional() })
+      ),
+      turn: z.number().int().positive(),
+      state: z.object({
+        copies: z.array(z.object({ id: z.string(), def: defSchema, copy: z.number() })),
+        hands: z.record(z.string(), z.array(slotSchema.passthrough())),
+        discard: z.array(z.string()),
+        seen: z.array(z.object({ id: z.string(), turn: z.number(), card: z.string().nullable() }).passthrough()),
+        notes: z.record(z.string(), z.string()),
+        nextSlot: z.number(),
+      }),
+    })
+    .refine(({ factions, state }) => {
+      const ids = new Set(state.copies.map((copy) => copy.id));
+      const seated = new Set(factions.map((faction) => faction.id));
+      const named = [
+        ...Object.values(state.hands).flatMap((slots) => slots.flatMap((slot) => (slot.card ? [slot.card] : []))),
+        ...state.discard,
+        ...state.seen.flatMap((sighting) => (sighting.card ? [sighting.card] : [])),
+      ];
+      return (
+        named.every((card) => ids.has(card)) &&
+        consistentTracker(state) &&
+        factions.every((faction) => faction.id in state.hands) &&
+        Object.values(state.hands).every((slots) => slots.every((slot) => originsAtTable(slot.from, seated)))
+      );
+    })
+);
 
 /* The game saved in this browser, or null where there is none or it no longer holds together. */
 function loadGame(): StandaloneGame | null {
