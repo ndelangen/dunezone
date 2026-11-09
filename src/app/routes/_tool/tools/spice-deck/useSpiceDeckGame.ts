@@ -75,6 +75,25 @@ const cryptoRandom: Random = () => {
   return word[0]! / 2 ** 32;
 };
 
+/* The game moved on to `game`, the one before it kept a step back; a step that changed nothing is no step. */
+function stepTo(current: Saved, game: SpiceDeckGame, kind: StepKind): Saved {
+  if (game === current.game) {
+    return current;
+  }
+  return { game, undo: [...current.undo, current.game].slice(-UNDO_DEPTH), last: nextStep(current, kind) };
+}
+
+/* The game one step back, if there is one. */
+function stepBack(current: Saved | undefined): Saved | undefined {
+  const previous = current?.undo.at(-1);
+  if (!current || !previous) {
+    return current;
+  }
+  return { game: previous, undo: current.undo.slice(0, -1), last: nextStep(current, 'other') };
+}
+
+const nextStep = (current: Saved, kind: StepKind): LastStep => ({ id: (current.last?.id ?? 0) + 1, kind });
+
 export type SpiceDeckSession = Readonly<{
   game: SpiceDeckGame | undefined;
   /** What the last step did, so the page knows what to animate; undefined for the game as it loaded. */
@@ -99,45 +118,12 @@ export function useSpiceDeckGame(storageKey: string, initial?: SpiceDeckGame, ra
 
   const act = useCallback<SpiceDeckSession['act']>(
     (step, kind = 'other') =>
-      setSaved((current) => {
-        if (!current) {
-          return current;
-        }
-        const next = step(current.game, random);
-        return next === current.game
-          ? current
-          : {
-              game: next,
-              undo: [...current.undo, current.game].slice(-UNDO_DEPTH),
-              last: { id: (current.last?.id ?? 0) + 1, kind },
-            };
-      }),
+      setSaved((current) => (current ? stepTo(current, step(current.game, random), kind) : current)),
     [random]
   );
-  const undo = useCallback(
-    () =>
-      setSaved((current) =>
-        current && current.undo.length > 0
-          ? {
-              game: current.undo.at(-1)!,
-              undo: current.undo.slice(0, -1),
-              last: { id: (current.last?.id ?? 0) + 1, kind: 'other' },
-            }
-          : current
-      ),
-    []
-  );
+  const undo = useCallback(() => setSaved(stepBack), []);
   const start = useCallback(
-    (game: SpiceDeckGame) =>
-      setSaved((current) =>
-        current
-          ? {
-              game,
-              undo: [...current.undo, current.game].slice(-UNDO_DEPTH),
-              last: { id: (current.last?.id ?? 0) + 1, kind: 'other' },
-            }
-          : { game, undo: [] }
-      ),
+    (game: SpiceDeckGame) => setSaved((current) => (current ? stepTo(current, game, 'other') : { game, undo: [] })),
     []
   );
   return {
