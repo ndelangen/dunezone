@@ -355,8 +355,8 @@ describes.
 interval held it back, and when the send failed (`workers/game/alerts.ts`). An error answer would
 itself become a Workers issue and post to the route again. It refuses a call without the
 automation's secret in `cf-webhook-auth` with `401`, so a test call has to send that header; it
-answers `404` while `ALERT_EMAIL_TO` is unset, and the publisher can answer `429` for its per-IP
-`/__play` limit.
+answers `403` while `ALERT_EMAIL_TO` is unset (the route falls through to the router's refusal),
+and the publisher can answer `429` for its per-IP `/__play` limit.
 
 **What it looks like when it bites:** a test call that returns `202` and no email arrives. Look for
 `alert-email-failed` in the game Worker's logs, and remember that a second call from the same

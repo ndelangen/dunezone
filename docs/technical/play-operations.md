@@ -178,7 +178,7 @@ Live since 2026-10-01:
   `curl -i -X POST -H 'cf-webhook-auth: <the automation secret>' https://dune.zone/__play/alerts/issues`.
   Without the header the answer is `401`. A `202` answer and one email at the
   alert inbox within a minute mean the publisher forwarding, the game Worker route, the secret and
-  the Email Routing binding all work. A `404` means `ALERT_EMAIL_TO` is unset. A second call
+  the Email Routing binding all work. A `403` means `ALERT_EMAIL_TO` is unset. A second call
   within ten minutes from the same location answers `202` without an email, which is the interval
   guard, not a failure; it also means a real issue in that window sends no email, so test when
   nothing is being watched. A `429` is the publisher's per-IP limit on `/__play` requests; retry
