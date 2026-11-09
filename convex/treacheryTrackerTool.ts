@@ -1,17 +1,19 @@
 import { v } from 'convex/values';
 
-import type { Doc } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
-import { DECK_CARD, membersOf } from './assets';
+import { DECK_CARD, DECK_CARD_LIMIT } from './assets';
 import { publicQuery } from './functions';
 import { resolveBackHref } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 
-/* Far more Treachery cards than the catalogue holds; one card row and its deck memberships each keeps the answer inside a query's reads. */
-const CARD_LIMIT = 2000;
+/* Far more Treachery cards than the catalogue holds, kept low enough that the whole answer stays inside one query's database calls. */
+const CARD_LIMIT = 1000;
 /* Every deck a card was ever put in, deleted decks included, since deleting a deck keeps its rows; far more than any card is in. */
 const DECKS_PER_CARD = 500;
+/* At most this many reads in flight at once, well inside what one query may run together. */
+const READS_AT_ONCE = 200;
 /* A Ruleset for trying things out, never named to a table. */
 const HIDDEN_RULESETS = new Set(['test']);
 
@@ -27,29 +29,57 @@ const treacheryDeckChoiceValidator = v.object({
   rulesets: v.array(v.object({ slug: v.string(), name: v.string() })),
 });
 
-/* Every live deck holding a live Treachery card: found from the cards, so a deck that mixes card types is found whatever its first card is. */
+/* Each item read in turn of batches, so a large catalogue never has more than READS_AT_ONCE reads in flight. */
+async function inBatches<T, R>(items: readonly T[], read: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let start = 0; start < items.length; start += READS_AT_ONCE) {
+    results.push(...(await Promise.all(items.slice(start, start + READS_AT_ONCE).map(read))));
+  }
+  return results;
+}
+
+/*
+ * Every live deck holding a live Treachery card: found from the cards, so a deck that mixes card types is found whatever its first card is.
+ * Also hands back each card row read on the way, so counting a deck's copies does not read them again.
+ */
 async function decksWithTreachery(ctx: QueryCtx) {
   const cards = await ctx.db
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', 'card-treachery').eq('is_deleted', false))
     .take(CARD_LIMIT);
-  const memberships = await Promise.all(
-    cards.map((card) =>
-      ctx.db
-        .query('asset_relations')
-        .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
-        .take(DECKS_PER_CARD)
-    )
+  const known = new Map<Id<'assets'>, Doc<'assets'> | null>(cards.map((card) => [card._id, card]));
+  const memberships = await inBatches(cards, (card) =>
+    ctx.db
+      .query('asset_relations')
+      .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
+      .take(DECKS_PER_CARD)
   );
   const ids = [...new Set(memberships.flat().map((membership) => membership.from_asset_id))];
-  const decks = await Promise.all(ids.map((id) => ctx.db.get('assets', id)));
-  return decks.filter((deck): deck is Doc<'assets'> => deck !== null && !deck.is_deleted && deck.type === 'deck');
+  const decks = await inBatches(ids, (id) => ctx.db.get('assets', id));
+  return {
+    decks: decks.filter((deck): deck is Doc<'assets'> => deck !== null && !deck.is_deleted && deck.type === 'deck'),
+    known,
+  };
 }
 
-/* The deck's live copies of every card, read as the capture reads its members, so the count matches the cards the tracker copies. */
-async function copiesIn(ctx: QueryCtx, deck: Doc<'assets'>) {
-  const { entries } = await membersOf(ctx, deck._id, DECK_CARD);
-  return entries.reduce((total, entry) => total + entry.count, 0);
+/*
+ * The deck's live copies of every card, by the rule the capture reads its members by (a deleted card adds none), so the count matches the cards the tracker copies.
+ * A card already read, for this deck or another, is not read again.
+ */
+async function copiesIn(ctx: QueryCtx, deck: Doc<'assets'>, known: Map<Id<'assets'>, Doc<'assets'> | null>) {
+  const relations = await ctx.db
+    .query('asset_relations')
+    .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', DECK_CARD))
+    .take(DECK_CARD_LIMIT);
+  let total = 0;
+  for (const relation of relations) {
+    if (!known.has(relation.to_asset_id)) {
+      known.set(relation.to_asset_id, await ctx.db.get('assets', relation.to_asset_id));
+    }
+    const card = known.get(relation.to_asset_id);
+    total += card && !card.is_deleted ? relation.count : 0;
+  }
+  return total;
 }
 
 async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>) {
@@ -76,18 +106,25 @@ export const decks = publicQuery({
   args: {},
   returns: v.array(treacheryDeckChoiceValidator),
   handler: async (ctx) => {
-    const rows = await decksWithTreachery(ctx);
+    const { decks: rows, known } = await decksWithTreachery(ctx);
     const presets: CardbackPresetMemo = new Map();
-    const choices = await Promise.all(
-      rows.map(async (row) => {
-        const cards = await copiesIn(ctx, row);
-        const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
-        return { id: row._id, slug: row.slug, name: assetDisplayName(row), cards, back: back?.href ?? null, rulesets };
-      })
-    );
+    /* A deck at a time, so a card two decks share is read once and the reads stay few. */
+    const choices = [];
+    for (const row of rows) {
+      const cards = await copiesIn(ctx, row, known);
+      const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
+      choices.push({
+        id: row._id,
+        slug: row.slug,
+        name: assetDisplayName(row),
+        cards,
+        back: back?.href ?? null,
+        rulesets,
+      });
+    }
     /* A Ruleset's deck first, then by name, so the decks a game is played with lead the list. */
-    return choices
-      .filter((choice) => choice !== null)
-      .sort((a, b) => Number(b.rulesets.length > 0) - Number(a.rulesets.length > 0) || a.name.localeCompare(b.name));
+    return choices.sort(
+      (a, b) => Number(b.rulesets.length > 0) - Number(a.rulesets.length > 0) || a.name.localeCompare(b.name)
+    );
   },
 });

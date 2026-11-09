@@ -1032,7 +1032,7 @@ export async function replaceAssetMembers(
 }
 
 /** Bounds a deck's composition read; a deck far below this is the ordinary case. */
-const DECK_CARD_LIMIT = 500;
+export const DECK_CARD_LIMIT = 500;
 
 /**
  * A container's member rows with their counts, soft-deleted members filtered out at read time.
