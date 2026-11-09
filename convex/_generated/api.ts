@@ -158,6 +158,7 @@ import type * as playGames from "../playGames.js";
 import type * as playProvisioning from "../playProvisioning.js";
 import type * as playSessionCutoffs from "../playSessionCutoffs.js";
 import type * as playTesting from "../playTesting.js";
+import type * as predictionLocketTool from "../predictionLocketTool.js";
 import type * as presetLibrary from "../presetLibrary.js";
 import type * as profileAvatars from "../profileAvatars.js";
 import type * as profiles from "../profiles.js";
@@ -342,6 +343,7 @@ const fullApi: ApiFromModules<{
   playProvisioning: typeof playProvisioning;
   playSessionCutoffs: typeof playSessionCutoffs;
   playTesting: typeof playTesting;
+  predictionLocketTool: typeof predictionLocketTool;
   presetLibrary: typeof presetLibrary;
   profileAvatars: typeof profileAvatars;
   profiles: typeof profiles;

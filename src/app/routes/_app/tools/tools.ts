@@ -90,17 +90,17 @@ const TOOL_ENTRIES = [
     ],
   },
   {
-    slug: 'prediction-keeper',
-    title: 'Prediction keeper',
-    goal: 'Seal a secret prediction on a phone and reveal it at the end',
+    slug: 'prediction-locket',
+    title: 'Prediction locket',
+    goal: 'Lock a secret prediction on a phone, with a time the table can trust',
     statement:
-      'The Bene Gesserit write their prediction at setup, seal it on the phone, and reveal it when the game ends: no slip of paper to lose.',
+      'Pick the faction and the turn, and lock it on your phone. At the reveal the table sees the prediction and when it was locked, by Dune Zone’s clock, not the phone’s.',
     icon: Lock,
     group: 'Before the game',
     capabilities: [
-      { icon: Lock, title: 'Sealed', detail: 'Hidden until you reveal it.' },
-      { icon: Users, title: 'Faction and turn', detail: 'Pick the winner and the turn.' },
-      { icon: Eye, title: 'The reveal', detail: 'Shown to the table at the end.' },
+      { icon: Users, title: 'Faction and turn', detail: 'Any faction on Dune Zone, any turn.' },
+      { icon: Lock, title: 'Locked', detail: 'Hidden on your phone until you reveal it.' },
+      { icon: Timer, title: 'Trusted time', detail: 'Locked 2 hours ago, by Dune Zone’s clock.' },
     ],
   },
   {
@@ -232,7 +232,10 @@ export type ToolSlug = (typeof TOOL_ENTRIES)[number]['slug'];
 export const TOOLS: readonly Tool[] = TOOL_ENTRIES;
 
 /** Slugs a tool was renamed from, to the slug it has now: links and bookmarks to the old address keep working. */
-export const FORMER_TOOL_SLUGS: Readonly<Record<string, ToolSlug>> = { 'spice-deck-tracker': 'spice-deck' };
+export const FORMER_TOOL_SLUGS: Readonly<Record<string, ToolSlug>> = {
+  'spice-deck-tracker': 'spice-deck',
+  'prediction-keeper': 'prediction-locket',
+};
 
 export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);
