@@ -473,7 +473,7 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
                 type="url"
                 value={bggProfileUrl}
                 onChange={(event) => dispatch({ kind: 'patch', update: { bggProfileUrl: event.target.value } })}
-                placeholder="https://boardgamegeek.com/user/yourname"
+                placeholder="https://boardgamegeek.com/profile/yourname"
                 autoComplete="off"
                 maxLength={500}
               />
