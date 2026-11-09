@@ -14,7 +14,7 @@ export function storyFaction(slug: string): LocketFaction {
 
 /** Opens the page on this locket: the page reads it from this browser's storage, as a reload at the table would. */
 export function seedStoredLocket(state: LocketState) {
-  window.localStorage.setItem(PREDICTION_LOCKET_STORAGE_KEY, JSON.stringify({ ...state, version: 1 }));
+  window.localStorage.setItem(PREDICTION_LOCKET_STORAGE_KEY, JSON.stringify({ ...state, version: 2 }));
 }
 
 /** Opens the page with nothing kept: a first visit. */
@@ -22,11 +22,20 @@ export function clearStoredLocket() {
   window.localStorage.removeItem(PREDICTION_LOCKET_STORAGE_KEY);
 }
 
-/** A prediction locked two hours before the story's clock reads now. */
+/** A prediction locked in Amsterdam at 10:00 on the story's day, by Dune Zone's clock. */
 export function storyLocked(slug: string, turn: number, revealed: boolean): LocketState {
   return {
     faction: null,
     turn: null,
-    locked: { faction: storyFaction(slug), turn, lockedAt: STORYBOOK_NOW - 2 * 3_600_000, revealed },
+    timeZone: STORY_TIME_ZONE,
+    locked: {
+      faction: storyFaction(slug),
+      turn,
+      lockedAt: STORYBOOK_NOW - 3 * 3_600_000,
+      timeZone: STORY_TIME_ZONE,
+      revealed,
+    },
   };
 }
+
+export const STORY_TIME_ZONE = 'Europe/Amsterdam';

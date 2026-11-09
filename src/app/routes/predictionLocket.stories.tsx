@@ -8,14 +8,15 @@ import {
   seedStoredLocket,
   storyFaction,
   storyLocked,
+  STORY_TIME_ZONE,
 } from './_tool/tools/prediction-locket/predictionLocket.stories.fixture';
 import { withRulesets } from './battleWheel.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 /*
  * The prediction locket on a phone at the table (Norbert, 2026-11-09), as the page at /tools/prediction-locket: no app chrome.
- * Pick a faction and a turn and lock it. The phone keeps the prediction; Dune Zone only gives the time, at the lock and again at
- * the reveal, so "locked 2h ago" holds whatever the phone's clock says.
+ * Pick a faction, a turn and your city, and lock it. The phone keeps the prediction; Dune Zone only gives the time it was locked,
+ * shown in the city's time, so the phone's clock and the table's time zones play no part.
  * The page keeps the locket in this browser's storage, so each story seeds the locket it opens on.
  */
 
@@ -29,7 +30,7 @@ const meta = preview.meta({
 
 const pageOf = (canvasElement: HTMLElement) => within(canvasElement.ownerDocument.body);
 
-/** A first visit: GF9's base six and a search for any other faction, turns 1 to 10, and Lock waits for both. */
+/** A first visit: GF9's base six and a search for any other faction, turns 1 to 10, the phone's own city, and Lock waits for a faction and a turn. */
 export const FirstVisit = meta.story({
   beforeEach: clearStoredLocket,
   play: async ({ canvasElement }) => {
@@ -39,9 +40,10 @@ export const FirstVisit = meta.story({
   },
 });
 
-/** The Fremen on turn 6, picked and ready to lock. */
+/** The Fremen on turn 6, in Amsterdam, picked and ready to lock. */
 export const Picked = meta.story({
-  beforeEach: () => seedStoredLocket({ faction: storyFaction('fremen'), turn: 6, locked: null }),
+  beforeEach: () =>
+    seedStoredLocket({ faction: storyFaction('fremen'), turn: 6, timeZone: STORY_TIME_ZONE, locked: null }),
   play: async ({ canvasElement }) => {
     await expect(
       await pageOf(canvasElement).findByRole('button', { name: 'Turn 6', pressed: true }, { timeout: 30_000 })
@@ -49,11 +51,13 @@ export const Picked = meta.story({
   },
 });
 
-/** Locked 2 hours ago: the prediction is hidden, the time it was locked is not. */
+/** Locked: the prediction is hidden, the time it was locked, in Amsterdam time, is not. */
 export const Locked = meta.story({
   beforeEach: () => seedStoredLocket(storyLocked('fremen', 6, false)),
   play: async ({ canvasElement }) => {
-    await expect(await pageOf(canvasElement).findByText(/^Locked 2h \d+m ago$/, {}, { timeout: 30_000 })).toBeVisible();
+    await expect(
+      await pageOf(canvasElement).findByText('Amsterdam time, by Dune Zone’s clock', {}, { timeout: 30_000 })
+    ).toBeVisible();
   },
 });
 
@@ -67,12 +71,12 @@ export const Peeking = meta.story({
   },
 });
 
-/** The reveal: the Fremen on turn 6, locked 2h ago by Dune Zone's clock. */
+/** The reveal: the Fremen on turn 6, and when it was locked, in Amsterdam time by Dune Zone's clock. */
 export const Revealed = meta.story({
   beforeEach: () => seedStoredLocket(storyLocked('fremen', 6, true)),
   play: async ({ canvasElement }) => {
     const page = pageOf(canvasElement);
-    await expect(await page.findByText(/^Locked 2h \d+m ago$/, {}, { timeout: 30_000 })).toBeVisible();
+    await expect(await page.findByText('Amsterdam time, by Dune Zone’s clock', {}, { timeout: 30_000 })).toBeVisible();
     await expect(page.getByText('Turn 6')).toBeVisible();
   },
 });

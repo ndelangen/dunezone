@@ -1,17 +1,21 @@
 import { expect, test } from 'vite-plus/test';
 
-import { lockedAgoText } from './usePredictionLocket';
+import { cityOf, knownCities, lockTimeText } from './usePredictionLocket';
 
-const locked = Date.parse('2026-11-09T18:00:00.000Z');
-const later = (minutes: number) => locked + minutes * 60_000;
+const locked = Date.parse('2026-11-09T18:14:00.000Z');
 
-test('says how long ago, never a clock time, so every time zone at the table reads the same', () => {
-  expect(lockedAgoText(locked, later(0.5))).toBe('just now');
-  expect(lockedAgoText(locked, later(5))).toBe('5m ago');
-  expect(lockedAgoText(locked, later(134))).toBe('2h 14m ago');
-  expect(lockedAgoText(locked, later(60 * 26))).toBe('1d 2h ago');
+test('shows the lock time in the city the player named, whatever zone the phone is in', () => {
+  expect(lockTimeText(locked, 'Europe/Amsterdam', 'en-GB')).toBe('Mon 9 Nov, 19:14');
+  expect(lockTimeText(locked, 'America/New_York', 'en-GB')).toBe('Mon 9 Nov, 13:14');
 });
 
-test('a server time before the lock reads as just now', () => {
-  expect(lockedAgoText(locked, later(-3))).toBe('just now');
+test('names a time zone by its city', () => {
+  expect(cityOf('America/New_York')).toEqual({ timeZone: 'America/New_York', name: 'New York', region: 'America' });
+  expect(cityOf('America/Argentina/Buenos_Aires').region).toBe('America / Argentina');
+});
+
+test('offers every city the browser knows, by name', () => {
+  const names = knownCities().map((city) => city.name);
+  expect(names).toContain('Amsterdam');
+  expect(names).toEqual(names.toSorted((a, b) => a.localeCompare(b)));
 });

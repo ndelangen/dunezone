@@ -241,13 +241,82 @@
   text-align: center;
 }
 
-.stampAgo {
-  font-size: 20px;
+.stampTime {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stampLabel {
+  color: var(--ui-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stampCity {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.city {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: var(--ui-recess);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cityWords {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cityName {
   font-weight: 700;
 }
 
-.stampTime {
+.cityRegion {
   color: var(--ui-muted);
   font-size: 13px;
-  font-variant-numeric: tabular-nums;
+}
+
+.citySearch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.cityList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cityRow {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 8px;
+}
+
+.cityRow[aria-pressed="true"] {
+  background: var(--ui-selected);
+}
+
+.cityNone {
+  margin: 0;
+  color: var(--ui-muted);
 }

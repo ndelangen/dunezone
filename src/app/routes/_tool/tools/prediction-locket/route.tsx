@@ -1,3 +1,4 @@
+import { ScrollArea, TextInput, UnstyledButton } from '@mantine/core';
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -5,8 +6,8 @@ import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Eye, Lock, LockOpen, RotateCcw, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronRight, Eye, Lock, LockOpen, MapPin, RotateCcw, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
@@ -21,8 +22,8 @@ import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treach
 import { Token } from '@game/assets/faction/token/Token';
 
 import styles from './route.module.css';
-import { lockedAgoText, TURNS, usePredictionLocket } from './usePredictionLocket';
-import type { LocketFaction, LockedPrediction } from './usePredictionLocket';
+import { cityOf, knownCities, lockTimeText, phoneTimeZone, TURNS, usePredictionLocket } from './usePredictionLocket';
+import type { City, LocketFaction, LockedPrediction } from './usePredictionLocket';
 
 /*
  * The prediction locket at /tools/prediction-locket: a standalone page with no app chrome, public and the same HTML for every visitor.
@@ -117,7 +118,8 @@ type ToolProps = Readonly<{
 }>;
 
 function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
-  const { state, pickFaction, pickTurn, lock, reveal, clear } = usePredictionLocket();
+  const { state, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear } = usePredictionLocket();
+  const timeZone = state.timeZone ?? phoneTimeZone();
   const [locking, setLocking] = useState(false);
   const [failed, setFailed] = useState(false);
   const size = useActionSize();
@@ -127,7 +129,7 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
     setLocking(true);
     setFailed(false);
     try {
-      lock(await lockTime());
+      lock(await lockTime(), timeZone);
     } catch {
       setFailed(true);
     } finally {
@@ -154,12 +156,13 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
           ) : null}
         </header>
         {locked ? (
-          <LockedView locked={locked} lockTime={lockTime} onReveal={reveal} onNew={clear} />
+          <LockedView locked={locked} onReveal={reveal} onNew={clear} />
         ) : (
           <>
             <main className={styles.body}>
               <PickFaction starting={starting} search={search} picked={state.faction} onPick={pickFaction} />
               <PickTurn turn={state.turn} onPick={pickTurn} />
+              <PickCity timeZone={timeZone} onPick={pickTimeZone} />
             </main>
             <footer className={styles.dock}>
               {failed ? (
@@ -291,15 +294,13 @@ function PickTurn({ turn, onPick }: Readonly<{ turn: number | null; onPick: (tur
   );
 }
 
-/* The prediction locked: hidden, with how long ago it was locked, until the reveal; a hold peeks at it for its owner alone. */
+/* The prediction locked: hidden, with when it was locked, until the reveal; a hold peeks at it for its owner alone. */
 function LockedView({
   locked,
-  lockTime,
   onReveal,
   onNew,
-}: Readonly<{ locked: LockedPrediction; lockTime: () => Promise<number>; onReveal: () => void; onNew: () => void }>) {
+}: Readonly<{ locked: LockedPrediction; onReveal: () => void; onNew: () => void }>) {
   const [peeking, setPeeking] = useState(false);
-  const now = useServerNow(lockTime, locked.revealed);
   const size = useActionSize();
   const shown = locked.revealed || peeking;
   return (
@@ -324,16 +325,9 @@ function LockedView({
           )}
         </div>
         <div className={styles.stamp}>
-          <span className={styles.stampAgo}>
-            {typeof now === 'number' ? `Locked ${lockedAgoText(locked.lockedAt, now)}` : 'Locked'}
-          </span>
-          <span className={styles.stampTime}>
-            {now === 'unreachable'
-              ? 'Dune Zone could not be reached to tell how long ago.'
-              : now === null
-                ? 'Asking Dune Zone how long ago…'
-                : 'By Dune Zone’s clock, not this phone’s'}
-          </span>
+          <span className={styles.stampLabel}>Locked</span>
+          <span className={styles.stampTime}>{lockTimeText(locked.lockedAt, locked.timeZone)}</span>
+          <span className={styles.stampCity}>{cityOf(locked.timeZone).name} time, by Dune Zone’s clock</span>
         </div>
       </main>
       <footer className={styles.dock}>
@@ -370,31 +364,89 @@ function LockedView({
 }
 
 /*
- * The time now by Dune Zone's clock, ticking every half minute, so "locked 2 hours ago" is true whatever the phone's clock says.
- * Asked again at the reveal; between asks the phone only counts the time passed since, which setting its clock does not change.
- * Null while asking, and 'unreachable' when Dune Zone cannot be reached, so the page shows the lock time alone.
+ * The player's city, whose time the lock is shown in (Norbert, 2026-11-09): the table reads "20:14, Amsterdam time" and knows
+ * whether that was before the game began. The phone's own zone is offered until a city is named.
  */
-function useServerNow(lockTime: () => Promise<number>, revealed: boolean): number | null | 'unreachable' {
-  const [now, setNow] = useState<number | null | 'unreachable'>(null);
-  useEffect(() => {
-    let current = true;
-    let timer: ReturnType<typeof setInterval> | undefined;
-    lockTime().then(
-      (server) => {
-        if (!current) {
-          return;
-        }
-        /* The phone's monotonic clock counts the time since: it runs on whatever the wall clock is set to. */
-        const offset = server - performance.now();
-        setNow(server);
-        timer = setInterval(() => setNow(offset + performance.now()), 30_000);
-      },
-      () => current && setNow('unreachable')
-    );
-    return () => {
-      current = false;
-      clearInterval(timer);
-    };
-  }, [lockTime, revealed]);
-  return now;
+function PickCity({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (timeZone: string) => void }>) {
+  const [open, setOpen] = useState(false);
+  const city = cityOf(timeZone);
+  return (
+    <section className={styles.section} aria-labelledby="locket-city">
+      <h2 id="locket-city" className={styles.label}>
+        Your city
+      </h2>
+      <TrackerPopover opened={open} onChange={setOpen}>
+        <TrackerPopover.Target>
+          <button
+            type="button"
+            className={styles.city}
+            onClick={() => setOpen(true)}
+            aria-label={`Your city: ${city.name}`}
+          >
+            <MapPin size={20} />
+            <span className={styles.cityWords}>
+              <span className={styles.cityName}>{city.name}</span>
+              <span className={styles.cityRegion}>{city.region}</span>
+            </span>
+            <ChevronRight size={20} />
+          </button>
+        </TrackerPopover.Target>
+        <TrackerPopover.Dropdown>
+          {open ? (
+            <CitySearch
+              timeZone={timeZone}
+              onPick={(picked) => {
+                onPick(picked);
+                setOpen(false);
+              }}
+            />
+          ) : null}
+        </TrackerPopover.Dropdown>
+      </TrackerPopover>
+    </section>
+  );
+}
+
+const CITY_RESULTS = 40;
+
+function CitySearch({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (timeZone: string) => void }>) {
+  const [query, setQuery] = useState('');
+  const cities = useMemo(() => knownCities(), []);
+  const needle = query.trim().toLowerCase();
+  const found: readonly City[] = needle
+    ? cities.filter((city) => city.name.toLowerCase().includes(needle) || city.region.toLowerCase().includes(needle))
+    : cities;
+  return (
+    <div className={styles.citySearch}>
+      <TextInput
+        type="search"
+        aria-label="Search cities"
+        placeholder="Search cities"
+        size="lg"
+        leftSection={<Search size={16} />}
+        value={query}
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
+        onChange={(event) => setQuery(event.currentTarget.value)}
+      />
+      <ScrollArea.Autosize mah="55dvh" type="auto" overscrollBehavior="contain">
+        <ul className={styles.cityList} aria-label="Cities">
+          {found.slice(0, CITY_RESULTS).map((city) => (
+            <li key={city.timeZone}>
+              <UnstyledButton
+                className={styles.cityRow}
+                aria-pressed={city.timeZone === timeZone}
+                onClick={() => onPick(city.timeZone)}
+              >
+                <span className={styles.cityName}>{city.name}</span>
+                <span className={styles.cityRegion}>{city.region}</span>
+              </UnstyledButton>
+            </li>
+          ))}
+        </ul>
+        {found.length === 0 ? <p className={styles.cityNone}>No city by that name. Try a bigger city nearby.</p> : null}
+      </ScrollArea.Autosize>
+    </div>
+  );
 }
