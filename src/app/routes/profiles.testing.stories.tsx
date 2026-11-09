@@ -184,7 +184,7 @@ function googleReported(baseline: StorybookDatabase, name = 'Central Command') {
 }
 
 /**
- * One connected method with something to offer: the toolbar's Resync opens the Sign-in methods tab and takes its name and picture at once, on that method's row.
+ * One connected method with something to offer: the toolbar's Resync opens the Sign-in methods tab and takes its name and picture at once.
  * The name changes the address, which the page follows without leaving the tab or losing its answer.
  */
 export const ResyncTakesTheOnlyMethod = meta.story({
@@ -202,7 +202,6 @@ export const ResyncTakesTheOnlyMethod = meta.story({
     await expect(
       page.findByText('Name and picture updated from Google.', {}, { timeout: 30_000 })
     ).resolves.toBeVisible();
-    await expect(page.getByText('Central Command')).toBeVisible();
     /* The new name moved the profile to a new address, which the page follows with the editor still on screen. */
     await waitFor(
       async () => {
@@ -215,7 +214,7 @@ export const ResyncTakesTheOnlyMethod = meta.story({
   },
 });
 
-/** Two methods with something to offer: each method's row shows what it reports, and the reader takes one. */
+/** Two methods with something to offer: each method's row shows what it reports, the reader takes one, and the offers are gone. */
 export const ResyncOffersAChoice = meta.story({
   args: { path: '/profiles/central/edit?tab=sign-in' },
   parameters: {
@@ -245,8 +244,8 @@ export const ResyncOffersAChoice = meta.story({
     await expect(page.getByText(/“Ix” does not fit a display name/)).toBeVisible();
     await userEvent.click(page.getByRole('button', { name: 'Take Discord name and picture' }));
     await expect(page.findByText(/^Picture updated from Discord/, {}, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByText('Taken')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Take Google name and picture' })).toBeVisible();
+    await expect(page.queryByRole('button', { name: 'Take Google name and picture' })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Take Discord name and picture' })).toBeNull();
   },
 });
 

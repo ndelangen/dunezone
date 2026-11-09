@@ -369,10 +369,9 @@ describe('profile settings page', () => {
       await resyncFromToolbar(view);
       expect(mocks.resyncLinked).toHaveBeenCalledWith({});
       expect(view.getByRole('tab', { name: 'Sign-in methods' }).getAttribute('aria-selected')).toBe('true');
-      /* The answer sits on Google's row: the reported name, what was taken, and the mark. */
-      expect(view.getByText('Norbert de Langen')).not.toBeNull();
+      /* The resync is done: one line says what was taken, and the rows offer nothing. */
       expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
-      expect(view.getByText('Taken')).not.toBeNull();
+      expect(view.queryByText('Norbert de Langen')).toBeNull();
       expect(view.queryByRole('button', { name: 'Take Google name and picture' })).toBeNull();
       await chooseTab(view, 'Profile');
       expect((view.getByRole('textbox', { name: 'Display name' }) as HTMLInputElement).value).toBe('NorbertdeLangen');
@@ -407,7 +406,7 @@ describe('profile settings page', () => {
         replace: true,
       });
       expect(view.queryByText('This is not your profile')).toBeNull();
-      /* The editor stays as it was: on the Sign-in methods tab, with Google's row still saying what it gave. */
+      /* The editor stays as it was: on the Sign-in methods tab, still saying what Google gave. */
       expect(view.getByRole('tab', { name: 'Sign-in methods' }).getAttribute('aria-selected')).toBe('true');
       expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
     });
@@ -442,9 +441,10 @@ describe('profile settings page', () => {
       });
       expect(mocks.applyLinked).toHaveBeenCalledWith({ provider: 'discord' });
       expect(view.getByText(/Picture updated from Discord/)).not.toBeNull();
-      expect(view.getByText('Taken')).not.toBeNull();
-      /* The other row keeps its offer. */
-      expect(view.getByRole('button', { name: 'Take Google name and picture' })).not.toBeNull();
+      /* Taking one ends the choice: the offers leave every row. */
+      expect(view.queryByRole('button', { name: 'Take Google name and picture' })).toBeNull();
+      expect(view.queryByRole('button', { name: 'Take Discord name and picture' })).toBeNull();
+      expect(view.queryByText('Takes the name NorbertdeLangen and picture.')).toBeNull();
     });
 
     it('says on each row when no method has reported anything yet', async () => {

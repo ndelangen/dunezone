@@ -390,12 +390,10 @@ function EditableProfilePage({ initial, initialTab }: { initial: CurrentProfileE
     dispatchResync({ kind: 'settled' });
   };
   const chooseLinked = async (provider: AuthProvider) => {
-    /* The list the pick came from stays, so the other rows keep saying what they offered. */
-    const options = resync.outcome.kind === 'idle' ? [] : resync.outcome.options;
     dispatchResync({ kind: 'started', action: 'apply' });
     try {
       const applied = await applyLinked({ provider });
-      dispatchResync({ kind: 'resynced', result: { kind: 'applied', applied, options } });
+      dispatchResync({ kind: 'applied', applied });
       resynced(applied);
     } catch (error) {
       dispatchResync({ kind: 'failed', error, fallback: 'The name and picture could not be taken.' });
@@ -781,13 +779,20 @@ function reduceSignInMethods(state: SignInMethodsState, event: SignInMethodsEven
   }
 }
 
-/* Where the resync stands: not asked, offering a choice, finished with what the profile took, or finding nothing to take. */
-type ResyncOutcome = LinkedAccountResync | { kind: 'idle' };
+/*
+ * Where the resync stands: not asked, offering a choice, finding nothing to take, or done.
+ * Done is the end of it: the rows show no offers any more, and one line says what the profile took.
+ */
+type ResyncOutcome =
+  | Exclude<LinkedAccountResync, { kind: 'applied' }>
+  | { kind: 'idle' }
+  | { kind: 'done'; applied: LinkedAccountApplied };
 type ResyncState = { busy: 'resync' | 'apply' | null; error: Error | string | null; outcome: ResyncOutcome };
 type ResyncEvent =
   | { kind: 'started'; action: 'resync' | 'apply' }
   | { kind: 'failed'; error: unknown; fallback: string }
   | { kind: 'resynced'; result: LinkedAccountResync }
+  | { kind: 'applied'; applied: LinkedAccountApplied }
   | { kind: 'settled' };
 
 function reduceResync(state: ResyncState, event: ResyncEvent): ResyncState {
@@ -803,7 +808,12 @@ function reduceResync(state: ResyncState, event: ResyncEvent): ResyncState {
     case 'failed':
       return { ...state, error: event.error instanceof Error ? event.error : event.fallback };
     case 'resynced':
-      return { ...state, outcome: event.result };
+      return {
+        ...state,
+        outcome: event.result.kind === 'applied' ? { kind: 'done', applied: event.result.applied } : event.result,
+      };
+    case 'applied':
+      return { ...state, outcome: { kind: 'done', applied: event.applied } };
     case 'settled':
       return { ...state, busy: null };
   }
@@ -827,14 +837,11 @@ function appliedWords(applied: LinkedAccountApplied): string {
 /** What one connected method reports, on its row: its picture and name, what the profile would take, and the action that takes it. */
 function LinkedAccountOffer({
   option,
-  applied,
   busy,
   disabled,
   onTake,
 }: {
   option: LinkedAccountOption;
-  /** What the profile took from this method, when the resync applied it on its own or the reader took it. */
-  applied: LinkedAccountApplied | null;
   busy: boolean;
   disabled: boolean;
   onTake: () => void;
@@ -851,37 +858,29 @@ function LinkedAccountOffer({
         <Stack gap="xs">
           <Text fw={650}>{option.name ?? 'No name reported'}</Text>
           <Text size="sm" c="dimmed">
-            {applied
-              ? appliedWords(applied)
-              : takes.length > 0
-                ? `Takes the ${takes.join(' and ')}.`
-                : `Nothing reported yet. Sign in with ${from} once, so it can report a name or picture.`}
-            {applied ? '' : refused}
+            {takes.length > 0
+              ? `Takes the ${takes.join(' and ')}.`
+              : `Nothing reported yet. Sign in with ${from} once, so it can report a name or picture.`}
+            {refused}
           </Text>
         </Stack>
       </Group>
-      {applied ? (
-        <StatusBadge tone="positive" live>
-          {applied.name || applied.avatar ? 'Taken' : 'Already yours'}
-        </StatusBadge>
-      ) : (
-        <LabeledAction
-          accessibleName={`Take ${from} name and picture`}
-          icon={<Check size={17} aria-hidden />}
-          intent="positive"
-          busy={busy}
-          disabledReason={
-            disabled
-              ? takes.length === 0
-                ? `${from} has not reported a name or picture yet.`
-                : 'Another change is still running.'
-              : undefined
-          }
-          onClick={onTake}
-        >
-          Take
-        </LabeledAction>
-      )}
+      <LabeledAction
+        accessibleName={`Take ${from} name and picture`}
+        icon={<Check size={17} aria-hidden />}
+        intent="positive"
+        busy={busy}
+        disabledReason={
+          disabled
+            ? takes.length === 0
+              ? `${from} has not reported a name or picture yet.`
+              : 'Another change is still running.'
+            : undefined
+        }
+        onClick={onTake}
+      >
+        Take
+      </LabeledAction>
     </Group>
   );
 }
@@ -956,19 +955,24 @@ function SignInMethods({
         action={needsRecentSignIn(state.error) ? <SignInAgainAction returnTo={returnTo} /> : undefined}
       />
       <ActionError subject="Name and picture" verb="update" error={resync.error} />
+      {resync.outcome.kind === 'done' && (
+        <StatusBadge tone="positive" live>
+          {appliedWords(resync.outcome.applied)}
+        </StatusBadge>
+      )}
       {account.methods.map((method) => {
         const name = authProviderNames[method.provider];
         const { outcome } = resync;
+        /* Offers are shown while the choice is open; once the profile took one, the rows are rows again. */
         const option =
-          outcome.kind === 'idle' ? null : outcome.options.find((candidate) => candidate.provider === method.provider);
-        const applied =
-          outcome.kind === 'applied' && outcome.applied.provider === method.provider ? outcome.applied : null;
+          outcome.kind === 'choose' || outcome.kind === 'nothing'
+            ? outcome.options.find((candidate) => candidate.provider === method.provider)
+            : null;
         const offer = !method.connected ? null : resync.busy === 'resync' ? (
           <Pending>{`Asking ${name}`}</Pending>
         ) : option ? (
           <LinkedAccountOffer
             option={option}
-            applied={applied}
             busy={resync.busy === 'apply'}
             disabled={
               !!resync.busy || saving || !!state.busy || account.merging || (!option.displayName && !option.image)
