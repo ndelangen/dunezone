@@ -188,7 +188,7 @@ const prepared = await build({
   external: ['cloudflare:workers', 'node:*'],
 });
 const runtimeScripts = new Map(prepared.outputFiles.map((file) => [basename(file.path, '.js'), file.text]));
-const gameId = 'fixture-game';
+export const gameId = 'fixture-game';
 const secret = 'a'.repeat(64);
 const attemptId = 'b'.repeat(64);
 

@@ -3,6 +3,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { api } from '../../convex/_generated/api';
 import { ARRAKIS_BOARD_SLUG } from '../../src/shared/boards/arrakisOfficial';
 import {
+  HOMEPAGE_CLIENT_CONNECTION_LIMIT,
   HOMEPAGE_CONNECTION_LIMIT,
   HOMEPAGE_EDITOR_LIMIT,
   HOMEPAGE_FRAME_LIMIT,
@@ -18,6 +19,7 @@ import { gameSnapshotSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/sh
 import type { ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import { GameRejection } from '../../src/shared/play/rejection';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { clientAddress, clientKey } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import { GameDiagnostics } from './diagnostics';
 import { gameHttpClient } from './gameHttpClient';
@@ -28,6 +30,8 @@ import type { StoredSnapshot } from './state';
 
 type Connection = {
   viewer: Viewer;
+  /* A digest of the visitor's address, which bounds how many sockets one visitor holds; absent where no limit applies. */
+  client?: string;
   userKey?: string;
   leaseUntil: number;
   generation: number;
@@ -108,10 +112,15 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     );
   }
 
-  async fetch(_request: Request) {
+  async fetch(request: Request) {
     await this.diagnostics.run('refresh', () => this.refresh());
+    const address = await clientKey(clientAddress(request, this.env));
+    /* Nothing awaits from here until the socket is counted, so two requests cannot both take the last place. */
     if (this.connections.size >= HOMEPAGE_CONNECTION_LIMIT) {
       return new Response('Table busy.', { status: 503 });
+    }
+    if (address && this.clientConnections(address) >= HOMEPAGE_CLIENT_CONNECTION_LIMIT) {
+      return new Response('Too many tables open.', { status: 429 });
     }
     const pair = new WebSocketPair();
     const [client, socket] = Object.values(pair);
@@ -124,6 +133,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         displayName: '',
         color: COLORS[this.connections.size % COLORS.length]!,
       },
+      ...(address ? { client: address } : {}),
       leaseUntil: 0,
       generation: 0,
       messages: 0,
@@ -137,6 +147,14 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     this.saveConnection(socket, connection);
     this.sendView(socket, connection);
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  private clientConnections(client: string) {
+    let count = 0;
+    for (const connection of this.connections.values()) {
+      count += Number(connection.client === client);
+    }
+    return count;
   }
 
   private saveConnection(socket: WebSocket, connection: Connection) {
