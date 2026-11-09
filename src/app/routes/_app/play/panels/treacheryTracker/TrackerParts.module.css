@@ -173,3 +173,12 @@
     transform: none;
   }
 }
+
+/* The site's own Motion setting holds even when the system allows motion. */
+:global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton, .slotButton, .kindSlice) {
+  transition: none;
+}
+
+:global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
+  transform: none;
+}
