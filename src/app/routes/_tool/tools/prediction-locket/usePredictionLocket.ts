@@ -83,9 +83,22 @@ function read(): LocketState | null {
   }
 }
 
+/* Whether this browser lets the locket be kept: a private window may refuse, and then a reload loses the prediction. */
+function storageWorks(): boolean {
+  try {
+    const probe = `${PREDICTION_LOCKET_STORAGE_KEY}.probe`;
+    globalThis.localStorage.setItem(probe, '1');
+    globalThis.localStorage.removeItem(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** The locket as this browser keeps it, and the ways to change it. */
 export function usePredictionLocket() {
   const [state, setState] = useState<LocketState>(() => read() ?? FRESH);
+  const [kept] = useState(storageWorks);
   useEffect(() => write(state), [state]);
   /* Another tab of the tool changed the locket: take its state, so this tab never writes an older one over a lock made there. */
   useEffect(() => {
@@ -117,7 +130,7 @@ export function usePredictionLocket() {
   );
   /* The city stays named for the next prediction. */
   const clear = useCallback(() => setState((now) => ({ ...FRESH, timeZone: now.timeZone })), []);
-  return { state, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear };
+  return { state, kept, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear };
 }
 
 /*

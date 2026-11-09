@@ -1,6 +1,7 @@
 import { ScrollArea, TextInput, UnstyledButton } from '@mantine/core';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
+import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
@@ -131,7 +132,7 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
           {locked ? <ThrowAway revealed={locked.revealed} onClear={locket.clear} /> : null}
         </header>
         {locked ? (
-          <LockedView locked={locked} onReveal={locket.reveal} onNew={locket.clear} />
+          <LockedView locked={locked} kept={locket.kept} onReveal={locket.reveal} onNew={locket.clear} />
         ) : (
           <PickingView locket={locket} starting={starting} search={search} lockTime={lockTime} />
         )}
@@ -345,9 +346,10 @@ function PickTurn({ turn, onPick }: Readonly<{ turn: number | null; onPick: (tur
 /* The prediction locked: hidden, with when it was locked, until the reveal; a hold peeks at it for its owner alone. */
 function LockedView({
   locked,
+  kept,
   onReveal,
   onNew,
-}: Readonly<{ locked: LockedPrediction; onReveal: () => void; onNew: () => void }>) {
+}: Readonly<{ locked: LockedPrediction; kept: boolean; onReveal: () => void; onNew: () => void }>) {
   const [peeking, setPeeking] = useState(false);
   /* One zone for the time and its caption, so a fallback to UTC is called UTC. */
   const zone = shownZone(locked.timeZone);
@@ -379,6 +381,11 @@ function LockedView({
           <span className={styles.stampTime}>{lockTimeText(locked.lockedAt, zone)}</span>
           <span className={styles.stampCity}>{cityOf(zone).name} time, by Dune Zone’s clock</span>
         </div>
+        {kept ? null : (
+          <Notice tone="caution" title="Keep this page open">
+            This browser does not let the prediction be saved, so closing or reloading the page loses it.
+          </Notice>
+        )}
       </main>
       <footer className={styles.dock}>
         {locked.revealed ? (
