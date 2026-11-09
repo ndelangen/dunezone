@@ -1,5 +1,8 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { expect, within } from 'storybook/test';
+
+import { savedGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
+import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
 import { TOOLS } from './_app/tools/tools';
 import { expectWithinWidth } from './pagePlay';
@@ -59,6 +62,25 @@ export const TreacheryTracker = meta.story({
     await expect(page.findByRole('button', { name: 'Start tracking' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByRole('banner')).toBeNull();
     await expect(page.queryByRole('contentinfo')).toBeNull();
+  },
+});
+
+/** The Treachery tracker in the middle of a real game: turn 2 of a Dreamrules game kept on the phone, as a player reopening the page finds it. */
+export const TreacheryTrackerInPlay = meta.story({
+  args: { path: '/tools/atreides-treachery-tracker' },
+  globals: { viewport: { value: 'appMobile' } },
+  beforeEach: () => {
+    savedGame.set({
+      ...startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DREAMRULES_DECK),
+      turn: 2,
+      state: midGameTracker(),
+    });
+    return () => savedGame.set(null);
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('region', { name: 'On bid' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByText('Turn 2')).toBeVisible();
   },
 });
 
