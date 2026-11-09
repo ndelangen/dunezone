@@ -25,6 +25,7 @@ export const Catalogue = meta.story({
       'href',
       '/tools/atreides-treachery-tracker'
     );
+    await expect(page.getByRole('link', { name: 'Spice deck' })).toHaveAttribute('href', '/tools/spice-deck');
   },
 });
 
@@ -65,5 +66,18 @@ export const ComingSoonPhone = meta.story({
   play: async ({ canvasElement }) => {
     const page = await findTitledPage(canvasElement, /^Faction draft$/);
     await expectWithinWidth(canvasElement, [page.getByRole('link', { name: 'Share an idea' })]);
+  },
+});
+
+/** The spice deck, the first tool built: at its own address, offering the spice deck of every Ruleset in the catalogue. */
+export const SpiceDeck = meta.story({
+  args: { path: '/tools/spice-deck' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Spice deck' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+    await expect(page.findByText('Pick the deck your table plays with')).resolves.toBeVisible();
   },
 });

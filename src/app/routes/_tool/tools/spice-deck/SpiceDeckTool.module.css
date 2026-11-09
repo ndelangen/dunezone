@@ -1,0 +1,455 @@
+/* A phone held at the table: the turn and its controls above, the one big action within the thumb's reach. */
+.tool {
+  /* The header and footer heights; the page measures them and writes the real one. */
+  --chrome: 160px;
+  position: relative;
+  display: grid;
+  overflow-x: clip;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.turn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.turnNumber {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.deckName {
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.body {
+  min-width: 0;
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom));
+  background: var(--ui-recess);
+  border-top: 1px solid var(--ui-raised);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.action {
+  width: 100%;
+}
+
+/* Peek's hold: a bar fills under the button for as long as it must be held. */
+.hold {
+  /* How long Peek is held; the page writes the same value from its timer. */
+  --hold-ms: 2000ms;
+  position: relative;
+  display: inline-flex;
+}
+
+.hold::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -5px;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ui-highlight);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.hold[data-holding]::after {
+  transform: scaleX(1);
+  transition: transform var(--hold-ms) linear;
+}
+
+/* The peek: the next cards over everything, to the one holding the phone. */
+.peek {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: rgb(0 0 0 / 0.92);
+}
+
+.peek:not([open]) {
+  display: none;
+}
+
+.peekTitle {
+  margin: 0;
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+.peekCards {
+  display: flex;
+  gap: var(--space-sm);
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+}
+
+.peekCards li {
+  flex: none;
+  width: min(80vw, 60dvh);
+  scroll-snap-align: center;
+}
+
+.peekCards[data-count="1"] li {
+  width: min(88vw, 66dvh);
+}
+
+.peekCards .card {
+  width: 100%;
+}
+
+/* A pile with its letter to the left and its Shai-Hulud notice to the right. */
+.pileSpot {
+  display: grid;
+  grid-template-columns: 40px auto 40px;
+  gap: 6px;
+  align-items: center;
+}
+
+.pileLetter {
+  color: var(--ui-brass);
+  font-family: "C_Desdemona", fantasy;
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+}
+
+.wormNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  writing-mode: vertical-rl;
+  color: var(--ui-negative);
+  text-align: center;
+}
+
+.wormNotice strong {
+  font-family: "C_Desdemona", fantasy;
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.wormNotice small {
+  color: var(--ui-text);
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+/* The piles fill the screen between the header and the footer; the details are a scroll below. */
+.stage {
+  /* A pile card's width; the page writes the size that fits once it has measured the screen. */
+  --card-w: 45%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 12px;
+  height: calc(100dvh - var(--chrome) - 2 * var(--space-sm));
+}
+
+.hint {
+  margin: var(--space-sm) 0 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+/* A card face at whatever width its place gives it. */
+.card {
+  display: block;
+  aspect-ratio: 900 / 1263;
+  overflow: hidden;
+  border-radius: 4.5% / 3.2%;
+  background: var(--ui-raised);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+.card[data-empty] {
+  box-shadow: none;
+  outline: 2px dashed var(--ui-hover);
+  outline-offset: -2px;
+  background: transparent;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  padding-left: var(--space-sm);
+  border-left: 3px solid var(--ui-hover);
+  font-size: 15px;
+}
+
+.line[data-kind="spice"] {
+  border-color: var(--ui-caution);
+}
+
+.line[data-kind="worm"] {
+  border-color: var(--ui-negative-fill);
+}
+
+.line[data-kind="special"] {
+  border-color: var(--ui-brass);
+}
+
+.line[data-kind="aside"] {
+  color: var(--ui-muted);
+}
+
+.blowCard {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--ui-recess);
+}
+
+.blowTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-xs);
+  color: var(--ui-brass);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* The table: the deck and the set-aside spot above, the spice piles below, each pile a button. */
+.table {
+  position: relative;
+}
+
+.caption {
+  color: var(--ui-muted);
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pileButton {
+  width: var(--card-w);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pileButton:disabled {
+  cursor: default;
+}
+
+.pileButton:focus-visible .card,
+.pileButton:focus-visible .slot {
+  outline: 3px solid var(--ui-highlight);
+  outline-offset: 2px;
+}
+
+.pileButton:not(:disabled):active .card,
+.pileButton:not(:disabled):active .slot {
+  transform: scale(0.97);
+}
+
+.pileButton[data-next] .caption {
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+.slot {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 900 / 1263;
+  border-radius: 4.5% / 3.2%;
+  outline: 2px dashed var(--ui-hover);
+  outline-offset: -2px;
+}
+
+.pileButton[data-next] .slot {
+  outline-color: var(--ui-highlight);
+}
+
+/* The burst where a card lands: spice gold, Shai-Hulud red. */
+.ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  border-radius: 12px;
+  outline: 4px solid var(--ui-caution);
+  filter: drop-shadow(0 0 10px var(--ui-caution));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ring[data-kind="worm"] {
+  outline-color: var(--ui-negative-fill);
+  filter: drop-shadow(0 0 10px var(--ui-negative-fill));
+}
+
+/* The card on its way: placed by its animation from the table's top left corner. */
+.flyer {
+  position: absolute;
+  filter: drop-shadow(0 18px 24px rgb(0 0 0 / 0.55));
+  top: 0;
+  left: 0;
+  z-index: 2;
+  transform-origin: 0 0;
+  pointer-events: none;
+  perspective: 1200px;
+}
+
+.flyerTurn {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.flyerTurn[data-mode="deal"] {
+  transform: rotateY(180deg);
+}
+
+.front,
+.backFace {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.backFace {
+  transform: rotateY(180deg);
+}
+
+/* Before a game. */
+.pickRules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.deckList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deckChoice {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--ui-raised);
+  border-radius: var(--radius-md);
+  background: var(--ui-recess);
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deckChoice:hover {
+  background: var(--ui-hover);
+}
+
+.deckChoice span {
+  display: flex;
+  flex-direction: column;
+}
+
+.deckChoice small {
+  color: var(--ui-muted);
+}
+
+.deckMark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--ui-brass);
+}
+
+.deckChoice:disabled {
+  cursor: default;
+}

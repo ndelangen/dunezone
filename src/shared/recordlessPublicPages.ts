@@ -9,7 +9,7 @@ export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-p
  * A planned tool's placeholder stays out.
  * A test holds this list to the tools registry's `built` flags.
  */
-export const TOOL_PAGES: string[] = [];
+export const TOOL_PAGES: string[] = ['/tools/spice-deck'];
 
 /**
  * The tutorial catalogues and every tutorial that is built: public, server-rendered and in the landing sitemap.

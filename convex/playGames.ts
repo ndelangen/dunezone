@@ -30,6 +30,7 @@ import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/p
 import { atPlaySeatLimit } from './lib/playSeats';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 import { rulesetFactionLinksByCreation } from './lib/rulesetFactionLinks';
+import { rulesetDeck } from './lib/rulesetSlots';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -62,25 +63,15 @@ async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boardA
     ['treachery', 'treachery deck'],
     ['spice', 'spice deck'],
   ] as const) {
-    const deck = await requiredDeck(ctx, rulesetId, slot);
+    const deck = await rulesetDeck(ctx, rulesetId, slot);
     if (!deck) {
       return `No ${label} is linked.`;
     }
-    if (!(await deckHasMembers(ctx, deck))) {
+    if (!(await deckHasMembers(ctx, deck._id))) {
       return `The ${label} is empty.`;
     }
   }
   return null;
-}
-
-/* One slot row and one asset row per required deck, so a listing of two hundred rulesets stays within a query's reads. */
-async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
-  const row = await ctx.db
-    .query('ruleset_asset_slots')
-    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
-    .first();
-  const asset = row ? await ctx.db.get(row.asset_id) : null;
-  return asset && !asset.is_deleted ? asset._id : null;
 }
 
 const RULESET_CHOICE_LIMIT = 200;
