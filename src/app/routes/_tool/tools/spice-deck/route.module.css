@@ -48,7 +48,8 @@
   white-space: nowrap;
 }
 
-/* The odds never truncate; the deck's name gives way first. */
+/* The cards left and the odds never truncate; the deck's name gives way first. */
+.left,
 .odds {
   flex-shrink: 0;
 }
@@ -86,6 +87,25 @@
 
 .action {
   width: 100%;
+}
+
+/* The header and footer lay out by their own width: on the narrowest phones they make room, below. */
+.header,
+.footer {
+  container: tool-bar / inline-size;
+}
+
+/* The narrowest phones: less padding, so "Set aside" fits whole beside the turn button. */
+@container tool-bar (width < 360px) {
+  /* Past the button's own padding rules, which set the padding by size and by its icon. */
+  .actions .action[class] {
+    padding-inline: var(--space-xs);
+  }
+
+  /* The deck's name, also on the settings menu, makes way for the cards left and the odds. */
+  .deckLine .deckName {
+    display: none;
+  }
 }
 
 /* Peek's hold: a bar fills under the button for as long as it must be held. */
