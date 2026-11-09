@@ -60,14 +60,17 @@ test('a page that mounts again reads what another tab saved while it was away', 
   stop();
 });
 
-test('a saved card whose origin names a hand outside the game does not open', () => {
+test.each([
+  ['no hand at all', {}],
+  ['an extra hand no faction at the table holds', { fremen: [] }],
+])('a saved card whose origin names a faction off the table, with %s, does not open', (_, extra) => {
   const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
   const card = game.state.copies[0]!.id;
   const slot = { id: 's1', card, from: { at: 'hand', faction: 'fremen', slot: 's0' } };
   const stop = savedGame.subscribe(() => {});
   window.localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ ...game, state: { ...game.state, hands: { ...game.state.hands, harkonnen: [slot] } } })
+    JSON.stringify({ ...game, state: { ...game.state, hands: { ...game.state.hands, harkonnen: [slot], ...extra } } })
   );
   window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
   expect(savedGame.get()).toBeNull();
@@ -99,18 +102,4 @@ test('a game the browser will not save says so until a save works', () => {
   }
   savedGame.set(game);
   expect(savedGame.unsaved()).toBe(false);
-});
-
-test('a saved card whose origin names an extra hand no faction at the table holds does not open', () => {
-  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
-  const card = game.state.copies[0]!.id;
-  const slot = { id: 's1', card, from: { at: 'hand', faction: 'fremen', slot: 's0' } };
-  const stop = savedGame.subscribe(() => {});
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ ...game, state: { ...game.state, hands: { ...game.state.hands, harkonnen: [slot], fremen: [] } } })
-  );
-  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
-  expect(savedGame.get()).toBeNull();
-  stop();
 });
