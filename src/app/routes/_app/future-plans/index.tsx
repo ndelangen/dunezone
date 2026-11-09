@@ -2,6 +2,7 @@
 import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -12,20 +13,21 @@ import { Surface } from '@ui/surface';
 import {
   ArrowRight,
   BookOpen,
-  ChartNoAxesColumnIncreasing,
-  CircleHelp,
   Bot,
+  ChartNoAxesColumnIncreasing,
+  CircleCheck,
+  CircleHelp,
   ClipboardCheck,
   Code2,
   Gamepad2,
+  Gavel,
   Globe,
-  GitCompare,
-  Layers,
-  Languages,
   Hourglass,
+  Languages,
+  Layers,
   Lightbulb,
-  Lock,
   ListChecks,
+  Lock,
   MessageCirclePlus,
   PenTool,
   Printer,
@@ -49,18 +51,19 @@ export const Route = createFileRoute('/_app/future-plans/')({
       name: 'Future plans',
       pathname: '/future-plans',
       description:
-        'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and faction table tools.',
+        'What Dune Zone could become: more rulesets, print and export tools, game results, table tools for every faction, bots and translations. Plus what is already built.',
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: FuturePlansPage,
 });
 
+const COMPLETED_ANCHOR = 'completed';
 const GITHUB_REPOSITORY = 'https://github.com/ndelangen/dunezone';
 const GITHUB_IDEAS = `${GITHUB_REPOSITORY}/issues/new/choose`;
 const GITHUB_BACKLOG = `${GITHUB_REPOSITORY}/issues`;
 
 /** Where a shipped capability lives: a public, indexable page. */
-type BuiltAt = '/rulesets' | '/faq' | '/create' | '/play';
+type BuiltAt = '/rulesets' | '/faq';
 
 type Capability = {
   icon: ReactNode;
@@ -98,7 +101,6 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <ListChecks />,
         title: 'Compare editions',
         detail: 'See which rule belongs to which game.',
-        built: '/rulesets',
       },
       {
         icon: <MessageCirclePlus />,
@@ -122,9 +124,9 @@ const FUTURE_PLANS: FuturePlan[] = [
         detail: 'Hundreds of official answers, searchable.',
       },
       {
-        icon: <GitCompare />,
-        title: 'What changed',
-        detail: 'Highlight the edits between two editions.',
+        icon: <Gavel />,
+        title: 'Council rulings',
+        detail: 'Dreamrules answers applied to the book.',
       },
     ],
   },
@@ -139,7 +141,7 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <PenTool />,
         title: 'Rulebook creator',
         detail: 'Write and arrange rules on the web.',
-        built: '/create',
+        built: '/rulesets',
       },
       {
         icon: <Printer />,
@@ -176,7 +178,6 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <ListChecks />,
         title: 'Report results',
         detail: 'Capture what happened after the game.',
-        built: '/play',
       },
       {
         icon: <ChartNoAxesColumnIncreasing />,
@@ -289,17 +290,27 @@ function FuturePlansPage() {
                 <Bullets gap="none">
                   {PLANNED.map((plan) => (
                     <Bullets.Item
-                      key={plan.number}
+                      key={plan.id}
                       icon={plan.icon}
                       title={plan.shortTitle}
                       trailing={<ArrowRight size={16} aria-hidden />}
                       renderLink={(content) => (
-                        <Anchor className={styles.indexLink} href={`#atlas-${plan.number}`}>
+                        <Anchor className={styles.indexLink} href={`#atlas-${plan.id}`}>
                           {content}
                         </Anchor>
                       )}
                     />
                   ))}
+                  <Bullets.Item
+                    icon={<CircleCheck />}
+                    title="Already built"
+                    trailing={<ArrowRight size={16} aria-hidden />}
+                    renderLink={(content) => (
+                      <Anchor className={styles.indexLink} href={`#${COMPLETED_ANCHOR}`}>
+                        {content}
+                      </Anchor>
+                    )}
+                  />
                 </Bullets>
               </nav>
               <Anchor href={GITHUB_BACKLOG} target="_blank" rel="noopener noreferrer" fw={700}>
@@ -310,13 +321,7 @@ function FuturePlansPage() {
           <AtlasLayout.Content>
             <Stack gap={0}>
               {PLANNED.map((plan) => (
-                <Stack
-                  component="article"
-                  id={`atlas-${plan.number}`}
-                  className={styles.entry}
-                  gap="xl"
-                  key={plan.number}
-                >
+                <Stack component="article" id={`atlas-${plan.id}`} className={styles.entry} gap="xl" key={plan.id}>
                   <Grid gap="lg" align="flex-start">
                     <Grid.Col span={{ base: 12, sm: 2 }}>
                       <Text className={styles.coordinate}>{plan.number}</Text>
@@ -392,18 +397,14 @@ function FuturePlansPage() {
 /** The shipped part of the plans, kept small at the bottom: each item links to where it now lives. */
 function CompletedPlans() {
   return (
-    <Stack component="section" aria-labelledby="completed-plans" gap="lg" className={styles.completed}>
-      <Box w="fit-content">
-        <StatusBadge tone="positive">Completed</StatusBadge>
-      </Box>
-      <Title order={2} id="completed-plans" className={styles.completedTitle}>
-        Already built
-      </Title>
+    <Section
+      id={COMPLETED_ANCHOR}
+      title="Already built"
+      action={<StatusBadge tone="positive">Completed</StatusBadge>}
+      className={styles.completed}
+    >
       {COMPLETED.map((plan) => (
-        <Stack component="article" gap="sm" key={plan.id}>
-          <Title order={3} className={styles.completedTheme}>
-            {plan.whole ? plan.title : plan.shortTitle}
-          </Title>
+        <Section key={plan.id} title={plan.whole ? plan.title : plan.shortTitle}>
           {plan.whole ? (
             <Text size="sm" c="dimmed">
               {plan.statement}
@@ -416,6 +417,7 @@ function CompletedPlans() {
                 icon={capability.icon}
                 title={capability.title}
                 detail={capability.detail}
+                trailing={<ArrowRight size={16} aria-hidden />}
                 renderLink={(content) => (
                   <Anchor component={Link} to={capability.built} c="inherit" underline="never">
                     {content}
@@ -424,8 +426,8 @@ function CompletedPlans() {
               />
             ))}
           </Bullets>
-        </Stack>
+        </Section>
       ))}
-    </Stack>
+    </Section>
   );
 }

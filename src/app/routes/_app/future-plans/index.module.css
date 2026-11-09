@@ -40,19 +40,11 @@
   margin: 2rem 0 1rem;
 }
 
-/* Completed sits below the invitation, quieter than the plans above it. */
+/* Placement only: Completed sits below the invitation, set off by the same rule as the index. */
 .completed {
-  margin-top: 3rem;
-  padding-top: 2rem;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
   border-top: 1px solid rgb(from var(--ui-edge) r g b / 0.35);
-}
-
-.completedTitle {
-  font-size: var(--mantine-font-size-xl);
-}
-
-.completedTheme {
-  font-size: var(--mantine-font-size-md);
 }
 
 @container (width < 48rem) {
