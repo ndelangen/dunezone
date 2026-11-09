@@ -1,0 +1,700 @@
+/* The bidding prototypes: a phone (or a tablet) at a real table. Condensed palette roles only. */
+.tool {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  height: 100dvh;
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.headline {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.headTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.muted {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+}
+
+/* The card up for bid. */
+.cardUp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+}
+
+.cardBack {
+  display: block;
+  width: 100%;
+  aspect-ratio: 900 / 1263;
+  object-fit: cover;
+  border-radius: 6%;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.45);
+}
+
+.cardBack[data-over] {
+  opacity: 0.25;
+  filter: grayscale(1);
+}
+
+.cardCaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.cardCaption small {
+  color: var(--ui-highlight);
+  font-weight: 400;
+}
+
+/* A seat: its token, ringed when it is its bid. */
+.seatToken {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 50%;
+  transition: opacity 200ms;
+}
+
+.seatToken[data-full] {
+  opacity: 0.4;
+}
+
+.seatToken[data-turn] > :first-child {
+  outline: 3px solid var(--ui-highlight);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+.highMark {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--ui-positive-fill);
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.handCount {
+  color: var(--ui-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-left: 3px solid var(--ui-brass);
+  border-radius: 4px;
+  background: var(--ui-recess);
+  font-size: 14px;
+}
+
+.result svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--ui-brass);
+}
+
+/* The bid pad. */
+.bidPad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.padActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-xs);
+}
+
+.bidPad[data-big] .padActions {
+  gap: var(--space-sm);
+}
+
+.quickBids {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+}
+
+.quickBid {
+  min-height: 44px;
+  border: 1px solid var(--ui-edge);
+  border-radius: 8px;
+  background: var(--ui-raised);
+  color: var(--ui-text);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bidPad[data-big] .quickBid {
+  min-height: 60px;
+  font-size: 26px;
+}
+
+.quickBid:hover {
+  background: var(--ui-hover);
+}
+
+.quickBid:focus-visible {
+  outline: 2px solid var(--ui-highlight);
+  outline-offset: 2px;
+}
+
+.refusal {
+  margin: 0;
+  color: var(--ui-caution);
+  font-size: 13px;
+}
+
+.phaseOver {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.phaseTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.phaseLines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 14px;
+}
+
+.toBeat {
+  margin: 0;
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+.bigCall {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.hugeCall {
+  margin: 0;
+  font-family: "C_Desdemona", fantasy;
+  font-size: 44px;
+  line-height: 1;
+  text-align: center;
+}
+
+.bigBeat {
+  margin: 0;
+  color: var(--ui-highlight);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* A: the round table. Every seat sits on a circle round the middle, turned to face outwards, to its player. */
+.roundStage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-xl) var(--space-xs) var(--space-xs);
+}
+
+.roundTable {
+  position: relative;
+  container-type: size;
+  width: 100%;
+  aspect-ratio: 1;
+  max-height: calc(100dvh - 130px);
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ui-recess) 0 30%, transparent 70%);
+}
+
+.roundSeat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 29cqmin;
+  padding: 4px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transform: translate(-50%, -50%) rotate(var(--angle)) translateY(34cqmin);
+  transform-origin: center;
+}
+
+.roundSeat[data-turn] {
+  z-index: 1;
+  width: 40cqmin;
+  border-color: var(--ui-highlight);
+  background: var(--ui-recess);
+  box-shadow: 0 0 0 4px rgb(0 0 0 / 0.3);
+}
+
+.roundSeat .quickBids {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.roundSeat .quickBid {
+  min-height: 36px;
+  font-size: 16px;
+}
+
+.roundSeatHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.roundSeatHead .handCount {
+  display: none;
+}
+
+.roundMiddle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 30cqmin;
+  transform: translate(-50%, -50%) rotate(var(--facing));
+}
+
+.roundMiddle .cardUp {
+  width: 17cqmin !important;
+}
+
+.roundMiddle[data-motion] {
+  transition: transform 600ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.roundFoot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: 0 var(--space-sm) var(--space-md);
+}
+
+/* B: the table screen and every phone side by side, as the story shows them. */
+.devices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-md);
+  min-height: 100dvh;
+  padding: var(--space-md);
+  background: var(--ui-black);
+}
+
+.devices .tool {
+  height: 100%;
+}
+
+.screenFrame {
+  flex: 1 1 520px;
+  height: 460px;
+  overflow: hidden;
+  border: 8px solid var(--ui-raised);
+  border-radius: 14px;
+}
+
+.phoneRow {
+  display: grid;
+  flex: 1 1 520px;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phoneFrame {
+  min-height: 250px;
+  border: 6px solid var(--ui-raised);
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.screenBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+}
+
+.screenStage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.screenCall {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.screenSeats,
+.hands,
+.clockSeats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  height: 100%;
+  padding: var(--space-sm);
+  background: var(--ui-ground);
+}
+
+.phone[data-mine] {
+  background: var(--ui-recess);
+  box-shadow: inset 0 0 0 2px var(--ui-highlight);
+}
+
+.phoneHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.phoneHead > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.phoneWait {
+  margin: auto 0;
+  color: var(--ui-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.phoneYours {
+  margin: 0;
+  color: var(--ui-highlight);
+  font-size: 26px;
+  font-weight: 700;
+}
+
+/* C: the voice auctioneer. */
+.voiceBody,
+.passBody,
+.clockBody,
+.scriptBody {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-md);
+}
+
+.voiceCall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-md);
+}
+
+/* The bidder's token pulses softly while the auctioneer listens, and glows while it speaks. */
+.ear {
+  border-radius: 50%;
+}
+
+.ear[data-hearing] {
+  animation: listen 1.6s ease-in-out infinite;
+}
+
+.ear[data-speaking] {
+  box-shadow: 0 0 0 6px var(--ui-brass);
+}
+
+@keyframes listen {
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 255 255 / 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion="on"]) .ear[data-hearing] {
+    animation: none;
+    box-shadow: 0 0 0 4px rgb(255 255 255 / 0.12);
+  }
+}
+
+.voiceSide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.heard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.heard ol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.heard li {
+  color: var(--ui-muted);
+}
+
+.heard li[data-latest] {
+  color: var(--ui-text);
+}
+
+.heard q {
+  font-style: italic;
+}
+
+.tryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.tryPhrase {
+  padding: 4px 10px;
+  border: 1px dashed var(--ui-edge);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--ui-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tryPhrase:hover {
+  color: var(--ui-text);
+}
+
+/* D: pass the phone. */
+.handOver {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 60dvh;
+  border: 2px dashed var(--ui-edge);
+  border-radius: 16px;
+  background: var(--ui-recess);
+  color: var(--ui-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tapHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ui-muted);
+}
+
+.passTurn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.passWho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: stretch;
+}
+
+.passWho > span:last-child {
+  display: flex;
+  flex-direction: column;
+  font-size: 18px;
+}
+
+/* E: the gavel clock. The ring drains round the bidder's token. */
+.clockBody {
+  align-items: center;
+}
+
+.clock {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ui-highlight) calc(var(--left) * 360deg), var(--ui-raised) 0);
+}
+
+.clock[data-low] {
+  background: conic-gradient(var(--ui-caution) calc(var(--left) * 360deg), var(--ui-raised) 0);
+}
+
+.clockSeconds {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 40px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--ui-recess);
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* F: the referee's script. */
+.script {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-md);
+  border-left: 2px solid var(--ui-raised);
+  margin-left: 10px;
+}
+
+.step:last-child {
+  border-left-color: transparent;
+}
+
+.stepMark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: -12px;
+  border: 2px solid var(--ui-edge);
+  border-radius: 50%;
+  background: var(--ui-ground);
+}
+
+.step[data-done] .stepMark {
+  border-color: var(--ui-positive);
+  background: var(--ui-positive-fill);
+}
+
+.step[data-current] .stepMark {
+  border-color: var(--ui-highlight);
+  box-shadow:
+    0 0 0 3px var(--ui-ground),
+    0 0 0 5px var(--ui-highlight);
+}
+
+.step[data-waiting] {
+  color: var(--ui-muted);
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stepText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 14px;
+}
+
+.step[data-done] .stepText {
+  color: var(--ui-muted);
+}
+
+.scriptCall {
+  color: var(--ui-highlight);
+  font-size: 17px;
+}
