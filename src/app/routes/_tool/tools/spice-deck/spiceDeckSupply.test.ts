@@ -1,3 +1,4 @@
+import discoverySpiceCards from '@shared/assets/fixtures/discoverySpiceCards.json';
 import { assetSupplySchema } from '@shared/play/capture';
 import { expect, test } from 'vite-plus/test';
 
@@ -58,4 +59,23 @@ test('a deck with a card whose face is not published is not played', () => {
   expect(() => spiceDeckFromSupply({ id: 'faceless', name: 'Faceless deck', ruleset: 'Faceless' }, faceless)).toThrow(
     /not published/
   );
+});
+
+test('a Discovery blow is a special card the players follow, though it carries spice', () => {
+  const sihaya = discoverySpiceCards.find((card) => card.name === 'Sihaya Ridge')!;
+  const discovery = spiceDeckFromSupply(
+    { id: 'discovery', name: 'Discovery Spice Deck', ruleset: 'GF9' },
+    {
+      ...supply,
+      members: [
+        {
+          ...supply.members[0]!,
+          asset: { id: 'sihaya', slug: 'sihaya-ridge', type: 'card-spice', name: sihaya.name, data: sihaya },
+          count: 1,
+        },
+      ],
+    }
+  );
+  expect(discovery.cards[0]).toMatchObject({ key: 'sihaya', special: true });
+  expect(isWorm(discovery.cards[0]!)).toBe(false);
 });

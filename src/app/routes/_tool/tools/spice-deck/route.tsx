@@ -6,6 +6,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import { Card } from '@ui/surface/Card';
 import {
   ArrowLeft,
   ArrowRight,
@@ -20,7 +21,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 
 import { readSpiceDeck, useSpiceDeckChoices } from '@app/db/spiceDeckTool';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
@@ -720,10 +721,9 @@ function Table({
           .map((blow) => landedPart(blow, flight))
           .map((blow, index) =>
             blow.reveals.length > 0 ? (
-              <section key={index} className={styles.blowCard}>
-                <h3 className={styles.blowTitle}>{pileName(game, blow.pile)}</h3>
+              <Card key={index} title={pileName(game, blow.pile)} padding="sm" className={styles.blowCard}>
                 <BlowLines game={game} blow={blow} />
-              </section>
+              </Card>
             ) : null
           )
       )}
@@ -762,6 +762,20 @@ function landedPart(blow: Blow, flight: Flight | undefined): Blow {
 
 /* How long Peek is held before it shows: long enough that a brush of the screen at the table never shows the next card. */
 const PEEK_HOLD_MS = 2000;
+
+/**
+ * Starts a hold from a primary press only: a second finger or another button does nothing.
+ * Touch captures the pointer implicitly, which would swallow the leave that cancels a finger sliding off, so the capture is let go.
+ */
+function holdStart(event: ReactPointerEvent<HTMLElement>, press: () => void) {
+  if (!event.isPrimary || event.button !== 0) {
+    return;
+  }
+  if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+  press();
+}
 
 /** Peek: held for two seconds, it shows the next cards to whoever holds the phone. A shorter press does nothing. */
 function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: () => void }>) {
@@ -803,17 +817,7 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
         size="lg"
         icon={<Eye size={20} />}
         disabledReason={disabled ? 'No card to peek at right now.' : undefined}
-        onPointerDown={(event) => {
-          /* Only a primary press holds; a second finger or another button does nothing. */
-          if (!event.isPrimary || event.button !== 0) {
-            return;
-          }
-          /* Touch captures the pointer implicitly, which would swallow the leave that cancels a finger sliding off. */
-          if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          press();
-        }}
+        onPointerDown={(event) => holdStart(event, press)}
         onPointerUp={release}
         onPointerLeave={release}
         onPointerCancel={release}
