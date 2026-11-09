@@ -647,14 +647,7 @@ function FactionDetailContent({
                         <InlineFormattedTextSource source={data.rules.revivalText} />
                       </Text>
                     </Section>
-                    {data.rules.treacheryTracker ? (
-                      <>
-                        <Divider />
-                        <Section title="Treachery tracker">
-                          <Text size="sm">{TREACHERY_TRACKER_RULE}</Text>
-                        </Section>
-                      </>
-                    ) : null}
+                    <TreacheryTrackerSection keeps={data.rules.treacheryTracker} />
                   </Stack>
                 </Surface>
               </Section>
@@ -705,6 +698,21 @@ function FactionFilesAndRulesets({ page }: { page: FactionDetailPageData }) {
           </EntityLinkList>
         </Card>
       ) : null}
+    </>
+  );
+}
+
+/* The faction keeps a private Treachery tracker in Play, under its setup rules; nothing when it does not. */
+function TreacheryTrackerSection({ keeps }: Readonly<{ keeps?: boolean }>) {
+  if (!keeps) {
+    return null;
+  }
+  return (
+    <>
+      <Divider />
+      <Section title="Treachery tracker">
+        <Text size="sm">{TREACHERY_TRACKER_RULE}</Text>
+      </Section>
     </>
   );
 }
