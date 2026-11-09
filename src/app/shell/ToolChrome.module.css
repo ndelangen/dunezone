@@ -4,7 +4,7 @@
   flex-direction: column;
 }
 
-/* A fullscreen tool owns the whole window, as a fullscreen app page does (AppRoot.module.css):
+/* A fullscreen tool owns the whole window, as a fullscreen app page does (see the app root's stylesheet):
    the document does not scroll, and the page stylesheet's scrollbar gutters would otherwise inset it. */
 :global(html):has([data-tool-root] [data-page-layout-height="fullscreen"]),
 :global(body):has([data-tool-root] [data-page-layout-height="fullscreen"]) {

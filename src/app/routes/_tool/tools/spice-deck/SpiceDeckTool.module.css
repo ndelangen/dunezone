@@ -201,16 +201,6 @@
   height: calc(100dvh - var(--chrome, 160px) - 2 * var(--space-sm));
 }
 
-.nexus {
-  margin: 0;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  background: var(--ui-caution-fill);
-  color: var(--ui-text);
-  font-weight: 600;
-  text-align: center;
-}
-
 .hint {
   margin: var(--space-sm) 0 0;
   color: var(--ui-muted);
@@ -287,19 +277,6 @@
   font-size: 13px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-}
-
-.waiting {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding-top: var(--space-xl);
-  color: var(--ui-muted);
-}
-
-.waitingBack {
-  width: 55%;
 }
 
 /* The table: the deck and the set-aside spot above, the spice piles below, each pile a button. */
