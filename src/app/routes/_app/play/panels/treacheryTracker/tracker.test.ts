@@ -176,6 +176,13 @@ const STEPS: readonly ((c: Choices, pick: Pick) => TrackerAction | null)[] = [
   onHeld((held, c) =>
     held.slot.card === null ? { kind: 'identify', faction: held.owner, slot: held.slot.id, card: c.anyCard } : null
   ),
+  /* An unknown card turns out to be the copy on bid, which links its auction to the unknown card's slot too. */
+  onHeld((held, c) => {
+    const onBidCard = c.pending.find((sighting) => sighting.card !== null)?.card;
+    return held.slot.card === null && onBidCard
+      ? { kind: 'identify', faction: held.owner, slot: held.slot.id, card: onBidCard }
+      : null;
+  }),
   onHeld((held) => ({ kind: 'discard', faction: held.owner, slot: held.slot.id })),
   onHeld((held, c) => ({ kind: 'give', faction: held.owner, slot: held.slot.id, to: c.faction })),
   onHeld((held) => ({ kind: 'undo', faction: held.owner, slot: held.slot.id })),
@@ -340,4 +347,33 @@ test('taking back a chain of moves walks a card back to the discard pile it star
   );
   expect(placeOf(state, 'lasgun#1').at).toBe('discard');
   expect(Object.values(state.hands).flat()).toEqual([]);
+});
+
+test('an unknown winner named as the copy on bid, taken back, leaves that copy on bid once', () => {
+  const state = run(
+    { kind: 'bid', card: null, turn: 1 },
+    { kind: 'bid', card: 'lasgun#1', turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' },
+    { kind: 'identify', faction: 'emperor', slot: 'slot-3', card: 'lasgun#1' },
+    { kind: 'undo', faction: 'emperor', slot: 'slot-3' }
+  );
+  expect(state.seen.filter((sighting) => awaitingWinner(state, sighting))).toEqual([
+    { id: 'bid-1', turn: 1, card: 'lasgun#1' },
+  ]);
+  const passed = trackerReducer(state, { kind: 'pass', sighting: 'bid-1' });
+  expect(onBid(passed)).toBeUndefined();
+});
+
+test('with every card accounted for by unknown cards in hands, nothing new comes up for bid', () => {
+  const full = run(
+    { kind: 'add', faction: 'emperor', card: null },
+    { kind: 'add', faction: 'emperor', card: null },
+    { kind: 'add', faction: 'emperor', card: null },
+    { kind: 'add', faction: 'emperor', card: null }
+  );
+  expect(drawPile(full).count).toBe(0);
+  expect(trackerReducer(full, { kind: 'bid', card: 'lasgun#1', turn: 1 })).toBe(full);
+  expect(trackerReducer(full, { kind: 'bid', card: null, turn: 1 })).toBe(full);
+  const named = trackerReducer(full, { kind: 'identify', faction: 'emperor', slot: 'slot-1', card: 'lasgun#1' });
+  expect(placeOf(named, 'lasgun#1')).toEqual({ at: 'hand', faction: 'emperor', slot: 'slot-1' });
 });

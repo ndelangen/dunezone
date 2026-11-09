@@ -166,9 +166,14 @@ function releaseSlots(state: TrackerState, slots: ReadonlySet<string>, mistake =
       .flat()
       .map((slot) => [slot.id, slot.card])
   );
+  /* Two auctions that followed one slot were one copy: taken back, it is on bid once, as the oldest of them. */
+  const kept = new Map(state.seen.filter(holds).map((sighting) => [sighting.slot, sighting.id]));
+  const seen = mistake
+    ? state.seen.filter((sighting) => !holds(sighting) || kept.get(sighting.slot) === sighting.id)
+    : state.seen;
   return {
     ...state,
-    seen: state.seen.map((sighting) => {
+    seen: seen.map((sighting) => {
       if (!holds(sighting)) {
         return sighting;
       }
@@ -344,11 +349,15 @@ const HANDLERS: Handlers = {
     return auction ? updateSighting(placed, auction.id, (entry) => ({ ...entry, done: true })) : placed;
   },
   reshuffle: (state) => ({ ...state, discard: [] }),
-  bid: (state, { card, turn }) => ({
-    ...state,
-    seen: [{ id: `bid-${state.nextSlot}`, turn, card }, ...state.seen],
-    nextSlot: state.nextSlot + 1,
-  }),
+  /* A card up for bid comes from the draw pile, so with every card accounted for nothing new can come up. */
+  bid: (state, { card, turn }) =>
+    drawPile(state).count === 0
+      ? state
+      : {
+          ...state,
+          seen: [{ id: `bid-${state.nextSlot}`, turn, card }, ...state.seen],
+          nextSlot: state.nextSlot + 1,
+        },
   win: (state, action) => {
     const { id, card } = sightingOf(state, action.sighting);
     const slot = `slot-${state.nextSlot}`;

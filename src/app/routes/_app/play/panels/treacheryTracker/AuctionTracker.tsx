@@ -96,10 +96,14 @@ function BidCard({ card, waiting, ...bid }: BidProps & Readonly<{ card: CardCopy
   );
 }
 
+/* Why no new card can come up for bid: the unknown cards already held use up every card left to draw. */
+const NOTHING_TO_DRAW = 'Every card is accounted for: none is left to draw.';
+
 /** The empty place of the card on bid: clicking it picks the card that comes up next, or an unknown one. */
 function EmptyBid({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
   const turn = currentTurn(state, tableTurn);
+  const drawable = drawPile(state).count > 0;
   return (
     <Popover opened={open} onChange={setOpen} position="bottom-start" withinPortal shadow="md" width={CHOOSER_WIDTH}>
       <Popover.Target>
@@ -111,15 +115,19 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
         />
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown}>
-        <CardChooser
-          state={state}
-          allowUnknown={drawPile(state).count > 0}
-          forBid
-          onPick={(card) => {
-            onAction({ kind: 'bid', card, turn });
-            setOpen(false);
-          }}
-        />
+        {drawable ? (
+          <CardChooser
+            state={state}
+            allowUnknown
+            forBid
+            onPick={(card) => {
+              onAction({ kind: 'bid', card, turn });
+              setOpen(false);
+            }}
+          />
+        ) : (
+          <Text size="sm">{NOTHING_TO_DRAW}</Text>
+        )}
       </Popover.Dropdown>
     </Popover>
   );
@@ -193,6 +201,7 @@ function AuctionEnd({
 function NextUp({ state, onAction, tableTurn }: BidProps) {
   const [open, setOpen] = useState(false);
   const turn = currentTurn(state, tableTurn);
+  const drawable = drawPile(state).count > 0;
   return (
     <div className={styles.nextUp}>
       <IconAction
@@ -200,10 +209,17 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
         icon={<CircleHelp size={15} />}
         size="sm"
         emphasis="quiet"
-        disabledReason={drawPile(state).count > 0 ? undefined : 'Every card is accounted for: none is left to draw.'}
+        disabledReason={drawable ? undefined : NOTHING_TO_DRAW}
         onClick={() => onAction({ kind: 'bid', card: null, turn })}
       />
-      <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+      <Popover
+        opened={open && drawable}
+        onChange={setOpen}
+        position="bottom"
+        withinPortal
+        shadow="md"
+        width={CHOOSER_WIDTH}
+      >
         <Popover.Target>
           <span>
             <IconAction
@@ -211,7 +227,8 @@ function NextUp({ state, onAction, tableTurn }: BidProps) {
               icon={<Layers size={15} />}
               size="sm"
               emphasis="quiet"
-              pressed={open}
+              pressed={open && drawable}
+              disabledReason={drawable ? undefined : NOTHING_TO_DRAW}
               onClick={() => setOpen((was) => !was)}
             />
           </span>
