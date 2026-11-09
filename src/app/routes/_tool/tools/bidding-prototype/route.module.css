@@ -1,0 +1,307 @@
+:global(body) {
+  margin: 0;
+  background: var(--ui-ground);
+  color: var(--color-text);
+}
+.review {
+  height: 100dvh;
+  overflow: auto;
+  padding: var(--space-lg);
+  padding-bottom: calc(var(--space-xl) * 3);
+  container-type: inline-size;
+  container-name: review;
+}
+.reviewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+.reviewNote {
+  margin-bottom: var(--space-md);
+  max-width: 100%;
+}
+.devices {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  align-items: start;
+  gap: var(--space-lg);
+  max-width: 94rem;
+  margin: auto;
+}
+.devices[data-view="tablet"] {
+  grid-template-columns: minmax(0, 64rem);
+  justify-content: center;
+}
+.devices[data-view="phone"] {
+  grid-template-columns: minmax(0, 24rem);
+  justify-content: center;
+}
+.tabletFrame {
+  width: 100%;
+  min-width: 0;
+}
+.phoneFrame {
+  width: 100%;
+  min-width: 0;
+}
+.tablet {
+  min-height: 41rem;
+  container: tablet / inline-size;
+}
+.deviceHeader {
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--panel-border);
+}
+.tabletBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+.circleColumn {
+  min-width: 0;
+  align-self: center;
+}
+.controlColumn {
+  min-width: 0;
+  align-self: center;
+  padding-block: var(--space-sm);
+}
+.arena {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+.arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--color-brand);
+  stroke-width: 1.8;
+  fill: none;
+}
+.cardMiddle {
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  border: 4px solid var(--color-brand);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-ground);
+}
+.cardMiddle img {
+  width: 40%;
+  height: 62%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.seat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-xs);
+  transform: translate(-50%, -50%);
+  width: 27%;
+  max-width: 9rem;
+}
+.seat[data-active] {
+  color: var(--color-brand);
+}
+.seat[data-active] > div:first-child {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+.seatList {
+  display: grid;
+  gap: var(--space-xs);
+}
+.phone {
+  padding-bottom: var(--space-md);
+  min-height: 41rem;
+}
+.phone > :not(.deviceHeader) {
+  padding: var(--space-md);
+}
+.handSection {
+  border-top: 1px solid var(--panel-border);
+  padding-top: var(--space-md);
+}
+.details {
+  border-top: 1px solid var(--panel-border);
+  padding-top: var(--space-sm);
+}
+.details summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding-bottom: var(--space-sm);
+}
+.eventLog {
+  border-top: 1px solid var(--panel-border);
+  padding-top: var(--space-sm);
+  display: grid;
+  gap: var(--space-xs);
+}
+.qr {
+  width: 5rem;
+  flex-shrink: 0;
+}
+.qr svg {
+  width: 100%;
+  display: block;
+}
+.compactHands {
+  display: grid;
+  gap: var(--space-xs);
+}
+.oldTablet {
+  min-height: 41rem;
+  padding: var(--space-xl);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-lg);
+  text-align: center;
+}
+.phoneCentral .tablet {
+  min-height: auto;
+}
+.phoneCentral .tabletBody {
+  grid-template-columns: 1fr;
+}
+.phoneCentral .controlColumn {
+  padding: var(--space-md);
+}
+.baselineTablet {
+  min-height: 41rem;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding-bottom: var(--space-lg);
+}
+.baselineTablet .arena {
+  max-width: 29rem;
+  margin: auto;
+}
+.devices[data-before] > .phone {
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-md);
+}
+.devices[data-before][data-view="tablet"] > .phone {
+  display: none;
+}
+.devices[data-before][data-view="phone"] > .baselineTablet {
+  display: none;
+}
+.simulator {
+  max-width: 94rem;
+  margin: var(--space-lg) auto 0;
+  padding: var(--space-sm);
+  color: var(--color-muted);
+}
+.simulator summary {
+  cursor: pointer;
+  margin-bottom: var(--space-sm);
+}
+.simulator pre {
+  font-size: 0.72rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+.reviewFooter {
+  position: fixed;
+  bottom: var(--space-sm);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--panel-border);
+  background: var(--ui-ground);
+  z-index: 20;
+}
+@container tablet (width < 48rem) {
+  .tabletBody {
+    grid-template-columns: minmax(0, 1fr) 17rem;
+    gap: var(--space-sm);
+  }
+  .seat {
+    gap: 0;
+  }
+  .seat > div:first-child {
+    transform: scale(0.8);
+  }
+}
+@container tablet (width < 30rem) {
+  .tabletBody {
+    grid-template-columns: 1fr;
+  }
+  .arena {
+    max-width: 26rem;
+    margin: auto;
+  }
+}
+@container review (width < 62rem) {
+  .devices {
+    grid-template-columns: 1fr;
+  }
+  .phoneFrame,
+  .devices[data-before] > .phone {
+    max-width: 24rem;
+    margin: auto;
+  }
+  .reviewHeader {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+
+.joinInfo {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.circleColumn .arena {
+  margin-bottom: var(--space-xl);
+}
+.review[data-focus] {
+  padding: var(--space-xs);
+}
+.review[data-focus] .reviewHeader,
+.review[data-focus] .steps,
+.review[data-focus] .reviewNote,
+.review[data-focus] .reviewFooter,
+.review[data-focus] .simulator {
+  display: none;
+}
+.review[data-focus] .devices {
+  max-width: none;
+}
+.review[data-focus] .devices[data-view="phone"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.review[data-focus] .devices[data-view="tablet"] {
+  grid-template-columns: minmax(0, 1fr);
+}
