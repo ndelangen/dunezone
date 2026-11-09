@@ -26,7 +26,7 @@ export function wheelFactionFrom(raw: unknown): WheelFaction | null {
     leaders: data.leaders.map((leader, index) => ({
       id: leader.memberId ?? `leader-${index}`,
       name: leader.name,
-      strength: typeof leader.strength === 'number' ? leader.strength : null,
+      strength: printedStrength(leader.strength),
       image: leader.image,
     })),
     faces: troopBattleFaces(data.troops).flatMap(({ id, troopIndex, face, capable, values }) => {
@@ -49,4 +49,12 @@ export function wheelFactionFrom(raw: unknown): WheelFaction | null {
         : [];
     }),
   };
+}
+
+/* A leader's printed strength: a number, or a single digit stored as text; anything else, such as X, varies at the table. */
+function printedStrength(strength: number | string | undefined) {
+  if (typeof strength === 'number') {
+    return strength;
+  }
+  return strength !== undefined && /^\d$/.test(strength) ? Number(strength) : null;
 }
