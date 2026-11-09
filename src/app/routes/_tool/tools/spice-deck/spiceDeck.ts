@@ -67,7 +67,7 @@ export const MOST_PILES = 6;
 /** A pile's name, A, B, C and on, as the rulebook names its two. */
 export const pileLetter = (pile: number) => String.fromCodePoint(65 + pile);
 
-export const copyKey = (copy: string) => copy.slice(0, copy.lastIndexOf('#'));
+const copyKey = (copy: string) => copy.slice(0, copy.lastIndexOf('#'));
 
 export function cardOf(game: SpiceDeckGame, copy: string): SpiceCardDef {
   const key = copyKey(copy);
@@ -117,13 +117,13 @@ function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | 
 }
 
 /** A pile's blow this turn that has not yet landed a spice card: the one a further card on that pile adds to. */
-export function openBlow(game: SpiceDeckGame, pile: number): Blow | undefined {
+function openBlow(game: SpiceDeckGame, pile: number): Blow | undefined {
   const last = game.blows.findLast((blow) => blow.turn === game.turn && blow.pile === pile);
   return last && last.reveals.at(-1)?.kind !== 'spice' ? last : undefined;
 }
 
 /** Whether a pile has landed a spice card this turn. */
-export const pileBlown = (game: SpiceDeckGame, pile: number) =>
+const pileBlown = (game: SpiceDeckGame, pile: number) =>
   game.blows.some((blow) => blow.turn === game.turn && blow.pile === pile && blow.reveals.at(-1)?.kind === 'spice');
 
 /** The first pile not yet blown this turn, the one the rulebook's order turns next; none once every pile has. */
@@ -239,12 +239,6 @@ export const nexus = (game: SpiceDeckGame, turn = game.turn) =>
   turn > 1 && game.blows.some((blow) => blow.turn === turn && blow.reveals.some((reveal) => reveal.kind === 'worm'));
 
 export const blowsOfTurn = (game: SpiceDeckGame, turn = game.turn) => game.blows.filter((blow) => blow.turn === turn);
-
-/** The spice card a blow ended on, once it has. */
-export function landed(game: SpiceDeckGame, blow: Blow): SpiceCardDef | undefined {
-  const last = blow.reveals.at(-1);
-  return last?.kind === 'spice' ? cardOf(game, last.card) : undefined;
-}
 
 /** The next cards off the deck, the next first, as many as a peek shows; fewer when the deck is nearly out. */
 export const peekAt = (game: SpiceDeckGame): string[] => game.draw.slice(-(game.peek ?? 1)).reverse();

@@ -15,7 +15,7 @@ const WORDS: readonly (readonly [VoiceCommand, RegExp])[] = [
   ['blow', /\b(spice|blow|draw|next|go)\b/i],
 ];
 
-export function commandIn(heard: string): VoiceCommand | undefined {
+function commandIn(heard: string): VoiceCommand | undefined {
   return WORDS.find(([, words]) => words.test(heard))?.[0];
 }
 

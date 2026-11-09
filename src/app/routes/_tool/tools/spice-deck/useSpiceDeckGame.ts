@@ -8,8 +8,8 @@ import type { Random, SpiceDeckGame } from './spiceDeck';
  */
 
 /** What the last step did: a card turned over, a card set aside, or anything else (a new turn, a step taken back). The page animates from it. */
-export type StepKind = 'deal' | 'aside' | 'other';
-export type LastStep = Readonly<{ id: number; kind: StepKind }>;
+type StepKind = 'deal' | 'aside' | 'other';
+type LastStep = Readonly<{ id: number; kind: StepKind }>;
 
 type Saved = Readonly<{ game: SpiceDeckGame; undo: readonly SpiceDeckGame[]; last?: LastStep }>;
 

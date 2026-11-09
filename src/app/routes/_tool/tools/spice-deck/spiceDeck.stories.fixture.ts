@@ -15,7 +15,7 @@ const cards = decks.spice.cards.map((card) => ({
 }));
 
 /** The Dreamrules Spice deck as dune.zone publishes it: the base game's cards, Shai-Hulud ×6 and five spice mines. */
-export const DREAMRULES_SPICE: SpiceDeckDef = {
+const DREAMRULES_SPICE: SpiceDeckDef = {
   id: decks.spice.id,
   name: decks.spice.name,
   ruleset: 'Dreamrules',
@@ -24,7 +24,7 @@ export const DREAMRULES_SPICE: SpiceDeckDef = {
 };
 
 /** The base game's 21 cards: 15 territories and Shai-Hulud ×6, as the GF9 and KISS decks hold them. */
-export const BASE_SPICE: SpiceDeckDef = {
+const BASE_SPICE: SpiceDeckDef = {
   id: 'base-spice',
   name: 'GF9 Spice Deck',
   ruleset: 'GF9',
@@ -49,7 +49,7 @@ export const STORY_DECKS: readonly SpiceDeckChoice[] = STORY_DECK_DEFS.map(({ id
 export const loadStoryDeck = async (choice: SpiceDeckChoice) => STORY_DECK_DEFS.find((deck) => deck.id === choice.id)!;
 
 /** A repeatable shuffle, so every story shows the same game. */
-export function seeded(seed: number): () => number {
+function seeded(seed: number): () => number {
   let state = seed;
   return () => {
     state = (state + 0x6d_2b_79_f5) | 0;
@@ -73,4 +73,4 @@ export function storyGame(
 }
 
 /* A seed whose third turn brings Shai-Hulud on both piles, so the stories show worms and a Nexus. */
-export const STORY_SEED = 2;
+const STORY_SEED = 2;
