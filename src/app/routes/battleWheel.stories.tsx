@@ -43,6 +43,19 @@ export const KissFremen = meta.story({
   },
 });
 
+/** The Atreides under GF9 2.0 as the Emperor's ally: six troops, and 2 spice buys the +2 that costs anyone else 4. */
+export const EmperorsAlly = meta.story({
+  beforeEach: () => seedStoredWheel(storyWheel('house-atreides', { troops: [6], spice: 4 })),
+  play: async ({ canvasElement }) => {
+    const page = pageOf(canvasElement);
+    await userEvent.click(await page.findByRole('button', { name: 'Ruleset and faction' }, { timeout: 30_000 }));
+    await userEvent.click(await page.findByRole('button', { name: /^GF9 2\.0/ }));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await page.findByRole('button', { name: "Emperor's ally: half price" }));
+    await expect(await page.findByText('Pays 2 spice')).toBeVisible();
+  },
+});
+
 /** A first visit: no faction yet, so the picker is open on GF9's base six, with a search for any other. */
 export const FirstVisit = meta.story({
   beforeEach: clearStoredWheel,

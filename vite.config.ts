@@ -162,8 +162,9 @@ const config = defineConfig({
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
   /*
-   * The preview server the build prerenders the tool pages through, bound to one address.
-   * The prerender fetches it from the build's own busy process, and a dual-stack `localhost` gave up on IPv6 after 250 ms and fell back to an IPv4 address nothing listened on, crashing the build in CI.
+   * Prerender fetches from this server while it renders other pages on the same thread.
+   * On `localhost` Node tries ::1 then 127.0.0.1 with a 250 ms per-address timeout, so a render that blocks longer fails the bound address and the fallback is refused.
+   * One literal address leaves nothing to fall back to.
    */
   preview: { host: '127.0.0.1' },
   test: {
