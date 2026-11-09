@@ -122,6 +122,7 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Mark each spice card as it is drawn and see what is left, where spice can still blow, and how likely the worm is next.',
     icon: Layers,
+    art: '/tools/spice-deck.webp',
     group: 'During the game',
     capabilities: [
       { icon: Layers, title: 'What is left', detail: 'Every card drawn and remaining.' },
