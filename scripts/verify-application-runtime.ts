@@ -163,8 +163,13 @@ try {
     assert.equal(response.headers.get('X-Robots-Tag'), null, pathname);
     const historicalFallback = pathname.endsWith('/runtime-manual?edition=1');
     const html = await response.text();
-    assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
-    assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
+    if (TOOL_PAGES.includes(pathname)) {
+      /* A standalone tool has no app header, so it neither shows nor preloads the header poster. */
+      assert.ok(!html.includes(`/public/${bandPoster}`), `${pathname} asks for the header poster it does not show`);
+    } else {
+      assert.ok(html.includes(`href="/public/${bandPoster}"`), `${pathname} does not preload the hashed poster`);
+      assert.ok(html.includes(`src="/public/${bandPoster}"`), `${pathname} does not display the preloaded poster`);
+    }
     if (BLOG_POST_PAGES.includes(pathname) && !LISTED_BLOG_POST_PAGES.includes(pathname)) {
       /* An unlisted post is shared by link only, so it alone asks not to be indexed. */
       assert.match(html, /<meta\b[^>]*\bname=["']robots["'][^>]*\bcontent=["']noindex["']/i, pathname);

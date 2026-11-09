@@ -6,6 +6,7 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useTreacheryDeck } from '@app/db/play';
+import type { TreacheryDeckRead } from '@app/db/play';
 import { useOrderedRulesetFactions, useRulesetCataloguePage } from '@app/db/rulesets';
 import type { RulesetCatalogueEntry } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
@@ -77,24 +78,18 @@ function TreacheryTrackerPage() {
 /* The setup: the Rulesets to pick from, the default one picked, and the base six seated until the player changes them. */
 function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }>) {
   const [query, setQuery] = useState('');
-  const first = useRulesetCataloguePage({ sort: 'name' }).data;
-  const matching = useRulesetCataloguePage(query.trim() ? { q: query.trim() } : { sort: 'name' }).data;
-  /* The default and the base are found by name, so they are there however many Rulesets come before them. */
-  const preferred = useNamedRuleset(DEFAULT_RULESET);
-  const base = useNamedRuleset(BASE_RULESET);
+  const choices = useRulesetChoices(query.trim());
   const [picked, setPicked] = useState<RulesetEntry | null>(null);
   const [seats, setSeats] = useState<readonly FactionToken[] | null>(null);
-  if (!first || preferred === undefined || base === undefined) {
+  if (!choices) {
     return <Pending>Loading the Rulesets…</Pending>;
   }
-  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
-  const listed = (matching ?? first).entries.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
-  const chosen = picked ?? preferred ?? listed[0];
-  const baseEntry = base ?? chosen;
+  const chosen = picked ?? choices.preferred ?? choices.listed[0];
+  const baseEntry = choices.base ?? chosen;
   if (!chosen || !baseEntry) {
     return null;
   }
-  const rulesets = listed.some((entry) => entry.id === chosen.id) ? listed : [chosen, ...listed];
+  const rulesets = withChosen(choices.listed, chosen);
   return (
     <BaseSeats
       rulesets={rulesets}
@@ -107,6 +102,28 @@ function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }
       onStart={onStart}
     />
   );
+}
+
+/* The Rulesets to list, the default one and the base one; undefined until all three have been read. */
+function useRulesetChoices(
+  query: string
+): { listed: RulesetEntry[]; preferred: RulesetEntry | null; base: RulesetEntry | null } | undefined {
+  const first = useRulesetCataloguePage({ sort: 'name' }).data;
+  const matching = useRulesetCataloguePage(query ? { q: query } : { sort: 'name' }).data;
+  /* The default and the base are found by name, so they are there however many Rulesets come before them. */
+  const preferred = useNamedRuleset(DEFAULT_RULESET);
+  const base = useNamedRuleset(BASE_RULESET);
+  if (!first || preferred === undefined || base === undefined) {
+    return undefined;
+  }
+  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
+  const listed = (matching ?? first).entries.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
+  return { listed, preferred, base };
+}
+
+/* The listed Rulesets, with the chosen one first when the search left it out, so the field can still name it. */
+function withChosen(listed: RulesetEntry[], chosen: RulesetEntry): RulesetEntry[] {
+  return listed.some((entry) => entry.id === chosen.id) ? listed : [chosen, ...listed];
 }
 
 type RulesetEntry = RulesetCatalogueEntry;
@@ -146,15 +163,7 @@ function RulesetSetup({
   onRulesetSearch,
   onStart,
 }: RulesetSetupProps) {
-  const read = useTreacheryDeck(rulesetId);
-  const deck: SetupDeck =
-    read.status === 'loading'
-      ? read
-      : read.status === 'failed'
-        ? { status: 'missing', reason: read.reason }
-        : read.cards?.length
-          ? { status: 'ready', defs: cardDefs(read.cards) }
-          : { status: 'missing', reason: 'This Ruleset has no Treachery deck.' };
+  const deck = setupDeck(useTreacheryDeck(rulesetId));
   const config: TrackerConfig = { ruleset: rulesetId, seats: seats ?? base };
   return (
     <TrackerSetup
@@ -172,14 +181,39 @@ function RulesetSetup({
         }
       }}
       onStart={() => {
-        const ruleset = rulesets.find((entry) => entry.id === rulesetId);
-        if (!ruleset || !config.seats || deck.status !== 'ready') {
-          return;
+        const game = gameFrom(
+          rulesets.find((entry) => entry.id === rulesetId),
+          config.seats,
+          deck
+        );
+        if (game) {
+          onStart(game);
         }
-        onStart(startGame({ id: ruleset.id, name: ruleset.name }, config.seats, deck.defs));
       }}
     />
   );
+}
+
+/* What the setup shows of a Ruleset's Treachery deck: loading, its cards, or why there are none. */
+function setupDeck(read: TreacheryDeckRead): SetupDeck {
+  if (read.status !== 'read') {
+    return read.status === 'loading' ? read : { status: 'missing', reason: read.reason };
+  }
+  return read.cards?.length
+    ? { status: 'ready', defs: cardDefs(read.cards) }
+    : { status: 'missing', reason: 'This Ruleset has no Treachery deck.' };
+}
+
+/* A new game at the picked Ruleset, or null while anything it needs is missing. */
+function gameFrom(
+  ruleset: { id: string; name: string } | undefined,
+  seats: readonly FactionToken[] | undefined,
+  deck: SetupDeck
+): StandaloneGame | null {
+  if (!ruleset || !seats || deck.status !== 'ready') {
+    return null;
+  }
+  return startGame({ id: ruleset.id, name: ruleset.name }, seats, deck.defs);
 }
 
 /* The base six: the first factions of the base Ruleset, in its own order, each with its published token. */
@@ -196,6 +230,13 @@ function useBaseSeats(rulesetId: RulesetId): readonly FactionToken[] | undefined
   );
 }
 
+/* How far a catalogue read has got, in the search list's words; anything else means it has read them all. */
+const SEARCH_STATUS: Partial<Record<string, FactionSearchStatus>> = {
+  LoadingFirstPage: 'loading',
+  CanLoadMore: 'more',
+  LoadingMore: 'loading-more',
+};
+
 /* Every faction on Dune Zone, searched by name, as the setup's Add a faction lists them. */
 const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
   const [query, setQuery] = useState('');
@@ -211,14 +252,7 @@ const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
         ]
       : []
   );
-  const status: FactionSearchStatus =
-    read.status === 'LoadingFirstPage'
-      ? 'loading'
-      : read.status === 'CanLoadMore'
-        ? 'more'
-        : read.status === 'LoadingMore'
-          ? 'loading-more'
-          : 'done';
+  const status = SEARCH_STATUS[read.status] ?? 'done';
   return (
     <FactionSearchList
       query={query}

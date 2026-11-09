@@ -51,37 +51,57 @@ export function FactionSearchList({
       />
       <ScrollArea.Autosize mah={touch ? '55dvh' : 320} type="auto" overscrollBehavior="contain">
         <ul className={styles.list} aria-label="Factions">
-          {factions.map((faction) => {
-            const here = seated.includes(faction.id);
-            return (
-              <li key={faction.id}>
-                <UnstyledButton
-                  className={styles.row}
-                  data-touch={touch ? 'true' : 'false'}
-                  disabled={here}
-                  aria-label={here ? `${faction.name} is at the table` : `Add ${faction.name}`}
-                  onClick={() => onPick(faction)}
-                >
-                  <FactionTokenFace token={faction} size={touch ? 36 : 28} />
-                  <Text size="sm" component="span" className={styles.name}>
-                    {faction.name}
-                  </Text>
-                  {here ? <Check size={16} aria-hidden /> : null}
-                </UnstyledButton>
-              </li>
-            );
-          })}
+          {factions.map((faction) => (
+            <li key={faction.id}>
+              <FactionRow faction={faction} here={seated.includes(faction.id)} onPick={onPick} />
+            </li>
+          ))}
         </ul>
-        {status === 'loading' ? <Pending>Searching the factions…</Pending> : null}
-        {status === 'done' && factions.length === 0 ? (
-          <Text size="sm" className={styles.dim}>
-            No faction matches.
-          </Text>
-        ) : null}
-        {status === 'more' || status === 'loading-more' ? (
-          <LoadMoreButton loading={status === 'loading-more'} onLoadMore={onMore} />
-        ) : null}
+        <SearchProgress status={status} empty={factions.length === 0} onMore={onMore} />
       </ScrollArea.Autosize>
     </div>
   );
+}
+
+/* One faction to add, or ticked and disabled when it is already at the table. */
+function FactionRow({
+  faction,
+  here,
+  onPick,
+}: Readonly<{ faction: FactionToken; here: boolean; onPick: (faction: FactionToken) => void }>) {
+  const touch = useTrackerTouch();
+  return (
+    <UnstyledButton
+      className={styles.row}
+      data-touch={touch ? 'true' : 'false'}
+      disabled={here}
+      aria-label={here ? `${faction.name} is at the table` : `Add ${faction.name}`}
+      onClick={() => onPick(faction)}
+    >
+      <FactionTokenFace token={faction} size={touch ? 36 : 28} />
+      <Text size="sm" component="span" className={styles.name}>
+        {faction.name}
+      </Text>
+      {here ? <Check size={16} aria-hidden /> : null}
+    </UnstyledButton>
+  );
+}
+
+/* Below the rows: the first page loading, no match, or a button that reads the next page. */
+function SearchProgress({
+  status,
+  empty,
+  onMore,
+}: Readonly<{ status: FactionSearchStatus; empty: boolean; onMore: () => void }>) {
+  if (status === 'loading') {
+    return <Pending>Searching the factions…</Pending>;
+  }
+  if (status === 'done') {
+    return empty ? (
+      <Text size="sm" className={styles.dim}>
+        No faction matches.
+      </Text>
+    ) : null;
+  }
+  return <LoadMoreButton loading={status === 'loading-more'} onLoadMore={onMore} />;
 }

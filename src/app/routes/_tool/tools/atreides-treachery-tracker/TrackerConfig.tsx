@@ -13,6 +13,7 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
+import type { SortableHandleProps } from '@ui/control/SortableReorderHandle';
 import { Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
@@ -57,51 +58,15 @@ export function TrackerConfigPanel({
   onRulesetSearch: (query: string) => void;
   search: FactionSearch;
 }>) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-  const touch = useTrackerTouch();
-  const actionSize = useActionSize();
   const seats = config.seats;
-  /* What the player types while the list is open; null while it is closed, when the field shows the picked Ruleset. */
-  const [search, setSearch] = useState<string | null>(null);
-  const picked = rulesets.find((ruleset) => ruleset.id === config.ruleset)?.name ?? '';
-  const searchFor = (value: string) => {
-    setSearch(value);
-    onRulesetSearch(value);
-  };
   return (
     <div className={styles.config}>
       <section>
-        <ControlBlock
-          title="Ruleset"
-          description="The tracker starts with a copy of its Treachery deck."
-          inputId="tracker-ruleset"
-          input={(fieldProps) => (
-            <Select
-              {...fieldProps}
-              size={touch ? 'lg' : 'sm'}
-              data={rulesets.map((ruleset) => ({ value: ruleset.id, label: ruleset.name }))}
-              value={config.ruleset}
-              allowDeselect={false}
-              comboboxProps={{ withinPortal: true }}
-              onChange={(ruleset) => ruleset && onChange({ ...config, ruleset })}
-              /* Every Ruleset can be found by name: the list holds the first ones, and typing searches them all on the server. */
-              searchable
-              searchValue={search ?? picked}
-              filter={({ options }) => options}
-              nothingFoundMessage="No Ruleset matches"
-              onDropdownOpen={() => searchFor('')}
-              onDropdownClose={() => {
-                setSearch(null);
-                onRulesetSearch('');
-              }}
-              onSearchChange={(value) => search !== null && searchFor(value)}
-            />
-          )}
+        <RulesetField
+          rulesets={rulesets}
+          ruleset={config.ruleset}
+          onPick={(ruleset) => onChange({ ...config, ruleset })}
+          onRulesetSearch={onRulesetSearch}
         />
       </section>
       <section aria-label="Factions">
@@ -111,53 +76,141 @@ export function TrackerConfigPanel({
         {seats === undefined ? (
           <Pending>Loading the factions…</Pending>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={({ active, over }: DragEndEvent) => {
-              const from = seats.findIndex((seat) => seat.id === String(active.id));
-              const to = over ? seats.findIndex((seat) => seat.id === String(over.id)) : -1;
-              if (from >= 0 && to >= 0 && from !== to) {
-                onChange({ ...config, seats: arrayMove([...seats], from, to) });
-              }
-            }}
-          >
-            <SortableContext items={seats.map((seat) => seat.id)} strategy={verticalListSortingStrategy}>
-              <ul className={styles.list}>
-                {seats.map((faction) => (
-                  <SortableItem key={faction.id} as="li" id={faction.id}>
-                    {(handle) => (
-                      <div className={styles.row} data-touch={touch ? 'true' : 'false'}>
-                        <SortableReorderHandle label={`Move ${faction.name}`} emphasis="silent" {...handle} />
-                        <span className={styles.who}>
-                          <FactionTokenFace token={faction} size={touch ? 36 : 28} />
-                          <Text size="sm" component="span" className={styles.name}>
-                            {faction.name}
-                          </Text>
-                        </span>
-                        <IconAction
-                          label={`Remove ${faction.name}`}
-                          icon={<X size={17} />}
-                          size={actionSize}
-                          emphasis="quiet"
-                          onClick={() => onChange({ ...config, seats: seats.filter((seat) => seat.id !== faction.id) })}
-                        />
-                      </div>
-                    )}
-                  </SortableItem>
-                ))}
-              </ul>
-            </SortableContext>
-          </DndContext>
+          <>
+            <SeatList seats={seats} onSeats={(next) => onChange({ ...config, seats: next })} />
+            <AddFaction
+              search={Search}
+              seated={seats.map((seat) => seat.id)}
+              onPick={(faction) => onChange({ ...config, seats: [...seats, faction] })}
+            />
+          </>
         )}
-        {seats ? (
-          <AddFaction
-            search={Search}
-            seated={seats.map((seat) => seat.id)}
-            onPick={(faction) => onChange({ ...config, seats: [...seats, faction] })}
-          />
-        ) : null}
       </section>
+    </div>
+  );
+}
+
+/* The Ruleset picker: the list holds the first ones, and typing searches them all on the server. */
+function RulesetField({
+  rulesets,
+  ruleset,
+  onPick,
+  onRulesetSearch,
+}: Readonly<{
+  rulesets: readonly { id: string; name: string }[];
+  ruleset: string;
+  onPick: (ruleset: string) => void;
+  onRulesetSearch: (query: string) => void;
+}>) {
+  const touch = useTrackerTouch();
+  /* What the player types while the list is open; null while it is closed, when the field shows the picked Ruleset. */
+  const [search, setSearch] = useState<string | null>(null);
+  const picked = rulesets.find((entry) => entry.id === ruleset)?.name ?? '';
+  const searchFor = (value: string) => {
+    setSearch(value);
+    onRulesetSearch(value);
+  };
+  return (
+    <ControlBlock
+      title="Ruleset"
+      description="The tracker starts with a copy of its Treachery deck."
+      inputId="tracker-ruleset"
+      input={(fieldProps) => (
+        <Select
+          {...fieldProps}
+          size={touch ? 'lg' : 'sm'}
+          data={rulesets.map((entry) => ({ value: entry.id, label: entry.name }))}
+          value={ruleset}
+          allowDeselect={false}
+          comboboxProps={{ withinPortal: true }}
+          onChange={(next) => next && onPick(next)}
+          searchable
+          searchValue={search ?? picked}
+          filter={({ options }) => options}
+          nothingFoundMessage="No Ruleset matches"
+          onDropdownOpen={() => searchFor('')}
+          onDropdownClose={() => {
+            setSearch(null);
+            onRulesetSearch('');
+          }}
+          onSearchChange={(value) => search !== null && searchFor(value)}
+        />
+      )}
+    />
+  );
+}
+
+/* The factions at the table, in seat order: dragged to reorder, each with a button that removes it. */
+function SeatList({
+  seats,
+  onSeats,
+}: Readonly<{ seats: readonly FactionToken[]; onSeats: (seats: readonly FactionToken[]) => void }>) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+  const indexOf = (id: string) => seats.findIndex((seat) => seat.id === id);
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={({ active, over }: DragEndEvent) => {
+        const from = indexOf(String(active.id));
+        const to = over ? indexOf(String(over.id)) : -1;
+        if (from >= 0 && to >= 0 && from !== to) {
+          onSeats(arrayMove([...seats], from, to));
+        }
+      }}
+    >
+      <SortableContext items={seats.map((seat) => seat.id)} strategy={verticalListSortingStrategy}>
+        <ul className={styles.list}>
+          {seats.map((faction) => (
+            <SortableItem key={faction.id} as="li" id={faction.id}>
+              {(handle) => (
+                <SeatRow
+                  faction={faction}
+                  handle={handle}
+                  onRemove={() => onSeats(seats.filter((seat) => seat.id !== faction.id))}
+                />
+              )}
+            </SortableItem>
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+/* One faction at the table: its drag handle, its token and name, and its Remove button. */
+function SeatRow({
+  faction,
+  handle,
+  onRemove,
+}: Readonly<{
+  faction: FactionToken;
+  handle: SortableHandleProps;
+  onRemove: () => void;
+}>) {
+  const touch = useTrackerTouch();
+  const actionSize = useActionSize();
+  return (
+    <div className={styles.row} data-touch={touch ? 'true' : 'false'}>
+      <SortableReorderHandle label={`Move ${faction.name}`} emphasis="silent" {...handle} />
+      <span className={styles.who}>
+        <FactionTokenFace token={faction} size={touch ? 36 : 28} />
+        <Text size="sm" component="span" className={styles.name}>
+          {faction.name}
+        </Text>
+      </span>
+      <IconAction
+        label={`Remove ${faction.name}`}
+        icon={<X size={17} />}
+        size={actionSize}
+        emphasis="quiet"
+        onClick={onRemove}
+      />
     </div>
   );
 }
