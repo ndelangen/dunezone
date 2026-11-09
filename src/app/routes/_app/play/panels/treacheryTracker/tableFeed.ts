@@ -58,10 +58,11 @@ export function followTable(
       sightings: [...accounted, sighting].slice(-MEMORY_LIMIT),
     },
   });
-  /* The player already put this card up for bid by hand, and no peek accounts for it yet: the peek is that auction, not a second one. */
+  /* The player already put this card up for bid by hand this turn, and no peek accounts for it yet: the peek is that auction, not a second one. */
   const entered = state.seen.find(
     (sighting) =>
       sighting.card &&
+      sighting.turn === turn &&
       !accounted.includes(sighting.id) &&
       awaitingWinner(state, sighting) &&
       copyOf(state, sighting.card).def.face === peek.face
@@ -73,8 +74,9 @@ export function followTable(
   if (!card) {
     return { state, memory };
   }
-  /* The unknown card already on bid, put up by hand before the peek, is the card peeked at: it is named, not bid again. */
-  const unknown = onBid(state);
+  /* The unknown card already on bid this turn, put up by hand before the peek, is the card peeked at: it is named, not bid again. */
+  const onBidNow = onBid(state);
+  const unknown = onBidNow?.turn === turn ? onBidNow : undefined;
   const next = trackerReducer(
     state,
     unknown?.card === null ? { kind: 'name', sighting: unknown.id, card } : { kind: 'bid', card, turn }

@@ -100,3 +100,21 @@ test('a bid the tracker refuses is not remembered, so a later read can still fol
   expect(refused.state).toBe(full);
   expect(refused.memory).toBeUndefined();
 });
+
+test('a peek never folds into an auction entered by hand in an earlier turn', () => {
+  const lastTurn = trackerReducer(fresh(), { kind: 'bid', card: 'shield#1', turn: 1 });
+  const { state } = follow(lastTurn, peekAt('t-1', 'shield'));
+  expect(state.seen.map((sighting) => [sighting.turn, sighting.card])).toEqual([
+    [2, 'shield#2'],
+    [1, 'shield#1'],
+  ]);
+});
+
+test('a peek never names an unknown card left on bid from an earlier turn', () => {
+  const lastTurn = trackerReducer(fresh(), { kind: 'bid', card: null, turn: 1 });
+  const { state } = follow(lastTurn, peekAt('t-1', 'lasgun'));
+  expect(state.seen.map((sighting) => [sighting.turn, sighting.card])).toEqual([
+    [2, 'lasgun#1'],
+    [1, null],
+  ]);
+});

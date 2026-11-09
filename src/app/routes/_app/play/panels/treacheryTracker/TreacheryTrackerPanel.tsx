@@ -43,6 +43,9 @@ function useSeatStore(client: TableSession, table: TableProjection, tracker: Tra
   return defs.length > 0 ? { key, defs, store: trackerStore(key, defs, factionIds) } : null;
 }
 
+const noSubscription = () => () => {};
+const noTracker = () => null;
+
 /**
  * Follows the live table for the seat's tracker while the game runs, whether or not the panel is open (#2794): a peek at the card up for bid puts it up for bid.
  * It renders nothing;
@@ -57,13 +60,20 @@ export function TreacheryTrackerFollower({
   const faces = useMemo(() => new Set(seat?.defs.map((def) => def.face)), [seat?.defs]);
   const live = table.playback === null;
   const store = seat?.store;
-  /* Listening keeps the store in step with other tabs, so a peek followed here never saves over their edits. */
-  useEffect(() => store?.subscribe(() => {}), [store]);
+  /*
+   * Listening keeps the store in step with other tabs, so a peek followed here never saves over their edits;
+   * and a tracker the player corrects, such as freeing a copy, is read against the table again.
+   */
+  const kept = useSyncExternalStore(
+    store?.subscribe ?? noSubscription,
+    store?.get ?? noTracker,
+    store?.get ?? noTracker
+  );
   useEffect(() => {
     if (store && live) {
       store.follow(tableFacts(table.snapshot, faces));
     }
-  }, [store, live, table.snapshot, faces]);
+  }, [store, live, table.snapshot, faces, kept]);
   return null;
 }
 
