@@ -52,22 +52,14 @@ export const Tracker = meta.story({
   },
 });
 
-/** Setting up: every Treachery deck, ticked on or off, the Dreamrules deck to start with, and the factions at the table in seat order. */
+/** Setting up: the Treachery decks tracked together, the Dreamrules deck to start with, a sheet that adds any other deck, and the factions at the table in seat order. */
 export const SetUp = meta.story({
   render: () => <StorySetup />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByRole('checkbox', { name: 'Dreamrules Treachery' })).toBeChecked();
+    await expect(canvas.getByRole('button', { name: 'Remove Dreamrules Treachery' })).toBeVisible();
     await expect(canvas.getByText('A Treachery deck of 45 cards, 33 different.')).toBeVisible();
-    await expect(canvas.getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
-  },
-});
-
-/** Setting up with the picked decks listed, and a sheet that adds another deck: the other way to pick several decks. */
-export const SetUpWithSheet = meta.story({
-  render: () => <StorySetup layout="sheet" />,
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Remove Dreamrules Treachery' })).toBeVisible();
+    await expect(canvas.getAllByRole('button', { name: /^Remove (?!Dreamrules)/ })).toHaveLength(6);
   },
 });
 

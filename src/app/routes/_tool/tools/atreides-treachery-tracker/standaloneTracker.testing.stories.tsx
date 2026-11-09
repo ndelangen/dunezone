@@ -27,19 +27,21 @@ export const AddAFaction = meta.story({
     await userEvent.click(body.getByRole('button', { name: 'Add Ixians' }));
     await expect(canvas.getByText('Ixians')).toBeVisible();
     await expect(canvas.queryByText('Emperor')).toBeNull();
-    await expect(canvas.getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
+    await expect(canvas.getAllByRole('button', { name: /^Remove (?!Dreamrules)/ })).toHaveLength(6);
   },
 });
 
-/** Two decks at once: ticking another deck adds its cards to the tracker's, and unticking every deck leaves nothing to start. */
+/** Two decks at once: Add a deck adds another deck's cards to the tracker's, and removing every deck leaves nothing to start. */
 export const PickTwoDecks = meta.story({
   render: () => <StorySetup />,
   play: async ({ canvasElement, userEvent }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(canvas.getByRole('checkbox', { name: 'Ixian Tech Cards' }));
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole('button', { name: 'Add a deck' }));
+    await userEvent.click(await body.findByRole('button', { name: /^Ixian Tech Cards/ }));
     await expect(canvas.getByText(/^A Treachery deck of \d+ cards, 39 different\.$/)).toBeVisible();
-    await userEvent.click(canvas.getByRole('checkbox', { name: 'Dreamrules Treachery' }));
-    await userEvent.click(canvas.getByRole('checkbox', { name: 'Ixian Tech Cards' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Dreamrules Treachery' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Ixian Tech Cards' }));
     await expect(canvas.getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
       'Pick at least one Treachery deck.'
     );

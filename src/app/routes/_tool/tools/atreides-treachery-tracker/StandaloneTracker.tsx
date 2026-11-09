@@ -14,7 +14,7 @@ import type { CardDef, TrackerAction } from '@app/widgets/treachery-tracker/trac
 import type { StandaloneGame } from './standaloneGame';
 import styles from './StandaloneTracker.module.css';
 import { TrackerConfigPanel } from './TrackerConfig';
-import type { DeckLayout, DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
+import type { DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
 
 /*
  * The Treachery tracker on its own, for a game at a physical table (#2795): set up from any Treachery decks, then tracked on a phone.
@@ -39,7 +39,6 @@ export function TrackerSetup({
   onChange,
   onStart,
   search,
-  layout,
 }: Readonly<{
   /** Every deck the tracker can copy; undefined while they load. */
   decks: readonly DeckOption[] | undefined;
@@ -50,13 +49,12 @@ export function TrackerSetup({
   onChange: (config: TrackerConfig) => void;
   onStart: () => void;
   search: FactionSearch;
-  layout?: DeckLayout;
 }>) {
   const fetching = deck.status === 'ready' && fetched.done < fetched.total;
   return (
     <TouchSurface>
       <div className={styles.setup}>
-        <TrackerConfigPanel decks={decks} config={config} onChange={onChange} search={search} layout={layout} />
+        <TrackerConfigPanel decks={decks} config={config} onChange={onChange} search={search} />
         <div className={styles.start}>
           <DeckLine deck={deck} fetched={fetched} />
           {fetching ? (

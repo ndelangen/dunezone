@@ -6,7 +6,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Checkbox, Text, TextInput } from '@mantine/core';
+import { Text, TextInput } from '@mantine/core';
 import { Pending } from '@ui/content/Pending';
 import { PublishedImage } from '@ui/content/PublishedImage';
 import { IconAction } from '@ui/control/IconAction';
@@ -41,9 +41,6 @@ export type DeckOption = Readonly<{
   rulesets: readonly Readonly<{ name: string }>[];
 }>;
 
-/** How the setup lays the decks out: every deck with a tick, or the picked ones with a sheet to add more. */
-export type DeckLayout = 'checklist' | 'sheet';
-
 /**
  * A search over every faction on Dune Zone, handed in by the page, which reads the server.
  * It leaves out the factions already seated and reports the one picked.
@@ -62,17 +59,14 @@ export function TrackerConfigPanel({
   config,
   onChange,
   search: Search,
-  layout = 'checklist',
 }: Readonly<{
   /** Every deck the tracker can copy; undefined while they load. */
   decks: readonly DeckOption[] | undefined;
   config: TrackerConfig;
   onChange: (config: TrackerConfig) => void;
   search: FactionSearch;
-  layout?: DeckLayout;
 }>) {
   const seats = config.seats;
-  const Decks = layout === 'checklist' ? DeckChecklist : DeckSheet;
   return (
     <div className={styles.config}>
       <section aria-label="Decks">
@@ -82,7 +76,7 @@ export function TrackerConfigPanel({
         {decks === undefined ? (
           <Pending>Loading the decks…</Pending>
         ) : (
-          <Decks decks={decks} picked={config.decks} onPicked={(next) => onChange({ ...config, decks: next })} />
+          <DeckSheet decks={decks} picked={config.decks} onPicked={(next) => onChange({ ...config, decks: next })} />
         )}
       </section>
       <section aria-label="Factions">
@@ -112,9 +106,6 @@ type DeckPickerProps = Readonly<{
   onPicked: (picked: readonly string[]) => void;
 }>;
 
-/* A list longer than a phone screen gets a search above it. */
-const SEARCH_FROM = 7;
-
 /* The decks whose name, or a Ruleset's that plays them, holds the words. */
 function matching(decks: readonly DeckOption[], words: string) {
   const query = words.trim().toLowerCase();
@@ -137,42 +128,6 @@ function DeckSearch({ value, onChange }: Readonly<{ value: string; onChange: (va
       value={value}
       onChange={(event) => onChange(event.currentTarget.value)}
     />
-  );
-}
-
-/* Every deck, each ticked on or off by a tap anywhere on its row: the whole row is the tick's label. */
-function DeckChecklist({ decks, picked, onPicked }: DeckPickerProps) {
-  const touch = useTouchSurface();
-  const [words, setWords] = useState('');
-  const shown = matching(decks, words);
-  return (
-    <div className={styles.decks}>
-      {decks.length >= SEARCH_FROM ? <DeckSearch value={words} onChange={setWords} /> : null}
-      <ul className={styles.list}>
-        {shown.map((deck) => {
-          const on = picked.includes(deck.id);
-          return (
-            <li key={deck.id}>
-              <Checkbox
-                size="md"
-                labelPosition="left"
-                label={<DeckFace deck={deck} />}
-                aria-label={deck.name}
-                data-touch={touch ? 'true' : 'false'}
-                classNames={{ body: styles.tick, labelWrapper: styles.tickLabel, label: styles.tickText }}
-                checked={on}
-                onChange={() => onPicked(on ? picked.filter((id) => id !== deck.id) : [...picked, deck.id])}
-              />
-            </li>
-          );
-        })}
-      </ul>
-      {shown.length === 0 ? (
-        <Text size="sm" className={styles.dim}>
-          No deck matches.
-        </Text>
-      ) : null}
-    </div>
   );
 }
 

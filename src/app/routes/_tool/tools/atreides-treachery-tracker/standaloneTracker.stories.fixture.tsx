@@ -7,12 +7,12 @@ import { DREAMRULES_DECK, FACTIONS } from '@app/widgets/treachery-tracker/tracke
 import { FactionSearchList } from './FactionSearchList';
 import type { Fetched, SetupDeck } from './StandaloneTracker';
 import { TrackerSetup } from './StandaloneTracker';
-import type { DeckLayout, DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
+import type { DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
 
 const href = (path: string) => new URL(path, location.origin).href;
 
 /* The decks the story offers: a Ruleset's deck, decks of other Rulesets, and homebrew decks no Ruleset plays. */
-export const DECKS: readonly DeckOption[] = [
+const DECKS: readonly DeckOption[] = [
   {
     id: 'dreamrules',
     name: 'Dreamrules Treachery',
@@ -98,7 +98,6 @@ function useStoryFetch(deck: SetupDeck, pace: number | undefined): Fetched {
 export function StorySetup({
   deck,
   loading,
-  layout,
   pace,
   decks = DECKS,
   onStart = () => {},
@@ -106,7 +105,6 @@ export function StorySetup({
   /** The picked decks' cards as the story fixes them; left out, they follow the decks picked. */
   deck?: SetupDeck;
   loading?: boolean;
-  layout?: DeckLayout;
   /** How many ms each card picture takes to come in; left out, they are all in. */
   pace?: number;
   decks?: readonly DeckOption[];
@@ -124,7 +122,6 @@ export function StorySetup({
       onChange={setConfig}
       onStart={onStart}
       search={StorySearch}
-      layout={layout}
     />
   );
 }

@@ -304,7 +304,7 @@ function readTreacheryDeck(deck: TreacheryDeckRef): Promise<TreacheryDeckCard[]>
 }
 
 /** Several decks' cards as one deck: a card in two decks is one card with the copies of both. */
-export function joinTreacheryDecks(decks: readonly (readonly TreacheryDeckCard[])[]): TreacheryDeckCard[] {
+function joinTreacheryDecks(decks: readonly (readonly TreacheryDeckCard[])[]): TreacheryDeckCard[] {
   const cards = new Map<string, TreacheryDeckCard>();
   for (const card of decks.flat()) {
     const was = cards.get(card.key);
