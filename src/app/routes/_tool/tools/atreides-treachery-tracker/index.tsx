@@ -169,7 +169,8 @@ function DeckSetup({
     [key, choices]
   );
   const read = useTreacheryDecks(picked);
-  const deck = config.decks.length ? setupDeck(read) : NO_DECK;
+  /* While the deck list itself loads, the picked decks are not known yet, so they show as loading rather than as none picked. */
+  const deck: SetupDeck = choices === undefined ? LOADING : config.decks.length ? setupDeck(read) : NO_DECK;
   const faces = useMemo(() => (deck.status === 'ready' ? deck.defs.map((def) => def.face) : []), [deck]);
   const fetched = usePreloadedImages(faces);
   return (
@@ -191,6 +192,7 @@ function DeckSetup({
 }
 
 const NO_DECK: SetupDeck = { status: 'missing', reason: 'Pick at least one Treachery deck.' };
+const LOADING: SetupDeck = { status: 'loading' };
 
 /* What the setup shows of the picked decks: loading, their cards, or why there are none. */
 function setupDeck(read: TreacheryDeckRead): SetupDeck {
