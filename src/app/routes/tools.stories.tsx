@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect } from 'storybook/test';
 
 import { TOOLS } from './_app/tools/tools';
 import { expectWithinWidth } from './pagePlay';
@@ -26,6 +26,9 @@ export const Catalogue = meta.story({
       '/tools/atreides-treachery-tracker'
     );
     await expect(page.getByRole('link', { name: 'Spice deck' })).toHaveAttribute('href', '/tools/spice-deck');
+    /* A built tool is a page of its own, so it opens in a tab of its own. */
+    await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute('target', '_blank');
+    await expect(page.getByRole('link', { name: 'Battle calculator' })).not.toHaveAttribute('target');
   },
 });
 
@@ -48,14 +51,15 @@ export const ComingSoon = meta.story({
   },
 });
 
-/** The Treachery tracker's placeholder links the issue where it is being planned. */
-export const ComingSoonWithIssue = meta.story({
+/** The Treachery tracker, the first built tool, on a phone and without the app around it: the Ruleset and its factions to set up, then Start tracking. */
+export const TreacheryTracker = meta.story({
   args: { path: '/tools/atreides-treachery-tracker' },
+  globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('link', { name: 'Follow its progress' }, { timeout: 30_000 })
-    ).resolves.toHaveAttribute('href', 'https://github.com/ndelangen/dunezone/issues/2795');
+    const page = await findTitledPage(canvasElement, /^Treachery tracker$/);
+    await expect(page.findByRole('button', { name: 'Start tracking' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('banner')).toBeNull();
+    await expect(page.queryByRole('contentinfo')).toBeNull();
   },
 });
 

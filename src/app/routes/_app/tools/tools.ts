@@ -57,7 +57,7 @@ export type Tool = Readonly<{
   built?: true;
 }>;
 
-export const TOOLS: readonly Tool[] = [
+const TOOL_ENTRIES = [
   {
     slug: 'faction-draft',
     title: 'Faction draft',
@@ -107,8 +107,10 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Track every Treachery card through bidding, hands and discards, so the Atreides, or anyone, knows what is left in the deck.',
     icon: Eye,
+    art: '/tools/atreides-treachery-tracker.webp',
     group: 'During the game',
     issue: 2795,
+    built: true,
     capabilities: [
       { icon: Eye, title: 'Every card', detail: 'Bought, played and discarded.' },
       { icon: Users, title: 'Every hand', detail: 'What each faction could be holding.' },
@@ -201,7 +203,12 @@ export const TOOLS: readonly Tool[] = [
       { icon: Printer, title: 'Home printer', detail: 'A4 or Letter, as a PDF.' },
     ],
   },
-];
+] as const satisfies readonly Tool[];
+
+/** A slug the registry knows, so a route naming a renamed or misspelt tool fails to compile. */
+export type ToolSlug = (typeof TOOL_ENTRIES)[number]['slug'];
+
+export const TOOLS: readonly Tool[] = TOOL_ENTRIES;
 
 export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);

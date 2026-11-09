@@ -1,12 +1,13 @@
-import { HoverCard, Popover, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { HoverCard, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { AddAction } from '@ui/control/ListLengthActions';
 import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useReducer, useState } from 'react';
 
-import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
-import type { FactionToken } from '../../multiplayer/FactionTokenFace';
-import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
+import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+
+import { CardGlyph, CardPreview, SheetCard, UnknownGlyph } from './CardArt';
 import {
   CARD_GROUPS,
   GROUP_LABEL,
@@ -20,6 +21,7 @@ import {
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
 import styles from './TrackerParts.module.css';
+import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
 export type TrackerViewProps = Readonly<{
@@ -159,12 +161,13 @@ export function AddCard({
   onAction: (action: TrackerAction) => void;
 }>) {
   const [open, setOpen] = useState(false);
+  const size = useActionSize();
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
-      <Popover.Target>
-        <AddAction label={`Add a card to ${faction.name}`} onClick={() => setOpen((was) => !was)} />
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+    <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+      <TrackerPopover.Target>
+        <AddAction label={`Add a card to ${faction.name}`} size={size} onClick={() => setOpen((was) => !was)} />
+      </TrackerPopover.Target>
+      <TrackerPopover.Dropdown className={styles.dropdown}>
         <CardChooser
           state={state}
           allowUnknown
@@ -173,8 +176,8 @@ export function AddCard({
             setOpen(false);
           }}
         />
-      </Popover.Dropdown>
-    </Popover>
+      </TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }
 
@@ -289,7 +292,7 @@ export function SlotChip({
     close();
   };
   return (
-    <Popover
+    <TrackerPopover
       opened={open}
       onChange={(next) => send({ type: next ? 'open' : 'close' })}
       position="bottom"
@@ -297,7 +300,7 @@ export function SlotChip({
       shadow="md"
       width={mode === 'identify' || mode === 'discard' ? CHOOSER_WIDTH : 'target'}
     >
-      <Popover.Target>
+      <TrackerPopover.Target>
         <span>
           <CardPreview card={card}>
             <UnstyledButton
@@ -309,8 +312,9 @@ export function SlotChip({
             </UnstyledButton>
           </CardPreview>
         </span>
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown} miw={200}>
+      </TrackerPopover.Target>
+      <TrackerPopover.Dropdown className={styles.dropdown} miw={200}>
+        <SheetCard card={card} />
         <SlotStep
           mode={mode}
           faction={faction}
@@ -322,8 +326,8 @@ export function SlotChip({
           setMode={setMode}
           close={close}
         />
-      </Popover.Dropdown>
-    </Popover>
+      </TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }
 
@@ -340,32 +344,58 @@ export function MenuLine({
   );
 }
 
-/** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. */
-export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
+/** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. Each slice lists its cards on hover, or on a tap on a phone. */
+export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
   const total = copies.length || 1;
+  const touch = useTrackerTouch();
+  /* Held in one hand, the bar is tall enough for a thumb to tap a slice. */
+  const barHeight = height ?? (touch ? 24 : 10);
   return (
-    <div className={styles.kindBar} style={{ height }} aria-label={kindSummary(copies)}>
+    <div className={styles.kindBar} style={{ height: barHeight }} aria-label={kindSummary(copies)}>
       {CARD_GROUPS.map((group) => {
         const count = copies.filter((copy) => groupOf(copy.def) === group).length;
-        return count > 0 ? (
+        if (count === 0) {
+          return null;
+        }
+        const slice = (onClick?: () => void) => (
+          <button
+            type="button"
+            data-kind={group.split('-')[0]}
+            data-group={group}
+            className={styles.kindSlice}
+            style={{ flexGrow: count / total }}
+            aria-label={`${groupCount(group, count)} left`}
+            onClick={onClick}
+          />
+        );
+        return touch ? (
+          <KindSliceSheet key={group} slice={slice}>
+            <GroupList group={group} copies={copies} />
+          </KindSliceSheet>
+        ) : (
           <HoverCard key={group} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
-            <HoverCard.Target>
-              <button
-                type="button"
-                data-kind={group.split('-')[0]}
-                data-group={group}
-                className={styles.kindSlice}
-                style={{ flexGrow: count / total }}
-                aria-label={`${groupCount(group, count)} left`}
-              />
-            </HoverCard.Target>
+            <HoverCard.Target>{slice()}</HoverCard.Target>
             <HoverCard.Dropdown className={styles.dropdown}>
               <GroupList group={group} copies={copies} />
             </HoverCard.Dropdown>
           </HoverCard>
-        ) : null;
+        );
       })}
     </div>
+  );
+}
+
+/* A slice of the deck bar on a phone: a tap lists its cards in a sheet. */
+function KindSliceSheet({
+  slice,
+  children,
+}: Readonly<{ slice: (onClick: () => void) => ReactNode; children: ReactNode }>) {
+  const [open, setOpen] = useState(false);
+  return (
+    <TrackerPopover opened={open} onChange={setOpen}>
+      <TrackerPopover.Target>{slice(() => setOpen((was) => !was))}</TrackerPopover.Target>
+      <TrackerPopover.Dropdown>{children}</TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }
 

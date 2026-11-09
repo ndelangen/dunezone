@@ -182,3 +182,21 @@
 :global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
   transform: none;
 }
+
+/*
+ * Held in one hand, every card and token answers a thumb across its whole cell, 44 px, though it is drawn at 36 px.
+ * The cells sit 8 px apart, so the larger targets meet without overlapping.
+ */
+:global([data-tracker-touch]) .picker {
+  gap: var(--space-xs);
+}
+
+:global([data-tracker-touch]) :is(.tokenButton, .glyphButton, .slotButton) {
+  position: relative;
+}
+
+:global([data-tracker-touch]) :is(.tokenButton, .glyphButton, .slotButton)::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}

@@ -4,10 +4,12 @@
  * Every view of the tracker reads this one state; the views differ only in how they show it and how a card is assigned.
  */
 
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
+
 /** A card's kind, from the line under its name: what it does in a battle plan. */
 export type CardKind = 'weapon' | 'defense' | 'special' | 'worthless';
 
-export const CARD_KINDS: readonly CardKind[] = ['weapon', 'defense', 'special', 'worthless'];
+const CARD_KINDS: readonly CardKind[] = ['weapon', 'defense', 'special', 'worthless'];
 
 const GROUP_ONE: Readonly<Record<CardGroup, string>> = {
   'weapon-poison': 'poison weapon',
@@ -34,6 +36,17 @@ export type CardDef = Readonly<{
   face: string;
   count: number;
 }>;
+
+/* A card's kind is the first word of the line under its name; a card without one counts as a special. */
+function kindOf(detail: string): CardKind {
+  const word = detail.split('-')[0]?.trim().toLowerCase();
+  return CARD_KINDS.find((kind) => kind === word) ?? 'special';
+}
+
+/** A Ruleset's Treachery deck as the tracker reads it: each card with its kind. */
+export function cardDefs(cards: readonly TreacheryDeckCard[]): CardDef[] {
+  return cards.map((card) => ({ ...card, kind: kindOf(card.detail) }));
+}
 
 /** One physical card: a definition and which of its copies this is. */
 export type CardCopy = Readonly<{ id: string; def: CardDef; copy: number }>;

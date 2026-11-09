@@ -47,3 +47,8 @@
 .discardButton:focus-visible {
   background: var(--ui-hover);
 }
+
+/* Held in one hand, the discard pile is a thumb's height. */
+:global([data-tracker-touch]) .discardButton {
+  height: 44px;
+}

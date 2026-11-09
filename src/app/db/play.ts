@@ -3,6 +3,8 @@ import { CatalogueCapture, playReadiness } from '@shared/play/catalogueCapture';
 import type { PlayReadinessEntry } from '@shared/play/catalogueCapture';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
+import { treacheryDeckCards } from '@shared/play/treacheryDeck';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
 import { useCallback, useEffect, useState } from 'react';
@@ -275,4 +277,39 @@ export async function requestPlayAdmission(gameId: string, { renew = false }: { 
     }
     return result;
   }
+}
+
+/** A Ruleset's Treachery deck as a game would capture it: loading, its cards, none where the Ruleset has no deck, or why it could not be read. */
+export type TreacheryDeckRead =
+  | { status: 'loading' }
+  | { status: 'read'; cards: TreacheryDeckCard[] | null }
+  | { status: 'failed'; reason: string };
+
+/**
+ * The Treachery deck of `rulesetId`, captured once by the game's own capture code, for a tracker at a physical table.
+ * A one-off read: the deck a tracker starts from is copied, so a later edit to the Ruleset need not reach it.
+ */
+export function useTreacheryDeck(rulesetId: string | null): TreacheryDeckRead {
+  const [answered, setAnswered] = useState<{ rulesetId: string; read: TreacheryDeckRead } | null>(null);
+  useEffect(() => {
+    if (rulesetId === null) {
+      return;
+    }
+    let current = true;
+    const answer = (read: TreacheryDeckRead) => current && setAnswered({ rulesetId, read });
+    browserCatalogue()
+      .captureRuleset(rulesetId)
+      .then(
+        (capture) => answer({ status: 'read', cards: treacheryDeckCards(capture) }),
+        (error: unknown) =>
+          answer({
+            status: 'failed',
+            reason: error instanceof Error ? error.message : 'The Treachery deck could not be read.',
+          })
+      );
+    return () => {
+      current = false;
+    };
+  }, [rulesetId]);
+  return answered?.rulesetId === rulesetId ? answered.read : { status: 'loading' };
 }

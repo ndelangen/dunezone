@@ -1,4 +1,4 @@
-import { Popover, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Stack, Text, UnstyledButton } from '@mantine/core';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ChevronLeft, Layers, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -8,6 +8,7 @@ import { CARD_GROUPS, copyOf, drawPile, groupOf } from './tracker';
 import type { CardCopy } from './tracker';
 import { FactionPicker, GroupList, KindBar, MenuLine, kindSummary } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
+import { TrackerPopover } from './TrackerSurface';
 
 /** The deck and discard pile under a view: what is left to draw by kind, and the reshuffle. */
 export function DeckFooter({ factions, state, onAction }: TrackerViewProps) {
@@ -42,7 +43,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
     setMoving(null);
   };
   return (
-    <Popover
+    <TrackerPopover
       opened={open}
       onChange={(next) => (next ? setOpen(true) : close())}
       position="top-end"
@@ -50,7 +51,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
       shadow="md"
       width={320}
     >
-      <Popover.Target>
+      <TrackerPopover.Target>
         <UnstyledButton
           className={styles.discardButton}
           aria-label={`Discard pile: ${pile.length} ${pile.length === 1 ? 'card' : 'cards'}`}
@@ -59,8 +60,8 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
           <Trash2 size={16} aria-hidden />
           <span>{pile.length}</span>
         </UnstyledButton>
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+      </TrackerPopover.Target>
+      <TrackerPopover.Dropdown className={styles.dropdown}>
         {moving ? (
           <Stack gap="xs">
             <Text size="xs" className={styles.caption}>
@@ -120,7 +121,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
             )}
           </Stack>
         )}
-      </Popover.Dropdown>
-    </Popover>
+      </TrackerPopover.Dropdown>
+    </TrackerPopover>
   );
 }

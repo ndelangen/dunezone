@@ -5,11 +5,11 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { Surface } from '@ui/surface';
 import { Lightbulb, MessageCirclePlus } from 'lucide-react';
 
-import { publicPageHead } from '@app/routes/publicPage';
 import { TutorialCatalogue } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 import type { CatalogueRow } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 
 import styles from './index.module.css';
+import { toolsIndexHead } from './toolHead';
 import { TOOL_GROUPS, TOOLS } from './tools';
 
 /*
@@ -18,15 +18,7 @@ import { TOOL_GROUPS, TOOLS } from './tools';
  */
 export const Route = createFileRoute('/_app/tools/')({
   ssr: true,
-  head: () =>
-    publicPageHead({
-      name: 'Tools for the Dune board game',
-      kind: 'Tools',
-      pathname: '/tools',
-      description:
-        'Free phone-friendly helpers for playing the Dune board game at the table: a Treachery card tracker, faction draft, battle calculator, spice deck tracker and more.',
-      social: { kind: 'Tools', shape: 'portrait' },
-    }),
+  head: () => toolsIndexHead(),
   component: ToolsPage,
 });
 
@@ -43,8 +35,11 @@ const ROWS: readonly CatalogueRow[] = TOOL_GROUPS.map((group) => ({
       </ThemeIcon>
     ),
     built: tool.built === true,
-    /* Built or not, a tool lives at /tools/<slug>: its own route once built, its placeholder until then. */
-    link: { to: '/tools/$tool', params: { tool: tool.slug } },
+    /*
+     * Built or not, a tool lives at /tools/<slug>: its own route once built, its placeholder until then.
+     * A built tool is a page of its own, without the app around it, so it opens in a tab of its own (Norbert, 2026-11-09).
+     */
+    link: { to: '/tools/$tool', params: { tool: tool.slug }, ...(tool.built ? { target: '_blank' } : {}) },
   })),
 }));
 
