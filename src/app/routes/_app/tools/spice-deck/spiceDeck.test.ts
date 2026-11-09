@@ -4,7 +4,8 @@ import {
   blowAll,
   blowPile,
   blowSentence,
-  canReveal,
+  nextPile,
+  spiceBlowOver,
   newGame,
   nexus,
   nextTurn,
@@ -37,18 +38,18 @@ describe('Spice Blow', () => {
   test('a spice card lands on the pile being blown, and the next blow goes to the next pile', () => {
     let game = blowPile(stacked(['old-gap#1', 'broken-land#1']), keepOrder);
     expect(game.discards).toEqual([['old-gap#1'], []]);
-    expect(game.pile).toBe(1);
+    expect(nextPile(game)).toBe(1);
     game = blowPile(game, keepOrder);
     expect(game.discards).toEqual([['old-gap#1'], ['broken-land#1']]);
-    expect(canReveal(game)).toBe(false);
+    expect(spiceBlowOver(game)).toBe(true);
   });
 
-  test('on the first turn Shai-Hulud is set aside, drawn past, and shuffled back once the Spice Blow is over', () => {
+  test('on the first turn Shai-Hulud is set aside, and shuffled back as the turn ends', () => {
     let game = blowPile(stacked(['shai-hulud#1', 'old-gap#1', 'broken-land#1', 'red-chasm#1']), keepOrder);
     expect(game.setAside).toEqual(['shai-hulud#1']);
     expect(game.blows[0]!.reveals.map((reveal) => reveal.kind)).toEqual(['set-aside', 'spice']);
     expect(nexus(game)).toBe(false);
-    game = blowPile(game, keepOrder);
+    game = nextTurn(blowPile(game, keepOrder), keepOrder);
     expect(game.setAside).toEqual([]);
     expect(game.draw).toContain('shai-hulud#1');
     expect(game.draw).toHaveLength(2);
@@ -59,7 +60,7 @@ describe('Spice Blow', () => {
       stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1']),
       keepOrder
     );
-    game = blowPile(nextTurn(game), keepOrder);
+    game = blowPile(nextTurn(game, keepOrder), keepOrder);
     const reveals = game.blows.at(-1)!.reveals;
     expect(reveals).toEqual([
       { card: 'shai-hulud#1', kind: 'worm', devours: 'old-gap#1' },
@@ -75,27 +76,37 @@ describe('Spice Blow', () => {
 
   test('an empty deck is made again from both discard piles', () => {
     let game = blowAll(stacked(['old-gap#1', 'broken-land#1']), keepOrder);
-    game = blowPile(nextTurn(game), keepOrder);
+    game = blowPile(nextTurn(game, keepOrder), keepOrder);
     expect(game.blows.at(-1)!.reveals[0]).toEqual({ card: null, kind: 'reshuffle' });
     expect(game.discards.flat()).toHaveLength(1);
     expect(game.draw).toHaveLength(1);
   });
 
-  test('cards are turned one at a time into the same blow', () => {
-    let game = nextTurn(blowAll(stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'red-chasm#1']), keepOrder));
-    game = revealOne(game, keepOrder);
-    expect(game.pile).toBe(0);
-    game = revealOne(game, keepOrder);
-    expect(game.pile).toBe(1);
+  test('one card per tap, onto the pile the players chose, and never more by itself', () => {
+    let game = nextTurn(
+      blowAll(stacked(['old-gap#1', 'broken-land#1', 'shai-hulud#1', 'red-chasm#1']), keepOrder),
+      keepOrder
+    );
+    game = revealOne(game, keepOrder, 1);
+    expect(game.discards[1]).toEqual(['broken-land#1', 'shai-hulud#1']);
+    expect(game.blows.at(-1)).toEqual({
+      turn: 2,
+      pile: 1,
+      reveals: [{ card: 'shai-hulud#1', kind: 'worm', devours: 'broken-land#1' }],
+    });
+    expect(nextPile(game)).toBe(0);
+    game = revealOne(game, keepOrder, 1);
     expect(game.blows.filter((blow) => blow.turn === 2)).toHaveLength(1);
+    expect(game.blows.at(-1)!.reveals).toHaveLength(2);
   });
 
   test('past the ruleset limit, another Shai-Hulud in the same Spice Blow is ignored and shuffled back', () => {
     let game = blowAll(stacked(['old-gap#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1'], 1, 1), keepOrder);
-    game = blowPile(nextTurn(game), keepOrder);
+    game = blowPile(nextTurn(game, keepOrder), keepOrder);
     expect(game.blows.at(-1)!.reveals.map((reveal) => reveal.kind)).toEqual(['worm', 'ignored', 'spice']);
-    expect(game.draw).toContain('shai-hulud#2');
+    expect(game.setAside).toEqual(['shai-hulud#2']);
     expect(game.discards[0]).not.toContain('shai-hulud#2');
+    expect(nextTurn(game, keepOrder).draw).toContain('shai-hulud#2');
   });
 
   test('a single pile blows once a turn', () => {

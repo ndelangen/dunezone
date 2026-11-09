@@ -159,286 +159,140 @@
   width: 55%;
 }
 
-/* A: the piles as they would lie on the table. */
+/* The table: the deck and the set-aside spot above, the spice piles below, each pile a button. */
+.table {
+  position: relative;
+}
+
+.deckRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  justify-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.deck,
+.aside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 38%;
+  min-width: 96px;
+}
+
+.aside[data-empty]::before {
+  content: "";
+  display: block;
+  width: 100%;
+  aspect-ratio: 900 / 1263;
+  border-radius: 4.5% / 3.2%;
+  outline: 2px dashed var(--ui-raised);
+  outline-offset: -2px;
+}
+
+.deck .card,
+.aside .card {
+  width: 100%;
+}
+
+.caption {
+  color: var(--ui-muted);
+  font-size: 13px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .pileRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
 }
 
+.pileRow[data-piles="3"] {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .pileRow[data-piles="1"] {
   grid-template-columns: 1fr;
-  padding: 0 18%;
+  padding: 0 20%;
 }
 
-.pile {
-  margin: 0;
+.pileButton {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.pile figcaption {
-  margin-top: var(--space-xs);
-  color: var(--ui-muted);
-  font-size: 13px;
-  text-align: center;
+.pileButton:disabled {
+  cursor: default;
 }
 
-.pile[data-next] figcaption {
+.pileButton:focus-visible .card,
+.pileButton:focus-visible .slot {
+  outline: 3px solid var(--ui-highlight);
+  outline-offset: 2px;
+}
+
+.pileButton:not(:disabled):active .card,
+.pileButton:not(:disabled):active .slot {
+  transform: scale(0.97);
+}
+
+.pileButton[data-next] .caption {
   color: var(--ui-highlight);
   font-weight: 700;
 }
 
-/* B: the result, readable across the table. */
-.announce {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  text-align: center;
-}
-
-.announcePile {
-  color: var(--ui-brass);
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.announceWorm {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--ui-negative-fill);
-  font-size: 26px;
-  font-weight: 800;
-}
-
-.announceWorm small {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.announceAmount {
-  color: var(--ui-caution);
-  font-size: 120px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.announceWhere {
-  margin-bottom: var(--space-md);
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.15;
-}
-
-.announce .lines {
-  align-self: stretch;
-  text-align: left;
-}
-
-.thumbs {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-md);
-}
-
-.thumb {
-  width: 64px;
-}
-
-/* C: the game so far, newest first. */
-.log {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.logRow {
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  gap: var(--space-sm);
-  align-items: start;
-  padding: var(--space-xs) 0;
-}
-
-.logThumb {
-  width: 48px;
-}
-
-.pileTag,
-.nexusTag {
-  display: inline-block;
-  margin-bottom: 4px;
-  padding: 0 6px;
-  border-radius: var(--radius-pill);
-  background: var(--ui-raised);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.nexusTag {
-  background: var(--ui-caution-fill);
-  color: var(--ui-text);
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-/* D: one card at a time, turned over. */
-.single {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.flipStage {
-  width: 78%;
-  perspective: 900px;
-}
-
-.bigCard {
-  width: 100%;
-}
-
-.flip {
-  animation: flip 420ms ease-out;
-}
-
-@keyframes flip {
-  from {
-    transform: rotateY(90deg);
-  }
-  to {
-    transform: rotateY(0);
-  }
-}
-
-.ask {
-  margin: 0;
-  font-size: 19px;
-  line-height: 1.35;
-  text-align: center;
-}
-
-.ask[data-kind="worm"] strong {
-  color: var(--ui-negative);
-}
-
-.ask[data-kind="spice"] strong {
-  color: var(--ui-caution);
-}
-
-/* E: what is left in the deck. */
-.meter {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
-
-.meter > div {
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--ui-recess);
-}
-
-.meter > div[data-kind="worm"] {
-  border-left: 4px solid var(--ui-negative-fill);
-}
-
-.meterValue {
-  font-size: 34px;
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-.meterLabel {
-  color: var(--ui-muted);
-  font-size: 13px;
-}
-
-.oddsGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px var(--space-md);
-  margin: var(--space-md) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.oddsGrid li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-xs);
-  padding: 4px 0;
-  border-bottom: 1px solid var(--ui-raised);
-  font-size: 14px;
-}
-
-.oddsGrid li[data-gone] {
-  color: var(--ui-hover);
-  text-decoration: line-through;
-}
-
-.oddsGrid li[data-kind="worm"] {
-  grid-column: 1 / -1;
-  color: var(--ui-negative);
-  font-weight: 700;
-}
-
-.oddsName {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.oddsCount {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
-/* F: hands-free, the phone speaks and listens. */
-.voice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding-top: var(--space-lg);
-  text-align: center;
-}
-
-.voiceOrb {
+.slot {
   display: grid;
   place-items: center;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: var(--ui-raised);
-  color: var(--ui-muted);
+  aspect-ratio: 900 / 1263;
+  border-radius: 4.5% / 3.2%;
+  outline: 2px dashed var(--ui-hover);
+  outline-offset: -2px;
 }
 
-.voiceOrb[data-state="listening"] {
-  background: var(--ui-positive-fill);
-  color: var(--ui-text);
+.pileButton[data-next] .slot {
+  outline-color: var(--ui-highlight);
 }
 
-.voiceOrb[data-state="speaking"] {
-  background: var(--ui-caution-fill);
-  color: var(--ui-text);
+/* The card on its way: placed by its animation from the table's top left corner. */
+.flyer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  transform-origin: 0 0;
+  pointer-events: none;
+  perspective: 1200px;
 }
 
-.voiceState {
-  margin: 0;
-  color: var(--ui-muted);
+.flyerTurn {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
 }
 
-.voiceSaid {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  line-height: 1.35;
+.front,
+.backFace {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.backFace {
+  transform: rotateY(180deg);
 }
 
 /* Before a game. */

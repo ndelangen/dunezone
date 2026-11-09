@@ -48,14 +48,17 @@ export function seeded(seed: number): () => number {
   };
 }
 
-/** A game played through the given turns' Spice Blows, then on to the next turn with nothing turned yet. */
-export function storyGame(turns: number, seed = STORY_SEED, deck = BASE_SPICE): SpiceDeckGame {
+/** A game played through the given turns' Spice Blows, every pile in order; `andNext` moves on to the next turn. */
+export function storyGame(
+  turns: number,
+  { piles = 2, andNext = false, seed = STORY_SEED, deck = BASE_SPICE } = {}
+): SpiceDeckGame {
   const random = seeded(seed);
-  let game = newGame(deck, random, { piles: 2 });
+  let game = newGame(deck, random, { piles });
   for (let turn = 1; turn <= turns; turn++) {
-    game = blowAll(turn === 1 ? game : nextTurn(game), random);
+    game = blowAll(turn === 1 ? game : nextTurn(game, random), random);
   }
-  return game;
+  return andNext ? nextTurn(game, random) : game;
 }
 
 /* A seed whose third turn brings Shai-Hulud on both piles, so the stories show worms and a Nexus. */
