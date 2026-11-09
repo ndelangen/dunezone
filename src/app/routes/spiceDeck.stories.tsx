@@ -49,9 +49,9 @@ export const OnePile = meta.story({
     );
     /* The pile counts the card only once it has landed (0 while it flies), and the flying card leaves the table. */
     await waitForFrame(
-      () => {
-        expect(page.getByText('Spice pile · 1')).toBeVisible();
-        expect(canvasElement.ownerDocument.querySelector('[data-turn]')).toBeNull();
+      async () => {
+        await expect(page.getByText('Spice pile · 1')).toBeVisible();
+        await expect(canvasElement.ownerDocument.querySelector('[data-turn]')).toBeNull();
       },
       { timeout: 15_000 }
     );
