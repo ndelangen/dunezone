@@ -90,3 +90,18 @@ export const CollapsedMobile = meta.story({
     });
   },
 });
+
+/** The phone's More menu holds the product's own destinations, Tools among them. */
+export const CollapsedMobileMenuOpen = meta.story({
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const more = await waitFor(() => canvas.getByRole('button', { name: /More/ }));
+    more.click();
+    await waitForFrame(async () => {
+      const tools = finishTransitions(within(document.body).getByRole('menuitem', { name: 'Tools' }));
+      await expect(tools).toBeVisible();
+      await expect(tools).toHaveAttribute('href', '/tools');
+    });
+  },
+});
