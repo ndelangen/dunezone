@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 
-import { STORY_DECKS, storyGame } from './spiceDeck.stories.fixture';
+import { loadStoryDeck, STORY_DECKS, storyGame } from './spiceDeck.stories.fixture';
 import { SpiceDeckTool } from './SpiceDeckTool';
 
 /*
@@ -17,7 +17,14 @@ const meta = preview.meta({
 
 /** Turn 3 of a GF9 game with two spice piles, just after a Spice Blow in which Shai-Hulud came up on both. */
 export const Table = meta.story({
-  render: () => <SpiceDeckTool storageKey="spice-deck-story-table" initial={storyGame(3)} decks={STORY_DECKS} />,
+  render: () => (
+    <SpiceDeckTool
+      storageKey="spice-deck-story-table"
+      initial={storyGame(3)}
+      decks={STORY_DECKS}
+      loadDeck={loadStoryDeck}
+    />
+  ),
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Spice pile A · 4')).toBeVisible();
   },
@@ -30,6 +37,7 @@ export const NewTurn = meta.story({
       storageKey="spice-deck-story-new-turn"
       initial={storyGame(3, { andNext: true })}
       decks={STORY_DECKS}
+      loadDeck={loadStoryDeck}
     />
   ),
   play: async ({ canvas }) => {
@@ -40,7 +48,12 @@ export const NewTurn = meta.story({
 /** One spice pile, the default, on the first turn. */
 export const OnePile = meta.story({
   render: () => (
-    <SpiceDeckTool storageKey="spice-deck-story-one-pile" initial={storyGame(0, { piles: 1 })} decks={STORY_DECKS} />
+    <SpiceDeckTool
+      storageKey="spice-deck-story-one-pile"
+      initial={storyGame(0, { piles: 1 })}
+      decks={STORY_DECKS}
+      loadDeck={loadStoryDeck}
+    />
   ),
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Turn over a card onto spice pile' }));
@@ -55,6 +68,7 @@ export const Peek = meta.story({
       storageKey="spice-deck-story-peek"
       initial={storyGame(3, { andNext: true, peek: 2 })}
       decks={STORY_DECKS}
+      loadDeck={loadStoryDeck}
     />
   ),
   play: async ({ canvas, canvasElement }) => {
@@ -67,10 +81,15 @@ export const Peek = meta.story({
   },
 });
 
-/** Before a game: the deck the table plays with, how many spice piles, and how many cards a peek shows. */
+/** Before a game: the ruleset whose deck the table plays with, how many spice piles, and how many cards a peek shows. Picking one starts the game. */
 export const PickADeck = meta.story({
-  render: () => <SpiceDeckTool storageKey="spice-deck-story-picker" decks={STORY_DECKS} />,
+  /* Picking a deck starts a game in this browser's storage; each visit starts from the picker again. */
+  beforeEach: () => {
+    window.localStorage.removeItem('spice-deck-story-picker');
+  },
+  render: () => <SpiceDeckTool storageKey="spice-deck-story-picker" decks={STORY_DECKS} loadDeck={loadStoryDeck} />,
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: /GF9 Spice Deck/ })).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: /KISS/ }));
+    await expect(await canvas.findByRole('button', { name: 'Turn over a card onto spice pile' })).toBeEnabled();
   },
 });

@@ -51,6 +51,7 @@ import { Route as AppRulesetsIndexRouteImport } from './routes/_app/rulesets/ind
 import { Route as AppRulesetsCreateRouteRouteImport } from './routes/_app/rulesets/create.route'
 import { Route as AppToolsIndexRouteImport } from './routes/_app/tools/index'
 import { Route as AppToolsToolRouteRouteImport } from './routes/_app/tools/$tool.route'
+import { Route as AppToolsSpiceDeckRouteRouteImport } from './routes/_app/tools/spice-deck/route'
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
@@ -298,6 +299,11 @@ const AppToolsToolRouteRoute = AppToolsToolRouteRouteImport.update({
   path: '/$tool',
   getParentRoute: () => AppToolsRouteRoute,
 } as any)
+const AppToolsSpiceDeckRouteRoute = AppToolsSpiceDeckRouteRouteImport.update({
+  id: '/spice-deck',
+  path: '/spice-deck',
+  getParentRoute: () => AppToolsRouteRoute,
+} as any)
 const AppTutorialIndexRoute = AppTutorialIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -529,6 +535,7 @@ export interface FileRoutesByFullPath {
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tools/$tool': typeof AppToolsToolRouteRoute
+  '/tools/spice-deck': typeof AppToolsSpiceDeckRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin/': typeof AppAdminIndexRoute
@@ -603,6 +610,7 @@ export interface FileRoutesByTo {
   '/play/create': typeof AppPlayCreateRouteRoute
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tools/$tool': typeof AppToolsToolRouteRoute
+  '/tools/spice-deck': typeof AppToolsSpiceDeckRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin': typeof AppAdminIndexRoute
@@ -683,6 +691,7 @@ export interface FileRoutesById {
   '/_app/play/create': typeof AppPlayCreateRouteRoute
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/_app/tools/$tool': typeof AppToolsToolRouteRoute
+  '/_app/tools/spice-deck': typeof AppToolsSpiceDeckRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/admin/': typeof AppAdminIndexRoute
@@ -763,6 +772,7 @@ export interface FileRouteTypes {
     | '/play/create'
     | '/rulesets/create'
     | '/tools/$tool'
+    | '/tools/spice-deck'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/admin/'
@@ -837,6 +847,7 @@ export interface FileRouteTypes {
     | '/play/create'
     | '/rulesets/create'
     | '/tools/$tool'
+    | '/tools/spice-deck'
     | '/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/admin'
@@ -916,6 +927,7 @@ export interface FileRouteTypes {
     | '/_app/play/create'
     | '/_app/rulesets/create'
     | '/_app/tools/$tool'
+    | '/_app/tools/spice-deck'
     | '/_app/tutorial/$chapter'
     | '/preview/sheet/$factionSlug'
     | '/_app/admin/'
@@ -1270,6 +1282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppToolsToolRouteRouteImport
       parentRoute: typeof AppToolsRouteRoute
     }
+    '/_app/tools/spice-deck': {
+      id: '/_app/tools/spice-deck'
+      path: '/spice-deck'
+      fullPath: '/tools/spice-deck'
+      preLoaderRoute: typeof AppToolsSpiceDeckRouteRouteImport
+      parentRoute: typeof AppToolsRouteRoute
+    }
     '/_app/tutorial/': {
       id: '/_app/tutorial/'
       path: '/'
@@ -1581,11 +1600,13 @@ const AppPlayRouteRouteWithChildren = AppPlayRouteRoute._addFileChildren(
 
 interface AppToolsRouteRouteChildren {
   AppToolsToolRouteRoute: typeof AppToolsToolRouteRoute
+  AppToolsSpiceDeckRouteRoute: typeof AppToolsSpiceDeckRouteRoute
   AppToolsIndexRoute: typeof AppToolsIndexRoute
 }
 
 const AppToolsRouteRouteChildren: AppToolsRouteRouteChildren = {
   AppToolsToolRouteRoute: AppToolsToolRouteRoute,
+  AppToolsSpiceDeckRouteRoute: AppToolsSpiceDeckRouteRoute,
   AppToolsIndexRoute: AppToolsIndexRoute,
 }
 

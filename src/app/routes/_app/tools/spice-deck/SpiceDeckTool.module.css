@@ -5,7 +5,9 @@
   overflow-x: clip;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--ui-ground);
   color: var(--ui-text);
 }
@@ -443,7 +445,13 @@
   color: var(--ui-muted);
 }
 
-.deckBack {
-  width: 48px;
-  border-radius: 3px;
+.deckMark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  color: var(--ui-brass);
+}
+
+.deckChoice:disabled {
+  cursor: default;
 }

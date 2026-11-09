@@ -26,7 +26,7 @@ import type { LucideIcon } from 'lucide-react';
  * The standalone tools at /tools: small helpers for a game of Dune at a real table.
  * Every tool is public, works signed out, is made for a phone first and follows the Ruleset the table plays.
  * Tools ship one at a time, like the tutorials: a tool not built shows as coming soon, and its address renders a placeholder that says what it will do.
- * The Treachery tracker is the first (#2795); its route adds itself here by setting `built`.
+ * The spice deck is the first built; each tool's route adds itself here by setting `built`.
  */
 
 export type ToolGroup = 'Before the game' | 'During the game' | 'Make and export';
@@ -116,19 +116,20 @@ export const TOOLS: readonly Tool[] = [
     ],
   },
   {
-    slug: 'spice-deck-tracker',
-    title: 'Spice deck tracker',
-    goal: 'See which spice blows remain and the chance of Shai-Hulud',
+    slug: 'spice-deck',
+    title: 'Spice deck',
+    goal: 'Run the spice deck on a phone, instead of shuffling the cards',
     statement:
-      'Mark each spice card as it is drawn and see what is left, where spice can still blow, and how likely the worm is next.',
+      'Pick your ruleset’s spice deck and tap a spice pile to turn over its card. The phone shuffles, keeps the discard piles and says what Shai-Hulud devours.',
     icon: Layers,
     art: '/tools/spice-deck.webp',
     group: 'During the game',
     capabilities: [
-      { icon: Layers, title: 'What is left', detail: 'Every card drawn and remaining.' },
+      { icon: Layers, title: 'Your deck', detail: 'The spice deck of any ruleset.' },
       { icon: Percent, title: 'The odds', detail: 'The chance of Shai-Hulud next.' },
-      { icon: MapPin, title: 'Where it blows', detail: 'Territories still to come.' },
+      { icon: Smartphone, title: 'At the table', detail: 'One phone, no cards to shuffle.' },
     ],
+    built: true,
   },
   {
     slug: 'round-tracker',

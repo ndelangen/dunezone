@@ -2,6 +2,7 @@ import decks from '@shared/play/fixtures/dreamrulesDecks.json';
 
 import { blowAll, newGame, nextTurn } from './spiceDeck';
 import type { SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
+import type { SpiceDeckChoice } from './spiceDeckSupply';
 
 const href = (path: string) => new URL(path, location.origin).href;
 
@@ -31,11 +32,21 @@ export const BASE_SPICE: SpiceDeckDef = {
   cards: cards.slice(0, 16),
 };
 
-export const STORY_DECKS: readonly SpiceDeckDef[] = [
-  BASE_SPICE,
+const STORY_DECK_DEFS: readonly SpiceDeckDef[] = [
+  { ...DREAMRULES_SPICE, id: 'dreamrules' },
+  { ...BASE_SPICE, id: 'gf9' },
   { ...BASE_SPICE, id: 'kiss', name: 'KISS Spice Deck', ruleset: 'KISS' },
-  DREAMRULES_SPICE,
 ];
+
+/** The rulesets' spice decks as the picker lists them, by ruleset name. */
+export const STORY_DECKS: readonly SpiceDeckChoice[] = STORY_DECK_DEFS.map(({ id, name, ruleset }) => ({
+  id,
+  name,
+  ruleset: ruleset!,
+}));
+
+/** Reads a picked deck's cards, as the page reads them from the catalogue. */
+export const loadStoryDeck = async (choice: SpiceDeckChoice) => STORY_DECK_DEFS.find((deck) => deck.id === choice.id)!;
 
 /** A repeatable shuffle, so every story shows the same game. */
 export function seeded(seed: number): () => number {

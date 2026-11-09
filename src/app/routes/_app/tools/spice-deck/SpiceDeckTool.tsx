@@ -28,6 +28,7 @@ import {
   wormChance,
 } from './spiceDeck';
 import type { Blow, Reveal, SpiceDeckDef, SpiceDeckGame, SpiceRules } from './spiceDeck';
+import type { SpiceDeckChoice } from './spiceDeckSupply';
 import styles from './SpiceDeckTool.module.css';
 import { useSpiceDeckGame } from './useSpiceDeckGame';
 import type { SpiceDeckSession } from './useSpiceDeckGame';
@@ -47,15 +48,23 @@ type ToolProps = Readonly<{
   storageKey: string;
   /** The game to show before anything is stored, for stories; a real visit starts from the deck picker. */
   initial?: SpiceDeckGame;
-  /** The decks a new game can be played with. */
-  decks: readonly SpiceDeckDef[];
+  /** The decks a new game can be played with, by ruleset; undefined while they load. */
+  decks: readonly SpiceDeckChoice[] | undefined;
+  /** Reads a deck's cards once the table picks it. */
+  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
 }>;
 
-export function SpiceDeckTool({ storageKey, initial, decks }: ToolProps) {
+export function SpiceDeckTool({ storageKey, initial, decks, loadDeck }: ToolProps) {
   const session = useSpiceDeckGame(storageKey, initial);
   const { game } = session;
   if (!game) {
-    return <DeckPicker decks={decks} onStart={(deck, rules) => session.start(newGame(deck, session.random, rules))} />;
+    return (
+      <DeckPicker
+        decks={decks}
+        loadDeck={loadDeck}
+        onStart={(deck, rules) => session.start(newGame(deck, session.random, rules))}
+      />
+    );
   }
   return <Playing session={session} game={game} />;
 }
@@ -63,10 +72,31 @@ export function SpiceDeckTool({ storageKey, initial, decks }: ToolProps) {
 /* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
 function DeckPicker({
   decks,
+  loadDeck,
   onStart,
-}: Readonly<{ decks: readonly SpiceDeckDef[]; onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void }>) {
+}: Readonly<{
+  decks: readonly SpiceDeckChoice[] | undefined;
+  loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
+  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
+}>) {
   const [piles, setPiles] = useState(1);
   const [peek, setPeek] = useState(1);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const pick = async (choice: SpiceDeckChoice) => {
+    setLoading(choice.id);
+    setFailed(null);
+    try {
+      const deck = await loadDeck(choice);
+      if (deck.cards.length === 0) {
+        throw new Error('empty');
+      }
+      onStart(deck, { piles, peek });
+    } catch {
+      setFailed(choice.id);
+      setLoading(null);
+    }
+  };
   return (
     <div className={styles.tool}>
       <header className={styles.header}>
@@ -110,22 +140,36 @@ function DeckPicker({
             )}
           />
         </div>
-        <ul className={styles.deckList}>
-          {decks.map((deck) => (
-            <li key={deck.id}>
-              <button type="button" className={styles.deckChoice} onClick={() => onStart(deck, { piles, peek })}>
-                {deck.back ? <img src={deck.back} alt="" className={styles.deckBack} /> : null}
-                <span>
-                  <strong>{deck.name}</strong>
-                  <small>
-                    {deck.ruleset ? `${deck.ruleset} · ` : ''}
-                    {deck.cards.reduce((sum, card) => sum + card.count, 0)} cards
-                  </small>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {decks?.length === 0 ? <p className={styles.hint}>No Ruleset has a spice deck yet.</p> : null}
+        {decks ? (
+          <ul className={styles.deckList}>
+            {decks.map((choice) => (
+              <li key={choice.id}>
+                <button
+                  type="button"
+                  className={styles.deckChoice}
+                  disabled={loading !== null}
+                  aria-busy={loading === choice.id}
+                  onClick={() => void pick(choice)}
+                >
+                  <Layers aria-hidden className={styles.deckMark} />
+                  <span>
+                    <strong>{choice.ruleset}</strong>
+                    <small>
+                      {loading === choice.id
+                        ? 'Shuffling…'
+                        : failed === choice.id
+                          ? 'This deck could not be read. Try again.'
+                          : choice.name}
+                    </small>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className={styles.hint}>Reading the decks…</p>
+        )}
       </main>
     </div>
   );
