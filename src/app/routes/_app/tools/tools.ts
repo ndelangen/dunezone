@@ -44,8 +44,8 @@ export type Tool = Readonly<{
   /** The placeholder page's lede: what the tool does and who it is for. */
   statement: string;
   icon: LucideIcon;
-  /** The tile's picture: for now the Play or creator tutorial still closest to the tool, until the tool has screenshots of its own. */
-  art: string;
+  /** The tile's picture, once the tool is built; until then the tile shows the tool's mark as a placeholder. */
+  art?: string;
   group: ToolGroup;
   /** Three things the tool will do, shown on its placeholder page. */
   capabilities: readonly [ToolCapability, ToolCapability, ToolCapability];
@@ -63,7 +63,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Hand out factions fairly before the first storm: at random, by draft, or pick and ban, from any Ruleset and its custom factions.',
     icon: Shuffle,
-    art: '/tutorial/draft-and-trade.webp',
     group: 'Before the game',
     capabilities: [
       { icon: Users, title: 'Any table', detail: 'Two to ten players, any Ruleset.' },
@@ -78,7 +77,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Every starting force, spice pile, card and traitor for the factions at your table, in the order the Ruleset sets them up.',
     icon: ClipboardList,
-    art: '/tutorial/setup.webp',
     group: 'Before the game',
     capabilities: [
       { icon: ListChecks, title: 'Step by step', detail: 'Tick each step as the table does it.' },
@@ -93,7 +91,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'The Bene Gesserit write their prediction at setup, seal it on the phone, and reveal it when the game ends: no slip of paper to lose.',
     icon: Lock,
-    art: '/tutorial/the-private-side-table.webp',
     group: 'Before the game',
     capabilities: [
       { icon: Lock, title: 'Sealed', detail: 'Hidden until you reveal it.' },
@@ -108,7 +105,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Track every Treachery card through bidding, hands and discards, so the Atreides, or anyone, knows what is left in the deck.',
     icon: Eye,
-    art: '/tutorial/bidding.webp',
     group: 'During the game',
     issue: 2795,
     capabilities: [
@@ -124,7 +120,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Mark each spice card as it is drawn and see what is left, where spice can still blow, and how likely the worm is next.',
     icon: Layers,
-    art: '/tutorial/decks-and-dealing.webp',
     group: 'During the game',
     capabilities: [
       { icon: Layers, title: 'What is left', detail: 'Every card drawn and remaining.' },
@@ -139,7 +134,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Keep the turn and phase for the whole table, with a reminder of each faction ability that happens in the phase, so nothing is forgotten.',
     icon: Hourglass,
-    art: '/tutorial/phases-and-turns.webp',
     group: 'During the game',
     capabilities: [
       { icon: Hourglass, title: 'Turn and phase', detail: 'Where the game is, at a glance.' },
@@ -154,7 +148,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Set both battle plans, with leaders, dialled forces, spice and cards, and see who wins and what each side loses before you commit.',
     icon: Swords,
-    art: '/tutorial/battle.webp',
     group: 'During the game',
     capabilities: [
       { icon: Swords, title: 'Both plans', detail: 'Leaders, forces, spice and cards.' },
@@ -169,7 +162,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Turn a faction from the catalogue, its sheet, shield, leaders, troops and cards, into a Tabletop Simulator save you can load and play.',
     icon: Gamepad2,
-    art: '/tutorial/create/import-and-export.webp',
     group: 'Make and export',
     capabilities: [
       { icon: ScrollText, title: 'Any faction', detail: 'Official or homebrew, from the catalogue.' },
@@ -184,7 +176,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Print a Treachery, Spice, Traitor or custom deck from any Ruleset as cut-ready PDF sheets, with fronts and backs that line up for double-sided printing.',
     icon: Printer,
-    art: '/tutorial/create/build-a-deck.webp',
     group: 'Make and export',
     capabilities: [
       { icon: Layers, title: 'Any deck', detail: 'Pick the deck and how many of each card.' },
@@ -199,7 +190,6 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Everything a faction needs at a physical table, printed at the right sizes: its sheet, shield, leader discs, troop tokens and traitor cards.',
     icon: Image,
-    art: '/tutorial/create/print-your-faction.webp',
     group: 'Make and export',
     capabilities: [
       { icon: ScrollText, title: 'Sheet and shield', detail: 'At the size of the real thing.' },

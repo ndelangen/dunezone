@@ -32,7 +32,10 @@ type CatalogueTile = Readonly<{
   /** What a reader can do once the tutorial is done, in one line. */
   goal: string;
   minutes?: number;
-  art: string;
+  /** The tile's picture; a tile without one shows its `placeholder` in the same frame. */
+  art?: string;
+  /** What fills the picture frame while there is no picture yet, such as a tool's mark. */
+  placeholder?: ReactNode;
   /** Where the tile opens. */
   link?: LinkProps;
   /** Whether it is ready; by default a tile with a link is, and one without is coming soon. A tool not yet built still opens its placeholder page. */
@@ -73,7 +76,13 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
-          <img src={tile.art} alt="" loading={eager ? undefined : 'lazy'} />
+          {tile.art === undefined ? (
+            <div className={styles.placeholder} aria-hidden>
+              {tile.placeholder}
+            </div>
+          ) : (
+            <img src={tile.art} alt="" loading={eager ? undefined : 'lazy'} />
+          )}
           <span className={styles.chips}>
             {built ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
             {tile.minutes === undefined ? null : (

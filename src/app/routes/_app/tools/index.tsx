@@ -1,3 +1,4 @@
+import { ThemeIcon } from '@mantine/core';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { publicPageHead } from '@app/routes/publicPage';
@@ -32,6 +33,11 @@ const ROWS: readonly CatalogueRow[] = TOOL_GROUPS.map((group) => ({
     title: tool.title,
     goal: tool.goal,
     art: tool.art,
+    placeholder: (
+      <ThemeIcon size={88} radius="50%" variant="light" color="dune">
+        <tool.icon size={40} strokeWidth={1.5} />
+      </ThemeIcon>
+    ),
     built: tool.page !== undefined,
     link: tool.page ?? { to: '/tools/$tool', params: { tool: tool.slug } },
   })),
