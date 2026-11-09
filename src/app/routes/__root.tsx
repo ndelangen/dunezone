@@ -5,7 +5,6 @@ import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
 import { SignInCallback } from '@app/shell/SignInCallback';
 
-import bandPoster from '../../../public/video/band-poster.jpg?url';
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
@@ -38,8 +37,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
-      /* The header artwork and primary text faces. */
-      { rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' },
+      /* The primary text faces; the header artwork is preloaded by the app layout, the only one that shows it. */
       {
         rel: 'preload',
         as: 'font',

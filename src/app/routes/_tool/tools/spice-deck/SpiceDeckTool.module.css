@@ -1,5 +1,7 @@
 /* A phone held at the table: the turn and its controls above, the one big action within the thumb's reach. */
 .tool {
+  /* The header and footer heights; the page measures them and writes the real one. */
+  --chrome: 160px;
   position: relative;
   display: grid;
   overflow-x: clip;
@@ -73,6 +75,8 @@
 
 /* Peek's hold: a bar fills under the button for as long as it must be held. */
 .hold {
+  /* How long Peek is held; the page writes the same value from its timer. */
+  --hold-ms: 2000ms;
   position: relative;
   display: inline-flex;
 }
@@ -193,12 +197,14 @@
 
 /* The piles fill the screen between the header and the footer; the details are a scroll below. */
 .stage {
+  /* A pile card's width; the page writes the size that fits once it has measured the screen. */
+  --card-w: 45%;
   display: flex;
   flex-wrap: wrap;
   align-content: center;
   justify-content: center;
   gap: 12px;
-  height: calc(100dvh - var(--chrome, 160px) - 2 * var(--space-sm));
+  height: calc(100dvh - var(--chrome) - 2 * var(--space-sm));
 }
 
 .hint {
@@ -292,7 +298,7 @@
 }
 
 .pileButton {
-  width: var(--card-w, 45%);
+  width: var(--card-w);
   display: flex;
   flex-direction: column;
   align-items: stretch;

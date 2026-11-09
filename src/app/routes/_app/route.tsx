@@ -5,6 +5,8 @@ import { ApplicationChrome } from '@app/shell/ApplicationChrome';
 import { AppNotFound } from '@app/shell/AppNotFound';
 import { MOTION_BEFORE_HYDRATION } from '@app/shell/motionScript';
 
+import bandPoster from '../../../../public/video/band-poster.jpg?url';
+
 export const Route = createFileRoute('/_app')({
   /* Public leaves opt in below this layout; other page loaders remain client-only. */
   ssr: true,
@@ -14,6 +16,8 @@ export const Route = createFileRoute('/_app')({
      Client hydration still runs them, so a head whose own loader can throw notFound passes its match to `pageHead`. */
   head: ({ match }) => ({
     ...(match.status === 'notFound' ? pageHead('Page not found') : {}),
+    /* The header artwork, which only the app's own pages show; a standalone tool has no header. */
+    links: [{ rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' }],
     scripts: [MOTION_BEFORE_HYDRATION],
   }),
   component: AppLayout,

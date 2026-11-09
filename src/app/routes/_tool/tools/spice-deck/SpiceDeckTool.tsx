@@ -3,7 +3,7 @@ import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { ArrowRight, Eye, EyeOff, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -86,16 +86,13 @@ function DeckPicker({
   const pick = async (choice: SpiceDeckChoice) => {
     setLoading(choice.id);
     setFailed(null);
-    try {
-      const deck = await loadDeck(choice);
-      if (deck.cards.length === 0) {
-        throw new Error('empty');
-      }
+    const deck = await loadDeck(choice).catch(() => undefined);
+    if (deck && deck.cards.length > 0) {
       onStart(deck, { piles, peek });
-    } catch {
-      setFailed(choice.id);
-      setLoading(null);
+      return;
     }
+    setFailed(choice.id);
+    setLoading(null);
   };
   return (
     <div className={styles.tool}>
@@ -181,6 +178,29 @@ const pileName = (game: SpiceDeckGame, pile: number) =>
 /** A card on its way: dealt from the deck onto a pile, or set aside off its pile. */
 type Flight = Readonly<{ key: number; pile: number; copy: string; mode: 'deal' | 'aside'; reveal: Reveal }>;
 
+type Step = Readonly<{ mode: 'deal' | 'aside'; blow: Blow; reveal: Extract<Reveal, { card: string }> }>;
+
+/* The card the last step turned over or set aside, if it was one. */
+function stepOf(game: SpiceDeckGame, last: Readonly<{ kind: string }> | undefined): Step | undefined {
+  const mode = last?.kind;
+  const blow = game.blows.at(-1);
+  const reveal = blow?.reveals.at(-1);
+  if ((mode !== 'deal' && mode !== 'aside') || !blow || !reveal || reveal.card === null) {
+    return undefined;
+  }
+  return { mode, blow, reveal };
+}
+
+/* A landed step as the voice reads it; a deal that found the deck empty reshuffled it first, and the table hears that before the card. */
+function stepSentence(game: SpiceDeckGame, { mode, blow, reveal }: Step): string {
+  const card = revealSentence(game, reveal, blow.turn);
+  if (mode === 'aside') {
+    return card;
+  }
+  const reshuffled = blow.reveals.at(-2)?.kind === 'reshuffle';
+  return `${reshuffled ? 'The deck is reshuffled. ' : ''}${pileName(game, blow.pile)}. ${card}`;
+}
+
 /* The flight's timing: off the deck, turned over on the way, laid on the pile; a set-aside card rests there before it moves on. */
 const FLIGHT_MS = 1500;
 const ASIDE_MS = 520;
@@ -204,49 +224,45 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   const [voice, setVoice] = useState(false);
   const [listen, setListen] = useState(false);
   const canListen = useCanListen();
-  const [flight, setFlight] = useState<Flight | undefined>(undefined);
   const [peeking, setPeeking] = useState(false);
 
   /*
    * A card turned over starts its flight onto its pile; a card set aside leaves its pile to the side.
    * The session says what the last step was, so a step taken back, a new turn and the game as it loaded show at once.
+   * A step is in flight until it lands; the step that landed last is remembered, so the flight is read off the game.
    */
   const lastId = session.last?.id;
+  const [landedId, setLandedId] = useState<number | undefined>(undefined);
+  const step = useMemo(() => stepOf(game, session.last), [game, session.last]);
+  const flight = useMemo<Flight | undefined>(
+    () =>
+      step && motion && lastId !== landedId
+        ? { key: lastId ?? 0, pile: step.blow.pile, copy: step.reveal.card, mode: step.mode, reveal: step.reveal }
+        : undefined,
+    [step, motion, lastId, landedId]
+  );
   /* Read aloud is read as the card lands, so switching it off while a card is on its way keeps it quiet. */
   const voiceOn = useRef(voice);
   useEffect(() => {
     voiceOn.current = voice;
   }, [voice]);
-  useEffect(() => {
-    const kind = session.last?.kind;
-    const blow = game.blows.at(-1);
-    const reveal = blow?.reveals.at(-1);
-    if ((kind !== 'deal' && kind !== 'aside') || !blow || !reveal || reveal.card === null) {
-      setFlight(undefined);
+  /* Lands a new step once its flight is over, at once without motion, and reads it out; only a new step starts one. */
+  const landStep = useEffectEvent(() => {
+    if (!step) {
       return;
     }
-    const mode = kind;
-    /* A deal that found the deck empty reshuffled it first, and the table hears that before the card. */
-    const reshuffled = mode === 'deal' && blow.reveals.at(-2)?.kind === 'reshuffle';
-    const landed = () => {
-      setFlight(undefined);
-      if (voiceOn.current) {
-        speech.speak(
-          mode === 'aside'
-            ? revealSentence(game, reveal, blow.turn)
-            : `${reshuffled ? 'The deck is reshuffled. ' : ''}${pileName(game, blow.pile)}. ${revealSentence(game, reveal, blow.turn)}`
-        );
-      }
-    };
-    if (!motion) {
-      landed();
-      return;
-    }
-    setFlight({ key: lastId ?? 0, pile: blow.pile, copy: reveal.card, mode, reveal });
-    const timer = setTimeout(landed, mode === 'aside' ? ASIDE_MS : FLIGHT_MS);
+    const timer = setTimeout(
+      () => {
+        setLandedId(lastId);
+        if (voiceOn.current) {
+          speech.speak(stepSentence(game, step));
+        }
+      },
+      motion ? (step.mode === 'aside' ? ASIDE_MS : FLIGHT_MS) : 0
+    );
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new step starts a flight
-  }, [lastId]);
+  });
+  useEffect(() => landStep(), [lastId]);
 
   /* While a card is on its way, nothing else moves the game: the table sees each card land before the next step. */
   const busy = flight !== undefined;
