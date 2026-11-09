@@ -58,6 +58,14 @@ const storedSchema = z.object({
   recent: z.array(z.looseObject({ id: z.string(), name: z.string(), emblem: z.string() })).optional(),
 });
 
+function write(storageKey: string, state: WheelState) {
+  try {
+    globalThis.localStorage?.setItem(storageKey, JSON.stringify({ ...state, version: STORED_VERSION }));
+  } catch {
+    /* Private windows may refuse storage; the wheel still works for this visit. */
+  }
+}
+
 function read(storageKey: string): WheelState | null {
   try {
     const stored = globalThis.localStorage?.getItem(storageKey);
@@ -93,13 +101,7 @@ function sameWheel(next: WheelFaction, was: WheelFaction) {
 export function useBattleWheel() {
   const storageKey = BATTLE_WHEEL_STORAGE_KEY;
   const [state, setState] = useState<WheelState>(() => read(storageKey) ?? FRESH);
-  useEffect(() => {
-    try {
-      globalThis.localStorage?.setItem(storageKey, JSON.stringify({ ...state, version: STORED_VERSION }));
-    } catch {
-      /* Private windows may refuse storage; the wheel still works for this visit. */
-    }
-  }, [storageKey, state]);
+  useEffect(() => write(storageKey, state), [storageKey, state]);
   const setPlan = useCallback((plan: WheelPlan) => setState((was) => ({ ...was, plan })), []);
   /* Another Ruleset spends spice its own way, so the caller hands in the plan settled against it. */
   const chooseRuleset = useCallback(
