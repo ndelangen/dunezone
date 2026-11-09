@@ -54,6 +54,7 @@ const storedSchema = z.object({
     leaderX: z.number(),
     troops: z.record(z.string(), z.number()),
     spice: z.number(),
+    emperorAlly: z.boolean().optional(),
   }),
   recent: z.array(z.looseObject({ id: z.string(), name: z.string(), emblem: z.string() })).optional(),
 });
@@ -122,6 +123,10 @@ export function useBattleWheel() {
       })),
     []
   );
-  const clear = useCallback(() => setState((was) => ({ ...was, plan: EMPTY_PLAN })), []);
+  /* An alliance outlasts the battle, so clearing the wheel keeps it. */
+  const clear = useCallback(
+    () => setState((was) => ({ ...was, plan: { ...EMPTY_PLAN, emperorAlly: was.plan.emperorAlly } })),
+    []
+  );
   return { state, setPlan, chooseRuleset, chooseFaction, clear };
 }

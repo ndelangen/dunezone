@@ -32,6 +32,7 @@ import {
   spiceChoices,
   strengthText,
   supportable,
+  tierPrice,
   troopsDialed,
   wheelResult,
   withTroops,
@@ -624,13 +625,21 @@ function SpiceControl({ wheel }: Readonly<{ wheel: Wheel }>) {
               type="button"
               className={styles.tier}
               disabled={!choices.includes(spice)}
-              aria-pressed={result.spice === spice}
+              aria-pressed={result.tier === spice}
               onClick={() => setPlan({ ...plan, spice })}
             >
-              {spice === 0 ? 'None' : `${spice} spice +${bonus}`}
+              {spice === 0 ? 'None' : `${tierPrice(spice, plan)} spice +${bonus}`}
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className={styles.tier}
+          aria-pressed={Boolean(plan.emperorAlly)}
+          onClick={() => setPlan({ ...plan, emperorAlly: !plan.emperorAlly })}
+        >
+          Emperor's ally: half price
+        </button>
       </div>
     );
   }

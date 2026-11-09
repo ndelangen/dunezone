@@ -53,6 +53,12 @@ describe('wheelResult', () => {
     const plan = { ...EMPTY_PLAN, troops: { [atreides.faces[0]!.id]: 4 }, spice: 4 };
     expect(wheelResult(ruleset('gf9-2-0'), atreides, plan)).toMatchObject({ dial: 6, bonus: 2, spice: 4 });
   });
+
+  it("charges the Emperor's ally half for GF9 2.0 spice strength", () => {
+    const atreides = faction('house-atreides');
+    const plan = { ...EMPTY_PLAN, troops: { [atreides.faces[0]!.id]: 8 }, spice: 8, emperorAlly: true };
+    expect(wheelResult(ruleset('gf9-2-0'), atreides, plan)).toMatchObject({ dial: 11, bonus: 3, spice: 4, tier: 8 });
+  });
 });
 
 describe('strengthText', () => {
