@@ -1,6 +1,6 @@
 /* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
 import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
@@ -48,38 +48,51 @@ const GITHUB_REPOSITORY = 'https://github.com/ndelangen/dunezone';
 const GITHUB_IDEAS = `${GITHUB_REPOSITORY}/issues/new/choose`;
 const GITHUB_BACKLOG = `${GITHUB_REPOSITORY}/issues`;
 
+/** Where a shipped capability lives: a public, indexable page. */
+type BuiltAt = '/rulesets' | '/faq' | '/create' | '/play';
+
+type Capability = {
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  /** Set once the capability ships: it leaves the atlas and is listed under Completed, linking here. */
+  built?: BuiltAt;
+};
+
 type FuturePlan = {
-  number: string;
+  id: string;
   title: string;
   shortTitle: string;
   statement: string;
   icon: ReactNode;
-  capabilities: Array<{ icon: ReactNode; title: string; detail: string }>;
+  capabilities: Capability[];
 };
 
 const FUTURE_PLANS: FuturePlan[] = [
   {
-    number: '01',
+    id: 'rulebooks',
     title: 'Every rulebook, made for the web',
     shortTitle: 'Read the rules',
     statement: 'Faithful editions of the published rulebooks, made easier to read, search, and compare at the table.',
     icon: <BookOpen />,
     capabilities: [
-      { icon: <BookOpen />, title: 'Faithful editions', detail: 'Preserve the books people know.' },
+      { icon: <BookOpen />, title: 'Faithful editions', detail: 'Preserve the books people know.', built: '/rulesets' },
       {
         icon: <Search />,
         title: 'Find an answer',
         detail: 'Search rules without stopping the game.',
+        built: '/faq',
       },
       {
         icon: <ListChecks />,
         title: 'Compare editions',
         detail: 'See which rule belongs to which game.',
+        built: '/rulesets',
       },
     ],
   },
   {
-    number: '02',
+    id: 'create',
     title: 'Create the version you wish existed',
     shortTitle: 'Create and publish',
     statement: 'Build a rulebook and its pieces together, then take the finished game wherever your group plays.',
@@ -89,11 +102,13 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <PenTool />,
         title: 'Rulebook creator',
         detail: 'Write and arrange rules on the web.',
+        built: '/create',
       },
       {
         icon: <Printer />,
         title: 'Print and PDF',
         detail: 'Bring a finished edition to the table.',
+        built: '/rulesets',
       },
       {
         icon: <Gamepad2 />,
@@ -103,7 +118,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     ],
   },
   {
-    number: '03',
+    id: 'results',
     title: 'Let every game add to the story',
     shortTitle: 'Record the game',
     statement:
@@ -114,6 +129,7 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <ListChecks />,
         title: 'Report results',
         detail: 'Capture what happened after the game.',
+        built: '/play',
       },
       {
         icon: <ChartNoAxesColumnIncreasing />,
@@ -124,7 +140,7 @@ const FUTURE_PLANS: FuturePlan[] = [
     ],
   },
   {
-    number: '04',
+    id: 'tools',
     title: 'Give every faction its perfect table tool',
     shortTitle: 'Build better tools',
     statement: 'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
@@ -149,6 +165,23 @@ const FUTURE_PLANS: FuturePlan[] = [
   },
 ];
 
+/**
+ * A theme stays in the atlas while any of its capabilities is still to come, numbered in the order that remains.
+ * Shipped capabilities move to Completed instead of being deleted, so their wording stays on the page.
+ */
+const PLANNED = FUTURE_PLANS.flatMap((plan) => {
+  const capabilities = plan.capabilities.filter((capability) => !capability.built);
+  return capabilities.length === 0 ? [] : [{ ...plan, capabilities }];
+}).map((plan, index) => ({ ...plan, number: String(index + 1).padStart(2, '0') }));
+
+/** Every theme with a shipped capability; `whole` when nothing of it is left to build, so its statement moves too. */
+const COMPLETED = FUTURE_PLANS.flatMap((plan) => {
+  const capabilities = plan.capabilities.filter((capability) => capability.built);
+  return capabilities.length === 0
+    ? []
+    : [{ ...plan, capabilities, whole: capabilities.length === plan.capabilities.length }];
+});
+
 function FuturePlansPage() {
   return (
     <PageLayout>
@@ -171,7 +204,7 @@ function FuturePlansPage() {
               <Eyebrow>The territory</Eyebrow>
               <nav aria-label="Future plan themes">
                 <Bullets gap="none">
-                  {FUTURE_PLANS.map((plan) => (
+                  {PLANNED.map((plan) => (
                     <Bullets.Item
                       key={plan.number}
                       icon={plan.icon}
@@ -193,7 +226,7 @@ function FuturePlansPage() {
           </AtlasLayout.Sidebar>
           <AtlasLayout.Content>
             <Stack gap={0}>
-              {FUTURE_PLANS.map((plan) => (
+              {PLANNED.map((plan) => (
                 <Stack
                   component="article"
                   id={`atlas-${plan.number}`}
@@ -263,10 +296,53 @@ function FuturePlansPage() {
                   </Stack>
                 </SimpleGrid>
               </Surface>
+
+              <CompletedPlans />
             </Stack>
           </AtlasLayout.Content>
         </AtlasLayout>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** The shipped part of the plans, kept small at the bottom: each item links to where it now lives. */
+function CompletedPlans() {
+  return (
+    <Stack component="section" aria-labelledby="completed-plans" gap="lg" className={styles.completed}>
+      <Box w="fit-content">
+        <StatusBadge tone="positive">Completed</StatusBadge>
+      </Box>
+      <Title order={2} id="completed-plans" className={styles.completedTitle}>
+        Already built
+      </Title>
+      {COMPLETED.map((plan) => (
+        <Stack component="article" gap="sm" key={plan.id}>
+          <Title order={3} className={styles.completedTheme}>
+            {plan.whole ? plan.title : plan.shortTitle}
+          </Title>
+          {plan.whole ? (
+            <Text size="sm" c="dimmed">
+              {plan.statement}
+            </Text>
+          ) : null}
+          <Bullets columns={{ base: 1, sm: 3 }}>
+            {plan.capabilities.map((capability) => (
+              <Bullets.Item
+                key={capability.title}
+                icon={capability.icon}
+                title={capability.title}
+                detail={capability.detail}
+                renderLink={(content) => (
+                  <Anchor component={Link} to={capability.built} c="inherit" underline="never">
+                    {content}
+                  </Anchor>
+                )}
+              />
+            ))}
+          </Bullets>
+        </Stack>
+      ))}
+    </Stack>
   );
 }
