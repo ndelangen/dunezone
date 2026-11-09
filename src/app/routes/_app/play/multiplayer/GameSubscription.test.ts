@@ -7,7 +7,7 @@ import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
-import { online, runtime, Socket, visible } from './gameRuntime.test.fixture';
+import { online, runtime, signedOut, Socket, visible } from './gameRuntime.test.fixture';
 import { GameSubscription } from './GameSubscription';
 
 const initial = (): RoomView => ({
@@ -622,4 +622,52 @@ test('a renewal reply belongs to the connection that requested it, even when a r
   await vi.advanceTimersByTimeAsync(0);
   expect(subscription.ready).toBe(true);
   expect(replacement.readyState).toBe(1);
+});
+
+test('a sign-out in another tab closes the socket at once and opens no other', async () => {
+  const requestAdmission = vi.fn(async () => ({ ok: true as const, pass: 'pass.a' }));
+  const subscription = new GameSubscription('game', requestAdmission, runtime);
+  const listener = vi.fn();
+  const stop = subscription.subscribe(listener);
+  stops.push(stop);
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.deliver(initial());
+  expect(subscription.ready).toBe(true);
+  for (const notify of signedOut) {
+    notify();
+  }
+  expect(socket.readyState).toBe(3);
+  expect(subscription.status).toBe('denied');
+  expect(listener.mock.lastCall?.[0]).toEqual({ type: 'connection', error: 'Sign in again to access the table.' });
+  for (const notify of online) {
+    notify();
+  }
+  await vi.advanceTimersByTimeAsync(PLAY_ADMISSION_RETRY_MAX_MS * 2);
+  expect(Socket.instances).toHaveLength(1);
+  expect(requestAdmission).toHaveBeenCalledTimes(1);
+  stop();
+  expect(signedOut.size).toBe(0);
+});
+
+test('a sign-out while admission is pending drops its answer', async () => {
+  let admit!: (result: { ok: true; pass: string }) => void;
+  const subscription = new GameSubscription(
+    'game',
+    () =>
+      new Promise((resolve) => {
+        admit = resolve;
+      }),
+    runtime
+  );
+  stops.push(subscription.subscribe(vi.fn()));
+  await vi.advanceTimersByTimeAsync(0);
+  for (const notify of signedOut) {
+    notify();
+  }
+  admit({ ok: true, pass: 'pass.a' });
+  await vi.advanceTimersByTimeAsync(PLAY_ADMISSION_RETRY_MAX_MS * 2);
+  expect(Socket.instances).toHaveLength(0);
+  expect(subscription.status).toBe('denied');
 });

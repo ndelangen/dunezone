@@ -3,14 +3,16 @@ import { snapshotFactionLabels } from '@shared/play/factionLabels';
 import { tableProgressFor } from '@shared/play/phases';
 import { rosterFactionIds } from '@shared/play/protocol';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
-import { useEffect, useMemo, useReducer } from 'react';
-import { z } from 'zod';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
 import type { TableProjection, TableSession } from '../../../../../db/tabletop/TableSession';
 import { factionToken } from '../../multiplayer/FactionTokenFace';
 import { AuctionTracker } from './AuctionTracker';
-import { CARD_KINDS, newTracker, trackerReducer } from './tracker';
-import type { CardDef, CardKind, TrackerState } from './tracker';
+import { tableFacts } from './tableFacts';
+import { CARD_KINDS } from './tracker';
+import type { CardDef, CardKind } from './tracker';
+import { storageKey, trackerStore } from './trackerStore';
+import type { TrackerStore } from './trackerStore';
 import type { TrackerSeat } from './useTrackerSeat';
 
 /* A card's kind is the first word of the line under its name; a card without one counts as a special. */
@@ -23,74 +25,56 @@ function cardDefs(cards: readonly TreacheryDeckCard[]): CardDef[] {
   return cards.map((card) => ({ ...card, kind: kindOf(card.detail) }));
 }
 
-/*
- * What the tracker remembers lives in this browser only, per account, game and faction: no other player ever receives it,
- * and another account signed in on the same browser never opens it.
- */
-function storageKey(user: string, game: string, faction: string) {
-  return `dune-zone:treachery-tracker:${user}:${game}:${faction}`;
-}
-
-/*
- * Whether a stored tracker holds together: no card in two places at once, and no slot in two hands.
- * The reducer never builds such a state, so one that does was edited or damaged, and starts afresh.
- */
-function consistent(state: Pick<TrackerState, 'hands' | 'discard'>): boolean {
-  const slots = Object.values(state.hands).flat();
-  const cards = [...slots.flatMap((slot) => (slot.card ? [slot.card] : [])), ...state.discard];
-  return new Set(cards).size === cards.length && new Set(slots.map((slot) => slot.id)).size === slots.length;
-}
-
-/* A stored tracker is used only when every card it names is in this deck; anything else, such as an older shape, starts afresh. */
-function storedTracker(fresh: TrackerState) {
-  const ids = new Set(fresh.copies.map((copy) => copy.id));
-  const known = z.string().refine((card) => ids.has(card));
-  const slot = z.object({ id: z.string(), card: known.nullable() });
-  return z
-    .object({
-      copies: z.array(z.object({ id: known })).length(ids.size),
-      discard: z.array(known),
-      seen: z.array(slot),
-      hands: z.record(z.string(), z.array(slot)),
-      notes: z.record(z.string(), z.string()),
-      nextSlot: z.number(),
-    })
-    .refine(consistent);
-}
-
-function readable(value: unknown, fresh: TrackerState): value is TrackerState {
-  return storedTracker(fresh).safeParse(value).success;
-}
-
-function restored(key: string, defs: readonly CardDef[], factions: readonly string[]): TrackerState {
-  const fresh = newTracker(defs, factions);
-  try {
-    const stored: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null');
-    /* The stored copies carry the deck as it was saved; the game's own deck replaces them, card for card. */
-    return readable(stored, fresh) ? { ...stored, copies: fresh.copies } : fresh;
-  } catch {
-    return fresh;
-  }
-}
-
-function TrackerAtTable({
-  storage,
-  defs,
-  table,
-}: Readonly<{ storage: string; defs: readonly CardDef[]; table: TableProjection }>) {
+function TrackerAtTable({ store, table }: Readonly<{ store: TrackerStore; table: TableProjection }>) {
+  const { state } = useSyncExternalStore(store.subscribe, store.get, store.get);
   const factionIds = rosterFactionIds(table.snapshot.roster);
-  const [state, dispatch] = useReducer(trackerReducer, undefined, () => restored(storage, defs, factionIds));
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(storage, JSON.stringify(state));
-    } catch {
-      /* A full or blocked storage only loses the tracker on reload. */
-    }
-  }, [storage, state]);
   const names = snapshotFactionLabels(table.snapshot);
   const factions = factionIds.map((id) => factionToken(table, id, names));
   const { turn } = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
-  return <AuctionTracker factions={factions} state={state} onAction={dispatch} tableTurn={turn} />;
+  return <AuctionTracker factions={factions} state={state} onAction={store.dispatch} tableTurn={turn} />;
+}
+
+/* The seat's tracker store, made from the game's deck and the seated factions; null when the game has no Treachery deck. */
+function useSeatStore(client: TableSession, table: TableProjection, tracker: TrackerSeat) {
+  const defs = useMemo(() => cardDefs(tracker.cards), [tracker.cards]);
+  const factionIds = rosterFactionIds(table.snapshot.roster);
+  const key = storageKey(table.viewer.userId, client.game, tracker.faction);
+  /* Keyed by its storage, so a seat that changes faction never writes one faction's tracker under another's key. */
+  return defs.length > 0 ? { key, defs, store: trackerStore(key, defs, factionIds) } : null;
+}
+
+const noSubscription = () => () => {};
+const noTracker = () => null;
+
+/**
+ * Follows the live table for the seat's tracker while the game runs, whether or not the panel is open (#2794): a peek at the card up for bid puts it up for bid.
+ * It renders nothing;
+ * a review or a checkpoint shown from the past is never followed.
+ */
+export function TreacheryTrackerFollower({
+  client,
+  table,
+  tracker,
+}: Readonly<{ client: TableSession; table: TableProjection; tracker: TrackerSeat }>) {
+  const seat = useSeatStore(client, table, tracker);
+  const faces = useMemo(() => new Set(seat?.defs.map((def) => def.face)), [seat?.defs]);
+  const live = table.playback === null;
+  const store = seat?.store;
+  /*
+   * Listening keeps the store in step with other tabs, so a peek followed here never saves over their edits;
+   * and a tracker the player corrects, such as freeing a copy, is read against the table again.
+   */
+  const kept = useSyncExternalStore(
+    store?.subscribe ?? noSubscription,
+    store?.get ?? noTracker,
+    store?.get ?? noTracker
+  );
+  useEffect(() => {
+    if (store && live) {
+      store.follow(tableFacts(table.snapshot, faces));
+    }
+  }, [store, live, table.snapshot, faces, kept]);
+  return null;
 }
 
 /** The Treachery tracker at a table, loaded only when the seat keeps one: the game's own Treachery deck, and the seated factions in seat order. */
@@ -99,15 +83,13 @@ export function ConnectedTreacheryTrackerPanel({
   table,
   tracker,
 }: Readonly<{ client: TableSession; table: TableProjection; tracker: TrackerSeat }>) {
-  const defs = useMemo(() => cardDefs(tracker.cards), [tracker.cards]);
-  if (defs.length === 0) {
+  const seat = useSeatStore(client, table, tracker);
+  if (!seat) {
     return (
       <Text size="sm" c="dimmed">
         This game has no Treachery deck to track.
       </Text>
     );
   }
-  const storage = storageKey(table.viewer.userId, client.game, tracker.faction);
-  /* Keyed by its storage, so a seat that changes faction never writes one faction's tracker under another's key. */
-  return <TrackerAtTable key={storage} storage={storage} defs={defs} table={table} />;
+  return <TrackerAtTable key={seat.key} store={seat.store} table={table} />;
 }

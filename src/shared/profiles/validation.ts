@@ -62,7 +62,8 @@ const boardGameGeekProfileUrlSchema = z
     }
     try {
       const url = new URL(value);
-      const match = /^\/user\/([^/]+)\/?$/.exec(url.pathname);
+      // BGG serves the same profile at /user/<name> and /profile/<name>; accept both, store /profile/.
+      const match = /^\/(?:user|profile)\/([^/]+)\/?$/.exec(url.pathname);
       const username = match ? decodeURIComponent(match[1]!) : '';
       if (
         url.protocol !== 'https:' ||
@@ -78,11 +79,11 @@ const boardGameGeekProfileUrlSchema = z
       ) {
         throw new Error('Invalid profile URL');
       }
-      return `https://boardgamegeek.com/user/${encodeURIComponent(username)}`;
+      return `https://boardgamegeek.com/profile/${encodeURIComponent(username)}`;
     } catch {
       ctx.addIssue({
         code: 'custom',
-        message: 'Enter a BoardGameGeek profile URL such as https://boardgamegeek.com/user/yourname',
+        message: 'Enter a BoardGameGeek profile URL such as https://boardgamegeek.com/profile/yourname',
       });
       return z.NEVER;
     }

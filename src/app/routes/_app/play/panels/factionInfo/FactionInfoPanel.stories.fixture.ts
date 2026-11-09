@@ -53,3 +53,10 @@ export const factionInfoPanelMeta = {
   component: FactionInfoPanel,
   args: factionInfoArgs(playingSnapshot()),
 };
+
+/** Seat 1's panel when its faction's rules keep the Treachery tracker. */
+export function treacheryTrackerArgs(): FactionInfoPanelProps {
+  const args = factionInfoArgs(playingSnapshot());
+  const details = args.details!;
+  return { ...args, details: { ...details, rules: { ...details.rules, treacheryTracker: true } } };
+}

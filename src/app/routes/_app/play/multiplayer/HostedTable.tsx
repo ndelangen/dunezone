@@ -99,6 +99,12 @@ const ConnectedTreacheryTrackerPanel = lazy(() =>
     default: module.ConnectedTreacheryTrackerPanel,
   }))
 );
+/* The tracker follows the table even while its panel is closed, from the same chunk. */
+const TreacheryTrackerFollower = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.TreacheryTrackerFollower,
+  }))
+);
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -793,6 +799,11 @@ function ConnectedTable({
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
           </CompassTableContext>
+          {tracker ? (
+            <Suspense fallback={null}>
+              <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+            </Suspense>
+          ) : null}
         </div>
       </TabletopSessionProvider>
     </PredictionEmblemsContext>
