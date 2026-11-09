@@ -55,9 +55,15 @@ async function seed(ctx: MutationCtx) {
     { id: lasgun, count: 1 },
     { id: shield, count: 4 },
   ]);
-  await deck('Homebrew Weapons', [{ id: lasgun, count: 3 }]);
+  const custom = await asset('card-custom', 'House Rule', {});
+  await deck('Homebrew Weapons', [
+    { id: custom, count: 1 },
+    { id: lasgun, count: 3 },
+  ]);
   await deck('Spice Deck', [{ id: blow, count: 2 }]);
   await deck('Deleted Treachery', [{ id: lasgun, count: 1 }], true);
+  const gone = await asset('card-treachery', 'Gone', publishingTreacheryCard, true);
+  await deck('Only Deleted Cards', [{ id: gone, count: 2 }]);
   await deck('Empty Deck', []);
   await ctx.db.insert('ruleset_asset_slots', {
     ruleset_id: await ruleset('Dreamrules'),
@@ -71,7 +77,7 @@ async function seed(ctx: MutationCtx) {
   });
 }
 
-test('offers every live deck of Treachery cards, a Ruleset’s first, with its copies and the live Rulesets that slot it', async () => {
+test('offers every live deck holding live Treachery cards, whatever its first card, a Ruleset’s first, with its live Treachery copies and the live Rulesets that slot it', async () => {
   const t = applicationTest();
   await t.run(seed);
   const decks = await t.query(api.treacheryTrackerTool.decks, {});

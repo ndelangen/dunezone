@@ -117,20 +117,26 @@ function startingDecks(choices: readonly TreacheryDeckChoice[]): string[] {
 /* The setup: every deck to pick from, the default one picked, and the base six seated until the player changes them. */
 function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }>) {
   const choices = useTreacheryDeckChoices();
-  const setup = useTrackerToolSetup({ baseSlug: BASE_RULESET, seats: BASE_SEATS });
+  const setup = useTrackerToolSetup({ preferredSlug: DEFAULT_RULESET, baseSlug: BASE_RULESET, seats: BASE_SEATS });
   const [picked, setPicked] = useState<readonly string[] | null>(null);
   const [seats, setSeats] = useState<readonly FactionToken[] | null>(null);
   const base = useMemo(() => (setup ? setup.seats.map(seatOf) : undefined), [setup]);
   if (choices?.length === 0) {
     return <NoDecks />;
   }
-  const decks = picked ?? (choices ? startingDecks(choices) : []);
+  /* A picked deck the list no longer offers, such as one deleted since, is dropped, so it can neither be stuck in the setup nor count as picked. */
+  const decks = choices
+    ? (picked ?? startingDecks(choices)).filter((id) => choices.some((choice) => choice.id === id))
+    : [];
   return (
     <DeckSetup
       choices={choices}
       config={{ decks, seats: seats ?? base }}
       onChange={(next) => {
-        setPicked(next.decks);
+        /* Only a change to the decks is kept as the player's pick, so seating factions before the decks load keeps the default deck. */
+        if (next.decks !== decks) {
+          setPicked(next.decks);
+        }
         if (next.seats) {
           setSeats(next.seats);
         }

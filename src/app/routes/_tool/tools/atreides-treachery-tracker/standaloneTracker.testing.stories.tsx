@@ -11,7 +11,8 @@ import { StorySetup } from './standaloneTracker.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Tools/Treachery tracker',
-  parameters: { database: db(() => {}) },
+  /* Full width, as the page fills the phone. */
+  parameters: { database: db(() => {}), layout: 'fullscreen' },
   globals: { viewport: { value: 'appMobile' } },
 });
 
@@ -51,7 +52,7 @@ export const PickTwoDecks = meta.story({
 /** The game waits for every card picture, so no card shows before its face can. */
 export const WaitsForThePictures = meta.story({
   args: { onStart: fn() },
-  render: ({ onStart }) => <StorySetup pace={60_000} onStart={onStart} />,
+  render: ({ onStart }) => <StorySetup fetched={{ done: 0, total: 33 }} onStart={onStart} />,
   play: async ({ args, canvasElement, userEvent }) => {
     const canvas = within(canvasElement);
     const start = canvas.getByRole('button', { name: 'Start tracking' });

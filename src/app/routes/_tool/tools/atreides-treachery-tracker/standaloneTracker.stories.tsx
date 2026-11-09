@@ -32,7 +32,8 @@ function PlayableGame() {
 
 const meta = preview.meta({
   title: 'Tools/Treachery tracker',
-  parameters: { database: db(() => {}) },
+  /* Full width, as the page fills the phone. */
+  parameters: { database: db(() => {}), layout: 'fullscreen' },
   /* A phone's gutter, as the page gives it. */
   decorators: [
     (Story) => (
@@ -65,7 +66,7 @@ export const SetUp = meta.story({
 
 /** The moment the decks are picked every card picture is fetched, and the bar fills as they come in; the game starts once they are all in. */
 export const FetchingTheCards = meta.story({
-  render: () => <StorySetup pace={180} />,
+  render: () => <StorySetup fetched={{ done: 12, total: 33 }} />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('progressbar', { name: 'Fetching the card pictures' })).toBeVisible();
   },

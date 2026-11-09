@@ -1,5 +1,5 @@
 /*
- * Fetches and decodes a published image ahead of the `PublishedImage` that will draw it, an organ of `PublishedImage`.
+ * Fetches and decodes published images ahead of the `PublishedImage` that will draw them, for a page that wants every picture in before it goes on, such as a tool's deck before its game starts.
  * The full capture is fetched, and marked decoded, so every `PublishedImage` of it on the page draws that copy from the browser's cache and appears at once.
  */
 
@@ -45,7 +45,12 @@ function preloadPublishedImage(src: string): Promise<void> {
     loading = load(src);
     loads.set(src, loading);
   }
-  return Promise.race([loading, new Promise<void>((resolve) => setTimeout(resolve, MOST_WAIT_MS))]);
+  /* The wait is cleared once the image settles, so an image already in leaves no timer behind. */
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const waited = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, MOST_WAIT_MS);
+  });
+  return Promise.race([loading, waited]).finally(() => clearTimeout(timer));
 }
 
 /** Preloads every image, telling `onProgress` how many are done after each one; resolves once all are. */

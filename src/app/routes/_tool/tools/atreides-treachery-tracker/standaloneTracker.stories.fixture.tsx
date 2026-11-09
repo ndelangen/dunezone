@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import type { CardDef } from '@app/widgets/treachery-tracker/tracker';
@@ -74,50 +74,29 @@ const StorySearch: FactionSearch = ({ seated, onPick }) => {
   );
 };
 
-/*
- * Card pictures coming in over a slow connection: one more every `pace` ms, starting again when the picked decks change.
- * Without a pace every picture is in at once.
- */
-function useStoryFetch(deck: SetupDeck, pace: number | undefined): Fetched {
-  const total = deck.status === 'ready' ? new Set(deck.defs.map((def) => def.face)).size : 0;
-  const key = deck.status === 'ready' ? deck.defs.map((def) => def.key).join(',') : '';
-  const [done, setDone] = useState({ key, done: 0 });
-  useEffect(() => {
-    if (!pace) {
-      return;
-    }
-    const timer = setInterval(() => setDone((was) => ({ key, done: was.key === key ? was.done + 1 : 1 })), pace);
-    return () => clearInterval(timer);
-  }, [key, pace]);
-  if (!pace) {
-    return { done: total, total };
-  }
-  return { done: Math.min(done.key === key ? done.done : 0, total), total };
-}
-
 export function StorySetup({
   deck,
   loading,
-  pace,
+  fetched,
   decks = DECKS,
   onStart = () => {},
 }: Readonly<{
   /** The picked decks' cards as the story fixes them; left out, they follow the decks picked. */
   deck?: SetupDeck;
   loading?: boolean;
-  /** How many ms each card picture takes to come in; left out, they are all in. */
-  pace?: number;
+  /** How many card pictures are in, fixed so a capture is the same every time; left out, they are all in. */
+  fetched?: Fetched;
   decks?: readonly DeckOption[];
   onStart?: () => void;
 }>) {
   const [config, setConfig] = useState<TrackerConfig>({ decks: ['dreamrules'], seats: FACTIONS });
   const shown = deck ?? (loading ? { status: 'loading' as const } : pickedDeck(config.decks));
-  const fetched = useStoryFetch(shown, pace);
+  const total = shown.status === 'ready' ? new Set(shown.defs.map((def) => def.face)).size : 0;
   return (
     <TrackerSetup
       decks={loading ? undefined : decks}
       deck={shown}
-      fetched={fetched}
+      fetched={fetched ?? { done: total, total }}
       config={loading ? { ...config, seats: undefined } : config}
       onChange={setConfig}
       onStart={onStart}

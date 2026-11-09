@@ -286,21 +286,27 @@ async function catalogueEntryBySlug(ctx: QueryCtx, slug: string) {
   return { id: ruleset._id, slug: ruleset.slug, name: ruleset.name, coverThumbUrl: rulesetCoverThumbUrl(ruleset) };
 }
 
-/** The seats the standalone Treachery tracker's setup opens with, one answer for every viewer: the base ruleset and its first factions in its own order. */
+/** What the standalone Treachery tracker's setup opens on, one answer for every viewer: the first rulesets by name, the default and base rulesets, and the base one's first factions as the starting seats. */
 export const trackerToolSetup = publicQuery({
-  args: { baseSlug: v.string(), seats: v.number() },
+  args: { preferredSlug: v.string(), baseSlug: v.string(), seats: v.number() },
   returns: v.object({
+    rulesets: v.array(rulesetCatalogueEntryValidator),
+    preferred: v.union(rulesetCatalogueEntryValidator, v.null()),
     base: v.union(rulesetCatalogueEntryValidator, v.null()),
     /** The base ruleset's first factions in its own order; empty when there is no base ruleset. */
     seats: v.array(orderedFactionValidator),
   }),
   handler: async (ctx, args) => {
-    const base = await catalogueEntryBySlug(ctx, args.baseSlug);
+    const [first, preferred, base] = await Promise.all([
+      loadCataloguePage(ctx, { sort: 'name' }),
+      catalogueEntryBySlug(ctx, args.preferredSlug),
+      catalogueEntryBySlug(ctx, args.baseSlug),
+    ]);
     /* Read past links to deleted factions, so the table still starts with `seats` live factions where the base ruleset has them. */
     const seats = base
       ? (await listOrderedRulesetFactions(ctx, base.id, RULESET_FACTION_LIMIT)).factions.slice(0, args.seats)
       : [];
-    return { base, seats };
+    return { rulesets: first.entries, preferred, base, seats };
   },
 });
 
