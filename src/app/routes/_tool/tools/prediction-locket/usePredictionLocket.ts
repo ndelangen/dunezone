@@ -61,14 +61,16 @@ const storedSchema = z.object({
     .nullable(),
 });
 
-function write(state: LocketState) {
+/* Whether the write held: a private window, or a full storage, may refuse it, and the locket then lasts only this visit. */
+function write(state: LocketState): boolean {
   try {
-    globalThis.localStorage?.setItem(
+    globalThis.localStorage.setItem(
       PREDICTION_LOCKET_STORAGE_KEY,
       JSON.stringify({ ...state, version: STORED_VERSION })
     );
+    return true;
   } catch {
-    /* Private windows may refuse storage; the locket still works for this visit. */
+    return false;
   }
 }
 
@@ -98,8 +100,10 @@ function storageWorks(): boolean {
 /** The locket as this browser keeps it, and the ways to change it. */
 export function usePredictionLocket() {
   const [state, setState] = useState<LocketState>(() => read() ?? FRESH);
-  const [kept] = useState(storageWorks);
-  useEffect(() => write(state), [state]);
+  const [kept, setKept] = useState(storageWorks);
+  useEffect(() => {
+    write(state);
+  }, [state]);
   /* Another tab of the tool changed the locket: take its state, so this tab never writes an older one over a lock made there. */
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -114,16 +118,26 @@ export function usePredictionLocket() {
   const pickTurn = useCallback((turn: number) => setState((now) => ({ ...now, turn })), []);
   const pickTimeZone = useCallback((timeZone: string) => setState((now) => ({ ...now, timeZone })), []);
   /* Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way. */
-  const lock = useCallback(
-    (prediction: Omit<LockedPrediction, 'revealed'>) =>
-      /* A lock another tab made while this one waited for the time wins: this tab's late answer never replaces it. */
-      setState((now) =>
-        now.locked
-          ? now
-          : { faction: null, turn: null, timeZone: prediction.timeZone, locked: { ...prediction, revealed: false } }
-      ),
-    []
-  );
+  const lock = useCallback((prediction: Omit<LockedPrediction, 'revealed'>) => {
+    /*
+     * Checked against what is stored, not this tab's state: another tab's lock may be saved before its storage event reaches this tab.
+     * That lock wins, and this tab's late answer never replaces it.
+     */
+    const stored = read();
+    if (stored?.locked) {
+      setState(stored);
+      return;
+    }
+    const next: LocketState = {
+      faction: null,
+      turn: null,
+      timeZone: prediction.timeZone,
+      locked: { ...prediction, revealed: false },
+    };
+    /* Saved at once, so the locked view knows whether a reload would keep it. */
+    setKept(write(next));
+    setState(next);
+  }, []);
   const reveal = useCallback(
     () => setState((now) => (now.locked ? { ...now, locked: { ...now.locked, revealed: true } } : now)),
     []

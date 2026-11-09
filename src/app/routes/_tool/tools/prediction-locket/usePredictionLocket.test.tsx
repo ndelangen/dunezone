@@ -16,3 +16,32 @@ test('a late lock never replaces a lock already made, here or in another tab', (
   act(() => result.current.lock({ faction: atreides, turn: 1, timeZone: 'Europe/Amsterdam', lockedAt: 2 }));
   expect(result.current.state.locked).toMatchObject({ faction: fremen, turn: 6, lockedAt: 1 });
 });
+
+test("a lock another tab saved, before its storage event arrives here, wins over this tab's late answer", () => {
+  const { result } = renderHook(() => usePredictionLocket());
+  const other = { faction: null, turn: null, timeZone: 'Europe/Amsterdam', version: 2 };
+  window.localStorage.setItem(
+    PREDICTION_LOCKET_STORAGE_KEY,
+    JSON.stringify({
+      ...other,
+      locked: { faction: fremen, turn: 6, timeZone: 'Europe/Amsterdam', lockedAt: 1, revealed: false },
+    })
+  );
+  act(() => result.current.lock({ faction: atreides, turn: 1, timeZone: 'Europe/Amsterdam', lockedAt: 2 }));
+  expect(result.current.state.locked).toMatchObject({ faction: fremen, turn: 6, lockedAt: 1 });
+});
+
+test('says when the prediction itself could not be saved', () => {
+  const { result } = renderHook(() => usePredictionLocket());
+  const setItem = Storage.prototype.setItem;
+  Storage.prototype.setItem = () => {
+    throw new Error('QuotaExceededError');
+  };
+  try {
+    act(() => result.current.lock({ faction: fremen, turn: 6, timeZone: 'Europe/Amsterdam', lockedAt: 1 }));
+  } finally {
+    Storage.prototype.setItem = setItem;
+  }
+  expect(result.current.kept).toBe(false);
+  expect(result.current.state.locked).toMatchObject({ faction: fremen, turn: 6 });
+});
