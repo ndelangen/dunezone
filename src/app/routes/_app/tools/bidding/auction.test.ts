@@ -66,3 +66,17 @@ describe('the auction', () => {
     expect(toBid(game)).toBe('c');
   });
 });
+
+describe('offline voice', () => {
+  it('bids only on a number straight after “bid”', async () => {
+    const { readSpoken } = await import('./offlineHearing');
+    expect(readSpoken('bid 4')).toEqual({ kind: 'bid', amount: 4 });
+    expect(readSpoken('Bid four')).toEqual({ kind: 'bid', amount: 4 });
+    expect(readSpoken('bid for')).toEqual({ kind: 'bid', amount: 4 });
+    expect(readSpoken('bid12')).toEqual({ kind: 'bid', amount: 12 });
+    expect(readSpoken('four')).toEqual({ kind: 'other' });
+    expect(readSpoken('I have 4 cards')).toEqual({ kind: 'other' });
+    expect(readSpoken('pass')).toEqual({ kind: 'pass' });
+    expect(readSpoken('reset')).toEqual({ kind: 'reset' });
+  });
+});

@@ -9,6 +9,7 @@ import type { FactionSearch } from '@app/widgets/treachery-tracker/TrackerConfig
 import { freshAuction, midAuction, STORY_DECK, STORY_FACTIONS } from './auction.stories.fixture';
 import { GavelClock as GavelClockTool } from './GavelClock';
 import { LinkedRemote, LinkedTable, LinkedTablet } from './LinkedTable';
+import { OfflineVoice } from './OfflineVoice';
 import { PassThePhone as PassThePhoneTool } from './PassThePhone';
 import { BidderPhone, PhonesAtTheTable } from './PhonesAtTheTable';
 import { RefereeScript } from './RefereeScript';
@@ -240,5 +241,38 @@ export const LinkedPhone = meta.story({
   ),
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Which faction are you?')).toBeVisible();
+  },
+});
+
+/** H. The linked table's tablet while bidding, at iPad size: the table on the left, the call and what it heard on the right. */
+export const LinkedTabletBidding = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  render: () => (
+    <LinkedTablet
+      storageKey="bidding-story-linked-tablet-bidding"
+      {...linked}
+      started={{ setup: { seats: STORY_FACTIONS, seconds: 15, ruleset: 'gf9' }, linked: [0, 1, 2, 3, 4, 5] }}
+    />
+  ),
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Atreides to bid')).toBeVisible();
+  },
+});
+
+/** I. Offline voice on a phone: no remotes, no network. Say bid and a number, pass, or reset; or tap a phrase. */
+export const OfflineVoicePhone = meta.story({
+  render: () => <OfflineVoice storageKey="bidding-story-offline-phone" initial={midAuction()} />,
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: '“bid 3”' }));
+    await expect(canvas.getByText('Fremen?')).toBeVisible();
+  },
+});
+
+/** I. Offline voice on an iPad lying in the middle of the table. */
+export const OfflineVoiceTablet = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  render: () => <OfflineVoice storageKey="bidding-story-offline-tablet" initial={midAuction()} />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Spacing Guild?')).toBeVisible();
   },
 });

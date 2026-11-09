@@ -273,7 +273,6 @@ function LinkedBidding({
 }>) {
   const session = useAuctionGame(storageKey, initial);
   const { game } = session;
-  const motion = useMotionAllowed();
   const [voice, setVoice] = useState(false);
   useAuctioneerVoice(game, voice);
   const [heard, setHeard] = useState<readonly HeardLine[]>([]);
@@ -309,8 +308,6 @@ function LinkedBidding({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- a new bid to call is what plays
   }, [key]);
 
-  const count = game.seats.length;
-  const angleOf = (index: number) => (360 / count) * index;
   const turn = seatOf(game, toBid(game));
   const fraction = seconds > 0 ? left / (seconds * 1000) : 1;
   return (
@@ -326,37 +323,7 @@ function LinkedBidding({
         </LabeledAction>
       </AuctionHeader>
       <main className={styles.linkedBody}>
-        <div className={styles.arena}>
-          {game.seats.map((seat, index) => (
-            <div
-              key={seat.faction.id}
-              className={styles.arenaSeat}
-              data-turn={index === turnIndex || undefined}
-              style={{ '--angle': `${angleOf(index)}deg` } as CSSProperties}
-            >
-              <SeatToken game={game} seat={seat} size={index === turnIndex ? 58 : 44} />
-              <span className={styles.arenaName}>
-                {shortName(seat.faction)}
-                {linked.includes(index) ? <Smartphone size={12} aria-label="Phone linked" /> : null}
-              </span>
-            </div>
-          ))}
-          {turnIndex >= 0 ? (
-            <div
-              className={styles.arrow}
-              data-motion={motion || undefined}
-              style={{ '--angle': `${angleOf(turnIndex)}deg` } as CSSProperties}
-              aria-hidden
-            />
-          ) : null}
-          <div
-            className={styles.arenaMiddle}
-            data-low={(seconds > 0 && fraction < 0.34) || undefined}
-            style={{ '--left': fraction } as CSSProperties}
-          >
-            <CardUp game={game} size={78} />
-          </div>
-        </div>
+        <Arena game={game} linked={linked} fraction={fraction} low={seconds > 0 && fraction < 0.34} />
         <div className={styles.arenaCall}>
           {turn ? (
             <>
@@ -536,6 +503,50 @@ export function LinkedRemote({
             Link again
           </LabeledAction>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The table seen from above: every faction round the edge in seat order, an arrow from the middle to the one whose bid it is, and the card in the middle inside a ring that drains with the bid timer.
+ */
+export function Arena({
+  game,
+  linked = [],
+  fraction = 1,
+  low = false,
+}: Readonly<{ game: AuctionGame; linked?: readonly number[]; fraction?: number; low?: boolean }>) {
+  const motion = useMotionAllowed();
+  const count = game.seats.length;
+  const angleOf = (index: number) => (360 / count) * index;
+  const turnIndex = game.seats.findIndex((seat) => seat.faction.id === toBid(game));
+  return (
+    <div className={styles.arena}>
+      {game.seats.map((seat, index) => (
+        <div
+          key={seat.faction.id}
+          className={styles.arenaSeat}
+          data-turn={index === turnIndex || undefined}
+          style={{ '--angle': `${angleOf(index)}deg` } as CSSProperties}
+        >
+          <SeatToken game={game} seat={seat} size={index === turnIndex ? 58 : 44} />
+          <span className={styles.arenaName}>
+            {shortName(seat.faction)}
+            {linked.includes(index) ? <Smartphone size={12} aria-label="Phone linked" /> : null}
+          </span>
+        </div>
+      ))}
+      {turnIndex >= 0 ? (
+        <div
+          className={styles.arrow}
+          data-motion={motion || undefined}
+          style={{ '--angle': `${angleOf(turnIndex)}deg` } as CSSProperties}
+          aria-hidden
+        />
+      ) : null}
+      <div className={styles.arenaMiddle} data-low={low || undefined} style={{ '--left': fraction } as CSSProperties}>
+        <CardUp game={game} size={78} />
       </div>
     </div>
   );

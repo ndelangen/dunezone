@@ -1042,3 +1042,70 @@
 .remoteFaction[data-suggested] {
   border-color: var(--ui-highlight);
 }
+
+/* I: offline voice. One column on a phone; on a tablet, the table on the left and what it hears on the right. */
+.offlineBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-md);
+  container-type: inline-size;
+}
+
+.offlineStage,
+.offlineSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.engine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 6px;
+  background: var(--ui-recess);
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.engine[data-state="on"] {
+  color: var(--ui-positive);
+}
+
+.engine[data-state="off"] {
+  color: var(--ui-caution);
+}
+
+/* A tablet, held either way: the table and its arrow get the left half, everything said and heard the right. */
+@media (min-width: 700px) {
+  .offlineBody {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+    padding: var(--space-lg);
+  }
+
+  .linkedBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: var(--space-lg);
+  }
+
+  .linkedBody > .arena {
+    grid-row: span 4;
+  }
+
+  .arena {
+    width: min(100%, 520px);
+  }
+
+  .hugeCall {
+    font-size: 56px;
+  }
+}
