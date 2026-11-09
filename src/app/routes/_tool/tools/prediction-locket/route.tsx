@@ -11,7 +11,6 @@ import { ChevronRight, Eye, Lock, LockOpen, MapPin, Minus, Plus, RotateCcw, Sear
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
-import { readLockTime } from '@app/db/predictionLocketTool';
 import { useTrackerToolSetup } from '@app/db/rulesets';
 import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
@@ -21,6 +20,7 @@ import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treach
 import { Token } from '@game/assets/faction/token/Token';
 
 import styles from './route.module.css';
+import { readServerTime } from './serverTime';
 import {
   cityOf,
   knownCities,
@@ -58,7 +58,7 @@ function PredictionLocketPage() {
       </PageLayout.Header>
       <PageLayout.Content width="viewport">
         <ClientOnly fallback={<div className={styles.tool} />}>
-          <PredictionLocketTool starting={StartingFactions} search={FactionSearchLive} lockTime={readLockTime} />
+          <PredictionLocketTool starting={StartingFactions} search={FactionSearchLive} lockTime={readServerTime} />
         </ClientOnly>
       </PageLayout.Content>
     </PageLayout>
@@ -95,7 +95,7 @@ type FactionSearch = ComponentType<Readonly<{ picked: string | null; onPick: (fa
 type ToolProps = Readonly<{
   starting: StartingFactionsReader;
   search: FactionSearch;
-  /** Asks Dune Zone for the time now; the lock waits for it, and never uses the phone's own clock. */
+  /** Asks the server for the time now; the lock waits for it, and never uses the phone's own clock. */
   lockTime: () => Promise<number>;
 }>;
 
