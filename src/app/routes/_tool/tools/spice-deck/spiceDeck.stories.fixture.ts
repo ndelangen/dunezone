@@ -66,5 +66,5 @@ export function storyGame(
   return andNext ? nextTurn(game, random) : game;
 }
 
-/* A seed whose third turn brings Shai-Hulud on both piles, so the stories show worms and a Nexus. */
+/* A seed whose third turn brings Shai-Hulud on both piles, so the stories show worms. */
 const STORY_SEED = 2;

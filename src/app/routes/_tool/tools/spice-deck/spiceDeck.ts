@@ -2,8 +2,8 @@
  * The spice deck tool's game: a spice deck run for a table that plays with everything but the cards.
  * Each tap turns one card over onto the spice pile the players chose (the rulebook plays two, A and B), whatever the card;
  * the players decide what happens next (Norbert, 2026-11-09). A Shai-Hulud notes the territory of the spice card below it
- * on its pile, which it devours, and one after the first turn brings a Nexus. A card the players set aside, as the rules
- * ask of a Shai-Hulud on the first turn, goes back into the deck when the next turn starts. An empty deck is made again
+ * on its pile, which it devours; whether a Nexus follows is the ruleset's, so the players call it. A card the players set
+ * aside, as the rules ask of a Shai-Hulud on the first turn, goes back into the deck when the next turn starts. An empty deck is made again
  * from all the spice piles, shuffled.
  * Pure and serialisable: the page keeps it in the browser's own storage, and every step is undoable.
  */
@@ -242,10 +242,6 @@ export function nextTurn(game: SpiceDeckGame, random: Random): SpiceDeckGame {
   const draw = game.setAside.length > 0 ? shuffled([...game.draw, ...game.setAside], random) : game.draw;
   return { ...game, draw, setAside: [], turn: game.turn + 1 };
 }
-
-/** Whether a Nexus follows this turn's Spice Blow: a Shai-Hulud came up after the first turn. */
-export const nexus = (game: SpiceDeckGame, turn = game.turn) =>
-  turn > 1 && game.blows.some((blow) => blow.turn === turn && blow.reveals.some((reveal) => reveal.kind === 'worm'));
 
 export const blowsOfTurn = (game: SpiceDeckGame, turn = game.turn) => game.blows.filter((blow) => blow.turn === turn);
 
