@@ -14,7 +14,7 @@ import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 import { playGame, savedGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import { TrackerGame, TrackerSetup } from '@app/widgets/treachery-tracker/StandaloneTracker';
-import type { PhoneLayout, SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
+import type { SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { cardDefs } from '@app/widgets/treachery-tracker/tracker';
 import type { TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
 
@@ -38,9 +38,6 @@ export const Route = createFileRoute('/_app/tools/atreides-treachery-tracker/')(
     }),
   component: TreacheryTrackerPage,
 });
-
-/* How the tracker sits on a phone; Norbert picks between the options in Storybook. */
-const LAYOUT: PhoneLayout = 'column';
 
 /* Rulesets with more factions than this are rare; the setup lists the first ones in the Ruleset's order. */
 const FACTION_LIMIT = 40;
@@ -76,7 +73,6 @@ function TreacheryTrackerPage() {
           {game ? (
             <TrackerGame
               game={game}
-              layout={LAYOUT}
               onAction={(action) => keep(playGame(game, action))}
               onTurn={(turn) => keep({ ...game, turn })}
               onClear={() => keep(null)}

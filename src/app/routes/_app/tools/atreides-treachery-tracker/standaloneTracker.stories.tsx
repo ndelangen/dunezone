@@ -5,7 +5,7 @@ import { expect, within } from 'storybook/test';
 import { db } from '@db/storybook';
 import { playGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
-import type { PhoneLayout, SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
+import type { SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { TrackerGame, TrackerSetup } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 import type { TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
@@ -21,12 +21,11 @@ function midGame(): StandaloneGame {
 }
 
 /* A game the story can play: every action and turn change lands, as the page's saved game would. */
-function PlayableGame({ layout }: Readonly<{ layout: PhoneLayout }>) {
+function PlayableGame() {
   const [game, setGame] = useState(midGame);
   return (
     <TrackerGame
       game={game}
-      layout={layout}
       onAction={(action) => setGame((was) => playGame(was, action))}
       onTurn={(turn) => setGame((was) => ({ ...was, turn }))}
       onClear={() => setGame(startGame(RULESETS[0]!, FACTIONS, DREAMRULES_DECK))}
@@ -66,27 +65,11 @@ const meta = preview.meta({
   globals: { viewport: { value: 'appMobile' } },
 });
 
-/** Option A: one long column, top to bottom: the card on bid, the auction, every hand, the deck. */
-export const OneColumn = meta.story({
-  render: () => <PlayableGame layout="column" />,
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('region', { name: 'Hands' })).toBeVisible();
-  },
-});
-
-/** Option B: the card on bid stays pinned under the turn while the auction, hands and deck scroll beneath it. */
-export const BidPinned = meta.story({
-  render: () => <PlayableGame layout="pinned" />,
+/** A game in turn 2 at a physical table: the turn, the Ruleset and the card on bid stay pinned while the auction, hands and deck scroll beneath. */
+export const Tracker = meta.story({
+  render: () => <PlayableGame />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('region', { name: 'On bid' })).toBeVisible();
-  },
-});
-
-/** Option C: tabs along the bottom, one part of the tracker at a time: Bidding, Hands, Deck. */
-export const TabsAtTheBottom = meta.story({
-  render: () => <PlayableGame layout="tabs" />,
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).queryByRole('region', { name: 'Hands' })).not.toBeInTheDocument();
   },
 });
 

@@ -3,9 +3,7 @@ import { Pending } from '@ui/content/Pending';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
-import { Layers, Minus, Play, Plus, RotateCcw, Swords, Users } from 'lucide-react';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { Minus, Play, Plus, RotateCcw } from 'lucide-react';
 
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
 
@@ -108,32 +106,22 @@ function DeckLine({ deck }: Readonly<{ deck: SetupDeck }>) {
   );
 }
 
-/** How the tracker sits on a phone: one long column, the card on bid pinned above the rest, or tabs along the bottom. */
-export type PhoneLayout = 'column' | 'pinned' | 'tabs';
-
-type Tab = Readonly<{ id: string; label: string; icon: ReactNode; sections: readonly TrackerSection[] }>;
-
-const TABS: readonly Tab[] = [
-  { id: 'bidding', label: 'Bidding', icon: <Swords size={17} />, sections: ['bid', 'auctions'] },
-  { id: 'hands', label: 'Hands', icon: <Users size={17} />, sections: ['hands'] },
-  { id: 'deck', label: 'Deck', icon: <Layers size={17} />, sections: ['deck'] },
-];
-
-/** A game being tracked: its Ruleset and turn above the tracker, drawn for a phone. */
+/**
+ * A game being tracked, drawn for a phone in the layout Norbert picked of three on 2026-11-09.
+ * The turn, the Ruleset and the card on bid stay pinned at the top.
+ * The auction, hands and deck scroll beneath them.
+ */
 export function TrackerGame({
   game,
-  layout = 'column',
   onAction,
   onTurn,
   onClear,
 }: Readonly<{
   game: StandaloneGame;
-  layout?: PhoneLayout;
   onAction: (action: TrackerAction) => void;
   onTurn: (turn: number) => void;
   onClear: () => void;
 }>) {
-  const [tab, setTab] = useState(TABS[0]!.id);
   const tracker = (sections?: readonly TrackerSection[]) => (
     <AuctionTracker
       factions={game.factions}
@@ -145,58 +133,37 @@ export function TrackerGame({
   );
   return (
     <TrackerTouch>
-      <div className={styles.game} data-layout={layout}>
-        <header className={styles.bar}>
-          <div className={styles.turn}>
-            <IconAction
-              label="Turn before"
-              icon={<Minus size={17} />}
-              size="lg"
-              emphasis="quiet"
-              disabledReason={game.turn > 1 ? undefined : 'This is the first turn.'}
-              onClick={() => onTurn(game.turn - 1)}
-            />
-            <Text fw={700} className={styles.turnLabel} aria-live="polite">
-              {`Turn ${game.turn}`}
+      <div className={styles.game}>
+        <div className={styles.pinned}>
+          <header className={styles.bar}>
+            <div className={styles.turn}>
+              <IconAction
+                label="Turn before"
+                icon={<Minus size={17} />}
+                size="lg"
+                emphasis="quiet"
+                disabledReason={game.turn > 1 ? undefined : 'This is the first turn.'}
+                onClick={() => onTurn(game.turn - 1)}
+              />
+              <Text fw={700} className={styles.turnLabel} aria-live="polite">
+                {`Turn ${game.turn}`}
+              </Text>
+              <IconAction
+                label="Next turn"
+                icon={<Plus size={17} />}
+                size="lg"
+                emphasis="quiet"
+                onClick={() => onTurn(game.turn + 1)}
+              />
+            </div>
+            <Text size="sm" className={styles.ruleset} truncate>
+              {game.ruleset.name}
             </Text>
-            <IconAction
-              label="Next turn"
-              icon={<Plus size={17} />}
-              size="lg"
-              emphasis="quiet"
-              onClick={() => onTurn(game.turn + 1)}
-            />
-          </div>
-          <Text size="sm" className={styles.ruleset} truncate>
-            {game.ruleset.name}
-          </Text>
-          <HoldAction label="Clear this game" verb="clear" icon={<RotateCcw size={17} />} onConfirm={onClear} />
-        </header>
-        {layout === 'column' ? tracker() : null}
-        {layout === 'pinned' ? (
-          <>
-            <div className={styles.pinned}>{tracker(['bid'])}</div>
-            {tracker(['auctions', 'hands', 'deck'])}
-          </>
-        ) : null}
-        {layout === 'tabs' ? (
-          <>
-            {tracker(TABS.find((entry) => entry.id === tab)!.sections)}
-            <nav className={styles.tabs} aria-label="Tracker parts">
-              {TABS.map((entry) => (
-                <LabeledAction
-                  key={entry.id}
-                  icon={entry.icon}
-                  size="md"
-                  pressed={entry.id === tab}
-                  onClick={() => setTab(entry.id)}
-                >
-                  {entry.label}
-                </LabeledAction>
-              ))}
-            </nav>
-          </>
-        ) : null}
+            <HoldAction label="Clear this game" verb="clear" icon={<RotateCcw size={17} />} onConfirm={onClear} />
+          </header>
+          {tracker(['bid'])}
+        </div>
+        {tracker(['auctions', 'hands', 'deck'])}
       </div>
     </TrackerTouch>
   );

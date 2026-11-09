@@ -107,6 +107,7 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Track every Treachery card through bidding, hands and discards, so the Atreides, or anyone, knows what is left in the deck.',
     icon: Eye,
+    art: '/tools/atreides-treachery-tracker.webp',
     group: 'During the game',
     issue: 2795,
     built: true,
