@@ -39,7 +39,7 @@ function load(src: string): Promise<void> {
  * it never rejects.
  * Asking again for an image already loaded or loading returns the same promise.
  */
-function preloadPublishedImage(src: string): Promise<void> {
+export function preloadPublishedImage(src: string): Promise<void> {
   let loading = loads.get(src);
   if (!loading) {
     loading = load(src);
@@ -54,7 +54,7 @@ function preloadPublishedImage(src: string): Promise<void> {
 }
 
 /** Preloads every image, telling `onProgress` how many are done after each one; resolves once all are. */
-async function preloadPublishedImages(
+export async function preloadPublishedImages(
   srcs: readonly string[],
   onProgress?: (done: number, total: number) => void
 ): Promise<void> {
