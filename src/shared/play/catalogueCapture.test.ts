@@ -146,50 +146,21 @@ describe('playReadiness', () => {
 });
 
 describe('captureTreacheryDeck', () => {
-  it('reads a ruleset without a board, which a game refuses but the standalone tracker needs only the deck of', async () => {
-    const capture = catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } });
-    await expect(capture.captureRuleset('kiss')).rejects.toThrow('This ruleset has no usable board.');
-    await expect(capture.captureTreacheryDeck('kiss')).resolves.toBeNull();
-  });
+  const ref = { id: 'treachery-deck', slug: 'treachery-deck', name: 'Cards' };
 
-  it('captures the slotted deck of a ruleset without a board', async () => {
+  it('captures any deck by itself, with no Ruleset around it', async () => {
     const deck = deckSupply('treachery-deck', [cardSupply('card-one'), cardSupply('card-two')]);
-    const capture = catalogue({
-      rulesets: {
-        kiss: {
-          ruleset: kiss,
-          board: null,
-          slots: [
-            { slot: 'treachery', asset: { id: 'treachery-deck', slug: 'treachery-deck', name: 'Cards', type: 'deck' } },
-          ],
-        },
-      },
-      assets: { 'treachery-deck': deck },
-    });
-    const captured = await capture.captureTreacheryDeck('kiss');
-    expect(captured?.asset).toMatchObject({ id: 'treachery-deck', type: 'deck' });
-    expect(captured?.contents?.members).toEqual([
+    const captured = await catalogue({ assets: { 'treachery-deck': deck } }).captureTreacheryDeck(ref);
+    expect(captured.asset).toMatchObject({ id: 'treachery-deck', type: 'deck' });
+    expect(captured.contents?.members).toEqual([
       { assetId: 'card-one', count: 2 },
       { assetId: 'card-two', count: 2 },
     ]);
   });
 
-  it('says why a slotted deck cannot be used, rather than calling it missing', async () => {
-    const capture = catalogue({
-      rulesets: {
-        kiss: {
-          ruleset: kiss,
-          board: null,
-          slots: [{ slot: 'treachery', asset: { id: 'cards', slug: 'cards', name: 'Cards', type: 'deck' } }],
-        },
-      },
-    });
-    await expect(capture.captureTreacheryDeck('kiss')).rejects.toThrow(
-      'The Treachery deck cannot be used. This asset has no complete playable definition.'
+  it('says why a deck cannot be used', async () => {
+    await expect(catalogue({}).captureTreacheryDeck(ref)).rejects.toThrow(
+      'Cards cannot be used. This asset has no complete playable definition.'
     );
-  });
-
-  it('refuses a ruleset the catalogue does not have', async () => {
-    await expect(catalogue({}).captureTreacheryDeck('gone')).rejects.toThrow('This ruleset is not available.');
   });
 });

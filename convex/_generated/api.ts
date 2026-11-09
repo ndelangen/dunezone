@@ -182,6 +182,7 @@ import type * as slugAllocationTesting from "../slugAllocationTesting.js";
 import type * as spiceDeckTool from "../spiceDeckTool.js";
 import type * as statistics from "../statistics.js";
 import type * as steamAuth from "../steamAuth.js";
+import type * as treacheryTrackerTool from "../treacheryTrackerTool.js";
 import type * as types from "../types.js";
 
 import type {
@@ -366,6 +367,7 @@ const fullApi: ApiFromModules<{
   spiceDeckTool: typeof spiceDeckTool;
   statistics: typeof statistics;
   steamAuth: typeof steamAuth;
+  treacheryTrackerTool: typeof treacheryTrackerTool;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;
 

@@ -93,26 +93,17 @@ export class CatalogueCapture {
   }
 
   /**
-   * The ruleset's Treachery deck alone, captured as a game keeps it, or null when it has none.
-   * A slotted deck that cannot be captured is refused with its first problem.
-   * The standalone Treachery tracker copies only this deck, so it neither needs a board nor waits for the other slots.
+   * One deck of Treachery cards on its own, captured as a game keeps a Ruleset's, for the standalone Treachery tracker, which lets a player pick any such deck, several at once, Ruleset or not.
+   * A deck that cannot be captured is refused with its first problem.
    */
-  async captureTreacheryDeck(rulesetId: string): Promise<RulesetCapture['decks']['treachery']> {
-    const supply = rulesetSupplySchema.nullable().parse(await this.reads.rulesetSupply(rulesetId));
-    if (!supply) {
-      throw new GameRejection('This ruleset is not available.');
-    }
-    if (!supply.slots.some((entry) => entry.slot === 'treachery')) {
-      return null;
-    }
-    /* A deck that is slotted but cannot be used says why, so the player is not told the Ruleset has none. */
+  async captureTreacheryDeck(deck: Readonly<{ id: string; slug: string; name: string }>): Promise<SlotCapture> {
     const problems: CaptureProblem[] = [];
-    const [deck] = await this.captureSlots('treachery', supply, problems);
+    const captured = await this.captureSlot('treachery', { ...deck, type: 'deck' }, problems);
     const [problem] = problems;
     if (problem) {
-      throw new GameRejection(`The Treachery deck cannot be used. ${problem.reason}`);
+      throw new GameRejection(`${deck.name} cannot be used. ${problem.reason}`);
     }
-    return deck ?? null;
+    return captured;
   }
 
   /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */

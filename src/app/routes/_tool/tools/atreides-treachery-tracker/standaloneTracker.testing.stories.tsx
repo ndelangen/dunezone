@@ -31,6 +31,35 @@ export const AddAFaction = meta.story({
   },
 });
 
+/** Two decks at once: ticking another deck adds its cards to the tracker's, and unticking every deck leaves nothing to start. */
+export const PickTwoDecks = meta.story({
+  render: () => <StorySetup />,
+  play: async ({ canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'Ixian Tech Cards' }));
+    await expect(canvas.getByText(/^A Treachery deck of \d+ cards, 39 different\.$/)).toBeVisible();
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'Dreamrules Treachery' }));
+    await userEvent.click(canvas.getByRole('checkbox', { name: 'Ixian Tech Cards' }));
+    await expect(canvas.getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
+      'Pick at least one Treachery deck.'
+    );
+  },
+});
+
+/** The game waits for every card picture, so no card shows before its face can. */
+export const WaitsForThePictures = meta.story({
+  args: { onStart: fn() },
+  render: ({ onStart }) => <StorySetup pace={60_000} onStart={onStart} />,
+  play: async ({ args, canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    const start = canvas.getByRole('button', { name: 'Start tracking' });
+    await expect(start).toHaveAccessibleDescription('The card pictures are still coming in.');
+    await expect(canvas.getByText(/Fetching the cards · 0 of \d+$/)).toBeVisible();
+    await userEvent.click(start);
+    await expect(args.onStart).not.toHaveBeenCalled();
+  },
+});
+
 /** Removing factions down to one: the tracker needs at least two at the table. */
 export const TooFewFactions = meta.story({
   args: { onStart: fn() },

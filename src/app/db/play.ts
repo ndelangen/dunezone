@@ -279,37 +279,62 @@ export async function requestPlayAdmission(gameId: string, { renew = false }: { 
   }
 }
 
-/** A Ruleset's Treachery deck as a game would capture it: loading, its cards, none where the Ruleset has no deck, or why it could not be read. */
+/** The picked Treachery decks as a game would capture them: loading, their cards together, or why one could not be read. */
 export type TreacheryDeckRead =
   | { status: 'loading' }
-  | { status: 'read'; cards: TreacheryDeckCard[] | null }
+  | { status: 'read'; cards: TreacheryDeckCard[] }
   | { status: 'failed'; reason: string };
 
+/** A deck of Treachery cards as the tracker names it to read its cards. */
+export type TreacheryDeckRef = Readonly<{ id: string; slug: string; name: string }>;
+
+/* Each deck read once a page session, so picking another deck beside it does not read it again; a failed read is dropped so a later pick asks again. */
+const deckReads = new Map<string, Promise<TreacheryDeckCard[]>>();
+
+function readTreacheryDeck(deck: TreacheryDeckRef): Promise<TreacheryDeckCard[]> {
+  let read = deckReads.get(deck.id);
+  if (!read) {
+    read = browserCatalogue()
+      .captureTreacheryDeck(deck)
+      .then((captured) => treacheryCardsOf(captured) ?? []);
+    read.catch(() => deckReads.delete(deck.id));
+    deckReads.set(deck.id, read);
+  }
+  return read;
+}
+
+/** Several decks' cards as one deck: a card in two decks is one card with the copies of both. */
+export function joinTreacheryDecks(decks: readonly (readonly TreacheryDeckCard[])[]): TreacheryDeckCard[] {
+  const cards = new Map<string, TreacheryDeckCard>();
+  for (const card of decks.flat()) {
+    const was = cards.get(card.key);
+    cards.set(card.key, was ? { ...was, count: was.count + card.count } : card);
+  }
+  return [...cards.values()];
+}
+
 /**
- * The Treachery deck of `rulesetId`, captured once by the game's own capture code, for a tracker at a physical table.
- * A one-off read: the deck a tracker starts from is copied, so a later edit to the Ruleset need not reach it.
+ * The picked decks' cards, each captured once by the game's own capture code, for a tracker at a physical table.
+ * One-off reads: the deck a tracker starts from is copied, so a later edit to a deck need not reach it.
  */
-export function useTreacheryDeck(rulesetId: string | null): TreacheryDeckRead {
-  const [answered, setAnswered] = useState<{ rulesetId: string; read: TreacheryDeckRead } | null>(null);
+export function useTreacheryDecks(decks: readonly TreacheryDeckRef[]): TreacheryDeckRead {
+  const key = decks.map((deck) => deck.id).join(',');
+  const [answered, setAnswered] = useState<{ key: string; read: TreacheryDeckRead } | null>(null);
   useEffect(() => {
-    if (rulesetId === null) {
-      return;
-    }
     let current = true;
-    const answer = (read: TreacheryDeckRead) => current && setAnswered({ rulesetId, read });
-    browserCatalogue()
-      .captureTreacheryDeck(rulesetId)
-      .then(
-        (deck) => answer({ status: 'read', cards: treacheryCardsOf(deck) }),
-        (error: unknown) =>
-          answer({
-            status: 'failed',
-            reason: error instanceof Error ? error.message : 'The Treachery deck could not be read.',
-          })
-      );
+    const answer = (read: TreacheryDeckRead) => current && setAnswered({ key, read });
+    /* Each deck is read once a page session, so a new array naming the same decks costs nothing. */
+    Promise.all(decks.map(readTreacheryDeck)).then(
+      (cards) => answer({ status: 'read', cards: joinTreacheryDecks(cards) }),
+      (error: unknown) =>
+        answer({
+          status: 'failed',
+          reason: error instanceof Error ? error.message : 'A Treachery deck could not be read.',
+        })
+    );
     return () => {
       current = false;
     };
-  }, [rulesetId]);
-  return answered?.rulesetId === rulesetId ? answered.read : { status: 'loading' };
+  }, [key, decks]);
+  return answered?.key === key ? answered.read : { status: 'loading' };
 }

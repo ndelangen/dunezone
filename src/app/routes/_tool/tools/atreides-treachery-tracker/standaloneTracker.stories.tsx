@@ -8,11 +8,13 @@ import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treacher
 import { playGame, startGame } from './standaloneGame';
 import type { StandaloneGame } from './standaloneGame';
 import { TrackerGame } from './StandaloneTracker';
-import { RULESETS, StorySetup } from './standaloneTracker.stories.fixture';
+import { StorySetup } from './standaloneTracker.stories.fixture';
+
+const DECKS = [{ id: 'dreamrules', name: 'Dreamrules Treachery' }];
 
 /* The story game in turn 2, mid-auction, as a phone at a physical table keeps it. */
 function midGame(): StandaloneGame {
-  return { ...startGame(RULESETS[0]!, FACTIONS, DREAMRULES_DECK), turn: 2, state: midGameTracker() };
+  return { ...startGame(DECKS, FACTIONS, DREAMRULES_DECK), turn: 2, state: midGameTracker() };
 }
 
 /* A game the story can play: every action and turn change lands, as the page's saved game would. */
@@ -23,7 +25,7 @@ function PlayableGame() {
       game={game}
       onAction={(action) => setGame((was) => playGame(was, action))}
       onTurn={(turn) => setGame((was) => ({ ...was, turn }))}
-      onClear={() => setGame(startGame(RULESETS[0]!, FACTIONS, DREAMRULES_DECK))}
+      onClear={() => setGame(startGame(DECKS, FACTIONS, DREAMRULES_DECK))}
     />
   );
 }
@@ -42,7 +44,7 @@ const meta = preview.meta({
   globals: { viewport: { value: 'appMobile' } },
 });
 
-/** A game in turn 2 at a physical table: the turn, the Ruleset and the card on bid stay pinned while the auction, hands and deck scroll beneath. */
+/** A game in turn 2 at a physical table: the turn, the decks and the card on bid stay pinned while the auction, hands and deck scroll beneath. */
 export const Tracker = meta.story({
   render: () => <PlayableGame />,
   play: async ({ canvasElement }) => {
@@ -50,21 +52,39 @@ export const Tracker = meta.story({
   },
 });
 
-/** Setting up: the Ruleset whose deck is tracked, and the factions at the table in seat order, the base six to start with. */
+/** Setting up: every Treachery deck, ticked on or off, the Dreamrules deck to start with, and the factions at the table in seat order. */
 export const SetUp = meta.story({
-  render: () => <StorySetup deck={{ status: 'ready', defs: DREAMRULES_DECK }} />,
+  render: () => <StorySetup />,
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByText('A Treachery deck of 45 cards, 33 different.')).toBeVisible();
-    await expect(within(canvasElement).getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('checkbox', { name: 'Dreamrules Treachery' })).toBeChecked();
+    await expect(canvas.getByText('A Treachery deck of 45 cards, 33 different.')).toBeVisible();
+    await expect(canvas.getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
   },
 });
 
-/** A Ruleset without a Treachery deck cannot be tracked, and says so. */
+/** Setting up with the picked decks listed, and a sheet that adds another deck: the other way to pick several decks. */
+export const SetUpWithSheet = meta.story({
+  render: () => <StorySetup layout="sheet" />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Remove Dreamrules Treachery' })).toBeVisible();
+  },
+});
+
+/** The moment the decks are picked every card picture is fetched, and the bar fills as they come in; the game starts once they are all in. */
+export const FetchingTheCards = meta.story({
+  render: () => <StorySetup pace={180} />,
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('progressbar', { name: 'Fetching the card pictures' })).toBeVisible();
+  },
+});
+
+/** With no deck ticked there is nothing to track, and Start says so. */
 export const NoDeck = meta.story({
-  render: () => <StorySetup deck={{ status: 'missing', reason: 'This Ruleset has no Treachery deck.' }} />,
+  render: () => <StorySetup deck={{ status: 'missing', reason: 'Pick at least one Treachery deck.' }} />,
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
-      'This Ruleset has no Treachery deck.'
+      'Pick at least one Treachery deck.'
     );
   },
 });

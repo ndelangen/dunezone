@@ -80,7 +80,7 @@ export const TreacheryTrackerInPlay = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   beforeEach: () => {
     savedGame.set({
-      ...startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DREAMRULES_DECK),
+      ...startGame([{ id: 'dreamrules', name: 'Dreamrules' }], FACTIONS, DREAMRULES_DECK),
       turn: 2,
       state: midGameTracker(),
     });

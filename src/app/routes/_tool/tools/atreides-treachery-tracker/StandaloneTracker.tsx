@@ -1,4 +1,5 @@
 import { Text } from '@mantine/core';
+import { FetchProgress } from '@ui/content/FetchProgress';
 import { HoldAction } from '@ui/control/HoldAction';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -13,62 +14,59 @@ import type { CardDef, TrackerAction } from '@app/widgets/treachery-tracker/trac
 import type { StandaloneGame } from './standaloneGame';
 import styles from './StandaloneTracker.module.css';
 import { TrackerConfigPanel } from './TrackerConfig';
-import type { FactionSearch, TrackerConfig } from './TrackerConfig';
+import type { DeckLayout, DeckOption, FactionSearch, TrackerConfig } from './TrackerConfig';
 
 /*
- * The Treachery tracker on its own, for a game at a physical table (#2795): set up from a Ruleset, then tracked on a phone.
- * Nothing here reads the server; the page hands it the Rulesets, the chosen one's deck and factions, and the saved game.
+ * The Treachery tracker on its own, for a game at a physical table (#2795): set up from any Treachery decks, then tracked on a phone.
+ * Nothing here reads the server; the page hands it the decks, the picked ones' cards, how many card pictures are in, the factions, and the saved game.
  */
 
-/** The chosen Ruleset's Treachery deck as the setup sees it. */
+/** The picked decks' cards together, as the setup sees them. */
 export type SetupDeck =
   | Readonly<{ status: 'loading' }>
   | Readonly<{ status: 'ready'; defs: readonly CardDef[] }>
   | Readonly<{ status: 'missing'; reason: string }>;
 
-/** The setup: the Ruleset, the factions at the table in seat order, and the start. */
+/** How many of the picked decks' card pictures are in. */
+export type Fetched = Readonly<{ done: number; total: number }>;
+
+/** The setup: the decks, the factions at the table in seat order, and the start, once every card picture is in. */
 export function TrackerSetup({
-  rulesets,
+  decks,
   deck,
+  fetched,
   config,
   onChange,
   onStart,
   search,
-  onRulesetSearch,
+  layout,
 }: Readonly<{
-  rulesets: readonly { id: string; name: string }[];
+  /** Every deck the tracker can copy; undefined while they load. */
+  decks: readonly DeckOption[] | undefined;
   deck: SetupDeck;
+  /** The picked decks' card pictures fetched so far, so a table on a slow connection sees how far along it is. */
+  fetched: Fetched;
   config: TrackerConfig;
   onChange: (config: TrackerConfig) => void;
   onStart: () => void;
   search: FactionSearch;
-  onRulesetSearch: (query: string) => void;
+  layout?: DeckLayout;
 }>) {
-  const reason =
-    deck.status === 'loading' || config.seats === undefined
-      ? 'The Ruleset is still loading.'
-      : deck.status === 'missing'
-        ? deck.reason
-        : config.seats.length < 2
-          ? 'Seat at least two factions.'
-          : undefined;
+  const fetching = deck.status === 'ready' && fetched.done < fetched.total;
   return (
     <TouchSurface>
       <div className={styles.setup}>
-        <TrackerConfigPanel
-          rulesets={rulesets}
-          config={config}
-          onChange={onChange}
-          onRulesetSearch={onRulesetSearch}
-          search={search}
-        />
+        <TrackerConfigPanel decks={decks} config={config} onChange={onChange} search={search} layout={layout} />
         <div className={styles.start}>
-          <DeckLine deck={deck} />
+          <DeckLine deck={deck} fetched={fetched} />
+          {fetching ? (
+            <FetchProgress label="Fetching the card pictures" done={fetched.done} total={fetched.total} />
+          ) : null}
           <LabeledAction
             emphasis="strong"
             size="lg"
             icon={<Play size={17} />}
-            disabledReason={reason}
+            disabledReason={startReason(config, deck, fetching)}
             onClick={onStart}
           >
             Start tracking
@@ -79,26 +77,37 @@ export function TrackerSetup({
   );
 }
 
-/* What the tracker will start with: the deck's size, or why there is none. */
-function DeckLine({ deck }: Readonly<{ deck: SetupDeck }>) {
-  if (deck.status === 'loading') {
-    return (
-      <Text size="sm" className={styles.dim}>
-        Reading the Treachery deck…
-      </Text>
-    );
+/* Why the game cannot start yet, or undefined once it can: every card picture is in before it does, as the spice deck waits. */
+function startReason(config: TrackerConfig, deck: SetupDeck, fetching: boolean): string | undefined {
+  if (config.decks.length === 0) {
+    return 'Pick at least one Treachery deck.';
+  }
+  if (deck.status === 'loading' || config.seats === undefined) {
+    return 'The decks are still loading.';
   }
   if (deck.status === 'missing') {
+    return deck.reason;
+  }
+  if (config.seats.length < 2) {
+    return 'Seat at least two factions.';
+  }
+  return fetching ? 'The card pictures are still coming in.' : undefined;
+}
+
+/* What the tracker will start with: the decks' size and how many card pictures are in, or why there are no cards. */
+function DeckLine({ deck, fetched }: Readonly<{ deck: SetupDeck; fetched: Fetched }>) {
+  if (deck.status !== 'ready') {
     return (
       <Text size="sm" className={styles.dim}>
-        {deck.reason}
+        {deck.status === 'loading' ? 'Reading the Treachery decks…' : deck.reason}
       </Text>
     );
   }
   const copies = deck.defs.reduce((sum, def) => sum + def.count, 0);
+  const size = `A Treachery deck of ${copies} cards, ${deck.defs.length} different.`;
   return (
     <Text size="sm" className={styles.dim}>
-      {`A Treachery deck of ${copies} cards, ${deck.defs.length} different.`}
+      {fetched.done < fetched.total ? `${size} Fetching the cards · ${fetched.done} of ${fetched.total}` : size}
     </Text>
   );
 }
@@ -107,7 +116,7 @@ function DeckLine({ deck }: Readonly<{ deck: SetupDeck }>) {
  * A game being tracked, on a phone held in one hand.
  * The card on bid and the turn sit at the foot of the screen, under the thumb.
  * The auction, hands and deck scroll above them.
- * The Ruleset and the clear action sit at the top, out of the thumb's way.
+ * The decks and the clear action sit at the top, out of the thumb's way.
  * The screen stays on while the game is open, so the phone is ready when it is picked up.
  */
 export function TrackerGame({
@@ -136,7 +145,7 @@ export function TrackerGame({
       <div className={styles.game}>
         <header className={styles.bar}>
           <Text size="sm" className={styles.ruleset} truncate>
-            {game.ruleset.name}
+            {game.decks.map((deck) => deck.name).join(' + ')}
           </Text>
           <HoldAction
             label="Clear this game"
