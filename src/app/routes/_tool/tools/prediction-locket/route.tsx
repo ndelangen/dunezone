@@ -1,6 +1,6 @@
 import { ScrollArea, TextInput, UnstyledButton } from '@mantine/core';
-import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Pending } from '@ui/content/Pending';
 import { IconAction } from '@ui/control/IconAction';
@@ -10,14 +10,12 @@ import { ChevronRight, Eye, Lock, LockOpen, MapPin, Minus, Plus, RotateCcw, Sear
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
-import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { readLockTime } from '@app/db/predictionLocketTool';
 import { useTrackerToolSetup } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
+import { LiveFactionSearch } from '@app/routes/_tool/tools/LiveFactionSearch';
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
-import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
-import type { FactionSearchStatus } from '@app/widgets/treachery-tracker/FactionSearchList';
 import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { Token } from '@game/assets/faction/token/Token';
 
@@ -75,35 +73,10 @@ function StartingFactions({
   return children(useStartingFactions());
 }
 
-/* Every faction on Dune Zone, searched by name, each with its published token. */
-const FactionSearchLive: FactionSearch = ({ picked, onPick }) => {
-  const [query, setQuery] = useState('');
-  const read = useCataloguePickerGroup('faction', query.trim(), undefined);
-  const factions = read.results.flatMap((choice) =>
-    choice.kind === 'faction'
-      ? [{ id: choice.id, name: choice.faction.data.name, src: publishedHref('faction-token', choice.id) }]
-      : []
-  );
-  const status: FactionSearchStatus =
-    read.status === 'LoadingFirstPage'
-      ? 'loading'
-      : read.status === 'CanLoadMore'
-        ? 'more'
-        : read.status === 'LoadingMore'
-          ? 'loading-more'
-          : 'done';
-  return (
-    <FactionSearchList
-      query={query}
-      onQuery={setQuery}
-      factions={factions}
-      seated={picked ? [picked] : []}
-      status={status}
-      onMore={() => read.loadMore(12)}
-      onPick={onPick}
-    />
-  );
-};
+/* Every faction on Dune Zone, searched by name; the one picked is ticked. */
+const FactionSearchLive: FactionSearch = ({ picked, onPick }) => (
+  <LiveFactionSearch seated={picked ? [picked] : []} onPick={onPick} />
+);
 
 type StartingFactionsReader = ComponentType<
   Readonly<{ children: (factions: readonly LocketFaction[] | undefined) => ReactNode }>
@@ -117,6 +90,28 @@ type ToolProps = Readonly<{
   lockTime: () => Promise<number>;
 }>;
 
+/*
+ * How long Lock waits for Dune Zone's time. A phone without signal would otherwise wait for good, as the client keeps the request
+ * and sends it on reconnecting, and a time stamped minutes later is not the moment the player tapped Lock.
+ */
+const LOCK_TIMEOUT_MS = 10_000;
+
+function withinTime<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timed out')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
+    );
+  });
+}
+
 function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
   const { state, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear } = usePredictionLocket();
   const timeZone = state.timeZone ?? phoneTimeZone();
@@ -126,10 +121,15 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
   const locked = state.locked;
 
   const onLock = async () => {
+    const { faction, turn } = state;
+    if (!faction || !turn || locking) {
+      return;
+    }
     setLocking(true);
     setFailed(false);
     try {
-      lock(await lockTime(), timeZone);
+      /* The prediction as it stood when Lock was tapped: the picks are held still until the time comes back. */
+      lock({ faction, turn, timeZone, lockedAt: await withinTime(lockTime(), LOCK_TIMEOUT_MS) });
     } catch {
       setFailed(true);
     } finally {
@@ -159,16 +159,16 @@ function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
           <LockedView locked={locked} onReveal={reveal} onNew={clear} />
         ) : (
           <>
-            <main className={styles.body}>
+            <main className={styles.body} inert={locking}>
               <PickFaction starting={starting} search={search} picked={state.faction} onPick={pickFaction} />
               <PickTurn turn={state.turn} onPick={pickTurn} />
               <PickCity timeZone={timeZone} onPick={pickTimeZone} />
             </main>
             <footer className={styles.dock}>
               {failed ? (
-                <p className={styles.problem} role="alert">
+                <FormError title="Not locked">
                   Dune Zone could not be reached for the time, so nothing was locked. Try again.
-                </p>
+                </FormError>
               ) : null}
               <LabeledAction
                 icon={<Lock size={18} />}
@@ -395,6 +395,7 @@ function PickCity({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (ti
             className={styles.city}
             onClick={() => setOpen(true)}
             aria-label={`Your city: ${city.name}`}
+            aria-describedby="locket-city-why"
           >
             <MapPin size={20} />
             <span className={styles.cityWords}>
@@ -438,7 +439,6 @@ function CitySearch({ timeZone, onPick }: Readonly<{ timeZone: string; onPick: (
     : cities;
   return (
     <div className={styles.citySearch}>
-      <p className={styles.why}>{CITY_WHY}</p>
       <TextInput
         type="search"
         aria-label="Search cities"

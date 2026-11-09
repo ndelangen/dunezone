@@ -19,3 +19,7 @@ test('offers every city the browser knows, by name', () => {
   expect(names).toContain('Amsterdam');
   expect(names).toEqual(names.toSorted((a, b) => a.localeCompare(b)));
 });
+
+test('a zone this browser cannot show reads in UTC, rather than losing the lock', () => {
+  expect(lockTimeText(locked, 'Mars/Olympus_Mons', 'en-GB')).toBe('Mon 9 Nov, 18:14');
+});

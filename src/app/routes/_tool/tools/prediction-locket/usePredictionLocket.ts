@@ -43,27 +43,19 @@ export const TURNS = 10;
 const FRESH: LocketState = { faction: null, turn: null, timeZone: null, locked: null };
 
 const STORED_VERSION = 2;
-/* A zone this browser cannot show a time in reads as nothing stored, rather than breaking the page. */
-const zoneSchema = z.string().refine((zone) => {
-  try {
-    new Intl.DateTimeFormat(undefined, { timeZone: zone });
-    return true;
-  } catch {
-    return false;
-  }
-});
+
 const factionSchema = z.looseObject({ id: z.string(), name: z.string() });
 const storedSchema = z.object({
   version: z.literal(STORED_VERSION),
   faction: factionSchema.nullable(),
   turn: z.number().int().min(1).nullable(),
-  timeZone: zoneSchema.nullable(),
+  timeZone: z.string().nullable(),
   locked: z
     .object({
       faction: factionSchema,
       turn: z.number().int().min(1),
       lockedAt: z.number(),
-      timeZone: zoneSchema,
+      timeZone: z.string(),
       revealed: z.boolean(),
     })
     .nullable(),
@@ -95,21 +87,28 @@ function read(): LocketState | null {
 export function usePredictionLocket() {
   const [state, setState] = useState<LocketState>(() => read() ?? FRESH);
   useEffect(() => write(state), [state]);
+  /* Another tab of the tool changed the locket: take its state, so this tab never writes an older one over a lock made there. */
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === PREDICTION_LOCKET_STORAGE_KEY) {
+        setState(read() ?? FRESH);
+      }
+    };
+    globalThis.addEventListener?.('storage', onStorage);
+    return () => globalThis.removeEventListener?.('storage', onStorage);
+  }, []);
   const pickFaction = useCallback((faction: LocketFaction) => setState((now) => ({ ...now, faction })), []);
   const pickTurn = useCallback((turn: number) => setState((now) => ({ ...now, turn })), []);
   const pickTimeZone = useCallback((timeZone: string) => setState((now) => ({ ...now, timeZone })), []);
+  /* Locks the prediction as it stood when Lock was tapped, never the picks made while the time was on its way. */
   const lock = useCallback(
-    (lockedAt: number, timeZone: string) =>
-      setState((now) =>
-        now.faction && now.turn
-          ? {
-              faction: null,
-              turn: null,
-              timeZone,
-              locked: { faction: now.faction, turn: now.turn, lockedAt, timeZone, revealed: false },
-            }
-          : now
-      ),
+    (prediction: Omit<LockedPrediction, 'revealed'>) =>
+      setState({
+        faction: null,
+        turn: null,
+        timeZone: prediction.timeZone,
+        locked: { ...prediction, revealed: false },
+      }),
     []
   );
   const reveal = useCallback(
@@ -132,8 +131,18 @@ export function lockTimeText(lockedAt: number, timeZone: string, locale?: string
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone,
+    timeZone: shownZone(timeZone),
   }).format(lockedAt);
+}
+
+/* A zone this browser cannot show a time in, kept from a browser that could, falls back to UTC rather than losing the lock. */
+function shownZone(timeZone: string): string {
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone });
+    return timeZone;
+  } catch {
+    return 'UTC';
+  }
 }
 
 export type City = Readonly<{ timeZone: string; name: string; region: string }>;
@@ -148,16 +157,19 @@ export function cityOf(timeZone: string): City {
   };
 }
 
-/** Every city this browser knows a time zone for, by name. */
+/** Every city this browser knows a time zone for, by name; an older browser that cannot list them offers the phone's own and UTC. */
 export function knownCities(): readonly City[] {
-  const zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : ['UTC'];
-  return zones
-    .filter((zone) => zone.includes('/'))
+  const zones =
+    typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [phoneTimeZone(), 'UTC'];
+  return [...new Set(zones)]
+    .filter((zone) => zone.includes('/') || zone === 'UTC')
     .map(cityOf)
     .toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 /** The phone's own time zone, offered until the player names a city: a setting the player can see, not its clock. */
 export function phoneTimeZone(): string {
-  return new Intl.DateTimeFormat().resolvedOptions().timeZone;
+  /* Older engines answer undefined. */
+  const zone = new Intl.DateTimeFormat().resolvedOptions().timeZone as string | undefined;
+  return zone ? shownZone(zone) : 'UTC';
 }
