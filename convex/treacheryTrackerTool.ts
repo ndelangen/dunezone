@@ -8,12 +8,23 @@ import { resolveBackHref } from './lib/assetBacks';
 import { assetDisplayName } from './lib/assetInput';
 import type { CardbackPresetMemo } from './lib/cardbackPresets';
 
-/* Far more Treachery cards than the catalogue holds, kept low enough that the whole answer stays inside one query's database calls. */
+/* Far more Treachery cards than the catalogue holds. */
 const CARD_LIMIT = 1000;
 /* Every deck a card was ever put in, deleted decks included, since deleting a deck keeps its rows; far more than any card is in. */
 const DECKS_PER_CARD = 500;
 /* At most this many reads in flight at once, well inside what one query may run together. */
 const READS_AT_ONCE = 200;
+/* Rulesets read to put their Treachery decks first; far more than the catalogue holds. */
+const RULESET_LIMIT = 500;
+/*
+ * The rows one answer may read, well inside the 32,000 a query may read.
+ * Past it the answer lists the decks counted so far, a Ruleset's deck first, rather than failing and listing none.
+ */
+const READ_BUDGET = 24_000;
+/* At most this much of the budget goes to finding decks, so some is always left to count them. */
+const FIND_BUDGET = 10_000;
+/* The most a deck's Rulesets and back read besides its cards. */
+const READS_PER_DECK = 60;
 /* A Ruleset for trying things out, never named to a table. */
 const HIDDEN_RULESETS = new Set(['test']);
 
@@ -29,6 +40,9 @@ const treacheryDeckChoiceValidator = v.object({
   rulesets: v.array(v.object({ slug: v.string(), name: v.string() })),
 });
 
+/* The rows this answer may still read. */
+type Budget = { left: number };
+
 /* Each item read in turn of batches, so a large catalogue never has more than READS_AT_ONCE reads in flight. */
 async function inBatches<T, R>(items: readonly T[], read: (item: T) => Promise<R>): Promise<R[]> {
   const results: R[] = [];
@@ -38,42 +52,83 @@ async function inBatches<T, R>(items: readonly T[], read: (item: T) => Promise<R
   return results;
 }
 
+/* The decks the live Rulesets slot as their Treachery deck, so they are counted first and never left out. */
+async function rulesetDecks(ctx: QueryCtx, budget: Budget) {
+  const rulesets = (await ctx.db.query('rulesets').take(RULESET_LIMIT)).filter((ruleset) => !ruleset.is_deleted);
+  budget.left -= rulesets.length;
+  const slots = await inBatches(rulesets, (ruleset) =>
+    ctx.db
+      .query('ruleset_asset_slots')
+      .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', ruleset._id).eq('slot', 'treachery'))
+      .take(10)
+  );
+  budget.left -= slots.flat().length;
+  return slots.flat().map((slot) => slot.asset_id);
+}
+
 /*
- * Every live deck holding a live Treachery card: found from the cards, so a deck that mixes card types is found whatever its first card is.
+ * The decks holding a live Treachery card: found from the cards, so a deck that mixes card types is found whatever its first card is.
  * Also hands back each card row read on the way, so counting a deck's copies does not read them again.
+ * Reads no more than FIND_BUDGET rows; a catalogue past that finds the decks of its first cards.
  */
-async function decksWithTreachery(ctx: QueryCtx) {
+async function decksWithTreachery(ctx: QueryCtx, budget: Budget) {
   const cards = await ctx.db
     .query('assets')
     .withIndex('by_type_deleted', (q) => q.eq('type', 'card-treachery').eq('is_deleted', false))
     .take(CARD_LIMIT);
+  budget.left -= cards.length;
   const known = new Map<Id<'assets'>, Doc<'assets'> | null>(cards.map((card) => [card._id, card]));
-  const memberships = await inBatches(cards, (card) =>
-    ctx.db
-      .query('asset_relations')
-      .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
-      .take(DECKS_PER_CARD)
-  );
-  const ids = [...new Set(memberships.flat().map((membership) => membership.from_asset_id))];
-  const decks = await inBatches(ids, (id) => ctx.db.get('assets', id));
-  return {
-    decks: decks.filter((deck): deck is Doc<'assets'> => deck !== null && !deck.is_deleted && deck.type === 'deck'),
-    known,
-  };
+  const found: Id<'assets'>[] = [];
+  let findLeft = Math.min(FIND_BUDGET, budget.left);
+  for (let start = 0; start < cards.length; start += READS_AT_ONCE) {
+    const batch = cards.slice(start, start + READS_AT_ONCE);
+    const each = Math.min(DECKS_PER_CARD, Math.floor(findLeft / batch.length));
+    if (each < 1) {
+      break;
+    }
+    const memberships = await Promise.all(
+      batch.map((card) =>
+        ctx.db
+          .query('asset_relations')
+          .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
+          .take(each)
+      )
+    );
+    const read = memberships.flat();
+    findLeft -= read.length;
+    budget.left -= read.length;
+    found.push(...read.map((membership) => membership.from_asset_id));
+  }
+  return { found, known };
 }
 
 /*
  * The deck's live copies of every card, by the rule the capture reads its members by (a deleted card adds none), so the count matches the cards the tracker copies.
  * A card already read, for this deck or another, is not read again.
+ * Undefined when the budget runs out before the whole deck is counted.
  */
-async function copiesIn(ctx: QueryCtx, deck: Doc<'assets'>, known: Map<Id<'assets'>, Doc<'assets'> | null>) {
+async function copiesIn(
+  ctx: QueryCtx,
+  deck: Doc<'assets'>,
+  known: Map<Id<'assets'>, Doc<'assets'> | null>,
+  budget: Budget
+) {
+  const most = Math.min(DECK_CARD_LIMIT, budget.left);
   const relations = await ctx.db
     .query('asset_relations')
     .withIndex('by_from_kind', (q) => q.eq('from_asset_id', deck._id).eq('kind', DECK_CARD))
-    .take(DECK_CARD_LIMIT);
+    .take(most + 1);
+  budget.left -= relations.length;
+  if (relations.length > most) {
+    return undefined;
+  }
   let total = 0;
   for (const relation of relations) {
     if (!known.has(relation.to_asset_id)) {
+      if (budget.left < 1) {
+        return undefined;
+      }
+      budget.left -= 1;
       known.set(relation.to_asset_id, await ctx.db.get('assets', relation.to_asset_id));
     }
     const card = known.get(relation.to_asset_id);
@@ -106,12 +161,29 @@ export const decks = publicQuery({
   args: {},
   returns: v.array(treacheryDeckChoiceValidator),
   handler: async (ctx) => {
-    const { decks: rows, known } = await decksWithTreachery(ctx);
+    const budget: Budget = { left: READ_BUDGET };
+    const slotted = await rulesetDecks(ctx, budget);
+    const { found, known } = await decksWithTreachery(ctx, budget);
     const presets: CardbackPresetMemo = new Map();
-    /* A deck at a time, so a card two decks share is read once and the reads stay few. */
+    /* A deck at a time, a Ruleset's first, so a card two decks share is read once and the budget ends on whole decks. */
     const choices = [];
-    for (const row of rows) {
-      const cards = await copiesIn(ctx, row, known);
+    for (const id of new Set([...slotted, ...found])) {
+      if (budget.left < READS_PER_DECK) {
+        break;
+      }
+      budget.left -= READS_PER_DECK;
+      const row = await ctx.db.get('assets', id);
+      if (!row || row.is_deleted || row.type !== 'deck') {
+        continue;
+      }
+      const cards = await copiesIn(ctx, row, known, budget);
+      if (cards === undefined) {
+        break;
+      }
+      /* A deck with no live card left in it has nothing to track. */
+      if (cards === 0) {
+        continue;
+      }
       const [back, rulesets] = await Promise.all([resolveBackHref(ctx, row, presets), treacheryRulesets(ctx, row)]);
       choices.push({
         id: row._id,

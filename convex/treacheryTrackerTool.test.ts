@@ -122,3 +122,80 @@ test('finds a live deck behind many deleted decks that held the same card', asyn
   const decks = await t.query(api.treacheryTrackerTool.decks, {});
   expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
 });
+
+test('lists the decks it can count within a query’s reads, a Ruleset’s deck among them, when the catalogue is far larger', async () => {
+  const t = applicationTest({ transactionLimits: true });
+  const { owner, cards } = await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    const cards = [];
+    for (let index = 0; index < 45; index++) {
+      cards.push(
+        await ctx.db.insert('assets', {
+          owner_id: owner,
+          type: 'card-treachery',
+          data: publishingTreacheryCard,
+          slug: `card-${index}`,
+          created_at: stamp,
+          updated_at: stamp,
+          is_deleted: false,
+          group_id: null,
+        })
+      );
+    }
+    return { owner, cards };
+  });
+  const deckIds: Id<'assets'>[] = [];
+  for (let batch = 0; batch < 20; batch++) {
+    deckIds.push(
+      ...(await t.run(async (ctx) => {
+        const made = [];
+        for (let index = 0; index < 20; index++) {
+          const number = batch * 20 + index;
+          const deck = await ctx.db.insert('assets', {
+            owner_id: owner,
+            type: 'deck',
+            data: {
+              name: `Deck ${String(number).padStart(3, '0')}`,
+              about: '',
+              cardback: publishingCustomDeckCardback,
+            },
+            slug: `deck-${number}`,
+            created_at: stamp,
+            updated_at: stamp,
+            is_deleted: false,
+            group_id: null,
+          });
+          for (const card of cards) {
+            await ctx.db.insert('asset_relations', {
+              from_asset_id: deck,
+              to_asset_id: card,
+              kind: 'deck-card',
+              count: 1,
+            });
+          }
+          made.push(deck);
+        }
+        return made;
+      }))
+    );
+  }
+  const slotted = deckIds.at(-1)!;
+  await t.run(async (ctx) => {
+    const ruleset = await ctx.db.insert('rulesets', {
+      name: 'Dreamrules',
+      slug: 'dreamrules',
+      about: '',
+      owner_id: owner,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+      created_at: stamp,
+      updated_at: stamp,
+    });
+    await ctx.db.insert('ruleset_asset_slots', { ruleset_id: ruleset, asset_id: slotted, slot: 'treachery' });
+  });
+  const decks = await t.query(api.treacheryTrackerTool.decks, {});
+  expect(decks.length).toBeGreaterThan(20);
+  expect(decks[0]).toMatchObject({ id: slotted, cards: 45, rulesets: [{ slug: 'dreamrules', name: 'Dreamrules' }] });
+  expect(decks.every((deck) => deck.cards === 45)).toBe(true);
+}, 60_000);
