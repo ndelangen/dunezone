@@ -50,7 +50,9 @@ function storedTracker(fresh: TrackerState) {
 function restored(key: string, defs: readonly CardDef[], factions: readonly string[]): Kept {
   const fresh = newTracker(defs, factions);
   try {
-    const stored: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null');
+    const raw: unknown = JSON.parse(window.localStorage.getItem(key) ?? 'null');
+    /* A tracker saved before the table was followed is the bare state, with nothing followed yet. */
+    const stored = raw && typeof raw === 'object' && !('state' in raw) ? { state: raw } : raw;
     if (!storedTracker(fresh).safeParse(stored).success) {
       return { state: fresh, memory: undefined };
     }
@@ -70,47 +72,59 @@ function save(key: string, kept: Kept) {
   }
 }
 
-/* One store per storage key, so the panel and the table's follower share the same tracker. */
-const stores = new Map<string, TrackerStore>();
+/*
+ * One store per storage key, so the panel and the table's follower share the same tracker.
+ * A store is made again from storage when the game's deck or its seated factions change, so it never keeps a deck or roster it was first made with.
+ */
+const stores = new Map<string, Readonly<{ basis: string; store: TrackerStore }>>();
 
 /**
  * The tracker kept in this browser under `key`, made on first use from storage or afresh.
  * What the tracker remembers lives in this browser only, per account, game and faction: no other player ever receives it.
+ * Another tab of the same game that saves it is followed here too, so neither tab writes over the other's edits.
  */
 export function trackerStore(key: string, defs: readonly CardDef[], factions: readonly string[]): TrackerStore {
+  const basis = `${defs.map((def) => `${def.key}:${def.count}`).join(',')}|${factions.join(',')}`;
   const existing = stores.get(key);
-  if (existing) {
-    return existing;
+  if (existing?.basis === basis) {
+    return existing.store;
   }
   let kept = restored(key, defs, factions);
   const listeners = new Set<() => void>();
+  const notify = () => listeners.forEach((listener) => listener());
   const set = (next: Kept) => {
     if (next.state === kept.state && next.memory === kept.memory) {
       return;
     }
     kept = next;
     save(key, kept);
-    listeners.forEach((listener) => listener());
+    notify();
   };
   const store: TrackerStore = {
     get: () => kept,
     subscribe: (listener) => {
+      if (listeners.size === 0) {
+        window.addEventListener('storage', onStorage);
+      }
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0) {
+          window.removeEventListener('storage', onStorage);
+        }
+      };
     },
     dispatch: (action) => set({ ...kept, state: trackerReducer(kept.state, action) }),
-    follow: (facts) => {
-      const followed = followTable(kept.state, kept.memory, facts);
-      set(sameMemory(kept.memory, followed.memory) ? { ...kept, state: followed.state } : followed);
-    },
+    follow: (facts) => set(followTable(kept.state, kept.memory, facts)),
   };
-  stores.set(key, store);
+  function onStorage(event: StorageEvent) {
+    if (event.key === key) {
+      kept = restored(key, defs, factions);
+      notify();
+    }
+  }
+  stores.set(key, { basis, store });
   return store;
-}
-
-/* A read that followed nothing new keeps the memory it had, so the store does not save or notify for it. */
-function sameMemory(before: TableMemory | undefined, after: TableMemory) {
-  return before !== undefined && JSON.stringify(before) === JSON.stringify(after);
 }
 
 /** The storage key of a seat's tracker: per account, game and faction, so another account on the same browser never opens it. */

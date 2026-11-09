@@ -44,7 +44,7 @@ function useSeatStore(client: TableSession, table: TableProjection, tracker: Tra
 }
 
 /**
- * Follows the live table for the seat's tracker while the game runs, whether or not the panel is open (#2794): peeks, the bidder, the seat's own hand, hand counts and face-up cards fill the tracker in.
+ * Follows the live table for the seat's tracker while the game runs, whether or not the panel is open (#2794): a peek at the card up for bid puts it up for bid.
  * It renders nothing;
  * a review or a checkpoint shown from the past is never followed.
  */

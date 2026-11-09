@@ -4,7 +4,7 @@
  * A peek is followed once per table card, so reading the same table again, or after a reload, changes nothing,
  * and a card dismissed as never up for bid stays dismissed.
  */
-import { reservedCards, trackerReducer, unplaced } from './tracker';
+import { onBid, reservedCards, trackerReducer, unplaced } from './tracker';
 import type { TrackerState } from './tracker';
 
 /** A card on the table as the viewer sees it: the table's item id and the face it shows. */
@@ -31,19 +31,28 @@ function freeCopy(state: TrackerState, face: string): string | undefined {
   return state.copies.find((copy) => copy.def.face === face && free.has(copy.id) && !reserved.has(copy.id))?.id;
 }
 
-/** The tracker after reading the table once more: a peek at a card it has not followed yet puts that card up for bid. */
+/**
+ * The tracker after reading the table once more: a peek at a card it has not followed yet puts that card up for bid, or names the unknown card already on bid.
+ * A read that puts nothing up for bid hands back the same tracker and memory, so nothing is saved for it;
+ * a peek at a card with no copy left is tried again on the next read, in case the player frees one.
+ */
 export function followTable(
   state: TrackerState,
   memory: TableMemory | undefined,
   { turn, peek }: TableFacts
-): Readonly<{ state: TrackerState; memory: TableMemory }> {
+): Readonly<{ state: TrackerState; memory: TableMemory | undefined }> {
   const peeked = memory?.peeked ?? [];
-  if (!peek || peeked.includes(peek.item)) {
-    return { state, memory: { peeked } };
+  const card = peek && !peeked.includes(peek.item) ? freeCopy(state, peek.face) : undefined;
+  if (!peek || !card) {
+    return { state, memory };
   }
-  const card = freeCopy(state, peek.face);
+  /* The unknown card already on bid, put up by hand before the peek, is the card peeked at: it is named, not bid again. */
+  const unknown = onBid(state);
   return {
-    state: card ? trackerReducer(state, { kind: 'bid', card, turn }) : state,
+    state: trackerReducer(
+      state,
+      unknown?.card === null ? { kind: 'name', sighting: unknown.id, card } : { kind: 'bid', card, turn }
+    ),
     memory: { peeked: [...peeked, peek.item].slice(-MEMORY_LIMIT) },
   };
 }
