@@ -1,4 +1,3 @@
-import { publishedHref } from '@shared/asset-publishing/publicationTargets';
 import { SPICE_STRENGTH_TIERS } from '@shared/play/battleDialing';
 import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
@@ -13,12 +12,10 @@ import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
 import { readWheelFaction, useBattleWheelRulesets } from '@app/db/battleWheelTool';
-import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useOrderedRulesetFactions } from '@app/db/rulesets';
+import { LiveFactionSearch } from '@app/pickers/LiveFactionSearch';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
-import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
-import type { FactionSearchStatus } from '@app/widgets/treachery-tracker/FactionSearchList';
 import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
 import { LeaderToken } from '@game/assets/faction/leader/Leader';
 import { Token } from '@game/assets/faction/token/Token';
@@ -133,35 +130,7 @@ async function loadFaction(faction: Readonly<{ id: string; name: string }>) {
   return loaded;
 }
 
-/* Every faction on Dune Zone, searched by name, each with its published token. */
-const FactionSearchLive: FactionSearch = ({ seated, onPick }) => {
-  const [query, setQuery] = useState('');
-  const read = useCataloguePickerGroup('faction', query.trim(), undefined);
-  const factions = read.results.flatMap((choice) =>
-    choice.kind === 'faction'
-      ? [{ id: choice.id, name: choice.faction.data.name, src: publishedHref('faction-token', choice.id) }]
-      : []
-  );
-  const status: FactionSearchStatus =
-    read.status === 'LoadingFirstPage'
-      ? 'loading'
-      : read.status === 'CanLoadMore'
-        ? 'more'
-        : read.status === 'LoadingMore'
-          ? 'loading-more'
-          : 'done';
-  return (
-    <FactionSearchList
-      query={query}
-      onQuery={setQuery}
-      factions={factions}
-      seated={seated}
-      status={status}
-      onMore={() => read.loadMore(12)}
-      onPick={onPick}
-    />
-  );
-};
+const FactionSearchLive: FactionSearch = LiveFactionSearch;
 
 /*
  * The battle wheel tool: a phone stands in for the battle wheel at a real table (Norbert, 2026-11-09).
