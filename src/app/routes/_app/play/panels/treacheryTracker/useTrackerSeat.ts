@@ -12,7 +12,11 @@ export type TrackerSeat = Readonly<{ faction: string; cards: readonly TreacheryD
  * The read waits for an authorized connection and is asked again after a reconnect, as a faction's sheet is.
  */
 export function useTrackerSeat(client: TableSession, table: TableProjection): TrackerSeat | null {
-  const { status, treacheryDeck } = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
+  const { status, treacheryDeck, treacheryDeckSeat } = useSyncExternalStore(
+    client.subscribe,
+    client.getSnapshot,
+    client.getSnapshot
+  );
   const seat = table.viewer.viewerSeat ?? null;
   const faction = seat ? seatFaction(table, seat) : undefined;
   useEffect(() => {
@@ -20,5 +24,6 @@ export function useTrackerSeat(client: TableSession, table: TableProjection): Tr
       client.readTreacheryDeck(seat);
     }
   }, [client, faction, seat, status]);
-  return faction && treacheryDeck ? { faction, cards: treacheryDeck } : null;
+  /* A deck read for another seat, before this seat's read goes out, is not this seat's. */
+  return faction && treacheryDeck && treacheryDeckSeat === seat ? { faction, cards: treacheryDeck } : null;
 }

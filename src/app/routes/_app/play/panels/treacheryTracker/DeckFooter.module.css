@@ -1,0 +1,49 @@
+/* The deck's footer: what is left to draw, and the discard pile. */
+
+.dropdown {
+  background: var(--ui-raised);
+  border-color: var(--edge, var(--ui-edge));
+  color: var(--ui-text);
+}
+
+.dim {
+  color: var(--ink-dim, var(--ui-muted));
+}
+
+.caption {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--edge, var(--ui-edge));
+}
+
+.footerDeck {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.discardButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding-inline: var(--space-xs);
+  border-radius: 6px;
+  color: var(--ui-highlight);
+  font-variant-numeric: tabular-nums;
+}
+
+.discardButton:hover,
+.discardButton:focus-visible {
+  background: var(--ui-hover);
+}

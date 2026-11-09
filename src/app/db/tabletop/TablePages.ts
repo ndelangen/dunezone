@@ -83,6 +83,11 @@ export class TablePages {
     return this.deck;
   }
 
+  /* The seat the deck was read for, so a page that just changed seat never shows the deck it read for the seat before. */
+  get treacheryDeckSeat() {
+    return this.deckSeat;
+  }
+
   /* Asks once for the game's Treachery deck; a read that was never answered can be asked again. */
   readTreacheryDeck(seat: string | null) {
     if (seat !== this.deckSeat) {

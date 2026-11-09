@@ -86,6 +86,12 @@ export type TrackerAction =
   | Readonly<{ kind: 'bid'; card: string | null; turn: number }>
   /** A faction won the card on bid: a known card goes to its hand by name, an unknown one as an unknown card. */
   | Readonly<{ kind: 'win'; sighting: string; faction: string }>
+  /** The unknown card on bid turns out to be this one, such as when it is revealed. */
+  | Readonly<{ kind: 'name'; sighting: string; card: string }>
+  /** Nobody bid on the card: it goes back to the deck, and its auction ends without a winner. */
+  | Readonly<{ kind: 'pass'; sighting: string }>
+  /** The card was put up for bid by mistake: it is forgotten. */
+  | Readonly<{ kind: 'cancel'; sighting: string }>
   /** Atreides's line on a faction. */
   | Readonly<{ kind: 'note'; faction: string; text: string }>;
 
@@ -145,7 +151,7 @@ export function copyOf(state: TrackerState, card: string): CardCopy {
 /*
  * A card on bid that was won into a slot names its card through that slot.
  * When the slot leaves its hand, the sighting keeps the slot's card by name and lets go of the slot;
- * a slot taken back as a mistake returns the card to waiting for its winner.
+ * a slot taken back as a mistake returns the card to waiting for its winner, still by the name it was given.
  */
 function releaseSlots(state: TrackerState, slots: ReadonlySet<string>, mistake = false): TrackerState {
   const holds = (sighting: Sighting) => sighting.slot !== undefined && slots.has(sighting.slot);
@@ -164,7 +170,8 @@ function releaseSlots(state: TrackerState, slots: ReadonlySet<string>, mistake =
         return sighting;
       }
       const { slot = '', ...rest } = sighting;
-      return mistake ? rest : { ...rest, card: cards.get(slot) ?? sighting.card, done: true };
+      const card = cards.get(slot) ?? sighting.card;
+      return mistake ? { ...rest, card } : { ...rest, card, done: true };
     }),
   };
 }
@@ -288,7 +295,9 @@ const HANDLERS: Handlers = {
   },
   undo: (state, { faction, slot }) => {
     const taken = findSlot(state, faction, slot);
-    return restoreOrigin(withoutSlot(releaseSlots(state, new Set([slot]), true), faction, slot), taken);
+    const removed = withoutSlot(releaseSlots(state, new Set([slot]), true), faction, slot);
+    /* A winner taken back leaves its card on bid again, in the deck, rather than where the card was before. */
+    return state.seen.some((sighting) => sighting.slot === slot) ? removed : restoreOrigin(removed, taken);
   },
   place: (state, { card, at }) => {
     if (at === 'deck') {
@@ -314,6 +323,23 @@ const HANDLERS: Handlers = {
     const added = card ? addKnown(unnamed, action.faction, card) : addUnknown(unnamed, action.faction);
     return updateSighting(added, id, (entry) => ({ ...entry, card, slot }));
   },
+  name: (state, { sighting, card }) => {
+    const auction = sightingOf(state, sighting);
+    /* The card on bid came from the deck, so it can only be a copy still there and not already on bid. */
+    const free = placeOf(state, card).at === 'deck' && !reservedCards(state).has(card);
+    if (auction.card !== null || !awaitingWinner(state, auction) || !free) {
+      return state;
+    }
+    return updateSighting(state, sighting, (entry) => ({ ...entry, card }));
+  },
+  pass: (state, { sighting }) =>
+    awaitingWinner(state, sightingOf(state, sighting))
+      ? updateSighting(state, sighting, (entry) => ({ ...entry, done: true }))
+      : state,
+  cancel: (state, { sighting }) =>
+    awaitingWinner(state, sightingOf(state, sighting))
+      ? { ...state, seen: state.seen.filter((entry) => entry.id !== sighting) }
+      : state,
   note: (state, { faction, text }) => ({ ...state, notes: { ...state.notes, [faction]: text.slice(0, 120) } }),
 };
 

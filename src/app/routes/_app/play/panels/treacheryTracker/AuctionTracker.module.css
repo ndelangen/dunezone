@@ -4,7 +4,7 @@
  */
 
 .tracker {
-  --unit: 8px;
+  --unit: var(--space-xs);
   --glyph: 36px;
 
   display: flex;
@@ -16,7 +16,7 @@
 .section,
 .onBid,
 .hands {
-  padding-block: calc(var(--unit) * 1.5);
+  padding-block: var(--space-sm);
 }
 
 /* Every section runs to the window's sides, so the rules between them span the whole window. */
@@ -30,10 +30,6 @@
 .section + .hands,
 .hands + .section {
   border-top: 1px solid var(--edge, var(--ui-edge));
-}
-
-.onBid {
-  padding-top: 0;
 }
 
 .caption {
@@ -57,8 +53,9 @@
 /* On bid: the whole card at the left, the question and the tokens beside it. */
 .onBid {
   display: grid;
+  padding-top: 0;
   grid-template-columns: 80px minmax(0, 1fr);
-  gap: calc(var(--unit) * 1.5);
+  gap: var(--space-sm);
   align-items: start;
 }
 
@@ -176,13 +173,13 @@
 .hands {
   display: flex;
   flex-direction: column;
-  gap: calc(var(--unit) * 1.5);
+  gap: var(--space-sm);
 }
 
 .handRow {
   display: grid;
   grid-template-columns: var(--glyph) minmax(0, 1fr) 28px;
-  column-gap: calc(var(--unit) * 1.5);
+  column-gap: var(--space-sm);
   row-gap: 4px;
   align-items: center;
 }

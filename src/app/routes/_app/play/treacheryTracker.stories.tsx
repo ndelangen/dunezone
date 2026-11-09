@@ -1,8 +1,8 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { DREAMRULES_DECK } from '../../../widgets/treachery-tracker/tracker.stories.fixture';
 import { gameMeta, install } from './game.stories.fixture';
+import { DREAMRULES_DECK } from './panels/treacheryTracker/tracker.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { playingSnapshot, productTransport } from './product.stories.fixture';
 

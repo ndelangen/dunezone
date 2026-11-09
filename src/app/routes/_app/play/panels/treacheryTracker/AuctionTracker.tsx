@@ -1,12 +1,12 @@
 import { Popover, Text, TextInput, UnstyledButton } from '@mantine/core';
 import { IconAction } from '@ui/control/IconAction';
-import { ChevronLeft, ChevronRight, CircleHelp, Layers, NotebookPen } from 'lucide-react';
+import { ArrowDownToLine, ChevronLeft, ChevronRight, CircleHelp, Eye, Layers, NotebookPen, X } from 'lucide-react';
 import { useState } from 'react';
 
-import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
-import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
+import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import styles from './AuctionTracker.module.css';
-import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
+import { CardGlyph, CardPreview, UnknownGlyph, faceAt } from './CardArt';
 import { DeckFooter } from './DeckFooter';
 import { awaitingWinner, copyOf, currentTurn, onBid as cardOnBid, sightingCard } from './tracker';
 import type { CardCopy, Sighting, TrackerAction } from './tracker';
@@ -26,7 +26,7 @@ export function AuctionTracker({
   state,
   onAction,
   tableTurn,
-}: TrackerViewProps & Readonly<{ tableTurn?: number | undefined }>) {
+}: TrackerViewProps & Readonly<{ tableTurn?: number }>) {
   return (
     <div className={styles.tracker}>
       <OnBid factions={factions} state={state} onAction={onAction} tableTurn={tableTurn} />
@@ -41,12 +41,7 @@ export function AuctionTracker({
   );
 }
 
-function OnBid({
-  factions,
-  state,
-  onAction,
-  tableTurn,
-}: TrackerViewProps & Readonly<{ tableTurn?: number | undefined }>) {
+function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Readonly<{ tableTurn?: number }>) {
   const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
   const name = card?.def.name ?? 'the unknown card';
@@ -66,6 +61,9 @@ function OnBid({
             label={(faction) => `${faction.name} won ${name}`}
             onPick={(faction) => onAction({ kind: 'win', sighting: onBid.id, faction })}
           />
+        ) : null}
+        {onBid ? (
+          <AuctionEnd sighting={onBid} state={state} onAction={onAction} />
         ) : (
           <Text size="sm" className={styles.dim}>
             Click the empty card to put the next one up for bid.
@@ -77,14 +75,14 @@ function OnBid({
   );
 }
 
-type BidProps = Pick<TrackerViewProps, 'state' | 'onAction'> & Readonly<{ tableTurn?: number | undefined }>;
+type BidProps = Pick<TrackerViewProps, 'state' | 'onAction'> & Readonly<{ tableTurn?: number }>;
 
 /* The card on bid, whole: its face, the unknown mark, or the empty place that picks the next one. */
 function BidCard({ card, waiting, ...bid }: BidProps & Readonly<{ card: CardCopy | null; waiting: boolean }>) {
   if (card) {
     return (
       <CardPreview card={card}>
-        <img src={card.def.face} alt={card.def.name} />
+        <img src={faceAt(card.def.face, 80)} alt={card.def.name} />
       </CardPreview>
     );
   }
@@ -123,6 +121,70 @@ function EmptyBid({ state, onAction, tableTurn }: BidProps) {
         />
       </Popover.Dropdown>
     </Popover>
+  );
+}
+
+/**
+ * The other ways an auction can go: the unknown card turns out to be a card, nobody bids and it goes back to the deck, or it was never up for bid at all.
+ */
+function AuctionEnd({
+  sighting,
+  state,
+  onAction,
+  canName = true,
+}: Pick<TrackerViewProps, 'state' | 'onAction'> &
+  Readonly<{
+    sighting: Sighting;
+    /** Offers naming the unknown card; a card waiting its turn is named once it is the one on bid. */
+    canName?: boolean;
+  }>) {
+  const [naming, setNaming] = useState(false);
+  return (
+    <div className={styles.nextUp}>
+      {canName && sighting.card === null && (
+        <Popover opened={naming} onChange={setNaming} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+          <Popover.Target>
+            <span>
+              <IconAction
+                label="It's this card…"
+                icon={<Eye size={15} />}
+                size="sm"
+                emphasis="quiet"
+                pressed={naming}
+                onClick={() => setNaming((was) => !was)}
+              />
+            </span>
+          </Popover.Target>
+          <Popover.Dropdown className={styles.dropdown}>
+            <CardChooser
+              state={state}
+              allowUnknown={false}
+              forBid
+              onPick={(card) => {
+                if (card) {
+                  onAction({ kind: 'name', sighting: sighting.id, card });
+                }
+                setNaming(false);
+              }}
+            />
+          </Popover.Dropdown>
+        </Popover>
+      )}
+      <IconAction
+        label="Nobody bid: back to the deck"
+        icon={<ArrowDownToLine size={15} />}
+        size="sm"
+        emphasis="quiet"
+        onClick={() => onAction({ kind: 'pass', sighting: sighting.id })}
+      />
+      <IconAction
+        label="Not up for bid (a mistake)"
+        icon={<X size={15} />}
+        size="sm"
+        emphasis="quiet"
+        onClick={() => onAction({ kind: 'cancel', sighting: sighting.id })}
+      />
+    </div>
   );
 }
 
@@ -259,7 +321,7 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
         </span>
       </Popover.Target>
       <Popover.Dropdown className={styles.dropdown}>
-        <Text size="xs" className={styles.caption} mb={8}>
+        <Text size="xs" className={styles.caption} mb="xs">
           {name}: who won it?
         </Text>
         <FactionPicker
@@ -268,6 +330,15 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
           label={(faction) => `${faction.name} won ${copy?.def.name ?? 'the unknown card'}`}
           onPick={(faction) => {
             onAction({ kind: 'win', sighting: sighting.id, faction });
+            setOpen(false);
+          }}
+        />
+        <AuctionEnd
+          sighting={sighting}
+          state={state}
+          canName={false}
+          onAction={(action) => {
+            onAction(action);
             setOpen(false);
           }}
         />

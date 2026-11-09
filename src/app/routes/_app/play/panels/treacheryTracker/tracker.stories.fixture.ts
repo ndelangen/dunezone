@@ -1,6 +1,6 @@
 import decks from '@shared/play/fixtures/dreamrulesDecks.json';
 
-import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { newTracker, trackerReducer } from './tracker';
 import type { CardDef, CardKind, TrackerAction, TrackerState } from './tracker';
 

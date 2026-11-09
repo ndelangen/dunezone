@@ -1,13 +1,24 @@
 import { HoverCard } from '@mantine/core';
+import { publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
 import type { ReactNode } from 'react';
 
+import styles from './CardArt.module.css';
 import type { CardCopy } from './tracker';
-import styles from './TreacheryTracker.module.css';
 
 /*
  * The tracker draws every card from its own published face, cropped: the round kind glyph from the top right corner,
  * or the name banner across the top. Both are what a player already reads on the card, at a fraction of its size.
  */
+
+/* How wide each crop draws the whole face, for a glyph `size` wide: the crops in the stylesheet scale the face by these. */
+const CORNER_SCALE = 6.43;
+const PICTO_SCALE = 1.714;
+
+/** A card's face as a copy no wider than it is drawn, so a 36 px glyph never downloads the full capture. */
+export function faceAt(face: string, width: number): string {
+  const ratio = typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1;
+  return publishedThumbnailSrc(face, width * ratio);
+}
 
 /**
  * A card at glyph size: its own illustration cut round from the middle of its face, ringed in its kind's colour.
@@ -25,7 +36,7 @@ export function CardGlyph({
       style={{ width: size, height: size }}
       data-kind={card.def.kind}
     >
-      <img src={card.def.face} alt="" draggable={false} />
+      <img src={faceAt(card.def.face, size * (corner ? CORNER_SCALE : PICTO_SCALE))} alt="" draggable={false} />
     </span>
   );
 }
@@ -48,7 +59,7 @@ export function CardPreview({ card, children }: Readonly<{ card: CardCopy | null
     <HoverCard openDelay={250} closeDelay={0} position="right" withinPortal shadow="md" withArrow>
       <HoverCard.Target>{children}</HoverCard.Target>
       <HoverCard.Dropdown p={4} className={styles.preview}>
-        <img src={card.def.face} alt={card.def.name} width={180} />
+        <img src={faceAt(card.def.face, 180)} alt={card.def.name} width={180} />
       </HoverCard.Dropdown>
     </HoverCard>
   );

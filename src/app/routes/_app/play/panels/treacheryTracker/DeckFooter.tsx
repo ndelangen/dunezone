@@ -3,11 +3,11 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { ChevronLeft, Layers, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
+import styles from './DeckFooter.module.css';
 import { CARD_GROUPS, copyOf, drawPile, groupOf } from './tracker';
 import type { CardCopy } from './tracker';
 import { FactionPicker, GroupList, KindBar, MenuLine, kindSummary } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
-import styles from './TreacheryTracker.module.css';
 
 /** The deck and discard pile under a view: what is left to draw by kind, and the reshuffle. */
 export function DeckFooter({ factions, state, onAction }: TrackerViewProps) {

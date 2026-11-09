@@ -9,7 +9,7 @@ import { TrackerWindow } from './TrackerWindow.stories.fixture';
  * Turn 2 of a six-faction Dreamrules game, with Hunter Seeker up for bid. Everything is live.
  */
 const meta = preview.meta({
-  title: 'Auction first',
+  title: 'Play/Panels/Treachery tracker',
   parameters: { layout: 'fullscreen' },
 });
 

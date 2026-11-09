@@ -1018,6 +1018,7 @@ export class TableSession {
       logHistory: this.pages.logHistory,
       factions: this.pages.factions,
       treacheryDeck: this.pages.treacheryDeck,
+      treacheryDeckSeat: this.pages.treacheryDeckSeat,
     };
     const changed = (Object.keys(next) as (keyof ConnectionView)[]).some((key) => next[key] !== previous[key]);
     this.cached = changed ? next : previous;

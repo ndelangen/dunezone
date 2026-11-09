@@ -1,86 +1,10 @@
+/* The pieces every tracker view shares: the pickers, the card chooser, a hand's card menu and the deck's makeup by kind. */
+
 .caption {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-dim, var(--ui-muted));
   font-size: 10px;
-}
-
-.dim {
-  color: var(--ink-dim, var(--ui-muted));
-}
-
-/* A card's round kind glyph, cut from the top right corner of its face (the 140 px circle at 665,79 of a 900 x 1263 card). */
-.glyph {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 50%;
-  box-shadow: 0 1px 2px rgb(from var(--ui-black) r g b / 0.6);
-}
-
-.glyph img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 643%;
-  max-width: none;
-  transform: translate(-73.9%, -6.25%);
-  pointer-events: none;
-}
-
-/* A card's illustration, cut round from the middle of its face (the 390 px square at 255,252 of a 900 x 1263 card), ringed in its kind's colour. */
-.picto {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  overflow: hidden;
-  border-radius: 50%;
-  background: var(--ui-paper);
-  box-shadow: 0 1px 3px rgb(from var(--ui-black) r g b / 0.6);
-}
-
-/* The kind ring sits inside the glyph's box, so a known card and an unknown one are the same size. */
-.picto::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border: 3px solid var(--kind);
-  border-radius: 50%;
-}
-
-/* The illustration, centred at 450,470 of a 900 x 1263 card (the middle of the printed guide circles), cut as the 525 px square around it so the silhouette sits clear of the ring. */
-.picto img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 171.4%;
-  max-width: none;
-  transform: translate(-20.83%, -16.43%);
-  pointer-events: none;
-}
-
-.unknown {
-  display: inline-grid;
-  box-sizing: border-box;
-  flex-shrink: 0;
-  place-items: center;
-  border: 2px dashed rgb(from var(--ui-muted) r g b / 0.5);
-  border-radius: 50%;
-  background: var(--ui-recess);
-  color: var(--ink-dim, var(--ui-muted));
-  font-weight: 700;
-  line-height: 1;
-}
-
-.preview {
-  background: var(--ui-ground);
-  border-color: var(--edge, var(--ui-edge));
-}
-
-.preview img {
-  display: block;
-  border-radius: 6px;
 }
 
 .dropdown {
@@ -109,7 +33,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .glyphButton,
@@ -151,7 +75,7 @@
 .chooserUnknown {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   padding: 4px 6px;
   border-radius: 6px;
 }
@@ -164,7 +88,7 @@
 .menuLine {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   padding: 4px 6px;
   border-radius: 6px;
 }
@@ -187,37 +111,6 @@
 
 .kindBar span {
   flex-basis: 0;
-}
-
-[data-kind="weapon"] {
-  --kind: var(--ui-negative-fill);
-}
-
-[data-kind="defense"] {
-  --kind: var(--ui-progress-fill);
-}
-
-[data-kind="special"] {
-  --kind: var(--ui-positive-fill);
-}
-
-[data-kind="worthless"] {
-  --kind: var(--ui-umber);
-}
-
-.footer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--edge, var(--ui-edge));
-}
-
-.footerDeck {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
 }
 
 .kindSlice {
@@ -245,7 +138,7 @@
 .kindLine {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .kindLeft {
@@ -257,7 +150,7 @@
 .groupRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 /* Specials outnumber the worthless cards beside them, so they take the wider column. */
@@ -265,23 +158,18 @@
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
 }
 
-.discardButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding-inline: 8px;
-  border-radius: 6px;
-  color: var(--ui-highlight);
-  font-variant-numeric: tabular-nums;
-}
-
-.discardButton:hover,
-.discardButton:focus-visible {
-  background: var(--ui-hover);
-}
-
 /* Poison and projectile share their kind's colour; the projectile half is a lighter tint of it, so the pair reads as one kind in two parts. */
 .kindSlice[data-group$="-projectile"] {
   background: color-mix(in oklab, var(--kind) 70%, var(--ui-white));
+}
+
+/* Hover growth is motion: a viewer who asked for less motion sees the hover without it, unless the app was told motion is fine. */
+@media (prefers-reduced-motion: reduce) {
+  :global(html:not([data-motion="ok"])) :is(.tokenButton, .glyphButton, .slotButton, .kindSlice) {
+    transition: none;
+  }
+
+  :global(html:not([data-motion="ok"])) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
+    transform: none;
+  }
 }

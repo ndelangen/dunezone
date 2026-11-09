@@ -4,8 +4,8 @@ import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import { FactionTokenFace } from '../../routes/_app/play/multiplayer/FactionTokenFace';
-import type { FactionToken } from '../../routes/_app/play/multiplayer/FactionTokenFace';
+import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
+import type { FactionToken } from '../../multiplayer/FactionTokenFace';
 import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
 import {
   CARD_GROUPS,
@@ -19,7 +19,7 @@ import {
   slotOf,
 } from './tracker';
 import type { CardCopy, CardGroup, Sighting, Slot, TrackerAction, TrackerState } from './tracker';
-import styles from './TreacheryTracker.module.css';
+import styles from './TrackerParts.module.css';
 
 /** What every tracker view is handed: the factions in seat order, the tracker, and where its changes go. */
 export type TrackerViewProps = Readonly<{
@@ -63,7 +63,8 @@ export function FactionPicker({
 
 /* The chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling. */
 const CHOOSER_GLYPH = 28;
-export const CHOOSER_WIDTH = 400;
+/* At most the window's width less a margin, so the chooser never runs off a narrow window. */
+export const CHOOSER_WIDTH = 'min(400px, calc(100vw - 32px))';
 
 /** The cards one may still pick for a hand: the cards seen but not placed, newest first, then the rest of the deck by kind. */
 export function CardChooser({
@@ -80,7 +81,7 @@ export function CardChooser({
 }>) {
   const { seen, byName } = chooserCards(state, forBid);
   return (
-    <Stack gap={8} className={styles.chooser}>
+    <Stack gap="xs" className={styles.chooser}>
       {allowUnknown && (
         <UnstyledButton className={styles.chooserUnknown} onClick={() => onPick(null)}>
           <UnknownGlyph size={22} />

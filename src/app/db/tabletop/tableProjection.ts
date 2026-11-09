@@ -114,6 +114,8 @@ export type ConnectionView = {
   factions: Readonly<Partial<Record<string, PublicFaction | null>>>;
   /* The game's Treachery deck for the tracker; undefined until read, null when the game captured none. */
   treacheryDeck?: readonly TreacheryDeckCard[] | null;
+  /* The seat the Treachery deck was read for. */
+  treacheryDeckSeat?: string | null;
 };
 
 /*

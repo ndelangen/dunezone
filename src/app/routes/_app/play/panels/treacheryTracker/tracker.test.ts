@@ -188,6 +188,12 @@ const STEPS: readonly ((c: Choices, pick: Pick) => TrackerAction | null)[] = [
   }),
   (c, pick) =>
     c.pending.length > 0 ? { kind: 'win', sighting: c.pending[pick(c.pending.length)]!.id, faction: c.faction } : null,
+  (c, pick) =>
+    c.pending.length > 0 && c.free.length > 0
+      ? { kind: 'name', sighting: c.pending[pick(c.pending.length)]!.id, card: c.free[pick(c.free.length)]!.id }
+      : null,
+  (c, pick) => (c.pending.length > 0 ? { kind: 'pass', sighting: c.pending[pick(c.pending.length)]!.id } : null),
+  (c, pick) => (c.pending.length > 0 ? { kind: 'cancel', sighting: c.pending[pick(c.pending.length)]!.id } : null),
 ];
 
 function randomAction(state: TrackerState, pick: Pick): TrackerAction | null {
@@ -216,6 +222,10 @@ function checkInvariants(state: TrackerState) {
       expect(placeOf(state, sighting.card).at).toBe('deck');
     }
   }
+  const onBidCards = state.seen.flatMap((sighting) =>
+    sighting.card && awaitingWinner(state, sighting) ? [sighting.card] : []
+  );
+  expect(new Set(onBidCards).size).toBe(onBidCards.length);
   expect(drawPile(state).count).toBeGreaterThanOrEqual(0);
 }
 
@@ -265,4 +275,45 @@ test('the next-bid chooser never offers a copy already on bid; a hand still may 
     left: 1,
   });
   expect(chooserCards(state, false).seen.map((copy) => copy.id)).toEqual(['shield#1']);
+});
+
+test('a card nobody bid on goes back to the deck and its auction ends', () => {
+  const state = run({ kind: 'bid', card: 'lasgun#1', turn: 1 }, { kind: 'pass', sighting: 'bid-1' });
+  expect(onBid(state)).toBeUndefined();
+  expect(placeOf(state, 'lasgun#1').at).toBe('deck');
+  expect(drawPile(state).copies.map((copy) => copy.id)).toContain('lasgun#1');
+});
+
+test('a card put up for bid by mistake is forgotten, and a settled auction cannot be', () => {
+  expect(run({ kind: 'bid', card: null, turn: 1 }, { kind: 'cancel', sighting: 'bid-1' }).seen).toEqual([]);
+  const won = run(
+    { kind: 'bid', card: null, turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' },
+    { kind: 'cancel', sighting: 'bid-1' }
+  );
+  expect(won.seen).toHaveLength(1);
+});
+
+test('the unknown card on bid can be named, but only as a copy still in the deck and not on bid', () => {
+  const named = run({ kind: 'bid', card: null, turn: 1 }, { kind: 'name', sighting: 'bid-1', card: 'lasgun#1' });
+  expect(onBid(named)?.card).toBe('lasgun#1');
+  const taken = run(
+    { kind: 'add', faction: 'emperor', card: 'lasgun#1' },
+    { kind: 'bid', card: null, turn: 1 },
+    { kind: 'name', sighting: 'bid-2', card: 'lasgun#1' }
+  );
+  expect(onBid(taken)?.card).toBeNull();
+});
+
+test('a winner taken back as a mistake leaves the card it was named as on bid, in the deck', () => {
+  const state = run(
+    { kind: 'place', card: 'lasgun#1', at: 'discard' },
+    { kind: 'bid', card: null, turn: 1 },
+    { kind: 'win', sighting: 'bid-1', faction: 'emperor' },
+    { kind: 'identify', faction: 'emperor', slot: 'slot-2', card: 'lasgun#1' },
+    { kind: 'undo', faction: 'emperor', slot: 'slot-2' }
+  );
+  expect(onBid(state)?.card).toBe('lasgun#1');
+  expect(placeOf(state, 'lasgun#1').at).toBe('deck');
+  expect(state.hands.emperor).toEqual([]);
 });
