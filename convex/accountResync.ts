@@ -1,7 +1,8 @@
+import { HOUR, RateLimiter } from '@convex-dev/rate-limiter';
 import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
 
-import { internal } from './_generated/api';
+import { components, internal } from './_generated/api';
 import { action, internalQuery } from './_generated/server';
 import type { ActionCtx, MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
@@ -15,6 +16,14 @@ import {
 import type { AppliedLinkedAccount, LinkedAccountOption } from './lib/linkedAccountProfiles';
 import { requireAuthUserId } from './lib/policy';
 import { steamProfile } from './lib/steamSignIn';
+
+/*
+ * Every live Steam lookup spends the deployment's one Steam Web API key, whose daily quota every sign-in shares.
+ * A person resyncs now and then; past this budget the resync offers what Steam reported last instead of asking again.
+ */
+const limiter = new RateLimiter(components.rateLimiter, {
+  steamResync: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 5 },
+});
 
 const optionValidator = v.object({
   provider: authProviderValidator,
@@ -118,6 +127,16 @@ export const recordLive = internalMutation({
   },
 });
 
+/** Whether the reader may ask Steam live once more now; keyed by account, so one person's clicks cannot spend everyone's quota. */
+export const admitSteamLookup = internalMutation({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => {
+    const userId = await requireAuthUserId(ctx);
+    return (await limiter.limit(ctx, 'steamResync', { key: userId })).ok;
+  },
+});
+
 /** Gives the reader's profile what one connected method reports. */
 async function applyFor(ctx: MutationCtx, provider: LinkedAccountOption['provider']): Promise<Applied> {
   const userId = await requireAuthUserId(ctx);
@@ -173,7 +192,7 @@ async function settle(ctx: ActionCtx, options: LinkedAccountOption[]): Promise<R
 
 /**
  * Pulls the name and picture from the reader's connected sign-in methods.
- * Steam is asked live, since its public profile needs no token from the reader;
+ * Steam is asked live, since its public profile needs no token from the reader, within a per-account budget;
  * Google and Discord offer what they reported at the last sign-in with them.
  */
 export const resync = action({
@@ -183,7 +202,10 @@ export const resync = action({
   handler: async (ctx): Promise<ResyncResult> => {
     const linkedNow = (): Promise<Linked> => ctx.runQuery(internal.accountResync.linked, {});
     const recorded = await linkedNow();
-    const steam = recorded.steamId !== null && recorded.options.some((option) => option.provider === 'steam');
+    const steam =
+      recorded.steamId !== null &&
+      recorded.options.some((option) => option.provider === 'steam') &&
+      (await ctx.runMutation(internal.accountResync.admitSteamLookup, {}));
     if (steam) {
       await refreshSteam(ctx, recorded.steamId!);
     }

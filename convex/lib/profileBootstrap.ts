@@ -1,6 +1,7 @@
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx } from '../_generated/server';
 import { accountStateOf } from './accountLifecycle';
+import { recordFormerSlug } from './formerSlugs';
 import { scheduleAvatarRehostIfPending } from './profileAvatar';
 import { allocateProfileSlug, profileBootstrapSlug } from './profileSlugs';
 import { nowIso } from './utils';
@@ -54,12 +55,20 @@ async function refreshExistingProfile(
   if (!needsRefresh) {
     return existing;
   }
+  /* A placeholder that takes a real name moves to that name's address, as every rename does, and the old one keeps redirecting. */
+  const slug =
+    existing.username === NAMELESS && fillUsername && fillUsername !== NAMELESS
+      ? await allocateProfileSlug(ctx, profileBootstrapSlug(fillUsername), existing)
+      : existing.slug;
+  if (slug !== existing.slug) {
+    await recordFormerSlug(ctx, { kind: 'profile', scope: '', slug: existing.slug, record_id: existing._id });
+  }
   await ctx.db.patch(existing._id, {
     user_id: userId,
     username: fillUsername ?? null,
     avatar_url: fillAvatar ?? null,
     account_state: 'active',
-    slug: existing.slug,
+    slug,
     updated_at: nowIso(),
   });
   return (await ctx.db.get(existing._id)) ?? existing;
