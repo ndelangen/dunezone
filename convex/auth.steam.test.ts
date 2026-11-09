@@ -76,6 +76,18 @@ function stubSteam({
   return steamFetch;
 }
 
+async function lookupOutcome(t: ReturnType<typeof applicationTest>) {
+  return await t.run(
+    async (ctx) =>
+      (
+        await ctx.db
+          .query('steam_profile_lookups')
+          .withIndex('by_steam_id', (q) => q.eq('steam_id', STEAM_ID))
+          .unique()
+      )?.outcome
+  );
+}
+
 async function steamAccount(t: ReturnType<typeof applicationTest>) {
   return await t.run((ctx) =>
     ctx.db
@@ -147,6 +159,51 @@ describe('Steam sign-in', () => {
     });
     expect(signedIn.tokens?.token).toEqual(expect.any(String));
     expect((await steamAccount(t))!.userId).toBe(first!.userId);
+  });
+
+  test('a sign-in that finds the Steam profile names an account that started nameless', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', '');
+    stubSteam();
+    const t = applicationTest();
+    await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    const account = await steamAccount(t);
+    const profile = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query('profiles')
+          .withIndex('by_user_id', (q) => q.eq('user_id', account!.userId))
+          .unique()
+      );
+    expect(await profile()).toMatchObject({ username: 'nameless', avatar_url: null });
+    expect(await lookupOutcome(t)).toBe('skipped: STEAM_WEB_API_KEY is not set');
+    vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
+    await t.action(api.auth.signIn, {
+      provider: 'steam',
+      params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
+    });
+    expect(await profile()).toMatchObject({
+      username: 'Steam player',
+      avatar_url: 'https://avatars.steamstatic.com/a_full.jpg',
+    });
+    expect(await lookupOutcome(t)).toBe('ok');
+  });
+
+  test('records why the profile lookup failed, without the key', async () => {
+    vi.stubEnv('STEAM_WEB_API_KEY', 'secret-key');
+    const steamFetch = stubSteam();
+    const t = applicationTest();
+    const steam = steamFetch.getMockImplementation()!;
+    steamFetch.mockImplementation(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.startsWith('https://api.steampowered.com/')) {
+        throw new TypeError(`could not reach ${url}`);
+      }
+      return steam(input, init);
+    });
+    await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    const outcome = await lookupOutcome(t);
+    expect(outcome).toMatch(/^failed: TypeError: could not reach /);
+    expect(outcome).not.toContain('secret-key');
   });
 
   test('stops asking Steam once the check budget is spent', async () => {
