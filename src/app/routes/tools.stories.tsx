@@ -1,7 +1,10 @@
 import preview from '@sb/preview';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
+
 import { TOOLS } from './_app/tools/tools';
+import { savedGame, startGame } from './_tool/tools/atreides-treachery-tracker/standaloneGame';
 import { clearStoredWheel } from './_tool/tools/battle-wheel/battleWheel.stories.fixture';
 import { clearStoredGame } from './_tool/tools/spice-deck/spiceDeck.stories.fixture';
 import { expectWithinWidth } from './pagePlay';
@@ -59,14 +62,34 @@ export const ComingSoon = meta.story({
   },
 });
 
-/** The Treachery tracker's placeholder links the issue where it is being planned. */
-export const ComingSoonWithIssue = meta.story({
+/** The Treachery tracker, the first built tool, on a phone and without the app around it: the Ruleset and its factions to set up, then Start tracking. */
+export const TreacheryTracker = meta.story({
   args: { path: '/tools/atreides-treachery-tracker' },
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = await findTitledPage(canvasElement, /^Treachery tracker$/);
+    await expect(page.findByRole('button', { name: 'Start tracking' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('banner')).toBeNull();
+    await expect(page.queryByRole('contentinfo')).toBeNull();
+  },
+});
+
+/** The Treachery tracker in the middle of a real game: turn 2 of a Dreamrules game kept on the phone, as a player reopening the page finds it. */
+export const TreacheryTrackerInPlay = meta.story({
+  args: { path: '/tools/atreides-treachery-tracker' },
+  globals: { viewport: { value: 'appMobile' } },
+  beforeEach: () => {
+    savedGame.set({
+      ...startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DREAMRULES_DECK),
+      turn: 2,
+      state: midGameTracker(),
+    });
+    return () => savedGame.set(null);
+  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    await expect(
-      page.findByRole('link', { name: 'Follow its progress' }, { timeout: 30_000 })
-    ).resolves.toHaveAttribute('href', 'https://github.com/ndelangen/dunezone/issues/2795');
+    await expect(page.findByRole('region', { name: 'On bid' }, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next turn' })).toBeVisible();
   },
 });
 

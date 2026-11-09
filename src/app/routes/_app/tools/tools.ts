@@ -110,8 +110,10 @@ const TOOL_ENTRIES = [
     statement:
       'Track every Treachery card through bidding, hands and discards, so the Atreides, or anyone, knows what is left in the deck.',
     icon: Eye,
+    art: '/tools/atreides-treachery-tracker.webp',
     group: 'During the game',
     issue: 2795,
+    built: true,
     capabilities: [
       { icon: Eye, title: 'Every card', detail: 'Bought, played and discarded.' },
       { icon: Users, title: 'Every hand', detail: 'What each faction could be holding.' },

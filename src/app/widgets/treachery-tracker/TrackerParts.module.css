@@ -72,6 +72,54 @@
   gap: 6px;
 }
 
+.glyphFace {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Held in one hand: one group per row, and each card a thumb-sized glyph with its name under it. */
+.chooser[data-touch="true"] .groupRow,
+.chooser[data-touch="true"] .groupRow[data-row="special"] {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-md);
+}
+
+.chooser[data-touch="true"] .glyphRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  align-items: start;
+  gap: var(--space-sm) var(--space-xs);
+}
+
+.chooser[data-touch="true"] .glyphButton {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  padding-block: 4px;
+}
+
+.chooser[data-touch="true"] .glyphButton:hover,
+.chooser[data-touch="true"] .glyphButton:focus-visible {
+  transform: none;
+  background: var(--ui-hover);
+}
+
+.chooser[data-touch="true"] .chooserUnknown {
+  min-height: 52px;
+}
+
+.glyphName {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 11px;
+  line-height: 13px;
+  text-align: center;
+  color: var(--ui-text);
+}
+
 .chooserUnknown {
   display: flex;
   align-items: center;
@@ -98,6 +146,23 @@
   width: 16px;
   place-items: center;
   color: var(--ui-brass);
+}
+
+/* Held in one hand: each line a thumb's height across the sheet, its icon and words larger. */
+.menuLine[data-touch="true"] {
+  gap: var(--space-sm);
+  min-height: 52px;
+  padding-inline: var(--space-sm);
+  border-radius: 8px;
+}
+
+.menuLine[data-touch="true"] .menuIcon {
+  width: 24px;
+}
+
+.menuLine[data-touch="true"] .menuIcon > svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* The deck's makeup by kind, in the palette's roles: weapons the negative fill, defenses progress, specials positive, worthless umber. */
@@ -181,4 +246,22 @@
 
 :global(html[data-motion="reduce"]) :is(.tokenButton, .glyphButton):is(:hover, :focus-visible) {
   transform: none;
+}
+
+/*
+ * Held in one hand, every card and token answers a thumb across its whole cell, 44 px, though it is drawn at 36 px.
+ * The cells sit 8 px apart, so the larger targets meet without overlapping.
+ */
+:global([data-touch-surface]) .picker {
+  gap: var(--space-xs);
+}
+
+:global([data-touch-surface]) :is(.tokenButton, .glyphButton, .slotButton) {
+  position: relative;
+}
+
+:global([data-touch-surface]) :is(.tokenButton, .glyphButton, .slotButton)::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
 }
