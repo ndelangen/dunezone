@@ -44,4 +44,8 @@ describe('strengthText', () => {
   it('prints halves', () => {
     expect([0, 0.5, 3, 5.5].map(strengthText)).toEqual(['0', '½', '3', '5½']);
   });
+
+  it('keeps the sign on halves, and other fractions as they are', () => {
+    expect([-0.5, -1.5, 0.25, -2].map(strengthText)).toEqual(['-½', '-1½', '0.25', '-2']);
+  });
 });

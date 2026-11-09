@@ -1,21 +1,52 @@
 import { publishedHref } from '@shared/asset-publishing/publicationTargets';
+import { SPICE_STRENGTH_TIERS } from '@shared/play/battleDialing';
+import { BATTLE_DIALING_OPTIONS } from '@shared/rulesets/battleDialing';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Pending } from '@ui/content/Pending';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
+import clsx from 'clsx';
+import { Minus, Plus, RotateCcw, Settings2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 import { readFactionDefinition, useBattleWheelRulesets } from '@app/db/battleWheelTool';
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useOrderedRulesetFactions } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
+import type { FactionToken as SearchedFaction } from '@app/widgets/faction-token/FactionTokenFace';
 import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
 import type { FactionSearchStatus } from '@app/widgets/treachery-tracker/FactionSearchList';
+import { TrackerPopover, TrackerTouch, useActionSize } from '@app/widgets/treachery-tracker/TrackerSurface';
+import { LeaderToken } from '@game/assets/faction/leader/Leader';
+import { Token } from '@game/assets/faction/token/Token';
+import { TroopToken } from '@game/assets/faction/troop/Troop';
 
-import type { FactionChoice, WheelRuleset } from './battleWheel';
-import { BattleWheelTool } from './BattleWheelTool';
-import type { FactionSearch } from './BattleWheelTool';
-import styles from './BattleWheelTool.module.css';
+import {
+  leaderOf,
+  mostOf,
+  mostUsefulSpice,
+  settled,
+  spiceChoices,
+  strengthText,
+  supportable,
+  troopsDialed,
+  wheelResult,
+  withTroops,
+} from './battleWheel';
+import type {
+  FactionChoice,
+  WheelFace,
+  WheelFaction,
+  WheelLeader,
+  WheelPlan,
+  WheelResult,
+  WheelRuleset,
+} from './battleWheel';
+import styles from './route.module.css';
+import { useBattleWheel } from './useBattleWheel';
 import { wheelFactionFrom } from './wheelFaction';
 
 /*
@@ -28,7 +59,6 @@ export const Route = createFileRoute('/_tool/tools/battle-wheel')({
   component: BattleWheelPage,
 });
 
-const STORAGE_KEY = 'dunezone.tools.battle-wheel';
 /* The Ruleset a first visit counts with, and whose first six factions, in its own order, are offered before any search. */
 const BASE_RULESET = 'gf9';
 const BASE_FACTIONS = 6;
@@ -65,7 +95,6 @@ function LiveBattleWheel() {
   const base = (shown?.find((entry) => entry.slug === BASE_RULESET) ?? shown?.[0])?.rulesetId;
   const tool = (factions?: readonly FactionChoice[]) => (
     <BattleWheelTool
-      storageKey={STORAGE_KEY}
       rulesets={rulesets}
       defaultRulesetId={base}
       factions={factions}
@@ -135,3 +164,488 @@ const FactionSearchLive: FactionSearch = ({ seated, onPick }) => {
     />
   );
 };
+
+/*
+ * The battle wheel tool: a phone stands in for the battle wheel at a real table (Norbert, 2026-11-09).
+ * Pick a leader and dial troops; the tool counts the dial and the total strength the way the table's Ruleset dials.
+ * No Treachery cards: the wheel only adds up.
+ */
+
+/** A search over every faction on Dune Zone. */
+type FactionSearch = ComponentType<Readonly<{ seated: readonly string[]; onPick: (faction: SearchedFaction) => void }>>;
+
+type ToolProps = Readonly<{
+  /** Every Ruleset and how it dials; undefined while they load. */
+  rulesets: readonly WheelRuleset[] | undefined;
+  /** The Ruleset a first visit counts with. */
+  defaultRulesetId?: string;
+  /** The factions offered first, before any search: the base game's six; undefined while they load. */
+  factions: readonly FactionChoice[] | undefined;
+  search: FactionSearch;
+  /** Reads a picked faction's leaders and troops. */
+  loadFaction: (faction: Readonly<{ id: string; name: string }>) => Promise<WheelFaction>;
+}>;
+
+type Wheel = Readonly<{
+  ruleset: WheelRuleset;
+  faction: WheelFaction;
+  plan: WheelPlan;
+  setPlan: (plan: WheelPlan) => void;
+  result: WheelResult;
+}>;
+
+function BattleWheelTool({ rulesets, defaultRulesetId, factions: starting, search, loadFaction }: ToolProps) {
+  const { state, setPlan, chooseRuleset, chooseFaction, clear } = useBattleWheel();
+  const [setup, setSetup] = useState(false);
+  const reading = useFactionReading(loadFaction, (loaded) => {
+    chooseFaction(loaded);
+    setSetup(false);
+  });
+  if (!rulesets || rulesets.length === 0) {
+    return <NoRulesets loading={!rulesets} />;
+  }
+  const ruleset =
+    rulesets.find((candidate) => candidate.id === state.rulesetId) ??
+    rulesets.find((candidate) => candidate.id === defaultRulesetId) ??
+    rulesets[0]!;
+  const faction = state.faction;
+  const opened = setup || !faction;
+  return (
+    <TrackerTouch>
+      <div className={styles.tool}>
+        <header className={styles.header}>
+          <WhoButton faction={faction} ruleset={ruleset} onClick={() => setSetup(true)} />
+          {faction ? (
+            <IconAction label="Clear the wheel" emphasis="quiet" icon={<RotateCcw size={20} />} onClick={clear} />
+          ) : null}
+          <TrackerPopover opened={opened} onChange={(open) => setSetup(open)}>
+            <TrackerPopover.Target>
+              <IconAction
+                label="Ruleset and faction"
+                emphasis="quiet"
+                icon={<Settings2 size={20} />}
+                onClick={() => setSetup(true)}
+              />
+            </TrackerPopover.Target>
+            <TrackerPopover.Dropdown>
+              <SetupSheet
+                rulesets={rulesets}
+                ruleset={ruleset}
+                onRuleset={(id) => {
+                  const next = rulesets.find((candidate) => candidate.id === id)!;
+                  chooseRuleset(id, faction ? settled(next, faction, state.plan) : state.plan);
+                }}
+                faction={faction}
+                choices={choicesOf(starting, state.recent)}
+                startingLoaded={starting !== undefined}
+                reading={reading}
+                search={opened ? search : null}
+              />
+            </TrackerPopover.Dropdown>
+          </TrackerPopover>
+        </header>
+        {faction ? (
+          <WheelBody
+            wheel={{
+              ruleset,
+              faction,
+              plan: state.plan,
+              setPlan: (plan) => setPlan(settled(ruleset, faction, plan)),
+              result: wheelResult(ruleset, faction, state.plan),
+            }}
+          />
+        ) : (
+          <main className={styles.body}>
+            <LabeledAction icon={<Users size={18} />} onClick={() => setSetup(true)}>
+              Pick your faction
+            </LabeledAction>
+          </main>
+        )}
+      </div>
+    </TrackerTouch>
+  );
+}
+
+/* While the Rulesets load, or when there are none to count with. */
+function NoRulesets({ loading }: Readonly<{ loading: boolean }>) {
+  return (
+    <div className={styles.tool}>
+      <main className={styles.body}>
+        {loading ? (
+          <Pending>Loading the Rulesets…</Pending>
+        ) : (
+          <p className={styles.failed}>There is no Ruleset to count with yet.</p>
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* The starting factions, then the ones picked lately that are not among them. */
+function choicesOf(starting: readonly FactionChoice[] | undefined, recent: readonly FactionChoice[] | undefined) {
+  const known = new Set(starting?.map((choice) => choice.id));
+  return [...(starting ?? []), ...(recent ?? []).filter((choice) => !known.has(choice.id))];
+}
+
+type FactionReading = Readonly<{
+  /** The faction being read, by name. */
+  loading: string | null;
+  /** The faction that could not be read last, by name. */
+  failed: string | null;
+  pick: (choice: Readonly<{ id: string; name: string }>) => void;
+}>;
+
+/*
+ * Reads a picked faction's leaders and troops, one faction at a time.
+ * Picking the faction already chosen reads it again, so an edit on Dune Zone reaches the wheel.
+ */
+function useFactionReading(
+  loadFaction: ToolProps['loadFaction'],
+  onRead: (faction: WheelFaction) => void
+): FactionReading {
+  const [loading, setLoading] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const pick = (choice: Readonly<{ id: string; name: string }>) => {
+    if (loading !== null) {
+      return;
+    }
+    setLoading(choice.name);
+    setFailed(null);
+    void loadFaction(choice)
+      .then(onRead)
+      .catch(() => setFailed(choice.name))
+      .finally(() => setLoading(null));
+  };
+  return { loading, failed, pick };
+}
+
+/* The header's faction and Ruleset, which opens the setup sheet. */
+function WhoButton({
+  faction,
+  ruleset,
+  onClick,
+}: Readonly<{ faction: WheelFaction | null; ruleset: WheelRuleset; onClick: () => void }>) {
+  return (
+    <button
+      type="button"
+      className={styles.who}
+      aria-label={faction ? `${faction.name} on ${ruleset.name}: change` : 'Pick your faction'}
+      onClick={onClick}
+    >
+      {faction ? (
+        <span className={styles.emblem}>
+          <FactionToken faction={faction} />
+        </span>
+      ) : null}
+      <span className={styles.whoWords}>
+        <span className={styles.factionName}>{faction?.name ?? 'Battle wheel'}</span>
+        <span className={styles.rulesetName}>
+          {ruleset.name} · {BATTLE_DIALING_OPTIONS[ruleset.dialing].label} dialing
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/* The setup sheet: the table's Ruleset, the faction from the starting ones, and a search over every other. */
+function SetupSheet({
+  rulesets,
+  ruleset,
+  onRuleset,
+  faction,
+  choices,
+  startingLoaded,
+  reading,
+  search: Search,
+}: Readonly<{
+  rulesets: readonly WheelRuleset[];
+  ruleset: WheelRuleset;
+  onRuleset: (id: string) => void;
+  faction: WheelFaction | null;
+  choices: readonly FactionChoice[];
+  startingLoaded: boolean;
+  reading: FactionReading;
+  /** Mounted only while the sheet is open, so it reads nothing when closed. */
+  search: FactionSearch | null;
+}>) {
+  return (
+    <div className={styles.setup}>
+      <p className={styles.setupTitle}>Ruleset and faction</p>
+      <p className={styles.setupLabel}>Your table’s Ruleset</p>
+      <div className={styles.rulesets}>
+        {rulesets.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            className={styles.choice}
+            aria-pressed={candidate.id === ruleset.id}
+            onClick={() => onRuleset(candidate.id)}
+          >
+            <strong>{candidate.name}</strong>
+            <span>{BATTLE_DIALING_OPTIONS[candidate.dialing].description.split('\n')[0]}</span>
+          </button>
+        ))}
+      </div>
+      <p className={styles.setupLabel}>Your faction</p>
+      {startingLoaded ? null : <Pending>Loading the factions…</Pending>}
+      <div className={styles.factions}>
+        {choices.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            className={styles.factionChoice}
+            aria-pressed={candidate.id === faction?.id}
+            disabled={reading.loading !== null}
+            onClick={() => reading.pick(candidate)}
+          >
+            <span className={styles.factionToken}>
+              <FactionToken faction={candidate} />
+            </span>
+            <span>{candidate.name}</span>
+          </button>
+        ))}
+      </div>
+      {reading.loading ? <Pending>{`Reading ${reading.loading}’s leaders and troops…`}</Pending> : null}
+      {reading.failed ? (
+        <p className={styles.failed}>{`${reading.failed} could not be read. Try again, or pick another faction.`}</p>
+      ) : null}
+      <p className={styles.setupLabel}>Any faction on Dune Zone</p>
+      {Search ? <Search seated={faction ? [faction.id] : []} onPick={reading.pick} /> : null}
+    </div>
+  );
+}
+
+function Disc({
+  faction,
+  leader,
+  className,
+}: Readonly<{ faction: WheelFaction; leader: WheelLeader; className?: string }>) {
+  return (
+    <span className={clsx(styles.disc, className)}>
+      <LeaderToken
+        background={faction.background}
+        image={leader.image}
+        emblem={faction.emblem}
+        name={leader.name}
+        strength={leader.strength === null ? 'X' : String(leader.strength)}
+      />
+    </span>
+  );
+}
+
+function TroopFace({ faction, face }: Readonly<{ faction: WheelFaction; face: WheelFace }>) {
+  return (
+    <TroopToken
+      background={faction.background}
+      image={face.image}
+      star={face.star}
+      hue={face.hue}
+      striped={face.striped}
+    />
+  );
+}
+
+/* The faction's own round token, as on the table. */
+function FactionToken({ faction }: Readonly<{ faction: FactionChoice }>) {
+  return <Token background={faction.background} emblem={faction.emblem} />;
+}
+
+/* The faction's leaders as discs: a tap sends one into battle, a second tap takes it back. */
+function LeaderPicker({ wheel }: Readonly<{ wheel: Wheel }>) {
+  const { faction, plan, setPlan } = wheel;
+  const chosen = leaderOf(faction, plan);
+  return (
+    <div className={styles.leaderBlock}>
+      <div className={styles.leaderGrid} role="group" aria-label="Leader">
+        {faction.leaders.map((leader) => (
+          <button
+            key={leader.id}
+            type="button"
+            className={styles.leaderButton}
+            aria-pressed={leader.id === plan.leaderId}
+            aria-label={`${leader.name}, strength ${leader.strength ?? 'X'}`}
+            onClick={() => setPlan({ ...plan, leaderId: leader.id === plan.leaderId ? null : leader.id })}
+          >
+            <Disc faction={faction} leader={leader} />
+          </button>
+        ))}
+      </div>
+      <p className={styles.leaderName}>{chosen ? `${chosen.name}` : 'No leader: tap a disc to send one into battle'}</p>
+      {chosen && chosen.strength === null ? (
+        <Stepper
+          label={`${chosen.name}’s strength (X)`}
+          value={plan.leaderX}
+          min={0}
+          max={10}
+          onChange={(leaderX) => setPlan({ ...plan, leaderX })}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  icon,
+  detail,
+}: Readonly<{
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (value: number) => void;
+  icon?: ReactNode;
+  detail?: string;
+}>) {
+  /* A thumb's width on a phone. */
+  const size = useActionSize();
+  return (
+    <div className={styles.stepper}>
+      {icon ? <span className={styles.stepperIcon}>{icon}</span> : null}
+      <span className={styles.stepperWords}>
+        <span className={styles.stepperLabel}>{label}</span>
+        {detail ? <span className={styles.stepperDetail}>{detail}</span> : null}
+      </span>
+      <IconAction
+        label={`Fewer: ${label}`}
+        size={size}
+        emphasis="standard"
+        icon={<Minus size={22} />}
+        disabled={value <= min}
+        onClick={() => onChange(Math.max(min, value - 1))}
+      />
+      <output className={styles.stepperValue}>{value}</output>
+      <IconAction
+        label={`More: ${label}`}
+        size={size}
+        emphasis="standard"
+        icon={<Plus size={22} />}
+        disabled={value >= max}
+        onClick={() => onChange(Math.min(max, value + 1))}
+      />
+    </div>
+  );
+}
+
+function faceDetail(wheel: Wheel, face: WheelFace) {
+  if (wheel.ruleset.dialing === 'advanced' && supportable(face)) {
+    return `${strengthText(face.strength)}, or ${strengthText(face.supportedStrength)} with ${face.supportCost} spice · ${face.count} owned`;
+  }
+  const free = face.supportCost === 0 && wheel.ruleset.dialing !== 'basic' ? ', dials free' : '';
+  return `Strength ${strengthText(face.supportedStrength)}${free} · ${face.count} owned`;
+}
+
+function TroopSteppers({ wheel }: Readonly<{ wheel: Wheel }>) {
+  const { faction, plan, setPlan } = wheel;
+  return (
+    <div className={styles.stack}>
+      {faction.faces.map((face) => (
+        <Stepper
+          key={face.id}
+          icon={<TroopFace faction={faction} face={face} />}
+          label={face.name}
+          detail={faceDetail(wheel, face)}
+          value={plan.troops[face.id] ?? 0}
+          min={0}
+          max={mostOf(faction, plan, face)}
+          onChange={(count) => setPlan(withTroops(faction, plan, face, count))}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* Spice, as the Ruleset dials it: Advanced supports troops, GF9 2.0 buys a bonus, KISS charges by the troop, Basic has none. */
+function SpiceControl({ wheel }: Readonly<{ wheel: Wheel }>) {
+  const { ruleset, faction, plan, setPlan, result } = wheel;
+  if (ruleset.dialing === 'basic') {
+    return null;
+  }
+  if (ruleset.dialing === 'kiss') {
+    return (
+      <p className={styles.spiceNote}>
+        <SpiceDot /> Pay <strong>{result.spice} spice</strong>: the first 2 troops are free, then 1 each.
+        {result.capped ? ' The dial stops at 20.' : ''}
+      </p>
+    );
+  }
+  if (ruleset.dialing === 'gf92') {
+    const choices = spiceChoices(ruleset, faction, plan);
+    return (
+      <div className={styles.spiceTiers} role="group" aria-label="Spice strength">
+        <span className={styles.stepperLabel}>
+          <SpiceDot /> Spice strength
+        </span>
+        <div className={styles.tierButtons}>
+          {[{ spice: 0, bonus: 0 }, ...SPICE_STRENGTH_TIERS].map(({ spice, bonus }) => (
+            <button
+              key={spice}
+              type="button"
+              className={styles.tier}
+              disabled={!choices.includes(spice)}
+              aria-pressed={result.spice === spice}
+              onClick={() => setPlan({ ...plan, spice })}
+            >
+              {spice === 0 ? 'None' : `${spice} spice +${bonus}`}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const most = mostUsefulSpice(ruleset, faction, plan);
+  return (
+    <Stepper
+      icon={<SpiceDot large />}
+      label="Spice"
+      detail={
+        most === 0
+          ? 'Nothing dialed needs spice'
+          : `Supports ${result.supported} of ${troopsDialed(plan, faction)} troops`
+      }
+      value={Math.min(plan.spice, most)}
+      min={0}
+      max={most}
+      onChange={(spice) => setPlan({ ...plan, spice })}
+    />
+  );
+}
+
+function SpiceDot({ large }: Readonly<{ large?: boolean }>) {
+  return <span className={clsx(styles.spiceDot, large && styles.spiceDotLarge)} aria-hidden />;
+}
+
+/* The answer stays on top while the thumb works below: total, then leader plus dial. */
+function WheelBody({ wheel }: Readonly<{ wheel: Wheel }>) {
+  const { result } = wheel;
+  return (
+    <main className={clsx(styles.body, styles.bodyFlush)}>
+      <div className={styles.scoreBand}>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Leader</span>
+          <span className={styles.scoreSmall}>{strengthText(result.leader)}</span>
+        </div>
+        <span className={styles.scoreOp}>+</span>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Dial</span>
+          <span className={styles.scoreSmall}>{strengthText(result.dial)}</span>
+        </div>
+        <span className={styles.scoreOp}>=</span>
+        <div className={styles.scoreCell}>
+          <span className={styles.scoreLabel}>Total</span>
+          <span className={styles.scoreBig}>{strengthText(result.total)}</span>
+        </div>
+      </div>
+      {result.spice ? <p className={styles.payLine}>Pays {result.spice} spice</p> : null}
+      <div className={styles.padded}>
+        <LeaderPicker wheel={wheel} />
+        <TroopSteppers wheel={wheel} />
+        <SpiceControl wheel={wheel} />
+      </div>
+    </main>
+  );
+}

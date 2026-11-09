@@ -3,8 +3,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  /* The fullscreen layout hides overflow, so the tool scrolls itself: a landscape phone or a faction with many troops still reaches every control. */
+  height: 100dvh;
   overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--ui-ground);
   color: var(--ui-text);
 }

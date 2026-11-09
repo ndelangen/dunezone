@@ -224,14 +224,15 @@ export function troopsDialed(plan: WheelPlan, faction: WheelFaction) {
   return declared(plan, faction).reduce((total, { count }) => total + count, 0);
 }
 
-/** A strength as the wheel prints it: halves as ½. */
+/** A strength as the wheel prints it: halves as ½, the sign kept, and any other fraction as it is. */
 export function strengthText(value: number) {
-  const whole = Math.floor(value);
-  const half = value - whole >= 0.5;
-  if (!half) {
-    return String(whole);
+  const sign = value < 0 ? '-' : '';
+  const size = Math.abs(value);
+  const whole = Math.floor(size);
+  if (size - whole !== 0.5) {
+    return String(value);
   }
-  return whole === 0 ? '½' : `${whole}½`;
+  return `${sign}${whole === 0 ? '' : whole}½`;
 }
 
 /** The plan with one face's count changed, kept within what the faction owns. */

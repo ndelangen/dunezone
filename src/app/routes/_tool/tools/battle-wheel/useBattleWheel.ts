@@ -13,6 +13,9 @@ export type WheelState = Readonly<{
   recent?: readonly FactionChoice[];
 }>;
 
+/** Where this browser keeps the wheel. */
+export const BATTLE_WHEEL_STORAGE_KEY = 'dunezone.tools.battle-wheel';
+
 const FRESH: WheelState = { rulesetId: null, faction: null, plan: EMPTY_PLAN };
 const MOST_RECENT = 6;
 
@@ -66,8 +69,9 @@ function read(storageKey: string): WheelState | null {
   }
 }
 
-export function useBattleWheel(storageKey: string, initial: WheelState = FRESH) {
-  const [state, setState] = useState<WheelState>(() => read(storageKey) ?? initial);
+export function useBattleWheel() {
+  const storageKey = BATTLE_WHEEL_STORAGE_KEY;
+  const [state, setState] = useState<WheelState>(() => read(storageKey) ?? FRESH);
   useEffect(() => {
     try {
       globalThis.localStorage?.setItem(storageKey, JSON.stringify({ ...state, version: STORED_VERSION }));
@@ -76,7 +80,11 @@ export function useBattleWheel(storageKey: string, initial: WheelState = FRESH) 
     }
   }, [storageKey, state]);
   const setPlan = useCallback((plan: WheelPlan) => setState((was) => ({ ...was, plan })), []);
-  const chooseRuleset = useCallback((rulesetId: string) => setState((was) => ({ ...was, rulesetId })), []);
+  /* Another Ruleset spends spice its own way, so the caller hands in the plan settled against it. */
+  const chooseRuleset = useCallback(
+    (rulesetId: string, plan: WheelPlan) => setState((was) => ({ ...was, rulesetId, plan })),
+    []
+  );
   /* Another faction has other leaders and troops, so its wheel starts empty. */
   const chooseFaction = useCallback(
     (faction: WheelFaction) =>
