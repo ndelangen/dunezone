@@ -92,37 +92,6 @@ test('offers every live deck holding live Treachery cards, whatever its first ca
   ]);
 });
 
-test('finds a live deck behind many deleted decks that held the same card', async () => {
-  const t = applicationTest();
-  await t.run(async (ctx) => {
-    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
-    const asset = (type: string, slug: string, data: unknown, is_deleted = false) =>
-      ctx.db.insert('assets', {
-        owner_id: owner,
-        type,
-        data,
-        slug,
-        created_at: stamp,
-        updated_at: stamp,
-        is_deleted,
-        group_id: null,
-      });
-    const card = await asset('card-treachery', 'lasgun', publishingTreacheryCard);
-    for (let index = 0; index <= 30; index++) {
-      const name = index === 30 ? 'Live Deck' : `Old Deck ${index}`;
-      const deck = await asset(
-        'deck',
-        `deck-${index}`,
-        { name, about: '', cardback: publishingCustomDeckCardback },
-        index < 30
-      );
-      await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
-    }
-  });
-  const decks = await t.query(api.treacheryTrackerTool.decks, {});
-  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
-});
-
 /* 400 decks of the same 45 cards, written a few at a time to stay inside each write's own limits, and a Ruleset slotting the last. */
 /* One deck of the large catalogue, holding one copy of each card. */
 async function seedDeck(ctx: MutationCtx, owner: Id<'users'>, number: number, cards: readonly Id<'assets'>[]) {
@@ -198,46 +167,6 @@ test('lists the decks it can count within a query’s reads, a Ruleset’s deck 
   expect(decks.every((deck) => deck.cards === 45)).toBe(true);
 }, 60_000);
 
-test('reads on past a card’s first share of the reads, so a live deck behind many deleted ones is found in a large catalogue', async () => {
-  const t = applicationTest({ transactionLimits: true });
-  await t.run(async (ctx) => {
-    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
-    const asset = (type: string, slug: string, data: unknown, is_deleted = false) =>
-      ctx.db.insert('assets', {
-        owner_id: owner,
-        type,
-        data,
-        slug,
-        created_at: stamp,
-        updated_at: stamp,
-        is_deleted,
-        group_id: null,
-      });
-    /* Enough cards that each one's first share of the reads is 50 rows. */
-    const cards = [];
-    for (let index = 0; index < 200; index++) {
-      cards.push(await asset('card-treachery', `card-${index}`, publishingTreacheryCard));
-    }
-    for (let index = 0; index <= 60; index++) {
-      const name = index === 60 ? 'Live Deck' : `Old Deck ${index}`;
-      const deck = await asset(
-        'deck',
-        `deck-${index}`,
-        { name, about: '', cardback: publishingCustomDeckCardback },
-        index < 60
-      );
-      await ctx.db.insert('asset_relations', {
-        from_asset_id: deck,
-        to_asset_id: cards[0],
-        kind: 'deck-card',
-        count: 1,
-      });
-    }
-  });
-  const decks = await t.query(api.treacheryTrackerTool.decks, {});
-  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
-}, 60_000);
-
 /* An asset of the given type in a test catalogue. */
 function insertAsset(
   ctx: MutationCtx,
@@ -258,22 +187,6 @@ function insertAsset(
     group_id: null,
   });
 }
-
-test('a deleted deck costs only its lookup, so many of them ahead of a live deck still leave it listed', async () => {
-  const t = applicationTest({ transactionLimits: true });
-  await t.run(async (ctx) => {
-    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
-    const card = await insertAsset(ctx, owner, 'card-treachery', 'lasgun', publishingTreacheryCard);
-    for (let index = 0; index <= 400; index++) {
-      const name = index === 400 ? 'Live Deck' : `Old Deck ${index}`;
-      const data = { name, about: '', cardback: publishingCustomDeckCardback };
-      const deck = await insertAsset(ctx, owner, 'deck', `deck-${index}`, data, index < 400);
-      await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: card, kind: 'deck-card', count: 1 });
-    }
-  });
-  const decks = await t.query(api.treacheryTrackerTool.decks, {});
-  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
-}, 60_000);
 
 test('stays inside a query’s calls when many decks mix one Treachery card with many others', async () => {
   const t = applicationTest({ transactionLimits: true });
@@ -307,4 +220,39 @@ test('stays inside a query’s calls when many decks mix one Treachery card with
   const decks = await t.query(api.treacheryTrackerTool.decks, {});
   expect(decks.length).toBeGreaterThan(0);
   expect(decks.every((deck) => deck.cards === 21)).toBe(true);
+}, 60_000);
+
+/*
+ * A live deck holding the first of `cards` Treachery cards, behind `deleted` deleted decks that held it too.
+ * Deleting a deck keeps its membership rows, so the deleted decks come first when that card's decks are read.
+ */
+async function liveBehindDeleted(cards: number, deleted: number) {
+  const t = applicationTest({ transactionLimits: true });
+  await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    const ids = [];
+    for (let index = 0; index < cards; index++) {
+      ids.push(await insertAsset(ctx, owner, 'card-treachery', `card-${index}`, publishingTreacheryCard));
+    }
+    for (let index = 0; index <= deleted; index++) {
+      const name = index === deleted ? 'Live Deck' : `Old Deck ${index}`;
+      const data = { name, about: '', cardback: publishingCustomDeckCardback };
+      const deck = await insertAsset(ctx, owner, 'deck', `deck-${index}`, data, index < deleted);
+      await ctx.db.insert('asset_relations', { from_asset_id: deck, to_asset_id: ids[0], kind: 'deck-card', count: 1 });
+    }
+  });
+  return (await t.query(api.treacheryTrackerTool.decks, {})).map((deck) => deck.name);
+}
+
+test('finds a live deck behind many deleted decks that held the same card', async () => {
+  await expect(liveBehindDeleted(1, 30)).resolves.toEqual(['Live Deck']);
+});
+
+test('reads on past a card’s first share of the reads, so a live deck behind many deleted ones is found in a large catalogue', async () => {
+  /* Enough cards that each one's first share of the reads is 50 rows. */
+  await expect(liveBehindDeleted(200, 60)).resolves.toEqual(['Live Deck']);
+}, 60_000);
+
+test('a deleted deck costs only its lookup, so many of them ahead of a live deck still leave it listed', async () => {
+  await expect(liveBehindDeleted(1, 400)).resolves.toEqual(['Live Deck']);
 }, 60_000);
