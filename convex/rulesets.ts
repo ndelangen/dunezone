@@ -265,6 +265,8 @@ export const orderedFactions = publicQuery({
         /** Enough to draw the faction's token beside its name. */
         emblem: catalogueFactionDataValidator.fields.emblem,
         background: catalogueFactionDataValidator.fields.background,
+        /** When the faction last changed, the cache token of its published token. */
+        updated_at: v.string(),
       })
     ),
     /** True when links remain past `limit`, which a larger limit loads. */

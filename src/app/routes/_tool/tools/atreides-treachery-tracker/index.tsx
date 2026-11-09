@@ -10,16 +10,16 @@ import { useOrderedRulesetFactions, useRulesetCataloguePage } from '@app/db/rule
 import type { RulesetCatalogueEntry } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
-import type { FactionSearchStatus } from '@app/widgets/treachery-tracker/FactionSearchList';
-import { playGame, savedGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
-import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
-import { TrackerGame, TrackerSetup } from '@app/widgets/treachery-tracker/StandaloneTracker';
-import type { SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { cardDefs } from '@app/widgets/treachery-tracker/tracker';
-import type { FactionSearch as FactionSearchType, TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
 
+import { FactionSearchList } from './FactionSearchList';
+import type { FactionSearchStatus } from './FactionSearchList';
 import styles from './index.module.css';
+import { playGame, savedGame, startGame } from './standaloneGame';
+import type { StandaloneGame } from './standaloneGame';
+import { TrackerGame, TrackerSetup } from './StandaloneTracker';
+import type { SetupDeck } from './StandaloneTracker';
+import type { FactionSearch as FactionSearchType, TrackerConfig } from './TrackerConfig';
 
 /*
  * The Treachery tracker on its own, for a game of Dune at a physical table (#2795).
@@ -38,8 +38,8 @@ export const Route = createFileRoute('/_tool/tools/atreides-treachery-tracker/')
 });
 
 /* The deck tracked by default, and the Ruleset whose first six factions, in its own order, are the base six seated at the start. */
-const DEFAULT_RULESET = 'dreamrules';
-const BASE_RULESET = 'gf9';
+const DEFAULT_RULESET = { slug: 'dreamrules', name: 'Dreamrules' };
+const BASE_RULESET = { slug: 'gf9', name: 'GF9' };
 const BASE_SEATS = 6;
 /* A Ruleset for trying things out, never offered at a table. */
 const HIDDEN_RULESETS = new Set(['test']);
@@ -56,8 +56,8 @@ function TreacheryTrackerPage() {
       {game ? (
         <TrackerGame
           game={game}
-          onAction={(action) => keep(playGame(game, action))}
-          onTurn={(turn) => keep({ ...game, turn })}
+          onAction={(action) => savedGame.update((was) => playGame(was, action))}
+          onTurn={(turn) => savedGame.update((was) => ({ ...was, turn }))}
           onClear={() => keep(null)}
         />
       ) : (
@@ -76,52 +76,76 @@ function TreacheryTrackerPage() {
 
 /* The setup: the Rulesets to pick from, the default one picked, and the base six seated until the player changes them. */
 function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }>) {
-  const catalogue = useRulesetCataloguePage({ sort: 'name' }).data;
-  const [picked, setPicked] = useState<RulesetId | null>(null);
+  const [query, setQuery] = useState('');
+  const first = useRulesetCataloguePage({ sort: 'name' }).data;
+  const matching = useRulesetCataloguePage(query.trim() ? { q: query.trim() } : { sort: 'name' }).data;
+  /* The default and the base are found by name, so they are there however many Rulesets come before them. */
+  const preferred = useNamedRuleset(DEFAULT_RULESET);
+  const base = useNamedRuleset(BASE_RULESET);
+  const [picked, setPicked] = useState<RulesetEntry | null>(null);
   const [seats, setSeats] = useState<readonly FactionToken[] | null>(null);
-  if (!catalogue) {
+  if (!first || preferred === undefined || base === undefined) {
     return <Pending>Loading the Rulesets…</Pending>;
   }
-  const rulesets = catalogue.entries.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
-  const fallback = rulesets.find((entry) => entry.slug === DEFAULT_RULESET) ?? rulesets[0];
-  const rulesetId = picked ?? fallback?.id;
-  const baseId = (rulesets.find((entry) => entry.slug === BASE_RULESET) ?? fallback)?.id;
-  if (!rulesetId || !baseId) {
+  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
+  const listed = (matching ?? first).entries.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
+  const chosen = picked ?? preferred ?? listed[0];
+  const baseEntry = base ?? chosen;
+  if (!chosen || !baseEntry) {
     return null;
   }
+  const rulesets = listed.some((entry) => entry.id === chosen.id) ? listed : [chosen, ...listed];
   return (
-    <RulesetSetup
-      key={rulesetId}
+    <BaseSeats
       rulesets={rulesets}
-      rulesetId={rulesetId}
-      baseId={baseId}
+      rulesetId={chosen.id}
+      baseId={baseEntry.id}
       seats={seats}
       onSeats={setSeats}
-      onPick={(id) => setPicked(id as RulesetId)}
+      onPick={(id) => setPicked(rulesets.find((entry) => entry.id === id) ?? null)}
+      onRulesetSearch={setQuery}
       onStart={onStart}
     />
   );
 }
 
+type RulesetEntry = RulesetCatalogueEntry;
+
+/* A Ruleset found by its name, matched on its slug: undefined while the search runs, null when there is none. */
+function useNamedRuleset({ slug, name }: Readonly<{ slug: string; name: string }>): RulesetEntry | null | undefined {
+  const found = useRulesetCataloguePage({ q: name }).data;
+  return found ? (found.entries.find((entry) => entry.slug === slug) ?? null) : undefined;
+}
+
+/* Reads the base six once, above the Ruleset's own setup, so picking another Ruleset does not read them again. */
+function BaseSeats({ baseId, ...setup }: Readonly<Omit<RulesetSetupProps, 'base'> & { baseId: RulesetId }>) {
+  const base = useBaseSeats(baseId);
+  return <RulesetSetup key={setup.rulesetId} {...setup} base={base} />;
+}
+
 /* One Ruleset's setup, reading its Treachery deck, with the factions seated so far or the base six. */
-function RulesetSetup({
-  rulesets,
-  rulesetId,
-  baseId,
-  seats,
-  onSeats,
-  onPick,
-  onStart,
-}: Readonly<{
+type RulesetSetupProps = Readonly<{
   rulesets: readonly { id: string; name: string }[];
   rulesetId: RulesetId;
-  baseId: RulesetId;
+  /** The base six, undefined while they load. */
+  base: readonly FactionToken[] | undefined;
   seats: readonly FactionToken[] | null;
   onSeats: (seats: readonly FactionToken[]) => void;
   onPick: (rulesetId: string) => void;
+  onRulesetSearch: (query: string) => void;
   onStart: (game: StandaloneGame) => void;
-}>) {
-  const base = useBaseSeats(baseId);
+}>;
+
+function RulesetSetup({
+  rulesets,
+  rulesetId,
+  base,
+  seats,
+  onSeats,
+  onPick,
+  onRulesetSearch,
+  onStart,
+}: RulesetSetupProps) {
   const read = useTreacheryDeck(rulesetId);
   const deck: SetupDeck =
     read.status === 'loading'
@@ -138,6 +162,7 @@ function RulesetSetup({
       deck={deck}
       config={config}
       search={FactionSearch}
+      onRulesetSearch={onRulesetSearch}
       onChange={(next) => {
         if (next.seats && next.seats !== config.seats) {
           onSeats(next.seats);
@@ -160,11 +185,15 @@ function RulesetSetup({
 /* The base six: the first factions of the base Ruleset, in its own order, each with its published token. */
 function useBaseSeats(rulesetId: RulesetId): readonly FactionToken[] | undefined {
   const data = useOrderedRulesetFactions(rulesetId, BASE_SEATS);
-  return useMemo(() => data?.factions.map((faction) => factionToken(faction._id, faction.name)), [data]);
-}
-
-function factionToken(id: string, name: string): FactionToken {
-  return { id, name, src: publishedHref('faction-token', id) };
+  return useMemo(
+    () =>
+      data?.factions.map((faction) => ({
+        id: faction._id,
+        name: faction.name,
+        src: publishedHref('faction-token', faction._id, faction.updated_at),
+      })),
+    [data]
+  );
 }
 
 /* Every faction on Dune Zone, searched by name, as the setup's Add a faction lists them. */
@@ -172,7 +201,15 @@ const FactionSearch: FactionSearchType = ({ seated, onPick }) => {
   const [query, setQuery] = useState('');
   const read = useCataloguePickerGroup('faction', query.trim(), undefined);
   const factions = read.results.flatMap((choice) =>
-    choice.kind === 'faction' ? [factionToken(choice.id, choice.faction.data.name)] : []
+    choice.kind === 'faction'
+      ? [
+          {
+            id: choice.id,
+            name: choice.faction.data.name,
+            src: choice.faction.tokenImages?.faction ?? publishedHref('faction-token', choice.id),
+          },
+        ]
+      : []
   );
   const status: FactionSearchStatus =
     read.status === 'LoadingFirstPage'

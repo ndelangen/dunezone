@@ -92,6 +92,19 @@ export class CatalogueCapture {
     });
   }
 
+  /**
+   * The ruleset's Treachery deck alone, captured as a game keeps it, or null when it has none.
+   * The standalone Treachery tracker copies only this deck, so it neither needs a board nor waits for the other slots.
+   */
+  async captureTreacheryDeck(rulesetId: string): Promise<RulesetCapture['decks']['treachery']> {
+    const supply = rulesetSupplySchema.nullable().parse(await this.reads.rulesetSupply(rulesetId));
+    if (!supply) {
+      throw new GameRejection('This ruleset is not available.');
+    }
+    const [deck] = await this.captureSlots('treachery', supply, []);
+    return deck ?? null;
+  }
+
   /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */
   private async captureSlots(slot: RulesetAssetSlot, supply: RulesetSupply, problems: CaptureProblem[]) {
     const assets = supply.slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);

@@ -1,10 +1,10 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { savedGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
 import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
 import { TOOLS } from './_app/tools/tools';
+import { savedGame, startGame } from './_tool/tools/atreides-treachery-tracker/standaloneGame';
 import { expectWithinWidth } from './pagePlay';
 import { findTitledPage } from './site.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';

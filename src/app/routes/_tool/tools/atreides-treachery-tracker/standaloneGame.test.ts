@@ -1,0 +1,50 @@
+// @vitest-environment jsdom
+import { afterEach, expect, test } from 'vite-plus/test';
+
+import type { CardDef } from '@app/widgets/treachery-tracker/tracker';
+
+import { playGame, savedGame, startGame } from './standaloneGame';
+
+const DECK: CardDef[] = [
+  {
+    key: 'lasgun',
+    name: 'Lasgun',
+    kind: 'weapon',
+    detail: 'Weapon - Special',
+    face: 'https://example.test/lasgun.jpg',
+    count: 1,
+  },
+];
+const FACTIONS = [
+  { id: 'atreides', name: 'Atreides' },
+  { id: 'harkonnen', name: 'Harkonnen' },
+];
+const STORAGE_KEY = 'dune-zone:standalone-treachery-tracker';
+
+afterEach(() => savedGame.set(null));
+
+test('two changes from one tap both land, the second on top of the first', () => {
+  savedGame.set(startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK));
+  savedGame.update((game) => playGame(game, { kind: 'add', faction: 'harkonnen', card: null }));
+  const slot = savedGame.get()!.state.hands.harkonnen![0]!.id;
+  const card = savedGame.get()!.state.copies[0]!.id;
+  /* "Discarded as…" names the unknown card, then discards it. */
+  savedGame.update((game) => playGame(game, { kind: 'identify', faction: 'harkonnen', slot, card }));
+  savedGame.update((game) => playGame(game, { kind: 'discard', faction: 'harkonnen', slot }));
+  expect(savedGame.get()!.state.discard).toEqual([card]);
+  expect(savedGame.get()!.state.hands.harkonnen).toEqual([]);
+});
+
+test('a saved game with one slot id in two hands does not open', () => {
+  const game = startGame({ id: 'dreamrules', name: 'Dreamrules' }, FACTIONS, DECK);
+  const slot = { id: 's1', card: null };
+  const stop = savedGame.subscribe(() => {});
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ ...game, state: { ...game.state, hands: { atreides: [slot], harkonnen: [slot] } } })
+  );
+  /* Another tab wrote it, so this one reads it afresh. */
+  window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
+  expect(savedGame.get()).toBeNull();
+  stop();
+});

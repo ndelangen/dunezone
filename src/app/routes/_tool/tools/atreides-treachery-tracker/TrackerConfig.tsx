@@ -19,9 +19,9 @@ import type { ComponentType } from 'react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { TrackerPopover, useActionSize, useTrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 
 import styles from './TrackerConfig.module.css';
-import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /** The Ruleset whose Treachery deck the tracker copies, and the factions at the table in seat order. */
 export type TrackerConfig = Readonly<{
@@ -46,11 +46,15 @@ export function TrackerConfigPanel({
   rulesets,
   config,
   onChange,
-  search,
+  onRulesetSearch,
+  search: Search,
 }: Readonly<{
+  /** The Rulesets to offer: the first ones, or those matching what the player types, always with the picked one. */
   rulesets: readonly { id: string; name: string }[];
   config: TrackerConfig;
   onChange: (config: TrackerConfig) => void;
+  /** Asks for the Rulesets matching a name; empty asks for the first ones again. */
+  onRulesetSearch: (query: string) => void;
   search: FactionSearch;
 }>) {
   const sensors = useSensors(
@@ -62,6 +66,13 @@ export function TrackerConfigPanel({
   const touch = useTrackerTouch();
   const actionSize = useActionSize();
   const seats = config.seats;
+  /* What the player types while the list is open; null while it is closed, when the field shows the picked Ruleset. */
+  const [search, setSearch] = useState<string | null>(null);
+  const picked = rulesets.find((ruleset) => ruleset.id === config.ruleset)?.name ?? '';
+  const searchFor = (value: string) => {
+    setSearch(value);
+    onRulesetSearch(value);
+  };
   return (
     <div className={styles.config}>
       <section>
@@ -78,6 +89,17 @@ export function TrackerConfigPanel({
               allowDeselect={false}
               comboboxProps={{ withinPortal: true }}
               onChange={(ruleset) => ruleset && onChange({ ...config, ruleset })}
+              /* Every Ruleset can be found by name: the list holds the first ones, and typing searches them all on the server. */
+              searchable
+              searchValue={search ?? picked}
+              filter={({ options }) => options}
+              nothingFoundMessage="No Ruleset matches"
+              onDropdownOpen={() => searchFor('')}
+              onDropdownClose={() => {
+                setSearch(null);
+                onRulesetSearch('');
+              }}
+              onSearchChange={(value) => search !== null && searchFor(value)}
             />
           )}
         />
@@ -130,7 +152,7 @@ export function TrackerConfigPanel({
         )}
         {seats ? (
           <AddFaction
-            search={search}
+            search={Search}
             seated={seats.map((seat) => seat.id)}
             onPick={(faction) => onChange({ ...config, seats: [...seats, faction] })}
           />

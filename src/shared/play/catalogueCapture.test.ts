@@ -110,3 +110,15 @@ describe('playReadiness', () => {
     ]);
   });
 });
+
+describe('captureTreacheryDeck', () => {
+  it('reads a ruleset without a board, which a game refuses but the standalone tracker needs only the deck of', async () => {
+    const capture = catalogue({ rulesets: { kiss: { ruleset: kiss, board: null, slots: [] } } });
+    await expect(capture.captureRuleset('kiss')).rejects.toThrow('This ruleset has no usable board.');
+    await expect(capture.captureTreacheryDeck('kiss')).resolves.toBeNull();
+  });
+
+  it('refuses a ruleset the catalogue does not have', async () => {
+    await expect(catalogue({}).captureTreacheryDeck('gone')).rejects.toThrow('This ruleset is not available.');
+  });
+});

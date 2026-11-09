@@ -3,7 +3,7 @@ import { CatalogueCapture, playReadiness } from '@shared/play/catalogueCapture';
 import type { PlayReadinessEntry } from '@shared/play/catalogueCapture';
 import type { playGeneratedGameRequestSchema } from '@shared/play/gameCreation';
 import { peekSeatPass, PLAY_SEAT_PASS_RENEW_MS } from '@shared/play/seatPass';
-import { treacheryDeckCards } from '@shared/play/treacheryDeck';
+import { treacheryCardsOf } from '@shared/play/treacheryDeck';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 import { useQuery } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
@@ -298,9 +298,9 @@ export function useTreacheryDeck(rulesetId: string | null): TreacheryDeckRead {
     let current = true;
     const answer = (read: TreacheryDeckRead) => current && setAnswered({ rulesetId, read });
     browserCatalogue()
-      .captureRuleset(rulesetId)
+      .captureTreacheryDeck(rulesetId)
       .then(
-        (capture) => answer({ status: 'read', cards: treacheryDeckCards(capture) }),
+        (deck) => answer({ status: 'read', cards: treacheryCardsOf(deck) }),
         (error: unknown) =>
           answer({
             status: 'failed',

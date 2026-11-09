@@ -519,3 +519,10 @@ export function groupOf(def: CardDef): CardGroup {
   }
   return def.kind;
 }
+
+/** Whether a stored tracker holds together: no card in two places, and no slot id used twice. */
+export function consistentTracker(state: Pick<TrackerState, 'hands' | 'discard'>): boolean {
+  const slots = Object.values(state.hands).flat();
+  const cards = [...slots.flatMap((slot) => (slot.card ? [slot.card] : [])), ...state.discard];
+  return new Set(cards).size === cards.length && new Set(slots.map((slot) => slot.id)).size === slots.length;
+}

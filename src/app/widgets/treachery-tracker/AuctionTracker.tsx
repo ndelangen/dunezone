@@ -358,6 +358,8 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
   const holder = holderOf(state, factions, sighting);
   const waiting = awaitingWinner(state, sighting);
   const name = copy?.def.name ?? 'Unknown card';
+  /* A phone has no hover, so a tap on a finished auction's card opens a sheet that shows the card and who holds it. */
+  const touch = useTrackerTouch();
   return (
     <TrackerPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md">
       <TrackerPopover.Target>
@@ -367,7 +369,7 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
               type="button"
               className={styles.cardButton}
               aria-label={waiting ? `${name}: who won it?` : name}
-              onClick={waiting ? () => setOpen((was) => !was) : undefined}
+              onClick={waiting || touch ? () => setOpen((was) => !was) : undefined}
             >
               <KnownOrUnknown copy={copy} />
             </button>
@@ -377,27 +379,40 @@ function AuctionCard({ sighting, factions, state, onAction }: TrackerViewProps &
       </TrackerPopover.Target>
       <TrackerPopover.Dropdown className={styles.dropdown}>
         <SheetCard card={copy} />
-        <Text size="xs" className={styles.caption} mb="xs">
-          {name}: who won it?
-        </Text>
-        <FactionPicker
-          factions={factions}
-          size={32}
-          label={(faction) => `${faction.name} won ${copy?.def.name ?? 'the unknown card'}`}
-          onPick={(faction) => {
-            onAction({ kind: 'win', sighting: sighting.id, faction });
-            setOpen(false);
-          }}
-        />
-        <AuctionEnd
-          sighting={sighting}
-          state={state}
-          canName={false}
-          onAction={(action) => {
-            onAction(action);
-            setOpen(false);
-          }}
-        />
+        {waiting ? null : (
+          <Text size="sm" className={styles.dim}>
+            {holder === 'discard'
+              ? `${name}: discarded.`
+              : holder
+                ? `${name}: held by ${holder.name}.`
+                : `${name}: nobody holds it now.`}
+          </Text>
+        )}
+        {waiting ? (
+          <>
+            <Text size="xs" className={styles.caption} mb="xs">
+              {name}: who won it?
+            </Text>
+            <FactionPicker
+              factions={factions}
+              size={32}
+              label={(faction) => `${faction.name} won ${copy?.def.name ?? 'the unknown card'}`}
+              onPick={(faction) => {
+                onAction({ kind: 'win', sighting: sighting.id, faction });
+                setOpen(false);
+              }}
+            />
+            <AuctionEnd
+              sighting={sighting}
+              state={state}
+              canName={false}
+              onAction={(action) => {
+                onAction(action);
+                setOpen(false);
+              }}
+            />
+          </>
+        ) : null}
       </TrackerPopover.Dropdown>
     </TrackerPopover>
   );

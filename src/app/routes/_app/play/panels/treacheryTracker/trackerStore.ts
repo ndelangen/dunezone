@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { newTracker, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import { consistentTracker, newTracker, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
 import type { CardDef, TrackerAction, TrackerState } from '@app/widgets/treachery-tracker/tracker';
 
 import { followTable } from './tableFeed';
@@ -15,16 +15,6 @@ export type TrackerStore = Readonly<{
   dispatch: (action: TrackerAction) => void;
   follow: (facts: TableFacts) => void;
 }>;
-
-/*
- * Whether a stored tracker holds together: no card in two places at once, and no slot in two hands.
- * The reducer never builds such a state, so one that does was edited or damaged, and starts afresh.
- */
-function consistent(state: Pick<TrackerState, 'hands' | 'discard'>): boolean {
-  const slots = Object.values(state.hands).flat();
-  const cards = [...slots.flatMap((slot) => (slot.card ? [slot.card] : [])), ...state.discard];
-  return new Set(cards).size === cards.length && new Set(slots.map((slot) => slot.id)).size === slots.length;
-}
 
 const memorySchema = z.object({ peeked: z.array(z.string()), sightings: z.array(z.string()).optional() });
 
@@ -43,7 +33,7 @@ function storedTracker(fresh: TrackerState) {
         notes: z.record(z.string(), z.string()),
         nextSlot: z.number(),
       })
-      .refine(consistent),
+      .refine(consistentTracker),
     memory: memorySchema.optional(),
   });
 }

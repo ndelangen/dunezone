@@ -4,13 +4,14 @@ import { expect, within } from 'storybook/test';
 
 import { db } from '@db/storybook';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-import { FactionSearchList } from '@app/widgets/treachery-tracker/FactionSearchList';
-import { playGame, startGame } from '@app/widgets/treachery-tracker/standaloneGame';
-import type { StandaloneGame } from '@app/widgets/treachery-tracker/standaloneGame';
-import type { SetupDeck } from '@app/widgets/treachery-tracker/StandaloneTracker';
-import { TrackerGame, TrackerSetup } from '@app/widgets/treachery-tracker/StandaloneTracker';
 import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
-import type { FactionSearch, TrackerConfig } from '@app/widgets/treachery-tracker/TrackerConfig';
+
+import { FactionSearchList } from './FactionSearchList';
+import { playGame, startGame } from './standaloneGame';
+import type { StandaloneGame } from './standaloneGame';
+import type { SetupDeck } from './StandaloneTracker';
+import { TrackerGame, TrackerSetup } from './StandaloneTracker';
+import type { FactionSearch, TrackerConfig } from './TrackerConfig';
 
 const RULESETS = [
   { id: 'dreamrules', name: 'Dreamrules' },
@@ -60,9 +61,13 @@ const StorySearch: FactionSearch = ({ seated, onPick }) => {
 
 function Setup({ deck, loading }: Readonly<{ deck: SetupDeck; loading?: boolean }>) {
   const [config, setConfig] = useState<TrackerConfig>({ ruleset: 'dreamrules', seats: FACTIONS });
+  const [query, setQuery] = useState('');
   return (
     <TrackerSetup
-      rulesets={RULESETS}
+      rulesets={RULESETS.filter(
+        (ruleset) => ruleset.id === config.ruleset || ruleset.name.toLowerCase().includes(query.trim().toLowerCase())
+      )}
+      onRulesetSearch={setQuery}
       deck={deck}
       config={loading ? { ...config, seats: undefined } : config}
       onChange={setConfig}

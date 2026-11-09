@@ -5,14 +5,15 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { Minus, Play, Plus, RotateCcw } from 'lucide-react';
 import { useEffect } from 'react';
 
-import { AuctionTracker } from './AuctionTracker';
-import type { TrackerSection } from './AuctionTracker';
+import { AuctionTracker } from '@app/widgets/treachery-tracker/AuctionTracker';
+import type { TrackerSection } from '@app/widgets/treachery-tracker/AuctionTracker';
+import type { CardDef, TrackerAction } from '@app/widgets/treachery-tracker/tracker';
+import { TrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
+
 import type { StandaloneGame } from './standaloneGame';
 import styles from './StandaloneTracker.module.css';
-import type { CardDef, TrackerAction } from './tracker';
 import { TrackerConfigPanel } from './TrackerConfig';
 import type { FactionSearch, TrackerConfig } from './TrackerConfig';
-import { TrackerTouch } from './TrackerSurface';
 
 /*
  * The Treachery tracker on its own, for a game at a physical table (#2795): set up from a Ruleset, then tracked on a phone.
@@ -33,6 +34,7 @@ export function TrackerSetup({
   onChange,
   onStart,
   search,
+  onRulesetSearch,
 }: Readonly<{
   rulesets: readonly { id: string; name: string }[];
   deck: SetupDeck;
@@ -40,6 +42,7 @@ export function TrackerSetup({
   onChange: (config: TrackerConfig) => void;
   onStart: () => void;
   search: FactionSearch;
+  onRulesetSearch: (query: string) => void;
 }>) {
   const reason =
     deck.status === 'loading' || config.seats === undefined
@@ -52,7 +55,13 @@ export function TrackerSetup({
   return (
     <TrackerTouch>
       <div className={styles.setup}>
-        <TrackerConfigPanel rulesets={rulesets} config={config} onChange={onChange} search={search} />
+        <TrackerConfigPanel
+          rulesets={rulesets}
+          config={config}
+          onChange={onChange}
+          onRulesetSearch={onRulesetSearch}
+          search={search}
+        />
         <div className={styles.start}>
           <DeckLine deck={deck} />
           <LabeledAction

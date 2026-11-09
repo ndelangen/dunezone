@@ -5,9 +5,9 @@ import { Check, Search } from 'lucide-react';
 
 import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { useTrackerTouch } from '@app/widgets/treachery-tracker/TrackerSurface';
 
 import styles from './FactionSearchList.module.css';
-import { useTrackerTouch } from './TrackerSurface';
 
 /** How far the search has read the factions: the first page, more to load, or all of them. */
 export type FactionSearchStatus = 'loading' | 'more' | 'loading-more' | 'done';

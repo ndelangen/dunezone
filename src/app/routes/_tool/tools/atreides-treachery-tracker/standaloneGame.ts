@@ -1,9 +1,8 @@
 import { z } from 'zod';
 
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
-
-import { newTracker, trackerReducer } from './tracker';
-import type { CardDef, TrackerAction, TrackerState } from './tracker';
+import { consistentTracker, newTracker, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import type { CardDef, TrackerAction, TrackerState } from '@app/widgets/treachery-tracker/tracker';
 
 /**
  * A game tracked at a physical table: the Ruleset it plays, the factions in seat order, the turn, and the tracker.
@@ -50,7 +49,7 @@ const defSchema = z.object({
 });
 const slotSchema = z.object({ id: z.string(), card: z.string().nullable() });
 
-/* A saved game is opened only when it holds together: every card it names is one of its own copies, and no card is in two places. */
+/* A saved game is opened only when it holds together: every card it names is one of its own copies, no card is in two places, and no slot id is used twice. */
 const gameSchema = z
   .object({
     ruleset: z.object({ id: z.string(), name: z.string() }),
@@ -69,16 +68,14 @@ const gameSchema = z
   })
   .refine(({ factions, state }) => {
     const ids = new Set(state.copies.map((copy) => copy.id));
-    const slots = Object.values(state.hands).flat();
-    const held = slots.flatMap((slot) => (slot.card ? [slot.card] : []));
     const named = [
-      ...held,
+      ...Object.values(state.hands).flatMap((slots) => slots.flatMap((slot) => (slot.card ? [slot.card] : []))),
       ...state.discard,
       ...state.seen.flatMap((sighting) => (sighting.card ? [sighting.card] : [])),
     ];
     return (
       named.every((card) => ids.has(card)) &&
-      new Set([...held, ...state.discard]).size === held.length + state.discard.length &&
+      consistentTracker(state) &&
       factions.every((faction) => faction.id in state.hands)
     );
   });
@@ -142,5 +139,12 @@ export const savedGame = {
     saveGame(game);
     read = { game };
     listeners.forEach((listener) => listener());
+  },
+  /** Changes the saved game as it is now, so two changes from one tap both land, the second on top of the first. */
+  update: (change: (game: StandaloneGame) => StandaloneGame) => {
+    const game = savedGame.get();
+    if (game) {
+      savedGame.set(change(game));
+    }
   },
 };
