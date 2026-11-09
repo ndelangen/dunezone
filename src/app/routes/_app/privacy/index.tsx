@@ -103,15 +103,14 @@ function PrivacyPage() {
           <Section title="Discord voice rooms">
             <Stack gap="md">
               <Text>
-                Dune Play creates a private Discord voice room for each game. Discord receives the game name. When you
-                choose Join voice chat, we use the Discord account ID from your connected sign-in method to give you
-                access. Discord can then see which Discord accounts play together.
+                Dune Play creates a Discord voice channel for each game. Anyone with its invite can join, including
+                spectators. You do not need to connect Discord to your Dune Zone account to use the invite. Discord
+                receives the game name and can see which Discord accounts join and use the channel.
               </Text>
               <Text>
-                Joining the Discord server is your choice. We offer an invite if you are not a member and never add you
-                automatically. Spectators cannot join the game's voice room. Leaving your seat, disconnecting Discord,
-                or deleting your Dune Zone account removes your access. Rooms are deleted 24 hours after the game ends
-                or after 14 days without game activity.
+                Joining the Discord server is your choice. We never add you automatically or change your channel access
+                when you leave a seat. Channels are deleted 24 hours after the game ends or after 14 days without game
+                activity.
               </Text>
             </Stack>
           </Section>

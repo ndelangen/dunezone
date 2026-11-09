@@ -20,7 +20,6 @@ import {
 import { expirePendingConnections, revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { playCredential, playCredentialDigest } from './lib/playAuthorization';
-import { revokeDiscordAccount } from './lib/playDiscord';
 import { requireAdminUserId, requireAuthUserId, requireRecentSignIn } from './lib/policy';
 import schema from './schema';
 
@@ -365,13 +364,6 @@ export const disconnect = mutation({
       .take(101);
     if (accounts.length > 100) {
       throw new Error('This profile has too many connections to disconnect at once. Contact an administrator.');
-    }
-    if (args.provider === 'discord') {
-      await revokeDiscordAccount(
-        ctx,
-        userId,
-        accounts.map((account) => account._id)
-      );
     }
     for (const account of accounts) {
       for await (const code of ctx.db

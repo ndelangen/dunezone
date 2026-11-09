@@ -79,7 +79,7 @@ async function gameAccess(
         ruleset: ruleset ? { slug: ruleset.slug, name: ruleset.name } : null,
         minimumPlayers: game.minimum_players ?? null,
         pass: await queryPass(ctx, game, session),
-        voice: await discordMenu(ctx, game, session.userId),
+        voice: await discordMenu(ctx, game),
       };
     }
   }

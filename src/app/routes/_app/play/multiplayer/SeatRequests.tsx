@@ -432,7 +432,7 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
-        {seated && table.snapshot.stage !== 'finished' && !table.playback && voice}
+        {table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback && voice}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
