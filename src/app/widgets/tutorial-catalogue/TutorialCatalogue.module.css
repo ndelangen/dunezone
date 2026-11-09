@@ -2,10 +2,7 @@
  * The landing page's rows of chapter tiles.
  * The rows are the page's rhythm, so they ask the page frame and step from one tile to two, three and five across; a part never holds more than five chapters.
  */
-/* Twenty-odd panes over the fixed starfield: their live blur made scrolling stutter, so the rows keep the glass without it. */
 .row {
-  --surface-backdrop: none;
-
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-md);
@@ -46,7 +43,7 @@
   overflow: hidden;
 }
 
-/* A built chapter's link stretches over its whole tile. */
+/* A tile's link stretches over the whole tile. */
 .open {
   color: inherit;
   text-decoration: none;
@@ -58,11 +55,11 @@
   content: "";
 }
 
-.tile.built:hover {
+.tile.linked:hover {
   outline: 2px solid var(--color-brand);
 }
 
-.tile.built:has(.open:focus-visible) {
+.tile.linked:has(.open:focus-visible) {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
@@ -112,4 +109,23 @@
   font-size: 1.6rem;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+/* A tool has no number, so its title and line take the whole width. */
+.words.unnumbered {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline-start: var(--space-md);
+}
+
+/* A tile with no picture yet holds its placeholder mark in the middle of the frame. */
+.placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Twenty-odd panes over the fixed starfield: their live blur made scrolling stutter (#2652), so the tutorial rows keep the glass without it. The ten tool tiles keep the blur (Norbert, 2026-11-09). */
+.unblurred {
+  --surface-backdrop: none;
 }
