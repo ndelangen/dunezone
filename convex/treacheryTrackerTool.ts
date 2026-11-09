@@ -66,6 +66,29 @@ async function rulesetDecks(ctx: QueryCtx, budget: Budget) {
   return slots.flat().map((slot) => slot.asset_id);
 }
 
+/* One card's membership reading so far: how many rows, and the last one's time, to read on from. */
+type Reading = Readonly<{ card: Doc<'assets'>; read: number; after: number | undefined }>;
+
+/* The rows of one round, at most `each` a card, and the cards cut short, to read on in the next round. */
+async function readRound(ctx: QueryCtx, pending: readonly Reading[], each: number) {
+  const slices = await inBatches(pending, ({ card, read, after }) =>
+    ctx.db
+      .query('asset_relations')
+      .withIndex('by_to_kind', (q) => {
+        const rows = q.eq('to_asset_id', card._id).eq('kind', DECK_CARD);
+        return after === undefined ? rows : rows.gt('_creationTime', after);
+      })
+      .take(Math.min(each, DECKS_PER_CARD - read))
+  );
+  const next = pending.flatMap((reading, index): Reading[] => {
+    const slice = slices[index];
+    const read = reading.read + slice.length;
+    const cutShort = slice.length === Math.min(each, DECKS_PER_CARD - reading.read) && read < DECKS_PER_CARD;
+    return cutShort ? [{ card: reading.card, read, after: slice.at(-1)?._creationTime }] : [];
+  });
+  return { rows: slices.flat(), next };
+}
+
 /*
  * The decks holding a live Treachery card: found from the cards, so a deck that mixes card types is found whatever its first card is.
  * Also hands back each card row read on the way, so counting a deck's copies does not read them again.
@@ -80,35 +103,15 @@ async function decksWithTreachery(ctx: QueryCtx, budget: Budget) {
   const known = new Map<Id<'assets'>, Doc<'assets'> | null>(cards.map((card) => [card._id, card]));
   const found: Id<'assets'>[] = [];
   let findLeft = Math.min(FIND_BUDGET, budget.left);
-  /* Each card's reading so far: how many rows, and the last one's time, to read on from. */
-  let pending = cards.map((card) => ({ card, read: 0, after: undefined as number | undefined }));
+  let pending: Reading[] = cards.map((card) => ({ card, read: 0, after: undefined }));
   /* Rounds, each sharing what is left among the cards not read to the end, so a card cut short in one round is read on in the next. */
-  while (pending.length > 0) {
-    const each = Math.floor(findLeft / pending.length);
-    if (each < 1) {
-      break;
-    }
-    const slices = await inBatches(pending, ({ card, read, after }) =>
-      ctx.db
-        .query('asset_relations')
-        .withIndex('by_to_kind', (q) => {
-          const rows = q.eq('to_asset_id', card._id).eq('kind', DECK_CARD);
-          return after === undefined ? rows : rows.gt('_creationTime', after);
-        })
-        .take(Math.min(each, DECKS_PER_CARD - read))
-    );
-    const next = [];
-    for (const [index, slice] of slices.entries()) {
-      const reading = pending[index];
-      findLeft -= slice.length;
-      budget.left -= slice.length;
-      found.push(...slice.map((membership) => membership.from_asset_id));
-      const read = reading.read + slice.length;
-      if (slice.length === Math.min(each, DECKS_PER_CARD - reading.read) && read < DECKS_PER_CARD) {
-        next.push({ card: reading.card, read, after: slice.at(-1)?._creationTime });
-      }
-    }
-    pending = next;
+  for (let each = Math.floor(findLeft / pending.length); pending.length > 0 && each >= 1;) {
+    const round = await readRound(ctx, pending, each);
+    findLeft -= round.rows.length;
+    budget.left -= round.rows.length;
+    found.push(...round.rows.map((membership) => membership.from_asset_id));
+    pending = round.next;
+    each = pending.length > 0 ? Math.floor(findLeft / pending.length) : 0;
   }
   return { found, known };
 }
