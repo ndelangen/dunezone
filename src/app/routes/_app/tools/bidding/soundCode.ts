@@ -1,7 +1,7 @@
 /*
  * Sound remotes (Norbert, 2026-11-09): a player's phone plays a short tune, and the tablet in the middle of the table
  * hears it and knows who bid what; the tablet's own tune tells a phone it is its turn. No network, no pairing.
- * This is what the tunes say; chirpModem.ts is how they sound. A remote's command is four symbols, each 0 to 15:
+ * This is what the sounds say; noteTunes.ts and clockTicks.ts are how they sound. A remote's command is four symbols, each 0 to 15:
  * the seat, the amount in two parts (0 to 255) and a check that catches a misheard symbol. The tablet's call is five:
  * the seat, the seconds to answer, the bid to beat in two parts, and a check.
  */

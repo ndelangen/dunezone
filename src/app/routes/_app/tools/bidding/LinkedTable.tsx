@@ -260,6 +260,8 @@ function useBidClock(key: string, seconds: number, onOut: () => void): number {
 
 /* A seat no faction sits in: a welcome to it only says the tablet is there. */
 const NOBODY = 15;
+/* A tune lasts under a second and a frame of ticks 1.5 s: the answer comes within this long. */
+const RETRY_MS = 2600;
 
 /* The bid as the tablet calls it: whose it is and what it must beat. */
 const callKey = (game: AuctionGame) =>
@@ -404,10 +406,12 @@ export function LinkedRemote({
   const [amount, setAmount] = useState({ beat: 0, value: 1 });
   const [now, setNow] = useState(() => performance.now());
   /*
-   * A command waits for the tablet's turn on the air to end, then goes out in the quiet after it; it goes again after
-   * the next broadcasts until the tablet shows it heard (a welcome, or a new call), three tries in all.
+   * A command plays at once, over the tablet's ticks; it plays again until the tablet's ticks show it heard (a welcome,
+   * or a new call), three tries in all, giving the tablet a whole frame to answer each time.
    */
-  const pending = useRef<{ command: RemoteCommand; tries: number; before: string } | undefined>(undefined);
+  const pending = useRef<{ command: RemoteCommand; tries: number; before: string; sentAt: number } | undefined>(
+    undefined
+  );
   const [sending, setSending] = useState(false);
   const [unheard, setUnheard] = useState(false);
   const callId = (heard: Call | undefined) => (heard ? `${heard.seat}:${heard.beat}` : '');
@@ -428,12 +432,15 @@ export function LinkedRemote({
         if (answered) {
           pending.current = undefined;
           setSending(false);
+        } else if (at - waiting.sentAt < RETRY_MS) {
+          /* This frame may have started before the tablet heard it. */
         } else if (waiting.tries >= 3) {
           pending.current = undefined;
           setSending(false);
           setUnheard(true);
         } else {
           waiting.tries++;
+          waiting.sentAt = at;
           void playTune(waiting.command, { once: true });
         }
       }
@@ -473,7 +480,8 @@ export function LinkedRemote({
   const lost = heardAt !== undefined && now - heardAt > LOST_MS;
 
   const send = (command: RemoteCommand) => {
-    pending.current = { command, tries: 0, before: callId(call) };
+    pending.current = { command, tries: 1, before: callId(call), sentAt: performance.now() };
+    void playTune(command, { once: true });
     setSending(true);
     setUnheard(false);
   };

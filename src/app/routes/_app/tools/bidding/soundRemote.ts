@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { ChirpReceiver, modulate } from './chirpModem';
-import type { Heard, MessageKind } from './chirpModem';
+import { FRAME_S, TickReceiver, tickFrame } from './clockTicks';
+import { NoteReceiver, tune } from './noteTunes';
 import { decode, decodeCall, encode, encodeCall } from './soundCode';
 import type { Call, RemoteCommand } from './soundCode';
 
 /*
- * The sound remotes' audio: a phone plays a command through its speaker, and the tablet hears it with its microphone;
- * the tablet's call travels the other way. Every message is sent three times in a row (Norbert, 2026-11-09), so one
- * lost to a laugh or a dropped die still arrives; the receiver takes the first copy and ignores its echoes.
+ * The sound remotes' audio: a phone plays a command as a short tune (noteTunes.ts), and the tablet hears it with its
+ * microphone; the tablet answers as a ticking clock (clockTicks.ts). The two sit in different bands, so both can sound
+ * at once. A command is sent three times in a row (Norbert, 2026-11-09), so one lost to a laugh or a dropped die still
+ * arrives; the receiver takes the first copy and ignores its echoes.
  * One page can also hear its own sounds directly, without the air in between (`loopback`), so the prototype can be
  * tried on one laptop.
  */
@@ -27,17 +28,16 @@ function audio() {
 export const REPEATS = 3;
 const REPEAT_GAP_S = 0.12;
 
-/* Plays a message `repeats` times, a short gap between copies. */
-async function playMessage(
-  kind: MessageKind,
-  symbols: readonly number[],
-  { volume = 0.5, repeats = REPEATS } = {}
+/* Plays a sound `repeats` times, a short gap between copies. */
+async function play(
+  make: (rate: number) => Float32Array<ArrayBuffer>,
+  { volume = 0.5, repeats = REPEATS, gap = REPEAT_GAP_S } = {}
 ): Promise<void> {
   const { context, bus } = audio();
   if (context.state === 'suspended') {
     await context.resume();
   }
-  const samples = modulate(kind, symbols, context.sampleRate);
+  const samples = make(context.sampleRate);
   const copy = context.createBuffer(1, samples.length, context.sampleRate);
   copy.copyToChannel(samples, 0);
   const out = context.createGain();
@@ -50,7 +50,7 @@ async function playMessage(
     source.buffer = copy;
     source.connect(out);
     source.start(at);
-    at += copy.duration + REPEAT_GAP_S;
+    at += copy.duration + gap;
   }
   await new Promise((done) => setTimeout(done, (at - context.currentTime) * 1000));
   out.disconnect();
@@ -58,22 +58,20 @@ async function playMessage(
 
 /** Plays a remote's command, three times over unless `once`. */
 export function playTune(command: RemoteCommand, { once = false } = {}): Promise<void> {
-  return playMessage('command', encode(command), { repeats: once ? 1 : REPEATS });
+  return play((rate) => tune(encode(command), rate), { repeats: once ? 1 : REPEATS });
 }
 
-/** Plays the tablet's call to the remotes, once. */
+/** Plays the tablet's call to the remotes: one frame of the clock's ticks. */
 export function playCall(call: Call): Promise<void> {
-  return playMessage('call', encodeCall(call), { repeats: 1 });
+  return play((rate) => tickFrame(encodeCall(call), rate), { repeats: 1, volume: 0.35, gap: 0 });
 }
 
 /*
- * The linked table takes turns on the air (Norbert, 2026-11-09: the tablet broadcasts all the time, so a phone always
- * knows whether it hears the tablet). The tablet plays its call, then stays quiet for GAP_MS; a phone sends only in
- * that quiet, right after it hears a call end, so the tablet never talks over a phone.
+ * The tablet ticks without end (Norbert, 2026-11-09: a continuous sound, so a phone always knows whether it hears the
+ * tablet, which sounds like a clock). Each frame of ticks says what the tablet says now.
  */
-export const GAP_MS = 900;
-/** How long a phone goes without hearing the tablet before it says so: a few broadcasts missed in a row. */
-export const LOST_MS = 4000;
+/** How long a phone goes without hearing the tablet before it says so: about three frames missed in a row. */
+export const LOST_MS = Math.round(FRAME_S * 3 * 1000) + 500;
 
 /** While `on`, the tablet broadcasts without end: each turn on the air plays what `next` says now. */
 export function useBroadcast(on: boolean, next: () => Call) {
@@ -89,7 +87,6 @@ export function useBroadcast(on: boolean, next: () => Call) {
     void (async () => {
       while (live) {
         await playCall(latest.current());
-        await new Promise((done) => setTimeout(done, GAP_MS));
       }
     })();
     return () => {
@@ -126,8 +123,8 @@ export function useToneListener({
   /* How the microphone answered: nothing yet while the browser asks. */
   const [micAnswer, setMicAnswer] = useState<'granted' | 'refused' | undefined>(undefined);
   const [level, setLevel] = useState(0);
-  /* A remote hears the tablet's calls; the tablet hears commands. Each sweeps its own way. */
-  const hears: MessageKind = onCall ? 'call' : 'command';
+  /* A remote hears the tablet's ticks; the tablet hears the phones' tunes. */
+  const hears = onCall ? 'call' : 'command';
   const handlers = useRef({ onCommand, onMisheard, onCall });
   useEffect(() => {
     handlers.current = { onCommand, onMisheard, onCall };
@@ -147,29 +144,32 @@ export function useToneListener({
     tap.connect(mute).connect(context.destination);
     /* When each message was last heard, so its other copies are let go, whatever was heard between them. */
     const seen = new Map<string, number>();
-    const receiver = new ChirpReceiver(context.sampleRate, hears, (heard: Heard) => {
-      const key = `${heard.kind}:${heard.symbols.join(',')}`;
+    const onCommandSymbols = (symbols: number[]) => {
+      const key = symbols.join(',');
       const now = performance.now();
       const before = seen.get(key);
       seen.set(key, now);
-      /* Every call counts, since the tablet repeats it on purpose; a command's extra copies do not. */
-      if (heard.kind === 'command' && before !== undefined && now - before < SAME_MESSAGE_MS) {
+      if (before !== undefined && now - before < SAME_MESSAGE_MS) {
         return;
       }
-      if (heard.kind === 'command') {
-        const command = decode(heard.symbols);
-        if (command) {
-          handlers.current.onCommand?.(command);
-        } else {
-          handlers.current.onMisheard?.();
-        }
+      const command = decode(symbols);
+      if (command) {
+        handlers.current.onCommand?.(command);
       } else {
-        const call = decodeCall(heard.symbols);
-        if (call) {
-          handlers.current.onCall?.(call);
-        }
+        handlers.current.onMisheard?.();
       }
-    });
+    };
+    /* Every frame counts, since the tablet repeats it on purpose. */
+    const onFrame = (symbols: number[]) => {
+      const call = decodeCall(symbols);
+      if (call) {
+        handlers.current.onCall?.(call);
+      }
+    };
+    const receiver =
+      hears === 'call'
+        ? new TickReceiver(context.sampleRate, onFrame)
+        : new NoteReceiver(context.sampleRate, onCommandSymbols);
     let blocks = 0;
     tap.onaudioprocess = (event) => {
       receiver.push(new Float32Array(event.inputBuffer.getChannelData(0)));
