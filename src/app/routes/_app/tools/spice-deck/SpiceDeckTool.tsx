@@ -18,7 +18,6 @@ import {
   newGame,
   nextPile,
   nextTurn,
-  isWorm,
   lastPlayed,
   peekAt,
   pileLetter,
@@ -485,7 +484,7 @@ function Table({
           const landing = flight?.pile === index && flight.mode === 'deal';
           const top = landing ? pile.at(-2) : pile.at(-1);
           const count = pile.length - (landing ? 1 : 0);
-          const worm = top && !landing ? wormNotice(game, index, top) : undefined;
+          const worm = wormNotice(game, index, flight);
           return (
             <div key={index} className={styles.pileSpot}>
               <span className={styles.pileLetter} aria-hidden>
@@ -555,22 +554,23 @@ function Table({
   );
 }
 
-/* What the Shai-Hulud on top of a pile, turned over this turn, means: the territory it devours, and a Nexus after the first turn. */
-function wormNotice(game: SpiceDeckGame, pile: number, top: string): string | undefined {
-  if (!isWorm(cardOf(game, top))) {
-    return undefined;
-  }
-  const reveal = game.blows
+/*
+ * The Shai-Hulud that came up on a pile this turn, and what it means: the territory it devours, and a Nexus after the first
+ * turn. It stays until the next turn, even once a spice card covers it; one the players set aside no longer counts.
+ * A Shai-Hulud still flying to its pile is told once it lands.
+ */
+function wormNotice(game: SpiceDeckGame, pile: number, flight: Flight | undefined): string | undefined {
+  const worm = game.blows
     .filter((blow) => blow.turn === game.turn && blow.pile === pile)
     .flatMap((blow) => blow.reveals)
-    .findLast((entry) => entry.card === top);
-  if (reveal?.kind !== 'worm') {
+    .find((entry) => entry.kind === 'worm' && entry !== flight?.reveal);
+  if (worm?.kind !== 'worm') {
     return undefined;
   }
   if (game.turn === 1) {
     return 'Turn 1: set it aside';
   }
-  const devours = reveal.devours ? `Devours ${cardOf(game, reveal.devours).name}` : 'Nothing to devour';
+  const devours = worm.devours ? `Devours ${cardOf(game, worm.devours).name}` : 'Nothing to devour';
   return `${devours} · Nexus`;
 }
 
