@@ -46,7 +46,7 @@ async function startWorker(database: DatabaseDefinition, signal?: AbortSignal) {
   signal?.addEventListener('abort', abandoned, { once: true });
   try {
     signal?.throwIfAborted();
-    await client.reset(database.create(), database.elapsedMs);
+    await client.reset(database.create(), database.elapsedMs, database.discordVoice);
     signal?.throwIfAborted();
     return client;
   } catch (error) {

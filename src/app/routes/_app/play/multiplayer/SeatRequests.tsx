@@ -408,7 +408,14 @@ export function GameMenu({
   table,
   onClearConfetti,
   sharing,
-}: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
+  voice,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  onClearConfetti?: () => void;
+  sharing: ReactNode;
+  voice?: ReactNode;
+}>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
@@ -425,6 +432,7 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
+        {table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback && voice}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { playDiscordMenuSchema } from './discord';
 import { lastTurnSchema } from './lastTurn';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
@@ -150,6 +151,7 @@ export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
   lastTurn: lastTurnSchema.optional(),
+  discordVoice: z.boolean().optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
@@ -177,5 +179,6 @@ export const playGameAddressAccessSchema = z.union([
      * Null until the account is enrolled here, which the page asks for once with `playAdmission.enrolPlayer`.
      */
     pass: z.string().max(4096).nullable(),
+    voice: playDiscordMenuSchema.nullable().optional(),
   }),
 ]);

@@ -68,6 +68,7 @@ import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAcc
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
+import type * as lib_discordRest from "../lib/discordRest.js";
 import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
@@ -92,6 +93,7 @@ import type * as lib_linkedAccountProfiles from "../lib/linkedAccountProfiles.js
 import type * as lib_loginUser from "../lib/loginUser.js";
 import type * as lib_memoised from "../lib/memoised.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
+import type * as lib_playDiscord from "../lib/playDiscord.js";
 import type * as lib_playGameAddressAvailability from "../lib/playGameAddressAvailability.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
 import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
@@ -151,6 +153,8 @@ import type * as playBugReports from "../playBugReports.js";
 import type * as playCatalogue from "../playCatalogue.js";
 import type * as playDeletion from "../playDeletion.js";
 import type * as playDirectory from "../playDirectory.js";
+import type * as playDiscord from "../playDiscord.js";
+import type * as playDiscordActions from "../playDiscordActions.js";
 import type * as playGameDirectory from "../playGameDirectory.js";
 import type * as playGameNameAvailability from "../playGameNameAvailability.js";
 import type * as playGameNamesTesting from "../playGameNamesTesting.js";
@@ -253,6 +257,7 @@ const fullApi: ApiFromModules<{
   "lib/customCardTokens": typeof lib_customCardTokens;
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
+  "lib/discordRest": typeof lib_discordRest;
   "lib/factionCards": typeof lib_factionCards;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
@@ -277,6 +282,7 @@ const fullApi: ApiFromModules<{
   "lib/loginUser": typeof lib_loginUser;
   "lib/memoised": typeof lib_memoised;
   "lib/playAuthorization": typeof lib_playAuthorization;
+  "lib/playDiscord": typeof lib_playDiscord;
   "lib/playGameAddressAvailability": typeof lib_playGameAddressAvailability;
   "lib/playGameAddresses": typeof lib_playGameAddresses;
   "lib/playGameNameChecks": typeof lib_playGameNameChecks;
@@ -336,6 +342,8 @@ const fullApi: ApiFromModules<{
   playCatalogue: typeof playCatalogue;
   playDeletion: typeof playDeletion;
   playDirectory: typeof playDirectory;
+  playDiscord: typeof playDiscord;
+  playDiscordActions: typeof playDiscordActions;
   playGameDirectory: typeof playGameDirectory;
   playGameNameAvailability: typeof playGameNameAvailability;
   playGameNamesTesting: typeof playGameNamesTesting;

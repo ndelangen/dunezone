@@ -22,6 +22,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
+import { discordConfiguration } from './lib/discordRest';
 import { currentPlaySession, livePlaySession } from './lib/playAuthorization';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
@@ -188,6 +189,7 @@ export const creatable = viewerQuery({
     v.object({ access: v.literal('unauthenticated') }),
     v.object({
       access: v.literal('allowed'),
+      discordVoiceAvailable: v.boolean(),
       rulesets: v.array(
         v.object({
           id: v.id('rulesets'),
@@ -220,7 +222,12 @@ export const creatable = viewerQuery({
       });
     }
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
-    return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
+    return {
+      access: 'allowed' as const,
+      discordVoiceAvailable: discordConfiguration() !== null,
+      rulesets,
+      preview: chosen ? await rulesetPreview(ctx, chosen._id) : null,
+    };
   },
 });
 
@@ -307,6 +314,7 @@ export const createGameWithName = action({
         rulesetId: args.rulesetId,
         minimumPlayers: args.minimumPlayers,
         lastTurn: args.lastTurn,
+        discordVoice: args.discordVoice,
         name: prepared.name,
         base: prepared.base,
         check,
@@ -422,6 +430,7 @@ export async function createAuthorizedGame(
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
       last_turn: args.lastTurn,
+      discord_voice: args.discordVoice === true,
       creator_id: eligible.userId,
       name,
     },
