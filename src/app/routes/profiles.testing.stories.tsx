@@ -166,6 +166,89 @@ export const SignInMethods = meta.story({
   },
 });
 
+/** The pictures the methods report, as production serves them: the Storybook image worker answers for these paths. */
+const GOOGLE_PICTURE =
+  'https://dune.zone/user-images/409fbbeb9c14078b27140eb9f76bd68cacbb246db0f5ec32cb43215654769c9d.jpg';
+const DISCORD_PICTURE =
+  'https://dune.zone/user-images/4c76179e0f54fb2644da18a766b602bcafc5a0d6e37501d05e54d3de994d8a5b.jpg';
+
+/** What Google reported at the viewer's last sign-in with it. */
+function googleReported(baseline: StorybookDatabase, name = 'Central Command') {
+  baseline.linked_account_profiles.push({
+    user_id: ref('storybook-viewer'),
+    provider: 'google',
+    name,
+    image: GOOGLE_PICTURE,
+    synced_at: STORYBOOK_NOW - 86_400_000,
+  });
+}
+
+/**
+ * One connected method with something to offer: Resync takes its name and picture at once.
+ * The name changes the address, which the page follows without leaving the tab or losing its answer.
+ */
+export const ResyncTakesTheOnlyMethod = meta.story({
+  args: { path: '/profiles/central/edit?tab=sign-in' },
+  parameters: {
+    database: db((baseline) => {
+      googleConnected(baseline);
+      googleReported(baseline);
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Resync' }, { timeout: 30_000 }));
+    await expect(
+      page.findByText('Name and picture updated from Google.', {}, { timeout: 30_000 })
+    ).resolves.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Sign-in methods' })).toHaveAttribute('aria-selected', 'true');
+    /* The new name moved the profile to a new address, which the page follows before its tabs are back. */
+    await waitFor(
+      async () => {
+        await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
+        expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('CentralCommand');
+      },
+      { timeout: 30_000 }
+    );
+    await expect(page.getByRole('textbox', { name: 'Avatar image URL' })).toHaveValue(GOOGLE_PICTURE);
+  },
+});
+
+/** Two methods with something to offer: Resync lays them out, and the reader picks the one the profile takes. */
+export const ResyncOffersAChoice = meta.story({
+  args: { path: '/profiles/central/edit?tab=sign-in' },
+  parameters: {
+    database: db((baseline) => {
+      googleConnected(baseline);
+      googleReported(baseline, 'Central Command');
+      baseline.authAccounts.push({
+        userId: ref('storybook-viewer'),
+        provider: 'discord',
+        providerAccountId: 'discord-story',
+      });
+      baseline.linked_account_profiles.push({
+        user_id: ref('storybook-viewer'),
+        provider: 'discord',
+        name: 'Ix',
+        image: DISCORD_PICTURE,
+        synced_at: STORYBOOK_NOW - 3_600_000,
+      });
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Resync' }, { timeout: 30_000 }));
+    const offers = within(
+      await page.findByRole('list', { name: 'Sign-in methods with a name or picture to offer' }, { timeout: 30_000 })
+    );
+    await expect(offers.getByText('Takes the name CentralCommand and picture.')).toBeVisible();
+    await expect(offers.getByText(/“Ix” does not fit a display name/)).toBeVisible();
+    await userEvent.click(offers.getByRole('button', { name: 'Use Discord name and picture' }));
+    await expect(page.findByText(/^Picture updated from Discord/, {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.queryByRole('list', { name: 'Sign-in methods with a name or picture to offer' })).toBeNull();
+  },
+});
+
 /**
  * Connecting a method is refused unless the session signed in minutes ago, and the Storybook viewer's session never signed in, so the backend refuses it the way it refuses a stale one.
  * The refusal keeps the server's words and carries the way through: the sign-in page's re-sign-in mode, returning to this tab, which the address names so the return lands on it.

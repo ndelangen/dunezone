@@ -353,6 +353,16 @@ export function useConvexStorybookMutation<
   );
 }
 
+export function useConvexStorybookAction<
+  Action extends FunctionReference<'action'> | FunctionReference_future<'action'>,
+>(action: Action) {
+  const { client, identity } = useConvexStorybookWorkerSession();
+  return useCallback(
+    async (args: FunctionArgs<Action>) => await client.action(action, args, identity),
+    [client, identity, action]
+  );
+}
+
 type PageRequest = { cursor: string | null; numItems: number };
 
 export function useConvexStorybookPaginatedQuery<Query extends PaginatedQueryReference>(
@@ -462,6 +472,7 @@ export const convexStorybookReferences = {
 };
 
 export {
+  useAction as convexUseAction,
   useMutation as convexUseMutation,
   usePaginatedQuery as convexUsePaginatedQuery,
   useQuery as convexUseQuery,
