@@ -161,6 +161,12 @@ const config = defineConfig({
   server: {
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
+  /*
+   * Prerender fetches from this server while it renders other pages on the same thread.
+   * On `localhost` Node tries ::1 then 127.0.0.1 with a 250 ms per-address timeout, so a render that blocks longer fails the bound address and the fallback is refused.
+   * One literal address leaves nothing to fall back to.
+   */
+  preview: { host: '127.0.0.1' },
   test: {
     /* Standalone HTML exports need the compiled CSS Module classes and declarations, as they have no browser module loader. */
     css: { include: [/\.module\.css(?:\?.*)?$/, /\.css\?inline$/], modules: { classNameStrategy: 'scoped' } },

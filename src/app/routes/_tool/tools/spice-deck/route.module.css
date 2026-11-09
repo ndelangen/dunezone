@@ -454,3 +454,8 @@
 .deckChoice:disabled {
   cursor: default;
 }
+
+/* The picked deck's pictures coming in, under its name. */
+.fetchBar {
+  margin-top: 6px;
+}
