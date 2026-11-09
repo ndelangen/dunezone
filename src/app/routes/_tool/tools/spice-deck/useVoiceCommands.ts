@@ -32,8 +32,8 @@ type Recognition = {
   onerror: ((event: { error: string }) => void) | null;
 };
 
-/* Errors that another try would only repeat: no permission, or no microphone to hear with. */
-const FINAL_ERRORS = new Set(['not-allowed', 'service-not-allowed', 'audio-capture']);
+/* Errors that another try would only repeat: no permission, no microphone to hear with, or no service to hear for it. */
+const FINAL_ERRORS = new Set(['not-allowed', 'service-not-allowed', 'audio-capture', 'network']);
 
 type RecognitionClass = new () => Recognition;
 

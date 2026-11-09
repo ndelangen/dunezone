@@ -39,7 +39,22 @@
   line-height: 1.1;
 }
 
+.deckLine {
+  display: flex;
+  gap: 0.25em;
+  min-width: 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* The odds never truncate; the deck's name gives way first. */
+.odds {
+  flex-shrink: 0;
+}
+
 .deckName {
+  min-width: 0;
   overflow: hidden;
   color: var(--ui-muted);
   font-size: 13px;

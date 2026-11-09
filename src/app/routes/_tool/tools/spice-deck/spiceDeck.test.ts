@@ -4,6 +4,7 @@ import {
   blowAll,
   blowPile,
   blowSentence,
+  isPlayable,
   lastPlayed,
   nextPile,
   spiceBlowOver,
@@ -165,5 +166,22 @@ describe('Spice Blow', () => {
     const game = stacked(['old-gap#1', 'shai-hulud#1', 'broken-land#1', 'red-chasm#1']);
     expect(wormChance(game)).toBe(0.25);
     expect(remaining(game).find(({ card }) => card.key === 'shai-hulud')!.left).toBe(1);
+  });
+
+  test('with the deck run out, the odds come from the spice piles the next draw reshuffles', () => {
+    const game = { ...stacked([]), discards: [['old-gap#1', 'shai-hulud#1'], []] };
+    expect(wormChance(game)).toBe(0.5);
+  });
+});
+
+describe('a game read back from storage', () => {
+  test('is playable when every card belongs to its deck', () => {
+    expect(isPlayable(stacked(['old-gap#1', 'shai-hulud#1']))).toBe(true);
+  });
+
+  test('is not when a pile is missing or a card is not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    expect(isPlayable({ ...game, discards: undefined as unknown as SpiceDeckGame['discards'] })).toBe(false);
+    expect(isPlayable({ ...game, draw: ['sietch-tabr#1'] })).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { isPlayable } from './spiceDeck';
 import type { Random, SpiceDeckGame } from './spiceDeck';
 
 /*
@@ -31,7 +32,13 @@ function read(key: string): Saved | undefined {
       return undefined;
     }
     const { deck } = stored.game;
-    return { game: stored.game, undo: stored.undo.map((step) => ({ deck, ...step })) };
+    const undo = (Array.isArray(stored.undo) ? stored.undo : []).map((step) => ({ deck, ...step }));
+    /* A damaged or outdated record opens the picker rather than a broken table; a damaged step drops the history before it. */
+    if (!isPlayable(stored.game)) {
+      return undefined;
+    }
+    const broken = undo.findLastIndex((step) => !isPlayable(step));
+    return { game: stored.game, undo: undo.slice(broken + 1) };
   } catch {
     return undefined;
   }

@@ -336,7 +336,8 @@ function Playing({
    * A step is in flight until it lands; the step that landed last is remembered, so the flight is read off the game.
    */
   const lastId = session.last?.id;
-  const [landedId, setLandedId] = useState<number | undefined>(undefined);
+  /* The step already on the table when the table appears, back from the deck picker or a reload, has landed: it does not fly again. */
+  const [landedId, setLandedId] = useState<number | undefined>(() => session.last?.id);
   const step = useMemo(() => stepOf(game, session.last), [game, session.last]);
   const flight = useMemo<Flight | undefined>(
     () =>
@@ -426,9 +427,11 @@ function Playing({
       <header ref={header} className={styles.header}>
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
-          <span className={styles.deckName}>
-            {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·{' '}
-            {Math.round(wormChance(game) * 100)}% Shai-Hulud
+          <span className={styles.deckLine}>
+            <span className={styles.deckName}>
+              {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·
+            </span>
+            <span className={styles.odds}>{Math.round(wormChance(game) * 100)}% Shai-Hulud</span>
           </span>
         </div>
         <IconAction
@@ -464,7 +467,7 @@ function Playing({
             onClick={() => setListen(!listen)}
           />
         ) : null}
-        <GameMenu session={session} game={game} onPickDeck={onPickDeck} />
+        <GameMenu session={session} game={game} busy={busy} onPickDeck={onPickDeck} />
       </header>
       <main className={styles.body}>
         <Table game={game} flight={flight} onPile={turnOver} />
@@ -780,6 +783,7 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
       return;
     }
     setHolding(true);
+    clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       setHolding(false);
       onPeek();
@@ -877,8 +881,10 @@ function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => 
 function GameMenu({
   session,
   game,
+  busy,
   onPickDeck,
-}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; onPickDeck: () => void }>) {
+}: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame; busy: boolean; onPickDeck: () => void }>) {
+  /* While a card is on its way, the game is not swapped out under it, even from a menu opened before. */
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -888,11 +894,18 @@ function GameMenu({
         <Menu.Label>{game.deck.name}</Menu.Label>
         <Menu.Item
           leftSection={<Layers size={16} />}
-          onClick={() => session.start(newGame(game.deck, session.random, rulesOf(game)))}
+          disabled={busy}
+          onClick={() => {
+            if (!busy) {
+              session.start(newGame(game.deck, session.random, rulesOf(game)));
+            }
+          }}
         >
           New game, same deck
         </Menu.Item>
-        <Menu.Item onClick={onPickDeck}>Pick another deck</Menu.Item>
+        <Menu.Item disabled={busy} onClick={() => !busy && onPickDeck()}>
+          Pick another deck
+        </Menu.Item>
       </Menu.Dropdown>
     </Menu>
   );

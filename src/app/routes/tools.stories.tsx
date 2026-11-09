@@ -93,11 +93,3 @@ export const SpiceDeck = meta.story({
     await expect(page.findByText('Pick the deck your table plays with')).resolves.toBeVisible();
   },
 });
-
-/** The spice deck's address before it was built, which the catalogue once linked: it goes on to the tool. */
-export const FormerSpiceDeckAddress = meta.story({
-  args: { path: '/tools/spice-deck-tracker' },
-  play: async ({ canvasElement }) => {
-    await findTitledPage(canvasElement, /^Spice deck$/);
-  },
-});

@@ -260,11 +260,28 @@ export function remaining(game: SpiceDeckGame): { card: SpiceCardDef; left: numb
 
 /** The chance the next card is Shai-Hulud, from the cards still face down; reshuffles are not foreseen. */
 export function wormChance(game: SpiceDeckGame): number {
-  if (game.draw.length === 0) {
+  /* An empty deck is made again from the spice piles on the next draw, so those are what the next card comes from. */
+  const cards = game.draw.length > 0 ? game.draw : game.discards.flat();
+  if (cards.length === 0) {
     return 0;
   }
-  const worms = game.draw.filter((copy) => isWorm(cardOf(game, copy))).length;
-  return worms / game.draw.length;
+  const worms = cards.filter((copy) => isWorm(cardOf(game, copy))).length;
+  return worms / cards.length;
+}
+
+const isCopyList = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((copy) => typeof copy === 'string');
+
+/** Whether a game read back from storage is whole: its piles are lists of cards, and every card is one of its deck's. */
+export function isPlayable(game: SpiceDeckGame): boolean {
+  if (!Array.isArray(game.deck?.cards) || !Array.isArray(game.blows) || !Array.isArray(game.discards)) {
+    return false;
+  }
+  if (!isCopyList(game.draw) || !isCopyList(game.setAside) || !game.discards.every(isCopyList)) {
+    return false;
+  }
+  const keys = new Set(game.deck.cards.map((card) => card.key));
+  return [game.draw, game.setAside, ...game.discards].every((pile) => pile.every((copy) => keys.has(copyKey(copy))));
 }
 
 /** One turned card as a sentence for the table, as the voice reads it, for the turn it came up on. */
