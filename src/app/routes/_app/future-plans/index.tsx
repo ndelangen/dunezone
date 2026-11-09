@@ -3,6 +3,7 @@ import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@m
 import { GITHUB_BACKLOG, GITHUB_IDEAS, GITHUB_REPOSITORY } from '@shared/repository';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { Section } from '@ui/block/Section';
 import { Eyebrow } from '@ui/content/Eyebrow';
 import { StatusBadge } from '@ui/content/StatusBadge';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -13,18 +14,27 @@ import { Surface } from '@ui/surface';
 import {
   ArrowRight,
   BookOpen,
+  Bot,
   ChartNoAxesColumnIncreasing,
+  CircleCheck,
+  CircleHelp,
+  ClipboardCheck,
   Code2,
   Gamepad2,
+  Gavel,
+  Globe,
+  Hourglass,
+  Languages,
+  Layers,
   Lightbulb,
   ListChecks,
+  Lock,
   MessageCirclePlus,
   PenTool,
   Printer,
+  Scissors,
   Search,
   Shuffle,
-  Smartphone,
-  Sparkles,
   Swords,
   Trophy,
   Wrench,
@@ -42,46 +52,86 @@ export const Route = createFileRoute('/_app/future-plans/')({
       name: 'Future plans',
       pathname: '/future-plans',
       description:
-        'What Dune Zone could become: Rulebooks made for the web, a Rulebook creator, game results and tools for the physical table.',
+        'What Dune Zone could become: more rulesets, print and export tools, game results, table tools for every faction, bots and translations. Plus what is already built.',
       social: { kind: 'Dune Zone', shape: 'portrait' },
     }),
   component: FuturePlansPage,
 });
 
+const COMPLETED_ANCHOR = 'completed';
+
+/** Where a shipped capability lives: a public, indexable page. */
+type BuiltAt = '/rulesets' | '/faq';
+
+type Capability = {
+  icon: ReactNode;
+  title: string;
+  detail: string;
+  /** Set once the capability ships: it leaves the atlas and is listed under Completed, linking here. */
+  built?: BuiltAt;
+};
+
 type FuturePlan = {
-  number: string;
+  id: string;
   title: string;
   shortTitle: string;
   statement: string;
   icon: ReactNode;
-  capabilities: Array<{ icon: ReactNode; title: string; detail: string }>;
+  capabilities: Capability[];
   /** A page on the site where the territory can already be explored. */
   explore?: { label: string; to: '/tools' };
 };
 
 const FUTURE_PLANS: FuturePlan[] = [
   {
-    number: '01',
+    id: 'rulebooks',
     title: 'Every rulebook, made for the web',
     shortTitle: 'Read the rules',
     statement: 'Faithful editions of the published rulebooks, made easier to read, search, and compare at the table.',
     icon: <BookOpen />,
     capabilities: [
-      { icon: <BookOpen />, title: 'Faithful editions', detail: 'Preserve the books people know.' },
+      { icon: <BookOpen />, title: 'Faithful editions', detail: 'Preserve the books people know.', built: '/rulesets' },
       {
         icon: <Search />,
         title: 'Find an answer',
         detail: 'Search rules without stopping the game.',
+        built: '/faq',
       },
       {
         icon: <ListChecks />,
         title: 'Compare editions',
         detail: 'See which rule belongs to which game.',
       },
+      {
+        icon: <MessageCirclePlus />,
+        title: 'Ask the community',
+        detail: 'Ask and answer rules questions in public, for each ruleset.',
+        built: '/faq',
+      },
     ],
   },
   {
-    number: '02',
+    id: 'rulesets',
+    title: 'Every way the game is played',
+    shortTitle: 'More rulesets',
+    statement: 'Tournament rules, official answers and council rulings, kept beside the rulebooks they change.',
+    icon: <ListChecks />,
+    capabilities: [
+      { icon: <Trophy />, title: 'WBC ruleset', detail: 'The tournament rules, ready to read.' },
+      {
+        icon: <CircleHelp />,
+        title: 'The GF9 FAQ',
+        detail: 'Hundreds of official answers, searchable.',
+      },
+      {
+        icon: <Gavel />,
+        title: 'Council rulings',
+        detail: 'Dreamrules answers applied to the book.',
+      },
+    ],
+  },
+  {
+    id: 'create',
     title: 'Create the version you wish existed',
     shortTitle: 'Create and publish',
     statement: 'Build a rulebook and its pieces together, then take the finished game wherever your group plays.',
@@ -91,21 +141,33 @@ const FUTURE_PLANS: FuturePlan[] = [
         icon: <PenTool />,
         title: 'Rulebook creator',
         detail: 'Write and arrange rules on the web.',
+        built: '/rulesets',
       },
       {
         icon: <Printer />,
         title: 'Print and PDF',
         detail: 'Bring a finished edition to the table.',
+        built: '/rulesets',
       },
       {
         icon: <Gamepad2 />,
         title: 'Tabletop Simulator',
         detail: 'Export the same work for online play.',
       },
+      {
+        icon: <Scissors />,
+        title: 'Print-and-play decks',
+        detail: 'Any deck, cut-ready, backs lined up.',
+      },
+      {
+        icon: <Printer />,
+        title: 'Faction print kit',
+        detail: 'Sheet, shield and tokens on a home printer.',
+      },
     ],
   },
   {
-    number: '03',
+    id: 'results',
     title: 'Let every game add to the story',
     shortTitle: 'Record the game',
     statement:
@@ -126,38 +188,47 @@ const FUTURE_PLANS: FuturePlan[] = [
     ],
   },
   {
-    number: '04',
-    title: 'Give every table the tools it reaches for',
+    id: 'tools',
+    title: 'Give every faction its perfect table tool',
     shortTitle: 'Build better tools',
-    statement:
-      'Start with the best possible Treachery tracker, then fill a shelf of small phone tools for the physical table: drafting factions, setting up, battles, spice, predictions, and exports for print and Tabletop Simulator.',
-    icon: <Wrench />,
     explore: { label: 'See every planned tool', to: '/tools' },
+    statement: 'Start with the best possible Atreides card tracker, then keep making the small tools players ask for.',
+    icon: <Wrench />,
     capabilities: [
       {
         icon: <ListChecks />,
-        title: 'Treachery tracker',
+        title: 'Atreides tracker',
         detail: 'Know which Treachery cards remain.',
       },
       {
-        icon: <Shuffle />,
-        title: 'Faction draft',
-        detail: 'Deal factions fairly before the game.',
+        icon: <Layers />,
+        title: 'Spice deck tracker',
+        detail: 'Know which Spice cards are left to blow.',
       },
       {
         icon: <Swords />,
         title: 'Battle calculator',
-        detail: 'See who wins before you commit.',
+        detail: 'See who wins before the plans are revealed.',
       },
       {
-        icon: <Sparkles />,
-        title: 'Ruleset-aware',
-        detail: 'Use the exact factions and cards in play.',
+        icon: <Shuffle />,
+        title: 'Faction draft',
+        detail: 'Deal or draft factions fairly on one phone.',
       },
       {
-        icon: <Smartphone />,
-        title: 'Made for your phone',
-        detail: 'At the table, with no account.',
+        icon: <ClipboardCheck />,
+        title: 'Setup checklist',
+        detail: 'Every step and starting position for your factions.',
+      },
+      {
+        icon: <Hourglass />,
+        title: 'Round tracker',
+        detail: 'Turn, phase and what each faction can do now.',
+      },
+      {
+        icon: <Lock />,
+        title: 'Prediction keeper',
+        detail: 'Seal a prediction until the game is won.',
       },
       {
         icon: <Lightbulb />,
@@ -166,7 +237,35 @@ const FUTURE_PLANS: FuturePlan[] = [
       },
     ],
   },
+  {
+    id: 'everyone',
+    title: 'Bring more people to the table',
+    shortTitle: 'Open the table',
+    statement: 'Bots that can take an empty seat in Play, and Dune Zone in more languages than English.',
+    icon: <Globe />,
+    capabilities: [
+      { icon: <Bot />, title: 'Bot opponents', detail: 'Fill an empty seat with an AI faction.' },
+      { icon: <Languages />, title: 'Your language', detail: 'The whole interface, translated.' },
+    ],
+  },
 ];
+
+/**
+ * A theme stays in the atlas while any of its capabilities is still to come, numbered in the order that remains.
+ * Shipped capabilities move to Completed instead of being deleted, so their wording stays on the page.
+ */
+const PLANNED = FUTURE_PLANS.flatMap((plan) => {
+  const capabilities = plan.capabilities.filter((capability) => !capability.built);
+  return capabilities.length === 0 ? [] : [{ ...plan, capabilities }];
+}).map((plan, index) => ({ ...plan, number: String(index + 1).padStart(2, '0') }));
+
+/** Every theme with a shipped capability; `whole` when nothing of it is left to build, so its statement moves too. */
+const COMPLETED = FUTURE_PLANS.flatMap((plan) => {
+  const capabilities = plan.capabilities.filter((capability) => capability.built);
+  return capabilities.length === 0
+    ? []
+    : [{ ...plan, capabilities, whole: capabilities.length === plan.capabilities.length }];
+});
 
 function FuturePlansPage() {
   return (
@@ -190,19 +289,29 @@ function FuturePlansPage() {
               <Eyebrow>The territory</Eyebrow>
               <nav aria-label="Future plan themes">
                 <Bullets gap="none">
-                  {FUTURE_PLANS.map((plan) => (
+                  {PLANNED.map((plan) => (
                     <Bullets.Item
-                      key={plan.number}
+                      key={plan.id}
                       icon={plan.icon}
                       title={plan.shortTitle}
                       trailing={<ArrowRight size={16} aria-hidden />}
                       renderLink={(content) => (
-                        <Anchor className={styles.indexLink} href={`#atlas-${plan.number}`}>
+                        <Anchor className={styles.indexLink} href={`#atlas-${plan.id}`}>
                           {content}
                         </Anchor>
                       )}
                     />
                   ))}
+                  <Bullets.Item
+                    icon={<CircleCheck />}
+                    title="Already built"
+                    trailing={<ArrowRight size={16} aria-hidden />}
+                    renderLink={(content) => (
+                      <Anchor className={styles.indexLink} href={`#${COMPLETED_ANCHOR}`}>
+                        {content}
+                      </Anchor>
+                    )}
+                  />
                 </Bullets>
               </nav>
               <Anchor href={GITHUB_BACKLOG} target="_blank" rel="noopener noreferrer" fw={700}>
@@ -212,14 +321,8 @@ function FuturePlansPage() {
           </AtlasLayout.Sidebar>
           <AtlasLayout.Content>
             <Stack gap={0}>
-              {FUTURE_PLANS.map((plan) => (
-                <Stack
-                  component="article"
-                  id={`atlas-${plan.number}`}
-                  className={styles.entry}
-                  gap="xl"
-                  key={plan.number}
-                >
+              {PLANNED.map((plan) => (
+                <Stack component="article" id={`atlas-${plan.id}`} className={styles.entry} gap="xl" key={plan.id}>
                   <Grid gap="lg" align="flex-start">
                     <Grid.Col span={{ base: 12, sm: 2 }}>
                       <Text className={styles.coordinate}>{plan.number}</Text>
@@ -287,10 +390,50 @@ function FuturePlansPage() {
                   </Stack>
                 </SimpleGrid>
               </Surface>
+
+              <CompletedPlans />
             </Stack>
           </AtlasLayout.Content>
         </AtlasLayout>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/** The shipped part of the plans, kept small at the bottom: each item links to where it now lives. */
+function CompletedPlans() {
+  return (
+    <Section
+      id={COMPLETED_ANCHOR}
+      title="Already built"
+      action={<StatusBadge tone="positive">Completed</StatusBadge>}
+      className={styles.completed}
+    >
+      {COMPLETED.map((plan) => (
+        <Section key={plan.id} title={plan.whole ? plan.title : plan.shortTitle}>
+          {plan.whole ? (
+            <Text size="sm" c="dimmed">
+              {plan.statement}
+            </Text>
+          ) : null}
+          <Bullets columns={{ base: 1, sm: 3 }}>
+            {plan.capabilities.map((capability) => (
+              <Bullets.Item
+                key={capability.title}
+                icon={capability.icon}
+                title={capability.title}
+                detail={capability.detail}
+                trailing={<ArrowRight size={16} aria-hidden />}
+                renderLink={(content) => (
+                  <Anchor component={Link} to={capability.built} c="inherit" underline="never">
+                    {content}
+                  </Anchor>
+                )}
+              />
+            ))}
+          </Bullets>
+        </Section>
+      ))}
+    </Section>
   );
 }
