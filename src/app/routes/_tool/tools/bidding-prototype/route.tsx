@@ -1,15 +1,34 @@
-/* oxlint-disable-next-line no-restricted-imports -- This throwaway comparison retains the prototype button vocabulary under the app theme; production actions will use the kit. */
-import { Button, Group, Stack, Switch, Text, Select, NumberInput, UnstyledButton } from '@mantine/core';
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { Group, Stack, Switch, Text, Select, NumberInput, UnstyledButton, Menu } from '@mantine/core';
 import { createFileRoute, useNavigate, useSearch } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { EmptyNote } from '@ui/content/EmptyNote';
 import { ControlBlock } from '@ui/control/ControlBlock';
+import { IconAction } from '@ui/control/IconAction';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { SortableItem } from '@ui/control/SortableItem';
+import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { Stepper } from '@ui/control/Stepper';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface/Surface';
+import { SheetPopover, TouchSurface } from '@ui/surface/TouchSheet';
 import {
   ArrowLeft,
+  Plus,
+  Minus,
+  Settings2,
+  Users,
+  X,
+  Play,
+  History,
+  Layers,
   ArrowRight,
   Gavel,
   Hand,
@@ -19,7 +38,6 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
-  Wifi,
   WifiOff,
 } from 'lucide-react';
 import { useEffect, useEffectEvent, useReducer } from 'react';
@@ -102,7 +120,7 @@ type State = {
   recovery: boolean;
   lost: boolean;
   target: 'tablet' | 'phone';
-  handOpen: boolean;
+  panel: 'bid' | 'hand' | 'limit' | 'join' | 'history' | null;
   ruleset: string;
 };
 const nameOf = (state: State, id: string) => state.seats.find((s) => s.id === id)?.name ?? 'Player';
@@ -144,7 +162,7 @@ function fixture(step: Step): State {
     recovery: false,
     lost: false,
     target: 'tablet',
-    handOpen: step === 'hands' || step === 'restore',
+    panel: null,
     ruleset: 'Dreamrules',
   };
   if (step === 'setup' || step === 'join') {
@@ -276,7 +294,7 @@ type Event =
         | 'listen'
         | 'speaking'
         | 'remote'
-        | 'handOpen'
+        | 'panel'
         | 'ruleset';
       value: number | string | boolean | null;
     }
@@ -293,7 +311,7 @@ type Event =
         | 'timeout'
         | 'no-phones';
     }
-  | { type: 'reorder'; id: string; delta: number }
+  | { type: 'seats'; ids: string[] }
   | { type: 'remove'; id: string }
   | { type: 'add'; id: string };
 function reducer(state: State, event: Event): State {
@@ -434,12 +452,8 @@ function reducer(state: State, event: Event): State {
       opportunity: state.opportunity + 1,
     };
   }
-  if (event.type === 'reorder') {
-    const seats = [...state.seats];
-    const i = seats.findIndex((s) => s.id === event.id);
-    const j = (i + event.delta + seats.length) % seats.length;
-    [seats[i], seats[j]] = [seats[j], seats[i]];
-    return { ...state, seats };
+  if (event.type === 'seats') {
+    return { ...state, seats: event.ids.map((id) => state.seats.find((s) => s.id === id)!) };
   }
   if (event.type === 'remove' && state.seats.length > 2) {
     const seats = state.seats.filter((s) => s.id !== event.id);
@@ -487,6 +501,11 @@ function BiddingFlowReview() {
   const before = search.variant === 'before';
   const view = search.view ?? 'both';
   const [state, dispatch] = useReducer(reducer, step, fixture);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const setPanel = (value: State['panel']) => dispatch({ type: 'field', field: 'panel', value });
   useEffect(() => {
     dispatch({ type: 'scenario', step });
   }, [step]);
@@ -515,76 +534,75 @@ function BiddingFlowReview() {
   const handControls = (id: string) => {
     const seat = state.seats.find((s) => s.id === id) ?? state.seats[0];
     return (
-      <Stack gap="sm">
-        <Group justify="space-between">
-          <Text>Cards in hand</Text>
-          <Stepper
-            label={`${seat.name} hand count`}
-            value={seat.hand}
-            min={0}
-            onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'hand', value })}
-            size="sm"
+      <Stack gap="md">
+        <CountControl
+          label={`${seat.name} hand count`}
+          title="Cards in hand"
+          value={seat.hand}
+          onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'hand', value })}
+        />
+        <CountControl
+          label={`${seat.name} hand limit`}
+          title="Hand limit"
+          value={seat.limit}
+          onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'limit', value })}
+        />
+        <Group grow>
+          <Switch
+            size="md"
+            label="Full"
+            aria-label={`${seat.name} Full`}
+            checked={seat.full}
+            onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'full', value: e.currentTarget.checked })}
+          />
+          <Switch
+            size="md"
+            label="Always pass"
+            aria-label={`${seat.name} Always pass`}
+            checked={seat.pass}
+            onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'pass', value: e.currentTarget.checked })}
           />
         </Group>
-        <Group justify="space-between">
-          <Text>Hand limit</Text>
-          <Stepper
-            label={`${seat.name} hand limit`}
-            value={seat.limit}
-            min={0}
-            onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'limit', value })}
-            size="sm"
-          />
-        </Group>
-        <Switch
-          label="Full"
-          aria-label={`${seat.name} Full`}
-          checked={seat.full}
-          onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'full', value: e.currentTarget.checked })}
-        />
-        <Switch
-          label="Always pass"
-          aria-label={`${seat.name} Always pass`}
-          checked={seat.pass}
-          onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'pass', value: e.currentTarget.checked })}
-        />
-        <Text size="xs" c="dimmed">
-          Always pass stays on until you switch it off. Count or limit edits recalculate Full.
+        <Text size="sm" c="dimmed">
+          Count or limit edits recalculate Full. Always pass stays on until you switch it off.
         </Text>
       </Stack>
     );
   };
   const pad = (source: string, id = state.turn) => (
     <Stack gap="sm">
-      <Stepper
+      <CountControl
         label={`${source} bid amount`}
+        title="Your bid"
         value={source === 'Phone' ? state.phoneAmount : state.amount}
         min={(state.high?.amount ?? 0) + 1}
         onChange={(value) => dispatch({ type: 'field', field: source === 'Phone' ? 'phoneAmount' : 'amount', value })}
       />
-      <Group grow>
-        <Button
-          color="brand"
-          leftSection={<Gavel size={17} />}
-          onClick={() => bidAction(source, 'bid', source === 'Phone' ? state.phoneAmount : state.amount, id)}
-        >
-          Bid {source === 'Phone' ? state.phoneAmount : state.amount}
-        </Button>
-        <Button
-          color="neutral"
-          leftSection={<Hand size={17} />}
+      <Group grow wrap="nowrap">
+        <LabeledAction
+          size="lg"
+          icon={<Hand size={21} />}
           onClick={() => bidAction(source, 'pass', source === 'Phone' ? state.phoneAmount : state.amount, id)}
         >
           Pass
-        </Button>
+        </LabeledAction>
+        <LabeledAction
+          size="lg"
+          intent="positive"
+          emphasis="strong"
+          icon={<Gavel size={21} />}
+          onClick={() => bidAction(source, 'bid', source === 'Phone' ? state.phoneAmount : state.amount, id)}
+        >
+          {`Bid ${source === 'Phone' ? state.phoneAmount : state.amount}`}
+        </LabeledAction>
       </Group>
-      <Button
-        variant="subtle"
-        color="neutral"
+      <LabeledAction
+        size="md"
+        icon={<Plus size={18} />}
         onClick={() => bidAction(source, 'bid', (state.high?.amount ?? 0) + 1, id)}
       >
         One more
-      </Button>
+      </LabeledAction>
     </Stack>
   );
   const starterControl = (
@@ -593,6 +611,7 @@ function BiddingFlowReview() {
         title="Start new bid at"
         input={
           <Select
+            size="md"
             aria-label="Start new bid at"
             value={state.starter}
             data={state.seats.map((s) => ({ value: s.id, label: `${s.name}${s.full ? ' · Full' : ''}` }))}
@@ -600,9 +619,15 @@ function BiddingFlowReview() {
           />
         }
       />
-      <Button color="brand" leftSection={<Gavel size={17} />} onClick={() => dispatch({ type: 'start' })}>
+      <LabeledAction
+        size="lg"
+        intent="positive"
+        emphasis="strong"
+        icon={<Play size={20} />}
+        onClick={() => dispatch({ type: 'start' })}
+      >
         Start new bid
-      </Button>
+      </LabeledAction>
     </Stack>
   );
   const results = (
@@ -633,494 +658,648 @@ function BiddingFlowReview() {
   );
   function circle(baseline = false) {
     const game = baseline ? fixture('bid') : state;
+    const current = game.stage === 'ready' || game.stage === 'setup' ? game.starter : game.turn;
+    const angle = (game.seats.findIndex((s) => s.id === current) * 360) / game.seats.length;
     return (
-      <div className={styles.arena} aria-label="Fixed seating circle">
+      <div className={styles.arena} data-baseline={baseline || undefined}>
         {game.stage !== 'over' && (
-          <svg className={styles.arrow} viewBox="0 0 100 100" aria-hidden>
-            <line
-              x1="50"
-              y1="50"
-              x2="50"
-              y2="19"
-              transform={`rotate(${(game.seats.findIndex((s) => s.id === (game.stage === 'ready' || game.stage === 'setup' ? game.starter : game.turn)) * 360) / game.seats.length} 50 50)`}
-            />
-            <path
-              d="M46 24 L50 17 L54 24"
-              transform={`rotate(${(game.seats.findIndex((s) => s.id === (game.stage === 'ready' || game.stage === 'setup' ? game.starter : game.turn)) * 360) / game.seats.length} 50 50)`}
-            />
+          <svg className={styles.arrow} viewBox="0 0 100 100" aria-label={`Bidder pointer: ${nameOf(game, current)}`}>
+            <path d="M50 34 L50 29 M47 31 L50 27 L53 31" transform={`rotate(${angle} 50 50)`} />
           </svg>
         )}
         <div className={styles.cardMiddle}>
-          {game.stage !== 'over' && (
+          {baseline ? (
             <img src="/play-fixtures/dreamrules/cardback.jpg" alt="Physical Treachery card, shown face down" />
+          ) : game.stage === 'over' ? (
+            <Text fw={700}>Bidding is over</Text>
+          ) : (
+            <>
+              <Text size="sm" c="dimmed">
+                {game.stage === 'setup' || game.stage === 'ready'
+                  ? 'Starts at'
+                  : game.stage === 'paused'
+                    ? 'Paused'
+                    : 'To bid'}
+              </Text>
+              <Text className={styles.currentBidder} fw={700}>
+                {nameOf(game, current)}
+              </Text>
+              {game.stage === 'active' || game.stage === 'paused' ? (
+                <>
+                  <Text className={styles.highAmount} fw={700}>
+                    {game.high?.amount ?? '0'}
+                  </Text>
+                  <Text size="sm">{game.high ? `${nameOf(game, game.high.id)} · spice` : 'No bid yet'}</Text>
+                  <Text size="sm" c="dimmed">
+                    {game.stage === 'paused' ? 'Waiting for Resume' : game.seconds ? `${game.left}s` : 'Timer off'}
+                  </Text>
+                </>
+              ) : (
+                <Text size="sm" c="dimmed">
+                  Tap a faction to change
+                </Text>
+              )}
+            </>
           )}
-          <Text size="xs">{game.stage === 'over' ? 'No card up' : `Card ${game.card} of ${game.cards}`}</Text>
+          {baseline && (
+            <Text size="xs">
+              Card {game.card} of {game.cards}
+            </Text>
+          )}
         </div>
         {game.seats.map((s, i) => {
-          const active =
-            game.stage !== 'over' &&
-            s.id === (game.stage === 'ready' || game.stage === 'setup' ? game.starter : game.turn);
-          const angle = (i * Math.PI * 2) / game.seats.length - Math.PI / 2;
+          const active = game.stage !== 'over' && s.id === current;
+          const seatAngle = (i * Math.PI * 2) / game.seats.length - Math.PI / 2;
           return (
             <UnstyledButton
               key={s.id}
               disabled={baseline}
               className={styles.seat}
               data-active={active || undefined}
-              style={{ left: `${50 + Math.cos(angle) * 38}%`, top: `${50 + Math.sin(angle) * 38}%` } as CSSProperties}
-              aria-label={`${s.name}, ${s.hand} cards${s.full ? ', Full' : ''}`}
-              onClick={() =>
-                game.stage === 'setup' || game.stage === 'ready'
-                  ? dispatch({ type: 'field', field: 'starter', value: s.id })
-                  : (() => {
-                      dispatch({ type: 'field', field: 'selected', value: s.id });
-                      dispatch({ type: 'field', field: 'handOpen', value: true });
-                    })()
+              style={
+                { left: `${50 + Math.cos(seatAngle) * 39}%`, top: `${50 + Math.sin(seatAngle) * 39}%` } as CSSProperties
               }
+              aria-label={`${s.name}, ${s.hand} cards${s.full ? ', Full' : ''}`}
+              onClick={() => {
+                if (game.stage === 'setup' || game.stage === 'ready') {
+                  dispatch({ type: 'field', field: 'starter', value: s.id });
+                } else {
+                  dispatch({ type: 'field', field: 'selected', value: s.id });
+                  setPanel('hand');
+                }
+              }}
             >
-              <FactionTokenFace token={s} size={active ? 60 : 48} aria-hidden />
-              <Text size="sm" fw={700}>
-                {s.name}
-              </Text>
-              <Text size="sm">
-                {baseline
-                  ? s.full
-                    ? 'Full'
-                    : `${s.id === 'house-harkonnen' ? 4 : s.hand}/${s.id === 'house-harkonnen' ? 8 : 4}`
-                  : `${s.hand} / ${s.limit}`}
-              </Text>
-              {!baseline && (
-                <Text size="xs" c={s.full || s.pass ? 'yellow' : 'dimmed'}>
-                  {s.full ? 'Full' : s.pass ? 'Always pass' : s.linked ? 'Phone linked' : 'At the table'}
+              <FactionTokenFace
+                token={s}
+                size={48}
+                style={{
+                  width: 'var(--seat-token-size)',
+                  height: 'var(--seat-token-size)',
+                  minWidth: 'var(--seat-token-size)',
+                }}
+                aria-hidden
+              />
+              <div className={styles.seatWords}>
+                <Text className={styles.seatName} fw={700}>
+                  {s.name}
                 </Text>
-              )}
+                <div className={styles.handTotal}>
+                  {baseline ? (
+                    <Text>
+                      {s.full
+                        ? 'Full'
+                        : `${s.id === 'house-harkonnen' ? 4 : s.hand}/${s.id === 'house-harkonnen' ? 8 : 4}`}
+                    </Text>
+                  ) : (
+                    <>
+                      <strong>{s.hand}</strong>
+                      <span>/ {s.limit}</span>
+                    </>
+                  )}
+                </div>
+                {!baseline && (
+                  <Text className={styles.seatStatus} size="sm">
+                    {[s.full && 'Full', s.pass && 'Always pass'].filter(Boolean).join(' · ') ||
+                      (active ? 'To bid' : 'cards')}
+                  </Text>
+                )}
+              </div>
             </UnstyledButton>
           );
         })}
       </div>
     );
   }
-  const header = (
-    <Group justify="space-between" className={styles.deviceHeader}>
-      <Stack gap="xs">
-        <Text size="sm" fw={700}>
-          Turn {state.phase} · Bidding
-        </Text>
-        <Text size="xs" c="dimmed">
-          {state.stage === 'over' ? 'Phase complete' : `Card ${state.card} of ${state.cards}`} · {state.ruleset}
-        </Text>
-      </Stack>
-      <Group gap="xs">
-        <Button
-          size="compact-sm"
-          variant="subtle"
-          color="neutral"
-          aria-label="Toggle listening"
-          onClick={() => dispatch({ type: 'field', field: 'listen', value: !state.listen })}
-        >
-          {state.listen ? <Mic size={19} /> : <MicOff size={19} />}
-        </Button>
-        <Button
-          size="compact-sm"
-          variant="subtle"
-          color="neutral"
-          aria-label="Toggle announcements"
-          onClick={() => dispatch({ type: 'field', field: 'speaking', value: !state.speaking })}
-        >
-          {state.speaking ? <Volume2 size={19} /> : <VolumeX size={19} />}
-        </Button>
-        <Text size="xs" c="dimmed">
-          {state.code}
-        </Text>
+  const tableSetup = (
+    <Stack gap="md">
+      <Section title="Set up the table">
+        <Text size="sm">Match the seat order, then tap the first bidder on the circle.</Text>
+      </Section>
+      <ControlBlock
+        title="Ruleset"
+        input={
+          <Select
+            aria-label="Ruleset"
+            value={state.ruleset}
+            data={['Dreamrules', 'GF9']}
+            onChange={(value) => value && dispatch({ type: 'field', field: 'ruleset', value })}
+          />
+        }
+      />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={({ active, over }) => {
+          const from = state.seats.findIndex((s) => s.id === active.id);
+          const to = state.seats.findIndex((s) => s.id === over?.id);
+          if (from >= 0 && to >= 0 && from !== to) {
+            dispatch({
+              type: 'seats',
+              ids: arrayMove(
+                state.seats.map((s) => s.id),
+                from,
+                to
+              ),
+            });
+          }
+        }}
+      >
+        <SortableContext items={state.seats.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+          <ul className={styles.seatList}>
+            {state.seats.map((s) => (
+              <SortableItem key={s.id} as="li" id={s.id}>
+                {(handle) => (
+                  <Group wrap="nowrap" gap="sm">
+                    <SortableReorderHandle label={`Move ${s.name}`} emphasis="silent" {...handle} />
+                    <FactionTokenFace token={s} size={32} aria-hidden />
+                    <Text className={styles.grow} size="sm">
+                      {s.name}
+                    </Text>
+                    <IconAction
+                      label={`Remove ${s.name}`}
+                      size="xl"
+                      emphasis="quiet"
+                      icon={<X size={18} />}
+                      disabledReason={state.seats.length <= 2 ? 'Keep at least two factions.' : undefined}
+                      onClick={() => dispatch({ type: 'remove', id: s.id })}
+                    />
+                  </Group>
+                )}
+              </SortableItem>
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
+      <ControlBlock
+        title="Add a faction"
+        input={
+          <Select
+            aria-label="Add a faction"
+            placeholder="Choose a faction"
+            value={null}
+            data={factions
+              .filter((f) => !state.seats.some((s) => s.id === f.id))
+              .map((f) => ({ value: f.id, label: f.name }))}
+            onChange={(id) => id && dispatch({ type: 'add', id })}
+          />
+        }
+      />
+      <Group grow align="start">
+        <ControlBlock
+          title="Cards this phase"
+          input={
+            <NumberInput
+              aria-label="Cards this phase"
+              value={state.cards}
+              min={1}
+              allowDecimal={false}
+              onChange={(value) => dispatch({ type: 'field', field: 'cards', value: Number(value) })}
+            />
+          }
+        />
+        <ControlBlock
+          title="Bid timer"
+          input={
+            <Select
+              aria-label="Bid timer"
+              value={String(state.seconds)}
+              data={[
+                { value: '0', label: 'Off' },
+                ...Array.from({ length: 14 }, (_, i) => ({
+                  value: String((i + 1) * 5),
+                  label: `${(i + 1) * 5} seconds`,
+                })),
+              ]}
+              onChange={(value) => dispatch({ type: 'field', field: 'seconds', value: Number(value) })}
+            />
+          }
+        />
       </Group>
-    </Group>
+      <Text size="sm" c="dimmed">
+        Suggested: {state.seats.filter((s) => !s.full).length} cards, one per non-full faction.
+      </Text>
+      {starterControl}
+    </Stack>
   );
   const tablet = (
-    <div className={styles.tablet} data-testid="tablet-screen">
-      {header}
-      <div className={styles.tabletBody}>
-        <div className={styles.circleColumn}>
-          {circle()}
-          {state.stage === 'setup' && <div className={styles.joinInfo}>{qr}</div>}
-          <Group justify="center" gap="md">
-            <Text size="xs" c="dimmed">
-              {state.listen ? 'Listening' : 'Listening off'}
+    <TouchSurface>
+      <div className={styles.tablet} data-testid="tablet-screen">
+        <header className={styles.deviceHeader}>
+          <div className={styles.grow}>
+            <Text fw={700}>Turn {state.phase} · Bidding</Text>
+            <Text size="sm" c="dimmed">
+              {state.stage === 'over' ? 'Phase complete' : `Card ${state.card} of ${state.cards}`} · {state.ruleset}
             </Text>
-            <Text size="xs" c="dimmed">
-              {state.speaking ? 'Announcements on' : 'Announcements off'}
-            </Text>
-          </Group>
-        </div>
-        <div className={styles.controlColumn}>
-          {state.stage === 'setup' ? (
-            <Stack gap="md">
-              <Section title="Set up the table">
-                <Text size="sm">Arrange factions to match the seats. Tap the circle to choose the first bidder.</Text>
-              </Section>
-              <ControlBlock
-                title="Ruleset"
-                input={
-                  <Select
-                    aria-label="Ruleset"
-                    value={state.ruleset}
-                    data={['Dreamrules', 'GF9']}
-                    onChange={(value) => value && dispatch({ type: 'field', field: 'ruleset', value })}
-                  />
-                }
-              />
-              <div className={styles.seatList}>
-                {state.seats.map((s) => (
-                  <Group key={s.id} justify="space-between" gap="xs">
-                    <Text size="sm">{s.name}</Text>
-                    <Group gap="xs">
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        aria-label={`Move ${s.name} earlier`}
-                        onClick={() => dispatch({ type: 'reorder', id: s.id, delta: -1 })}
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        aria-label={`Move ${s.name} later`}
-                        onClick={() => dispatch({ type: 'reorder', id: s.id, delta: 1 })}
-                      >
-                        ↓
-                      </Button>
-                      <Button
-                        size="compact-xs"
-                        variant="subtle"
-                        color="neutral"
-                        disabled={state.seats.length <= 2}
-                        aria-label={`Remove ${s.name}`}
-                        onClick={() => dispatch({ type: 'remove', id: s.id })}
-                      >
-                        ×
-                      </Button>
-                    </Group>
-                  </Group>
-                ))}
-              </div>
-              <ControlBlock
-                title="Add a faction"
-                input={
-                  <Select
-                    placeholder="Choose a faction"
-                    aria-label="Add a faction"
-                    value={null}
-                    data={factions
-                      .filter((f) => !state.seats.some((s) => s.id === f.id))
-                      .map((f) => ({ value: f.id, label: f.name }))}
-                    onChange={(id) => id && dispatch({ type: 'add', id })}
-                  />
-                }
-              />
-              <Group grow align="start">
-                <ControlBlock
-                  title="Cards this phase"
-                  input={
-                    <NumberInput
-                      aria-label="Cards this phase"
-                      value={state.cards}
-                      min={1}
-                      onChange={(value) => dispatch({ type: 'field', field: 'cards', value: Number(value) })}
-                    />
-                  }
-                />
-                <ControlBlock
-                  title="Bid timer"
-                  input={
-                    <Select
-                      aria-label="Bid timer"
-                      value={String(state.seconds)}
-                      data={[
-                        { value: '0', label: 'Off' },
-                        ...Array.from({ length: 14 }, (_, i) => ({
-                          value: String((i + 1) * 5),
-                          label: `${(i + 1) * 5} seconds`,
-                        })),
-                      ]}
-                      onChange={(v) => dispatch({ type: 'field', field: 'seconds', value: Number(v) })}
-                    />
-                  }
-                />
-              </Group>
-              <Text size="sm" c="dimmed">
-                Suggested: {state.seats.filter((s) => !s.full).length} cards, one per non-full faction.
-              </Text>
-              {starterControl}
-            </Stack>
-          ) : state.stage === 'ready' ? (
-            <Stack gap="lg">
-              <Section title="Start new bid">
-                <Text>{state.note}</Text>
-              </Section>
-              {starterControl}
-              <Section title="Completed wins">{results}</Section>
-            </Stack>
-          ) : state.stage === 'over' ? (
-            <Stack gap="lg">
-              <Section title="Bidding is over">
-                <Text>{state.note}</Text>
-              </Section>
-              {results}
-              <Button color="brand" onClick={() => dispatch({ type: 'next-phase' })}>
-                Set up turn {state.phase + 1}
-              </Button>
-            </Stack>
-          ) : (
-            <Stack gap="md">
-              <Section
-                title={state.stage === 'paused' ? 'Check before resuming' : `${nameOf(state, state.turn)} to bid`}
-              >
-                <Text size="xl" fw={700}>
-                  {state.high ? `${nameOf(state, state.high.id)} has ${state.high.amount}` : 'Open the bidding'}
-                </Text>
-                <Text size="sm" c="dimmed">
-                  {state.stage === 'paused'
-                    ? `Paused · ${state.seconds ? `fresh ${state.seconds}s timer on Resume` : 'timer off'}`
-                    : state.seconds
-                      ? `${state.left} seconds`
-                      : 'Timer off'}
-                </Text>
-              </Section>
-              {state.stage === 'paused' ? (
-                <>
-                  <Text size="sm">{state.note}</Text>
-                  <Button color="brand" onClick={() => dispatch({ type: 'resume' })}>
-                    Resume
-                  </Button>
-                  {state.newHost && qr}
-                  <Section title="Completed wins">{results}</Section>
-                </>
-              ) : (
-                pad('Tablet')
-              )}
-              <Button
-                variant="subtle"
-                color="neutral"
-                leftSection={<RotateCcw size={15} />}
+          </div>
+          <IconAction
+            size="xl"
+            emphasis="quiet"
+            label="Toggle listening"
+            pressed={state.listen}
+            icon={state.listen ? <Mic size={21} /> : <MicOff size={21} />}
+            onClick={() => dispatch({ type: 'field', field: 'listen', value: !state.listen })}
+          />
+          <IconAction
+            size="xl"
+            emphasis="quiet"
+            label="Toggle announcements"
+            pressed={state.speaking}
+            icon={state.speaking ? <Volume2 size={21} /> : <VolumeX size={21} />}
+            onClick={() => dispatch({ type: 'field', field: 'speaking', value: !state.speaking })}
+          />
+          <Menu position="bottom-end" withinPortal>
+            <Menu.Target>
+              <IconAction size="xl" emphasis="quiet" label="Table controls" icon={<Settings2 size={21} />} />
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item leftSection={<QrCode size={18} />} onClick={() => setPanel('join')}>
+                Join code · {state.code}
+              </Menu.Item>
+              <Menu.Item leftSection={<Layers size={18} />} onClick={() => setPanel('hand')}>
+                Hand controls
+              </Menu.Item>
+              <Menu.Item leftSection={<History size={18} />} onClick={() => setPanel('history')}>
+                Completed wins
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<RotateCcw size={18} />}
+                disabled={!['active', 'paused'].includes(state.stage)}
                 onClick={() => dispatch({ type: 'reset' })}
               >
                 Reset this card
-              </Button>
-              <details
-                className={styles.details}
-                open={state.handOpen}
-                onToggle={(e) => {
-                  if (e.currentTarget.open !== state.handOpen) {
-                    dispatch({ type: 'field', field: 'handOpen', value: e.currentTarget.open });
-                  }
-                }}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </header>
+        <div className={styles.tabletBody} data-setup={state.stage === 'setup' || undefined}>
+          <div className={styles.circleColumn}>{circle()}</div>
+          {state.stage === 'setup' && <div className={styles.controlColumn}>{tableSetup}</div>}
+        </div>
+        <footer className={styles.tabletFooter}>
+          {state.stage === 'active' ? (
+            <>
+              <Text size="sm" c="dimmed" className={styles.grow} aria-live="polite">
+                {state.log[0] || 'Tap a faction to adjust its hand.'}
+              </Text>
+              <LabeledAction
+                size="lg"
+                icon={<Gavel size={20} />}
+                onClick={() => setPanel('bid')}
+              >{`Bid for ${nameOf(state, state.turn)}`}</LabeledAction>
+            </>
+          ) : state.stage === 'ready' ? (
+            <>
+              <div className={styles.grow}>
+                <Text fw={700}>{state.note}</Text>
+                <Text size="sm" c="dimmed">
+                  Tap a faction to change the next starter.
+                </Text>
+              </div>
+              <LabeledAction
+                size="lg"
+                intent="positive"
+                emphasis="strong"
+                icon={<Play size={20} />}
+                onClick={() => dispatch({ type: 'start' })}
               >
-                <summary>Hand controls · {nameOf(state, state.selected)}</summary>
-                <Stack gap="sm">
-                  <Select
-                    aria-label="Faction to edit"
-                    value={state.selected}
-                    data={state.seats.map((s) => ({ value: s.id, label: s.name }))}
-                    onChange={(value) => value && dispatch({ type: 'field', field: 'selected', value })}
-                  />
-                  {handControls(state.selected)}
-                </Stack>
-              </details>
-              <div className={styles.eventLog} aria-live="polite">
-                {state.log.slice(0, 3).map((line, i) => (
-                  <Text key={i} size="xs" c="dimmed">
-                    {line}
+                Start new bid
+              </LabeledAction>
+            </>
+          ) : state.stage === 'paused' ? (
+            <>
+              <div className={styles.grow}>
+                <Text fw={700}>Check the table, then Resume</Text>
+                <Text size="sm" c="dimmed">
+                  {state.seconds ? `Fresh ${state.seconds}s timer on Resume.` : 'Timer off.'}
+                </Text>
+              </div>
+              <LabeledAction
+                size="lg"
+                intent="positive"
+                emphasis="strong"
+                icon={<Play size={20} />}
+                onClick={() => dispatch({ type: 'resume' })}
+              >
+                Resume
+              </LabeledAction>
+            </>
+          ) : state.stage === 'over' ? (
+            <>
+              <div className={styles.grow}>
+                <Text fw={700}>{state.note}</Text>
+                {results}
+              </div>
+              <LabeledAction
+                size="lg"
+                intent="positive"
+                emphasis="strong"
+                icon={<ArrowRight size={20} />}
+                onClick={() => dispatch({ type: 'next-phase' })}
+              >{`Set up turn ${state.phase + 1}`}</LabeledAction>
+            </>
+          ) : (
+            <LabeledAction
+              icon={<QrCode size={20} />}
+              onClick={() => setPanel('join')}
+            >{`Join table ${state.code}`}</LabeledAction>
+          )}
+        </footer>
+      </div>
+    </TouchSurface>
+  );
+  const remoteSeat = state.seats.find((s) => s.id === state.remote);
+  const remote = (
+    <TouchSurface>
+      <div className={styles.phone} data-testid="phone-screen">
+        <header className={styles.deviceHeader}>
+          {remoteSeat && <FactionTokenFace token={remoteSeat} size={40} aria-hidden />}
+          <div className={styles.grow}>
+            <Text fw={700}>{state.newHost ? 'Central device' : (remoteSeat?.name ?? 'Join the table')}</Text>
+            <Text size="xs" c="dimmed">
+              {state.lost ? 'Tablet unavailable' : `Table ${state.code}`}
+            </Text>
+          </div>
+          <Menu position="bottom-end" withinPortal>
+            <Menu.Target>
+              <IconAction label="Remote settings" size="xl" emphasis="quiet" icon={<Settings2 size={21} />} />
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<Users size={18} />}
+                onClick={() => dispatch({ type: 'field', field: 'remote', value: null })}
+              >
+                Change faction
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<RotateCcw size={18} />}
+                disabled={!['active', 'paused'].includes(state.stage)}
+                onClick={() => dispatch({ type: 'reset' })}
+              >
+                Reset this card
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </header>
+        {state.recovery ? (
+          <div className={styles.phoneScroll}>
+            <Stack gap="md">
+              <Section title={state.newHost ? 'Check the recovered table' : 'Tablet unavailable'}>
+                <Text size="sm">
+                  {state.newHost ? 'This phone is now the central device.' : 'A saved copy is available on this phone.'}
+                </Text>
+              </Section>
+              <Text size="sm">
+                Copy received at {state.received} · Turn {state.phase} · {state.ruleset}
+              </Text>
+              <Text size="sm">
+                {state.seconds ? `${state.seconds}s per bidder. Resume gives a fresh full timer.` : 'Timer off.'}
+              </Text>
+              <Text size="sm" c="dimmed">
+                This is the latest copy this phone received. Check it against the physical table.
+              </Text>
+              <Text fw={700}>
+                Card {state.card} of {state.cards} · {nameOf(state, state.turn)} to bid
+              </Text>
+              <Text>{state.high ? `${nameOf(state, state.high.id)} has ${state.high.amount}` : 'No bid yet'}</Text>
+              <div className={styles.compactHands}>
+                {state.seats.map((s) => (
+                  <Text size="sm" key={s.id}>
+                    {s.name} · {s.hand}/{s.limit}
+                    {s.full ? ' · Full' : ''}
+                    {s.pass ? ' · Always pass' : ''}
                   </Text>
                 ))}
               </div>
+              <Section title="Completed wins">{results}</Section>
+              {state.newHost ? (
+                <>
+                  {qr}
+                  <Text size="sm">Other phones scan the new code and choose their factions again.</Text>
+                  <Text size="sm">{state.seats.filter((s) => s.linked).length} phones rejoined</Text>
+                  <LabeledAction icon={<Layers size={18} />} onClick={() => setPanel('hand')}>
+                    Check or correct a hand
+                  </LabeledAction>
+                  <LabeledAction icon={<RotateCcw size={18} />} onClick={() => dispatch({ type: 'reset' })}>
+                    Reset this card
+                  </LabeledAction>
+                  <LabeledAction
+                    size="lg"
+                    icon={<Play size={20} />}
+                    intent="positive"
+                    emphasis="strong"
+                    onClick={() => dispatch({ type: 'resume' })}
+                  >
+                    Resume
+                  </LabeledAction>
+                </>
+              ) : (
+                <LabeledAction
+                  size="lg"
+                  icon={<Play size={20} />}
+                  intent="positive"
+                  emphasis="strong"
+                  onClick={() => dispatch({ type: 'promote' })}
+                >
+                  Use this phone as central
+                </LabeledAction>
+              )}
             </Stack>
-          )}
-          {['setup', 'ready', 'over'].includes(state.stage) && (
-            <details
-              className={styles.details}
-              open={state.handOpen}
-              onToggle={(e) => {
-                if (e.currentTarget.open !== state.handOpen) {
-                  dispatch({ type: 'field', field: 'handOpen', value: e.currentTarget.open });
-                }
-              }}
-            >
-              <summary>Hand controls · {nameOf(state, state.selected)}</summary>
-              <Stack gap="sm">
+          </div>
+        ) : !remoteSeat ? (
+          <div className={styles.phoneScroll}>
+            <Stack gap="sm">
+              <Section title="Choose your faction">
+                <Text size="sm">Table {state.code}</Text>
+              </Section>
+              {state.seats.map((s) => (
+                <LabeledAction
+                  key={s.id}
+                  size="lg"
+                  justify="start"
+                  icon={<FactionTokenFace token={s} size={30} aria-hidden />}
+                  onClick={() => dispatch({ type: 'field', field: 'remote', value: s.id })}
+                >{`${s.name}${s.linked ? ' · phone linked' : ''}`}</LabeledAction>
+              ))}
+            </Stack>
+          </div>
+        ) : (
+          <>
+            <div className={styles.phoneScroll}>
+              <div className={styles.phoneBid} aria-live="polite">
+                <Text size="sm" c="dimmed">
+                  {state.stage === 'over' ? 'Phase complete' : `Card ${state.card} of ${state.cards}`}
+                </Text>
+                <Text className={styles.phoneTurn} fw={700}>
+                  {state.stage === 'active'
+                    ? state.turn === remoteSeat.id
+                      ? 'Your turn'
+                      : `${nameOf(state, state.turn)} to bid`
+                    : state.stage === 'ready'
+                      ? 'Start new bid'
+                      : state.stage === 'paused'
+                        ? 'Table paused'
+                        : state.stage === 'over'
+                          ? 'Bidding is over'
+                          : 'Waiting for the table'}
+                </Text>
+                {state.stage === 'active' ? (
+                  <>
+                    <Text className={styles.phoneHigh} fw={700}>
+                      {state.high?.amount ?? '0'}
+                    </Text>
+                    <Text size="sm">{state.high ? `${nameOf(state, state.high.id)} · spice` : 'No bid yet'}</Text>
+                    <Text size="sm" c="dimmed">
+                      {state.seconds ? `${state.left}s` : 'Timer off'}
+                    </Text>
+                  </>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    {state.note || 'Your hand controls are available.'}
+                  </Text>
+                )}
+                {state.log[0]?.startsWith('Phone:') && (
+                  <Text size="xs" c="dimmed">
+                    {state.log[0]}
+                  </Text>
+                )}
+              </div>
+              <div className={styles.handSection}>
+                <CountControl
+                  label={`${remoteSeat.name} hand count`}
+                  title="Your cards"
+                  value={remoteSeat.hand}
+                  onChange={(value) => dispatch({ type: 'edit', id: remoteSeat.id, field: 'hand', value })}
+                />
+                <Group justify="space-between" wrap="nowrap" className={styles.statusControls}>
+                  <Switch
+                    size="md"
+                    label="Full"
+                    aria-label={`${remoteSeat.name} Full`}
+                    checked={remoteSeat.full}
+                    onChange={(e) =>
+                      dispatch({ type: 'edit', id: remoteSeat.id, field: 'full', value: e.currentTarget.checked })
+                    }
+                  />
+                  <Switch
+                    size="md"
+                    label="Always pass"
+                    aria-label={`${remoteSeat.name} Always pass`}
+                    checked={remoteSeat.pass}
+                    onChange={(e) =>
+                      dispatch({ type: 'edit', id: remoteSeat.id, field: 'pass', value: e.currentTarget.checked })
+                    }
+                  />
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm" c="dimmed">
+                    Hand limit {remoteSeat.limit}
+                  </Text>
+                  <IconAction
+                    label="Adjust hand limit"
+                    icon={<Settings2 size={18} />}
+                    size="xl"
+                    emphasis="quiet"
+                    onClick={() => setPanel('limit')}
+                  />
+                </Group>
+              </div>
+            </div>
+            <footer className={styles.phoneDock}>
+              {state.stage === 'active' && state.remote === state.turn ? (
+                pad('Phone', remoteSeat.id)
+              ) : state.stage === 'ready' ? (
+                starterControl
+              ) : (
+                <Text size="sm" ta="center" c="dimmed">
+                  {state.stage === 'active'
+                    ? 'Your controls appear when it is your turn.'
+                    : state.stage === 'paused'
+                      ? 'Check the central display, then Resume.'
+                      : state.stage === 'setup'
+                        ? 'The table is being set up.'
+                        : 'Waiting for the next phase.'}
+                </Text>
+              )}
+            </footer>
+          </>
+        )}
+      </div>
+    </TouchSurface>
+  );
+  const panelLabel =
+    state.panel === 'bid'
+      ? `${nameOf(state, state.turn)} to bid`
+      : state.panel === 'hand'
+        ? 'Hand controls'
+        : state.panel === 'limit'
+          ? 'Hand limit'
+          : state.panel === 'history'
+            ? 'Completed wins'
+            : 'Join the table';
+  const panel = (
+    <TouchSurface>
+      <SheetPopover opened={state.panel !== null} onChange={(open) => !open && setPanel(null)}>
+        <SheetPopover.Dropdown label={panelLabel}>
+          <div className={styles.sheetContent}>
+            {state.panel === 'bid' ? (
+              state.stage === 'active' ? (
+                <Stack gap="md">
+                  <Section title={`${nameOf(state, state.turn)} to bid`}>
+                    <Text size="sm">
+                      {state.high ? `${nameOf(state, state.high.id)} has ${state.high.amount}` : 'Open the bidding'}
+                      {state.seconds ? ` · ${state.left}s` : ' · Timer off'}
+                    </Text>
+                  </Section>
+                  {pad('Tablet')}
+                  <LabeledAction
+                    icon={<RotateCcw size={18} />}
+                    onClick={() => {
+                      dispatch({ type: 'reset' });
+                      setPanel(null);
+                    }}
+                  >
+                    Reset this card
+                  </LabeledAction>
+                </Stack>
+              ) : (
+                <Text>{state.note || 'The auction changed. Close this panel to continue.'}</Text>
+              )
+            ) : state.panel === 'hand' ? (
+              <Stack gap="md">
                 <Select
                   aria-label="Faction to edit"
+                  size="md"
                   value={state.selected}
                   data={state.seats.map((s) => ({ value: s.id, label: s.name }))}
                   onChange={(value) => value && dispatch({ type: 'field', field: 'selected', value })}
                 />
                 {handControls(state.selected)}
               </Stack>
-            </details>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-  const remoteSeat = state.seats.find((s) => s.id === state.remote);
-  const remote = (
-    <div className={styles.phone} data-testid="phone-screen">
-      <Group justify="space-between" className={styles.deviceHeader}>
-        <Text fw={700}>{state.newHost ? 'Central device' : (remoteSeat?.name ?? 'Join the table')}</Text>
-        <Text size="xs" c="dimmed">
-          {state.code}
-        </Text>
-      </Group>
-      {state.recovery ? (
-        <Stack gap="md">
-          <Section title={state.newHost ? 'Check the recovered table' : 'Tablet unavailable'}>
-            <Text size="sm">
-              {state.newHost ? 'This phone is now the central device.' : 'A saved copy is available on this phone.'}
-            </Text>
-          </Section>
-          <Text size="sm">Copy received at {state.received}</Text>
-          <Text size="sm">
-            Turn {state.phase} · {state.ruleset}
-          </Text>
-          <Text size="sm">
-            {state.seconds ? `${state.seconds}s per bidder. Resume gives a fresh full timer.` : 'Timer off.'}
-          </Text>
-          <Text size="xs" c="dimmed">
-            This is the latest copy this phone received. Check it against the physical table.
-          </Text>
-          <Text fw={700}>
-            Card {state.card} of {state.cards} · {nameOf(state, state.turn)} to bid
-          </Text>
-          <Text>{state.high ? `${nameOf(state, state.high.id)} has ${state.high.amount}` : 'No bid yet'}</Text>
-          <div className={styles.compactHands}>
-            {state.seats.map((s) => (
-              <Text size="sm" key={s.id}>
-                {s.name} · {s.hand}/{s.limit}
-                {s.full ? ' · Full' : ''}
-                {s.pass ? ' · Always pass' : ''}
-              </Text>
-            ))}
+            ) : state.panel === 'limit' && remoteSeat ? (
+              <CountControl
+                title="Hand limit"
+                label={`${remoteSeat.name} hand limit`}
+                value={remoteSeat.limit}
+                onChange={(value) => dispatch({ type: 'edit', id: remoteSeat.id, field: 'limit', value })}
+              />
+            ) : state.panel === 'history' ? (
+              results
+            ) : (
+              qr
+            )}
+            {state.panel === 'bid' && (
+              <div className={styles.actionRecord} aria-live="polite">
+                {state.log.slice(0, 3).map((line, i) => (
+                  <Text key={i} size="sm" c="dimmed">
+                    {line}
+                  </Text>
+                ))}
+              </div>
+            )}
           </div>
-          <Section title="Completed wins">{results}</Section>
-          {state.newHost ? (
-            <>
-              {qr}
-              <Text size="sm">Other phones scan the new code and choose their factions again.</Text>
-              <Text size="xs" c="dimmed">
-                {state.seats.filter((s) => s.linked).length} phones rejoined
-              </Text>
-              <details className={styles.details}>
-                <summary>Check or correct a hand</summary>
-                <Select
-                  aria-label="Recovered faction to edit"
-                  value={state.selected}
-                  data={state.seats.map((s) => ({ value: s.id, label: s.name }))}
-                  onChange={(value) => value && dispatch({ type: 'field', field: 'selected', value })}
-                />
-                {handControls(state.selected)}
-              </details>
-              <Button color="neutral" variant="subtle" onClick={() => dispatch({ type: 'reset' })}>
-                Reset this card
-              </Button>
-              <Button color="brand" onClick={() => dispatch({ type: 'resume' })}>
-                Resume
-              </Button>
-            </>
-          ) : (
-            <Button color="brand" onClick={() => dispatch({ type: 'promote' })}>
-              Use this phone as central
-            </Button>
-          )}
-        </Stack>
-      ) : !remoteSeat ? (
-        <Stack gap="md">
-          <Section title="Choose your faction">
-            <Text size="sm">Table {state.code}</Text>
-          </Section>
-          {state.seats.map((s) => (
-            <Button
-              key={s.id}
-              color="neutral"
-              variant="light"
-              justify="start"
-              leftSection={<FactionTokenFace token={s} size={26} aria-hidden />}
-              onClick={() => dispatch({ type: 'field', field: 'remote', value: s.id })}
-            >
-              {s.name}
-              {s.linked ? ' · phone linked' : ''}
-            </Button>
-          ))}
-        </Stack>
-      ) : (
-        <Stack gap="md">
-          <Group gap="xs">
-            <Wifi size={14} />
-            <Text size="xs" c="dimmed">
-              Linked to the tablet
-            </Text>
-          </Group>
-          {state.stage === 'active' && state.remote === state.turn ? (
-            <>
-              <Section title="Your bid">
-                <Text size="sm">
-                  {state.high ? `Beat ${state.high.amount}` : 'Open the bidding'}
-                  {state.seconds ? ` · ${state.left}s` : ''}
-                </Text>
-              </Section>
-              {pad('Phone', remoteSeat.id)}
-            </>
-          ) : state.stage === 'ready' ? (
-            <>
-              <Section title="Start new bid">
-                <Text size="sm">{state.note}</Text>
-              </Section>
-              {starterControl}
-            </>
-          ) : (
-            <Section
-              title={
-                state.stage === 'paused'
-                  ? 'Table paused'
-                  : state.stage === 'setup'
-                    ? 'Waiting for the table'
-                    : state.stage === 'over'
-                      ? 'Bidding is over'
-                      : `${nameOf(state, state.turn)} is bidding`
-              }
-            >
-              <Text size="sm" c="dimmed">
-                {state.stage === 'paused'
-                  ? 'Check the central display, then Resume.'
-                  : state.high
-                    ? `Bid to beat: ${state.high.amount}`
-                    : 'Your hand controls are available.'}
-              </Text>
-            </Section>
-          )}
-          <div className={styles.handSection}>
-            <Section title="Your hand">{handControls(remoteSeat.id)}</Section>
-          </div>
-          <Group justify="space-between">
-            <Button
-              size="xs"
-              variant="subtle"
-              color="neutral"
-              disabled={state.stage !== 'active' && state.stage !== 'paused'}
-              onClick={() => dispatch({ type: 'reset' })}
-            >
-              Reset this card
-            </Button>
-            <Button
-              size="xs"
-              variant="subtle"
-              color="neutral"
-              onClick={() => dispatch({ type: 'field', field: 'remote', value: null })}
-            >
-              Change faction
-            </Button>
-          </Group>
-        </Stack>
-      )}
-    </div>
+        </SheetPopover.Dropdown>
+      </SheetPopover>
+    </TouchSurface>
   );
   const baseline = (
     <>
@@ -1157,8 +1336,10 @@ function BiddingFlowReview() {
           <Text c="dimmed">Beat 2</Text>
           <Stepper label="Original remote bid" value={3} min={3} onChange={() => {}} />
           <Group grow>
-            <Button color="brand">Bid 3</Button>
-            <Button color="neutral">Pass</Button>
+            <LabeledAction icon={<ArrowRight size={15} />} intent="positive" emphasis="strong">
+              Bid 3
+            </LabeledAction>
+            <LabeledAction icon={<ArrowRight size={15} />}>Pass</LabeledAction>
           </Group>
           <Text size="xs" c="dimmed">
             Direct over the Wi-Fi
@@ -1184,16 +1365,22 @@ function BiddingFlowReview() {
               </Text>
             </div>
             <Group gap="xs">
-              <Button
+              <LabeledAction
+                icon={<ArrowRight size={15} />}
                 size="sm"
-                color={before ? 'brand' : 'neutral'}
+                pressed={before}
                 onClick={() => setSearch({ variant: 'before', step: 'bid' })}
               >
                 Before
-              </Button>
-              <Button size="sm" color={!before ? 'brand' : 'neutral'} onClick={() => setSearch({ variant: 'after' })}>
+              </LabeledAction>
+              <LabeledAction
+                icon={<ArrowRight size={15} />}
+                size="sm"
+                pressed={!before}
+                onClick={() => setSearch({ variant: 'after' })}
+              >
                 Agreed changes
-              </Button>
+              </LabeledAction>
               <Select
                 aria-label="Preview device"
                 value={view}
@@ -1209,15 +1396,16 @@ function BiddingFlowReview() {
           {!before && (
             <nav className={styles.steps} aria-label="Review scenarios">
               {steps.map(([key, label]) => (
-                <Button
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
                   key={key}
                   size="compact-sm"
-                  variant={step === key ? 'filled' : 'subtle'}
-                  color={step === key ? 'brand' : 'neutral'}
+                  pressed={step === key}
+
                   onClick={() => setSearch({ step: key })}
                 >
                   {label}
-                </Button>
+                </LabeledAction>
               ))}
             </nav>
           )}
@@ -1257,50 +1445,78 @@ function BiddingFlowReview() {
               </>
             )}
           </div>
+          {!before && panel}
           {!before && (
             <details className={styles.simulator}>
               <summary>Review controls · simulate events</summary>
               <Group gap="sm">
-                <Button size="xs" color="neutral" onClick={() => dispatch({ type: 'scenario', step })}>
-                  Reset this example
-                </Button>
-                <Button size="xs" onClick={() => dispatch({ type: 'no-phones' })}>
-                  No phones at the table
-                </Button>
-                <Button
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
                   size="xs"
-                  disabled={state.stage !== 'active' || !state.listen}
+                  onClick={() => dispatch({ type: 'scenario', step })}
+                >
+                  Reset this example
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
+                  size="xs"
+                  onClick={() => dispatch({ type: 'no-phones' })}
+                >
+                  No phones at the table
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
+                  size="xs"
+                  disabledReason={
+                    state.stage !== 'active' || !state.listen ? 'Start an auction and turn listening on.' : undefined
+                  }
                   onClick={() => bidAction('Voice', 'bid', (state.high?.amount ?? 0) + 1)}
                 >
                   Hear “bid plus one”
-                </Button>
-                <Button
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
                   size="xs"
-                  disabled={state.stage !== 'active' || !state.listen}
+                  disabledReason={
+                    state.stage !== 'active' || !state.listen ? 'Start an auction and turn listening on.' : undefined
+                  }
                   onClick={() => bidAction('Voice', 'pass')}
                 >
                   Hear “pass”
-                </Button>
-                <Button
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
                   size="xs"
-                  disabled={state.stage !== 'active' || !state.listen}
+                  disabledReason={
+                    state.stage !== 'active' || !state.listen ? 'Start an auction and turn listening on.' : undefined
+                  }
                   onClick={() => {
                     bidAction('Phone', 'bid', state.phoneAmount);
                     bidAction('Voice', 'pass');
                   }}
                 >
                   Phone bid, then late voice
-                </Button>
-                <Button size="xs" disabled={state.stage !== 'active'} onClick={() => dispatch({ type: 'timeout' })}>
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
+                  size="xs"
+                  disabledReason={state.stage !== 'active' ? 'Start an auction first.' : undefined}
+                  onClick={() => dispatch({ type: 'timeout' })}
+                >
                   Timer expires
-                </Button>
-                <Button size="xs" disabled={state.stage !== 'active'} onClick={() => dispatch({ type: 'win' })}>
+                </LabeledAction>
+                <LabeledAction
+                  icon={<ArrowRight size={15} />}
+                  size="xs"
+                  disabledReason={state.stage !== 'active' ? 'Start an auction first.' : undefined}
+                  onClick={() => dispatch({ type: 'win' })}
+                >
                   Finish this card
-                </Button>
+                </LabeledAction>
                 {state.newHost && (
-                  <Button size="xs" onClick={() => dispatch({ type: 'rejoin' })}>
+                  <LabeledAction icon={<ArrowRight size={15} />} size="xs" onClick={() => dispatch({ type: 'rejoin' })}>
                     A phone rejoins
-                  </Button>
+                  </LabeledAction>
                 )}
               </Group>
               <Text size="xs" c="dimmed">
@@ -1326,16 +1542,69 @@ function BiddingFlowReview() {
             </details>
           )}
           <div className={styles.reviewFooter}>
-            <Button size="compact-sm" variant="subtle" aria-label="Previous scenario" onClick={() => cycle(-1)}>
-              <ArrowLeft size={16} />
-            </Button>
+            <IconAction
+              label="Previous scenario"
+              emphasis="quiet"
+              icon={<ArrowLeft size={16} />}
+              onClick={() => cycle(-1)}
+            />
             <Text size="sm">{before ? 'Before · prototype H' : steps.find(([key]) => key === step)?.[1]}</Text>
-            <Button size="compact-sm" variant="subtle" aria-label="Next scenario" onClick={() => cycle(1)}>
-              <ArrowRight size={16} />
-            </Button>
+            <IconAction
+              label="Next scenario"
+              emphasis="quiet"
+              icon={<ArrowRight size={16} />}
+              onClick={() => cycle(1)}
+            />
           </div>
         </div>
       </PageLayout.Content>
     </PageLayout>
+  );
+}
+
+/* The battle wheel's thumb-sized minus/value/plus row, with a typed value for corrections. */
+function CountControl({
+  label,
+  title,
+  value,
+  min = 0,
+  onChange,
+}: Readonly<{ label: string; title: string; value: number; min?: number; onChange: (value: number) => void }>) {
+  return (
+    <div className={styles.countControl} role="group" aria-label={label}>
+      <Text className={styles.grow} size="sm">
+        {title}
+      </Text>
+      <IconAction
+        label={`Fewer: ${label}`}
+        size="xl"
+        emphasis="standard"
+        icon={<Minus size={21} />}
+        disabledReason={value <= min ? `Minimum ${min}.` : undefined}
+        onClick={() => onChange(Math.max(min, value - 1))}
+      />
+      <NumberInput
+        aria-label={label}
+        size="md"
+        className={styles.countInput}
+        value={value}
+        min={min}
+        hideControls
+        allowDecimal={false}
+        allowNegative={false}
+        onChange={(next) => {
+          if (typeof next === 'number' && Number.isSafeInteger(next) && next >= min) {
+            onChange(next);
+          }
+        }}
+      />
+      <IconAction
+        label={`More: ${label}`}
+        size="xl"
+        emphasis="standard"
+        icon={<Plus size={21} />}
+        onClick={() => onChange(value + 1)}
+      />
+    </div>
   );
 }

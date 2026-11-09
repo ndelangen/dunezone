@@ -8,8 +8,7 @@
   overflow: auto;
   padding: var(--space-lg);
   padding-bottom: calc(var(--space-xl) * 3);
-  container-type: inline-size;
-  container-name: review;
+  container: review / inline-size;
 }
 .reviewHeader {
   display: flex;
@@ -26,56 +25,68 @@
 }
 .reviewNote {
   margin-bottom: var(--space-md);
-  max-width: 100%;
 }
 .devices {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 21rem;
+  grid-template-columns: minmax(0, 1fr) 23rem;
   align-items: start;
   gap: var(--space-lg);
   max-width: 94rem;
   margin: auto;
 }
 .devices[data-view="tablet"] {
-  grid-template-columns: minmax(0, 64rem);
+  grid-template-columns: minmax(0, 70rem);
   justify-content: center;
 }
 .devices[data-view="phone"] {
   grid-template-columns: minmax(0, 24rem);
   justify-content: center;
 }
-.tabletFrame {
-  width: 100%;
-  min-width: 0;
-}
+.tabletFrame,
 .phoneFrame {
   width: 100%;
   min-width: 0;
 }
+.grow {
+  flex: 1;
+  min-width: 0;
+}
 .tablet {
-  min-height: 41rem;
+  min-height: 44rem;
+  display: flex;
+  flex-direction: column;
   container: tablet / inline-size;
 }
 .deviceHeader {
-  padding: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border-bottom: 1px solid var(--panel-border);
 }
 .tabletBody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  padding: var(--space-xs) var(--space-md);
+}
+.tabletBody[data-setup] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 19rem;
+  grid-template-columns: minmax(0, 1fr) 21rem;
   gap: var(--space-md);
-  padding: var(--space-md);
 }
 .circleColumn {
+  flex: 1;
   min-width: 0;
   align-self: center;
 }
 .controlColumn {
   min-width: 0;
-  align-self: center;
-  padding-block: var(--space-sm);
+  padding-block: var(--space-md);
 }
 .arena {
+  --seat-token-size: 48px;
   position: relative;
   aspect-ratio: 1;
   width: 100%;
@@ -88,41 +99,47 @@
   width: 100%;
   height: 100%;
   stroke: var(--color-brand);
-  stroke-width: 1.8;
+  stroke-width: 2;
   fill: none;
 }
 .cardMiddle {
   position: absolute;
-  width: 28%;
-  height: 28%;
-  border-radius: 50%;
-  border: 4px solid var(--color-brand);
+  width: 34%;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
   align-items: center;
-  justify-content: center;
-  background: var(--ui-ground);
+  text-align: center;
+}
+.currentBidder {
+  font-size: clamp(1rem, 3.5cqi, 2rem);
+  line-height: 1.15;
+}
+.highAmount {
+  font-size: clamp(2.5rem, 9cqi, 5rem);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .cardMiddle img {
   width: 40%;
-  height: 62%;
   object-fit: contain;
-  border-radius: 4px;
 }
 .seat {
+  gap: var(--space-xs);
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-xs);
   transform: translate(-50%, -50%);
-  width: 27%;
-  max-width: 9rem;
+  width: 25%;
+  max-width: 12rem;
+}
+.seatName {
+  font-size: clamp(0.8rem, 2.5cqi, 1.25rem);
+  line-height: 1.2;
 }
 .seat[data-active] {
   color: var(--color-brand);
@@ -132,35 +149,104 @@
   outline-offset: 3px;
   border-radius: 50%;
 }
+.handTotal {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.handTotal strong {
+  font-size: clamp(2rem, 8cqi, 4rem);
+}
+.handTotal span {
+  font-size: clamp(0.875rem, 2.3cqi, 1.25rem);
+  color: var(--color-muted);
+}
+.seatStatus {
+  min-height: 1.25em;
+}
 .seatList {
   display: grid;
   gap: var(--space-xs);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.tabletFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--panel-border);
 }
 .phone {
-  padding-bottom: var(--space-md);
-  min-height: 41rem;
+  display: flex;
+  flex-direction: column;
+  height: 44rem;
+  overflow: auto;
+  container: phone / inline-size;
 }
-.phone > :not(.deviceHeader) {
+.phoneScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
   padding: var(--space-md);
+}
+.phoneBid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-block: var(--space-sm) var(--space-lg);
+}
+.phoneTurn {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+.phoneHigh {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .handSection {
   border-top: 1px solid var(--panel-border);
   padding-top: var(--space-md);
 }
-.details {
-  border-top: 1px solid var(--panel-border);
-  padding-top: var(--space-sm);
+.statusControls {
+  padding-block: var(--space-md) var(--space-xs);
+  min-height: 3.5rem;
 }
-.details summary {
-  cursor: pointer;
-  font-size: 0.875rem;
-  padding-bottom: var(--space-sm);
-}
-.eventLog {
+.phoneDock {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: var(--space-md);
+  padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--panel-border);
-  padding-top: var(--space-sm);
-  display: grid;
+  background: var(--ui-ground);
+}
+.countControl {
+  display: flex;
+  align-items: center;
   gap: var(--space-xs);
+}
+.countInput {
+  width: 4.5rem;
+  flex: 0 0 4.5rem;
+}
+.countInput input {
+  padding-inline: var(--space-xs);
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  height: 2.75rem;
+}
+.sheetContent {
+  max-width: 32rem;
+  margin: auto;
 }
 .qr {
   width: 5rem;
@@ -175,7 +261,7 @@
   gap: var(--space-xs);
 }
 .oldTablet {
-  min-height: 41rem;
+  min-height: 44rem;
   padding: var(--space-xl);
   display: grid;
   align-content: center;
@@ -184,13 +270,7 @@
   text-align: center;
 }
 .phoneCentral .tablet {
-  min-height: auto;
-}
-.phoneCentral .tabletBody {
-  grid-template-columns: 1fr;
-}
-.phoneCentral .controlColumn {
-  padding: var(--space-md);
+  min-height: 44rem;
 }
 .baselineTablet {
   min-height: 41rem;
@@ -201,10 +281,21 @@
 .baselineTablet .arena {
   max-width: 29rem;
   margin: auto;
+  aspect-ratio: 1;
+}
+.baselineTablet .cardMiddle {
+  width: 28%;
+  height: 28%;
+  border: 4px solid var(--color-brand);
+  border-radius: 50%;
+}
+.baselineTablet .seat {
+  gap: var(--space-xs);
 }
 .devices[data-before] > .phone {
   border: 2px solid var(--panel-border);
   border-radius: var(--radius-md);
+  padding: var(--space-md);
 }
 .devices[data-before][data-view="tablet"] > .phone {
   display: none;
@@ -242,24 +333,25 @@
   z-index: 20;
 }
 @container tablet (width < 48rem) {
-  .tabletBody {
-    grid-template-columns: minmax(0, 1fr) 17rem;
-    gap: var(--space-sm);
-  }
-  .seat {
-    gap: 0;
-  }
-  .seat > div:first-child {
-    transform: scale(0.8);
+  .tabletBody[data-setup] {
+    grid-template-columns: 1fr;
   }
 }
 @container tablet (width < 30rem) {
-  .tabletBody {
-    grid-template-columns: 1fr;
-  }
   .arena {
-    max-width: 26rem;
-    margin: auto;
+    aspect-ratio: 1;
+  }
+  .seat > div:first-child {
+    --seat-token-size: 32px;
+  }
+  .cardMiddle {
+    width: 38%;
+  }
+  .cardMiddle > p:not(.currentBidder):not(.highAmount) {
+    font-size: 0.7rem;
+  }
+  .seatStatus {
+    font-size: 0.65rem;
   }
 }
 @container review (width < 62rem) {
@@ -276,18 +368,8 @@
     flex-direction: column;
   }
 }
-
-.joinInfo {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-md);
-}
-
-.circleColumn .arena {
-  margin-bottom: var(--space-xl);
-}
 .review[data-focus] {
-  padding: var(--space-xs);
+  padding: 0;
 }
 .review[data-focus] .reviewHeader,
 .review[data-focus] .steps,
@@ -299,9 +381,42 @@
 .review[data-focus] .devices {
   max-width: none;
 }
-.review[data-focus] .devices[data-view="phone"] {
-  grid-template-columns: minmax(0, 1fr);
-}
+.review[data-focus] .devices[data-view="phone"],
 .review[data-focus] .devices[data-view="tablet"] {
   grid-template-columns: minmax(0, 1fr);
+}
+.review[data-focus] .phoneFrame {
+  max-width: none;
+}
+.review[data-focus] .phone {
+  height: 100dvh;
+}
+.review[data-focus] .tablet {
+  min-height: 100dvh;
+}
+.review[data-focus] .circleColumn {
+  max-width: min(100%, calc(100dvh - 10rem));
+}
+
+.actionRecord {
+  margin-top: var(--space-md);
+  display: grid;
+  gap: var(--space-xs);
+}
+@container phone (width < 30rem) {
+  .phoneScroll {
+    padding: var(--space-sm);
+  }
+  .phoneBid {
+    padding-block: 0 var(--space-xs);
+  }
+  .phoneHigh {
+    font-size: 2.5rem;
+  }
+}
+
+.seatWords {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }

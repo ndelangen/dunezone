@@ -18,18 +18,36 @@ All state lives in memory. Buttons labeled as review controls simulate speech, t
 
 The source contracts are [auction and hand controls](https://github.com/ndelangen/dunezone/issues/2838#issuecomment-6752912315), [recovery](https://github.com/ndelangen/dunezone/issues/2836#issuecomment-6753348442) and [mixed input](https://github.com/ndelangen/dunezone/issues/2840#issuecomment-6753627037).
 
-The route uses the existing kit, Mantine theme, faction tokens and published Storybook fixture artwork. The isolated entry keeps this preview out of the generated application route tree. The screen is available only in development mode.
+The revised layout follows the user's direction to reuse the existing tools, optimize the remote for a phone, and give the tablet's space to hand counts and the bidder.
+
+The tablet shows the fixed seating circle, large counts, current bidder, current high bid and timer. Tap a faction to adjust its hand. The bottom action opens tablet bidding controls. Setup keeps the seating controls beside the circle where there is room.
+
+The phone keeps its bid amount, Pass and Bid at the bottom. Hand count, Full and Always pass remain on the main screen. Hand limit opens from its small settings action. Reset and Change faction are in the remote settings menu.
+
+These arrangements use existing tool patterns:
+
+- The [spice deck](../spice-deck/route.tsx) supplies the compact icon toolbar and separate listening and announcement toggles.
+- The [battle wheel](../battle-wheel/route.tsx) supplies the large minus/value/plus action row. This prototype adds an existing NumberInput for typed counts and bids.
+- The [treachery tracker](../atreides-treachery-tracker/StandaloneTracker.tsx) supplies the bottom action dock and touch sheets. Its [setup](../atreides-treachery-tracker/TrackerConfig.tsx) supplies the sortable faction rows.
+- The route uses IconAction, LabeledAction, TouchSurface, SheetPopover, SortableItem, SortableReorderHandle and the existing faction tokens. No new kit component is added.
+
+The route uses the existing Mantine theme and published Storybook fixture artwork. The isolated entry keeps this preview out of the generated application route tree. The screen is available only in development mode.
 
 The visual flow remains awaiting the user's review. Agent checks establish that the prototype runs and follows the recorded decisions; they do not establish human agreement or device capability.
 
 ## Captured review
 
 - [Before, reconstructed from prototype H](review/before.png)
-- [Agreed tablet and remote](review/agreed.png)
+- [Earlier review layout](review/layout-before-mobile.png)
+- [Revised tablet and remote](review/agreed.png)
+- [Tablet at 1024 × 768](review/tablet.png)
+- [Tablet hand controls](review/tablet-hand.png)
+- [Table setup](review/setup.png)
 - [Phone remote](review/remote.png)
+- [Narrow phone at 320 × 568](review/remote-narrow.png)
 - [Phone recovery](review/recovery.png)
 - [Phone used as the central device](review/phone-central.png)
 
-Browser checks covered all nine scenarios, tablet and phone widths, hand-count and limit recalculation, the Full override, persistent pass, separate unsubmitted bid amounts, a competing late voice action, win increments, hand corrections preserving results, Reset, removal of the selected starter, local Resume, promotion with a new code and the finished-phase display. No browser errors were observed.
+The revised layout passed 29 browser interaction checks. They cover hand-count and limit recalculation, the Full override, persistent pass, separate bid drafts, action feedback, wins and corrections, Reset, starter removal, keyboard seat reordering, local Resume, phone recovery and phase completion. Bid controls fit at 320 × 568, their main touch targets are at least 44 pixels high, and the six-faction tablet view fits at 1024 × 768. The eight-faction central view was also inspected at phone width. No browser errors were observed.
 
-Type checking, targeted lint, app layout, breakpoint, CSS ownership, CSS variable and prose checks passed. The raw Mantine Button import has a narrow, documented lint exception for this throwaway comparison. GPT-6.1 Sol and GPT-6 Astra separately reviewed the source and architecture against the agreed contracts. Their corrections are incorporated. These checks do not validate real phones, audio capture or networking.
+Type checking, targeted lint, app layout, breakpoint, CSS ownership, CSS variable and prose checks passed. GPT-6.1 Sol and GPT-6 Astra separately reviewed the source and architecture against the agreed contracts. Their corrections are incorporated. These checks do not validate physical devices, audio capture or networking.
