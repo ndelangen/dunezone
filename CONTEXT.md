@@ -331,3 +331,12 @@ An authored circular map saved in the Assets catalogue. Its shared linework form
 
 **Board decal**:
 A bundled vector placed within a territory, with position, scale, rotation and an optional pale outline shared with placed board stickers. The territory clips it. The decal list sets drawing order and supports drag reordering. Showing a decal before cropping is an editor setting and is never saved.
+
+**Auction hand count**:
+A faction's reported number of physical Treachery cards in the IRL bidding tool. Winning an auction adds one; the player can edit the count through their remote for extra draws, discards or corrections, and the tablet shows every faction's count.
+
+**Auction hand limit**:
+A faction's adjustable hand limit in the IRL bidding tool, initially 4. The limit determines its automatic Full status without preventing a player from overriding that status.
+
+**Full status**:
+A faction's declaration that its hand is full, separate from its Auction hand count. A count or limit change sets Full status according to whether the count is at least the limit; a player may override it until the next such change.
