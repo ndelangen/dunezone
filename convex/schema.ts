@@ -119,6 +119,56 @@ export default defineSchema({
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
+  play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_game_discord_channels: defineTable({
+    game_id: v.id('play_games'),
+    guild_id: v.string(),
+    category_ids: v.array(v.string()),
+    channel_id: v.optional(v.string()),
+    state: v.union(
+      v.literal('pending'),
+      v.literal('creating'),
+      v.literal('ready'),
+      v.literal('deleting'),
+      v.literal('deleted')
+    ),
+    created_at: v.number(),
+    ended_at: v.optional(v.number()),
+    deleted_at: v.optional(v.number()),
+    cleanup_at: v.number(),
+    next_attempt_at: v.number(),
+    retry_after: v.optional(v.number()),
+    lease: v.optional(v.string()),
+    lease_until: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index('by_game_id', ['game_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+  play_game_discord_grants: defineTable({
+    game_id: v.id('play_games'),
+    user_id: v.id('users'),
+    discord_user_id: v.string(),
+    auth_account_id: v.id('authAccounts'),
+    desired: v.boolean(),
+    needs_sync: v.boolean(),
+    retry_at: v.number(),
+    revision: v.number(),
+    state: v.union(v.literal('pending'), v.literal('granted'), v.literal('revoked')),
+    granted_at: v.optional(v.number()),
+    revoked_at: v.optional(v.number()),
+    request_id: v.optional(v.string()),
+    request_state: v.optional(v.union(v.literal('pending'), v.literal('ready'), v.literal('error'))),
+    request_url: v.optional(v.string()),
+    request_kind: v.optional(v.union(v.literal('channel'), v.literal('invite'))),
+    request_error: v.optional(v.string()),
+  })
+    .index('by_game_id_discord_user_id', ['game_id', 'discord_user_id'])
+    .index('by_game_id_needs_sync', ['game_id', 'needs_sync'])
+    .index('by_game_id_needs_sync_retry_at', ['game_id', 'needs_sync', 'retry_at'])
+    .index('by_game_id_needs_sync_desired_retry_at', ['game_id', 'needs_sync', 'desired', 'retry_at'])
+    .index('by_game_id_desired', ['game_id', 'desired'])
+    .index('by_user_id', ['user_id'])
+    .index('by_user_id_desired', ['user_id', 'desired']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),

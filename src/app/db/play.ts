@@ -29,6 +29,10 @@ export function useGameAccess(address: string) {
   return toLiveQueryResult(useHeldLiveQuery(api.playGameDirectory.getGameByAddress, { address }));
 }
 
+export async function requestDiscordVoice(gameId: string) {
+  return await db.mutation(api.playDiscord.join, { gameId: gameId as Id<'play_games'> });
+}
+
 /** The lobby's ongoing and past games, as the directory may show them to this viewer. */
 export function useLobbyGames() {
   return toLiveQueryResult(useLiveQuery(api.playDirectory.listGames, {}));

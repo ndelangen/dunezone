@@ -16,6 +16,7 @@ import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { pickableProfileForUser } from './lib/groupInvitations';
 import type { PickableProfile } from './lib/groupInvitations';
+import { revokeDiscordAccount } from './lib/playDiscord';
 import { requireAdminUserId, requireAuthUserId, requireRecentSignIn } from './lib/policy';
 import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
@@ -312,6 +313,7 @@ export const confirm = mutation({
       account_deletion_operation_id: operationId,
       updated_at: now,
     });
+    await revokeDiscordAccount(ctx, sourceUserId);
     await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
     await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
       operationId,

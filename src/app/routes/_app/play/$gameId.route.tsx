@@ -1,15 +1,17 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
-import { Stack } from '@mantine/core';
+import { Menu, Stack } from '@mantine/core';
+import type { PlayDiscordMenu } from '@shared/play/discord';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { FormError } from '@ui/block/FormError';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { ArrowLeft, Orbit } from 'lucide-react';
-import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
+import { ArrowLeft, Headphones, Orbit } from 'lucide-react';
+import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useRef, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
 
-import { rememberSeatPass, useGameAccess } from '@db/play';
+import { rememberSeatPass, requestDiscordVoice, useGameAccess } from '@db/play';
 import { forgetStoredPlayTable } from '@db/playTables';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
@@ -133,7 +135,13 @@ function GameAccessPage() {
     case undefined:
       /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
       if (current?.status === 'ready' || stored) {
-        return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: stored! }} exit={exit} />;
+        return (
+          <TablePage
+            key={current?.gameId ?? stored!}
+            game={current ?? { gameId: stored!, name: 'Game', slug: stored! }}
+            exit={exit}
+          />
+        );
       }
       return (
         <TableFrame title="Game">
@@ -167,7 +175,7 @@ function GameAccessPage() {
         </UnavailableTable>
       );
     case 'ready':
-      return <TablePage game={data} exit={exit} />;
+      return <TablePage key={data.gameId} game={data} exit={exit} />;
   }
 }
 
@@ -194,6 +202,7 @@ const noSubscription = () => () => {};
 type GameAccess = NonNullable<ReturnType<typeof useGameAccess>['data']>;
 type KnownGame = Pick<Extract<GameAccess, { gameId: string }>, 'gameId' | 'slug' | 'name' | 'status'> & {
   ruleset?: Extract<GameAccess, { status: 'ready' }>['ruleset'];
+  voice?: PlayDiscordMenu | null;
 };
 type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
@@ -239,11 +248,13 @@ function TablePage({
   exit,
 }: Readonly<{ game: Omit<KnownGame, 'status' | 'gameId'> & { gameId: string }; exit: ReactNode }>) {
   const loading = <TableWait status="Opening the table...">{exit}</TableWait>;
+  const voice = useDiscordVoice(game.gameId, game.voice ?? null);
   return (
     <TableFrame title={game.name}>
       <ClientOnly fallback={loading}>
         <Suspense fallback={loading}>
           <HostedTable
+            voice={<DiscordVoiceMenuItem menu={game.voice ?? null} voice={voice} />}
             key={game.gameId}
             gameId={game.gameId}
             exitControl={exit}
@@ -252,5 +263,131 @@ function TablePage({
         </Suspense>
       </ClientOnly>
     </TableFrame>
+  );
+}
+
+type VoiceState = { requestId: string | null; waiting: boolean; error: string | null; fallback: string | null };
+type VoiceEvent =
+  | { type: 'start' }
+  | { type: 'requested'; id: string }
+  | { type: 'failed'; message: string }
+  | { type: 'opened'; fallback: string | null };
+const voiceIdle: VoiceState = { requestId: null, waiting: false, error: null, fallback: null };
+
+function voiceReducer(state: VoiceState, event: VoiceEvent): VoiceState {
+  switch (event.type) {
+    case 'start':
+      return { ...voiceIdle, waiting: true };
+    case 'requested':
+      return state.waiting ? { ...state, requestId: event.id } : state;
+    case 'failed':
+      return { ...voiceIdle, error: event.message };
+    case 'opened':
+      return { ...voiceIdle, fallback: event.fallback };
+  }
+}
+
+function useDiscordVoice(gameId: string, menu: PlayDiscordMenu | null) {
+  const [state, dispatch] = useReducer(voiceReducer, voiceIdle);
+  const popup = useRef<Window | null>(null);
+  const request = menu?.kind === 'join' ? menu.request : null;
+  useEffect(
+    () => () => {
+      popup.current?.close();
+    },
+    []
+  );
+  useEffect(() => {
+    if (!state.waiting) {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      popup.current?.close();
+      popup.current = null;
+      dispatch({ type: 'failed', message: 'Discord is taking longer than expected. Try again shortly.' });
+    }, 30_000);
+    return () => window.clearTimeout(timeout);
+  }, [state.waiting]);
+  useEffect(() => {
+    if (!state.requestId || request?.id !== state.requestId || request.state === 'pending') {
+      return;
+    }
+    if (request.state === 'error') {
+      popup.current?.close();
+      popup.current = null;
+      dispatch({ type: 'failed', message: request.message });
+      return;
+    }
+    const tab = popup.current;
+    popup.current = null;
+    if (tab && !tab.closed) {
+      tab.location.replace(request.url);
+      dispatch({ type: 'opened', fallback: null });
+    } else {
+      dispatch({ type: 'opened', fallback: request.url });
+    }
+  }, [request, state.requestId]);
+  const join = async () => {
+    dispatch({ type: 'start' });
+    /* Open on the click, before the mutation, so a slow Discord response does not trigger the popup blocker. */
+    popup.current = window.open('about:blank', '_blank');
+    if (popup.current) {
+      popup.current.opener = null;
+    }
+    try {
+      const id = await requestDiscordVoice(gameId);
+      dispatch({ type: 'requested', id });
+    } catch {
+      popup.current?.close();
+      popup.current = null;
+      dispatch({ type: 'failed', message: 'Could not open Discord. Check your connection and try again.' });
+    }
+  };
+  return { state, request, join };
+}
+
+function DiscordVoiceMenuItem({
+  menu,
+  voice,
+}: Readonly<{ menu: PlayDiscordMenu | null; voice: ReturnType<typeof useDiscordVoice> }>) {
+  if (!menu) {
+    return null;
+  }
+  const { state, request, join } = voice;
+  const icon = <Headphones size={16} aria-hidden />;
+  if (menu.kind === 'connect') {
+    return (
+      <Menu.Item
+        leftSection={icon}
+        renderRoot={(props) => (
+          <Link
+            {...props}
+            to="/profiles/$profileSlug/edit"
+            params={{ profileSlug: menu.profileSlug }}
+            search={{ tab: 'sign-in' }}
+            target="_blank"
+            rel="noopener noreferrer"
+          />
+        )}
+      >
+        Connect Discord to join voice
+      </Menu.Item>
+    );
+  }
+  return (
+    <>
+      <Menu.Item leftSection={icon} disabled={state.waiting} closeMenuOnClick={false} onClick={() => void join()}>
+        {state.waiting ? 'Opening Discord...' : 'Join voice chat'}
+      </Menu.Item>
+      {state.fallback && (
+        <Menu.Item component="a" href={state.fallback} target="_blank" rel="noopener noreferrer">
+          Open Discord
+        </Menu.Item>
+      )}
+      {request?.state === 'ready' && request.kind === 'invite' && (
+        <Menu.Label>Accept the invite, then choose Join voice chat again.</Menu.Label>
+      )}
+      {state.error && <FormError title="Voice chat">{state.error}</FormError>}
+    </>
   );
 }

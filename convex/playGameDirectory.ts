@@ -7,6 +7,7 @@ import type { Doc } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { newestUnusedRefresh } from './lib/authSessionLifecycle';
 import { admitsPlayers, currentPlaySession } from './lib/playAuthorization';
+import { discordMenu } from './lib/playDiscord';
 import { enrolment, seatPassFor } from './lib/playSeatPass';
 import { viewerQuery } from './queryAudience';
 
@@ -78,6 +79,7 @@ async function gameAccess(
         ruleset: ruleset ? { slug: ruleset.slug, name: ruleset.name } : null,
         minimumPlayers: game.minimum_players ?? null,
         pass: await queryPass(ctx, game, session),
+        voice: await discordMenu(ctx, game, session.userId),
       };
     }
   }

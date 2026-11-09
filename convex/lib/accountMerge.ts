@@ -4,6 +4,7 @@ import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { gameActorIds } from './accountIdentity';
 import { accountStateOf } from './accountLifecycle';
 import { requireUnlockedAccount } from './accountMethods';
+import { revokeDiscordAccount } from './playDiscord';
 import { queueSessionCutoff } from './playSessionCutoffQueue';
 import { nowIso } from './utils';
 
@@ -115,6 +116,7 @@ export async function startAccountMerge(
     updated_at: nowIso(),
   });
   await ctx.scheduler.runAfter(0, internal.accounts.advance, { operationId });
+  await revokeDiscordAccount(ctx, source);
   return operationId;
 }
 
