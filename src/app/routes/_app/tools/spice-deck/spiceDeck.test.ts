@@ -4,6 +4,7 @@ import {
   blowAll,
   blowPile,
   blowSentence,
+  lastPlayed,
   nextPile,
   spiceBlowOver,
   newGame,
@@ -11,6 +12,7 @@ import {
   nextTurn,
   remaining,
   revealOne,
+  setAsideLast,
   wormChance,
 } from './spiceDeck';
 import type { SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
@@ -27,8 +29,8 @@ const DECK: SpiceDeckDef = {
 };
 
 /* A game whose deck is stacked: the first copy listed is turned over first. */
-const stacked = (order: string[], piles: 1 | 2 = 2, wormsPerPhase?: number): SpiceDeckGame => ({
-  ...newGame(DECK, Math.random, wormsPerPhase === undefined ? { piles } : { piles, wormsPerPhase }),
+const stacked = (order: string[], piles = 2): SpiceDeckGame => ({
+  ...newGame(DECK, Math.random, { piles }),
   draw: [...order].reverse(),
 });
 
@@ -44,15 +46,20 @@ describe('Spice Blow', () => {
     expect(spiceBlowOver(game)).toBe(true);
   });
 
-  test('on the first turn Shai-Hulud is set aside, and shuffled back as the turn ends', () => {
-    let game = blowPile(stacked(['shai-hulud#1', 'old-gap#1', 'broken-land#1', 'red-chasm#1']), keepOrder);
+  test('Shai-Hulud lands on its pile like any card; the players set it aside, and it goes back in when the next turn starts', () => {
+    let game = revealOne(stacked(['shai-hulud#1', 'old-gap#1', 'broken-land#1', 'red-chasm#1']), keepOrder, 0);
+    expect(game.discards[0]).toEqual(['shai-hulud#1']);
+    expect(game.blows[0]!.reveals).toEqual([{ card: 'shai-hulud#1', kind: 'worm' }]);
+    game = setAsideLast(game);
+    expect(game.discards[0]).toEqual([]);
     expect(game.setAside).toEqual(['shai-hulud#1']);
+    expect(lastPlayed(game)).toBeUndefined();
+    game = revealOne(game, keepOrder, 0);
     expect(game.blows[0]!.reveals.map((reveal) => reveal.kind)).toEqual(['set-aside', 'spice']);
     expect(nexus(game)).toBe(false);
-    game = nextTurn(blowPile(game, keepOrder), keepOrder);
+    game = nextTurn(game, keepOrder);
     expect(game.setAside).toEqual([]);
     expect(game.draw).toContain('shai-hulud#1');
-    expect(game.draw).toHaveLength(2);
   });
 
   test('from the second turn on, Shai-Hulud devours the territory below it on its own pile, and a Nexus follows', () => {
@@ -98,15 +105,6 @@ describe('Spice Blow', () => {
     game = revealOne(game, keepOrder, 1);
     expect(game.blows.filter((blow) => blow.turn === 2)).toHaveLength(1);
     expect(game.blows.at(-1)!.reveals).toHaveLength(2);
-  });
-
-  test('past the ruleset limit, another Shai-Hulud in the same Spice Blow is ignored and shuffled back', () => {
-    let game = blowAll(stacked(['old-gap#1', 'shai-hulud#1', 'shai-hulud#2', 'red-chasm#1'], 1, 1), keepOrder);
-    game = blowPile(nextTurn(game, keepOrder), keepOrder);
-    expect(game.blows.at(-1)!.reveals.map((reveal) => reveal.kind)).toEqual(['worm', 'ignored', 'spice']);
-    expect(game.setAside).toEqual(['shai-hulud#2']);
-    expect(game.discards[0]).not.toContain('shai-hulud#2');
-    expect(nextTurn(game, keepOrder).draw).toContain('shai-hulud#2');
   });
 
   test('a single pile blows once a turn', () => {

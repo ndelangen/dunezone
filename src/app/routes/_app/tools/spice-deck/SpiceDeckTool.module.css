@@ -247,9 +247,7 @@
   pointer-events: none;
 }
 
-.ring[data-kind="worm"],
-.ring[data-kind="set-aside"],
-.ring[data-kind="ignored"] {
+.ring[data-kind="worm"] {
   border-color: var(--ui-negative-fill);
   box-shadow: 0 0 24px var(--ui-negative-fill);
 }
@@ -271,6 +269,10 @@
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
+}
+
+.flyerTurn[data-mode="deal"] {
+  transform: rotateY(180deg);
 }
 
 .front,

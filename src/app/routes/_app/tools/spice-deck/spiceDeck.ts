@@ -1,9 +1,10 @@
 /*
  * The spice deck tool's game: a spice deck run for a table that plays with everything but the cards.
- * It follows the rulebook's Spice Blow: each turn turns over a card for every discard pile in order (A, then B),
- * for every discard pile the table plays with (the rulebook's A and B), drawing again past every Shai-Hulud until a spice card lands. On the first turn a Shai-Hulud is set aside and shuffled
- * back once the Spice Blow is over; from the second turn on it devours the territory of the spice card below it on its
- * pile, and a Nexus follows the Spice Blow. An empty deck is made again from all the discard piles, shuffled.
+ * Each tap turns one card over onto the spice pile the players chose (the rulebook plays two, A and B), whatever the card;
+ * the players decide what happens next (Norbert, 2026-11-09). A Shai-Hulud notes the territory of the spice card below it
+ * on its pile, which it devours, and one after the first turn brings a Nexus. A card the players set aside, as the rules
+ * ask of a Shai-Hulud on the first turn, goes back into the deck when the next turn starts. An empty deck is made again
+ * from all the spice piles, shuffled.
  * Pure and serialisable: the page keeps it in the browser's own storage, and every step is undoable.
  */
 
@@ -30,10 +31,8 @@ export type SpiceDeckDef = Readonly<{
 /** One card turned over, and what it did. */
 export type Reveal = Readonly<
   | { card: string; kind: 'spice' }
-  /** Shai-Hulud on the first turn, set aside to be shuffled back. */
+  /** A card the players set aside, to be shuffled back into the deck when the next turn starts. */
   | { card: string; kind: 'set-aside' }
-  /** A Shai-Hulud past the ruleset's limit for one Spice Blow, ignored and shuffled back, as the Dreamrules card says. */
-  | { card: string; kind: 'ignored' }
   /** Shai-Hulud from the second turn on: `devours` is the card whose territory it eats, when the pile had one. */
   | { card: string; kind: 'worm'; devours?: string }
   /** The deck ran out and the discard piles were shuffled into a new one before this card. */
@@ -48,15 +47,13 @@ export type SpiceDeckGame = Readonly<{
   deck: SpiceDeckDef;
   /** Discard piles, and so blows, per turn: the rulebook's A and B, or as many as the table plays with. */
   piles: number;
-  /** How many Shai-Huluds count in one Spice Blow; any more are ignored and shuffled back. None means all count. */
-  wormsPerPhase?: number;
   turn: number;
   /** The pile a card was last turned onto. */
   pile: number;
   /** Card copies face down, the top last. A copy is `<key>#<n>`. */
   draw: readonly string[];
   discards: readonly (readonly string[])[];
-  /** Shai-Huluds set aside this turn (first turn, or past the limit), shuffled back as the turn ends. */
+  /** Cards the players set aside this turn, shuffled back into the deck as the next turn starts. */
   setAside: readonly string[];
   /** Every blow so far, oldest first. The last may be under way when cards are turned one at a time. */
   blows: readonly Blow[];
@@ -88,16 +85,15 @@ function shuffled<T>(items: readonly T[], random: Random): T[] {
   return out;
 }
 
-export type SpiceRules = Readonly<{ piles: number; wormsPerPhase?: number }>;
+export type SpiceRules = Readonly<{ piles: number }>;
 
 export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 1 }): SpiceDeckGame {
-  const { piles, wormsPerPhase } = rules;
+  const { piles } = rules;
   const copies = deck.cards.flatMap((card) => Array.from({ length: card.count }, (_, n) => `${card.key}#${n + 1}`));
   return {
     version: 1,
     deck,
     piles,
-    ...(wormsPerPhase === undefined ? {} : { wormsPerPhase }),
     turn: 1,
     pile: 0,
     draw: shuffled(copies, random),
@@ -116,13 +112,6 @@ function territoryUnder(game: SpiceDeckGame, pile: readonly string[]): string | 
   }
   return undefined;
 }
-
-/* The Shai-Huluds that counted in this turn's Spice Blow so far. */
-const wormsThisPhase = (game: SpiceDeckGame) =>
-  game.blows
-    .filter((blow) => blow.turn === game.turn)
-    .flatMap((blow) => blow.reveals)
-    .filter((reveal) => reveal.kind === 'worm' || reveal.kind === 'set-aside').length;
 
 /** A pile's blow this turn that has not yet landed a spice card: the one a further card on that pile adds to. */
 export function openBlow(game: SpiceDeckGame, pile: number): Blow | undefined {
@@ -148,7 +137,7 @@ export const canReveal = (game: SpiceDeckGame) => game.draw.length > 0 || game.d
 /**
  * Turns over the top card onto a pile the players chose, whatever the card.
  * The tool never draws on by itself: after a Shai-Hulud the players turn the next card when they are ready.
- * On the first turn, and past the ruleset's limit, a Shai-Hulud is set aside, to be shuffled back when the turn ends.
+ * What to do with a card is the players' call too: one they set aside goes through `setAsideLast`.
  */
 export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextPile(game) ?? 0): SpiceDeckGame {
   if (!canReveal(game) || pileIndex < 0 || pileIndex >= game.piles) {
@@ -166,16 +155,9 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
   const copy = draw.pop()!;
   const card = cardOf(game, copy);
   const pile = discards[pileIndex]!;
-  let setAside = game.setAside;
   if (!isWorm(card)) {
     pile.push(copy);
     reveals.push({ card: copy, kind: 'spice' });
-  } else if (game.wormsPerPhase !== undefined && wormsThisPhase(game) >= game.wormsPerPhase) {
-    setAside = [...setAside, copy];
-    reveals.push({ card: copy, kind: 'ignored' });
-  } else if (game.turn === 1) {
-    setAside = [...setAside, copy];
-    reveals.push({ card: copy, kind: 'set-aside' });
   } else {
     const devours = territoryUnder(game, pile);
     pile.push(copy);
@@ -183,7 +165,37 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
   }
   const blow: Blow = { turn: game.turn, pile: pileIndex, reveals };
   const blows = open ? game.blows.map((entry) => (entry === open ? blow : entry)) : [...game.blows, blow];
-  return { ...game, draw, discards, setAside, blows, pile: pileIndex };
+  return { ...game, draw, discards, blows, pile: pileIndex };
+}
+
+/** The card just turned over, while it still lies on top of its pile: the one `setAsideLast` takes. */
+export function lastPlayed(game: SpiceDeckGame): { blow: Blow; card: string } | undefined {
+  const blow = game.blows.at(-1);
+  const reveal = blow?.reveals.at(-1);
+  if (!blow || blow.turn !== game.turn || (reveal?.kind !== 'spice' && reveal?.kind !== 'worm')) {
+    return undefined;
+  }
+  return game.discards[blow.pile]?.at(-1) === reveal.card ? { blow, card: reveal.card } : undefined;
+}
+
+/**
+ * Sets the card just turned over aside, as the rules ask of a Shai-Hulud on the first turn.
+ * It leaves its pile, to be shuffled back into the deck when the next turn starts.
+ * Its blow stays open, so the pile's next card adds to the same blow.
+ */
+export function setAsideLast(game: SpiceDeckGame): SpiceDeckGame {
+  const last = lastPlayed(game);
+  if (!last) {
+    return game;
+  }
+  const { blow, card } = last;
+  const marked: Blow = { ...blow, reveals: [...blow.reveals.slice(0, -1), { card, kind: 'set-aside' }] };
+  return {
+    ...game,
+    discards: game.discards.map((pile, index) => (index === blow.pile ? pile.slice(0, -1) : pile)),
+    setAside: [...game.setAside, card],
+    blows: [...game.blows.slice(0, -1), marked],
+  };
 }
 
 /** One whole blow: cards turned onto a pile until a spice card lands. */
@@ -246,11 +258,8 @@ export function revealSentence(game: SpiceDeckGame, reveal: Reveal): string {
     return 'The deck ran out, so the spice piles are shuffled into a new deck.';
   }
   const card = cardOf(game, reveal.card);
-  if (reveal.kind === 'ignored') {
-    return 'Another Shai-Hulud: one too many this turn, so it is set aside and goes back into the deck.';
-  }
   if (reveal.kind === 'set-aside') {
-    return 'Shai-Hulud on the first turn: set aside, it goes back into the deck.';
+    return `${card.name} is set aside, to be shuffled back into the deck next turn.`;
   }
   if (reveal.kind === 'worm') {
     return reveal.devours

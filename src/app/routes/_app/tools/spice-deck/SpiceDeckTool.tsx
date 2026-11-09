@@ -1,8 +1,8 @@
-import { Menu, NumberInput, Switch } from '@mantine/core';
+import { Menu, NumberInput } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
-import { ArrowRight, Layers, Mic, RotateCcw, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
@@ -17,9 +17,11 @@ import {
   nexus,
   nextPile,
   nextTurn,
+  lastPlayed,
   pileLetter,
   revealOne,
   revealSentence,
+  setAsideLast,
   spiceBlowOver,
   wormChance,
 } from './spiceDeck';
@@ -56,13 +58,12 @@ export function SpiceDeckTool({ storageKey, initial, decks }: ToolProps) {
   return <Playing session={session} game={game} />;
 }
 
-/* Before a game: which deck, and the two rules a ruleset may change about the Spice Blow. */
+/* Before a game: which deck, and how many spice piles. */
 function DeckPicker({
   decks,
   onStart,
 }: Readonly<{ decks: readonly SpiceDeckDef[]; onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void }>) {
   const [piles, setPiles] = useState(1);
-  const [limit, setLimit] = useState(false);
   return (
     <div className={styles.tool}>
       <header className={styles.header}>
@@ -88,20 +89,11 @@ function DeckPicker({
               />
             )}
           />
-          <Switch
-            checked={limit}
-            onChange={(event) => setLimit(event.currentTarget.checked)}
-            label="A third Shai-Hulud in one Spice Blow is shuffled back"
-          />
         </div>
         <ul className={styles.deckList}>
           {decks.map((deck) => (
             <li key={deck.id}>
-              <button
-                type="button"
-                className={styles.deckChoice}
-                onClick={() => onStart(deck, limit ? { piles, wormsPerPhase: 2 } : { piles })}
-              >
+              <button type="button" className={styles.deckChoice} onClick={() => onStart(deck, { piles })}>
                 {deck.back ? <img src={deck.back} alt="" className={styles.deckBack} /> : null}
                 <span>
                   <strong>{deck.name}</strong>
@@ -124,13 +116,12 @@ const pileName = (game: SpiceDeckGame, pile: number) =>
 
 const revealCount = (game: SpiceDeckGame) => game.blows.reduce((sum, blow) => sum + blow.reveals.length, 0);
 
-/** A card on its way from the deck to a pile, and off to the side when the rules set it aside. */
-type Flight = Readonly<{ key: number; pile: number; copy: string; toAside: boolean; reveal: Reveal }>;
+/** A card on its way: dealt from the deck onto a pile, or set aside off its pile. */
+type Flight = Readonly<{ key: number; pile: number; copy: string; mode: 'deal' | 'aside'; reveal: Reveal }>;
 
 /* The flight's timing: off the deck, turned over on the way, laid on the pile; a set-aside card rests there before it moves on. */
 const FLIGHT_MS = 1500;
-const ASIDE_REST_MS = 500;
-const ASIDE_MS = 450;
+const ASIDE_MS = 520;
 /* The moments in the flight, as fractions of it: in from above to the middle of the screen, a snap turn, a beat to read it, the slam. */
 const AT_CENTRE = 0.26;
 const TURNED = 0.4;
@@ -147,33 +138,41 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   const canListen = useCanListen();
   const [flight, setFlight] = useState<Flight | undefined>(undefined);
 
-  /* A new card turned over (not one taken back, nor the game as it loaded) starts its flight. */
-  const seen = useRef(revealCount(game));
+  /*
+   * A new card turned over starts its flight onto its pile; a card set aside leaves its pile to the side.
+   * A step taken back, and the game as it loaded, show at once.
+   */
+  const seen = useRef({ reveals: revealCount(game), aside: game.setAside.length });
   useEffect(() => {
-    const count = revealCount(game);
-    const grew = count === seen.current + 1;
+    const count = { reveals: revealCount(game), aside: game.setAside.length };
+    const dealt = count.reveals === seen.current.reveals + 1;
+    const setAside = count.reveals === seen.current.reveals && count.aside === seen.current.aside + 1;
     seen.current = count;
-    const blow = game.blows.findLast((entry) => entry.turn === game.turn && entry.pile === game.pile);
+    const blow = game.blows.at(-1);
     const reveal = blow?.reveals.at(-1);
-    if (!grew || !reveal || reveal.card === null) {
+    if ((!dealt && !setAside) || !blow || !reveal || reveal.card === null) {
       setFlight(undefined);
       return;
     }
-    const toAside = reveal.kind === 'set-aside' || reveal.kind === 'ignored';
+    const mode = setAside ? 'aside' : 'deal';
     const landed = () => {
       setFlight(undefined);
       if (voice) {
-        speech.speak(`${pileName(game, game.pile)}. ${revealSentence(game, reveal)}`);
+        speech.speak(
+          mode === 'aside'
+            ? revealSentence(game, reveal)
+            : `${pileName(game, blow.pile)}. ${revealSentence(game, reveal)}`
+        );
       }
     };
     if (!motion) {
       landed();
       return;
     }
-    setFlight({ key: count, pile: game.pile, copy: reveal.card, toAside, reveal });
-    const timer = setTimeout(landed, FLIGHT_MS + (toAside ? ASIDE_REST_MS + ASIDE_MS : 0));
+    setFlight({ key: count.reveals * 100 + count.aside, pile: blow.pile, copy: reveal.card, mode, reveal });
+    const timer = setTimeout(landed, mode === 'aside' ? ASIDE_MS : FLIGHT_MS);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new card starts a flight
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new card or a card set aside starts a flight
   }, [game]);
 
   const turnOver = useCallback(
@@ -212,8 +211,8 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
           <span className={styles.deckName}>
-            {game.deck.name} · {game.draw.length + (flight ? 1 : 0)} left · {Math.round(wormChance(game) * 100)}%
-            Shai-Hulud
+            {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·{' '}
+            {Math.round(wormChance(game) * 100)}% Shai-Hulud
           </span>
         </div>
         <IconAction
@@ -255,6 +254,16 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
         <Table game={game} flight={flight} onPile={turnOver} />
       </main>
       <footer className={styles.footer}>
+        {lastPlayed(game) && !flight ? (
+          <LabeledAction
+            size="lg"
+            className={styles.primary}
+            icon={<Shuffle size={20} />}
+            onClick={() => session.act(setAsideLast)}
+          >
+            Set aside &amp; shuffle back in next turn
+          </LabeledAction>
+        ) : null}
         {over && nexus(game) ? (
           <p className={styles.nexus}>Nexus! Shai-Hulud came up: alliances may be made and broken.</p>
         ) : null}
@@ -317,6 +326,18 @@ function Table({
       `translate(${box.x}px, ${box.y}px) scale(${(box.w / to.w) * lift})`;
     card.style.width = `${to.w}px`;
     card.style.height = `${to.h}px`;
+    if (flight.mode === 'aside') {
+      /* Set aside: the card lifts off its pile and slides away to the side, face up. */
+      const away = card.animate(
+        [
+          { transform: at(to), offset: 0 },
+          { transform: at(to, 1.08), offset: 0.25, easing: 'cubic-bezier(.5,0,.8,.4)' },
+          { transform: at(rest, 0.9), offset: 1 },
+        ],
+        { duration: ASIDE_MS, fill: 'forwards' }
+      );
+      return () => away.cancel();
+    }
     const centre = {
       x: (outer.width - to.w * SHOWCASE) / 2,
       y: Math.max(8, window.innerHeight / 2 - outer.top - (to.h * SHOWCASE) / 2),
@@ -372,16 +393,6 @@ function Table({
       { duration: 340, delay: impact }
     );
     const moves = [travel, turn, ...(burst ? [burst] : []), ...(jolt ? [jolt] : [])];
-    if (flight.toAside) {
-      moves.push(
-        card.animate([{ transform: at(to) }, { transform: at(rest) }], {
-          duration: ASIDE_MS,
-          delay: FLIGHT_MS + ASIDE_REST_MS,
-          easing: 'ease-in-out',
-          fill: 'forwards',
-        })
-      );
-    }
     return () => moves.forEach((move) => move.cancel());
   }, [flight]);
 
@@ -389,7 +400,7 @@ function Table({
     <div ref={table} className={styles.table}>
       <div className={styles.pileRow} data-piles={Math.min(game.piles, 3)}>
         {game.discards.map((pile, index) => {
-          const landing = flight?.pile === index && !flight.toAside;
+          const landing = flight?.pile === index && flight.mode === 'deal';
           const top = landing ? pile.at(-2) : pile.at(-1);
           const count = pile.length - (landing ? 1 : 0);
           return (
@@ -418,7 +429,7 @@ function Table({
       ) : null}
       {flight ? (
         <div key={flight.key} ref={flyer} className={styles.flyer} aria-hidden>
-          <div className={styles.flyerTurn} data-turn>
+          <div className={styles.flyerTurn} data-turn data-mode={flight.mode}>
             <CardFace game={game} copy={flight.copy} className={styles.front} />
             <CardFace game={game} back className={styles.backFace} />
           </div>
@@ -474,8 +485,7 @@ function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game:
   );
 }
 
-const rulesOf = (game: SpiceDeckGame) =>
-  game.wormsPerPhase === undefined ? { piles: game.piles } : { piles: game.piles, wormsPerPhase: game.wormsPerPhase };
+const rulesOf = (game: SpiceDeckGame) => ({ piles: game.piles });
 
 function CardFace({
   game,
@@ -493,7 +503,7 @@ function CardFace({
 }
 
 /** What one turned card asks of the table, in a line. */
-function RevealLine({ game, reveal }: Readonly<{ game: SpiceDeckGame; reveal: Reveal }>) {
+function RevealLine({ game, reveal, turn }: Readonly<{ game: SpiceDeckGame; reveal: Reveal; turn: number }>) {
   if (reveal.kind === 'reshuffle') {
     return <li className={styles.line}>The deck ran out: the spice piles shuffled into a new deck.</li>;
   }
@@ -508,14 +518,14 @@ function RevealLine({ game, reveal }: Readonly<{ game: SpiceDeckGame; reveal: Re
   if (reveal.kind === 'set-aside') {
     return (
       <li className={styles.line} data-kind="aside">
-        Shai-Hulud on turn 1: set aside, shuffled back when the turn ends
+        {card.name}: set aside, shuffled back in next turn
       </li>
     );
   }
-  if (reveal.kind === 'ignored') {
+  if (turn === 1) {
     return (
-      <li className={styles.line} data-kind="aside">
-        Shai-Hulud again: one too many this turn, set aside
+      <li className={styles.line} data-kind="worm">
+        <strong>Shai-Hulud</strong> on turn 1: the rulebook sets it aside and draws again
       </li>
     );
   }
@@ -535,7 +545,7 @@ function BlowLines({ game, blow }: Readonly<{ game: SpiceDeckGame; blow: Blow }>
   return (
     <ol className={styles.lines}>
       {blow.reveals.map((reveal, index) => (
-        <RevealLine key={index} game={game} reveal={reveal} />
+        <RevealLine key={index} game={game} reveal={reveal} turn={blow.turn} />
       ))}
     </ol>
   );
