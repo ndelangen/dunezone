@@ -482,12 +482,7 @@ export type ServerMessage = z.infer<typeof serverMessageSchema>;
  * Unlike a refusal it is not final: the browser renews its pass and reconnects.
  */
 export const PASS_EXPIRED_CLOSE_CODE = 4410;
-/**
- * The version of the messages a Play page and the game Worker exchange.
- * The two deploy separately, so a tab opened before a deploy can meet a newer Worker: it names this version when it asks to be admitted, and a Worker on another version turns it away before it sees the table.
- * Bump it in any change after which an older page could misread a message or send one the Worker now reads differently, even when every message still parses.
- */
-export const PLAY_PROTOCOL_VERSION = 1;
+export { PLAY_PROTOCOL_VERSION } from './protocolVersion';
 /** The code the Worker closes a socket with when the page speaks an older protocol; final, the page asks to be refreshed. */
 export const OUTDATED_PAGE_CLOSE_CODE = 4426;
 /** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
