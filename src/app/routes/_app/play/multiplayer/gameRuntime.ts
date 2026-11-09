@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-import { storageNow, storedAuthToken } from '@db/playTables';
+import { storageNow, storedAuthToken, storedAuthTokenKey } from '@db/playTables';
 import type { GameRuntime } from '@db/tabletop/runtime';
 
 import { sessionTableStore, tokenAccount } from '../../../../db/tabletop/storedTable';
@@ -34,6 +34,16 @@ export const browserGameRuntime: GameRuntime = {
     };
     document.addEventListener('visibilitychange', changed);
     return () => document.removeEventListener('visibilitychange', changed);
+  },
+  onSignedOut(listener) {
+    /* A storage event reaches every other tab of the origin; a null key is the whole storage cleared. */
+    const changed = (event: StorageEvent) => {
+      if ((event.key === null || event.key === storedAuthTokenKey()) && event.newValue === null) {
+        listener();
+      }
+    };
+    window.addEventListener('storage', changed);
+    return () => window.removeEventListener('storage', changed);
   },
   onLongTask(listener) {
     /* Chromium reports long tasks; elsewhere the page reports none, which the room reads as no measurement. */

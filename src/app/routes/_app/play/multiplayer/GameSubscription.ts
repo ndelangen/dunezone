@@ -71,6 +71,7 @@ export class GameSubscription {
   private telemetryTimer: ReturnType<typeof setInterval> | undefined;
   private stopLongTasks: (() => void) | undefined;
   private stopPasses: (() => void) | undefined;
+  private stopSignedOut: (() => void) | undefined;
   /* Renews the seat pass this page holds shortly before it ends, unless a fresher one arrived first. */
   private passTimer: ReturnType<typeof setTimeout> | undefined;
   private renewOnOpen = false;
@@ -107,6 +108,7 @@ export class GameSubscription {
     this.stopLongTasks = this.runtime.onLongTask?.((durationMs) => this.telemetry.longTask(durationMs));
     this.telemetryTimer = setInterval(() => this.sendTelemetry(), TELEMETRY_REPORT_MS);
     this.stopPasses = this.watchPass?.(this.gameId, (pass) => this.handOverPass(pass));
+    this.stopSignedOut = this.runtime.onSignedOut?.(() => this.signedOut());
     void this.open();
     let stopped = false;
     return () => {
@@ -129,6 +131,8 @@ export class GameSubscription {
     clearInterval(this.telemetryTimer);
     this.stopPasses?.();
     this.stopPasses = undefined;
+    this.stopSignedOut?.();
+    this.stopSignedOut = undefined;
     clearTimeout(this.passTimer);
     ++this.generation;
     clearTimeout(this.reconnectTimer);
@@ -147,6 +151,31 @@ export class GameSubscription {
     this.connectionStatus = 'suspended';
     this.admissionRetries = 0;
     this.retryReason = null;
+  }
+
+  /**
+   * Another tab signed out: the socket closes here, in the storage event, rather than when the page's auth gate unmounts the table (#2379).
+   * Tearing down a drawn table can hold the main thread for many seconds on a slow GPU, and the socket must not outlive the sign-out by that long.
+   * The pending admission and any reconnect are dropped with it, so nothing reopens the table on the old pass.
+   */
+  private signedOut() {
+    if (!this.listener) {
+      return;
+    }
+    ++this.generation;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = undefined;
+    clearTimeout(this.admissionTimer);
+    clearInterval(this.keepaliveTimer);
+    clearTimeout(this.admissionAttempt?.timer);
+    this.admissionAttempt = undefined;
+    this.admissionRequest = undefined;
+    clearTimeout(this.passTimer);
+    this.passTimer = undefined;
+    const socket = this.socket;
+    this.socket = null;
+    socket?.close();
+    this.changeStatus('denied', 'Sign in again to access the table.');
   }
 
   send(message: Exclude<ClientMessage, { type: 'admit' | 'sync' }>): boolean {

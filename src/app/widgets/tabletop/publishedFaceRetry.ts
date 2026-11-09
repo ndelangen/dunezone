@@ -1,3 +1,5 @@
+import { PUBLISHED_RETRY_CEILING_MS, PUBLISHED_RETRY_FIRST_MS } from '@shared/asset-publishing/publishedRetry';
+
 import { startArtworkLoad } from './artworkLoads';
 
 type RetryTimer = {
@@ -20,8 +22,8 @@ export function loadPublishedFace<T>({
   load,
   onLoad,
   release,
-  firstDelayMs = 5000,
-  maxDelayMs = 60_000,
+  firstDelayMs = PUBLISHED_RETRY_FIRST_MS,
+  maxDelayMs = PUBLISHED_RETRY_CEILING_MS,
   timer = browserTimer,
 }: {
   load: (onLoad: (value: T) => void, onError: () => void) => void;

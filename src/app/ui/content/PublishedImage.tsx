@@ -1,3 +1,4 @@
+import { publishedImageRetryDelayMs } from '@shared/asset-publishing/publishedRetry';
 import { publishedCopyWidth, publishedThumbnailSrc } from '@shared/asset-publishing/publishedThumbnail';
 import clsx from 'clsx';
 import { ImageOff } from 'lucide-react';
@@ -15,15 +16,8 @@ const GRACE_MS = 90;
 /** How far outside the viewport an image starts fetching, so most have landed before the reader scrolls to them. */
 const FETCH_MARGIN_PX = 1600;
 
-/** A failed publication is tried again after 5 s, doubling to a minute, as the table's faces are, and after the last try it stays missing until the page reloads. */
-const RETRY_FIRST_MS = 5000;
-const RETRY_CEILING_MS = 60_000;
+/** A failed publication is tried again on the shared schedule, as the table's faces are, and after the last try it stays missing until the page reloads. */
 export const PUBLISHED_IMAGE_RETRIES = 6;
-
-/** How long the retry after `attempt` earlier retries waits. */
-export function publishedImageRetryDelayMs(attempt: number) {
-  return Math.min(RETRY_FIRST_MS * 2 ** attempt, RETRY_CEILING_MS);
-}
 
 type Props = {
   /** The publication, or null when there is none, which draws the missing state. */

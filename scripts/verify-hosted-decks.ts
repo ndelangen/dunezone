@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import type { Scene, Mesh, MeshBasicMaterial } from 'three';
 
+import { publishedImageRetryDelayMs } from '../src/shared/asset-publishing/publishedRetry.ts';
 import { stackTopHeight } from '../src/shared/play/tableGeometry.ts';
 import type { HostedToolkit } from './verify-hosted-play-browser.ts';
 import { required, requireView } from './verify-hosted-types.ts';
@@ -99,13 +100,15 @@ export async function verifyDecks({
   const dealt = required(hands(b)[0].items[0].artwork, 'dealt');
   const backPath = publishedPath(required(deck(b).items[0].artwork, 'deck artwork').back, origin);
   const frontPath = publishedPath(required(dealt.front, 'dealt front'), origin);
-  const outage = { on: true, failed: new Set<string>() };
+  /* Each refused fetch per path: a load's retries back off from 5 s, so how often it failed bounds how long its next try waits. */
+  const outage = { on: true, failed: new Map<string, number>() };
   await b.context.addInitScript(observeScenes);
   await b.context.route(
     (url) => url.origin === origin && (url.pathname === backPath || url.pathname === frontPath),
     async (route) => {
       if (outage.on) {
-        outage.failed.add(new URL(route.request().url()).pathname);
+        const path = new URL(route.request().url()).pathname;
+        outage.failed.set(path, (outage.failed.get(path) ?? 0) + 1);
         await route.fulfill({ status: 503, body: '' });
         return;
       }
@@ -125,14 +128,20 @@ export async function verifyDecks({
   );
   assert.ok(await b.page.evaluate(() => (window.hostedPlayScenes?.length ?? 0) > 0), 'No three.js scene was observed.');
   assert.equal(await b.page.evaluate(texturedFaces, backPath), 0);
-  /* Lifted before any capture, so both first retries, 5 s after their failures, find the publisher answering. */
   outage.on = false;
+  /*
+   * The deck back fails as the table loads and the dealt card only once the Hand tab opens, so on a slow runner the back has
+   * already retried into the outage and backed off further. A load that failed n times waits at most the nth retry delay before
+   * it fetches again, and the count per path bounds any one load's; the margin covers the fetch, decode and next frame.
+   */
+  const recovery = (path: string) => publishedImageRetryDelayMs((outage.failed.get(path) ?? 1) - 1) + 10_000;
   await capture(b, 'published-images-during-outage');
   await until(
     async () => (await b.page.evaluate(texturedFaces, backPath)) > 0,
-    'The deck back texture did not recover after the outage.'
+    `The deck back texture did not recover after the outage (${outage.failed.get(backPath)} failed fetches).`,
+    recovery(backPath)
   );
-  await dealtControl.locator('[data-phase="shown"] img').waitFor();
+  await dealtControl.locator('[data-phase="shown"] img').waitFor({ timeout: recovery(frontPath) });
   await capture(b, 'published-images-after-outage');
   passed('A table texture and a hand image that failed to load recover once the publisher answers again');
 }
