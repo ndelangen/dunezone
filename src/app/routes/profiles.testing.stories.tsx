@@ -206,7 +206,7 @@ export const ResyncTakesTheOnlyMethod = meta.story({
     await waitFor(
       async () => {
         await userEvent.click(page.getByRole('tab', { name: 'Profile' }));
-        expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('CentralCommand');
+        await expect(page.getByRole('textbox', { name: 'Display name' })).toHaveValue('CentralCommand');
       },
       { timeout: 30_000 }
     );
