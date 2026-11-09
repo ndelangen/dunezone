@@ -3,17 +3,9 @@ import { fileURLToPath } from 'node:url';
 
 import { format } from 'oxfmt';
 
-import {
-  coreColors,
-  cssOpacity,
-  cssPalette,
-  cssProviderColors,
-  cssRecipes,
-  playUiColors,
-} from '../src/shared/uiPalette.ts';
+import { coreColors, cssOpacity, cssPalette, cssRecipes, playUiColors } from '../src/shared/uiPalette.ts';
 
 const output = fileURLToPath(new URL('../src/app/styles/palette.generated.css', import.meta.url));
-const providerOutput = fileURLToPath(new URL('../src/app/styles/providers.generated.css', import.meta.url));
 const block = (selector: string, values: Record<string, string>) =>
   `${selector} {\n${Object.entries(values)
     .map(([name, value]) => `  ${name}: ${value};`)
@@ -33,36 +25,17 @@ const coreVariables = Object.fromEntries(
 const source =
   [
     '/* Generated from src/shared/uiPalette.ts by bun run generate:palette. */',
-    block(':root', {
-      ...coreVariables,
-      ...cssPalette.base,
-      ...cssOpacity.base,
-      ...cssRecipes,
-      ...playVariables,
-    }),
+    block(':root', { ...coreVariables, ...cssPalette.base, ...cssOpacity.base, ...cssRecipes, ...playVariables }),
     block(':root[data-mantine-color-scheme="dark"],\n[data-scheme-dark]', { ...cssPalette.dark, ...cssOpacity.dark }),
     block('[data-scheme-paper]', { ...cssPalette.artwork, ...cssOpacity.artwork }),
   ].join('\n\n') + '\n';
 const { code } = await format('palette.generated.css', source);
-/* Provider identity belongs to the app theme; printed assets share the palette but never these destinations. */
-const { code: providerCode } = await format(
-  'providers.generated.css',
-  `/* Generated from src/shared/uiPalette.ts by bun run generate:palette. */\n${block(':root', cssProviderColors)}\n`
-);
-for (const [path, content] of [
-  [output, code],
-  [providerOutput, providerCode],
-]) {
-  if (process.argv.includes('--check')) {
-    if (readFileSync(path, 'utf8') !== content) {
-      throw new Error('The generated palette is stale. Run bun run generate:palette.');
-    }
-  } else {
-    writeFileSync(path, content);
-  }
-}
 if (process.argv.includes('--check')) {
+  if (readFileSync(output, 'utf8') !== code) {
+    throw new Error('The generated palette is stale. Run bun run generate:palette.');
+  }
   console.log('The CSS palette matches its shared source.');
 } else {
-  console.log('Generated the UI palette and provider colours.');
+  writeFileSync(output, code);
+  console.log('Generated src/app/styles/palette.generated.css.');
 }

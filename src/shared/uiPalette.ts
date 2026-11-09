@@ -30,10 +30,8 @@ export const coreColors = {
   ink: '#2e2927',
 } as const;
 
-/* Provider colours identify an external destination and stay separate from the app's palette. */
-export const cssProviderColors = {
-  '--provider-discord': '#5865f2',
-} as const;
+/* An external provider keeps its own identity when an action opens it. */
+export const providerColors = { discord: '#5865f2' } as const;
 
 /* Mantine requires ten positions per ramp; positions reuse pigments instead of declaring ten more shades. */
 export const themeRamps = {

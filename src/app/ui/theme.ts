@@ -2,7 +2,6 @@ import { Checkbox, Radio, Switch, Tabs, Textarea, createTheme, defaultVariantCol
 import type { MantineColorSchemeManager } from '@mantine/core';
 import { playUiColors, themeRamps, withAlpha } from '@shared/uiPalette';
 
-import '../styles/providers.generated.css';
 import styles from './theme.module.css';
 
 /*

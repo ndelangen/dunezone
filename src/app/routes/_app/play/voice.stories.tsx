@@ -83,7 +83,8 @@ export const Disabled = meta.story({
   parameters: voiceParameters('disabled'),
   play: async ({ canvasElement }) => {
     const page = await openVoiceMenu(canvasElement);
-    await expect(page.queryByRole('menuitem', { name: /Discord|voice chat/ })).toBeNull();
+    await expect(page.queryByRole('button', { name: 'Join voice chat' })).toBeNull();
+    await expect(page.queryByRole('link', { name: 'Connect Discord to join voice' })).toBeNull();
   },
 });
 
@@ -91,7 +92,7 @@ export const ConnectDiscord = meta.story({
   parameters: voiceParameters('connect'),
   play: async ({ canvasElement }) => {
     const page = await openVoiceMenu(canvasElement);
-    await expect(page.getByRole('menuitem', { name: 'Connect Discord to join voice' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: 'Connect Discord to join voice' })).toHaveAttribute(
       'href',
       '/profiles/krell/edit?tab=sign-in'
     );
@@ -102,7 +103,7 @@ export const ServerMember = meta.story({
   parameters: voiceParameters('member'),
   play: async ({ canvasElement }) => {
     const page = await openVoiceMenu(canvasElement);
-    await expect(page.getByRole('menuitem', { name: 'Join voice chat' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Join voice chat' })).toBeEnabled();
   },
 });
 

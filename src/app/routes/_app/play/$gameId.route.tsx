@@ -1,5 +1,5 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
-import { Menu, Stack } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import type { PlayDiscordMenu } from '@shared/play/discord';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
@@ -19,7 +19,6 @@ import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
-import styles from './$gameId.module.css';
 import { GameLink } from './GameLink';
 import { loadHostedTable } from './hostedTableChunk';
 import type { GameRuntime } from './multiplayer/gameRuntime';
@@ -256,7 +255,7 @@ function TablePage({
       <ClientOnly fallback={loading}>
         <Suspense fallback={loading}>
           <HostedTable
-            voice={<DiscordVoiceMenuItem menu={game.voice ?? null} voice={voice} />}
+            voice={<DiscordVoiceAction menu={game.voice ?? null} voice={voice} />}
             key={game.gameId}
             gameId={game.gameId}
             exitControl={exit}
@@ -348,7 +347,7 @@ function useDiscordVoice(gameId: string, menu: PlayDiscordMenu | null) {
   return { state, request, join };
 }
 
-function DiscordVoiceMenuItem({
+function DiscordVoiceAction({
   menu,
   voice,
 }: Readonly<{ menu: PlayDiscordMenu | null; voice: ReturnType<typeof useDiscordVoice> }>) {
@@ -359,51 +358,50 @@ function DiscordVoiceMenuItem({
   const icon = <SiDiscord size={16} aria-hidden />;
   if (menu.kind === 'connect') {
     return (
-      <Menu.Item
-        className={styles.discord}
-        leftSection={icon}
-        renderRoot={(props) => (
-          <Link
-            {...props}
-            to="/profiles/$profileSlug/edit"
-            params={{ profileSlug: menu.profileSlug }}
-            search={{ tab: 'sign-in' }}
-            target="_blank"
-            rel="noopener noreferrer"
-          />
-        )}
-      >
-        Connect Discord to join voice
-      </Menu.Item>
+      <Stack gap="xs" p="xs" maw={300}>
+        <LabeledAction
+          icon={icon}
+          provider="discord"
+          emphasis="strong"
+          renderRoot={(props) => (
+            <Link
+              {...props}
+              to="/profiles/$profileSlug/edit"
+              params={{ profileSlug: menu.profileSlug }}
+              search={{ tab: 'sign-in' }}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          )}
+        >
+          Connect Discord to join voice
+        </LabeledAction>
+      </Stack>
     );
   }
   return (
-    <>
-      <Menu.Item
-        className={styles.discord}
-        leftSection={icon}
-        disabled={state.waiting}
-        closeMenuOnClick={false}
-        onClick={() => void join()}
-      >
-        {state.waiting ? 'Opening Discord...' : 'Join voice chat'}
-      </Menu.Item>
+    <Stack gap="xs" p="xs" maw={300}>
+      <LabeledAction icon={icon} provider="discord" emphasis="strong" busy={state.waiting} onClick={() => void join()}>
+        Join voice chat
+      </LabeledAction>
       {state.fallback && (
-        <Menu.Item
-          className={styles.discord}
-          leftSection={icon}
-          component="a"
+        <LabeledAction
+          icon={icon}
+          provider="discord"
+          emphasis="strong"
           href={state.fallback}
           target="_blank"
           rel="noopener noreferrer"
         >
           Open Discord
-        </Menu.Item>
+        </LabeledAction>
       )}
       {request?.state === 'ready' && request.kind === 'invite' && (
-        <Menu.Label>Accept the invite, then choose Join voice chat again.</Menu.Label>
+        <Text size="xs" c="dimmed">
+          Accept the invite, then choose Join voice chat again.
+        </Text>
       )}
       {state.error && <FormError title="Voice chat">{state.error}</FormError>}
-    </>
+    </Stack>
   );
 }
