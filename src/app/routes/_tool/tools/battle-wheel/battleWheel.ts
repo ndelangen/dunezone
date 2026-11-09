@@ -66,6 +66,8 @@ export type WheelPlan = Readonly<{
   leaderX: number;
   troops: Readonly<Record<string, number>>;
   spice: number;
+  /** GF9 2.0: the Emperor's ally pays half for spice strength, so 2 spice buys +2 and 4 buys +3. */
+  emperorAlly?: boolean;
 }>;
 
 export const EMPTY_PLAN: WheelPlan = { leaderId: null, leaderX: 0, troops: {}, spice: 0 };
@@ -79,6 +81,8 @@ export type WheelResult = Readonly<{
   total: number;
   /** The spice the plan pays. */
   spice: number;
+  /** The GF9 2.0 spice strength tier chosen, by its full price: 0, 2, 4 or 8. */
+  tier: number;
   /** How many dialed troops spice supports, under Advanced. */
   supported: number;
   /** True when KISS's cap of 20 cut the dial. */
@@ -213,7 +217,12 @@ function advanced(plan: WheelPlan, faction: WheelFaction) {
   );
   const budget = Math.max(0, Math.min(plan.spice, supportSpice(faction, plan)));
   const { gain, spent, supported } = bestSupport(troops, budget);
-  return { dial: base + gain, spice: spent, supported, bonus: 0, capped: false };
+  return { dial: base + gain, spice: spent, supported, bonus: 0, tier: 0, capped: false };
+}
+
+/** What a GF9 2.0 spice strength tier costs this plan: its full price, or half for the Emperor's ally. */
+export function tierPrice(tier: number, plan: WheelPlan) {
+  return plan.emperorAlly ? tier / 2 : tier;
 }
 
 export function wheelResult(ruleset: WheelRuleset, faction: WheelFaction, plan: WheelPlan): WheelResult {
@@ -226,19 +235,20 @@ export function wheelResult(ruleset: WheelRuleset, faction: WheelFaction, plan: 
     const flat = flatStrength(troops, faction.faces);
     if (ruleset.dialing === 'gf92') {
       const free = dialsFree(troops, faction.faces);
-      const spice = spiceStrengthChoices(flat, free).findLast((choice) => choice <= plan.spice) ?? 0;
-      const bonus = spiceStrength(flat, spice, free);
-      counted = { dial: flat + bonus, bonus, spice, supported: 0, capped: false };
+      const tier = spiceStrengthChoices(flat, free).findLast((choice) => choice <= plan.spice) ?? 0;
+      const bonus = spiceStrength(flat, tier, free);
+      counted = { dial: flat + bonus, bonus, spice: tierPrice(tier, plan), tier, supported: 0, capped: false };
     } else if (ruleset.dialing === 'kiss') {
       counted = {
         dial: Math.min(flat, KISS_DIAL_CAP),
         bonus: 0,
         spice: kissSpice(troops, faction.faces),
+        tier: 0,
         supported: 0,
         capped: flat > KISS_DIAL_CAP,
       };
     } else {
-      counted = { dial: flat, bonus: 0, spice: 0, supported: 0, capped: false };
+      counted = { dial: flat, bonus: 0, spice: 0, tier: 0, supported: 0, capped: false };
     }
   }
   return { ...counted, leader, total: counted.dial + leader };
