@@ -6,44 +6,39 @@ import { expect, test } from 'vite-plus/test';
 
 import { PRERENDERED_PAGE_NONCE } from '../../src/shared/recordlessPublicPages';
 
-test('workerd serves a prerendered tool page with a fresh nonce and the page security headers, without a server render', async () => {
-  const page = '/tools/example-tool';
-  const bundle = await build({
-    stdin: {
-      contents: `import { handleApplicationRequest } from './application';
-        import { PRERENDERED_PAGE_NONCE, TOOL_PAGES } from '../../src/shared/recordlessPublicPages';
-        TOOL_PAGES.push(${JSON.stringify(page)});
-        const prerendered = '<html><head><meta property="csp-nonce" content="' + PRERENDERED_PAGE_NONCE + '"><script nonce="' + PRERENDERED_PAGE_NONCE + '">boot()</script></head><body>Example</body></html>';
-        const ASSETS = {
-          fetch: async (request) =>
-            new URL(request.url).pathname === ${JSON.stringify(`${page}/index.html`)}
-              ? new Response(prerendered, { headers: { 'Cache-Control': 'public, max-age=31536000' } })
-              : new Response('missing', { status: 404 }),
-        };
-        export default {
-          async fetch(request, env) {
-            const cache = { storage: await caches.open('public'), release: 'release-a' };
-            const response = await handleApplicationRequest(
-              request,
-              { ...env, ASSETS },
-              async () => {
-                throw new Error('A prerendered page is never rendered on the server');
-              },
-              cache
-            );
-            return response ?? new Response('unhandled', { status: 599 });
-          },
-        };`,
-      resolveDir: import.meta.dirname,
-      sourcefile: 'prerendered-page-runtime.ts',
+const page = '/tools/example-tool';
+
+/** The publisher's application dispatch with this tool built, Static Assets holding its prerendered file and a public cache. */
+const workerSource = `import { handleApplicationRequest } from './application';
+  import { PRERENDERED_PAGE_NONCE, TOOL_PAGES } from '../../src/shared/recordlessPublicPages';
+  TOOL_PAGES.push(${JSON.stringify(page)});
+  const prerendered = '<html><head><meta property="csp-nonce" content="' + PRERENDERED_PAGE_NONCE + '"><script nonce="' + PRERENDERED_PAGE_NONCE + '">boot()</script></head><body>Example</body></html>';
+  const ASSETS = {
+    fetch: async (request) =>
+      new URL(request.url).pathname === ${JSON.stringify(`${page}/index.html`)}
+        ? new Response(prerendered, { headers: { 'Cache-Control': 'public, max-age=31536000' } })
+        : new Response('missing', { status: 404 }),
+  };
+  async function render() {
+    throw new Error('A prerendered page is never rendered on the server');
+  }
+  export default {
+    async fetch(request, env) {
+      const cache = { storage: await caches.open('public'), release: 'release-a' };
+      return (await handleApplicationRequest(request, { ...env, ASSETS }, render, cache)) ?? new Response('unhandled', { status: 599 });
     },
+  };`;
+
+async function startWorker(): Promise<Miniflare> {
+  const bundle = await build({
+    stdin: { contents: workerSource, resolveDir: import.meta.dirname, sourcefile: 'prerendered-page-runtime.ts' },
     bundle: true,
     format: 'esm',
     platform: 'browser',
     target: 'es2022',
     write: false,
   });
-  const mf = new Miniflare(
+  return new Miniflare(
     convertV4MiniflareOptions({
       modules: [
         {
@@ -61,29 +56,33 @@ test('workerd serves a prerendered tool page with a fresh nonce and the page sec
       },
     })
   );
+}
+
+/** Checks one delivery's security headers and that its markup carries the fresh nonce in place of the placeholder, and returns that nonce. */
+async function expectSecuredDelivery(response: Response, cacheState: 'miss' | 'hit'): Promise<string> {
+  const html = await response.text();
+  const nonce = /'nonce-([^']+)'/.exec(response.headers.get('Content-Security-Policy')!)?.[1];
+  expect(response.status).toBe(200);
+  expect(nonce).toMatch(/^[a-f0-9]{32}$/);
+  expect(nonce).not.toBe(PRERENDERED_PAGE_NONCE);
+  expect(html).toContain(`<script nonce="${nonce}">boot()</script>`);
+  expect(html).toContain(`<meta property="csp-nonce" content="${nonce}">`);
+  expect(html).not.toContain(PRERENDERED_PAGE_NONCE);
+  expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  expect(response.headers.get('X-Application-Render-Nonce')).toBeNull();
+  expect(response.headers.get('X-Application-Release')).toBe('release-a');
+  expect(response.headers.get('X-Public-Cache')).toBe(cacheState);
+  expect(response.headers.get('X-Public-Renders')).toBe('0');
+  return nonce!;
+}
+
+test('workerd serves a prerendered tool page through the public cache, with a fresh nonce on every delivery and no server render', async () => {
+  const mf = await startWorker();
   try {
-    const response = await mf.dispatchFetch(`https://dune.zone${page}`);
-    const html = await response.text();
-    expect(response.status).toBe(200);
-    const nonce = /'nonce-([^']+)'/.exec(response.headers.get('Content-Security-Policy')!)?.[1];
-    expect(nonce).toMatch(/^[a-f0-9]{32}$/);
-    expect(nonce).not.toBe(PRERENDERED_PAGE_NONCE);
-    expect(html).toContain(`<script nonce="${nonce}">boot()</script>`);
-    expect(html).toContain(`<meta property="csp-nonce" content="${nonce}">`);
-    expect(html).not.toContain(PRERENDERED_PAGE_NONCE);
-    expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
-    expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(response.headers.get('X-Application-Render-Nonce')).toBeNull();
-    expect(response.headers.get('X-Application-Release')).toBe('release-a');
-    expect(response.headers.get('X-Public-Cache')).toBe('miss');
-    expect(response.headers.get('X-Public-Renders')).toBe('0');
-    const hit = await mf.dispatchFetch(`https://dune.zone${page}`);
-    const hitHtml = await hit.text();
-    expect(hit.headers.get('X-Public-Cache')).toBe('hit');
-    const hitNonce = /'nonce-([^']+)'/.exec(hit.headers.get('Content-Security-Policy')!)?.[1];
-    expect(hitNonce).toMatch(/^[a-f0-9]{32}$/);
-    expect(hitNonce).not.toBe(nonce);
-    expect(hitHtml).toContain(`<script nonce="${hitNonce}">boot()</script>`);
+    const first = await expectSecuredDelivery(await mf.dispatchFetch(`https://dune.zone${page}`), 'miss');
+    const second = await expectSecuredDelivery(await mf.dispatchFetch(`https://dune.zone${page}`), 'hit');
+    expect(second).not.toBe(first);
   } finally {
     await mf.dispose();
   }
