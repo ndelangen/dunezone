@@ -21,7 +21,7 @@ import { Token } from '@game/assets/faction/token/Token';
 
 import styles from './route.module.css';
 import { cityOf, knownCities, lockTimeText, phoneTimeZone, TURNS, usePredictionLocket } from './usePredictionLocket';
-import type { City, LocketFaction, LockedPrediction } from './usePredictionLocket';
+import type { City, LocketFaction, LocketState, LockedPrediction } from './usePredictionLocket';
 
 /*
  * The prediction locket at /tools/prediction-locket: a standalone page with no app chrome, public and the same HTML for every visitor.
@@ -113,80 +113,106 @@ function withinTime<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 function PredictionLocketTool({ starting, search, lockTime }: ToolProps) {
-  const { state, pickFaction, pickTurn, pickTimeZone, lock, reveal, clear } = usePredictionLocket();
-  const timeZone = state.timeZone ?? phoneTimeZone();
+  const locket = usePredictionLocket();
+  const locked = locket.state.locked;
+  return (
+    <TrackerTouch>
+      <div className={styles.tool}>
+        <header className={styles.header}>
+          <span className={styles.title}>Prediction locket</span>
+          {locked ? <ThrowAway revealed={locked.revealed} onClear={locket.clear} /> : null}
+        </header>
+        {locked ? (
+          <LockedView locked={locked} onReveal={locket.reveal} onNew={locket.clear} />
+        ) : (
+          <PickingView locket={locket} starting={starting} search={search} lockTime={lockTime} />
+        )}
+      </div>
+    </TrackerTouch>
+  );
+}
+
+function ThrowAway({ revealed, onClear }: Readonly<{ revealed: boolean; onClear: () => void }>) {
+  return (
+    <IconAction
+      label={revealed ? 'New prediction' : 'Throw this prediction away'}
+      emphasis="quiet"
+      icon={<RotateCcw size={20} />}
+      onClick={() => {
+        if (revealed || globalThis.confirm('Throw this locked prediction away?')) {
+          onClear();
+        }
+      }}
+    />
+  );
+}
+
+/* Asks Dune Zone for the time and locks the prediction handed in, as it stood when Lock was tapped. */
+function useLocking(lockTime: () => Promise<number>, lock: (prediction: Omit<LockedPrediction, 'revealed'>) => void) {
   const [locking, setLocking] = useState(false);
   const [failed, setFailed] = useState(false);
-  const size = useActionSize();
-  const locked = state.locked;
-
-  const onLock = async () => {
-    const { faction, turn } = state;
-    if (!faction || !turn || locking) {
-      return;
-    }
+  const start = async (prediction: Omit<LockedPrediction, 'revealed' | 'lockedAt'>) => {
     setLocking(true);
     setFailed(false);
     try {
-      /* The prediction as it stood when Lock was tapped: the picks are held still until the time comes back. */
-      lock({ faction, turn, timeZone, lockedAt: await withinTime(lockTime(), LOCK_TIMEOUT_MS) });
+      lock({ ...prediction, lockedAt: await withinTime(lockTime(), LOCK_TIMEOUT_MS) });
     } catch {
       setFailed(true);
     } finally {
       setLocking(false);
     }
   };
+  return { locking, failed, start };
+}
 
+function lockBlocker(state: LocketState): string | undefined {
+  if (!state.faction) {
+    return 'Pick a faction first.';
+  }
+  return state.turn ? undefined : 'Pick a turn first.';
+}
+
+/* The picks, held still while the time is on its way, and Lock under the thumb. */
+function PickingView({
+  locket,
+  starting,
+  search,
+  lockTime,
+}: Readonly<{ locket: ReturnType<typeof usePredictionLocket> } & ToolProps>) {
+  const { state, pickFaction, pickTurn, pickTimeZone, lock } = locket;
+  const timeZone = state.timeZone ?? phoneTimeZone();
+  const { locking, failed, start } = useLocking(lockTime, lock);
+  const size = useActionSize();
+  const onLock = () => {
+    if (state.faction && state.turn && !locking) {
+      void start({ faction: state.faction, turn: state.turn, timeZone });
+    }
+  };
   return (
-    <TrackerTouch>
-      <div className={styles.tool}>
-        <header className={styles.header}>
-          <span className={styles.title}>Prediction locket</span>
-          {locked ? (
-            <IconAction
-              label={locked.revealed ? 'New prediction' : 'Throw this prediction away'}
-              emphasis="quiet"
-              icon={<RotateCcw size={20} />}
-              onClick={() => {
-                if (locked.revealed || globalThis.confirm('Throw this locked prediction away?')) {
-                  clear();
-                }
-              }}
-            />
-          ) : null}
-        </header>
-        {locked ? (
-          <LockedView locked={locked} onReveal={reveal} onNew={clear} />
-        ) : (
-          <>
-            <main className={styles.body} inert={locking}>
-              <PickFaction starting={starting} search={search} picked={state.faction} onPick={pickFaction} />
-              <PickTurn turn={state.turn} onPick={pickTurn} />
-              <PickCity timeZone={timeZone} onPick={pickTimeZone} />
-            </main>
-            <footer className={styles.dock}>
-              {failed ? (
-                <FormError title="Not locked">
-                  Dune Zone could not be reached for the time, so nothing was locked. Try again.
-                </FormError>
-              ) : null}
-              <LabeledAction
-                icon={<Lock size={18} />}
-                emphasis="strong"
-                size={size}
-                busy={locking}
-                disabledReason={
-                  !state.faction ? 'Pick a faction first.' : !state.turn ? 'Pick a turn first.' : undefined
-                }
-                onClick={() => void onLock()}
-              >
-                Lock prediction
-              </LabeledAction>
-            </footer>
-          </>
-        )}
-      </div>
-    </TrackerTouch>
+    <>
+      <main className={styles.body} inert={locking}>
+        <PickFaction starting={starting} search={search} picked={state.faction} onPick={pickFaction} />
+        <PickTurn turn={state.turn} onPick={pickTurn} />
+        <PickCity timeZone={timeZone} onPick={pickTimeZone} />
+      </main>
+      <footer className={styles.dock}>
+        {failed ? (
+          <FormError title="Not locked">
+            Dune Zone could not be reached for the time, so nothing was locked. Try again.
+          </FormError>
+        ) : null}
+        <LabeledAction
+          icon={<Lock size={18} />}
+          emphasis="strong"
+          size={size}
+          busy={locking}
+          disabledReason={lockBlocker(state)}
+          onClick={onLock}
+        >
+          Lock prediction
+        </LabeledAction>
+      </footer>
+    </>
   );
 }
 
