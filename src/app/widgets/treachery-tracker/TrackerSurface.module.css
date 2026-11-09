@@ -29,3 +29,10 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* The close button's row, on the sheet's own colour, with the chooser right under it. */
+.sheetHeader {
+  justify-content: flex-end;
+  padding-block: var(--mantine-spacing-xs) 0;
+  background: transparent;
+}

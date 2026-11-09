@@ -88,9 +88,7 @@ function Setup({ onStart }: Readonly<{ onStart: (game: StandaloneGame) => void }
     return <Pending>Loading the Rulesets…</Pending>;
   }
   const words = query.trim();
-  /* While a search is on its way the first Rulesets stay listed, so the field never empties under the player. */
-  const searched = found?.query === words ? found.entries : null;
-  const listed = ((words && searched) || setup.rulesets).filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
+  const listed = listedRulesets(setup.rulesets, words, found);
   const chosen = picked ?? setup.preferred ?? listed[0];
   if (!chosen) {
     return null;
@@ -127,6 +125,19 @@ function RulesetSearch({
     }
   }, [matching, query, onFound]);
   return null;
+}
+
+/*
+ * The Rulesets the field lists: what the search found for these words, else the first ones, never the hidden ones.
+ * While a search is on its way the first Rulesets stay listed, so the field never empties under the player.
+ */
+function listedRulesets(
+  first: RulesetEntry[],
+  words: string,
+  found: { query: string; entries: RulesetEntry[] } | null
+): RulesetEntry[] {
+  const searched = words && found?.query === words ? found.entries : first;
+  return searched.filter((entry) => !HIDDEN_RULESETS.has(entry.slug));
 }
 
 /* The listed Rulesets, with the chosen one first when the search left it out, so the field can still name it. */

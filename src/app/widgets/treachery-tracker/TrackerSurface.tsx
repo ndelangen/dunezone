@@ -83,9 +83,16 @@ function Dropdown({ children, className, miw }: Readonly<{ children: ReactNode; 
       opened={sheet.opened}
       onClose={sheet.onClose}
       position="bottom"
-      withCloseButton={false}
+      /* A thumb-sized, named close button: a screen reader cannot reach the tap outside, and a phone has no Escape key. */
+      withCloseButton
+      closeButtonProps={{ 'aria-label': 'Close', size: 'xl' }}
       padding="md"
-      classNames={{ inner: styles.sheetInner, content: styles.sheet, body: styles.sheetBody }}
+      classNames={{
+        inner: styles.sheetInner,
+        content: styles.sheet,
+        header: styles.sheetHeader,
+        body: styles.sheetBody,
+      }}
     >
       <HandHeld>{children}</HandHeld>
     </Drawer>
