@@ -1130,3 +1130,49 @@
   color: var(--ui-negative);
   font-weight: 600;
 }
+
+/* The table's join code: its QR code beside the code in letters. */
+.joinQr {
+  display: block;
+  inline-size: 128px;
+  block-size: 128px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.joinQr svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.joinCodeText {
+  display: grid;
+  gap: 4px;
+}
+
+.joinCodeText strong {
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+
+.codeForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.codeInput {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}

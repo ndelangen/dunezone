@@ -2,6 +2,7 @@ import { describeCardDraw } from '../../src/shared/play/cardDraw';
 import type { CardDraw } from '../../src/shared/play/cardDraw';
 export { HomepageRoom } from './homepage';
 export { BugReports } from './bugReports';
+export { BiddingTable } from './biddingTable';
 import { Buffer } from 'node:buffer';
 
 import { DurableObject } from 'cloudflare:workers';
@@ -49,6 +50,8 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
+import { biddingSocketPattern, tableCodeSchema } from '../../src/shared/tools/biddingTable';
+import type { TableRole } from '../../src/shared/tools/biddingTable';
 import { SPECTATOR_COLOR, STORED_DISPLAY_NAME_LENGTH } from './actors';
 import type { PassProfile } from './actors';
 import { handleAlertWebhook } from './alerts';
@@ -2251,6 +2254,14 @@ export default {
       isApplicationSocket(request, env.APPLICATION_ORIGIN)
     ) {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
+    }
+    const bidding = biddingSocketPattern.exec(url.pathname);
+    if (bidding) {
+      const [, code, role, clientId] = bidding;
+      if (!tableCodeSchema.safeParse(code).success || !isApplicationSocket(request, env.APPLICATION_ORIGIN)) {
+        return refused();
+      }
+      return env.BIDDING_TABLES.getByName(code!).connect(role as TableRole, clientId!);
     }
     const route = gameRequest(request, env.APPLICATION_ORIGIN);
     if (!route) {

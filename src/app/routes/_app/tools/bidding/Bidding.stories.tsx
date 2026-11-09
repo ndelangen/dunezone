@@ -197,12 +197,11 @@ const linked = {
 /**
  * H.
  * The linked table, from the start: the tablet seats the base six (add, remove, reorder) and sets the bid timer;
- * each phone picks its faction, which plays a join tune the tablet hears.
- * Sound on: the phones and the tablet play through this computer's speaker and hear each other directly.
+ * each phone picks its faction and links over the table's network link (here the browser plays the online table).
  */
 export const LinkedTableSetup = meta.story({
   globals: { viewport: { value: undefined } },
-  render: () => <LinkedTable storageKey="bidding-story-linked-setup" {...linked} />,
+  render: () => <LinkedTable storageKey="bidding-story-linked-setup" code="STRY23" {...linked} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Set up the table')).toBeVisible();
   },
@@ -214,6 +213,7 @@ export const LinkedTableBidding = meta.story({
   render: () => (
     <LinkedTable
       storageKey="bidding-story-linked-bidding"
+      code="STRY45"
       {...linked}
       started={{ setup: { seats: STORY_FACTIONS, seconds: 15, ruleset: 'gf9' }, linked: [0, 1, 2, 3, 4, 5] }}
     />
@@ -223,24 +223,36 @@ export const LinkedTableBidding = meta.story({
   },
 });
 
-/** H. The tablet's setup on its own, at tablet size. */
+/*
+ * Storybook has no table online, so the browser plays it: the tablet's code opens the phone's story in a new tab of the
+ * same browser, which joins it.
+ */
+const storyJoinUrl = (code: string) => {
+  const url = new URL(location.href);
+  url.searchParams.set('id', 'pages-tools-bidding-prototypes--linked-phone');
+  url.searchParams.set('viewMode', 'story');
+  url.searchParams.set('table', code);
+  return url.toString();
+};
+
+/** H. The tablet's setup on its own, at tablet size. Its code opens a phone in a new tab, linked to it. */
 export const LinkedTabletSetup = meta.story({
   globals: { viewport: { value: 'appTablet' } },
-  render: () => <LinkedTablet storageKey="bidding-story-linked-tablet" {...linked} />,
+  render: () => <LinkedTablet storageKey="bidding-story-linked-tablet" {...linked} local joinUrl={storyJoinUrl} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: /Start bidding/ })).toBeVisible();
   },
 });
 
-/** H. A phone as a player opens it from the tablet's code: pick your faction to link it. */
+/** H. A phone as a player opens it: it joins the table its link names, or asks for the code. */
 export const LinkedPhone = meta.story({
   render: () => (
     <div style={{ height: '100dvh' }}>
-      <LinkedRemote factions={STORY_FACTIONS} />
+      <LinkedRemote local />
     </div>
   ),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Which faction are you?')).toBeVisible();
+    await expect(canvas.getByText(/Join a table|Finding the tablet|Which faction are you/)).toBeVisible();
   },
 });
 
@@ -251,6 +263,8 @@ export const LinkedTabletBidding = meta.story({
     <LinkedTablet
       storageKey="bidding-story-linked-tablet-bidding"
       {...linked}
+      local
+      joinUrl={storyJoinUrl}
       started={{ setup: { seats: STORY_FACTIONS, seconds: 15, ruleset: 'gf9' }, linked: [0, 1, 2, 3, 4, 5] }}
     />
   ),
