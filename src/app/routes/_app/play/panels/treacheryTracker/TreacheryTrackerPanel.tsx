@@ -57,6 +57,8 @@ export function TreacheryTrackerFollower({
   const faces = useMemo(() => new Set(seat?.defs.map((def) => def.face)), [seat?.defs]);
   const live = table.playback === null;
   const store = seat?.store;
+  /* Listening keeps the store in step with other tabs, so a peek followed here never saves over their edits. */
+  useEffect(() => store?.subscribe(() => {}), [store]);
   useEffect(() => {
     if (store && live) {
       store.follow(tableFacts(table.snapshot, faces));

@@ -25,7 +25,7 @@ function consistent(state: Pick<TrackerState, 'hands' | 'discard'>): boolean {
   return new Set(cards).size === cards.length && new Set(slots.map((slot) => slot.id)).size === slots.length;
 }
 
-const memorySchema = z.object({ peeked: z.array(z.string()) });
+const memorySchema = z.object({ peeked: z.array(z.string()), sightings: z.array(z.string()).optional() });
 
 /* A stored tracker is used only when every card it names is in this deck; anything else, such as an older shape, starts afresh. */
 function storedTracker(fresh: TrackerState) {
@@ -104,6 +104,8 @@ export function trackerStore(key: string, defs: readonly CardDef[], factions: re
     get: () => kept,
     subscribe: (listener) => {
       if (listeners.size === 0) {
+        /* Nothing followed storage while no one listened: another tab may have saved since. */
+        kept = restored(key, defs, factions);
         window.addEventListener('storage', onStorage);
       }
       listeners.add(listener);

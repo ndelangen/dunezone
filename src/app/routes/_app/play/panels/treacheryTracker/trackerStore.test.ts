@@ -29,3 +29,13 @@ test('a read that follows nothing saves nothing', () => {
   trackerStore('quiet', DECK, FACTIONS).follow({ turn: 1, peek: null });
   expect(window.localStorage.getItem('quiet')).toBeNull();
 });
+
+test('a store nobody listened to reads storage again when someone listens', () => {
+  forgetTrackers();
+  const store = trackerStore('away', DECK, FACTIONS);
+  const elsewhere = trackerReducer(newTracker(DECK, FACTIONS), { kind: 'add', faction: 'emperor', card: 'lasgun#1' });
+  window.localStorage.setItem('away', JSON.stringify({ state: elsewhere }));
+  const stop = store.subscribe(() => {});
+  expect(store.get().state.hands).toEqual(elsewhere.hands);
+  stop();
+});

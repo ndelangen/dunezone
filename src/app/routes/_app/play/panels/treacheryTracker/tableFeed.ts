@@ -1,10 +1,11 @@
 /*
  * The one entry the table makes in the Treachery tracker by itself (#2794): Atreides peeking at the card up for bid puts that card up for bid.
  * Everything else, who won it, where cards went and what a hand holds, is the player's own work and judgement.
- * A peek is followed once per table card, so reading the same table again, or after a reload, changes nothing,
- * and a card dismissed as never up for bid stays dismissed.
+ * A peek is followed once per table card and turn, which is once per auction: reading the same table again, or after a reload, changes nothing,
+ * and a card dismissed as never up for bid stays dismissed for that auction.
+ * A card nobody bought goes back to the deck, and when it comes up again in a later turn its peek is a new auction.
  */
-import { onBid, reservedCards, trackerReducer, unplaced } from './tracker';
+import { awaitingWinner, copyOf, onBid, reservedCards, trackerReducer, unplaced } from './tracker';
 import type { TrackerState } from './tracker';
 
 /** A card on the table as the viewer sees it: the table's item id and the face it shows. */
@@ -18,8 +19,11 @@ export type TableFacts = Readonly<{
   peek: SeenCard | null;
 }>;
 
-/** The table cards the tracker already put up for bid, by item id. */
-export type TableMemory = Readonly<{ peeked: readonly string[] }>;
+/**
+ * The auctions the tracker already followed, by table item id and turn (`item@turn`).
+ * `sightings` are the auctions a peek accounts for: the ones it put up for bid, and the ones the player had already entered by hand.
+ */
+export type TableMemory = Readonly<{ peeked: readonly string[]; sightings?: readonly string[] }>;
 
 /* A game sees a few dozen auctions; the newest are enough to never follow one twice. */
 const MEMORY_LIMIT = 200;
@@ -42,17 +46,42 @@ export function followTable(
   { turn, peek }: TableFacts
 ): Readonly<{ state: TrackerState; memory: TableMemory | undefined }> {
   const peeked = memory?.peeked ?? [];
-  const card = peek && !peeked.includes(peek.item) ? freeCopy(state, peek.face) : undefined;
-  if (!peek || !card) {
+  const auction = peek ? `${peek.item}@${turn}` : null;
+  if (!peek || !auction || peeked.includes(auction)) {
+    return { state, memory };
+  }
+  const accounted = memory?.sightings ?? [];
+  const followed = (next: TrackerState, sighting: string) => ({
+    state: next,
+    memory: {
+      peeked: [...peeked, auction].slice(-MEMORY_LIMIT),
+      sightings: [...accounted, sighting].slice(-MEMORY_LIMIT),
+    },
+  });
+  /* The player already put this card up for bid by hand, and no peek accounts for it yet: the peek is that auction, not a second one. */
+  const entered = state.seen.find(
+    (sighting) =>
+      sighting.card &&
+      !accounted.includes(sighting.id) &&
+      awaitingWinner(state, sighting) &&
+      copyOf(state, sighting.card).def.face === peek.face
+  );
+  if (entered) {
+    return followed(state, entered.id);
+  }
+  const card = freeCopy(state, peek.face);
+  if (!card) {
     return { state, memory };
   }
   /* The unknown card already on bid, put up by hand before the peek, is the card peeked at: it is named, not bid again. */
   const unknown = onBid(state);
-  return {
-    state: trackerReducer(
-      state,
-      unknown?.card === null ? { kind: 'name', sighting: unknown.id, card } : { kind: 'bid', card, turn }
-    ),
-    memory: { peeked: [...peeked, peek.item].slice(-MEMORY_LIMIT) },
-  };
+  const next = trackerReducer(
+    state,
+    unknown?.card === null ? { kind: 'name', sighting: unknown.id, card } : { kind: 'bid', card, turn }
+  );
+  /* A bid the tracker refuses, with every card already accounted for, is tried again on the next read. */
+  if (next === state) {
+    return { state, memory };
+  }
+  return followed(next, unknown?.card === null ? unknown.id : next.seen[0]!.id);
 }
