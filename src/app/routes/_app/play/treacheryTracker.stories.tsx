@@ -21,13 +21,13 @@ const meta = preview.meta({
   ],
 });
 
-/* The room answers seat 2's deck read, as it does for a faction whose rules keep the tracker; the deck is the Dreamrules deck. */
+/* The room answers seat 1's deck read, the House Atreides seat's, as it does for a faction whose rules keep the tracker; the deck is the Dreamrules deck. */
 function trackerTransport(handCounts?: Record<string, number>) {
-  const snapshot = playingSnapshot('seat-2');
+  const snapshot = playingSnapshot('seat-1');
   if (handCounts) {
     snapshot.handCounts = handCounts;
   }
-  return productTransport('seat-2', snapshot, {
+  return productTransport('seat-1', snapshot, {
     treacheryDeck: DREAMRULES_DECK.map(({ key, name, detail, face, count }) => ({ key, name, detail, face, count })),
   });
 }
@@ -49,7 +49,7 @@ export const FillsInFromTheTable = meta.story({
   beforeEach: install(() =>
     trackerTransport(
       Object.fromEntries(
-        rosterFactionIds(playingSnapshot('seat-2').roster).map((id, index) => [id, index === 1 ? 2 : 1])
+        rosterFactionIds(playingSnapshot('seat-1').roster).map((id) => [id, id === 'house-harkonnen' ? 2 : 1])
       )
     )
   ),
@@ -58,7 +58,7 @@ export const FillsInFromTheTable = meta.story({
     await openTab(page, 'Treachery tracker');
     const hands = await page.findByRole('region', { name: 'Hands' }, { timeout: 30_000 });
     await expect(within(hands).findAllByRole('button', { name: 'Unknown card' })).resolves.toHaveLength(
-      rosterFactionIds(playingSnapshot('seat-2').roster).length + 1
+      rosterFactionIds(playingSnapshot('seat-1').roster).length + 1
     );
   },
 });
