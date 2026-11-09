@@ -57,10 +57,10 @@ const originSchema: z.ZodType<SavedOrigin> = z.lazy(() =>
 );
 const slotSchema = z.object({ id: z.string(), card: z.string().nullable(), from: originSchema.optional() });
 
-/* Every hand an origin names is a hand of this game, so taking a card back never sends it to a hand no one sees. */
-function originsAtTable(origin: SavedOrigin | undefined, hands: Readonly<Record<string, unknown>>): boolean {
+/* Every hand an origin names belongs to a faction at the table, so taking a card back never sends it to a hand no one sees. */
+function originsAtTable(origin: SavedOrigin | undefined, seated: ReadonlySet<string>): boolean {
   for (let at = origin; at && at.at === 'hand'; at = at.from) {
-    if (!(at.faction in hands)) {
+    if (!seated.has(at.faction)) {
       return false;
     }
   }
@@ -86,6 +86,7 @@ const gameSchema = z
   })
   .refine(({ factions, state }) => {
     const ids = new Set(state.copies.map((copy) => copy.id));
+    const seated = new Set(factions.map((faction) => faction.id));
     const named = [
       ...Object.values(state.hands).flatMap((slots) => slots.flatMap((slot) => (slot.card ? [slot.card] : []))),
       ...state.discard,
@@ -95,7 +96,7 @@ const gameSchema = z
       named.every((card) => ids.has(card)) &&
       consistentTracker(state) &&
       factions.every((faction) => faction.id in state.hands) &&
-      Object.values(state.hands).every((slots) => slots.every((slot) => originsAtTable(slot.from, state.hands)))
+      Object.values(state.hands).every((slots) => slots.every((slot) => originsAtTable(slot.from, seated)))
     );
   });
 
