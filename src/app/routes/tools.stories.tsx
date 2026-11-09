@@ -80,7 +80,7 @@ export const TreacheryTrackerInPlay = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('region', { name: 'On bid' }, { timeout: 30_000 })).resolves.toBeVisible();
-    await expect(page.getByText('Turn 2')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Next turn' })).toBeVisible();
   },
 });
 
