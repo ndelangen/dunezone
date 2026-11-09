@@ -1,11 +1,15 @@
 import preview from '@sb/preview';
-import { rosterFactionIds } from '@shared/play/protocol';
+import { STANDARD_PHASES } from '@shared/play/phases';
+import type { GameSnapshot } from '@shared/play/protocol';
+import { item, piece } from '@shared/play/setupSupply';
 import { expect, within } from 'storybook/test';
 
 import { gameMeta, install } from './game.stories.fixture';
 import { DREAMRULES_DECK } from './panels/treacheryTracker/tracker.stories.fixture';
 import { openTab } from './playing.stories.fixture';
-import { playingSnapshot, productTransport } from './product.stories.fixture';
+import { cardBack, playingSnapshot, productTransport } from './product.stories.fixture';
+
+const BIDDING_PHASE = STANDARD_PHASES.findIndex((entry) => entry.id === 'bidding');
 
 const meta = preview.meta({
   ...gameMeta,
@@ -22,14 +26,24 @@ const meta = preview.meta({
 });
 
 /* The room answers seat 1's deck read, the House Atreides seat's, as it does for a faction whose rules keep the tracker; the deck is the Dreamrules deck. */
-function trackerTransport(handCounts?: Record<string, number>) {
+function trackerTransport(change?: (snapshot: GameSnapshot) => void) {
   const snapshot = playingSnapshot('seat-1');
-  if (handCounts) {
-    snapshot.handCounts = handCounts;
-  }
+  change?.(snapshot);
   return productTransport('seat-1', snapshot, {
     treacheryDeck: DREAMRULES_DECK.map(({ key, name, detail, face, count }) => ({ key, name, detail, face, count })),
   });
+}
+
+/* The Bidding phase, with Atreides holding open the face-down card of this name that is up for bid. */
+function peekingAt(name: string) {
+  return (snapshot: GameSnapshot) => {
+    const card = DREAMRULES_DECK.find((entry) => entry.name === name)!;
+    const bid = piece('bid-card', name, 'shared', '#000000', 'card', 'card');
+    bid.items = [item('bid-card-item', name, card.face, cardBack(), 'card-treachery', false, 'Treachery')];
+    snapshot.phase = BIDDING_PHASE;
+    snapshot.table.pieces = [...snapshot.table.pieces, bid];
+    snapshot.peek = { piece: bid };
+  };
 }
 
 /** A faction whose rules allow it opens the Treachery tracker under Yours: a fresh copy of the game's deck, and the seated factions in seat order. */
@@ -43,22 +57,17 @@ export const AtTheTable = meta.story({
   },
 });
 
-/** The tracker fills itself in from the table: each faction's public hand count becomes that many unknown cards in its row. */
-export const FillsInFromTheTable = meta.story({
+/*
+ * In the Bidding phase Atreides peeks at the card up for bid, and the tracker puts that card up for bid by itself.
+ * Everything else stays the player's own work; "Not up for bid" dismisses a card peeked at for another reason.
+ */
+export const APeekPutsTheCardUpForBid = meta.story({
   parameters: { chromatic: { disableSnapshot: true } },
-  beforeEach: install(() =>
-    trackerTransport(
-      Object.fromEntries(
-        rosterFactionIds(playingSnapshot('seat-1').roster).map((id) => [id, id === 'house-harkonnen' ? 2 : 1])
-      )
-    )
-  ),
+  beforeEach: install(() => trackerTransport(peekingAt('Lasgun'))),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await openTab(page, 'Treachery tracker');
-    const hands = await page.findByRole('region', { name: 'Hands' }, { timeout: 30_000 });
-    await expect(within(hands).findAllByRole('button', { name: 'Unknown card' })).resolves.toHaveLength(
-      rosterFactionIds(playingSnapshot('seat-1').roster).length + 1
-    );
+    const onBid = await page.findByRole('region', { name: 'On bid' }, { timeout: 30_000 });
+    await expect(within(onBid).findByRole('button', { name: 'House Atreides won Lasgun' })).resolves.toBeVisible();
   },
 });

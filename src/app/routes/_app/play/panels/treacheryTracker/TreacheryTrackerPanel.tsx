@@ -9,7 +9,6 @@ import type { TableProjection, TableSession } from '../../../../../db/tabletop/T
 import { factionToken } from '../../multiplayer/FactionTokenFace';
 import { AuctionTracker } from './AuctionTracker';
 import { tableFacts } from './tableFacts';
-import { unfollowedLosses } from './tableFeed';
 import { CARD_KINDS } from './tracker';
 import type { CardDef, CardKind } from './tracker';
 import { storageKey, trackerStore } from './trackerStore';
@@ -32,11 +31,7 @@ function TrackerAtTable({ store, table }: Readonly<{ store: TrackerStore; table:
   const names = snapshotFactionLabels(table.snapshot);
   const factions = factionIds.map((id) => factionToken(table, id, names));
   const { turn } = tableProgressFor(table.snapshot.phase, table.snapshot.phases);
-  const counts = table.snapshot.handCounts ?? {};
-  const losses = unfollowedLosses(state, counts);
-  return (
-    <AuctionTracker factions={factions} state={state} onAction={store.dispatch} tableTurn={turn} losses={losses} />
-  );
+  return <AuctionTracker factions={factions} state={state} onAction={store.dispatch} tableTurn={turn} />;
 }
 
 /* The seat's tracker store, made from the game's deck and the seated factions; null when the game has no Treachery deck. */
@@ -64,9 +59,9 @@ export function TreacheryTrackerFollower({
   const store = seat?.store;
   useEffect(() => {
     if (store && live) {
-      store.follow(tableFacts(table.snapshot, faces, tracker.faction));
+      store.follow(tableFacts(table.snapshot, faces));
     }
-  }, [store, live, table.snapshot, faces, tracker.faction]);
+  }, [store, live, table.snapshot, faces]);
   return null;
 }
 

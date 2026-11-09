@@ -21,10 +21,7 @@ const TRACKER_WINDOW: Omit<TableWindow, 'content'> = {
 };
 
 /** The tracker as a pinned compass slot shows it, live: its own window and title. */
-export function TrackerWindow({
-  initial,
-  losses,
-}: Readonly<{ initial: () => TrackerState; losses?: Readonly<Record<string, number>> }>) {
+export function TrackerWindow({ initial }: Readonly<{ initial: () => TrackerState }>) {
   const [state, dispatch] = useReducer(trackerReducer, undefined, initial);
   return (
     <DarkSchemeIsland>
@@ -37,7 +34,7 @@ export function TrackerWindow({
           <WindowFrame
             entry={{
               ...TRACKER_WINDOW,
-              content: <AuctionTracker factions={FACTIONS} state={state} onAction={dispatch} losses={losses} />,
+              content: <AuctionTracker factions={FACTIONS} state={state} onAction={dispatch} />,
             }}
             where="left"
             inert={false}

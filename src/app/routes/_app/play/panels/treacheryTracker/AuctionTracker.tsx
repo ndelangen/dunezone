@@ -1,17 +1,6 @@
 import { Popover, Text, TextInput, UnstyledButton } from '@mantine/core';
-import { StatusMark } from '@ui/content/StatusMark';
 import { IconAction } from '@ui/control/IconAction';
-import {
-  ArrowDownToLine,
-  ChevronLeft,
-  ChevronRight,
-  CircleHelp,
-  Eye,
-  Layers,
-  NotebookPen,
-  TriangleAlert,
-  X,
-} from 'lucide-react';
+import { ArrowDownToLine, ChevronLeft, ChevronRight, CircleHelp, Eye, Layers, NotebookPen, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { RefObject } from 'react';
 
@@ -38,27 +27,14 @@ export function AuctionTracker({
   state,
   onAction,
   tableTurn,
-  losses = {},
-}: TrackerViewProps &
-  Readonly<{
-    tableTurn?: number;
-    /** By faction, how many cards the tracker shows beyond what the table says that faction holds. */
-    losses?: Readonly<Record<string, number>>;
-  }>) {
+}: TrackerViewProps & Readonly<{ tableTurn?: number }>) {
   return (
     <div className={styles.tracker}>
       <OnBid factions={factions} state={state} onAction={onAction} tableTurn={tableTurn} />
       <Auctions factions={factions} state={state} onAction={onAction} />
       <section className={styles.hands} aria-label="Hands">
         {factions.map((faction) => (
-          <HandRow
-            key={faction.id}
-            faction={faction}
-            factions={factions}
-            state={state}
-            onAction={onAction}
-            lost={losses[faction.id] ?? 0}
-          />
+          <HandRow key={faction.id} faction={faction} factions={factions} state={state} onAction={onAction} />
         ))}
       </section>
       <DeckFooter factions={factions} state={state} onAction={onAction} />
@@ -441,13 +417,7 @@ function HandNote({
   );
 }
 
-function HandRow({
-  faction,
-  factions,
-  state,
-  onAction,
-  lost,
-}: TrackerViewProps & Readonly<{ faction: FactionToken; lost: number }>) {
+function HandRow({ faction, factions, state, onAction }: TrackerViewProps & Readonly<{ faction: FactionToken }>) {
   const slots = state.hands[faction.id] ?? [];
   const note = state.notes[faction.id] ?? '';
   const [editing, setEditing] = useState(false);
@@ -469,13 +439,6 @@ function HandRow({
           </SlotChip>
         ))}
         <AddCard faction={faction} state={state} onAction={onAction} />
-        {lost > 0 ? (
-          <StatusMark
-            tone="caution"
-            icon={<TriangleAlert size={15} />}
-            label={`${faction.name} holds ${lost === 1 ? 'one card' : `${lost} cards`} fewer than the tracker shows. Pick the card that left and say where it went.`}
-          />
-        ) : null}
       </div>
       <IconAction
         label={note ? `Edit your note on ${faction.name}` : `Add a note on ${faction.name}`}

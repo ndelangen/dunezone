@@ -25,12 +25,7 @@ function consistent(state: Pick<TrackerState, 'hands' | 'discard'>): boolean {
   return new Set(cards).size === cards.length && new Set(slots.map((slot) => slot.id)).size === slots.length;
 }
 
-const memorySchema = z.object({
-  peeked: z.array(z.string()),
-  settled: z.array(z.string()),
-  discarded: z.record(z.string(), z.string()),
-  own: z.record(z.string(), z.string()),
-});
+const memorySchema = z.object({ peeked: z.array(z.string()) });
 
 /* A stored tracker is used only when every card it names is in this deck; anything else, such as an older shape, starts afresh. */
 function storedTracker(fresh: TrackerState) {

@@ -20,14 +20,3 @@ export const Tracker = meta.story({
     await expect(canvas.getByRole('button', { name: 'Fremen won Hunter Seeker' })).toBeVisible();
   },
 });
-
-/*
- * The table shows the Emperor holding one card fewer than the tracker gives it, and no face-up card says which:
- * a caution mark at the end of the row asks the player to pick the card that left.
- */
-export const ACardLeftAHand = meta.story({
-  render: () => <TrackerWindow initial={midGameTracker} losses={{ emperor: 1 }} />,
-  play: async ({ canvas }) => {
-    await expect(canvas.getByLabelText(/^Emperor holds one card fewer/)).toBeVisible();
-  },
-});
