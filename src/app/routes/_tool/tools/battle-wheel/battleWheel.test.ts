@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test';
 
 import { EMPTY_PLAN, strengthText, wheelResult } from './battleWheel';
+import type { WheelFaction } from './battleWheel';
 import { STORY_RULESETS, storyFaction as faction } from './battleWheel.stories.fixture';
 
 const ruleset = (id: string) => STORY_RULESETS.find((candidate) => candidate.id === id)!;
@@ -18,6 +19,20 @@ describe('wheelResult', () => {
     const plan = { ...EMPTY_PLAN, troops: { [normal!.id]: 3, [sardaukar!.id]: 2 }, spice: 2 };
     /* Both Sardaukar supported (2 + 2), three ordinary troops at ½. */
     expect(wheelResult(ruleset('gf9'), emperor, plan)).toMatchObject({ dial: 5.5, spice: 2, supported: 2 });
+  });
+
+  it('buys the strongest support when troops cost different spice', () => {
+    const emperor = faction('emperor');
+    const like = emperor.faces[0]!;
+    const custom: WheelFaction = {
+      ...emperor,
+      faces: [
+        { ...like, id: 'elite', troop: 'elite', strength: 0, supportedStrength: 5, supportCost: 3, count: 1 },
+        { ...like, id: 'line', troop: 'line', strength: 0, supportedStrength: 3, supportCost: 2, count: 2 },
+      ],
+    };
+    const plan = { ...EMPTY_PLAN, troops: { elite: 1, line: 2 }, spice: 4 };
+    expect(wheelResult(ruleset('gf9'), custom, plan)).toMatchObject({ dial: 6, spice: 4, supported: 2 });
   });
 
   it('dials troops that cost nothing at full strength for free', () => {

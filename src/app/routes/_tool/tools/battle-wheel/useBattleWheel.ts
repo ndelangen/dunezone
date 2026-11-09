@@ -69,6 +69,27 @@ function read(storageKey: string): WheelState | null {
   }
 }
 
+/*
+ * Whether a faction read again still fits the plan kept for it: the same leaders and the same troop faces, with the same values.
+ * Face ids follow the troops' order, so a reordered or edited faction starts its wheel empty rather than move counts onto other troops.
+ */
+function sameWheel(next: WheelFaction, was: WheelFaction) {
+  const shape = (faction: WheelFaction) =>
+    JSON.stringify([
+      faction.id,
+      faction.leaders.map((leader) => [leader.id, leader.strength]),
+      faction.faces.map((face) => [
+        face.id,
+        face.name,
+        face.strength,
+        face.supportedStrength,
+        face.supportCost,
+        face.count,
+      ]),
+    ]);
+  return shape(next) === shape(was);
+}
+
 export function useBattleWheel() {
   const storageKey = BATTLE_WHEEL_STORAGE_KEY;
   const [state, setState] = useState<WheelState>(() => read(storageKey) ?? FRESH);
@@ -91,7 +112,7 @@ export function useBattleWheel() {
       setState((was) => ({
         ...was,
         faction,
-        plan: faction.id === was.faction?.id ? was.plan : EMPTY_PLAN,
+        plan: was.faction && sameWheel(faction, was.faction) ? was.plan : EMPTY_PLAN,
         recent: [
           { id: faction.id, name: faction.name, emblem: faction.emblem, background: faction.background },
           ...(was.recent ?? []).filter((known) => known.id !== faction.id),

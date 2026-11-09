@@ -124,13 +124,15 @@ export function supportable(face: BattleFace) {
 
 /** The most spice an Advanced plan can usefully spend: supporting every dialed troop that spice strengthens. */
 export function mostUsefulSpice(ruleset: WheelRuleset, faction: WheelFaction, plan: WheelPlan) {
-  if (ruleset.dialing === 'advanced') {
-    return declared(plan, faction).reduce(
-      (total, { face, count }) => total + (supportable(face) ? count * face.supportCost : 0),
-      0
-    );
-  }
-  return 0;
+  return ruleset.dialing === 'advanced' ? supportSpice(faction, plan) : 0;
+}
+
+/* The spice that supports every dialed troop spice strengthens. */
+function supportSpice(faction: WheelFaction, plan: WheelPlan) {
+  return declared(plan, faction).reduce(
+    (total, { face, count }) => total + (supportable(face) ? count * face.supportCost : 0),
+    0
+  );
 }
 
 /**
@@ -165,30 +167,53 @@ function asTroops(plan: WheelPlan, faction: WheelFaction) {
     .map(({ face, count }) => ({ faceId: face.id, undialed: count, dialed: 0 }));
 }
 
-/** Advanced spice dialing: the offered spice supports troops one at a time, the biggest gain per spice first. */
-function advanced(plan: WheelPlan, faction: WheelFaction) {
-  let budget = Math.max(0, plan.spice);
-  let dial = 0;
-  let spice = 0;
-  let supported = 0;
-  const byGain = declared(plan, faction).sort(
-    (a, b) =>
-      (b.face.supportedStrength - b.face.strength) / Math.max(1, b.face.supportCost) -
-      (a.face.supportedStrength - a.face.strength) / Math.max(1, a.face.supportCost)
-  );
-  for (const { face, count } of byGain) {
+type Support = Readonly<{ gain: number; spent: number; supported: number }>;
+
+/* More strength wins; at equal strength, less spice. */
+const betterSupport = (candidate: Support, held: Support) =>
+  candidate.gain > held.gain || (candidate.gain === held.gain && candidate.spent < held.spent);
+
+/*
+ * The strongest support the offered spice buys: a small knapsack over every dialed troop that spice strengthens.
+ * Support costs can differ per troop, so a greedy pick by gain per spice can leave strength unbought.
+ */
+function bestSupport(declaredTroops: readonly { face: WheelFace; count: number }[], budget: number): Support {
+  let best: Support[] = Array.from({ length: budget + 1 }, () => ({ gain: 0, spent: 0, supported: 0 }));
+  for (const { face, count } of declaredTroops) {
     if (!supportable(face)) {
-      /* A troop whose dial cost is 0 fights at full strength for free (free dialing is per troop, never per faction). */
-      dial += count * (face.supportCost === 0 ? face.supportedStrength : face.strength);
       continue;
     }
-    const paid = Math.min(count, Math.floor(budget / face.supportCost));
-    budget -= paid * face.supportCost;
-    spice += paid * face.supportCost;
-    supported += paid;
-    dial += paid * face.supportedStrength + (count - paid) * face.strength;
+    const gain = face.supportedStrength - face.strength;
+    for (let troop = 0; troop < count; troop++) {
+      const next = best.slice();
+      for (let held = face.supportCost; held <= budget; held++) {
+        const from = best[held - face.supportCost]!;
+        const candidate = {
+          gain: from.gain + gain,
+          spent: from.spent + face.supportCost,
+          supported: from.supported + 1,
+        };
+        if (betterSupport(candidate, next[held]!)) {
+          next[held] = candidate;
+        }
+      }
+      best = next;
+    }
   }
-  return { dial, spice, supported, bonus: 0, capped: false };
+  return best.reduce((held, candidate) => (betterSupport(candidate, held) ? candidate : held));
+}
+
+/** Advanced spice dialing: the offered spice supports the troops that make the dial strongest. */
+function advanced(plan: WheelPlan, faction: WheelFaction) {
+  const troops = declared(plan, faction);
+  /* A troop whose dial cost is 0 fights at full strength for free (free dialing is per troop, never per faction). */
+  const base = troops.reduce(
+    (total, { face, count }) => total + count * (face.supportCost === 0 ? face.supportedStrength : face.strength),
+    0
+  );
+  const budget = Math.max(0, Math.min(plan.spice, supportSpice(faction, plan)));
+  const { gain, spent, supported } = bestSupport(troops, budget);
+  return { dial: base + gain, spice: spent, supported, bonus: 0, capped: false };
 }
 
 export function wheelResult(ruleset: WheelRuleset, faction: WheelFaction, plan: WheelPlan): WheelResult {
