@@ -11,7 +11,8 @@ import { StorySetup } from './standaloneTracker.stories.fixture';
 
 const meta = testingPreview.meta({
   title: 'Tools/Treachery tracker',
-  parameters: { database: db(() => {}) },
+  /* Full width, as the page fills the phone. */
+  parameters: { database: db(() => {}), layout: 'fullscreen' },
   globals: { viewport: { value: 'appMobile' } },
 });
 
@@ -27,7 +28,38 @@ export const AddAFaction = meta.story({
     await userEvent.click(body.getByRole('button', { name: 'Add Ixians' }));
     await expect(canvas.getByText('Ixians')).toBeVisible();
     await expect(canvas.queryByText('Emperor')).toBeNull();
-    await expect(canvas.getAllByRole('button', { name: /^Remove / })).toHaveLength(6);
+    await expect(canvas.getAllByRole('button', { name: /^Remove (?!Dreamrules)/ })).toHaveLength(6);
+  },
+});
+
+/** Two decks at once: Add a deck adds another deck's cards to the tracker's, and removing every deck leaves nothing to start. */
+export const PickTwoDecks = meta.story({
+  render: () => <StorySetup />,
+  play: async ({ canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole('button', { name: 'Add a deck' }));
+    await userEvent.click(await body.findByRole('button', { name: /^Ixian Tech Cards/ }));
+    await expect(canvas.getByText(/^A Treachery deck of \d+ cards, 39 different\.$/)).toBeVisible();
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Dreamrules Treachery' }));
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove Ixian Tech Cards' }));
+    await expect(canvas.getByRole('button', { name: 'Start tracking' })).toHaveAccessibleDescription(
+      'Pick at least one Treachery deck.'
+    );
+  },
+});
+
+/** The game waits for every card picture, so no card shows before its face can. */
+export const WaitsForThePictures = meta.story({
+  args: { onStart: fn() },
+  render: ({ onStart }) => <StorySetup fetched={{ done: 0, total: 33 }} onStart={onStart} />,
+  play: async ({ args, canvasElement, userEvent }) => {
+    const canvas = within(canvasElement);
+    const start = canvas.getByRole('button', { name: 'Start tracking' });
+    await expect(start).toHaveAccessibleDescription('The card pictures are still coming in.');
+    await expect(canvas.getByText(/Fetching the cards · 0 of \d+$/)).toBeVisible();
+    await userEvent.click(start);
+    await expect(args.onStart).not.toHaveBeenCalled();
   },
 });
 

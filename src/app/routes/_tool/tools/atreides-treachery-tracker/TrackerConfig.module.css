@@ -53,3 +53,59 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.decks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* A deck: its back, its name and what plays it, and its tick or Remove at the end. */
+.deckRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--unit, 8px);
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.deckRow[data-touch="true"] {
+  min-height: 60px;
+}
+
+.deck {
+  display: flex;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.back {
+  flex: none;
+  width: 30px;
+}
+
+.deckRow[data-touch="true"] .back {
+  width: 38px;
+}
+
+.deckText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dim {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ui-muted);
+}

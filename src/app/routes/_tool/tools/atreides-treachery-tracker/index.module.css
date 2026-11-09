@@ -1,9 +1,7 @@
-/* The tool on its own page: a phone's width, kept on a wider screen so it reads the same at the table and on a laptop. */
+/* The tool on its own page fills the screen's width, inside the phone's 16 px gutter. */
 .page {
   box-sizing: border-box;
   width: 100%;
-  max-width: 480px;
-  margin-inline: auto;
   padding-inline: var(--mantine-spacing-md);
 }
 

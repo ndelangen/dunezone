@@ -1,7 +1,9 @@
 /*
- * Fetches and decodes a published image ahead of the `PublishedImage` that will draw it, an organ of `PublishedImage`.
+ * Fetches and decodes published images ahead of the `PublishedImage` that will draw them, for a page that wants every picture in before it goes on, such as a tool's deck before its game starts.
  * The full capture is fetched, and marked decoded, so every `PublishedImage` of it on the page draws that copy from the browser's cache and appears at once.
  */
+
+import { useEffect, useState } from 'react';
 
 import { markDecoded } from './imageArrival';
 
@@ -33,8 +35,8 @@ function load(src: string): Promise<void> {
 }
 
 /**
- * Resolves once the image has loaded and decoded, failed, or taken too long.
- * It never rejects.
+ * Resolves once the image has loaded and decoded, failed, or taken too long;
+ * it never rejects.
  * Asking again for an image already loaded or loading returns the same promise.
  */
 export function preloadPublishedImage(src: string): Promise<void> {
@@ -43,7 +45,12 @@ export function preloadPublishedImage(src: string): Promise<void> {
     loading = load(src);
     loads.set(src, loading);
   }
-  return Promise.race([loading, new Promise<void>((resolve) => setTimeout(resolve, MOST_WAIT_MS))]);
+  /* The wait is cleared once the image settles, so an image already in leaves no timer behind. */
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const waited = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, MOST_WAIT_MS);
+  });
+  return Promise.race([loading, waited]).finally(() => clearTimeout(timer));
 }
 
 /** Preloads every image, telling `onProgress` how many are done after each one; resolves once all are. */
@@ -62,4 +69,27 @@ export async function preloadPublishedImages(
       })
     )
   );
+}
+
+/**
+ * Preloads every image while the caller is mounted, and counts them in: `done` of `total`, and `ready` once all are.
+ * A new list starts the count again;
+ * images already in count at once.
+ */
+export function usePreloadedImages(srcs: readonly string[]) {
+  const key = [...new Set(srcs)].join('\n');
+  const [progress, setProgress] = useState({ key, done: 0, total: new Set(srcs).size });
+  useEffect(() => {
+    let live = true;
+    void preloadPublishedImages(key ? key.split('\n') : [], (done, total) => {
+      if (live) {
+        setProgress({ key, done, total });
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [key]);
+  const current = progress.key === key ? progress : { key, done: 0, total: key ? key.split('\n').length : 0 };
+  return { done: current.done, total: current.total, ready: current.done >= current.total };
 }
