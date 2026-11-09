@@ -63,8 +63,12 @@ export function FactionPicker({
   );
 }
 
-/* The chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling. */
+/*
+ * Beside the table the chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling.
+ * Held in one hand it is a sheet that scrolls: one group per row, each card large enough for a thumb, its name under it.
+ */
 const CHOOSER_GLYPH = 28;
+const TOUCH_CHOOSER_GLYPH = 48;
 /* At most the window's width less a margin, so the chooser never runs off a narrow window. */
 export const CHOOSER_WIDTH = 'min(400px, calc(100vw - 32px))';
 
@@ -82,11 +86,29 @@ export function CardChooser({
   forBid?: boolean;
 }>) {
   const { seen, byName } = chooserCards(state, forBid);
+  const touch = useTrackerTouch();
+  const glyph = touch ? TOUCH_CHOOSER_GLYPH : CHOOSER_GLYPH;
+  /* A card of the chooser: its glyph, and on a phone its name under it, since a thumb cannot hover for it. */
+  const choice = (copy: CardCopy, left = 1) => (
+    <CardPreview key={copy.id} card={copy}>
+      <UnstyledButton className={styles.glyphButton} aria-label={copy.def.name} onClick={() => onPick(copy.id)}>
+        <span className={styles.glyphFace}>
+          <CardGlyph card={copy} size={glyph} />
+          {left > 1 && <span className={styles.badge}>{left}</span>}
+        </span>
+        {touch ? (
+          <span className={styles.glyphName} aria-hidden>
+            {copy.def.name}
+          </span>
+        ) : null}
+      </UnstyledButton>
+    </CardPreview>
+  );
   return (
-    <Stack gap="xs" className={styles.chooser}>
+    <Stack gap={touch ? 'md' : 'xs'} className={styles.chooser} data-touch={touch ? 'true' : 'false'}>
       {allowUnknown && (
         <UnstyledButton className={styles.chooserUnknown} onClick={() => onPick(null)}>
-          <UnknownGlyph size={22} />
+          <UnknownGlyph size={touch ? 36 : 22} />
           <Text size="sm">An unknown card</Text>
         </UnstyledButton>
       )}
@@ -95,19 +117,7 @@ export function CardChooser({
           <Text size="xs" className={styles.caption}>
             Seen, not placed
           </Text>
-          <div className={styles.glyphRow}>
-            {seen.map((copy) => (
-              <CardPreview key={copy.id} card={copy}>
-                <UnstyledButton
-                  className={styles.glyphButton}
-                  aria-label={copy.def.name}
-                  onClick={() => onPick(copy.id)}
-                >
-                  <CardGlyph card={copy} size={CHOOSER_GLYPH} />
-                </UnstyledButton>
-              </CardPreview>
-            ))}
-          </div>
+          <div className={styles.glyphRow}>{seen.map((copy) => choice(copy))}</div>
         </div>
       )}
       {GROUP_ROWS.map((row) => {
@@ -127,20 +137,7 @@ export function CardChooser({
                 <Text size="xs" className={styles.caption}>
                   {GROUP_LABEL[group]}
                 </Text>
-                <div className={styles.glyphRow}>
-                  {cards.map(({ copy, left }) => (
-                    <CardPreview key={copy.id} card={copy}>
-                      <UnstyledButton
-                        className={styles.glyphButton}
-                        aria-label={copy.def.name}
-                        onClick={() => onPick(copy.id)}
-                      >
-                        <CardGlyph card={copy} size={CHOOSER_GLYPH} />
-                        {left > 1 && <span className={styles.badge}>{left}</span>}
-                      </UnstyledButton>
-                    </CardPreview>
-                  ))}
-                </div>
+                <div className={styles.glyphRow}>{cards.map(({ copy, left }) => choice(copy, left))}</div>
               </div>
             ))}
           </div>
