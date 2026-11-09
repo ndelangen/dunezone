@@ -40,6 +40,13 @@
   margin: 2rem 0 1rem;
 }
 
+/* Placement only: Completed sits below the invitation, set off by the same rule as the index. */
+.completed {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgb(from var(--ui-edge) r g b / 0.35);
+}
+
 @container (width < 48rem) {
   .coordinate {
     font-size: 3rem;
