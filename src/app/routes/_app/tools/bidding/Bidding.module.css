@@ -355,7 +355,7 @@
 
 .screenFrame {
   flex: 1 1 520px;
-  height: 460px;
+  height: 620px;
   overflow: hidden;
   border: 8px solid var(--ui-raised);
   border-radius: 14px;
@@ -372,7 +372,7 @@
 }
 
 .phoneFrame {
-  min-height: 250px;
+  min-height: 330px;
   border: 6px solid var(--ui-raised);
   border-radius: 22px;
   overflow: hidden;
@@ -697,4 +697,127 @@
 .scriptCall {
   color: var(--ui-highlight);
   font-size: 17px;
+}
+
+/* G: sound remotes. The tablet's join code, its ear, and each phone's remote. */
+.joinCode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+  text-align: center;
+}
+
+.joinBox {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 2px dashed var(--ui-edge);
+  border-radius: 8px;
+  color: var(--ui-muted);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.listenRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.listenRow > .muted {
+  flex: 1;
+}
+
+.meter {
+  position: relative;
+  flex: none;
+  width: 80px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--ui-raised);
+}
+
+.meter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--ui-positive);
+  transform: scaleX(var(--level));
+  transform-origin: left;
+}
+
+.meter[data-state="refused"]::after,
+.meter[data-state="off"]::after {
+  background: var(--ui-caution);
+}
+
+.heardLog {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ui-muted);
+  font-size: 14px;
+}
+
+.heardLog li[data-taken] {
+  color: var(--ui-text);
+}
+
+.heardLog li:first-child {
+  font-weight: 700;
+}
+
+.remotePick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.remoteFaction {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--ui-edge);
+  border-radius: 8px;
+  background: var(--ui-raised);
+  color: var(--ui-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.remoteToken {
+  border-radius: 50%;
+}
+
+.remoteToken[data-playing] {
+  box-shadow: 0 0 0 4px var(--ui-highlight);
+}
+
+.remoteButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-xs);
+}
+
+.remoteHint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: auto 0 0;
+  color: var(--ui-muted);
+  font-size: 12px;
 }

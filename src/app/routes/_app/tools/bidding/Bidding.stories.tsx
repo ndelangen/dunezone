@@ -1,12 +1,13 @@
 import preview from '@sb/preview';
 import { expect, userEvent } from 'storybook/test';
 
-import { freshAuction, midAuction } from './auction.stories.fixture';
+import { freshAuction, midAuction, STORY_FACTIONS } from './auction.stories.fixture';
 import { GavelClock as GavelClockTool } from './GavelClock';
 import { PassThePhone as PassThePhoneTool } from './PassThePhone';
 import { BidderPhone, PhonesAtTheTable } from './PhonesAtTheTable';
 import { RefereeScript } from './RefereeScript';
 import { RoundTable } from './RoundTable';
+import { ListeningTablet, SoundRemote, SoundRemotes as SoundRemotesTool } from './SoundRemotes';
 import { useAuctionGame } from './useAuctionGame';
 import { VoiceAuctioneer as VoiceAuctioneerTool } from './VoiceAuctioneer';
 
@@ -106,5 +107,47 @@ export const Referee = meta.story({
   render: () => <RefereeScript storageKey="bidding-story-referee" initial={freshAuction()} />,
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Deal 5 Treachery cards face down in a row')).toBeVisible();
+  },
+});
+
+/**
+ * G.
+ * Sound remotes: the tablet in the middle listens, and each phone's remote plays a short tune saying who bids what.
+ * The remotes play through this computer's speaker;
+ * the tablet hears them directly, and through the microphone once it is on.
+ */
+export const SoundRemotes = meta.story({
+  globals: { viewport: { value: undefined } },
+  render: () => <SoundRemotesTool storageKey="bidding-story-sound" initial={midAuction()} />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('meter', { name: 'What the tablet hears' })).toBeVisible();
+  },
+});
+
+/* The tablet on its own, hearing remotes on other phones through its microphone. */
+function Tablet() {
+  const session = useAuctionGame('bidding-story-sound-tablet', midAuction());
+  return <ListeningTablet session={session} />;
+}
+
+/** G. The listening tablet on its own: turn the microphone on and play a remote from a phone. */
+export const SoundRemotesTablet = meta.story({
+  globals: { viewport: { value: 'appTablet' } },
+  render: () => <Tablet />,
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Spacing Guild to bid')).toBeVisible();
+  },
+});
+
+/** G. A player's remote as their phone opens it from the tablet's code: first, which faction they are. */
+export const SoundRemotePhone = meta.story({
+  render: () => (
+    <div style={{ height: '100dvh' }}>
+      <SoundRemote factions={STORY_FACTIONS} />
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Spacing Guild' }));
+    await expect(canvas.getByRole('button', { name: 'Pass' })).toBeVisible();
   },
 });
