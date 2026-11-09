@@ -37,16 +37,22 @@ function read(key: string): Saved | undefined {
   }
 }
 
-const stored = (saved: Saved, depth: number): Stored => ({
-  game: saved.game,
-  undo: saved.undo.slice(-depth).map((step) => {
-    if (step.deck.id !== saved.game.deck.id) {
-      return step;
-    }
-    const { deck: _deck, ...rest } = step;
-    return rest;
-  }),
-});
+/* A ruleset's deck can change between two games of it, so an earlier game sheds its deck only when it is the very same one. */
+function stored(saved: Saved, depth: number): Stored {
+  const { deck } = saved.game;
+  const deckText = JSON.stringify(deck);
+  const sameDeck = (other: SpiceDeckGame['deck']) => other === deck || JSON.stringify(other) === deckText;
+  return {
+    game: saved.game,
+    undo: saved.undo.slice(-depth).map((step) => {
+      if (!sameDeck(step.deck)) {
+        return step;
+      }
+      const { deck: _deck, ...rest } = step;
+      return rest;
+    }),
+  };
+}
 
 function write(key: string, saved: Saved | undefined) {
   try {

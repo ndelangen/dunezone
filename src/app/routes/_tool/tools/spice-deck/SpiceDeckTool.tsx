@@ -104,10 +104,21 @@ function DeckPicker({
   const [peek, setPeek] = useState(1);
   const [loading, setLoading] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  /* A deck still loading when the table goes back to its game is dropped, so it never replaces the game they went back to. */
+  const open = useRef(true);
+  useEffect(() => {
+    open.current = true;
+    return () => {
+      open.current = false;
+    };
+  }, []);
   const pick = async (choice: SpiceDeckChoice) => {
     setLoading(choice.id);
     setFailed(null);
     const deck = await loadDeck(choice).catch(() => undefined);
+    if (!open.current) {
+      return;
+    }
     if (deck && deck.cards.length > 0) {
       onStart(deck, { piles, peek });
       return;

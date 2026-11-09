@@ -46,3 +46,16 @@ test('a game from before another deck was picked comes back with its own deck af
   act(() => reloaded.result.current.undo());
   expect(reloaded.result.current.game?.deck.id).toBe('gf9');
 });
+
+test('a ruleset whose deck changed between two games keeps the older deck for the older game', () => {
+  const before = deck('gf9');
+  const first = newGame(before, random);
+  const { result, unmount } = renderHook(() => useSpiceDeckGame(KEY, first, random));
+  const after: SpiceDeckDef = { ...before, cards: [{ key: 'arrakeen', name: 'Arrakeen', count: 4, amount: 6 }] };
+  act(() => result.current.start(newGame(after, random)));
+  unmount();
+
+  const reloaded = renderHook(() => useSpiceDeckGame(KEY, undefined, random));
+  act(() => reloaded.result.current.undo());
+  expect(reloaded.result.current.game?.deck.cards.map((card) => card.key)).toEqual(['basin', 'worm']);
+});
