@@ -737,7 +737,7 @@ function Table({
 }
 
 /*
- * The Shai-Hulud that came up on a pile this turn, and the territory it devours. No Nexus line: some rulesets' Shai-Hulud
+ * The latest Shai-Hulud that came up on a pile this turn, and the territory it devours. No Nexus line: some rulesets' Shai-Hulud
  * bring none, and the deck can't tell which, so the players call it. It stays until the next turn, even once a spice card covers it; one the players set aside no longer counts.
  * A Shai-Hulud still flying to its pile is told once it lands.
  */
@@ -745,7 +745,7 @@ function wormNotice(game: SpiceDeckGame, pile: number, flight: Flight | undefine
   const worm = game.blows
     .filter((blow) => blow.turn === game.turn && blow.pile === pile)
     .flatMap((blow) => blow.reveals)
-    .find((entry) => entry.kind === 'worm' && entry !== flight?.reveal);
+    .findLast((entry) => entry.kind === 'worm' && entry !== flight?.reveal);
   if (worm?.kind !== 'worm') {
     return undefined;
   }
