@@ -54,9 +54,9 @@ export const CataloguePhone = meta.story({
 
 /** A planned tool's page: what it will do, a way back to every tool, and where to follow it or share an idea. */
 export const ComingSoon = meta.story({
-  args: { path: '/tools/battle-calculator' },
+  args: { path: '/tools/faction-draft' },
   play: async ({ canvasElement }) => {
-    const page = await findTitledPage(canvasElement, /^Battle calculator$/);
+    const page = await findTitledPage(canvasElement, /^Faction draft$/);
     await expect(page.getByRole('heading', { name: 'What it will do' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'All tools' })).toHaveAttribute('href', '/tools');
   },
