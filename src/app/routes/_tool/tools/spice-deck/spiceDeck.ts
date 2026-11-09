@@ -182,13 +182,14 @@ export function revealOne(game: SpiceDeckGame, random: Random, pileIndex = nextP
 
 /** The card just turned over, while it still lies on top of its pile: the one `setAsideLast` takes. */
 export function lastPlayed(game: SpiceDeckGame): { blow: Blow; card: string } | undefined {
-  const blow = game.blows.at(-1);
-  const reveal = blow?.reveals.at(-1);
-  if (!blow || blow.turn !== game.turn || (!endsBlow(reveal) && reveal?.kind !== 'worm')) {
-    return undefined;
-  }
-  return game.discards[blow.pile]?.at(-1) === reveal.card ? { blow, card: reveal.card } : undefined;
+  const blow = game.blows.findLast((entry) => entry.turn === game.turn);
+  const card = blow && cardOnPile(blow.reveals.at(-1));
+  return card && game.discards[blow.pile]?.at(-1) === card ? { blow, card } : undefined;
 }
+
+/* The card a reveal left on its pile; a set-aside card and a reshuffle leave none. */
+const cardOnPile = (reveal: Reveal | undefined) =>
+  reveal?.kind === 'set-aside' || reveal?.kind === 'reshuffle' ? undefined : reveal?.card;
 
 /**
  * Sets the card just turned over aside, as the rules ask of a Shai-Hulud on the first turn.
