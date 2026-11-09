@@ -54,6 +54,7 @@ import { Route as AppToolsIndexRouteImport } from './routes/_app/tools/index'
 import { Route as AppToolsToolRouteRouteImport } from './routes/_app/tools/$tool.route'
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
+import { Route as ToolToolsBattleWheelRouteRouteImport } from './routes/_tool/tools/battle-wheel/route'
 import { Route as ToolToolsSpiceDeckRouteRouteImport } from './routes/_tool/tools/spice-deck/route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
@@ -315,6 +316,12 @@ const AppTutorialChapterRouteRoute = AppTutorialChapterRouteRouteImport.update({
   path: '/$chapter',
   getParentRoute: () => AppTutorialRouteRoute,
 } as any)
+const ToolToolsBattleWheelRouteRoute =
+  ToolToolsBattleWheelRouteRouteImport.update({
+    id: '/tools/battle-wheel',
+    path: '/tools/battle-wheel',
+    getParentRoute: () => ToolRouteRoute,
+  } as any)
 const ToolToolsSpiceDeckRouteRoute = ToolToolsSpiceDeckRouteRouteImport.update({
   id: '/tools/spice-deck',
   path: '/tools/spice-deck',
@@ -548,6 +555,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
   '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin/': typeof AppAdminIndexRoute
@@ -624,6 +632,7 @@ export interface FileRoutesByTo {
   '/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
   '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/admin': typeof AppAdminIndexRoute
@@ -707,6 +716,7 @@ export interface FileRoutesById {
   '/_app/rulesets/create': typeof AppRulesetsCreateRouteRoute
   '/_app/tools/$tool': typeof AppToolsToolRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
+  '/_tool/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
   '/_tool/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
   '/_app/admin/': typeof AppAdminIndexRoute
@@ -789,6 +799,7 @@ export interface FileRouteTypes {
     | '/rulesets/create'
     | '/tools/$tool'
     | '/tutorial/$chapter'
+    | '/tools/battle-wheel'
     | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/admin/'
@@ -865,6 +876,7 @@ export interface FileRouteTypes {
     | '/rulesets/create'
     | '/tools/$tool'
     | '/tutorial/$chapter'
+    | '/tools/battle-wheel'
     | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/admin'
@@ -947,6 +959,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/create'
     | '/_app/tools/$tool'
     | '/_app/tutorial/$chapter'
+    | '/_tool/tools/battle-wheel'
     | '/_tool/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
     | '/_app/admin/'
@@ -1323,6 +1336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tutorial/$chapter'
       preLoaderRoute: typeof AppTutorialChapterRouteRouteImport
       parentRoute: typeof AppTutorialRouteRoute
+    }
+    '/_tool/tools/battle-wheel': {
+      id: '/_tool/tools/battle-wheel'
+      path: '/tools/battle-wheel'
+      fullPath: '/tools/battle-wheel'
+      preLoaderRoute: typeof ToolToolsBattleWheelRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
     }
     '/_tool/tools/spice-deck': {
       id: '/_tool/tools/spice-deck'
@@ -1802,11 +1822,13 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 )
 
 interface ToolRouteRouteChildren {
+  ToolToolsBattleWheelRouteRoute: typeof ToolToolsBattleWheelRouteRoute
   ToolToolsSpiceDeckRouteRoute: typeof ToolToolsSpiceDeckRouteRoute
   ToolToolsAtreidesTreacheryTrackerIndexRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
 }
 
 const ToolRouteRouteChildren: ToolRouteRouteChildren = {
+  ToolToolsBattleWheelRouteRoute: ToolToolsBattleWheelRouteRoute,
   ToolToolsSpiceDeckRouteRoute: ToolToolsSpiceDeckRouteRoute,
   ToolToolsAtreidesTreacheryTrackerIndexRoute:
     ToolToolsAtreidesTreacheryTrackerIndexRoute,

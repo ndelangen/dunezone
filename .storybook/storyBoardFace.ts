@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import type { Plugin } from 'vite-plus';
 
+import { SEEDED_FACTION_TOKENS } from './seededFactionTokens';
+
 const fixture = (path: string) => fileURLToPath(new URL(`./static/play-fixtures/${path}`, import.meta.url));
 
 /*
@@ -14,7 +16,11 @@ const FIXTURES = [
   { path: /^\/published\/boards\/[^/]+\/board\.jpg$/, file: fixture('boards/arrakis-official.jpg') },
   { path: /^\/published\/round-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/karama.jpg') },
   { path: /^\/published\/pointer-tokens\/0{20}[^/]*\/token\.jpg$/, file: fixture('tokens/hms.jpg') },
-  /* The baseline's one faction is House Atreides, so a seeded faction's published token is the Atreides token. */
+  /* Each seeded faction answers with its own token; any other seeded faction, with House Atreides, the baseline's. */
+  ...Object.entries(SEEDED_FACTION_TOKENS).map(([id, slug]) => ({
+    path: new RegExp(`^/published/faction-tokens/${id}/token\\.jpg$`),
+    file: fixture(`product/${slug}-token.jpg`),
+  })),
   { path: /^\/published\/faction-tokens\/0{19}[^/]*\/token\.jpg$/, file: fixture('product/house-atreides-token.jpg') },
 ];
 

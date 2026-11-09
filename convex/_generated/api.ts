@@ -18,6 +18,7 @@ import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as authSessions from "../authSessions.js";
 import type * as backgroundPresets from "../backgroundPresets.js";
+import type * as battleWheelTool from "../battleWheelTool.js";
 import type * as cardFrontPresets from "../cardFrontPresets.js";
 import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as catalogueMaintenance from "../catalogueMaintenance.js";
@@ -201,6 +202,7 @@ const fullApi: ApiFromModules<{
   auth: typeof auth;
   authSessions: typeof authSessions;
   backgroundPresets: typeof backgroundPresets;
+  battleWheelTool: typeof battleWheelTool;
   cardFrontPresets: typeof cardFrontPresets;
   cardbackPresets: typeof cardbackPresets;
   catalogueMaintenance: typeof catalogueMaintenance;

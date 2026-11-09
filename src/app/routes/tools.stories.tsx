@@ -1,10 +1,11 @@
 import preview from '@sb/preview';
-import { expect, within } from 'storybook/test';
+import { expect, waitFor, within } from 'storybook/test';
 
 import { DREAMRULES_DECK, FACTIONS, midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
 
 import { TOOLS } from './_app/tools/tools';
 import { savedGame, startGame } from './_tool/tools/atreides-treachery-tracker/standaloneGame';
+import { clearStoredWheel } from './_tool/tools/battle-wheel/battleWheel.stories.fixture';
 import { clearStoredGame } from './_tool/tools/spice-deck/spiceDeck.stories.fixture';
 import { expectWithinWidth } from './pagePlay';
 import { findTitledPage } from './site.stories.fixture';
@@ -114,5 +115,22 @@ export const SpiceDeck = meta.story({
       page.findByRole('heading', { level: 1, name: 'Spice deck' }, { timeout: 30_000 })
     ).resolves.toBeInTheDocument();
     await expect(page.findByText('Pick the deck your table plays with')).resolves.toBeVisible();
+  },
+});
+
+/** The battle wheel: at its own address, a first visit opens on picking the faction, with a search for any on Dune Zone. */
+export const BattleWheel = meta.story({
+  args: { path: '/tools/battle-wheel' },
+  /* A wheel left by another story would open that battle instead of the picker. */
+  beforeEach: clearStoredWheel,
+  globals: { viewport: { value: 'appMobile' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      page.findByRole('heading', { level: 1, name: 'Battle wheel' }, { timeout: 30_000 })
+    ).resolves.toBeInTheDocument();
+    await expect(page.findByText('Any faction on Dune Zone', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await expect(page.findByRole('searchbox', {}, { timeout: 30_000 })).resolves.toBeVisible();
+    await waitFor(() => expect(page.queryByText('Loading the factions…')).not.toBeInTheDocument(), { timeout: 30_000 });
   },
 });
