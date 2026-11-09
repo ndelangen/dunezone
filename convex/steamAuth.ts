@@ -28,6 +28,7 @@ export const signInSteamAccount = internalMutation({
     nonce: v.string(),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
+    lookup: v.string(),
   },
   returns: v.union(v.id('users'), v.null()),
   handler: async (ctx, args) => {
@@ -46,6 +47,13 @@ export const signInSteamAccount = internalMutation({
       .query('authAccounts')
       .withIndex('providerAndAccountId', (q) => q.eq('provider', 'steam').eq('providerAccountId', args.steamId))
       .unique();
+    const lookup = await ctx.db
+      .query('steam_profile_lookups')
+      .withIndex('by_steam_id', (q) => q.eq('steam_id', args.steamId))
+      .unique();
+    const outcome = { steam_id: args.steamId, outcome: args.lookup, checked_at: Date.now() };
+    await (lookup ? ctx.db.replace(lookup._id, outcome) : ctx.db.insert('steam_profile_lookups', outcome));
+
     const userData = { ...(args.name ? { name: args.name } : {}), ...(args.image ? { image: args.image } : {}) };
     const userId = await upsertLoginUser(ctx, account?.userId ?? null, userData);
     if (!account) {
