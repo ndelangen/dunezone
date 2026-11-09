@@ -89,8 +89,14 @@
   width: 100%;
 }
 
+/* The header and footer lay out by their own width: on the narrowest phones they make room, below. */
+.header,
+.footer {
+  container: tool-bar / inline-size;
+}
+
 /* The narrowest phones: less padding, so "Set aside" fits whole beside the turn button. */
-@media (max-width: 359px) {
+@container tool-bar (width < 360px) {
   /* Past the button's own padding rules, which set the padding by size and by its icon. */
   .actions .action[class] {
     padding-inline: var(--space-xs);
