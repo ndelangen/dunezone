@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, test } from 'vite-plus/test';
 
-import { TOOL_ART, toolHead, toolsIndexHead } from './toolHead';
+import { TOOL_ART, TOOL_LARGE_ART, toolHead, toolsIndexHead } from './toolHead';
 import { toolPath, TOOLS } from './tools';
 
 type Meta = Record<string, unknown>;
@@ -100,7 +100,14 @@ describe('a tool page head', () => {
     expect(contentOf(shared, 'og:image:height')).toBe('400');
     expect(contentOf(shared, 'twitter:image')).toBe('https://dune.zone/tools/example.webp');
     expect(graphOf(shared)[1].image).toBe('https://dune.zone/tools/example.webp');
-    const card = toolHead({ ...tool, art: undefined }, { description });
+    const large = toolHead(
+      { ...tool, art: '/tools/example.webp', largeArt: '/tools/example-large.webp' },
+      { description }
+    );
+    expect(contentOf(large, 'og:image')).toBe('https://dune.zone/tools/example-large.webp');
+    expect(contentOf(large, 'og:image:width')).toBe('1280');
+    expect(contentOf(large, 'og:image:height')).toBe('800');
+    const card = toolHead({ ...tool, art: undefined, largeArt: undefined }, { description });
     expect(String(contentOf(card, 'og:image'))).toContain('/social/image.png');
     expect(metaOf(card)).toContainEqual({ title: `${tool.title} · Tools · Dune Zone` });
   });
@@ -113,6 +120,17 @@ describe('tools registry', () => {
       expect(webpSize(readFileSync(join(publicFolder, tool.art!))), tool.slug).toEqual({
         width: TOOL_ART.width,
         height: TOOL_ART.height,
+      });
+    }
+  });
+
+  test('every large picture is a 1280 by 800 WebP beside its tile picture', () => {
+    for (const tool of TOOLS.filter((entry) => entry.largeArt)) {
+      expect(tool.art, tool.slug).toBeDefined();
+      expect(tool.largeArt).toMatch(/^\/tools\/[\w-]+-large\.webp$/);
+      expect(webpSize(readFileSync(join(publicFolder, tool.largeArt!))), tool.slug).toEqual({
+        width: TOOL_LARGE_ART.width,
+        height: TOOL_LARGE_ART.height,
       });
     }
   });

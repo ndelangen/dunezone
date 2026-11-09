@@ -12,6 +12,17 @@ import type { Tool, ToolSlug } from './tools';
 /** Every tool tile picture in public/tools is a WebP of this size; a test holds the files to it. */
 export const TOOL_ART = { type: 'image/webp', width: 640, height: 400 } as const;
 
+/** A tool's large copy of its picture, which its links share when it has one. */
+export const TOOL_LARGE_ART = { type: 'image/webp', width: 1280, height: 800 } as const;
+
+/* The picture a tool's links share: its large copy, else its tile picture. */
+function shareArt(tool: Tool) {
+  if (tool.largeArt) {
+    return { image: tool.largeArt, size: TOOL_LARGE_ART };
+  }
+  return tool.art ? { image: tool.art, size: TOOL_ART } : undefined;
+}
+
 /* The catalogue's one name, for its own title and for the breadcrumb on every tool page. */
 const CATALOGUE = { name: 'Tools for the Dune board game', pathname: '/tools' } as const;
 const KIND = 'Tools';
@@ -44,7 +55,7 @@ type ToolHeadOptions = {
 
 /**
  * A built tool's head, named by its registry title so the catalogue's list and the page agree.
- * The share picture is the tool's tile picture (`art` in the registry), and a tool without one shares a social card instead.
+ * The share picture is the tool's large picture (`largeArt`) or else its tile picture (`art`), and a tool without either shares a social card instead.
  * Public for the built tools' routes, which ship from their own branches.
  * @public
  */
@@ -57,13 +68,14 @@ export function toolPageHead(slug: ToolSlug, options: ToolHeadOptions) {
 
 /** `toolPageHead` for a tool in hand. */
 export function toolHead(tool: Tool, { description, match }: ToolHeadOptions) {
+  const art = shareArt(tool);
   return publicPageHead({
     name: tool.title,
     kind: KIND,
     pathname: toolPath(tool),
     description,
-    ...(tool.art
-      ? { image: tool.art, imageDetails: { alt: `${tool.title}: ${tool.goal}`, ...TOOL_ART } }
+    ...(art
+      ? { image: art.image, imageDetails: { alt: `${tool.title}: ${tool.goal}`, ...art.size } }
       : { social: { shape: 'portrait' as const } }),
     trail: [CATALOGUE],
     entity: { type: 'app' },
