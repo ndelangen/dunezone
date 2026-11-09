@@ -499,9 +499,8 @@ function Playing({
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
           <span className={styles.deckLine}>
-            <span className={styles.deckName}>
-              {game.deck.name} · {game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·
-            </span>
+            <span className={styles.deckName}>{game.deck.name} ·</span>
+            <span className={styles.left}>{game.draw.length + (flight?.mode === 'deal' ? 1 : 0)} left ·</span>
             <span className={styles.odds}>{Math.round(wormChance(game) * 100)}% Shai-Hulud</span>
           </span>
         </div>

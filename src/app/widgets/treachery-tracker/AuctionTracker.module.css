@@ -180,7 +180,8 @@
 
 .handRow {
   display: grid;
-  grid-template-columns: var(--glyph) minmax(0, 1fr) 28px;
+  /* The note button's own width: a phone's touch-sized button would spill past a fixed column, and the page pan sideways. */
+  grid-template-columns: var(--glyph) minmax(0, 1fr) auto;
   column-gap: var(--space-sm);
   row-gap: 4px;
   align-items: center;
