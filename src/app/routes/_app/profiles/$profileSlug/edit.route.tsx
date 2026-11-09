@@ -754,7 +754,7 @@ function LinkedAccountChoice({
   );
   const refused = option.name && !option.displayName ? ` “${option.name}” does not fit a display name.` : '';
   return (
-    <Group justify="space-between" wrap="nowrap" align="center">
+    <Group justify="space-between" align="center">
       <Group gap="sm" wrap="nowrap" align="center">
         <NameDisc name={option.name ?? from} src={option.image} size={44} />
         <Stack gap={2}>
@@ -936,9 +936,14 @@ function SignInMethods({
           <Stack gap="sm">
             <Group justify="space-between" align="center">
               {state.resync.kind === 'applied' ? (
-                <StatusBadge tone="positive" live>
-                  {appliedWords(state.resync.applied)}
-                </StatusBadge>
+                <Stack gap={4} align="flex-start">
+                  <StatusBadge tone="positive" live>
+                    {state.resync.applied.name || state.resync.applied.avatar
+                      ? `Updated from ${authProviderNames[state.resync.applied.provider]}`
+                      : 'Already up to date'}
+                  </StatusBadge>
+                  <Text size="sm">{appliedWords(state.resync.applied)}</Text>
+                </Stack>
               ) : state.resync.kind === 'nothing' ? (
                 <Text size="sm" role="status">
                   None of your sign-in methods has reported a name or picture yet. Sign in with one of them, then try
