@@ -200,7 +200,7 @@ function bestSupport(declaredTroops: readonly { face: WheelFace; count: number }
       best = next;
     }
   }
-  return best.reduce((held, candidate) => (betterSupport(candidate, held) ? candidate : held));
+  return best.reduce((held, candidate) => (betterSupport(candidate, held) ? candidate : held), best[0]!);
 }
 
 /** Advanced spice dialing: the offered spice supports the troops that make the dial strongest. */
