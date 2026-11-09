@@ -34,7 +34,8 @@ import type { VoiceCommand } from './useVoiceCommands';
  * The spice deck tool: a phone at a real table runs the spice deck, so nobody shuffles or sorts cards.
  * The spice piles are the buttons: a tap on a pile draws the top card off the deck, turns it over and lays it on that pile,
  * every card the same way, Shai-Hulud included. The tool never draws on by itself; the players decide what comes next
- * (Norbert, 2026-11-09). A Shai-Hulud the rules set aside lands on its pile first, then moves to the set-aside spot.
+ * (Norbert, 2026-11-09). The draw pile and the set-aside spot are off screen: cards fly in from above, and a Shai-Hulud
+ * the rules set aside lands on its pile first, then leaves to the side.
  */
 
 type ToolProps = Readonly<{
@@ -123,13 +124,20 @@ const pileName = (game: SpiceDeckGame, pile: number) =>
 
 const revealCount = (game: SpiceDeckGame) => game.blows.reduce((sum, blow) => sum + blow.reveals.length, 0);
 
-/** A card on its way from the deck to a pile, and on to the set-aside spot when the rules set it aside. */
+/** A card on its way from the deck to a pile, and off to the side when the rules set it aside. */
 type Flight = Readonly<{ key: number; pile: number; copy: string; toAside: boolean; reveal: Reveal }>;
 
 /* The flight's timing: off the deck, turned over on the way, laid on the pile; a set-aside card rests there before it moves on. */
-const FLIGHT_MS = 1400;
-const ASIDE_REST_MS = 700;
-const ASIDE_MS = 600;
+const FLIGHT_MS = 1500;
+const ASIDE_REST_MS = 500;
+const ASIDE_MS = 450;
+/* The moments in the flight, as fractions of it: in from above to the middle of the screen, a snap turn, a beat to read it, the slam. */
+const AT_CENTRE = 0.26;
+const TURNED = 0.4;
+const SLAM_START = 0.62;
+const IMPACT = 0.8;
+/* How much bigger than the pile the card shows in the middle of the screen. */
+const SHOWCASE = 1.55;
 
 function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame }>) {
   const motion = useMotionAllowed();
@@ -198,14 +206,15 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   const { listening } = useVoiceCommands(listen && canListen && !speech.speaking, onCommand);
 
   const over = spiceBlowOver(game);
-  const chance = Math.round(wormChance(game) * 100);
-  const asideShown = game.setAside.length - (flight?.toAside ? 1 : 0);
   return (
     <div className={styles.tool}>
       <header className={styles.header}>
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
-          <span className={styles.deckName}>{game.deck.name}</span>
+          <span className={styles.deckName}>
+            {game.deck.name} · {game.draw.length + (flight ? 1 : 0)} left · {Math.round(wormChance(game) * 100)}%
+            Shai-Hulud
+          </span>
         </div>
         <IconAction
           label="Take back"
@@ -243,7 +252,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
         <GameMenu session={session} game={game} />
       </header>
       <main className={styles.body}>
-        <Table game={game} flight={flight} asideShown={asideShown} chance={chance} onPile={turnOver} />
+        <Table game={game} flight={flight} onPile={turnOver} />
       </main>
       <footer className={styles.footer}>
         {over && nexus(game) ? (
@@ -276,61 +285,96 @@ function boxIn(table: HTMLElement, element: Element | null | undefined) {
 function Table({
   game,
   flight,
-  asideShown,
-  chance,
   onPile,
 }: Readonly<{
   game: SpiceDeckGame;
   flight: Flight | undefined;
-  asideShown: number;
-  chance: number;
   onPile: (pile: number) => void;
 }>) {
   const table = useRef<HTMLDivElement>(null);
-  const deck = useRef<HTMLDivElement>(null);
-  const aside = useRef<HTMLDivElement>(null);
   const piles = useRef<(HTMLButtonElement | null)[]>([]);
   const flyer = useRef<HTMLDivElement>(null);
+  const ring = useRef<HTMLDivElement>(null);
   const turnBlows = blowsOfTurn(game);
   const next = nextPile(game);
   const blocked = !canReveal(game);
 
-  /* The flying card: lifted off the deck, turned over on the way, laid on its pile; a set-aside card then moves on. */
+  /* The flying card: in from the deck above the screen, turned over big in the middle, slammed onto its pile; a set-aside card then leaves to the side. */
   useLayoutEffect(() => {
     const card = flyer.current;
     if (!flight || !card || !table.current) {
       return;
     }
-    const from = boxIn(table.current, deck.current?.querySelector('[data-card]'));
     const to = boxIn(table.current, piles.current[flight.pile]?.querySelector('[data-card]'));
-    const rest = boxIn(table.current, aside.current);
-    if (!from || !to) {
+    if (!to) {
       return;
     }
+    /* The draw pile is above the screen, the set-aside spot beyond its right edge. */
+    const outer = table.current.getBoundingClientRect();
+    const from = { x: to.x, y: -outer.top - to.h - 24, w: to.w };
+    const rest = { x: outer.width + 24, y: to.y, w: to.w };
     const at = (box: { x: number; y: number; w: number }, lift = 1) =>
       `translate(${box.x}px, ${box.y}px) scale(${(box.w / to.w) * lift})`;
     card.style.width = `${to.w}px`;
     card.style.height = `${to.h}px`;
-    const frames: Keyframe[] = [
-      { transform: at(from), offset: 0 },
-      { transform: at({ x: from.x + (to.x - from.x) * 0.15, y: from.y + 24, w: from.w }, 1.08), offset: 0.25 },
-      { transform: at({ x: (from.x + to.x) / 2, y: (from.y + to.y) / 2, w: (from.w + to.w) / 2 }, 1.12), offset: 0.55 },
-      { transform: at(to), offset: 1 },
-    ];
-    const travel = card.animate(frames, { duration: FLIGHT_MS, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+    const centre = {
+      x: (outer.width - to.w * SHOWCASE) / 2,
+      y: Math.max(8, window.innerHeight / 2 - outer.top - (to.h * SHOWCASE) / 2),
+      w: to.w * SHOWCASE,
+    };
+    /* In from above, held big for a beat, then slammed down onto the pile, overshooting into it and settling. */
+    const travel = card.animate(
+      [
+        { transform: at(from, 0.9), offset: 0, easing: 'cubic-bezier(.2,.8,.3,1)' },
+        { transform: at(centre), offset: AT_CENTRE },
+        { transform: at(centre, 1.04), offset: SLAM_START - 0.04, easing: 'ease-out' },
+        { transform: at(centre, 1.1), offset: SLAM_START, easing: 'cubic-bezier(.55,0,.9,.4)' },
+        { transform: at(to, 0.92), offset: IMPACT, easing: 'ease-out' },
+        { transform: at(to, 1.04), offset: IMPACT + 0.08, easing: 'ease-in-out' },
+        { transform: at(to), offset: 1 },
+      ],
+      { duration: FLIGHT_MS, fill: 'forwards' }
+    );
+    /* A snap turn with a little overshoot, as a card game deals a card face up. */
     const turn = card.querySelector('[data-turn]')!.animate(
       [
         { transform: 'rotateY(180deg)', offset: 0 },
-        { transform: 'rotateY(180deg)', offset: 0.25 },
-        { transform: 'rotateY(0deg)', offset: 0.7 },
+        { transform: 'rotateY(180deg)', offset: AT_CENTRE - 0.02, easing: 'cubic-bezier(.5,0,.2,1)' },
+        { transform: 'rotateY(-14deg)', offset: TURNED, easing: 'ease-out' },
+        { transform: 'rotateY(0deg)', offset: TURNED + 0.06 },
         { transform: 'rotateY(0deg)', offset: 1 },
       ],
-      { duration: FLIGHT_MS, easing: 'ease-in-out', fill: 'forwards' }
+      { duration: FLIGHT_MS, fill: 'forwards' }
     );
-    const moves = [travel, turn];
-    if (flight.toAside && rest) {
+    const impact = FLIGHT_MS * IMPACT;
+    /* The landing: a ring bursts from the pile and the pile jolts under the card. */
+    if (ring.current) {
+      ring.current.style.transform = `translate(${to.x}px, ${to.y}px)`;
+      ring.current.style.width = `${to.w}px`;
+      ring.current.style.height = `${to.h}px`;
+    }
+    const burst = ring.current?.animate(
+      [
+        { opacity: 0, scale: '0.9' },
+        { opacity: 0.9, scale: '1', offset: 0.1 },
+        { opacity: 0, scale: '1.45' },
+      ],
+      { duration: 520, delay: impact, easing: 'ease-out', fill: 'both' }
+    );
+    const jolt = piles.current[flight.pile]?.animate(
+      [
+        { translate: '0 0' },
+        { translate: '0 6px', offset: 0.2 },
+        { translate: '-3px -2px', offset: 0.45 },
+        { translate: '2px 1px', offset: 0.7 },
+        { translate: '0 0' },
+      ],
+      { duration: 340, delay: impact }
+    );
+    const moves = [travel, turn, ...(burst ? [burst] : []), ...(jolt ? [jolt] : [])];
+    if (flight.toAside) {
       moves.push(
-        card.animate([{ transform: at(to) }, { transform: at({ ...rest, w: rest.w }) }], {
+        card.animate([{ transform: at(to) }, { transform: at(rest) }], {
           duration: ASIDE_MS,
           delay: FLIGHT_MS + ASIDE_REST_MS,
           easing: 'ease-in-out',
@@ -343,18 +387,6 @@ function Table({
 
   return (
     <div ref={table} className={styles.table}>
-      <div className={styles.deckRow}>
-        <div ref={deck} className={styles.deck}>
-          <CardFace game={game} back />
-          <span className={styles.caption}>
-            {game.draw.length + (flight ? 1 : 0)} left · {chance}% Shai-Hulud
-          </span>
-        </div>
-        <div ref={aside} className={styles.aside} data-empty={asideShown === 0 || undefined}>
-          {asideShown > 0 ? <CardFace game={game} copy={game.setAside[asideShown - 1]} /> : null}
-          <span className={styles.caption}>{asideShown > 0 ? `Set aside · ${asideShown}` : 'Set aside'}</span>
-        </div>
-      </div>
       <div className={styles.pileRow} data-piles={Math.min(game.piles, 3)}>
         {game.discards.map((pile, index) => {
           const landing = flight?.pile === index && !flight.toAside;
@@ -381,6 +413,9 @@ function Table({
           );
         })}
       </div>
+      {flight ? (
+        <div key={`ring-${flight.key}`} ref={ring} className={styles.ring} data-kind={flight.reveal.kind} />
+      ) : null}
       {flight ? (
         <div key={flight.key} ref={flyer} className={styles.flyer} aria-hidden>
           <div className={styles.flyerTurn} data-turn>
