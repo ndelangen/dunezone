@@ -199,3 +199,43 @@ test('lists the decks it can count within a query’s reads, a Ruleset’s deck 
   expect(decks[0]).toMatchObject({ id: slotted, cards: 45, rulesets: [{ slug: 'dreamrules', name: 'Dreamrules' }] });
   expect(decks.every((deck) => deck.cards === 45)).toBe(true);
 }, 60_000);
+
+test('reads on past a card’s first share of the reads, so a live deck behind many deleted ones is found in a large catalogue', async () => {
+  const t = applicationTest({ transactionLimits: true });
+  await t.run(async (ctx) => {
+    const owner = await ctx.db.insert('users', { account_state: 'active', name: 'Author', isAdmin: false });
+    const asset = (type: string, slug: string, data: unknown, is_deleted = false) =>
+      ctx.db.insert('assets', {
+        owner_id: owner,
+        type,
+        data,
+        slug,
+        created_at: stamp,
+        updated_at: stamp,
+        is_deleted,
+        group_id: null,
+      });
+    /* Enough cards that each one's first share of the reads is 50 rows. */
+    const cards = [];
+    for (let index = 0; index < 200; index++) {
+      cards.push(await asset('card-treachery', `card-${index}`, publishingTreacheryCard));
+    }
+    for (let index = 0; index <= 60; index++) {
+      const name = index === 60 ? 'Live Deck' : `Old Deck ${index}`;
+      const deck = await asset(
+        'deck',
+        `deck-${index}`,
+        { name, about: '', cardback: publishingCustomDeckCardback },
+        index < 60
+      );
+      await ctx.db.insert('asset_relations', {
+        from_asset_id: deck,
+        to_asset_id: cards[0],
+        kind: 'deck-card',
+        count: 1,
+      });
+    }
+  });
+  const decks = await t.query(api.treacheryTrackerTool.decks, {});
+  expect(decks.map((deck) => deck.name)).toEqual(['Live Deck']);
+}, 60_000);

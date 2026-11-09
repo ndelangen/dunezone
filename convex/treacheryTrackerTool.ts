@@ -80,24 +80,35 @@ async function decksWithTreachery(ctx: QueryCtx, budget: Budget) {
   const known = new Map<Id<'assets'>, Doc<'assets'> | null>(cards.map((card) => [card._id, card]));
   const found: Id<'assets'>[] = [];
   let findLeft = Math.min(FIND_BUDGET, budget.left);
-  for (let start = 0; start < cards.length; start += READS_AT_ONCE) {
-    const batch = cards.slice(start, start + READS_AT_ONCE);
-    const each = Math.min(DECKS_PER_CARD, Math.floor(findLeft / batch.length));
+  /* Each card's reading so far: how many rows, and the last one's time, to read on from. */
+  let pending = cards.map((card) => ({ card, read: 0, after: undefined as number | undefined }));
+  /* Rounds, each sharing what is left among the cards not read to the end, so a card cut short in one round is read on in the next. */
+  while (pending.length > 0) {
+    const each = Math.floor(findLeft / pending.length);
     if (each < 1) {
       break;
     }
-    const memberships = await Promise.all(
-      batch.map((card) =>
-        ctx.db
-          .query('asset_relations')
-          .withIndex('by_to_kind', (q) => q.eq('to_asset_id', card._id).eq('kind', DECK_CARD))
-          .take(each)
-      )
+    const slices = await inBatches(pending, ({ card, read, after }) =>
+      ctx.db
+        .query('asset_relations')
+        .withIndex('by_to_kind', (q) => {
+          const rows = q.eq('to_asset_id', card._id).eq('kind', DECK_CARD);
+          return after === undefined ? rows : rows.gt('_creationTime', after);
+        })
+        .take(Math.min(each, DECKS_PER_CARD - read))
     );
-    const read = memberships.flat();
-    findLeft -= read.length;
-    budget.left -= read.length;
-    found.push(...read.map((membership) => membership.from_asset_id));
+    const next = [];
+    for (const [index, slice] of slices.entries()) {
+      const reading = pending[index];
+      findLeft -= slice.length;
+      budget.left -= slice.length;
+      found.push(...slice.map((membership) => membership.from_asset_id));
+      const read = reading.read + slice.length;
+      if (slice.length === Math.min(each, DECKS_PER_CARD - reading.read) && read < DECKS_PER_CARD) {
+        next.push({ card: reading.card, read, after: slice.at(-1)?._creationTime });
+      }
+    }
+    pending = next;
   }
   return { found, known };
 }
