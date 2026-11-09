@@ -102,14 +102,18 @@
   color: var(--ui-muted);
 }
 
+/* Two lines, so a phone shows "House Atreides" whole rather than "House At…"; only a longer name is cut. */
 .choiceName {
+  display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
   font-size: 12px;
   line-height: 1.2;
   text-align: center;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .turns {
