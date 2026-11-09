@@ -15,7 +15,7 @@ const cards = decks.spice.cards.map((card) => ({
 }));
 
 /** The Dreamrules Spice deck as dune.zone publishes it: the base game's cards, Shai-Hulud ×6 and five spice mines. */
-export const DREAMRULES_SPICE: SpiceDeckDef = {
+const DREAMRULES_SPICE: SpiceDeckDef = {
   id: decks.spice.id,
   name: decks.spice.name,
   ruleset: 'Dreamrules',
