@@ -1,10 +1,10 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, test } from 'vite-plus/test';
 
-import { TOOL_ART, toolHead, toolPageHead, toolsIndexHead } from './toolHead';
+import { TOOL_ART, toolHead, toolsIndexHead } from './toolHead';
 import { toolPath, TOOLS } from './tools';
 
 type Meta = Record<string, unknown>;
@@ -16,7 +16,6 @@ const graphOf = (head: { meta?: unknown[] }) =>
     '@graph'
   ] ?? [];
 
-const here = fileURLToPath(new URL('.', import.meta.url));
 const publicFolder = fileURLToPath(new URL('../../../../../public', import.meta.url));
 
 /** Width and height from a WebP's header: lossy (VP8), lossless (VP8L) or extended (VP8X). */
@@ -38,19 +37,10 @@ function webpSize(bytes: Buffer): { width: number; height: number } | null {
   }
 }
 
-function sourcesBelow(folder: string): string[] {
-  return readdirSync(folder, { withFileTypes: true }).flatMap((entry) =>
-    entry.isDirectory()
-      ? sourcesBelow(join(folder, entry.name))
-      : /\.tsx?$/.test(entry.name) && !/\.(test|stories)\./.test(entry.name)
-        ? [readFileSync(join(folder, entry.name), 'utf8')]
-        : []
-  );
-}
-
 describe('tools catalogue head', () => {
   test('lists the built tools for search, under a breadcrumb back home', () => {
-    const graph = graphOf(toolsIndexHead());
+    const [built, planned] = TOOLS;
+    const graph = graphOf(toolsIndexHead([{ ...built, built: true }, planned]));
     expect(graph[0]).toMatchObject({
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -58,11 +48,14 @@ describe('tools catalogue head', () => {
         { name: 'Tools for the Dune board game', item: 'https://dune.zone/tools' },
       ],
     });
-    const listed = (graph[1] as { mainEntity?: { itemListElement: Meta[] } }).mainEntity?.itemListElement ?? [];
-    expect(graph[1]).toMatchObject({ '@type': 'CollectionPage', url: 'https://dune.zone/tools' });
-    expect(listed.map((item) => item.url)).toEqual(
-      TOOLS.filter((tool) => tool.built).map((tool) => `https://dune.zone${toolPath(tool)}`)
-    );
+    expect(graph[1]).toMatchObject({
+      '@type': 'CollectionPage',
+      url: 'https://dune.zone/tools',
+      mainEntity: {
+        '@type': 'ItemList',
+        itemListElement: [{ position: 1, name: built.title, url: `https://dune.zone${toolPath(built)}` }],
+      },
+    });
   });
 
   test('has a canonical address and a description that fits a search result', () => {
@@ -78,13 +71,17 @@ describe('a tool page head', () => {
   const description = 'Draw the spice deck for your game of Dune on a phone.';
 
   test('is a free web app below the catalogue, at its own canonical address', () => {
-    const head = toolPageHead(tool.slug, { description });
+    const head = toolHead(tool, { description });
     expect(head.links).toEqual([{ rel: 'canonical', href: `https://dune.zone${toolPath(tool)}` }]);
     expect(metaOf(head)).toContainEqual({ title: `${tool.title} · Tools · Dune Zone` });
     expect(contentOf(head, 'description')).toBe(description);
     expect(contentOf(head, 'robots')).toBeUndefined();
     const [trail, app] = graphOf(head);
-    expect((trail.itemListElement as Meta[]).map((crumb) => crumb.name)).toEqual(['Dune Zone', 'Tools', tool.title]);
+    expect((trail.itemListElement as Meta[]).map((crumb) => crumb.name)).toEqual([
+      'Dune Zone',
+      'Tools for the Dune board game',
+      tool.title,
+    ]);
     expect(app).toMatchObject({
       '@type': 'WebApplication',
       name: tool.title,
@@ -103,29 +100,20 @@ describe('a tool page head', () => {
     expect(contentOf(shared, 'og:image:height')).toBe('400');
     expect(contentOf(shared, 'twitter:image')).toBe('https://dune.zone/tools/example.webp');
     expect(graphOf(shared)[1].image).toBe('https://dune.zone/tools/example.webp');
-    const card = toolHead({ ...tool, art: undefined }, { description, name: 'Spice deck' });
+    const card = toolHead({ ...tool, art: undefined }, { description });
     expect(String(contentOf(card, 'og:image'))).toContain('/social/image.png');
-    expect(metaOf(card)).toContainEqual({ title: 'Spice deck · Tools · Dune Zone' });
-  });
-
-  test('refuses a slug the registry does not know', () => {
-    expect(() => toolPageHead('no-such-tool', { description })).toThrow();
+    expect(metaOf(card)).toContainEqual({ title: `${tool.title} · Tools · Dune Zone` });
   });
 });
 
 describe('tools registry', () => {
-  test.each(TOOLS.filter((tool) => tool.art))('$title has its tile picture as a 640 by 400 WebP', (tool) => {
-    expect(tool.art).toMatch(/^\/tools\/[\w-]+\.webp$/);
-    expect(webpSize(readFileSync(join(publicFolder, tool.art!)))).toEqual({
-      width: TOOL_ART.width,
-      height: TOOL_ART.height,
-    });
-  });
-
-  test('every built tool names itself for search through toolPageHead', () => {
-    const sources = sourcesBelow(here).join('\n');
-    for (const tool of TOOLS.filter((entry) => entry.built)) {
-      expect(sources).toMatch(new RegExp(`toolPageHead\\(\\s*'${tool.slug}'`));
+  test('every tile picture is a 640 by 400 WebP', () => {
+    for (const tool of TOOLS.filter((entry) => entry.art)) {
+      expect(tool.art).toMatch(/^\/tools\/[\w-]+\.webp$/);
+      expect(webpSize(readFileSync(join(publicFolder, tool.art!))), tool.slug).toEqual({
+        width: TOOL_ART.width,
+        height: TOOL_ART.height,
+      });
     }
   });
 });

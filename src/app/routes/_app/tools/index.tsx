@@ -18,7 +18,7 @@ import { TOOL_GROUPS, TOOLS } from './tools';
  */
 export const Route = createFileRoute('/_app/tools/')({
   ssr: true,
-  head: toolsIndexHead,
+  head: () => toolsIndexHead(),
   component: ToolsPage,
 });
 

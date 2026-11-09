@@ -57,7 +57,7 @@ export type Tool = Readonly<{
   built?: true;
 }>;
 
-export const TOOLS: readonly Tool[] = [
+const TOOL_ENTRIES = [
   {
     slug: 'faction-draft',
     title: 'Faction draft',
@@ -199,7 +199,12 @@ export const TOOLS: readonly Tool[] = [
       { icon: Printer, title: 'Home printer', detail: 'A4 or Letter, as a PDF.' },
     ],
   },
-];
+] as const satisfies readonly Tool[];
+
+/** A slug the registry knows, so a route naming a renamed or misspelt tool fails to compile. */
+export type ToolSlug = (typeof TOOL_ENTRIES)[number]['slug'];
+
+export const TOOLS: readonly Tool[] = TOOL_ENTRIES;
 
 export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);
