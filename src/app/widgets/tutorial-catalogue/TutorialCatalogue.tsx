@@ -37,10 +37,8 @@ type CatalogueTile = Readonly<{
   art?: string;
   /** What fills the picture frame while there is no picture yet, such as a tool's mark. */
   placeholder?: ReactNode;
-  /** Where the tile opens. */
+  /** Where the tile opens; `target: '_blank'` opens it in a tab of its own, as a built tool does from the tools catalogue. */
   link?: LinkProps;
-  /** Whether the link opens in a tab of its own, as a built tool does from the tools catalogue. */
-  newTab?: boolean;
   /** Whether it is ready; by default a tile with a link is, and one without is coming soon. A tool not yet built still opens its placeholder page. */
   built?: boolean;
 }>;
@@ -62,6 +60,7 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
 function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
   const titleId = useId();
   const built = tile.built ?? tile.link !== undefined;
+  const newTab = tile.link?.target === '_blank';
   const title = (
     <>
       {tile.number === undefined ? null : (
@@ -99,18 +98,15 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
               {tile.number}
             </span>
           )}
-          <Text id={titleId} fw={700} lh={1.3}>
+          <Text fw={700} lh={1.3}>
             {tile.link ? (
-              <Link
-                {...tile.link}
-                className={styles.open}
-                {...(tile.newTab ? { target: '_blank', rel: 'noopener' } : {})}
-              >
-                {title}
-                {tile.newTab ? <VisuallyHidden component="span"> (opens in a new tab)</VisuallyHidden> : null}
+              /* A new tab is a fresh document, so preloading the page here would be thrown away. */
+              <Link {...tile.link} className={styles.open} {...(newTab ? { rel: 'noopener', preload: false } : {})}>
+                <span id={titleId}>{title}</span>
+                {newTab ? <VisuallyHidden component="span"> (opens in a new tab)</VisuallyHidden> : null}
               </Link>
             ) : (
-              title
+              <span id={titleId}>{title}</span>
             )}
           </Text>
           <Text size="sm" c="dimmed" lh={1.35}>

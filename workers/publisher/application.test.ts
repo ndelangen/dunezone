@@ -45,6 +45,7 @@ describe('anonymous application dispatch', () => {
     '/tools',
     '/tools/spice-deck',
     '/tools/missing',
+    '/tools/spice-deck/extra',
   ])('renders %s without visitor credentials', async (pathname) => {
     const render = vi.fn(async (request: Request) => {
       expect(request.headers.get('Accept')).toBe('text/html');
@@ -97,7 +98,6 @@ describe('anonymous application dispatch', () => {
     '/tutorial/create/create-a-faction.webp',
     '/tutorial/welcome/extra',
     '/tools/spice-deck.webp',
-    '/tools/spice-deck/extra',
     '/auth/login',
     '/factions/%',
     '/factions/a%2Fedit',
