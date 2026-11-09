@@ -113,3 +113,9 @@
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
+
+/* A tool has no number, so its title and line take the whole width. */
+.words.unnumbered {
+  grid-template-columns: minmax(0, 1fr);
+  padding-inline-start: var(--space-md);
+}

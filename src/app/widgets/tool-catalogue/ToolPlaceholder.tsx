@@ -11,7 +11,7 @@ import { Surface } from '@ui/surface';
 import { ExternalLink, MessageCirclePlus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-import styles from './ToolCatalogue.module.css';
+import styles from './ToolSuggestion.module.css';
 
 /**
  * A planned tool's page until the tool is built: its name, what it will do and who it is for, and where to follow or shape it.

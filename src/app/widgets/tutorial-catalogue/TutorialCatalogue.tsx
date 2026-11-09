@@ -12,6 +12,7 @@ import { Toolbar } from '@ui/surface/Toolbar';
 import clsx from 'clsx';
 import { Clock } from 'lucide-react';
 import { useId } from 'react';
+import type { ReactNode } from 'react';
 
 import styles from './TutorialCatalogue.module.css';
 
@@ -22,17 +23,20 @@ import styles from './TutorialCatalogue.module.css';
  * Playing Dune and Creating content are two catalogues on their own routes, and the page toolbar moves between them (Norbert, 2026-11-01).
  */
 
-/** One tile, whichever catalogue it belongs to. */
+/** One tile, whichever catalogue it belongs to. The tools catalogue at /tools wears the same tiles (Norbert, 2026-11-09), without numbers or minutes. */
 type CatalogueTile = Readonly<{
   slug: string;
-  number: number;
+  /** The tutorial's place on the path; tools have none, since they are not read in order. */
+  number?: number;
   title: string;
   /** What a reader can do once the tutorial is done, in one line. */
   goal: string;
-  minutes: number;
+  minutes?: number;
   art: string;
-  /** Where the tile opens; a tile without one is coming soon. */
+  /** Where the tile opens. */
   link?: LinkProps;
+  /** Whether it is ready; by default a tile with a link is, and one without is coming soon. A tool not yet built still opens its placeholder page. */
+  built?: boolean;
 }>;
 
 export type CatalogueRow = Readonly<{ part: string; tiles: readonly CatalogueTile[] }>;
@@ -51,9 +55,12 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
  */
 function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
   const titleId = useId();
+  const built = tile.built ?? tile.link !== undefined;
   const title = (
     <>
-      <VisuallyHidden component="span">{`Chapter ${tile.number}: `}</VisuallyHidden>
+      {tile.number === undefined ? null : (
+        <VisuallyHidden component="span">{`Chapter ${tile.number}: `}</VisuallyHidden>
+      )}
       {tile.title}
     </>
   );
@@ -68,14 +75,18 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
         <div className={styles.art}>
           <img src={tile.art} alt="" loading={eager ? undefined : 'lazy'} />
           <span className={styles.chips}>
-            {tile.link ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
-            <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${tile.minutes} min`}</StatusBadge>
+            {built ? null : <StatusBadge tone="pending">Coming soon</StatusBadge>}
+            {tile.minutes === undefined ? null : (
+              <StatusBadge icon={<Clock size={12} aria-hidden />}>{`${tile.minutes} min`}</StatusBadge>
+            )}
           </span>
         </div>
-        <div className={styles.words}>
-          <span className={styles.number} aria-hidden>
-            {tile.number}
-          </span>
+        <div className={clsx(styles.words, tile.number === undefined && styles.unnumbered)}>
+          {tile.number === undefined ? null : (
+            <span className={styles.number} aria-hidden>
+              {tile.number}
+            </span>
+          )}
           <Text id={titleId} fw={700} lh={1.3}>
             {tile.link ? (
               <Link {...tile.link} className={styles.open}>
@@ -119,11 +130,19 @@ function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
     <Stack gap="xl">
       {rows.map((row, index) => (
         <Section key={row.part} title={row.part}>
-          <ol className={styles.row} aria-label={row.part} start={row.tiles[0]!.number}>
-            {row.tiles.map((tile) => (
-              <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
-            ))}
-          </ol>
+          {row.tiles[0]?.number === undefined ? (
+            <ul className={styles.row} aria-label={row.part}>
+              {row.tiles.map((tile) => (
+                <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
+              ))}
+            </ul>
+          ) : (
+            <ol className={styles.row} aria-label={row.part} start={row.tiles[0].number}>
+              {row.tiles.map((tile) => (
+                <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
+              ))}
+            </ol>
+          )}
         </Section>
       ))}
     </Stack>
@@ -140,13 +159,17 @@ export function TutorialCatalogue({
   subtitle,
   lede,
   rows,
+  footer,
 }: Readonly<{
-  track: CatalogueTrack;
+  /** The tutorial track, whose toolbar moves between the two; the tools catalogue has none. */
+  track?: CatalogueTrack;
   /** The page's name, its framed subtitle and its one-sentence purpose, as `PageTitle` takes them. */
   title: string;
   subtitle: string;
   lede: string;
   rows: readonly CatalogueRow[];
+  /** Anything after the rows, such as the tools catalogue's request for the next tool. */
+  footer?: ReactNode;
 }>) {
   return (
     <PageLayout>
@@ -155,11 +178,16 @@ export function TutorialCatalogue({
           <PageTitle title={title} subtitle={subtitle} lede={lede} />
         </Stack>
       </PageLayout.Header>
-      <PageLayout.Toolbar>
-        <TutorialTracks track={track} />
-      </PageLayout.Toolbar>
+      {track === undefined ? null : (
+        <PageLayout.Toolbar>
+          <TutorialTracks track={track} />
+        </PageLayout.Toolbar>
+      )}
       <PageLayout.Content>
-        <TutorialRows rows={rows} />
+        <Stack gap="xl">
+          <TutorialRows rows={rows} />
+          {footer}
+        </Stack>
       </PageLayout.Content>
     </PageLayout>
   );

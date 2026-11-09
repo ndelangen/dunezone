@@ -1,0 +1,12 @@
+/* The request for the next tool, under the tools catalogue and on a planned tool's page. */
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md) var(--space-lg);
+}
+
+.suggestWords {
+  flex: 1 1 16rem;
+  min-width: 0;
+}

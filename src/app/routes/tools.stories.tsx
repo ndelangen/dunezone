@@ -12,7 +12,7 @@ const meta = preview.meta({
   args: { path: '/tools' },
 });
 
-/** Every tool as a tile in rows by when a table reaches for it; a tool not yet built says coming soon and opens its placeholder page. */
+/** Every tool as a tutorial-style tile in rows by when a table reaches for it; a tool not yet built says coming soon and opens its placeholder page. */
 export const Catalogue = meta.story({
   play: async ({ canvasElement }) => {
     const page = await findTitledPage(canvasElement, /^Tools$/);
@@ -20,6 +20,7 @@ export const Catalogue = meta.story({
     await expect(page.getByRole('list', { name: 'During the game' })).toBeVisible();
     await expect(page.getByRole('list', { name: 'Make and export' })).toBeVisible();
     await expect(page.getAllByRole('listitem')).toHaveLength(TOOLS.length);
+    await expect(page.getAllByText('Coming soon')).toHaveLength(TOOLS.filter((tool) => !tool.page).length);
     await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute(
       'href',
       '/tools/atreides-treachery-tracker'
