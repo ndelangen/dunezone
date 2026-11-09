@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { expect } from 'storybook/test';
+import { expect, waitFor } from 'storybook/test';
 
 import { playingSnapshot, swappingSnapshot } from '../../product.stories.fixture';
 import {
@@ -88,6 +88,8 @@ export const KeepsATreacheryTracker = meta.story({
   args: treacheryTrackerArgs(),
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Setup' }));
-    await expect(await canvas.findByText(TREACHERY_TRACKER_RULE)).toBeVisible();
+    /* The Setup section opens with a transition, so its text is in the document a moment before it shows. */
+    const rule = await canvas.findByText(TREACHERY_TRACKER_RULE);
+    await waitFor(() => expect(rule).toBeVisible());
   },
 });
