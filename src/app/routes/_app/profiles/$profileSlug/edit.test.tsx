@@ -20,6 +20,8 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   disconnectMethod: vi.fn(),
   signOutEverywhere: vi.fn(),
+  resyncLinked: vi.fn(),
+  applyLinked: vi.fn(),
   mutate: vi.fn(),
   useSessionViewer: vi.fn(),
   useProfileSettings: vi.fn(),
@@ -80,6 +82,8 @@ vi.mock('@db/accounts', async (importOriginal) => ({
   useBeginAuthConnection: () => mocks.beginConnection,
   useDisconnectAuthMethod: () => mocks.disconnectMethod,
   useSignOutEverywhere: () => mocks.signOutEverywhere,
+  useResyncLinkedAccounts: () => mocks.resyncLinked,
+  useApplyLinkedAccount: () => mocks.applyLinked,
 }));
 
 import { Route } from './edit.route';
@@ -153,6 +157,8 @@ beforeEach(() => {
   mocks.signOut.mockReset().mockResolvedValue(undefined);
   mocks.disconnectMethod.mockReset().mockResolvedValue(undefined);
   mocks.signOutEverywhere.mockReset().mockResolvedValue(null);
+  mocks.resyncLinked.mockReset();
+  mocks.applyLinked.mockReset();
   mocks.mutate.mockReset();
   mocks.useSessionViewer.mockReset();
   mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile });
@@ -306,6 +312,167 @@ describe('profile settings page', () => {
     const view = await mountPage();
     expect((await view.findByRole('tab', { name: 'Sign-in methods' })).getAttribute('aria-selected')).toBe('true');
     expect(view.getByRole('button', { name: 'Connect Discord' })).not.toBeNull();
+  });
+
+  describe('name and picture from a sign-in method', () => {
+    const googleOption = {
+      provider: 'google',
+      name: 'Norbert de Langen',
+      displayName: 'NorbertdeLangen',
+      image: 'https://lh3.example/photo.jpg',
+      syncedAt: 1,
+    };
+    const discordOption = {
+      provider: 'discord',
+      name: 'Bo',
+      displayName: null,
+      image: 'https://cdn.discordapp.com/a.png',
+      syncedAt: 1,
+    };
+    const applied = (provider: 'google' | 'discord', slug = 'owner-profile') => ({
+      provider,
+      name: true,
+      avatar: true,
+      profile: {
+        username: 'NorbertdeLangen',
+        avatar_url: 'https://lh3.example/photo.jpg',
+        bgg_profile_url: null,
+        default_group_id: null,
+        slug,
+      },
+    });
+    const bothConnected = () =>
+      mocks.useProfileSettings.mockReturnValue({
+        data: {
+          default_group_id: null,
+          default_group_options: [],
+          account: {
+            methods: [
+              { provider: 'google', connected: true, available: true },
+              { provider: 'discord', connected: true, available: true },
+              { provider: 'steam', connected: false, available: true },
+            ],
+            merging: false,
+          },
+        },
+      });
+    const resyncFromToolbar = async (view: Awaited<ReturnType<typeof renderPage>>) => {
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Resync name and picture' }));
+      });
+    };
+
+    it('opens the Sign-in methods tab, applies the one method at once, and the form takes the result', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'applied', applied: applied('google'), options: [googleOption] });
+      const view = await renderPage();
+      expect(view.getByRole('tab', { name: 'Profile' }).getAttribute('aria-selected')).toBe('true');
+      await resyncFromToolbar(view);
+      expect(mocks.resyncLinked).toHaveBeenCalledWith({});
+      expect(view.getByRole('tab', { name: 'Sign-in methods' }).getAttribute('aria-selected')).toBe('true');
+      /* The resync is done: one line says what was taken, and the rows offer nothing. */
+      expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
+      expect(view.queryByText('Norbert de Langen')).toBeNull();
+      expect(view.queryByRole('button', { name: 'Take Google name and picture' })).toBeNull();
+      await chooseTab(view, 'Profile');
+      expect((view.getByRole('textbox', { name: 'Display name' }) as HTMLInputElement).value).toBe('NorbertdeLangen');
+      expect((view.getByRole('textbox', { name: 'Avatar image URL' }) as HTMLInputElement).value).toBe(
+        'https://lh3.example/photo.jpg'
+      );
+      expect(mocks.navigate).not.toHaveBeenCalled();
+    });
+
+    it('follows the profile to its new address when the name changed it, keeping the tab', async () => {
+      mocks.resyncLinked.mockResolvedValue({
+        kind: 'applied',
+        applied: applied('google', 'norbertdelangen'),
+        options: [googleOption],
+      });
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      expect(mocks.navigate).not.toHaveBeenCalled();
+      /* The live profile learns of the rename; the address still names the old one. */
+      mocks.useSessionViewer.mockReturnValue({ kind: 'profile', profile: { ...profile, slug: 'norbertdelangen' } });
+      await act(async () => {
+        view.rerender(
+          <MantineProvider theme={appContentTheme}>
+            <ProfilePage />
+          </MantineProvider>
+        );
+      });
+      expect(mocks.navigate).toHaveBeenCalledWith({
+        to: '/profiles/$profileSlug/edit',
+        params: { profileSlug: 'norbertdelangen' },
+        search: true,
+        replace: true,
+      });
+      expect(view.queryByText('This is not your profile')).toBeNull();
+      /* The editor stays as it was: on the Sign-in methods tab, still saying what Google gave. */
+      expect(view.getByRole('tab', { name: 'Sign-in methods' }).getAttribute('aria-selected')).toBe('true');
+      expect(view.getByText('Name and picture updated from Google.')).not.toBeNull();
+    });
+
+    it('leaves an unsaved edit to another field alone when a method is applied', async () => {
+      mocks.resyncLinked.mockResolvedValue({ kind: 'applied', applied: applied('google'), options: [googleOption] });
+      const view = await renderPage();
+      fireEvent.change(view.getByRole('textbox', { name: 'BoardGameGeek profile URL' }), {
+        target: { value: 'https://boardgamegeek.com/user/norbert' },
+      });
+      await resyncFromToolbar(view);
+      await chooseTab(view, 'Profile');
+      expect((view.getByRole('textbox', { name: 'Display name' }) as HTMLInputElement).value).toBe('NorbertdeLangen');
+      expect((view.getByRole('textbox', { name: 'BoardGameGeek profile URL' }) as HTMLInputElement).value).toBe(
+        'https://boardgamegeek.com/user/norbert'
+      );
+      /* The edit is still unsaved, so Save stays available. */
+      expect((view.getByRole('button', { name: 'Save profile' }) as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('shows each method\u2019s offer on its row when several report something, and takes the chosen one', async () => {
+      bothConnected();
+      mocks.resyncLinked.mockResolvedValue({ kind: 'choose', options: [googleOption, discordOption] });
+      mocks.applyLinked.mockResolvedValue({ ...applied('discord'), name: false });
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      expect(view.getByText('Takes the name NorbertdeLangen and picture.')).not.toBeNull();
+      expect(view.getByText(/“Bo” does not fit a display name/)).not.toBeNull();
+      expect(view.getByRole('button', { name: 'Take Google name and picture' })).not.toBeNull();
+      await act(async () => {
+        fireEvent.click(view.getByRole('button', { name: 'Take Discord name and picture' }));
+      });
+      expect(mocks.applyLinked).toHaveBeenCalledWith({ provider: 'discord' });
+      expect(view.getByText(/Picture updated from Discord/)).not.toBeNull();
+      /* Taking one ends the choice: the offers leave every row. */
+      expect(view.queryByRole('button', { name: 'Take Google name and picture' })).toBeNull();
+      expect(view.queryByRole('button', { name: 'Take Discord name and picture' })).toBeNull();
+      expect(view.queryByText('Takes the name NorbertdeLangen and picture.')).toBeNull();
+    });
+
+    it('says on each row when no method has reported anything yet', async () => {
+      bothConnected();
+      mocks.resyncLinked.mockResolvedValue({
+        kind: 'nothing',
+        options: [
+          { ...googleOption, name: null, displayName: null, image: null, syncedAt: null },
+          { ...discordOption, name: null, image: null, syncedAt: null },
+        ],
+      });
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      expect(view.getAllByText(/Nothing reported yet/)).toHaveLength(2);
+      expect(view.getByRole('button', { name: 'Take Google name and picture' }).getAttribute('aria-disabled')).toBe(
+        'true'
+      );
+    });
+
+    it('shows a failed resync as an error on the tab', async () => {
+      mocks.resyncLinked.mockRejectedValue(new Error('Steam did not answer.'));
+      const view = await renderPage();
+      await resyncFromToolbar(view);
+      const alert = view.getByRole('alert');
+      expect(alert.textContent).toContain('Name and picture could not be updated');
+      expect(alert.textContent).toContain('Steam did not answer.');
+      expect(view.getByRole('button', { name: 'Resync name and picture' })).toHaveProperty('disabled', false);
+    });
   });
 
   it('offers to sign in again when connecting a method needs a recent sign-in', async () => {
