@@ -47,6 +47,8 @@ export type SpiceDeckGame = Readonly<{
   deck: SpiceDeckDef;
   /** Discard piles, and so blows, per turn: the rulebook's A and B, or as many as the table plays with. */
   piles: number;
+  /** How many cards a peek shows. */
+  peek: number;
   turn: number;
   /** The pile a card was last turned onto. */
   pile: number;
@@ -85,15 +87,19 @@ function shuffled<T>(items: readonly T[], random: Random): T[] {
   return out;
 }
 
-export type SpiceRules = Readonly<{ piles: number }>;
+export type SpiceRules = Readonly<{ piles: number; peek?: number }>;
+
+/** The most cards a peek can show. */
+export const MOST_PEEK = 5;
 
 export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 1 }): SpiceDeckGame {
-  const { piles } = rules;
+  const { piles, peek = 1 } = rules;
   const copies = deck.cards.flatMap((card) => Array.from({ length: card.count }, (_, n) => `${card.key}#${n + 1}`));
   return {
     version: 1,
     deck,
     piles,
+    peek,
     turn: 1,
     pile: 0,
     draw: shuffled(copies, random),
@@ -233,6 +239,9 @@ export function landed(game: SpiceDeckGame, blow: Blow): SpiceCardDef | undefine
   const last = blow.reveals.at(-1);
   return last?.kind === 'spice' ? cardOf(game, last.card) : undefined;
 }
+
+/** The next cards off the deck, the next first, as many as a peek shows; fewer when the deck is nearly out. */
+export const peekAt = (game: SpiceDeckGame): string[] => game.draw.slice(-(game.peek ?? 1)).reverse();
 
 /** What is left face down, by card, with the chance each comes up next. */
 export function remaining(game: SpiceDeckGame): { card: SpiceCardDef; left: number }[] {

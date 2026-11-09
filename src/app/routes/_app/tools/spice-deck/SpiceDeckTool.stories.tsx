@@ -1,5 +1,5 @@
 import preview from '@sb/preview';
-import { expect, userEvent } from 'storybook/test';
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test';
 
 import { STORY_DECKS, storyGame } from './spiceDeck.stories.fixture';
 import { SpiceDeckTool } from './SpiceDeckTool';
@@ -48,7 +48,26 @@ export const OnePile = meta.story({
   },
 });
 
-/** Before a game: the deck the table plays with, how many spice piles, and the Shai-Hulud limit some rulesets set. */
+/** Peek: held for two seconds, the next card shows big over everything; a tap hides it again. This game peeks at two. */
+export const Peek = meta.story({
+  render: () => (
+    <SpiceDeckTool
+      storageKey="spice-deck-story-peek"
+      initial={storyGame(3, { andNext: true, peek: 2 })}
+      decks={STORY_DECKS}
+    />
+  ),
+  play: async ({ canvas, canvasElement }) => {
+    await fireEvent.pointerDown(canvas.getByRole('button', { name: 'Hold to peek at the next card' }));
+    const page = within(canvasElement.ownerDocument.body);
+    await waitFor(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {
+      timeout: 4000,
+    });
+    await expect(page.getByText('The next 2 cards, the next first')).toBeVisible();
+  },
+});
+
+/** Before a game: the deck the table plays with, how many spice piles, and how many cards a peek shows. */
 export const PickADeck = meta.story({
   render: () => <SpiceDeckTool storageKey="spice-deck-story-picker" decks={STORY_DECKS} />,
   play: async ({ canvas }) => {

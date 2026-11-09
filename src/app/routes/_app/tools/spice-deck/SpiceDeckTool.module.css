@@ -1,5 +1,6 @@
 /* A phone held at the table: the turn and its controls above, the one big action within the thumb's reach. */
 .tool {
+  position: relative;
   display: grid;
   overflow-x: clip;
   grid-template-columns: minmax(0, 1fr);
@@ -44,7 +45,7 @@
 
 .body {
   min-width: 0;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
 }
 
 .footer {
@@ -58,9 +59,93 @@
   border-top: 1px solid var(--ui-raised);
 }
 
-.primary {
+.actions {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.action {
   width: 100%;
-  min-height: 56px;
+}
+
+/* Peek's hold: a bar fills under the button for as long as it must be held. */
+.hold {
+  position: relative;
+  display: inline-flex;
+}
+
+.hold::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -5px;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--ui-highlight);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.hold[data-holding]::after {
+  transform: scaleX(1);
+  transition: transform var(--hold-ms) linear;
+}
+
+/* The peek: the next cards over everything, to the one holding the phone. */
+.peek {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: rgb(0 0 0 / 0.92);
+}
+
+.peekTitle {
+  margin: 0;
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+.peekCards {
+  display: flex;
+  gap: var(--space-sm);
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scroll-snap-type: x mandatory;
+}
+
+.peekCards li {
+  flex: none;
+  width: min(80vw, 60dvh);
+  scroll-snap-align: center;
+}
+
+.peekCards[data-count="1"] li {
+  width: min(88vw, 66dvh);
+}
+
+.peekCards .card {
+  width: 100%;
+}
+
+/* The piles fill the screen between the header and the footer; the details are a scroll below. */
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 12px;
+  height: calc(100dvh - var(--chrome, 160px) - 2 * var(--space-sm));
 }
 
 .nexus {
@@ -172,22 +257,8 @@
   white-space: nowrap;
 }
 
-.pileRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-}
-
-.pileRow[data-piles="3"] {
-  grid-template-columns: 1fr 1fr 1fr;
-}
-
-.pileRow[data-piles="1"] {
-  grid-template-columns: 1fr;
-  padding: 0 20%;
-}
-
 .pileButton {
+  width: var(--card-w, 45%);
   display: flex;
   flex-direction: column;
   align-items: stretch;

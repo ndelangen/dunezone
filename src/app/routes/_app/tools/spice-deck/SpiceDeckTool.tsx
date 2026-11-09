@@ -2,8 +2,9 @@ import { Menu, NumberInput } from '@mantine/core';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
-import { ArrowRight, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 
 import { useMotionAllowed } from '@app/styles/motion';
 import { useSpeech } from '@app/widgets/tutorial-guide/speech';
@@ -12,12 +13,14 @@ import {
   blowsOfTurn,
   canReveal,
   cardOf,
+  MOST_PEEK,
   MOST_PILES,
   newGame,
   nexus,
   nextPile,
   nextTurn,
   lastPlayed,
+  peekAt,
   pileLetter,
   revealOne,
   revealSentence,
@@ -58,12 +61,13 @@ export function SpiceDeckTool({ storageKey, initial, decks }: ToolProps) {
   return <Playing session={session} game={game} />;
 }
 
-/* Before a game: which deck, and how many spice piles. */
+/* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
 function DeckPicker({
   decks,
   onStart,
 }: Readonly<{ decks: readonly SpiceDeckDef[]; onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void }>) {
   const [piles, setPiles] = useState(1);
+  const [peek, setPeek] = useState(1);
   return (
     <div className={styles.tool}>
       <header className={styles.header}>
@@ -89,11 +93,28 @@ function DeckPicker({
               />
             )}
           />
+          <ControlBlock
+            title="Cards shown by a peek"
+            description={
+              'Holding Peek for two seconds shows the next cards off the deck.\nSome factions may look at one; set how many your table allows.'
+            }
+            input={(field) => (
+              <NumberInput
+                {...field}
+                min={1}
+                max={MOST_PEEK}
+                clampBehavior="strict"
+                allowDecimal={false}
+                value={peek}
+                onChange={(value) => setPeek(typeof value === 'number' ? value : 1)}
+              />
+            )}
+          />
         </div>
         <ul className={styles.deckList}>
           {decks.map((deck) => (
             <li key={deck.id}>
-              <button type="button" className={styles.deckChoice} onClick={() => onStart(deck, { piles })}>
+              <button type="button" className={styles.deckChoice} onClick={() => onStart(deck, { piles, peek })}>
                 {deck.back ? <img src={deck.back} alt="" className={styles.deckBack} /> : null}
                 <span>
                   <strong>{deck.name}</strong>
@@ -129,6 +150,8 @@ const SLAM_START = 0.62;
 const IMPACT = 0.8;
 /* How much bigger than the pile the card shows in the middle of the screen. */
 const SHOWCASE = 1.55;
+/* A card's width to its height. */
+const CARD_RATIO = 900 / 1263;
 
 function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame }>) {
   const motion = useMotionAllowed();
@@ -137,6 +160,7 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   const [listen, setListen] = useState(false);
   const canListen = useCanListen();
   const [flight, setFlight] = useState<Flight | undefined>(undefined);
+  const [peeking, setPeeking] = useState(false);
 
   /*
    * A new card turned over starts its flight onto its pile; a card set aside leaves its pile to the side.
@@ -204,10 +228,26 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
   /* Never listens while it speaks, or it would hear its own "spice". */
   const { listening } = useVoiceCommands(listen && canListen && !speech.speaking, onCommand);
 
+  /* The header and footer heights, so the piles get the whole screen between them. */
+  const header = useRef<HTMLElement>(null);
+  const footer = useRef<HTMLElement>(null);
+  const [chrome, setChrome] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => setChrome((header.current?.offsetHeight ?? 0) + (footer.current?.offsetHeight ?? 0));
+    measure();
+    const observer = new ResizeObserver(measure);
+    for (const element of [header.current, footer.current]) {
+      if (element) {
+        observer.observe(element);
+      }
+    }
+    return () => observer.disconnect();
+  }, []);
+
   const over = spiceBlowOver(game);
   return (
-    <div className={styles.tool}>
-      <header className={styles.header}>
+    <div className={styles.tool} style={{ '--chrome': `${chrome}px` } as CSSProperties}>
+      <header ref={header} className={styles.header}>
         <div className={styles.turn}>
           <span className={styles.turnNumber}>Turn {game.turn}</span>
           <span className={styles.deckName}>
@@ -253,30 +293,37 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
       <main className={styles.body}>
         <Table game={game} flight={flight} onPile={turnOver} />
       </main>
-      <footer className={styles.footer}>
-        {lastPlayed(game) && !flight ? (
-          <LabeledAction
-            size="lg"
-            className={styles.primary}
-            icon={<Shuffle size={20} />}
-            onClick={() => session.act(setAsideLast)}
-          >
-            Set aside &amp; shuffle back in next turn
-          </LabeledAction>
-        ) : null}
+      <footer ref={footer} className={styles.footer}>
         {over && nexus(game) ? (
           <p className={styles.nexus}>Nexus! Shai-Hulud came up: alliances may be made and broken.</p>
         ) : null}
-        <LabeledAction
-          emphasis={over ? 'strong' : 'standard'}
-          size="lg"
-          className={styles.primary}
-          icon={<ArrowRight size={20} />}
-          onClick={() => session.act(nextTurn)}
-        >
-          {`Start turn ${game.turn + 1}`}
-        </LabeledAction>
+        <div className={styles.actions}>
+          <PeekHold disabled={game.draw.length === 0 || flight !== undefined} onPeek={() => setPeeking(true)} />
+          <LabeledAction
+            size="md"
+            className={styles.action}
+            icon={<Shuffle size={18} />}
+            accessibleName="Set aside & shuffle back in next turn"
+            disabledReason={
+              lastPlayed(game) && !flight ? undefined : 'Turn a card over first: it sets aside the card just played.'
+            }
+            onClick={() => session.act(setAsideLast)}
+          >
+            Set aside
+          </LabeledAction>
+          <LabeledAction
+            emphasis={over ? 'strong' : 'standard'}
+            size="md"
+            className={styles.action}
+            icon={<ArrowRight size={18} />}
+            accessibleName={`Start turn ${game.turn + 1}`}
+            onClick={() => session.act(nextTurn)}
+          >
+            {`Turn ${game.turn + 1}`}
+          </LabeledAction>
+        </div>
       </footer>
+      {peeking ? <Peek game={game} onClose={() => setPeeking(false)} /> : null}
     </div>
   );
 }
@@ -304,6 +351,33 @@ function Table({
   const piles = useRef<(HTMLButtonElement | null)[]>([]);
   const flyer = useRef<HTMLDivElement>(null);
   const ring = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | undefined>(undefined);
+  /* The piles as big as the screen allows: whichever grid (all across, stacked, or between) gives the biggest cards. */
+  const pileCount = game.piles;
+  useLayoutEffect(() => {
+    const element = stage.current;
+    if (!element) {
+      return;
+    }
+    const measure = () => {
+      const { width, height } = element.getBoundingClientRect();
+      const gap = 12;
+      const caption = 22;
+      const widthFor = (across: number) => {
+        const down = Math.ceil(pileCount / across);
+        const byWidth = (width - gap * (across - 1)) / across;
+        const byHeight = ((height - gap * (down - 1)) / down - caption) * CARD_RATIO;
+        return Math.min(byWidth, byHeight);
+      };
+      const best = Math.max(...Array.from({ length: pileCount }, (_, index) => widthFor(index + 1)));
+      setCardWidth(Math.max(60, Math.floor(best)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [pileCount]);
   const turnBlows = blowsOfTurn(game);
   const next = nextPile(game);
   const blocked = !canReveal(game);
@@ -338,10 +412,12 @@ function Table({
       );
       return () => away.cancel();
     }
+    /* Shown bigger than the pile, but never past the screen. */
+    const showW = Math.max(to.w, Math.min(to.w * SHOWCASE, outer.width * 0.94, window.innerHeight * 0.8 * CARD_RATIO));
     const centre = {
-      x: (outer.width - to.w * SHOWCASE) / 2,
-      y: Math.max(8, window.innerHeight / 2 - outer.top - (to.h * SHOWCASE) / 2),
-      w: to.w * SHOWCASE,
+      x: (outer.width - showW) / 2,
+      y: Math.max(8, window.innerHeight / 2 - outer.top - showW / CARD_RATIO / 2),
+      w: showW,
     };
     /* In from above, held big for a beat, then slammed down onto the pile, overshooting into it and settling. */
     const travel = card.animate(
@@ -400,7 +476,11 @@ function Table({
 
   return (
     <div ref={table} className={styles.table}>
-      <div className={styles.pileRow} data-piles={Math.min(game.piles, 3)}>
+      <div
+        ref={stage}
+        className={styles.stage}
+        style={cardWidth ? ({ '--card-w': `${cardWidth}px` } as CSSProperties) : undefined}
+      >
         {game.discards.map((pile, index) => {
           const landing = flight?.pile === index && flight.mode === 'deal';
           const top = landing ? pile.at(-2) : pile.at(-1);
@@ -467,6 +547,80 @@ function landedPart(blow: Blow, flight: Flight | undefined): Blow {
   return flight && blow.reveals.at(-1) === flight.reveal ? { ...blow, reveals: blow.reveals.slice(0, -1) } : blow;
 }
 
+/* How long Peek is held before it shows: long enough that a brush of the screen at the table never shows the next card. */
+const PEEK_HOLD_MS = 2000;
+
+/** Peek: held for two seconds, it shows the next cards to whoever holds the phone. A shorter press does nothing. */
+function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: () => void }>) {
+  const [holding, setHolding] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const release = () => {
+    clearTimeout(timer.current);
+    setHolding(false);
+  };
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const press = () => {
+    if (disabled) {
+      return;
+    }
+    setHolding(true);
+    timer.current = setTimeout(() => {
+      setHolding(false);
+      onPeek();
+    }, PEEK_HOLD_MS);
+  };
+  return (
+    <span
+      className={styles.hold}
+      data-holding={holding || undefined}
+      style={{ '--hold-ms': `${PEEK_HOLD_MS}ms` } as CSSProperties}
+    >
+      <IconAction
+        label="Hold to peek at the next card"
+        tooltip="Hold for two seconds to see the next card, then put the phone back"
+        emphasis="standard"
+        intent="neutral"
+        size="lg"
+        icon={<Eye size={20} />}
+        disabledReason={disabled ? 'No card to peek at right now.' : undefined}
+        onPointerDown={press}
+        onPointerUp={release}
+        onPointerLeave={release}
+        onPointerCancel={release}
+        onContextMenu={(event) => event.preventDefault()}
+        onKeyDown={(event) => {
+          if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) {
+            press();
+          }
+        }}
+        onKeyUp={release}
+      />
+    </span>
+  );
+}
+
+/** The next cards, shown big to the one holding the phone; a tap anywhere puts them away again. */
+function Peek({ game, onClose }: Readonly<{ game: SpiceDeckGame; onClose: () => void }>) {
+  const next = peekAt(game);
+  return (
+    <div className={styles.peek} role="dialog" aria-label="The next spice cards">
+      <p className={styles.peekTitle}>
+        {next.length > 1 ? `The next ${next.length} cards, the next first` : 'The next card'}
+      </p>
+      <ol className={styles.peekCards} data-count={next.length}>
+        {next.map((copy) => (
+          <li key={copy}>
+            <CardFace game={game} copy={copy} />
+          </li>
+        ))}
+      </ol>
+      <LabeledAction emphasis="strong" size="lg" icon={<EyeOff size={20} />} onClick={onClose}>
+        Hide and put the phone back
+      </LabeledAction>
+    </div>
+  );
+}
+
 function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game: SpiceDeckGame }>) {
   return (
     <Menu position="bottom-end" withinPortal>
@@ -487,7 +641,7 @@ function GameMenu({ session, game }: Readonly<{ session: SpiceDeckSession; game:
   );
 }
 
-const rulesOf = (game: SpiceDeckGame) => ({ piles: game.piles });
+const rulesOf = (game: SpiceDeckGame) => ({ piles: game.piles, peek: game.peek ?? 1 });
 
 function CardFace({
   game,
