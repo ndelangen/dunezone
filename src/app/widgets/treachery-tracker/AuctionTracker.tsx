@@ -49,21 +49,11 @@ function OnBid({
 }: TrackerViewProps & Readonly<{ tableTurn?: number | undefined }>) {
   const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
-  const name = card ? card.def.name : 'the unknown card';
+  const name = card?.def.name ?? 'the unknown card';
   return (
     <section className={styles.onBid} aria-label="On bid">
       <div className={styles.bidCard}>
-        {card ? (
-          <CardPreview card={card}>
-            <img src={card.def.face} alt={card.def.name} />
-          </CardPreview>
-        ) : onBid ? (
-          <span className={styles.bidUnknown} data-empty="false">
-            ?
-          </span>
-        ) : (
-          <EmptyBid state={state} onAction={onAction} tableTurn={tableTurn} />
-        )}
+        <BidCard card={card} waiting={onBid !== undefined} state={state} onAction={onAction} tableTurn={tableTurn} />
       </div>
       <div className={styles.bidSide}>
         <Text size="xs" className={styles.caption}>
@@ -88,6 +78,24 @@ function OnBid({
 }
 
 type BidProps = Pick<TrackerViewProps, 'state' | 'onAction'> & Readonly<{ tableTurn?: number | undefined }>;
+
+/* The card on bid, whole: its face, the unknown mark, or the empty place that picks the next one. */
+function BidCard({ card, waiting, ...bid }: BidProps & Readonly<{ card: CardCopy | null; waiting: boolean }>) {
+  if (card) {
+    return (
+      <CardPreview card={card}>
+        <img src={card.def.face} alt={card.def.name} />
+      </CardPreview>
+    );
+  }
+  return waiting ? (
+    <span className={styles.bidUnknown} data-empty="false">
+      ?
+    </span>
+  ) : (
+    <EmptyBid {...bid} />
+  );
+}
 
 /** The empty place of the card on bid: clicking it picks the card that comes up next, or an unknown one. */
 function EmptyBid({ state, onAction, tableTurn }: BidProps) {
