@@ -291,6 +291,14 @@ try {
       assert.equal(head.status, 200);
       assert.equal(head.headers.get('X-Public-Cache'), 'hit');
       assert.equal(await head.text(), '');
+    } else if (TOOL_PAGES.includes(pathname)) {
+      /* A built tool shares its catalogue tile picture, not a rendered card. */
+      const image = /property="og:image" content="([^"]+)"/.exec(html)?.[1];
+      assert.ok(image, `${pathname} has no social image URL`);
+      assert.match(new URL(image).pathname, /^\/tools\/[\w-]+\.webp$/, pathname);
+      const picture = await worker.fetch(new URL(image).pathname);
+      assert.equal(picture.status, 200, pathname);
+      assert.match(picture.headers.get('Content-Type') ?? '', /image\/webp/, pathname);
     } else if (
       !['/factions', '/assets', '/assets/token-disc'].includes(pathname) &&
       /* The galleries share one card template, and so do the blog posts, so one render covers each. */
