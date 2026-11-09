@@ -1,4 +1,4 @@
-/* The request for the next tool, under the tools catalogue and on a planned tool's page. */
+/* The tools catalogue's request for the next tool, under the tiles. */
 .suggest {
   display: flex;
   flex-wrap: wrap;

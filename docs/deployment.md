@@ -102,7 +102,7 @@ every browser-only path and every unknown URL. The homepage follows this rule, a
 assembly fails if the shell carries any of the three.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
 the shared layout, homepage, faction catalogue and detail, asset catalogue, type listings and detail pages
-also render on the server, as do the Glossary, Future plans and Privacy pages, the media catalogue and
+also render on the server, as do the Glossary, Future plans, Tools and Privacy pages (with each tool below /tools), the media catalogue and
 its eight game galleries, which have no record behind them. Their anonymous page result supplies visible content and metadata.
 The browser hydrates that result, then its existing Convex subscription supplies live content and
 permissions. Management controls wait for that live result. Login-required pages stay browser-only.

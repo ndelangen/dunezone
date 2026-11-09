@@ -1,5 +1,6 @@
 /* oxlint-disable-next-line no-restricted-imports -- The plans atlas sets its own editorial headings beside the coordinate numbers. */
 import { Anchor, Box, Grid, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { GITHUB_BACKLOG, GITHUB_IDEAS, GITHUB_REPOSITORY } from '@shared/repository';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Eyebrow } from '@ui/content/Eyebrow';
@@ -46,10 +47,6 @@ export const Route = createFileRoute('/_app/future-plans/')({
     }),
   component: FuturePlansPage,
 });
-
-const GITHUB_REPOSITORY = 'https://github.com/ndelangen/dunezone';
-const GITHUB_IDEAS = `${GITHUB_REPOSITORY}/issues/new/choose`;
-const GITHUB_BACKLOG = `${GITHUB_REPOSITORY}/issues`;
 
 type FuturePlan = {
   number: string;

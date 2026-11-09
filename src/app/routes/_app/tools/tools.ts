@@ -1,4 +1,3 @@
-import type { LinkProps } from '@tanstack/react-router';
 import {
   ClipboardList,
   Eye,
@@ -26,8 +25,8 @@ import type { LucideIcon } from 'lucide-react';
 /*
  * The standalone tools at /tools: small helpers for a game of Dune at a real table.
  * Every tool is public, works signed out, is made for a phone first and follows the Ruleset the table plays.
- * Tools ship one at a time, like the tutorials: a tool without a page shows as coming soon, and its address renders a placeholder that says what it will do.
- * The Treachery tracker is the first (#2795); its route adds itself here by setting `page`.
+ * Tools ship one at a time, like the tutorials: a tool not built shows as coming soon, and its address renders a placeholder that says what it will do.
+ * The Treachery tracker is the first (#2795); its route adds itself here by setting `built`.
  */
 
 export type ToolGroup = 'Before the game' | 'During the game' | 'Make and export';
@@ -51,8 +50,11 @@ export type Tool = Readonly<{
   capabilities: readonly [ToolCapability, ToolCapability, ToolCapability];
   /** The issue where the tool is planned, for anyone who wants to follow or help. */
   issue?: number;
-  /** The tool's own page, once it is built. */
-  page?: LinkProps;
+  /**
+   * Set once the tool is built: its own static route then serves `/tools/<slug>`, the same address the placeholder held, so links and bookmarks keep working.
+   * A built tool is in the landing sitemap through `TOOL_PAGES`, which a test holds to this flag.
+   */
+  built?: true;
 }>;
 
 export const TOOLS: readonly Tool[] = [
@@ -203,11 +205,6 @@ export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);
 }
 
-const GITHUB_REPOSITORY = 'https://github.com/ndelangen/dunezone';
-
-/** Where a reader proposes a tool, or an idea for one. */
-export const TOOL_SUGGEST_HREF = `${GITHUB_REPOSITORY}/issues/new/choose`;
-
-export function toolIssueHref(issue: number): string {
-  return `${GITHUB_REPOSITORY}/issues/${issue}`;
+export function toolPath(tool: Pick<Tool, 'slug'>): string {
+  return `/tools/${tool.slug}`;
 }

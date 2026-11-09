@@ -20,7 +20,7 @@ export const Catalogue = meta.story({
     await expect(page.getByRole('list', { name: 'During the game' })).toBeVisible();
     await expect(page.getByRole('list', { name: 'Make and export' })).toBeVisible();
     await expect(page.getAllByRole('listitem')).toHaveLength(TOOLS.length);
-    await expect(page.getAllByText('Coming soon')).toHaveLength(TOOLS.filter((tool) => !tool.page).length);
+    await expect(page.getAllByText('Coming soon')).toHaveLength(TOOLS.filter((tool) => !tool.built).length);
     await expect(page.getByRole('link', { name: 'Treachery tracker' })).toHaveAttribute(
       'href',
       '/tools/atreides-treachery-tracker'

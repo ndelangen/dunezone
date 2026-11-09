@@ -5,6 +5,13 @@
 export const RECORDLESS_PUBLIC_PAGES = ['/glossary', '/contributing', '/future-plans', '/tools', '/privacy', '/blog'];
 
 /**
+ * Built tools below /tools, in the landing sitemap.
+ * A planned tool's placeholder stays out.
+ * A test holds this list to the tools registry's `built` flags.
+ */
+export const TOOL_PAGES: string[] = [];
+
+/**
  * The tutorial catalogues and every tutorial that is built: public, server-rendered and in the landing sitemap.
  * Play chapters live below `/tutorial`, creator tutorials below `/create`;
  * tests hold this list to the routes and chapter scripts.

@@ -1,12 +1,16 @@
-import { ThemeIcon } from '@mantine/core';
+import { Stack, Text, ThemeIcon } from '@mantine/core';
+import { GITHUB_IDEAS } from '@shared/repository';
 import { createFileRoute } from '@tanstack/react-router';
+import { LabeledAction } from '@ui/control/LabeledAction';
+import { Surface } from '@ui/surface';
+import { Lightbulb, MessageCirclePlus } from 'lucide-react';
 
 import { publicPageHead } from '@app/routes/publicPage';
-import { ToolSuggestion } from '@app/widgets/tool-catalogue/ToolSuggestion';
 import { TutorialCatalogue } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 import type { CatalogueRow } from '@app/widgets/tutorial-catalogue/TutorialCatalogue';
 
-import { TOOL_GROUPS, TOOL_SUGGEST_HREF, TOOLS } from './tools';
+import styles from './index.module.css';
+import { TOOL_GROUPS, TOOLS } from './tools';
 
 /*
  * The tools catalogue: every standalone helper for a physical game of Dune, built or coming soon. Public and indexed.
@@ -38,8 +42,9 @@ const ROWS: readonly CatalogueRow[] = TOOL_GROUPS.map((group) => ({
         <tool.icon size={40} strokeWidth={1.5} />
       </ThemeIcon>
     ),
-    built: tool.page !== undefined,
-    link: tool.page ?? { to: '/tools/$tool', params: { tool: tool.slug } },
+    built: tool.built === true,
+    /* Built or not, a tool lives at /tools/<slug>: its own route once built, its placeholder until then. */
+    link: { to: '/tools/$tool', params: { tool: tool.slug } },
   })),
 }));
 
@@ -50,7 +55,34 @@ function ToolsPage() {
       subtitle="Helpers for your Dune table"
       lede="Small, free tools for a game of Dune at a real table. Made for your phone, no account needed, and they follow the Ruleset you play."
       rows={ROWS}
-      footer={<ToolSuggestion href={TOOL_SUGGEST_HREF} />}
+      blur
+      footer={<ToolSuggestion />}
     />
+  );
+}
+
+/* Under the tiles: a way to ask for the tool that is not there yet. */
+function ToolSuggestion() {
+  return (
+    <Surface as="section" aria-label="Suggest a tool" padding="lg" className={styles.suggest}>
+      <ThemeIcon size={56} radius="50%" variant="light" color="dune" aria-hidden>
+        <Lightbulb />
+      </ThemeIcon>
+      <Stack gap={4} className={styles.suggestWords}>
+        <Text fw={700}>Missing a tool?</Text>
+        <Text size="sm" c="dimmed">
+          Tell us what you keep track of on paper, and it may be the next one here.
+        </Text>
+      </Stack>
+      <LabeledAction
+        emphasis="strong"
+        icon={<MessageCirclePlus size={17} />}
+        href={GITHUB_IDEAS}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Suggest a tool
+      </LabeledAction>
+    </Surface>
   );
 }

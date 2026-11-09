@@ -20,6 +20,7 @@ import styles from './TutorialCatalogue.module.css';
  * The tutorial catalogues: every tutorial as a tile, in rows by part (layout A, Norbert 2026-10-23).
  * Read left to right and top to bottom, the tiles are a path; any tile will start its tutorial on its own.
  * Tutorials ship one at a time (Norbert, 2026-10-23), so a tutorial not yet built shows as coming soon and opens nothing.
+ * The tools catalogue wears the same tiles (Norbert, 2026-11-09): a tool not yet built also shows as coming soon, but opens its placeholder page.
  * Playing Dune and Creating content are two catalogues on their own routes, and the page toolbar moves between them (Norbert, 2026-11-01).
  */
 
@@ -53,8 +54,8 @@ const TRACKS: readonly { id: CatalogueTrack; label: string; to: LinkProps['to'] 
 
 /*
  * A tile: its picture first, then its number beside its title and goal (the prototype Norbert picked, layout A).
- * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are, and opens nothing.
- * A built tile's title is a link that covers the whole tile, so the tile opens the tutorial and reads as one link.
+ * A tile not yet built keeps its picture in colour and says so in a chip where its minutes are; a tutorial's opens nothing, a tool's opens its placeholder.
+ * A tile with a link has a title that covers the whole tile, so the tile opens and reads as one link.
  */
 function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eager: boolean }>) {
   const titleId = useId();
@@ -72,7 +73,7 @@ function CatalogueTileView({ tile, eager }: Readonly<{ tile: CatalogueTile; eage
       <Surface
         as="article"
         padding="none"
-        className={clsx(styles.tile, tile.link && styles.built)}
+        className={clsx(styles.tile, tile.link && styles.linked)}
         aria-labelledby={titleId}
       >
         <div className={styles.art}>
@@ -134,26 +135,26 @@ function TutorialTracks({ track }: Readonly<{ track: CatalogueTrack }>) {
 }
 
 /* The tiles, one row per part; the first row's pictures load at once. */
-function TutorialRows({ rows }: Readonly<{ rows: readonly CatalogueRow[] }>) {
+function TutorialRows({ rows, blur }: Readonly<{ rows: readonly CatalogueRow[]; blur: boolean }>) {
   return (
     <Stack gap="xl">
-      {rows.map((row, index) => (
-        <Section key={row.part} title={row.part}>
-          {row.tiles[0]?.number === undefined ? (
-            <ul className={styles.row} aria-label={row.part}>
+      {rows.map((row, index) => {
+        /* Tutorials are a path, so numbered; tools are not. */
+        const List = row.tiles[0]?.number === undefined ? 'ul' : 'ol';
+        return (
+          <Section key={row.part} title={row.part}>
+            <List
+              className={clsx(styles.row, !blur && styles.unblurred)}
+              aria-label={row.part}
+              start={row.tiles[0]?.number}
+            >
               {row.tiles.map((tile) => (
                 <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
               ))}
-            </ul>
-          ) : (
-            <ol className={styles.row} aria-label={row.part} start={row.tiles[0].number}>
-              {row.tiles.map((tile) => (
-                <CatalogueTileView key={tile.slug} tile={tile} eager={index === 0} />
-              ))}
-            </ol>
-          )}
-        </Section>
-      ))}
+            </List>
+          </Section>
+        );
+      })}
     </Stack>
   );
 }
@@ -169,6 +170,7 @@ export function TutorialCatalogue({
   lede,
   rows,
   footer,
+  blur = false,
 }: Readonly<{
   /** The tutorial track, whose toolbar moves between the two; the tools catalogue has none. */
   track?: CatalogueTrack;
@@ -179,6 +181,8 @@ export function TutorialCatalogue({
   rows: readonly CatalogueRow[];
   /** Anything after the rows, such as the tools catalogue's request for the next tool. */
   footer?: ReactNode;
+  /** Keep the panes' live blur; only for a short catalogue, since many blurred panes make scrolling stutter (#2652). */
+  blur?: boolean;
 }>) {
   return (
     <PageLayout>
@@ -194,7 +198,7 @@ export function TutorialCatalogue({
       )}
       <PageLayout.Content>
         <Stack gap="xl">
-          <TutorialRows rows={rows} />
+          <TutorialRows rows={rows} blur={blur} />
           {footer}
         </Stack>
       </PageLayout.Content>
