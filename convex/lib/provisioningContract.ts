@@ -41,6 +41,7 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'user_image_ingest_tokens',
     'account_connections',
     'steam_openid_nonces',
+    'steam_profile_lookups',
     'account_merge_operations',
     'account_deletion_operations',
     'account_deletion_items',
