@@ -11,6 +11,7 @@ vi.mock('convex/react', () => ({
   useQuery: vi.fn(),
   useQueries: vi.fn(),
   useMutation: vi.fn(),
+  useAction: vi.fn(),
   usePaginatedQuery: vi.fn(),
 }));
 
