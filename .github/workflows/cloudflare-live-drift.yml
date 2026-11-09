@@ -15,7 +15,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-live-drift-${{ github.event.pull_request.number || github.ref }}
+  # The event name keeps a pull_request run apart from any other trigger for the same PR.
+  group: cloudflare-live-drift-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
