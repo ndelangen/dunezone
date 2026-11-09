@@ -1,5 +1,6 @@
-import { Popover, Stack, Text, UnstyledButton } from '@mantine/core';
+import { Stack, Text, UnstyledButton } from '@mantine/core';
 import { LabeledAction } from '@ui/control/LabeledAction';
+import { SheetPopover } from '@ui/surface/TouchSheet';
 import { ChevronLeft, Layers, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -42,7 +43,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
     setMoving(null);
   };
   return (
-    <Popover
+    <SheetPopover
       opened={open}
       onChange={(next) => (next ? setOpen(true) : close())}
       position="top-end"
@@ -50,7 +51,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
       shadow="md"
       width={320}
     >
-      <Popover.Target>
+      <SheetPopover.Target>
         <UnstyledButton
           className={styles.discardButton}
           aria-label={`Discard pile: ${pile.length} ${pile.length === 1 ? 'card' : 'cards'}`}
@@ -59,8 +60,8 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
           <Trash2 size={16} aria-hidden />
           <span>{pile.length}</span>
         </UnstyledButton>
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown label="Discard pile" className={styles.dropdown}>
         {moving ? (
           <Stack gap="xs">
             <Text size="xs" className={styles.caption}>
@@ -120,7 +121,7 @@ function DiscardPile({ factions, state, onAction }: TrackerViewProps) {
             )}
           </Stack>
         )}
-      </Popover.Dropdown>
-    </Popover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }

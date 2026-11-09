@@ -1,9 +1,10 @@
 import { expect, test } from 'vite-plus/test';
 
+import { newTracker, onBid, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import type { CardDef, TrackerState } from '@app/widgets/treachery-tracker/tracker';
+
 import { followTable } from './tableFeed';
 import type { TableFacts, TableMemory } from './tableFeed';
-import { newTracker, onBid, trackerReducer } from './tracker';
-import type { CardDef, TrackerState } from './tracker';
 
 const def = (key: string, count = 1): CardDef => ({
   key,

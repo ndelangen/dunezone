@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { expect, test } from 'vite-plus/test';
 
-import { newTracker, trackerReducer } from './tracker';
-import type { CardDef } from './tracker';
+import { newTracker, trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import type { CardDef } from '@app/widgets/treachery-tracker/tracker';
+
 import { forgetTrackers, trackerStore } from './trackerStore';
 
 const DECK: CardDef[] = [

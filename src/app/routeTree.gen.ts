@@ -78,6 +78,7 @@ import { Route as AppProfilesProfileSlugDeleteRouteRouteImport } from './routes/
 import { Route as AppProfilesProfileSlugEditRouteRouteImport } from './routes/_app/profiles/$profileSlug/edit.route'
 import { Route as AppRulesetsRulesetSlugIndexRouteImport } from './routes/_app/rulesets/$rulesetSlug/index'
 import { Route as AppRulesetsRulesetSlugEditRouteRouteImport } from './routes/_app/rulesets/$rulesetSlug/edit.route'
+import { Route as ToolToolsAtreidesTreacheryTrackerIndexRouteImport } from './routes/_tool/tools/atreides-treachery-tracker/index'
 import { Route as AppAssetsTypeSlugIndexRouteImport } from './routes/_app/assets/$type/$slug/index'
 import { Route as AppAssetsTypeSlugConvertToSpiceRouteRouteImport } from './routes/_app/assets/$type/$slug/convert-to-spice.route'
 import { Route as AppAssetsTypeCreateIndexRouteImport } from './routes/_app/assets/$type/create/index'
@@ -454,6 +455,12 @@ const AppRulesetsRulesetSlugEditRouteRoute =
     path: '/rulesets/$rulesetSlug/edit',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const ToolToolsAtreidesTreacheryTrackerIndexRoute =
+  ToolToolsAtreidesTreacheryTrackerIndexRouteImport.update({
+    id: '/tools/atreides-treachery-tracker/',
+    path: '/tools/atreides-treachery-tracker/',
+    getParentRoute: () => ToolRouteRoute,
+  } as any)
 const AppAssetsTypeSlugIndexRoute = AppAssetsTypeSlugIndexRouteImport.update({
   id: '/assets/$type/$slug/',
   path: '/assets/$type/$slug/',
@@ -588,6 +595,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/tools/atreides-treachery-tracker/': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -664,6 +672,7 @@ export interface FileRoutesByTo {
   '/groups/$groupSlug': typeof AppGroupsGroupSlugIndexRoute
   '/profiles/$profileSlug': typeof AppProfilesProfileSlugIndexRoute
   '/rulesets/$rulesetSlug': typeof AppRulesetsRulesetSlugIndexRoute
+  '/tools/atreides-treachery-tracker': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -747,6 +756,7 @@ export interface FileRoutesById {
   '/_app/groups/$groupSlug/': typeof AppGroupsGroupSlugIndexRoute
   '/_app/profiles/$profileSlug/': typeof AppProfilesProfileSlugIndexRoute
   '/_app/rulesets/$rulesetSlug/': typeof AppRulesetsRulesetSlugIndexRoute
+  '/_tool/tools/atreides-treachery-tracker/': typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
   '/_app/assets/$type/$slug/convert-to-spice': typeof AppAssetsTypeSlugConvertToSpiceRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/$questionSlug': typeof AppRulesetsRulesetSlugFaqQuestionSlugRouteRoute
   '/_app/rulesets/$rulesetSlug/faq/create': typeof AppRulesetsRulesetSlugFaqCreateRouteRoute
@@ -829,6 +839,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug/'
     | '/profiles/$profileSlug/'
     | '/rulesets/$rulesetSlug/'
+    | '/tools/atreides-treachery-tracker/'
     | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
@@ -905,6 +916,7 @@ export interface FileRouteTypes {
     | '/groups/$groupSlug'
     | '/profiles/$profileSlug'
     | '/rulesets/$rulesetSlug'
+    | '/tools/atreides-treachery-tracker'
     | '/assets/$type/$slug/convert-to-spice'
     | '/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/rulesets/$rulesetSlug/faq/create'
@@ -987,6 +999,7 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupSlug/'
     | '/_app/profiles/$profileSlug/'
     | '/_app/rulesets/$rulesetSlug/'
+    | '/_tool/tools/atreides-treachery-tracker/'
     | '/_app/assets/$type/$slug/convert-to-spice'
     | '/_app/rulesets/$rulesetSlug/faq/$questionSlug'
     | '/_app/rulesets/$rulesetSlug/faq/create'
@@ -1492,6 +1505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRulesetsRulesetSlugEditRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_tool/tools/atreides-treachery-tracker/': {
+      id: '/_tool/tools/atreides-treachery-tracker/'
+      path: '/tools/atreides-treachery-tracker'
+      fullPath: '/tools/atreides-treachery-tracker/'
+      preLoaderRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
     '/_app/assets/$type/$slug/': {
       id: '/_app/assets/$type/$slug/'
       path: '/assets/$type/$slug'
@@ -1804,11 +1824,14 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 interface ToolRouteRouteChildren {
   ToolToolsBattleWheelRouteRoute: typeof ToolToolsBattleWheelRouteRoute
   ToolToolsSpiceDeckRouteRoute: typeof ToolToolsSpiceDeckRouteRoute
+  ToolToolsAtreidesTreacheryTrackerIndexRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
 }
 
 const ToolRouteRouteChildren: ToolRouteRouteChildren = {
   ToolToolsBattleWheelRouteRoute: ToolToolsBattleWheelRouteRoute,
   ToolToolsSpiceDeckRouteRoute: ToolToolsSpiceDeckRouteRoute,
+  ToolToolsAtreidesTreacheryTrackerIndexRoute:
+    ToolToolsAtreidesTreacheryTrackerIndexRoute,
 }
 
 const ToolRouteRouteWithChildren = ToolRouteRoute._addFileChildren(

@@ -189,3 +189,43 @@ describe('a ruleset’s faction order', () => {
     expect(drift).toMatchObject({ missing: [], stale: [], duplicated: [], unordered: [], orphaned: [] });
   });
 });
+
+describe('the treachery tracker tool’s setup', () => {
+  test('names the default and base rulesets by slug and seats the base one’s first factions in its order', async () => {
+    const fixture = await orderFixture();
+    const setup = await fixture.t.query(api.rulesets.trackerToolSetup, {
+      preferredSlug: 'missing',
+      baseSlug: fixture.ruleset.slug,
+      seats: 3,
+    });
+    expect(setup.preferred).toBeNull();
+    expect(setup.base?.id).toBe(fixture.ruleset._id);
+    expect(setup.rulesets.map((entry) => entry.id)).toContain(fixture.ruleset._id);
+    expect(setup.seats.map((faction) => faction.name)).toEqual(['Atreides', 'Bene Gesserit', 'Choam']);
+  });
+
+  test('seats past a deleted faction, so the table still starts full', async () => {
+    const fixture = await orderFixture();
+    await fixture.t.run(async (rawCtx) => {
+      await applicationTriggers.wrapDB(rawCtx).db.patch(fixture.factionIds[1], { is_deleted: true });
+    });
+    const setup = await fixture.t.query(api.rulesets.trackerToolSetup, {
+      preferredSlug: 'missing',
+      baseSlug: fixture.ruleset.slug,
+      seats: 3,
+    });
+    expect(setup.seats.map((faction) => faction.name)).toEqual(['Atreides', 'Choam', 'Duncan']);
+  });
+
+  test('seats nobody when the base ruleset is gone', async () => {
+    const fixture = await orderFixture();
+    const setup = await fixture.t.query(api.rulesets.trackerToolSetup, {
+      preferredSlug: fixture.ruleset.slug,
+      baseSlug: 'missing',
+      seats: 6,
+    });
+    expect(setup.preferred?.id).toBe(fixture.ruleset._id);
+    expect(setup.base).toBeNull();
+    expect(setup.seats).toEqual([]);
+  });
+});

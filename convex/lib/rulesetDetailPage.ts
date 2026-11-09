@@ -79,6 +79,7 @@ export async function listOrderedRulesetFactions(ctx: QueryCtx, rulesetId: Id<'r
         name: faction.data.name,
         emblem: faction.data.emblem,
         background: faction.data.background,
+        updated_at: faction.updated_at,
       })),
     /* Never past the limit, which `addFaction` holds rulesets to, so Load more cannot stall on the same page. */
     hasMore: links.length > bounded && bounded < RULESET_FACTION_LIMIT,

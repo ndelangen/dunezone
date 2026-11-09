@@ -4,8 +4,9 @@ import type { GameSnapshot } from '@shared/play/protocol';
 import { item, piece } from '@shared/play/setupSupply';
 import { expect, within } from 'storybook/test';
 
+import { DREAMRULES_DECK } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
+
 import { install } from './game.stories.fixture';
-import { DREAMRULES_DECK } from './panels/treacheryTracker/tracker.stories.fixture';
 import { openTab } from './playing.stories.fixture';
 import { cardBack } from './product.stories.fixture';
 import { piece as tablePiece, sandbox, sandboxReady, shown } from './sandbox.stories.fixture';

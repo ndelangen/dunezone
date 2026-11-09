@@ -1,12 +1,14 @@
-import { HoverCard, Popover, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { HoverCard, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { AddAction } from '@ui/control/ListLengthActions';
+import { SheetPopover, useTouchActionSize, useInSheet, useTouchSurface } from '@ui/surface/TouchSheet';
 import { ArrowRightLeft, Trash2, Undo2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useReducer, useState } from 'react';
 
-import { FactionTokenFace } from '../../multiplayer/FactionTokenFace';
-import type { FactionToken } from '../../multiplayer/FactionTokenFace';
-import { CardGlyph, CardPreview, UnknownGlyph } from './CardArt';
+import { FactionTokenFace } from '@app/widgets/faction-token/FactionTokenFace';
+import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+
+import { CardGlyph, CardPreview, SheetCard, UnknownGlyph } from './CardArt';
 import {
   CARD_GROUPS,
   GROUP_LABEL,
@@ -42,6 +44,31 @@ export function FactionPicker({
   onPick: (faction: string) => void;
   except?: string;
 }>) {
+  const touch = useTouchSurface();
+  const inSheet = useInSheet();
+  if (touch && inSheet) {
+    /* In a phone's sheet each faction is a thumb-high row with its name, since a thumb cannot hover for a tooltip. */
+    return (
+      <Stack gap={2}>
+        {factions
+          .filter((faction) => faction.id !== except)
+          .map((faction) => (
+            <UnstyledButton
+              key={faction.id}
+              className={styles.menuLine}
+              data-touch="true"
+              aria-label={label(faction)}
+              onClick={() => onPick(faction.id)}
+            >
+              <FactionTokenFace token={faction} size={36} />
+              <Text size="md" aria-hidden>
+                {faction.name}
+              </Text>
+            </UnstyledButton>
+          ))}
+      </Stack>
+    );
+  }
   return (
     <div className={styles.picker}>
       {factions
@@ -61,8 +88,12 @@ export function FactionPicker({
   );
 }
 
-/* The chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling. */
+/*
+ * Beside the table the chooser shows the whole deck at once: every group on a two-column grid, small enough to need no scrolling.
+ * Held in one hand it is a sheet that scrolls: one group per row, each card large enough for a thumb, its name under it.
+ */
 const CHOOSER_GLYPH = 28;
+const TOUCH_CHOOSER_GLYPH = 48;
 /* At most the window's width less a margin, so the chooser never runs off a narrow window. */
 export const CHOOSER_WIDTH = 'min(400px, calc(100vw - 32px))';
 
@@ -80,11 +111,29 @@ export function CardChooser({
   forBid?: boolean;
 }>) {
   const { seen, byName } = chooserCards(state, forBid);
+  const touch = useTouchSurface();
+  const glyph = touch ? TOUCH_CHOOSER_GLYPH : CHOOSER_GLYPH;
+  /* A card of the chooser: its glyph, and on a phone its name under it, since a thumb cannot hover for it. */
+  const choice = (copy: CardCopy, left = 1) => (
+    <CardPreview key={copy.id} card={copy}>
+      <UnstyledButton className={styles.glyphButton} aria-label={copy.def.name} onClick={() => onPick(copy.id)}>
+        <span className={styles.glyphFace}>
+          <CardGlyph card={copy} size={glyph} />
+          {left > 1 && <span className={styles.badge}>{left}</span>}
+        </span>
+        {touch ? (
+          <span className={styles.glyphName} aria-hidden>
+            {copy.def.name}
+          </span>
+        ) : null}
+      </UnstyledButton>
+    </CardPreview>
+  );
   return (
-    <Stack gap="xs" className={styles.chooser}>
+    <Stack gap={touch ? 'md' : 'xs'} className={styles.chooser} data-touch={touch ? 'true' : 'false'}>
       {allowUnknown && (
         <UnstyledButton className={styles.chooserUnknown} onClick={() => onPick(null)}>
-          <UnknownGlyph size={22} />
+          <UnknownGlyph size={touch ? 36 : 22} />
           <Text size="sm">An unknown card</Text>
         </UnstyledButton>
       )}
@@ -93,19 +142,7 @@ export function CardChooser({
           <Text size="xs" className={styles.caption}>
             Seen, not placed
           </Text>
-          <div className={styles.glyphRow}>
-            {seen.map((copy) => (
-              <CardPreview key={copy.id} card={copy}>
-                <UnstyledButton
-                  className={styles.glyphButton}
-                  aria-label={copy.def.name}
-                  onClick={() => onPick(copy.id)}
-                >
-                  <CardGlyph card={copy} size={CHOOSER_GLYPH} />
-                </UnstyledButton>
-              </CardPreview>
-            ))}
-          </div>
+          <div className={styles.glyphRow}>{seen.map((copy) => choice(copy))}</div>
         </div>
       )}
       {GROUP_ROWS.map((row) => {
@@ -125,20 +162,7 @@ export function CardChooser({
                 <Text size="xs" className={styles.caption}>
                   {GROUP_LABEL[group]}
                 </Text>
-                <div className={styles.glyphRow}>
-                  {cards.map(({ copy, left }) => (
-                    <CardPreview key={copy.id} card={copy}>
-                      <UnstyledButton
-                        className={styles.glyphButton}
-                        aria-label={copy.def.name}
-                        onClick={() => onPick(copy.id)}
-                      >
-                        <CardGlyph card={copy} size={CHOOSER_GLYPH} />
-                        {left > 1 && <span className={styles.badge}>{left}</span>}
-                      </UnstyledButton>
-                    </CardPreview>
-                  ))}
-                </div>
+                <div className={styles.glyphRow}>{cards.map(({ copy, left }) => choice(copy, left))}</div>
               </div>
             ))}
           </div>
@@ -159,12 +183,13 @@ export function AddCard({
   onAction: (action: TrackerAction) => void;
 }>) {
   const [open, setOpen] = useState(false);
+  const size = useTouchActionSize();
   return (
-    <Popover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
-      <Popover.Target>
-        <AddAction label={`Add a card to ${faction.name}`} onClick={() => setOpen((was) => !was)} />
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown}>
+    <SheetPopover opened={open} onChange={setOpen} position="bottom" withinPortal shadow="md" width={CHOOSER_WIDTH}>
+      <SheetPopover.Target>
+        <AddAction label={`Add a card to ${faction.name}`} size={size} onClick={() => setOpen((was) => !was)} />
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown label={`Add a card to ${faction.name}`} className={styles.dropdown}>
         <CardChooser
           state={state}
           allowUnknown
@@ -173,8 +198,8 @@ export function AddCard({
             setOpen(false);
           }}
         />
-      </Popover.Dropdown>
-    </Popover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -237,13 +262,18 @@ function SlotStep(props: SlotStepProps & Readonly<{ mode: SlotMode; close: () =>
   }
   if (mode === 'give') {
     return (
-      <FactionPicker
-        factions={factions}
-        except={faction}
-        size={26}
-        label={(to) => `Given to ${to.name}`}
-        onPick={(to) => act({ kind: 'give', faction, slot: slot.id, to })}
-      />
+      <Stack gap={6}>
+        <Text size="xs" className={styles.caption}>
+          Given to
+        </Text>
+        <FactionPicker
+          factions={factions}
+          except={faction}
+          size={26}
+          label={(to) => `Given to ${to.name}`}
+          onPick={(to) => act({ kind: 'give', faction, slot: slot.id, to })}
+        />
+      </Stack>
     );
   }
   return (
@@ -289,7 +319,7 @@ export function SlotChip({
     close();
   };
   return (
-    <Popover
+    <SheetPopover
       opened={open}
       onChange={(next) => send({ type: next ? 'open' : 'close' })}
       position="bottom"
@@ -297,7 +327,7 @@ export function SlotChip({
       shadow="md"
       width={mode === 'identify' || mode === 'discard' ? CHOOSER_WIDTH : 'target'}
     >
-      <Popover.Target>
+      <SheetPopover.Target>
         <span>
           <CardPreview card={card}>
             <UnstyledButton
@@ -309,8 +339,9 @@ export function SlotChip({
             </UnstyledButton>
           </CardPreview>
         </span>
-      </Popover.Target>
-      <Popover.Dropdown className={styles.dropdown} miw={200}>
+      </SheetPopover.Target>
+      <SheetPopover.Dropdown label={card ? card.def.name : 'Unknown card'} className={styles.dropdown} miw={200}>
+        <SheetCard card={card} />
         <SlotStep
           mode={mode}
           faction={faction}
@@ -322,8 +353,8 @@ export function SlotChip({
           setMode={setMode}
           close={close}
         />
-      </Popover.Dropdown>
-    </Popover>
+      </SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -332,40 +363,68 @@ export function MenuLine({
   onClick,
   children,
 }: Readonly<{ icon: ReactNode; onClick: () => void; children: ReactNode }>) {
+  const touch = useTouchSurface();
   return (
-    <UnstyledButton className={styles.menuLine} onClick={onClick}>
+    <UnstyledButton className={styles.menuLine} data-touch={touch ? 'true' : 'false'} onClick={onClick}>
       <span className={styles.menuIcon}>{icon}</span>
-      <Text size="sm">{children}</Text>
+      <Text size={touch ? 'md' : 'sm'}>{children}</Text>
     </UnstyledButton>
   );
 }
 
-/** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. */
-export function KindBar({ copies, height = 10 }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
+/** The deck's makeup by kind, as one thin bar: what an unknown card, or the next draw, could be. Each slice lists its cards on hover, or on a tap on a phone. */
+export function KindBar({ copies, height }: Readonly<{ copies: readonly CardCopy[]; height?: number }>) {
   const total = copies.length || 1;
+  const touch = useTouchSurface();
+  /* Held in one hand, the bar is tall enough for a thumb to tap a slice. */
+  const barHeight = height ?? (touch ? 24 : 10);
   return (
-    <div className={styles.kindBar} style={{ height }} aria-label={kindSummary(copies)}>
+    <div className={styles.kindBar} style={{ height: barHeight }} aria-label={kindSummary(copies)}>
       {CARD_GROUPS.map((group) => {
         const count = copies.filter((copy) => groupOf(copy.def) === group).length;
-        return count > 0 ? (
+        if (count === 0) {
+          return null;
+        }
+        const slice = (onClick?: () => void) => (
+          <button
+            type="button"
+            data-kind={group.split('-')[0]}
+            data-group={group}
+            className={styles.kindSlice}
+            style={{ flexGrow: count / total }}
+            aria-label={`${groupCount(group, count)} left`}
+            onClick={onClick}
+          />
+        );
+        return touch ? (
+          <KindSliceSheet key={group} label={`${groupCount(group, count)} left`} slice={slice}>
+            <GroupList group={group} copies={copies} />
+          </KindSliceSheet>
+        ) : (
           <HoverCard key={group} openDelay={80} closeDelay={60} position="top" withinPortal shadow="md" withArrow>
-            <HoverCard.Target>
-              <button
-                type="button"
-                data-kind={group.split('-')[0]}
-                data-group={group}
-                className={styles.kindSlice}
-                style={{ flexGrow: count / total }}
-                aria-label={`${groupCount(group, count)} left`}
-              />
-            </HoverCard.Target>
+            <HoverCard.Target>{slice()}</HoverCard.Target>
             <HoverCard.Dropdown className={styles.dropdown}>
               <GroupList group={group} copies={copies} />
             </HoverCard.Dropdown>
           </HoverCard>
-        ) : null;
+        );
       })}
     </div>
+  );
+}
+
+/* A slice of the deck bar on a phone: a tap lists its cards in a sheet. */
+function KindSliceSheet({
+  label,
+  slice,
+  children,
+}: Readonly<{ label: string; slice: (onClick: () => void) => ReactNode; children: ReactNode }>) {
+  const [open, setOpen] = useState(false);
+  return (
+    <SheetPopover opened={open} onChange={setOpen}>
+      <SheetPopover.Target>{slice(() => setOpen((was) => !was))}</SheetPopover.Target>
+      <SheetPopover.Dropdown label={label}>{children}</SheetPopover.Dropdown>
+    </SheetPopover>
   );
 }
 
@@ -392,6 +451,8 @@ export function GroupList({
     }
   }
   const lines = [...byName.values()];
+  /* A card a thumb picks from a phone's sheet gets a thumb-high row. */
+  const touch = useTouchSurface();
   return (
     <Stack gap={4}>
       <Text size="xs" className={styles.caption}>
@@ -414,6 +475,7 @@ export function GroupList({
             <UnstyledButton
               key={copy.def.key}
               className={`${styles.kindLine} ${styles.menuLine}`}
+              data-touch={touch ? 'true' : 'false'}
               onClick={() => onPick(copy)}
             >
               {line}

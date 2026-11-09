@@ -1,7 +1,8 @@
 import preview from '@sb/preview';
 import { expect } from 'storybook/test';
 
-import { midGameTracker } from './tracker.stories.fixture';
+import { midGameTracker } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
+
 import { TrackerWindow } from './TrackerWindow.stories.fixture';
 
 /*
