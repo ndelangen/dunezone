@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
 import { confirmStoryProvisioning, useStorybookDatabaseClient } from '@db/storybook';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 
 import { StorybookPage } from '../../storybook';
 import { pageStoryMeta } from '../../storybookConfig';
@@ -12,7 +13,6 @@ import { chooseRuleset, creatable } from './create.route.stories.fixture';
 import { drafting, install, session } from './game.stories.fixture';
 import { signedIn } from './index.stories.fixture';
 import { waitForTableOpen } from './mapView.stories.fixture';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { productTransport } from './product.stories.fixture';
 
 /* The story's browser-local database, kept so the play function can stand in for the game Worker that provisions the table. */

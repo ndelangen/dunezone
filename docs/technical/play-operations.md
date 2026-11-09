@@ -210,7 +210,7 @@ reads "The table could not be reached. Reconnecting..." and keeps that line thro
 until a view arrives; a pass request the game turns away reads "The table is temporarily unavailable."
 A socket that drops after the table has shown reconnects without keeping a failure line, so a
 deploy's cold restart does not read as an outage (`retryAfterFailure` in
-`src/app/routes/_app/play/multiplayer/GameSubscription.ts`).
+`src/app/db/tabletop/GameSubscription.ts`).
 
 Recovery: if the smoke failed after both Workers went out, rerun that run. "Re-run failed jobs"
 resumes at the failed job; "Re-run all jobs" deploys the same commit again from the start
@@ -334,7 +334,7 @@ identity and release, connections, messages in and out, bytes sent, saved-comman
 handling to a confirmed write, late sweeps, dropped motion, and each Convex function the room called
 with its count, failures and durations. Each browser also reports, every five minutes, how long
 its saved actions took to be confirmed and its longest main-thread stall
-(`src/app/routes/_app/play/multiplayer/tableTelemetry.ts`). The room folds the latest report from
+(`src/app/db/tabletop/tableTelemetry.ts`). The room folds the latest report from
 each connection into its next line. No account, seat, faction or game content is recorded.
 
 To watch a session from a machine with a Wrangler login, run `bun run play:watch`. It runs the

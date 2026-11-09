@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import type {
-  NativePeer,
-  NativeRuntime,
-  NativeConnection,
-} from '../../../../../../workers/game/native-runtime.fixture.ts';
-import { required } from '../../../../../../workers/game/native-runtime.fixture.ts';
+import type { NativePeer, NativeRuntime, NativeConnection } from '../../../../workers/game/native-runtime.fixture.ts';
+import { required } from '../../../../workers/game/native-runtime.fixture.ts';
 import {
   admitPlayer,
   createPeer,
@@ -14,10 +10,10 @@ import {
   fixturePass,
   provision,
   syncView,
-} from '../../../../../../workers/game/native-runtime.fixture.ts';
-import { TableSession } from '../../../../db/tabletop/TableSession';
+} from '../../../../workers/game/native-runtime.fixture.ts';
 import type { GameRuntime, GameSocket } from './gameRuntime';
 import { GameSubscription } from './GameSubscription';
+import { TableSession } from './TableSession';
 
 const gameId = 'fixture-game';
 

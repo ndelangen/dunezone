@@ -15,9 +15,9 @@ import { createSpiceStack } from '@shared/play/spiceBank';
 import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 
-import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
 import { TableSession } from './TableSession';
 
 function connection(gameId: string, request: ConstructorParameters<typeof GameSubscription>[1]) {
