@@ -96,12 +96,15 @@ const TOOL_ENTRIES = [
     statement:
       'Pick the faction and the turn, and lock it on your phone. At the reveal the table sees the prediction and when it was locked, by Dune Zone’s clock, not the phone’s.',
     icon: Lock,
+    art: '/tools/prediction-locket.webp',
+    largeArt: '/tools/prediction-locket-large.webp',
     group: 'Before the game',
     capabilities: [
       { icon: Users, title: 'Faction and turn', detail: 'Any faction on Dune Zone, any turn.' },
       { icon: Lock, title: 'Locked', detail: 'Hidden on your phone until you reveal it.' },
-      { icon: Timer, title: 'Trusted time', detail: 'Locked 2 hours ago, by Dune Zone’s clock.' },
+      { icon: Timer, title: 'Trusted time', detail: 'Dune Zone’s clock, in your city’s time.' },
     ],
+    built: true,
   },
   {
     slug: 'atreides-treachery-tracker',
