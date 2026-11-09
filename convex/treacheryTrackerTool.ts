@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 
+import { TOOL_HIDDEN_RULESETS } from '../src/shared/rulesets/hidden';
 import type { Doc, Id } from './_generated/dataModel';
 import type { QueryCtx } from './_generated/server';
 import { DECK_CARD, DECK_CARD_LIMIT } from './assets';
@@ -38,8 +39,6 @@ const CALL_BUDGET = 3000;
 const FIND_CALLS = 1500;
 /* The most calls a deck's Rulesets and back make besides its cards: the slot range, every Ruleset, and the back. */
 const CALLS_PER_DECK = 1 + SLOTS_PER_DECK + BACK_READS;
-/* A Ruleset for trying things out, never named to a table. */
-const HIDDEN_RULESETS = new Set(['test']);
 
 const treacheryDeckChoiceValidator = v.object({
   id: v.id('assets'),
@@ -186,7 +185,7 @@ async function treacheryRulesets(ctx: QueryCtx, deck: Doc<'assets'>, budget: Bud
   budget.calls -= 1 + treachery.length;
   const rulesets = await Promise.all(treachery.map((slot) => ctx.db.get('rulesets', slot.ruleset_id)));
   return rulesets.flatMap((ruleset) =>
-    ruleset && !ruleset.is_deleted && !HIDDEN_RULESETS.has(ruleset.slug)
+    ruleset && !ruleset.is_deleted && !TOOL_HIDDEN_RULESETS.has(ruleset.slug)
       ? [{ slug: ruleset.slug, name: ruleset.name }]
       : []
   );

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { HOMEPAGE_CLIENT_CONNECTION_LIMIT } from '../../src/shared/homepage/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
 import type { PieceAction } from '../../src/shared/play/protocol';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
@@ -58,6 +59,32 @@ async function command(connection: NativeConnection, action: PieceAction) {
 }
 
 describe('the public homepage table', () => {
+  it('lets one address hold only its share of the table, so a single visitor cannot fill it', async () => {
+    /* The limit applies only on the public site's origin. */
+    await runtime.close();
+    runtime = await createRuntime(peer, 'homepage', { APPLICATION_ORIGIN: 'https://dune.zone' });
+    const open = async (address: string) => {
+      const response = await runtime.fetch('/__play/homepage/socket', {
+        headers: { Origin: runtime.origin, Upgrade: 'websocket', 'CF-Connecting-IP': address },
+      });
+      response.webSocket?.accept();
+      if (response.webSocket) {
+        sockets.push({ socket: response.webSocket } as NativeConnection);
+      } else {
+        await response.body?.cancel();
+      }
+      return response.status;
+    };
+    for (let index = 0; index < HOMEPAGE_CLIENT_CONNECTION_LIMIT; index++) {
+      expect(await open('203.0.113.7')).toBe(101);
+    }
+    expect(await open('203.0.113.7')).toBe(429);
+    expect(await open('2001:db8::7')).toBe(101);
+    /* A visitor who closes a socket gets its place back. */
+    sockets.shift()!.socket.close();
+    await eventually(async () => (await open('203.0.113.7')) === 101, 'freed place');
+  });
+
   it('replaces the generation when an invalid saved table is replaced', async () => {
     const member = await visitor(true);
     const before = await syncView(member);
