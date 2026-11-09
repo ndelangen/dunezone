@@ -168,19 +168,22 @@ function useLocking(lockTime: () => Promise<number>, lock: (prediction: Omit<Loc
       mounted.current = false;
     };
   }, []);
-  const start = async (prediction: Omit<LockedPrediction, 'revealed' | 'lockedAt'>) => {
+  /* Promise handlers rather than try/finally, which the React compiler cannot lower. */
+  const start = (prediction: Omit<LockedPrediction, 'revealed' | 'lockedAt'>) => {
     setLocking(true);
     setFailed(false);
-    try {
-      const lockedAt = await withinTime(lockTime(), LOCK_TIMEOUT_MS);
-      if (mounted.current) {
-        lock({ ...prediction, lockedAt });
+    return withinTime(lockTime(), LOCK_TIMEOUT_MS).then(
+      (lockedAt) => {
+        if (mounted.current) {
+          lock({ ...prediction, lockedAt });
+        }
+        setLocking(false);
+      },
+      () => {
+        setFailed(true);
+        setLocking(false);
       }
-    } catch {
-      setFailed(true);
-    } finally {
-      setLocking(false);
-    }
+    );
   };
   return { locking, failed, start };
 }
