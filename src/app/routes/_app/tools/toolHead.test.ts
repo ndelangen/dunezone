@@ -73,7 +73,8 @@ describe('tools catalogue head', () => {
 });
 
 describe('a tool page head', () => {
-  const tool = TOOLS.find((entry) => entry.slug === 'spice-deck-tracker')!;
+  /* Any registry entry will do; the test passes it in so it holds whatever the registry is renamed to. */
+  const tool = TOOLS[0];
   const description = 'Draw the spice deck for your game of Dune on a phone.';
 
   test('is a free web app below the catalogue, at its own canonical address', () => {
