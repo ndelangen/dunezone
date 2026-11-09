@@ -12,7 +12,7 @@ import { Minus, Plus, RotateCcw, Settings2, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 
-import { readFactionDefinition, useBattleWheelRulesets } from '@app/db/battleWheelTool';
+import { readWheelFaction, useBattleWheelRulesets } from '@app/db/battleWheelTool';
 import { useCataloguePickerGroup } from '@app/db/cataloguePicker';
 import { useOrderedRulesetFactions } from '@app/db/rulesets';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
@@ -93,27 +93,24 @@ function LiveBattleWheel() {
   );
   /* The base Ruleset's factions come first; without it, the first Ruleset's do, so the picker never waits on a Ruleset that is gone. */
   const base = (shown?.find((entry) => entry.slug === BASE_RULESET) ?? shown?.[0])?.rulesetId;
-  const tool = (factions?: readonly FactionChoice[]) => (
+  return (
     <BattleWheelTool
       rulesets={rulesets}
       defaultRulesetId={base}
-      factions={factions}
+      starting={StartingFactions}
       search={FactionSearchLive}
       loadFaction={loadFaction}
     />
   );
-  return base ? <WithBaseFactions rulesetId={base}>{tool}</WithBaseFactions> : tool();
 }
 
-/* The base six: the first factions of the base Ruleset, in its own order. */
-function WithBaseFactions({
-  rulesetId,
-  children,
-}: Readonly<{
-  rulesetId: Parameters<typeof useOrderedRulesetFactions>[0];
-  children: (factions?: readonly FactionChoice[]) => ReactNode;
-}>) {
-  const data = useOrderedRulesetFactions(rulesetId, BASE_FACTIONS);
+/*
+ * The base six: the first factions of the base Ruleset, in its own order.
+ * Rendered inside the setup sheet only, so the list is read while the sheet is open and not during the battle.
+ */
+function StartingFactions({ rulesetId, children }: StartingProps) {
+  /* The id comes from the Rulesets query, so it names a Ruleset. */
+  const data = useOrderedRulesetFactions(rulesetId as Parameters<typeof useOrderedRulesetFactions>[0], BASE_FACTIONS);
   const factions = useMemo(
     () =>
       data?.factions.map((faction): FactionChoice => ({
@@ -128,7 +125,7 @@ function WithBaseFactions({
 }
 
 async function loadFaction(faction: Readonly<{ id: string; name: string }>) {
-  const loaded = wheelFactionFrom(await readFactionDefinition(faction.id));
+  const loaded = wheelFactionFrom(await readWheelFaction(faction.id));
   if (!loaded) {
     throw new Error(`${faction.name} could not be read.`);
   }
@@ -172,6 +169,12 @@ const FactionSearchLive: FactionSearch = ({ seated, onPick }) => {
  */
 
 /** A search over every faction on Dune Zone. */
+type StartingProps = Readonly<{
+  rulesetId: string;
+  children: (factions: readonly FactionChoice[] | undefined) => ReactNode;
+}>;
+type StartingFactionsReader = ComponentType<StartingProps>;
+
 type FactionSearch = ComponentType<Readonly<{ seated: readonly string[]; onPick: (faction: SearchedFaction) => void }>>;
 
 type ToolProps = Readonly<{
@@ -179,8 +182,8 @@ type ToolProps = Readonly<{
   rulesets: readonly WheelRuleset[] | undefined;
   /** The Ruleset a first visit counts with. */
   defaultRulesetId?: string;
-  /** The factions offered first, before any search: the base game's six; undefined while they load. */
-  factions: readonly FactionChoice[] | undefined;
+  /** Reads the factions offered first, before any search: the base game's six, handing undefined while they load. */
+  starting: StartingFactionsReader;
   search: FactionSearch;
   /** Reads a picked faction's leaders and troops. */
   loadFaction: (faction: Readonly<{ id: string; name: string }>) => Promise<WheelFaction>;
@@ -194,7 +197,7 @@ type Wheel = Readonly<{
   result: WheelResult;
 }>;
 
-function BattleWheelTool({ rulesets, defaultRulesetId, factions: starting, search, loadFaction }: ToolProps) {
+function BattleWheelTool({ rulesets, defaultRulesetId, starting, search, loadFaction }: ToolProps) {
   const { state, setPlan, chooseRuleset, chooseFaction, clear } = useBattleWheel();
   const [setup, setSetup] = useState(false);
   const reading = useFactionReading(loadFaction, (loaded) => {
@@ -228,19 +231,23 @@ function BattleWheelTool({ rulesets, defaultRulesetId, factions: starting, searc
               />
             </TrackerPopover.Target>
             <TrackerPopover.Dropdown>
-              <SetupSheet
-                rulesets={rulesets}
-                ruleset={ruleset}
-                onRuleset={(id) => {
-                  const next = rulesets.find((candidate) => candidate.id === id)!;
-                  chooseRuleset(id, faction ? settled(next, faction, state.plan) : state.plan);
-                }}
-                faction={faction}
-                choices={choicesOf(starting, state.recent)}
-                startingLoaded={starting !== undefined}
-                reading={reading}
-                search={opened ? search : null}
-              />
+              {/* Mounted only while open, so the starting factions and the search read nothing during the battle. */}
+              {opened ? (
+                <SetupSheet
+                  rulesets={rulesets}
+                  ruleset={ruleset}
+                  onRuleset={(id) => {
+                    const next = rulesets.find((candidate) => candidate.id === id)!;
+                    chooseRuleset(id, faction ? settled(next, faction, state.plan) : state.plan);
+                  }}
+                  faction={faction}
+                  startingFrom={defaultRulesetId ?? ruleset.id}
+                  starting={starting}
+                  recent={state.recent}
+                  reading={reading}
+                  search={search}
+                />
+              ) : null}
             </TrackerPopover.Dropdown>
           </TrackerPopover>
         </header>
@@ -353,8 +360,9 @@ function SetupSheet({
   ruleset,
   onRuleset,
   faction,
-  choices,
-  startingLoaded,
+  startingFrom,
+  starting: Starting,
+  recent,
   reading,
   search: Search,
 }: Readonly<{
@@ -362,11 +370,12 @@ function SetupSheet({
   ruleset: WheelRuleset;
   onRuleset: (id: string) => void;
   faction: WheelFaction | null;
-  choices: readonly FactionChoice[];
-  startingLoaded: boolean;
+  /** The Ruleset whose first factions are offered before any search. */
+  startingFrom: string;
+  starting: StartingFactionsReader;
+  recent: readonly FactionChoice[] | undefined;
   reading: FactionReading;
-  /** Mounted only while the sheet is open, so it reads nothing when closed. */
-  search: FactionSearch | null;
+  search: FactionSearch;
 }>) {
   return (
     <div className={styles.setup}>
@@ -387,7 +396,41 @@ function SetupSheet({
         ))}
       </div>
       <p className={styles.setupLabel}>Your faction</p>
-      {startingLoaded ? null : <Pending>Loading the factions…</Pending>}
+      <Starting rulesetId={startingFrom}>
+        {(factions) => (
+          <FactionChoices
+            loaded={factions !== undefined}
+            choices={choicesOf(factions, recent)}
+            faction={faction}
+            reading={reading}
+          />
+        )}
+      </Starting>
+      {reading.loading ? <Pending>{`Reading ${reading.loading}’s leaders and troops…`}</Pending> : null}
+      {reading.failed ? (
+        <p className={styles.failed}>{`${reading.failed} could not be read. Try again, or pick another faction.`}</p>
+      ) : null}
+      <p className={styles.setupLabel}>Any faction on Dune Zone</p>
+      <Search seated={faction ? [faction.id] : []} onPick={reading.pick} />
+    </div>
+  );
+}
+
+/* The starting factions and the ones picked lately, one tap each. */
+function FactionChoices({
+  loaded,
+  choices,
+  faction,
+  reading,
+}: Readonly<{
+  loaded: boolean;
+  choices: readonly FactionChoice[];
+  faction: WheelFaction | null;
+  reading: FactionReading;
+}>) {
+  return (
+    <>
+      {loaded ? null : <Pending>Loading the factions…</Pending>}
       <div className={styles.factions}>
         {choices.map((candidate) => (
           <button
@@ -405,13 +448,7 @@ function SetupSheet({
           </button>
         ))}
       </div>
-      {reading.loading ? <Pending>{`Reading ${reading.loading}’s leaders and troops…`}</Pending> : null}
-      {reading.failed ? (
-        <p className={styles.failed}>{`${reading.failed} could not be read. Try again, or pick another faction.`}</p>
-      ) : null}
-      <p className={styles.setupLabel}>Any faction on Dune Zone</p>
-      {Search ? <Search seated={faction ? [faction.id] : []} onPick={reading.pick} /> : null}
-    </div>
+    </>
   );
 }
 
