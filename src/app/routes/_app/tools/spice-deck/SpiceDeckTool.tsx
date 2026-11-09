@@ -16,9 +16,9 @@ import {
   MOST_PEEK,
   MOST_PILES,
   newGame,
-  nexus,
   nextPile,
   nextTurn,
+  isWorm,
   lastPlayed,
   peekAt,
   pileLetter,
@@ -150,6 +150,9 @@ const SLAM_START = 0.62;
 const IMPACT = 0.8;
 /* How much bigger than the pile the card shows in the middle of the screen. */
 const SHOWCASE = 1.55;
+/* The columns either side of each pile: its letter on the left, its Shai-Hulud notice on the right. Always kept, so nothing moves when a notice shows. */
+const SIDE = 40;
+const SIDE_GAP = 6;
 /* A card's width to its height. */
 const CARD_RATIO = 900 / 1263;
 
@@ -294,9 +297,6 @@ function Playing({ session, game }: Readonly<{ session: SpiceDeckSession; game: 
         <Table game={game} flight={flight} onPile={turnOver} />
       </main>
       <footer ref={footer} className={styles.footer}>
-        {over && nexus(game) ? (
-          <p className={styles.nexus}>Nexus! Shai-Hulud came up: alliances may be made and broken.</p>
-        ) : null}
         <div className={styles.actions}>
           <PeekHold disabled={game.draw.length === 0 || flight !== undefined} onPeek={() => setPeeking(true)} />
           <LabeledAction
@@ -366,7 +366,7 @@ function Table({
       const caption = 22;
       const widthFor = (across: number) => {
         const down = Math.ceil(pileCount / across);
-        const byWidth = (width - gap * (across - 1)) / across;
+        const byWidth = (width - gap * (across - 1)) / across - 2 * (SIDE + SIDE_GAP);
         const byHeight = ((height - gap * (down - 1)) / down - caption) * CARD_RATIO;
         return Math.min(byWidth, byHeight);
       };
@@ -485,24 +485,37 @@ function Table({
           const landing = flight?.pile === index && flight.mode === 'deal';
           const top = landing ? pile.at(-2) : pile.at(-1);
           const count = pile.length - (landing ? 1 : 0);
+          const worm = top && !landing ? wormNotice(game, index, top) : undefined;
           return (
-            <button
-              key={index}
-              ref={(element) => {
-                piles.current[index] = element;
-              }}
-              type="button"
-              className={styles.pileButton}
-              data-next={index === next || undefined}
-              disabled={blocked || flight !== undefined}
-              aria-label={`Turn over a card onto ${pileName(game, index).toLowerCase()}`}
-              onClick={() => onPile(index)}
-            >
-              {top ? <CardFace game={game} copy={top} /> : <span className={styles.slot} data-card />}
-              <span className={styles.caption}>
-                {pileName(game, index)} · {count}
+            <div key={index} className={styles.pileSpot}>
+              <span className={styles.pileLetter} aria-hidden>
+                {game.piles > 1 ? pileLetter(index) : ''}
               </span>
-            </button>
+              <button
+                ref={(element) => {
+                  piles.current[index] = element;
+                }}
+                type="button"
+                className={styles.pileButton}
+                data-next={index === next || undefined}
+                disabled={blocked || flight !== undefined}
+                aria-label={`Turn over a card onto ${pileName(game, index).toLowerCase()}`}
+                onClick={() => onPile(index)}
+              >
+                {top ? <CardFace game={game} copy={top} /> : <span className={styles.slot} data-card />}
+                <span className={styles.caption}>
+                  {pileName(game, index)} · {count}
+                </span>
+              </button>
+              <span className={styles.wormNotice} role={worm ? 'status' : undefined}>
+                {worm ? (
+                  <>
+                    <strong>Shai-Hulud!</strong>
+                    <small>{worm}</small>
+                  </>
+                ) : null}
+              </span>
+            </div>
           );
         })}
       </div>
@@ -540,6 +553,25 @@ function Table({
       ) : null}
     </div>
   );
+}
+
+/* What the Shai-Hulud on top of a pile, turned over this turn, means: the territory it devours, and a Nexus after the first turn. */
+function wormNotice(game: SpiceDeckGame, pile: number, top: string): string | undefined {
+  if (!isWorm(cardOf(game, top))) {
+    return undefined;
+  }
+  const reveal = game.blows
+    .filter((blow) => blow.turn === game.turn && blow.pile === pile)
+    .flatMap((blow) => blow.reveals)
+    .findLast((entry) => entry.card === top);
+  if (reveal?.kind !== 'worm') {
+    return undefined;
+  }
+  if (game.turn === 1) {
+    return 'Turn 1: set it aside';
+  }
+  const devours = reveal.devours ? `Devours ${cardOf(game, reveal.devours).name}` : 'Nothing to devour';
+  return `${devours} · Nexus`;
 }
 
 /* A blow's lines as far as the table has seen: the card in flight is told once it lands. */
