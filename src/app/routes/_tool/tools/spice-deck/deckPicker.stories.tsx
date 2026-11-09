@@ -30,7 +30,8 @@ export const Decks = meta.story({
 
 /**
  * A deck picked: its card pictures are fetched before the game starts, so no card flies in before its face can show.
- * The bar fills as they come in; this story holds it at 9 of 24.
+ * The bar fills as they come in.
+ * This story holds it at 9 of 24.
  */
 export const FetchingCards = meta.story({
   args: {

@@ -35,7 +35,8 @@ function load(src: string): Promise<void> {
 }
 
 /**
- * Resolves once the image has loaded and decoded, failed, or taken too long; it never rejects.
+ * Resolves once the image has loaded and decoded, failed, or taken too long.
+ * It never rejects.
  * Asking again for an image already loaded or loading returns the same promise.
  */
 export function preloadPublishedImage(src: string): Promise<void> {
@@ -67,7 +68,8 @@ export async function preloadPublishedImages(
 
 /**
  * Preloads every image while the caller is mounted, and counts them in: `done` of `total`, and `ready` once all are.
- * A new list starts the count again; images already in count at once.
+ * A new list starts the count again.
+ * Images already in count at once.
  */
 export function usePreloadedImages(srcs: readonly string[]) {
   const key = [...new Set(srcs)].join('\n');
