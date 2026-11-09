@@ -1,25 +1,13 @@
-import { Menu, NumberInput } from '@mantine/core';
+import { Menu } from '@mantine/core';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { preloadPublishedImage, preloadPublishedImages } from '@ui/content/preloadPublishedImage';
 import { PublishedImage } from '@ui/content/PublishedImage';
-import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Card } from '@ui/surface/Card';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Layers,
-  Mic,
-  RotateCcw,
-  Settings2,
-  Shuffle,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Layers, Mic, RotateCcw, Settings2, Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 
@@ -28,13 +16,13 @@ import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import { useMotionAllowed } from '@app/styles/motion';
 import { useSpeech } from '@app/widgets/speech/speech';
 
+import { deckImages, DeckPicker } from './DeckPicker';
+import type { PickerActions } from './DeckPicker';
 import styles from './route.module.css';
 import {
   blowsOfTurn,
   canReveal,
   cardOf,
-  MOST_PEEK,
-  MOST_PILES,
   newGame,
   nextPile,
   nextTurn,
@@ -47,7 +35,7 @@ import {
   spiceBlowOver,
   wormChance,
 } from './spiceDeck';
-import type { Blow, Reveal, SpiceDeckDef, SpiceDeckGame, SpiceRules } from './spiceDeck';
+import type { Blow, Reveal, SpiceDeckGame } from './spiceDeck';
 import { spiceDeckFromSupply } from './spiceDeckSupply';
 import type { SpiceDeckChoice } from './spiceDeckSupply';
 import { SPICE_DECK_STORAGE_KEY, useSpiceDeckGame } from './useSpiceDeckGame';
@@ -111,12 +99,6 @@ function SpiceDeckTool({ storageKey }: Readonly<{ storageKey: string }>) {
   return <Playing session={session} game={game} onPickDeck={() => setChoosing(true)} />;
 }
 
-type PickerActions = Readonly<{
-  onStart: (deck: SpiceDeckDef, rules: SpiceRules) => void;
-  /** Back to the game being played, when there is one. */
-  onBack?: () => void;
-}>;
-
 /*
  * The picker with the catalogue's decks: the rulesets that slot one, and a picked deck's cards read once to live in the stored game.
  * Only the picker subscribes to the catalogue, so a table mid-game holds no query open.
@@ -141,139 +123,19 @@ function CatalogueDeckPicker(actions: PickerActions) {
   return <DeckPicker decks={decks} loadDeck={loadDeck} {...actions} />;
 }
 
-/* Before a game: which deck, how many spice piles, and how many cards a peek shows. */
-function DeckPicker({
-  decks,
-  loadDeck,
-  onStart,
-  onBack,
-}: PickerActions &
-  Readonly<{
-    /** The decks a new game can be played with, by ruleset; undefined while they load. */
-    decks: readonly SpiceDeckChoice[] | undefined;
-    /** Reads a deck's cards once the table picks it. */
-    loadDeck: (choice: SpiceDeckChoice) => Promise<SpiceDeckDef>;
-  }>) {
-  const [piles, setPiles] = useState(1);
-  const [peek, setPeek] = useState(1);
-  const [loading, setLoading] = useState<string | null>(null);
-  const [failed, setFailed] = useState<string | null>(null);
-  /* A deck still loading when the table goes back to its game is dropped, so it never replaces the game they went back to. */
-  const open = useRef(true);
-  useEffect(() => {
-    open.current = true;
-    return () => {
-      open.current = false;
-    };
-  }, []);
-  const pick = async (choice: SpiceDeckChoice) => {
-    setLoading(choice.id);
-    setFailed(null);
-    const deck = await loadDeck(choice).catch(() => undefined);
-    if (!open.current) {
-      return;
-    }
-    if (deck && deck.cards.length > 0) {
-      onStart(deck, { piles, peek });
-      return;
-    }
-    setFailed(choice.id);
-    setLoading(null);
-  };
-  return (
-    <div className={styles.tool}>
-      <header className={styles.header}>
-        <div className={styles.turn}>
-          <span className={styles.turnNumber}>Spice deck</span>
-          <span className={styles.deckName}>Pick the deck your table plays with</span>
-        </div>
-        {onBack ? (
-          <IconAction
-            label="Back to the game"
-            emphasis="quiet"
-            intent="neutral"
-            icon={<ArrowLeft size={20} />}
-            onClick={onBack}
-          />
-        ) : null}
-      </header>
-      <main className={styles.body}>
-        <div className={styles.pickRules}>
-          <ControlBlock
-            title="How many spice piles?"
-            description={'A card is turned over for each pile, every turn.\nThe rulebook plays two, A and B.'}
-            input={(field) => (
-              <NumberInput
-                {...field}
-                min={1}
-                max={MOST_PILES}
-                clampBehavior="strict"
-                allowDecimal={false}
-                disabled={loading !== null}
-                value={piles}
-                onChange={(value) => setPiles(typeof value === 'number' ? value : 1)}
-              />
-            )}
-          />
-          <ControlBlock
-            title="Cards shown by a peek"
-            description={
-              'Holding Peek for two seconds shows the next cards off the deck.\nSome factions may look at one; set how many your table allows.'
-            }
-            input={(field) => (
-              <NumberInput
-                {...field}
-                min={1}
-                max={MOST_PEEK}
-                clampBehavior="strict"
-                allowDecimal={false}
-                disabled={loading !== null}
-                value={peek}
-                onChange={(value) => setPeek(typeof value === 'number' ? value : 1)}
-              />
-            )}
-          />
-        </div>
-        {decks?.length === 0 ? <p className={styles.hint}>No Ruleset has a spice deck yet.</p> : null}
-        {decks ? (
-          <ul className={styles.deckList}>
-            {decks.map((choice) => (
-              <li key={choice.id}>
-                <button
-                  type="button"
-                  className={styles.deckChoice}
-                  disabled={loading !== null}
-                  aria-busy={loading === choice.id}
-                  onClick={() => void pick(choice)}
-                >
-                  <Layers aria-hidden className={styles.deckMark} />
-                  <span>
-                    <strong>{choice.ruleset}</strong>
-                    <small>
-                      {loading === choice.id
-                        ? 'Shuffling…'
-                        : failed === choice.id
-                          ? 'This deck could not be read. Try again.'
-                          : choice.name}
-                    </small>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.hint}>Reading the decks…</p>
-        )}
-      </main>
-    </div>
-  );
-}
-
 const pileName = (game: SpiceDeckGame, pile: number) =>
   game.piles > 1 ? `Spice pile ${pileLetter(pile)}` : 'Spice pile';
 
 /** A card on its way: dealt from the deck onto a pile, or set aside off its pile. */
-type Flight = Readonly<{ key: number; pile: number; copy: string; mode: 'deal' | 'aside'; reveal: Reveal }>;
+type Flight = Readonly<{
+  key: number;
+  pile: number;
+  copy: string;
+  mode: 'deal' | 'aside';
+  reveal: Reveal;
+  /** Whether the card's pictures are in, so it can fly; until then it waits off the table and nothing else moves. */
+  ready: boolean;
+}>;
 
 type Step = Readonly<{ mode: 'deal' | 'aside'; blow: Blow; reveal: Extract<Reveal, { card: string }> }>;
 
@@ -339,14 +201,46 @@ function Playing({
   const lastId = session.last?.id;
   /* The step already on the table when the table appears, back from the deck picker or a reload, has landed: it does not fly again. */
   const [landedId, setLandedId] = useState<number | undefined>(() => session.last?.id);
+  /* The step whose card's face and the deck's back have loaded: a card never flies before it can show. */
+  const [readyId, setReadyId] = useState<number | undefined>(() => session.last?.id);
   const step = useMemo(() => stepOf(game, session.last), [game, session.last]);
   const flight = useMemo<Flight | undefined>(
     () =>
       step && motion && lastId !== landedId
-        ? { key: lastId ?? 0, pile: step.blow.pile, copy: step.reveal.card, mode: step.mode, reveal: step.reveal }
+        ? {
+            key: lastId ?? 0,
+            pile: step.blow.pile,
+            copy: step.reveal.card,
+            mode: step.mode,
+            reveal: step.reveal,
+            ready: readyId === lastId,
+          }
         : undefined,
-    [step, motion, lastId, landedId]
+    [step, motion, lastId, landedId, readyId]
   );
+  /* A game the page opened on, from a reload, fetches its deck's pictures now rather than card by card. */
+  useEffect(() => {
+    void preloadPublishedImages(deckImages(game.deck));
+  }, [game.deck]);
+  /* A new step waits for its card's pictures; they are usually in already, fetched when the deck was picked. */
+  const awaitCard = useEffectEvent(() => {
+    if (!step) {
+      return;
+    }
+    let live = true;
+    const pictures = [cardOf(game, step.reveal.card).face, game.deck.back].filter(
+      (src): src is string => src !== undefined
+    );
+    void Promise.all(pictures.map(preloadPublishedImage)).then(() => {
+      if (live) {
+        setReadyId(lastId);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  });
+  useEffect(() => awaitCard(), [lastId]);
   /* Read aloud is read as the card lands, so switching it off while a card is on its way keeps it quiet. */
   const voiceOn = useRef(voice);
   useEffect(() => {
@@ -354,7 +248,7 @@ function Playing({
   }, [voice]);
   /* Lands a new step once its flight is over, at once without motion, and reads it out; only a new step starts one. */
   const landStep = useEffectEvent(() => {
-    if (!step) {
+    if (!step || readyId !== lastId) {
       return;
     }
     const timer = setTimeout(
@@ -368,7 +262,7 @@ function Playing({
     );
     return () => clearTimeout(timer);
   });
-  useEffect(() => landStep(), [lastId]);
+  useEffect(() => landStep(), [lastId, readyId]);
 
   /* While a card is on its way, nothing else moves the game: the table sees each card land before the next step. */
   const busy = flight !== undefined;
@@ -567,7 +461,7 @@ function Table({
   /* The flying card: in from the deck above the screen, turned over big in the middle, slammed onto its pile; a set-aside card then leaves to the side. */
   useLayoutEffect(() => {
     const card = flyer.current;
-    if (!flight || !card || !table.current) {
+    if (!flight?.ready || !card || !table.current) {
       return;
     }
     const to = boxIn(table.current, piles.current[flight.pile]?.querySelector('[data-card]'));
@@ -701,10 +595,10 @@ function Table({
           );
         })}
       </div>
-      {flight ? (
+      {flight?.ready ? (
         <div key={`ring-${flight.key}`} ref={ring} className={styles.ring} data-kind={flight.reveal.kind} />
       ) : null}
-      {flight ? (
+      {flight?.ready ? (
         <div key={flight.key} ref={flyer} className={styles.flyer} aria-hidden>
           <div className={styles.flyerTurn} data-turn data-mode={flight.mode}>
             <CardFace game={game} copy={flight.copy} className={styles.front} />
