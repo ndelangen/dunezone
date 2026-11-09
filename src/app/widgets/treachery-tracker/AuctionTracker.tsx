@@ -14,7 +14,7 @@ import { awaitingWinner, copyOf, currentTurn, drawPile, onBid as cardOnBid, sigh
 import type { CardCopy, Sighting, TrackerAction } from './tracker';
 import { AddCard, CHOOSER_WIDTH, CardChooser, FactionPicker, SlotChip, holderOf } from './TrackerParts';
 import type { TrackerViewProps } from './TrackerParts';
-import { TrackerPopover, useActionSize } from './TrackerSurface';
+import { TrackerPopover, useActionSize, useTrackerTouch } from './TrackerSurface';
 
 /* One size for every card and token in the hands, so the rows line up on a single grid. */
 const GLYPH = 36;
@@ -62,6 +62,7 @@ function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Read
   const onBid = cardOnBid(state);
   const card = onBid?.card ? copyOf(state, onBid.card) : null;
   const name = card?.def.name ?? 'the unknown card';
+  const touch = useTrackerTouch();
   return (
     <section className={styles.onBid} aria-label="On bid">
       <div className={styles.bidCard}>
@@ -81,7 +82,7 @@ function OnBid({ factions, state, onAction, tableTurn }: TrackerViewProps & Read
         ) : null}
         {onBid ? null : (
           <Text size="sm" className={styles.dim}>
-            Click the empty card to put the next one up for bid.
+            {`${touch ? 'Tap' : 'Click'} the empty card to put the next one up for bid.`}
           </Text>
         )}
         {/* Ending this auction and lining up the next card share one row. */}

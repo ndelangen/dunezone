@@ -66,10 +66,9 @@ function Dropdown({ children, className, miw }: Readonly<{ children: ReactNode; 
       opened={sheet.opened}
       onClose={sheet.onClose}
       position="bottom"
-      size="auto"
       withCloseButton={false}
       padding="md"
-      classNames={{ content: styles.sheet, body: styles.sheetBody }}
+      classNames={{ inner: styles.sheetInner, content: styles.sheet, body: styles.sheetBody }}
     >
       {children}
     </Drawer>

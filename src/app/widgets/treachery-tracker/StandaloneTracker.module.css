@@ -1,0 +1,81 @@
+/* The tracker on its own, on a phone: the setup, then the game with its turn above it. */
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+}
+
+.start {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  align-items: stretch;
+}
+
+.dim {
+  color: var(--ui-muted);
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The turn and the Ruleset, kept in view while the tracker scrolls. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  align-items: center;
+  padding-block: var(--space-xs);
+  border-bottom: 1px solid var(--ui-edge);
+  background: var(--ui-ground);
+}
+
+.turn {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.turnLabel {
+  min-width: 4.5em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.ruleset {
+  color: var(--ui-muted);
+}
+
+/* The card on bid stays under the bar while the auctions and hands scroll past. */
+.pinned {
+  position: sticky;
+  top: var(--tracker-bar-height, 60px);
+  z-index: 1;
+  border-bottom: 1px solid var(--ui-edge);
+  background: var(--ui-ground);
+}
+
+/* Tabs along the bottom, within a thumb's reach, clear of the home indicator. */
+.tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin-top: auto;
+  padding-block: var(--space-xs) calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--ui-edge);
+  background: var(--ui-ground);
+}
+
+.game[data-layout="tabs"] {
+  min-height: 100dvh;
+}
