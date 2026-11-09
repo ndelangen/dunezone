@@ -32,6 +32,9 @@ type Recognition = {
   onerror: ((event: { error: string }) => void) | null;
 };
 
+/* Errors that another try would only repeat: no permission, or no microphone to hear with. */
+const FINAL_ERRORS = new Set(['not-allowed', 'service-not-allowed', 'audio-capture']);
+
 type RecognitionClass = new () => Recognition;
 
 const recognitionClass = (): RecognitionClass | undefined => {
@@ -95,8 +98,8 @@ export function useVoiceCommands(on: boolean, onCommand: (command: VoiceCommand)
       }
     };
     recognition.onerror = (event) => {
-      /* No permission or no microphone: stop for good until the player switches listening on again. */
-      if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
+      /* Stop for good until the player switches listening on again. */
+      if (FINAL_ERRORS.has(event.error)) {
         active = false;
         setRefused(true);
       }
