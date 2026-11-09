@@ -97,6 +97,7 @@ export default defineSchema({
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
     last_turn: v.optional(zodToConvex(lastTurnSchema)),
+    discord_voice: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),

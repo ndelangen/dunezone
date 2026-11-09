@@ -73,6 +73,7 @@ function CreateGamePage() {
       return (
         <CreateGameForm
           rulesets={data.rulesets}
+          discordVoiceAvailable={data.discordVoiceAvailable}
           preview={data.preview?.rulesetId === draft.rulesetId ? data.preview : null}
           draft={draft}
           dispatch={dispatch}

@@ -12,6 +12,7 @@ export function voiceParameters(enabled = true) {
     database: db(
       (baseline) => {
         productGameDatabase(baseline, { state: 'ready' });
+        baseline.play_games.find((game) => game.$key === GAME_KEY)!.discord_voice = true;
         baseline.play_game_discord_channels.push({
           game_id: ref(GAME_KEY),
           guild_id: '100',

@@ -24,7 +24,13 @@ function discordGameFinished(game: Doc<'play_games'>) {
 /** Reservation and game confirmation commit together; repeated confirmations cannot reserve a second room. */
 export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_games'>) {
   const config = discordConfiguration();
-  if (!config || game.fixture_key !== undefined || !game.ruleset_id || (await discordChannel(ctx, game._id))) {
+  if (
+    !config ||
+    game.discord_voice !== true ||
+    game.fixture_key !== undefined ||
+    !game.ruleset_id ||
+    (await discordChannel(ctx, game._id))
+  ) {
     return;
   }
   const now = Date.now();
@@ -59,6 +65,7 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
 export async function discordMenu(ctx: QueryCtx, game: Doc<'play_games'>): Promise<PlayDiscordMenu | null> {
   if (
     !discordConfiguration() ||
+    game.discord_voice !== true ||
     game.state !== 'ready' ||
     game.fixture_key !== undefined ||
     !game.ruleset_id ||

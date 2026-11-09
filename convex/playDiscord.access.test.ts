@@ -50,3 +50,28 @@ test('leaving a seat does not change the shared voice link or call Discord', asy
   expect(await world.menu()).toMatchObject({ voice: { url: 'https://discord.gg/shared-room' } });
   expect(discord.calls).toHaveLength(calls);
 });
+
+test.each([false, undefined])(
+  'a game without opt-in %s does not expose a retained room invite',
+  async (discordVoice) => {
+    const discord = discordStub();
+    const world = await voiceWorld({ discordVoice: false });
+    await world.t.run(async (ctx) => {
+      await ctx.db.patch(world.gameId, { discord_voice: discordVoice });
+      await ctx.db.insert('play_game_discord_channels', {
+        game_id: world.gameId,
+        guild_id: '100',
+        category_ids: ['200'],
+        channel_id: '300',
+        invite_url: 'https://discord.gg/shared-room',
+        state: 'ready',
+        created_at: Date.now(),
+        cleanup_at: Date.now() + 14 * 86_400_000,
+        next_attempt_at: Date.now() + 14 * 86_400_000,
+      });
+    });
+    expect(await world.channel()).toMatchObject({ state: 'ready' });
+    expect(await world.menu()).toMatchObject({ voice: null });
+    expect(discord.calls).toHaveLength(0);
+  }
+);

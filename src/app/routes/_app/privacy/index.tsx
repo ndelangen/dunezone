@@ -103,9 +103,9 @@ function PrivacyPage() {
           <Section title="Discord voice rooms">
             <Stack gap="md">
               <Text>
-                Dune Play creates a Discord voice channel for each game. Anyone with its invite can join, including
-                spectators. You do not need to connect Discord to your Dune Zone account to use the invite. Discord
-                receives the game name and can see which Discord accounts join and use the channel.
+                Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
+                can join, including spectators. You do not need to connect Discord to your Dune Zone account to use the
+                invite. Discord receives the game name and can see which Discord accounts join and use the channel.
               </Text>
               <Text>
                 Joining the Discord server is your choice. We never add you automatically or change your channel access

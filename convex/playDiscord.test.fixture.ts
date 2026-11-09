@@ -10,7 +10,8 @@ export function configureDiscord() {
   vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '200,201');
 }
 
-export function discordStub() {
+export function discordStub(channelIds = ['300']) {
+  let created = 0;
   const calls: { method: string; path: string; body: unknown; headers: HeadersInit | undefined }[] = [];
   const routes: Record<string, () => Response> = {
     'GET /guilds/100/channels': () =>
@@ -18,10 +19,18 @@ export function discordStub() {
         { id: '200', type: 4 },
         { id: '201', type: 4 },
       ]),
-    'POST /guilds/100/channels': () => Response.json({ id: '300', type: 2, parent_id: '200' }),
-    'POST /channels/300/invites': () => Response.json({ code: 'shared-room' }),
-    'DELETE /channels/300': () => Response.json({ id: '300' }),
+    'POST /guilds/100/channels': () => {
+      const id = channelIds[created++];
+      if (!id) {
+        throw new Error('The test created more Discord channels than expected.');
+      }
+      return Response.json({ id, type: 2, parent_id: '200' });
+    },
   };
+  for (const [index, id] of channelIds.entries()) {
+    routes[`POST /channels/${id}/invites`] = () => Response.json({ code: index === 0 ? 'shared-room' : `room-${id}` });
+    routes[`DELETE /channels/${id}`] = () => Response.json({ id });
+  }
   const fetch = vi.fn(async (input: string | URL | Request, options?: RequestInit): Promise<Response> => {
     const path = (input instanceof Request ? input.url : String(input)).replace('https://discord.com/api/v10', '');
     const method = options?.method ?? 'GET';
@@ -37,7 +46,7 @@ export function discordStub() {
   return { fetch, calls };
 }
 
-export async function voiceWorld({ fixture = false } = {}) {
+export async function voiceWorld({ fixture = false, discordVoice = true } = {}) {
   const t = playTest();
   const seeded = await t.run(async (ctx) => {
     const player = await playPerson(ctx, 'Player');
@@ -49,6 +58,7 @@ export async function voiceWorld({ fixture = false } = {}) {
       state: 'pending',
       ruleset_id: rulesetId,
       minimum_players: 4,
+      discord_voice: discordVoice,
       creator_id: player.userId,
       secret: 'a'.repeat(64),
       attempt_id: 'b'.repeat(64),

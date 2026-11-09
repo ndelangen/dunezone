@@ -151,6 +151,7 @@ export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
   lastTurn: lastTurnSchema.optional(),
+  discordVoice: z.boolean().optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
