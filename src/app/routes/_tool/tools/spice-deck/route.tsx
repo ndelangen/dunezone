@@ -1,6 +1,7 @@
 import { Menu, NumberInput } from '@mantine/core';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
+import { PublishedImage } from '@ui/content/PublishedImage';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -314,6 +315,8 @@ const SIDE_GAP = 6;
 const CARD_ON_ITS_WAY = 'A card is on its way to its pile.';
 /* A card's width to its height. */
 const CARD_RATIO = 900 / 1263;
+/* Height over width, as PublishedImage takes it. */
+const CARD_ASPECT = 1 / CARD_RATIO;
 
 function Playing({
   session,
@@ -796,7 +799,17 @@ function PeekHold({ disabled, onPeek }: Readonly<{ disabled: boolean; onPeek: ()
         size="lg"
         icon={<Eye size={20} />}
         disabledReason={disabled ? 'No card to peek at right now.' : undefined}
-        onPointerDown={press}
+        onPointerDown={(event) => {
+          /* Only a primary press holds; a second finger or another button does nothing. */
+          if (!event.isPrimary || event.button !== 0) {
+            return;
+          }
+          /* Touch captures the pointer implicitly, which would swallow the leave that cancels a finger sliding off. */
+          if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+            event.currentTarget.releasePointerCapture(event.pointerId);
+          }
+          press();
+        }}
         onPointerUp={release}
         onPointerLeave={release}
         onPointerCancel={release}
@@ -897,7 +910,14 @@ function CardFace({
   const src = back ? game.deck.back : card?.face;
   return (
     <span className={`${styles.card} ${className ?? ''}`} data-card data-empty={!src || undefined}>
-      {src ? <img src={src} alt={back ? 'Spice deck' : (card?.name ?? '')} draggable={false} /> : null}
+      {src ? (
+        <PublishedImage
+          src={src}
+          name={back ? 'Spice deck' : (card?.name ?? '')}
+          aspect={CARD_ASPECT}
+          radius="4.5% / 3.2%"
+        />
+      ) : null}
     </span>
   );
 }

@@ -46,7 +46,8 @@ export function clearStoredGame() {
 function seeded(seed: number): () => number {
   let state = seed;
   return () => {
-    state = (state + 0x6d_2b_79_f5) | 0;
+    /* Kept to 32 bits: the bitwise steps below read it as such either way, so the sequence is mulberry32's. */
+    state = (state + 0x6d_2b_79_f5) >>> 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;

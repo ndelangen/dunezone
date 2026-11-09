@@ -66,7 +66,8 @@ export const Peek = meta.story({
   play: async ({ canvasElement }) => {
     const page = pageOf(canvasElement);
     await fireEvent.pointerDown(
-      await page.findByRole('button', { name: 'Hold to peek at the next card' }, { timeout: 30_000 })
+      await page.findByRole('button', { name: 'Hold to peek at the next card' }, { timeout: 30_000 }),
+      { isPrimary: true, button: 0 }
     );
     /* The peek opens after a two-second hold, a real timer; the bound covers that and a runner starved of frames for several seconds. */
     await waitForFrame(() => expect(page.getByRole('dialog', { name: 'The next spice cards' })).toBeVisible(), {

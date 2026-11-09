@@ -98,8 +98,9 @@ export type SpiceRules = Readonly<{ piles: number; peek?: number }>;
 /** The most cards a peek can show. */
 export const MOST_PEEK = 5;
 
-export function newGame(deck: SpiceDeckDef, random: Random, rules: SpiceRules = { piles: 1 }): SpiceDeckGame {
-  const { piles, peek = 1 } = rules;
+export function newGame(deck: SpiceDeckDef, random: Random, rules?: SpiceRules): SpiceDeckGame {
+  const piles = rules?.piles ?? 1;
+  const peek = rules?.peek ?? 1;
   const copies = deck.cards.flatMap((card) => Array.from({ length: card.count }, (_, n) => `${card.key}#${n + 1}`));
   return {
     version: 1,
