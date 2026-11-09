@@ -75,3 +75,47 @@ test('no peek, or a card with no copy left in the deck, leaves the tracker as it
   const held = trackerReducer(state, { kind: 'add', faction: 'emperor', card: 'lasgun#1' });
   expect(followTable(held, undefined, peekAt('t-1', 'lasgun')).state).toBe(held);
 });
+
+test('a card nobody bought comes up again in a later turn as a new auction', () => {
+  const first = follow(fresh(), peekAt('t-1', 'lasgun'));
+  const passed = trackerReducer(first.state, { kind: 'pass', sighting: onBid(first.state)!.id });
+  const later = followTable(passed, first.memory, { ...peekAt('t-1', 'lasgun'), turn: 3 });
+  expect(onBid(later.state)).toMatchObject({ turn: 3, card: 'lasgun#1' });
+});
+
+test('a peek at a card the player already put up for bid is that auction, not a second one', () => {
+  const byHand = trackerReducer(fresh(), { kind: 'bid', card: 'shield#1', turn: 2 });
+  const { state, memory } = follow(byHand, peekAt('t-1', 'shield'));
+  expect(state).toBe(byHand);
+  expect(memory).toEqual({ peeked: ['t-1@2'], sightings: ['bid-1'] });
+});
+
+test('a bid the tracker refuses is not remembered, so a later read can still follow it', () => {
+  const held = [
+    { kind: 'add', faction: 'emperor', card: null },
+    { kind: 'add', faction: 'emperor', card: null },
+    { kind: 'add', faction: 'emperor', card: null },
+  ] as const;
+  const full = held.reduce((state, action) => trackerReducer(state, action), fresh());
+  const refused = followTable(full, undefined, peekAt('t-1', 'lasgun'));
+  expect(refused.state).toBe(full);
+  expect(refused.memory).toBeUndefined();
+});
+
+test('a peek never folds into an auction entered by hand in an earlier turn', () => {
+  const lastTurn = trackerReducer(fresh(), { kind: 'bid', card: 'shield#1', turn: 1 });
+  const { state } = follow(lastTurn, peekAt('t-1', 'shield'));
+  expect(state.seen.map((sighting) => [sighting.turn, sighting.card])).toEqual([
+    [2, 'shield#2'],
+    [1, 'shield#1'],
+  ]);
+});
+
+test('a peek never names an unknown card left on bid from an earlier turn', () => {
+  const lastTurn = trackerReducer(fresh(), { kind: 'bid', card: null, turn: 1 });
+  const { state } = follow(lastTurn, peekAt('t-1', 'lasgun'));
+  expect(state.seen.map((sighting) => [sighting.turn, sighting.card])).toEqual([
+    [2, 'lasgun#1'],
+    [1, null],
+  ]);
+});
