@@ -16,7 +16,7 @@ import {
   setAsideLast,
   wormChance,
 } from './spiceDeck';
-import type { SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
+import type { Blow, SpiceDeckDef, SpiceDeckGame } from './spiceDeck';
 
 const DECK: SpiceDeckDef = {
   id: 'test',
@@ -183,5 +183,21 @@ describe('a game read back from storage', () => {
     const game = stacked(['old-gap#1']);
     expect(isPlayable({ ...game, discards: undefined as unknown as SpiceDeckGame['discards'] })).toBe(false);
     expect(isPlayable({ ...game, draw: ['sietch-tabr#1'] })).toBe(false);
+  });
+
+  test('is not when a blow lacks its cards or names a card not in its deck', () => {
+    const game = stacked(['old-gap#1']);
+    const blow = { turn: 1, pile: 0, reveals: [{ card: 'old-gap#1', kind: 'spice' as const }] };
+    expect(isPlayable({ ...game, blows: [blow] })).toBe(true);
+    expect(isPlayable({ ...game, blows: [{ turn: 1, pile: 0 } as unknown as Blow] })).toBe(false);
+    expect(isPlayable({ ...game, blows: [{ ...blow, reveals: [{ card: 'sietch-tabr#1', kind: 'spice' }] }] })).toBe(
+      false
+    );
+    expect(
+      isPlayable({
+        ...game,
+        blows: [{ ...blow, reveals: [{ card: 'shai-hulud#1', kind: 'worm', devours: 'nowhere#1' }] }],
+      })
+    ).toBe(false);
   });
 });

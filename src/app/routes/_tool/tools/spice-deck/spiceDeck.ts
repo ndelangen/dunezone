@@ -272,16 +272,38 @@ export function wormChance(game: SpiceDeckGame): number {
 const isCopyList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((copy) => typeof copy === 'string');
 
-/** Whether a game read back from storage is whole: its piles are lists of cards, and every card is one of its deck's. */
-export function isPlayable(game: SpiceDeckGame): boolean {
-  if (!Array.isArray(game.deck?.cards) || !Array.isArray(game.blows) || !Array.isArray(game.discards)) {
-    return false;
+/** Whether the game's piles are all lists of cards. */
+const hasPiles = (game: SpiceDeckGame) =>
+  Array.isArray(game.deck?.cards) &&
+  isCopyList(game.draw) &&
+  isCopyList(game.setAside) &&
+  Array.isArray(game.discards) &&
+  game.discards.every(isCopyList);
+
+/** Whether a turned card names cards of the deck: a reshuffle names none, Shai-Hulud may name what it devoured. */
+const revealKnown = (reveal: Reveal, known: (copy: unknown) => boolean) => {
+  if (reveal?.kind === 'reshuffle') {
+    return true;
   }
-  if (!isCopyList(game.draw) || !isCopyList(game.setAside) || !game.discards.every(isCopyList)) {
+  return known(reveal?.card) && (reveal.kind !== 'worm' || reveal.devours === undefined || known(reveal.devours));
+};
+
+/** Whether a blow is a turn, a pile and the cards it turned. */
+const blowKnown = (blow: Blow, known: (copy: unknown) => boolean) =>
+  Number.isInteger(blow?.turn) &&
+  Number.isInteger(blow?.pile) &&
+  Array.isArray(blow.reveals) &&
+  blow.reveals.every((reveal) => revealKnown(reveal, known));
+
+/** Whether a game read back from storage is whole: its piles and blows are lists of cards, and every card is one of its deck's. */
+export function isPlayable(game: SpiceDeckGame): boolean {
+  if (!hasPiles(game) || !Array.isArray(game.blows)) {
     return false;
   }
   const keys = new Set(game.deck.cards.map((card) => card.key));
-  return [game.draw, game.setAside, ...game.discards].every((pile) => pile.every((copy) => keys.has(copyKey(copy))));
+  const known = (copy: unknown) => typeof copy === 'string' && keys.has(copyKey(copy));
+  const piles = [game.draw, game.setAside, ...game.discards];
+  return piles.every((pile) => pile.every(known)) && game.blows.every((blow) => blowKnown(blow, known));
 }
 
 /** One turned card as a sentence for the table, as the voice reads it, for the turn it came up on. */
