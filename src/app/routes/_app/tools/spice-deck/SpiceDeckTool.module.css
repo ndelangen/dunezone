@@ -1,0 +1,491 @@
+/* A phone held at the table: the turn and its controls above, the one big action within the thumb's reach. */
+.tool {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100dvh;
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--ui-recess);
+  border-bottom: 1px solid var(--ui-raised);
+}
+
+.turn {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.turnNumber {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.deckName {
+  overflow: hidden;
+  color: var(--ui-muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.body {
+  min-width: 0;
+  padding: var(--space-md);
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom));
+  background: var(--ui-recess);
+  border-top: 1px solid var(--ui-raised);
+}
+
+.primary {
+  width: 100%;
+  min-height: 56px;
+}
+
+.nexus {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--ui-caution-fill);
+  color: var(--ui-text);
+  font-weight: 600;
+  text-align: center;
+}
+
+.hint {
+  margin: var(--space-sm) 0 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+/* A card face at whatever width its place gives it. */
+.card {
+  display: block;
+  aspect-ratio: 900 / 1263;
+  overflow: hidden;
+  border-radius: 4.5% / 3.2%;
+  background: var(--ui-raised);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+}
+
+.card[data-empty] {
+  box-shadow: none;
+  outline: 2px dashed var(--ui-hover);
+  outline-offset: -2px;
+  background: transparent;
+}
+
+.card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  padding-left: var(--space-sm);
+  border-left: 3px solid var(--ui-hover);
+  font-size: 15px;
+}
+
+.line[data-kind="spice"] {
+  border-color: var(--ui-caution);
+}
+
+.line[data-kind="worm"] {
+  border-color: var(--ui-negative-fill);
+}
+
+.line[data-kind="aside"] {
+  color: var(--ui-muted);
+}
+
+.blowCard {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--ui-recess);
+}
+
+.blowTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-xs);
+  color: var(--ui-brass);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-xl);
+  color: var(--ui-muted);
+}
+
+.waitingBack {
+  width: 55%;
+}
+
+/* A: the piles as they would lie on the table. */
+.pileRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.pileRow[data-piles="1"] {
+  grid-template-columns: 1fr;
+  padding: 0 18%;
+}
+
+.pile {
+  margin: 0;
+}
+
+.pile figcaption {
+  margin-top: var(--space-xs);
+  color: var(--ui-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.pile[data-next] figcaption {
+  color: var(--ui-highlight);
+  font-weight: 700;
+}
+
+/* B: the result, readable across the table. */
+.announce {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+}
+
+.announcePile {
+  color: var(--ui-brass);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.announceWorm {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--ui-negative-fill);
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.announceWorm small {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.announceAmount {
+  color: var(--ui-caution);
+  font-size: 120px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.announceWhere {
+  margin-bottom: var(--space-md);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.announce .lines {
+  align-self: stretch;
+  text-align: left;
+}
+
+.thumbs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.thumb {
+  width: 64px;
+}
+
+/* C: the game so far, newest first. */
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.logRow {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: var(--space-sm);
+  align-items: start;
+  padding: var(--space-xs) 0;
+}
+
+.logThumb {
+  width: 48px;
+}
+
+.pileTag,
+.nexusTag {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--ui-raised);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nexusTag {
+  background: var(--ui-caution-fill);
+  color: var(--ui-text);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* D: one card at a time, turned over. */
+.single {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.flipStage {
+  width: 78%;
+  perspective: 900px;
+}
+
+.bigCard {
+  width: 100%;
+}
+
+.flip {
+  animation: flip 420ms ease-out;
+}
+
+@keyframes flip {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: rotateY(0);
+  }
+}
+
+.ask {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.ask[data-kind="worm"] strong {
+  color: var(--ui-negative);
+}
+
+.ask[data-kind="spice"] strong {
+  color: var(--ui-caution);
+}
+
+/* E: what is left in the deck. */
+.meter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.meter > div {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--ui-recess);
+}
+
+.meter > div[data-kind="worm"] {
+  border-left: 4px solid var(--ui-negative-fill);
+}
+
+.meterValue {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.meterLabel {
+  color: var(--ui-muted);
+  font-size: 13px;
+}
+
+.oddsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px var(--space-md);
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oddsGrid li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ui-raised);
+  font-size: 14px;
+}
+
+.oddsGrid li[data-gone] {
+  color: var(--ui-hover);
+  text-decoration: line-through;
+}
+
+.oddsGrid li[data-kind="worm"] {
+  grid-column: 1 / -1;
+  color: var(--ui-negative);
+  font-weight: 700;
+}
+
+.oddsName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.oddsCount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* F: hands-free, the phone speaks and listens. */
+.voice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding-top: var(--space-lg);
+  text-align: center;
+}
+
+.voiceOrb {
+  display: grid;
+  place-items: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--ui-raised);
+  color: var(--ui-muted);
+}
+
+.voiceOrb[data-state="listening"] {
+  background: var(--ui-positive-fill);
+  color: var(--ui-text);
+}
+
+.voiceOrb[data-state="speaking"] {
+  background: var(--ui-caution-fill);
+  color: var(--ui-text);
+}
+
+.voiceState {
+  margin: 0;
+  color: var(--ui-muted);
+}
+
+.voiceSaid {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Before a game. */
+.pickRules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.deckList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deckChoice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid var(--ui-raised);
+  border-radius: var(--radius-md);
+  background: var(--ui-recess);
+  color: var(--ui-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deckChoice:hover {
+  background: var(--ui-hover);
+}
+
+.deckChoice span {
+  display: flex;
+  flex-direction: column;
+}
+
+.deckChoice small {
+  color: var(--ui-muted);
+}
+
+.deckBack {
+  width: 48px;
+  border-radius: 3px;
+}
