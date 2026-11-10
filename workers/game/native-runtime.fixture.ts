@@ -9,8 +9,13 @@ import { fileURLToPath } from 'node:url';
 
 import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/workers-types/experimental/index.ts';
 import { build } from 'esbuild';
-import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
-import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
+import { Miniflare, convertV4MiniflareOptions, fetch as nativeFetch } from 'miniflare';
+import type {
+  Request as NativeRequest,
+  RequestInit,
+  Response as NativeResponse,
+  V4WorkerdStructuredLog,
+} from 'miniflare';
 import { z } from 'zod';
 
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
@@ -120,6 +125,14 @@ export interface NativePeer {
   close(): Promise<void>;
 }
 export type NativeBindings = Record<string, string | number | boolean> & { APPLICATION_ORIGIN?: string };
+/**
+ * Binds the real report coordinator and its export bucket beside the game room.
+ * `github` answers every request the Worker sends to api.github.com;
+ * anything else goes out unchanged, so the peer still answers Convex calls.
+ */
+export interface NativeReportServices {
+  github(request: NativeRequest): Promise<NativeResponse> | NativeResponse;
+}
 type CaptureResult<K extends 'ruleset' | 'faction'> =
   | { ok: true; record: K extends 'ruleset' ? RulesetCapture : FactionCapture }
   | { ok: false; message: string; record?: undefined };
@@ -439,7 +452,8 @@ export async function createRuntime(
   peer: NativePeer,
   kind: keyof typeof runtimeEntries = 'game',
   bindings: NativeBindings = {},
-  script = runtimeScripts.get(kind)
+  script = runtimeScripts.get(kind),
+  reports?: NativeReportServices
 ) {
   const logs: V4WorkerdStructuredLog[] = [];
   const origin = bindings.APPLICATION_ORIGIN ?? 'http://table.test';
@@ -459,7 +473,17 @@ export async function createRuntime(
       durableObjects:
         kind === 'homepage'
           ? { HOMEPAGE_ROOMS: { className: 'HomepageRoom', useSQLite: true } }
-          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+          : {
+              GAME_ROOMS: { className: 'GameRoom', useSQLite: true },
+              ...(reports ? { BUG_REPORTS: { className: 'BugReports', useSQLite: true } } : {}),
+            },
+      ...(reports
+        ? {
+            r2Buckets: ['BUG_REPORT_STATES'],
+            outboundService: (request: NativeRequest) =>
+              new URL(request.url).origin === 'https://api.github.com' ? reports.github(request) : nativeFetch(request),
+          }
+        : {}),
       bindings: {
         PEER_URL: peer.url,
         CONVEX_URL: peer.url,
@@ -542,6 +566,29 @@ export async function createRuntime(
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch(`https://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
       return fixtureJson<NativeLoadStatus>(response);
+    },
+    /** A report's export, as the report coordinator stored it in R2. */
+    async reportState(exportId: string) {
+      const bucket = await instance.getR2Bucket('BUG_REPORT_STATES');
+      const object = await bucket.get(`reports/${exportId}.json`);
+      return object ? fixtureJson<Record<string, unknown>>(object) : null;
+    },
+    /** Calls a report RPC on the room with any name, as the report coordinator does. */
+    async bugReportCall(
+      name: string,
+      call:
+        | { step: 'capture'; requestId: string; actorId: string; displayName: string; browser: unknown }
+        | { step: 'finish'; requestId: string; actorId: string; displayName: string; issueUrl: string }
+    ) {
+      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
+      const response = await namespace
+        .get(namespace.idFromName(name))
+        .fetch('https://native-test/native-test/bug-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(call),
+        });
+      return fixtureJson<{ ok: true; result: string | null } | { ok: false; message: string }>(response);
     },
     fetch(path: string, init?: RequestInit<Partial<IncomingRequestCfProperties>>) {
       return instance.dispatchFetch(`${origin}${path}`, init);
