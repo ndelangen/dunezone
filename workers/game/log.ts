@@ -467,6 +467,8 @@ function resultEntries(
           : undefined;
       case 'result-continue':
         return '{0} continued the game.';
+      case 'result-end':
+        return '{0} ended the game as the last player at the table.';
     }
   })();
   if (!template || before.revision === next.revision) {
@@ -479,7 +481,7 @@ function resultEntries(
       template,
       people,
       /* A declaration happened in Mentat Pause; the finished stage is where it left the game. */
-      context: logContext(action.kind === 'result-declare' ? before : next),
+      context: logContext(action.kind === 'result-declare' || action.kind === 'result-end' ? before : next),
     },
   ];
 }
