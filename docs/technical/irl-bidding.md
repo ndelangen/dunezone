@@ -362,7 +362,7 @@ deleting another device's copy. A new game starts with a new table code and fres
 Consumed QR join parameters must clear only after the matching recovery copy is saved, without
 restarting the active client. A promoted phone then reloads its new table instead of the old QR
 destination.
-The nine focused suites now pass 79 tests, including 25 client tests. They cover retirement of
+The nine focused suites now pass 80 tests, including 26 client tests. They cover retirement of
 saved copies, cleanup retries, queued writes and confirmed persistence before URL cleanup. Browser
 QA also revisits the same QR URL without a document reload, consumes it again, leaves and reloads
 to the welcome screen. Near-side, far-side and phone confirmations reuse the existing sheets.

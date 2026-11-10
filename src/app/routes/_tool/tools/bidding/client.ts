@@ -276,7 +276,9 @@ export class BiddingClient {
         restore();
       }
     } catch (error) {
-      this.update({ error: messageOf(error) });
+      if (this.isCurrent(operation)) {
+        this.update({ error: messageOf(error) });
+      }
     }
   }
 

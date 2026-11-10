@@ -644,6 +644,25 @@ describe('bidding browser orchestration', () => {
     expect(storage.getItem('dune-bidding-remote-v1')).not.toBeNull();
   });
 
+  test('a delayed restore failure cannot replace a subsequent remote selection', async () => {
+    let fail!: (reason: Error) => void;
+    const request = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((_, reject) => {
+            fail = reject;
+          })
+      )
+      .mockImplementation(<T>(_name: string, callback: LockGrantedCallback<T>) => Promise.resolve(callback(null)));
+    const client = make(new MemoryStorage(), { locks: { request } });
+    const restoring = client.initialize();
+    client.join('DEF567', crypto.randomUUID());
+    fail(new Error('Old restore failed'));
+    await restoring;
+    expect(client.getSnapshot()).toMatchObject({ role: 'remote', error: null, busy: false });
+  });
+
   test('a late cleanup failure cannot replace a subsequent remote selection', async () => {
     let fail!: (reason: Error) => void;
     let delay = false;
