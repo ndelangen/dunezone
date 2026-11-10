@@ -1,5 +1,6 @@
 import { useConvexAuth } from '@convex-dev/auth/react';
 import { Stack } from '@mantine/core';
+import type { PlayDiscordMenu } from '@shared/play/discord';
 import { ClientOnly, createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { PageState } from '@ui/block/PageState';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -8,6 +9,7 @@ import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowLeft, Orbit } from 'lucide-react';
 import { lazy, Suspense, useContext, useEffect, useMemo, useReducer, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
+import { SiDiscord } from 'react-icons/si';
 
 import { rememberSeatPass, useGameAccess } from '@db/play';
 import { forgetStoredPlayTable } from '@db/playTables';
@@ -133,7 +135,13 @@ function GameAccessPage() {
     case undefined:
       /* A reloaded tab that kept this table shows it, locked, while the directory has not answered (#1746). */
       if (current?.status === 'ready' || stored) {
-        return <TablePage game={current ?? { gameId: stored!, name: 'Game', slug: stored! }} exit={exit} />;
+        return (
+          <TablePage
+            key={current?.gameId ?? stored!}
+            game={current ?? { gameId: stored!, name: 'Game', slug: stored! }}
+            exit={exit}
+          />
+        );
       }
       return (
         <TableFrame title="Game">
@@ -167,7 +175,7 @@ function GameAccessPage() {
         </UnavailableTable>
       );
     case 'ready':
-      return <TablePage game={data} exit={exit} />;
+      return <TablePage key={data.gameId} game={data} exit={exit} />;
   }
 }
 
@@ -194,6 +202,7 @@ const noSubscription = () => () => {};
 type GameAccess = NonNullable<ReturnType<typeof useGameAccess>['data']>;
 type KnownGame = Pick<Extract<GameAccess, { gameId: string }>, 'gameId' | 'slug' | 'name' | 'status'> & {
   ruleset?: Extract<GameAccess, { status: 'ready' }>['ruleset'];
+  voice?: PlayDiscordMenu | null;
 };
 type GamePageEvent = { type: 'resolved'; game: KnownGame };
 
@@ -244,6 +253,7 @@ function TablePage({
       <ClientOnly fallback={loading}>
         <Suspense fallback={loading}>
           <HostedTable
+            voice={<DiscordVoiceAction menu={game.voice ?? null} />}
             key={game.gameId}
             gameId={game.gameId}
             exitControl={exit}
@@ -252,5 +262,25 @@ function TablePage({
         </Suspense>
       </ClientOnly>
     </TableFrame>
+  );
+}
+
+function DiscordVoiceAction({ menu }: Readonly<{ menu: PlayDiscordMenu | null }>) {
+  if (!menu) {
+    return null;
+  }
+  return (
+    <Stack gap="xs" p="xs" maw={300}>
+      <LabeledAction
+        icon={<SiDiscord size={16} aria-hidden />}
+        provider="discord"
+        emphasis="strong"
+        href={menu.url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Join voice chat
+      </LabeledAction>
+    </Stack>
   );
 }

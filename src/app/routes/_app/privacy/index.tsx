@@ -100,6 +100,21 @@ function PrivacyPage() {
             </Section>
           </SimpleGrid>
 
+          <Section title="Discord voice rooms">
+            <Stack gap="md">
+              <Text>
+                Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
+                can join, including spectators. You do not need to connect Discord to your Dune Zone account to use the
+                invite. Discord receives the game name and can see which Discord accounts join and use the channel.
+              </Text>
+              <Text>
+                Joining the Discord server is your choice. We never add you automatically or change your channel access
+                when you leave a seat. Channels are deleted 24 hours after the game ends or after 14 days without game
+                activity.
+              </Text>
+            </Stack>
+          </Section>
+
           <Section title="Your choices">
             <Stack gap="md">
               <List spacing="sm">

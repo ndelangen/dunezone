@@ -1,6 +1,7 @@
 import { Group, Stack } from '@mantine/core';
 import preview from '@sb/preview';
 import { ArrowLeft, Check, Download, RotateCcw, Send, Trash2, X } from 'lucide-react';
+import { SiDiscord } from 'react-icons/si';
 
 import type { ActionIntent } from './actionIntent';
 import { LabeledAction } from './LabeledAction';
@@ -17,6 +18,11 @@ const meta = preview.meta({
 
 /** The neutral tinted tile: an action that changes nothing of the reader's. */
 export const Default = meta.story({});
+
+/** An action that opens Discord keeps the provider's colour within the standard button. */
+export const Discord = meta.story({
+  args: { children: 'Join voice chat', icon: <SiDiscord size={16} />, provider: 'discord', emphasis: 'strong' },
+});
 
 const INTENTS: [ActionIntent, string, typeof RotateCcw][] = [
   ['neutral', 'Go back', ArrowLeft],
