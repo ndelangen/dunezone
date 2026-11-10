@@ -921,7 +921,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata) {
       return json({ ok: true });
     }
-    if (!this.retiresAs(metadata, gameId, args.secret)) {
+    if (!this.retiresAs(metadata, gameId, args.secret, args.banOperationId)) {
       return refused();
     }
     try {
@@ -950,11 +950,13 @@ export class GameRoom extends DurableObject<GameEnv> {
    * ordinary requests retire only the hosted fixture or an unconfirmed room.
    * Convex asks an unconfirmed room only once its game expired, when no confirmation can succeed any more.
    */
-  private retiresAs(metadata: Metadata, gameId: string, secret: string) {
+  private retiresAs(metadata: Metadata, gameId: string, secret: string, banOperationId?: string) {
     return (
       metadata.gameId === gameId &&
       credentialsMatch(secret, metadata.secret) &&
-      (!metadata.confirmed || (!metadata.game && this.fixturePlan.hosted))
+      (!metadata.confirmed ||
+        (!metadata.game && this.fixturePlan.hosted) ||
+        (metadata.game && banOperationId !== undefined))
     );
   }
 
