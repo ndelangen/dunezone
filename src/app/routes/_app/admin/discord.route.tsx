@@ -137,6 +137,22 @@ type TrackedChannelsProps = {
   onDelete: (id: DashboardResult['channels']['page'][number]['_id']) => void;
 };
 
+function trackedDeleteReason(channel: DashboardResult['channels']['page'][number], enabled: boolean) {
+  if (channel.state === 'deleted') {
+    return 'This channel has already been removed.';
+  }
+  if (channel.state === 'deleting') {
+    return 'Channel removal is in progress.';
+  }
+  if (channel.state === 'creating' && !channel.channel_id) {
+    return 'Creation is unconfirmed. Check Discord first.';
+  }
+  if (!enabled) {
+    return 'Discord integration is disabled.';
+  }
+  return undefined;
+}
+
 function TrackedChannels({
   channels,
   enabled,
@@ -210,17 +226,7 @@ function TrackedChannels({
                   <Table.Td>
                     <HoldAction
                       label={`Delete channel for ${channel.gameName ?? channel.gameSlug ?? channel.game_id}`}
-                      disabledReason={
-                        channel.state === 'deleted'
-                          ? 'This channel has already been removed.'
-                          : channel.state === 'deleting'
-                            ? 'Channel removal is in progress.'
-                            : channel.state === 'creating' && !channel.channel_id
-                              ? 'Creation is unconfirmed. Check Discord first.'
-                              : !enabled
-                                ? 'Discord integration is disabled.'
-                                : undefined
-                      }
+                      disabledReason={trackedDeleteReason(channel, enabled)}
                       pending={pending}
                       onConfirm={() => onDelete(channel._id)}
                     />
@@ -339,7 +345,9 @@ function UntrackedChannels({
         action={
           <LabeledAction
             icon={<RefreshCw size={16} />}
-            disabledReason={!configured ? 'Discord is not configured.' : undefined}
+            disabledReason={
+              !configured ? 'Discord is not configured.' : !enabled ? 'Discord integration is disabled.' : undefined
+            }
             busy={refreshPending}
             onClick={onRefresh}
           >

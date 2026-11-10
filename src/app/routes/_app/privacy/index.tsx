@@ -300,7 +300,7 @@ function PrivacyPage() {
           </Section>
 
           <Text c="dimmed" size="sm">
-            Last updated 13 October 2026. If anything changes, we will update this page.
+            Last updated 10 November 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

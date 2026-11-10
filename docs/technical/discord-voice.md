@@ -14,8 +14,8 @@ names, self names and recall chat do nothing. The message itself is saved and di
 
 The Worker commits a bounded nudge outbox entry with the saved message. It enforces a five-minute
 cooldown per target seat before any Convex call, so repeated names do not cause repeated network
-work. It forwards only delivery identifiers and the waiting faction's public name. It never sends
-conversation text. Delivery runs after the chat commits and does not delay the chat response.
+work. Only delivery identifiers and the waiting faction's public name leave the Worker;
+conversation text stays there. Delivery runs after the chat commits and does not delay the chat response.
 
 Convex checks the game's credential, opt-in and channel, then resolves the target's current linked
 Discord account. Its rate-limiter component enforces the same per-seat spacing. Before every POST,

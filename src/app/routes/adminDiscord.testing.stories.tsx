@@ -26,6 +26,10 @@ export const DashboardWiring = meta.story({
     await expect(toggle).toBeChecked();
     await userEvent.click(toggle);
     await waitFor(() => expect(toggle).not.toBeChecked());
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveAttribute('aria-disabled', 'true');
+    await expect(page.getByRole('button', { name: 'Refresh' })).toHaveAccessibleDescription(
+      'Discord integration is disabled.'
+    );
     await waitFor(() => expect(toggle).toBeEnabled());
     await userEvent.click(toggle);
     await waitFor(() => expect(toggle).toBeChecked());

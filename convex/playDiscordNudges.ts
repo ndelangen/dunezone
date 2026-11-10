@@ -213,7 +213,16 @@ export const settle = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.id);
-    if (!row || row.nudge_id !== args.nudgeId || row.state !== 'sending') {
+    if (!row || row.nudge_id !== args.nudgeId) {
+      return null;
+    }
+    /* Expiry scrubs a send in flight; its response may still confirm a terminal result. */
+    const terminalConfirmation = row.state === 'uncertain' && (args.outcome === 'sent' || args.outcome === 'failed');
+    if (row.state !== 'sending' && !terminalConfirmation) {
+      return null;
+    }
+    if (args.outcome === 'sent' && row.at + PLAY_NUDGE_MAX_AGE_MS <= Date.now()) {
+      await ctx.db.delete(row._id);
       return null;
     }
     const retryAt = Date.now() + Math.max(1000, args.retryAfterMs ?? 0);
