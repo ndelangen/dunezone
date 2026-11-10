@@ -2,6 +2,7 @@ import { publisherFailureFields } from '../../src/shared/asset-publishing/publis
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
+import { biddingPathPattern } from '../../src/shared/tools/biddingTransport';
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
 import { handleAuthRequest } from './auth';
 import { openPublisherBrowser } from './browser';
@@ -63,6 +64,10 @@ function reservedNotFound(): Response {
   );
 }
 
+function createsBiddingTable(request: Request, url: URL): boolean {
+  return request.method === 'POST' && !url.search && biddingPathPattern.exec(url.pathname)?.[2] === 'create';
+}
+
 async function allowGameIngress(request: Request, url: URL, env: Env): Promise<boolean> {
   if (request.method === 'GET' && url.pathname === '/__play/health' && !url.search) {
     return true;
@@ -72,6 +77,9 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   const operation = request.method === 'POST' && !url.search ? playGamePathPattern.exec(url.pathname)?.[2] : undefined;
   const callback = operation !== undefined && operation !== 'socket';
   const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (createsBiddingTable(request, url) && !(await env.BIDDING_CREATION_RATE_LIMIT.limit({ key: clientIp })).success) {
+    return false;
+  }
   const result = await env.PLAY_INGRESS_RATE_LIMIT.limit({ key: `${callback ? 'callback' : 'connect'}:${clientIp}` });
   return result.success;
 }
@@ -88,7 +96,7 @@ async function handleGameIngress(request: Request, url: URL, env: Env): Promise<
       { error: 'Too many game requests.' },
       {
         status: 429,
-        headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': createsBiddingTable(request, url) ? '60' : '10' },
       }
     );
   }

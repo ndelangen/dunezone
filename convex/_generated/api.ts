@@ -9,6 +9,7 @@
  */
 
 import type * as accountDeletion from "../accountDeletion.js";
+import type * as accountResync from "../accountResync.js";
 import type * as accounts from "../accounts.js";
 import type * as arrakis from "../arrakis.js";
 import type * as arrakisMigrations from "../arrakisMigrations.js";
@@ -17,6 +18,8 @@ import type * as assets from "../assets.js";
 import type * as auth from "../auth.js";
 import type * as authSessions from "../authSessions.js";
 import type * as backgroundPresets from "../backgroundPresets.js";
+import type * as battleWheelTool from "../battleWheelTool.js";
+import type * as biddingTool from "../biddingTool.js";
 import type * as cardFrontPresets from "../cardFrontPresets.js";
 import type * as cardbackPresets from "../cardbackPresets.js";
 import type * as catalogueMaintenance from "../catalogueMaintenance.js";
@@ -66,6 +69,8 @@ import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAcc
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
+import type * as lib_discordRest from "../lib/discordRest.js";
+import type * as lib_discordStatus from "../lib/discordStatus.js";
 import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
@@ -86,8 +91,11 @@ import type * as lib_groupInvitations from "../lib/groupInvitations.js";
 import type * as lib_ids from "../lib/ids.js";
 import type * as lib_ingestTokens from "../lib/ingestTokens.js";
 import type * as lib_isolatedBackend from "../lib/isolatedBackend.js";
+import type * as lib_linkedAccountProfiles from "../lib/linkedAccountProfiles.js";
+import type * as lib_loginUser from "../lib/loginUser.js";
 import type * as lib_memoised from "../lib/memoised.js";
 import type * as lib_playAuthorization from "../lib/playAuthorization.js";
+import type * as lib_playDiscord from "../lib/playDiscord.js";
 import type * as lib_playGameAddressAvailability from "../lib/playGameAddressAvailability.js";
 import type * as lib_playGameAddresses from "../lib/playGameAddresses.js";
 import type * as lib_playGameNameChecks from "../lib/playGameNameChecks.js";
@@ -135,6 +143,7 @@ import type * as lib_slugCounters from "../lib/slugCounters.js";
 import type * as lib_spiceCardBoard from "../lib/spiceCardBoard.js";
 import type * as lib_standings from "../lib/standings.js";
 import type * as lib_statistics from "../lib/statistics.js";
+import type * as lib_steamSignIn from "../lib/steamSignIn.js";
 import type * as lib_syntheticPasswords from "../lib/syntheticPasswords.js";
 import type * as lib_userImageIngest from "../lib/userImageIngest.js";
 import type * as lib_utils from "../lib/utils.js";
@@ -146,6 +155,11 @@ import type * as playBugReports from "../playBugReports.js";
 import type * as playCatalogue from "../playCatalogue.js";
 import type * as playDeletion from "../playDeletion.js";
 import type * as playDirectory from "../playDirectory.js";
+import type * as playDiscord from "../playDiscord.js";
+import type * as playDiscordActions from "../playDiscordActions.js";
+import type * as playDiscordAdmin from "../playDiscordAdmin.js";
+import type * as playDiscordNudgeActions from "../playDiscordNudgeActions.js";
+import type * as playDiscordNudges from "../playDiscordNudges.js";
 import type * as playGameDirectory from "../playGameDirectory.js";
 import type * as playGameNameAvailability from "../playGameNameAvailability.js";
 import type * as playGameNamesTesting from "../playGameNamesTesting.js";
@@ -174,7 +188,10 @@ import type * as rulesetBoards from "../rulesetBoards.js";
 import type * as rulesetCovers from "../rulesetCovers.js";
 import type * as rulesets from "../rulesets.js";
 import type * as slugAllocationTesting from "../slugAllocationTesting.js";
+import type * as spiceDeckTool from "../spiceDeckTool.js";
 import type * as statistics from "../statistics.js";
+import type * as steamAuth from "../steamAuth.js";
+import type * as treacheryTrackerTool from "../treacheryTrackerTool.js";
 import type * as types from "../types.js";
 
 import type {
@@ -186,6 +203,7 @@ import { anyApi, componentsGeneric } from "convex/server";
 
 const fullApi: ApiFromModules<{
   accountDeletion: typeof accountDeletion;
+  accountResync: typeof accountResync;
   accounts: typeof accounts;
   arrakis: typeof arrakis;
   arrakisMigrations: typeof arrakisMigrations;
@@ -194,6 +212,8 @@ const fullApi: ApiFromModules<{
   auth: typeof auth;
   authSessions: typeof authSessions;
   backgroundPresets: typeof backgroundPresets;
+  battleWheelTool: typeof battleWheelTool;
+  biddingTool: typeof biddingTool;
   cardFrontPresets: typeof cardFrontPresets;
   cardbackPresets: typeof cardbackPresets;
   catalogueMaintenance: typeof catalogueMaintenance;
@@ -243,6 +263,8 @@ const fullApi: ApiFromModules<{
   "lib/customCardTokens": typeof lib_customCardTokens;
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
+  "lib/discordRest": typeof lib_discordRest;
+  "lib/discordStatus": typeof lib_discordStatus;
   "lib/factionCards": typeof lib_factionCards;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
@@ -263,8 +285,11 @@ const fullApi: ApiFromModules<{
   "lib/ids": typeof lib_ids;
   "lib/ingestTokens": typeof lib_ingestTokens;
   "lib/isolatedBackend": typeof lib_isolatedBackend;
+  "lib/linkedAccountProfiles": typeof lib_linkedAccountProfiles;
+  "lib/loginUser": typeof lib_loginUser;
   "lib/memoised": typeof lib_memoised;
   "lib/playAuthorization": typeof lib_playAuthorization;
+  "lib/playDiscord": typeof lib_playDiscord;
   "lib/playGameAddressAvailability": typeof lib_playGameAddressAvailability;
   "lib/playGameAddresses": typeof lib_playGameAddresses;
   "lib/playGameNameChecks": typeof lib_playGameNameChecks;
@@ -312,6 +337,7 @@ const fullApi: ApiFromModules<{
   "lib/spiceCardBoard": typeof lib_spiceCardBoard;
   "lib/standings": typeof lib_standings;
   "lib/statistics": typeof lib_statistics;
+  "lib/steamSignIn": typeof lib_steamSignIn;
   "lib/syntheticPasswords": typeof lib_syntheticPasswords;
   "lib/userImageIngest": typeof lib_userImageIngest;
   "lib/utils": typeof lib_utils;
@@ -323,6 +349,11 @@ const fullApi: ApiFromModules<{
   playCatalogue: typeof playCatalogue;
   playDeletion: typeof playDeletion;
   playDirectory: typeof playDirectory;
+  playDiscord: typeof playDiscord;
+  playDiscordActions: typeof playDiscordActions;
+  playDiscordAdmin: typeof playDiscordAdmin;
+  playDiscordNudgeActions: typeof playDiscordNudgeActions;
+  playDiscordNudges: typeof playDiscordNudges;
   playGameDirectory: typeof playGameDirectory;
   playGameNameAvailability: typeof playGameNameAvailability;
   playGameNamesTesting: typeof playGameNamesTesting;
@@ -351,7 +382,10 @@ const fullApi: ApiFromModules<{
   rulesetCovers: typeof rulesetCovers;
   rulesets: typeof rulesets;
   slugAllocationTesting: typeof slugAllocationTesting;
+  spiceDeckTool: typeof spiceDeckTool;
   statistics: typeof statistics;
+  steamAuth: typeof steamAuth;
+  treacheryTrackerTool: typeof treacheryTrackerTool;
   types: typeof types;
 }> = anyApi as unknown as typeof fullApi;
 

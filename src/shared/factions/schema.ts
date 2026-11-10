@@ -264,6 +264,8 @@ const factionBaseShape = {
     startText: z.string(),
     revivalText: z.string(),
     spiceCount: z.number().int().positive(),
+    /** In Play this faction may keep the Treachery tracker: it sees cards before they are bid on (#150). A missing field reads as off. */
+    treacheryTracker: z.boolean().optional(),
     advantages: z.array(RULE),
     fate: RULE.omit({ karama: true }).extend(specialRuleLabelShape),
     alliance: RULE.omit({ karama: true, title: true }).required(),
@@ -318,6 +320,7 @@ const factionAuthoringShape = {
     startText: marksOnlyFormattedTextSchema,
     revivalText: marksOnlyFormattedTextSchema,
     spiceCount: z.number().int().positive(),
+    treacheryTracker: z.boolean().optional(),
     advantages: z.array(AuthoringRule),
     fate: AuthoringRule.omit({ karama: true }).extend(specialRuleLabelShape),
     alliance: AuthoringRule.omit({ karama: true, title: true }).required(),

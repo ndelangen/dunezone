@@ -29,6 +29,22 @@ export const providers = publicQuery({
   handler: async () => signInProviders(),
 });
 
+/**
+ * The sign-in methods connected to the reader's account, or `null` when signed out.
+ * Signing in again offers only these: any other method would sign in to a separate account instead.
+ */
+export const connectedMethods = viewerQuery({
+  args: {},
+  returns: v.union(v.null(), v.array(authProviderValidator)),
+  handler: async (ctx) => {
+    const userId = await optionalActiveUserId(ctx);
+    if (!userId) {
+      return null;
+    }
+    return (await accountMethods(ctx, userId)).filter((method) => method.connected).map((method) => method.provider);
+  },
+});
+
 const profileSummary = v.object({
   userId: v.id('users'),
   name: v.string(),

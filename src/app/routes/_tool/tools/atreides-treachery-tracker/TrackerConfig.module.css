@@ -1,0 +1,111 @@
+/* The tracker's setup: the deck it copies, and the factions at the table in seat order. */
+
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-md);
+}
+
+.caption {
+  margin-bottom: var(--unit, 8px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim, var(--ui-muted));
+  font-size: 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-height: 36px;
+}
+
+/* A thumb's height per row on a phone. */
+.row[data-touch="true"] {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  min-height: 52px;
+}
+
+.add {
+  margin-top: var(--unit, 8px);
+}
+
+.who {
+  display: flex;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.decks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+/* A deck: its back, its name and what plays it, and its tick or Remove at the end. */
+.deckRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--unit, 8px);
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.deckRow[data-touch="true"] {
+  min-height: 60px;
+}
+
+.deck {
+  display: flex;
+  gap: var(--unit, 8px);
+  align-items: center;
+  min-width: 0;
+}
+
+.back {
+  flex: none;
+  width: 30px;
+}
+
+.deckRow[data-touch="true"] .back {
+  width: 38px;
+}
+
+.deckText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dim {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ui-muted);
+}

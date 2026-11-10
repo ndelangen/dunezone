@@ -255,6 +255,8 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         '/faq/*',
         '/future-plans',
         '/future-plans/*',
+        '/tools',
+        '/tools/*',
         '/privacy',
         '/privacy/*',
         '/blog',
@@ -312,6 +314,7 @@ export function validatePublisherDeployContract(config: JsonObject, environment:
         namespace_id: '10960001',
         simple: { limit: 120, period: 10 },
       },
+      { name: 'BIDDING_CREATION_RATE_LIMIT', namespace_id: '28350001', simple: { limit: 6, period: 60 } },
       { name: 'SOCIAL_RENDER_RATE_LIMIT', namespace_id: '17190001', simple: { limit: 20, period: 10 } },
     ],
     'game ingress rate limit'

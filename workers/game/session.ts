@@ -23,6 +23,8 @@ import {
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LogTab } from '../../src/shared/play/log';
+import { PLAY_NUDGE_MAX_AGE_MS } from '../../src/shared/play/nudges';
+import type { PlayNudge } from '../../src/shared/play/nudges';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
@@ -41,13 +43,14 @@ import { isResultAction } from '../../src/shared/play/result';
 import { isReviewAction, reviewCheckpointLimit, reviewableStage, reviewRunning } from '../../src/shared/play/review';
 import type { TableReview } from '../../src/shared/play/review';
 import type { TableRoster } from '../../src/shared/play/schema';
-import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
+import { rosterSeat, SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import { dealtTroopKeys } from '../../src/shared/play/setupSupply';
 import type { SpiceTransfer } from '../../src/shared/play/spiceReserve';
 import { stormOrder } from '../../src/shared/play/stormSector';
 import { isSwapAction } from '../../src/shared/play/swapping';
 import { isTableSeatCount } from '../../src/shared/play/tableSettings';
 import { eventId as tableEventId } from '../../src/shared/play/tableState';
+import { treacheryDeckCards } from '../../src/shared/play/treacheryDeck';
 import type { RoomFrame } from '../../src/shared/play/updates';
 import { ActorDirectory } from './actors';
 import type { PassProfile } from './actors';
@@ -68,12 +71,13 @@ import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
+import { NudgeOutbox, nudgeTarget } from './nudges';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
-import { applyResult, settleEnding } from './result';
+import { applyResult, clocksAfterRecall, settleEnding } from './result';
 import { TableReviews } from './review';
 import type { ReviewCommand } from './review';
 import { Room } from './room';
@@ -182,6 +186,7 @@ export class GameSession {
   private readonly swapping: Swapping;
   private readonly spiceLedger: SpiceLedger;
   private readonly directory: DirectoryOutbox;
+  private readonly nudges: NudgeOutbox;
   private readonly captures: CaptureStore;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
@@ -207,6 +212,7 @@ export class GameSession {
     this.history = new SessionHistory(this.storage, this.actors, this.spiceLedger);
     this.publicActions = new PublicActions(this.storage);
     this.directory = new DirectoryOutbox(this.storage);
+    this.nudges = new NudgeOutbox(this.storage);
     this.captures = new CaptureStore(this.storage);
     const sql = this.storage.sql;
     initializeSessionStorage(sql);
@@ -245,8 +251,11 @@ export class GameSession {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
     const composed = this.composedTurn(roster, settled.table);
-    /* Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it. */
-    const playing = inPlay(settled.stage) && (!this.room || inPlay(this.room.snapshot.stage));
+    /*
+     * Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it.
+     * A finished game keeps the order it ended in, since it can end mid-turn and continue there.
+     */
+    const playing = keepsOrder(settled.stage) && (!this.room || keepsOrder(this.room.snapshot.stage));
     const phases = playing
       ? recomposedTurn(settled.phase, this.room?.snapshot.phase, settled.phases, composed)
       : composed;
@@ -338,6 +347,18 @@ export class GameSession {
     const seated = this.room && seatedFaction(this.room.snapshot, factionId);
     const capture = seated ? this.captures.faction(factionId) : undefined;
     return capture ? publicFaction(capture) : null;
+  }
+
+  /**
+   * The captured Treachery deck's cards for the Treachery tracker, answered only to a seat whose faction's captured rules keep it (#150);
+   * null to any other viewer, or when the game captured no deck.
+   * The deck list itself is public.
+   */
+  treacheryDeck(viewerSeat: string | null) {
+    const factionId =
+      viewerSeat && this.room ? rosterSeat(this.room.snapshot.roster, viewerSeat)?.faction?.id : undefined;
+    const capture = factionId ? this.captures.faction(factionId) : undefined;
+    return capture?.definition.rules.treacheryTracker ? treacheryDeckCards(this.captures.ruleset()) : null;
   }
 
   retainedCaptures() {
@@ -532,6 +553,7 @@ export class GameSession {
         this.removal.scrub(userId);
         this.reviews.scrub(userId);
         this.conversations.scrub(userId);
+        this.nudges.scrub(userId);
         this.actors.delete(userId, eventId, vacatedEventId);
         this.spiceLedger.deleteActor(userId);
         if (!stored) {
@@ -627,14 +649,7 @@ export class GameSession {
     if (!reviewRunning(running) || this.reviews.running()) {
       return next;
     }
-    const paused = now - running.startedAt;
-    const battle = next.battleState;
-    const bidding = next.bidding;
-    return {
-      ...next,
-      ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
-      ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
-    };
+    return clocksAfterRecall(next, now - running.startedAt);
   }
 
   /*
@@ -916,7 +931,12 @@ export class GameSession {
     const action = message.action;
     const { next, history } = this.storage.transactionSync(() => {
       const now = Date.now();
-      const settled = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, action, now), now));
+      const settled = this.withRoster(
+        this.reconcileVotes(
+          applyResult(room.snapshot, viewer, action, now, () => this.actors.seats()),
+          now
+        )
+      );
       const entry = this.history.entry(message, room.snapshot, settled);
       this.persistCommit({ key, viewer, message, next: settled, history: entry });
       return { next: settled, history: entry };
@@ -1120,7 +1140,9 @@ export class GameSession {
     return this.room?.phaseCooldownEndsAt ?? 0;
   }
   get battleDeadline() {
-    return this.room?.snapshot.battleState?.deadline ?? 0;
+    /* A finished game holds its battle countdown, as it holds a bid's. */
+    const snapshot = this.room?.snapshot;
+    return snapshot?.stage === 'finished' ? 0 : (snapshot?.battleState?.deadline ?? 0);
   }
 
   confirm() {
@@ -1152,6 +1174,35 @@ export class GameSession {
   retainFaction(capture: Parameters<CaptureStore['retainFaction']>[0], options: { provisional?: boolean }) {
     this.requireReady(`faction ${capture.faction.name}`, capture.readiness, options);
     return this.storage.transactionSync(() => this.captures.retainFaction(capture));
+  }
+  nudgeCurrent(nudge: PlayNudge) {
+    return Boolean(
+      this.metadata?.game &&
+      this.metadata.game.discordVoice !== false &&
+      nudge.at + PLAY_NUDGE_MAX_AGE_MS > Date.now() &&
+      (this.room?.snapshot.stage === 'setup' || this.room?.snapshot.stage === 'play') &&
+      this.actors.seated().some(({ seat, userId }) => seat === nudge.toSeat && userId === nudge.toUserId)
+    );
+  }
+  pendingNudge() {
+    if (!this.metadata?.game || this.metadata.game.discordVoice === false) {
+      return;
+    }
+    for (let pending = this.nudges.pending(); pending; pending = this.nudges.pending()) {
+      if (this.nudgeCurrent(pending.nudge)) {
+        return pending;
+      }
+      this.nudges.acknowledge(pending.nudge.nudgeId);
+    }
+  }
+  reserveNudge(nudgeId: string, retryAt: number) {
+    this.nudges.reserve(nudgeId, retryAt);
+  }
+  acknowledgeNudge(nudgeId: string) {
+    this.nudges.acknowledge(nudgeId);
+  }
+  deferNudge(nudgeId: string, retryAt: number) {
+    this.nudges.defer(nudgeId, retryAt);
   }
   pendingDirectory() {
     return this.directory.pending();
@@ -1185,6 +1236,7 @@ export class GameSession {
       paused ? 0 : this.battleDeadline,
       paused ? 0 : this.biddingDeadline,
       this.directory.pending()?.retryAt,
+      this.pendingNudge()?.retryAt,
       this.tradingDeadline,
     ].filter((deadline): deadline is number => Boolean(deadline));
     return deadlines.length ? Math.min(...deadlines) : undefined;
@@ -1365,9 +1417,36 @@ export class GameSession {
     }
     this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     return this.storage.transactionSync(() => {
-      const saved = this.conversations.save(viewer, request, Date.now());
+      const now = Date.now();
+      const saved = this.conversations.save(viewer, request, now);
       if (saved.inserted) {
-        this.stageDirectory(this.room!.snapshot, Date.now());
+        const snapshot = this.room!.snapshot;
+        this.stageDirectory(snapshot, now);
+        if (
+          this.metadata?.game &&
+          snapshot.roster &&
+          this.metadata.game.discordVoice !== false &&
+          (snapshot.stage === 'setup' || snapshot.stage === 'play')
+        ) {
+          const target = nudgeTarget(
+            request.text,
+            request.factionId,
+            request.peerId,
+            snapshot.roster,
+            this.actors.occupants()
+          );
+          const from = snapshot.roster.seats.find((seat) => seat.faction?.id === request.factionId)?.faction;
+          if (target && from) {
+            this.nudges.stage({
+              nudgeId: crypto.randomUUID(),
+              fromFactionId: from.id,
+              fromFactionName: from.name.slice(0, 160),
+              toSeat: target.seat,
+              toUserId: target.userId,
+              at: now,
+            });
+          }
+        }
       }
       return saved;
     });
@@ -1534,4 +1613,9 @@ const REVIEW_PAUSE = 'The table is paused for a review.';
 /* A fixture carries no stage and plays its phases from the start. */
 function inPlay(stage: StoredSnapshot['stage']) {
   return stage === undefined || stage === 'play';
+}
+
+/* Whether a turn's phase order is already being played: in play, or finished and able to continue. */
+function keepsOrder(stage: StoredSnapshot['stage']) {
+  return inPlay(stage) || stage === 'finished';
 }

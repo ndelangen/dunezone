@@ -258,6 +258,7 @@ export const factionAuthoringCoverage: Readonly<Record<string, CoverageEntry>> =
       'rules.startText',
       'rules.revivalText',
       'rules.spiceCount',
+      'rules.treacheryTracker',
       'rules.fate.label',
       'rules.fate.title',
       'rules.fate.text',

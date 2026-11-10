@@ -92,6 +92,20 @@ export class CatalogueCapture {
     });
   }
 
+  /**
+   * One deck of Treachery cards on its own, captured as a game keeps a Ruleset's, for the standalone Treachery tracker, which lets a player pick any such deck, several at once, Ruleset or not.
+   * A deck that cannot be captured is refused with its first problem.
+   */
+  async captureTreacheryDeck(deck: Readonly<{ id: string; slug: string; name: string }>): Promise<SlotCapture> {
+    const problems: CaptureProblem[] = [];
+    const captured = await this.captureSlot('treachery', { ...deck, type: 'deck' }, problems);
+    const [problem] = problems;
+    if (problem) {
+      throw new GameRejection(`${deck.name} cannot be used. ${problem.reason}`);
+    }
+    return captured;
+  }
+
   /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */
   private async captureSlots(slot: RulesetAssetSlot, supply: RulesetSupply, problems: CaptureProblem[]) {
     const assets = supply.slots.filter((entry) => entry.slot === slot).map((entry) => entry.asset);

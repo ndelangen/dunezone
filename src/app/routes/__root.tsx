@@ -4,8 +4,8 @@ import { createRootRoute, HeadContent, Scripts, useMatches } from '@tanstack/rea
 import { convex } from '@db/core';
 import { pageTitle } from '@app/routes/pageTitle';
 import { SignInCallback } from '@app/shell/SignInCallback';
+import { installStaleBundleReload } from '@app/shell/staleBundleReload';
 
-import bandPoster from '../../../public/video/band-poster.jpg?url';
 import '@fontsource/caladea/latin-400.css';
 import '@fontsource/caladea/latin-400-italic.css';
 import '@fontsource/caladea/latin-700.css';
@@ -15,6 +15,11 @@ import '@fontsource/lato/latin-italic.css';
 import '../styles/fonts.css';
 import '../styles/page.css';
 import '../styles/tokens.css';
+
+/* Installed as the entry runs, before hydration starts loading the matched routes' chunks; Storybook serves its own bundle, which no deploy replaces. */
+if (typeof window !== 'undefined' && !import.meta.env.STORYBOOK) {
+  installStaleBundleReload();
+}
 
 export const Route = createRootRoute({
   ssr: true,
@@ -38,8 +43,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: 'icon', type: 'image/svg+xml', href: '/dune-zone-favicon.svg' },
-      /* The header artwork and primary text faces. */
-      { rel: 'preload', as: 'image', href: bandPoster, fetchPriority: 'high' },
+      /* The primary text faces; the header artwork is preloaded by the app layout, the only one that shows it. */
       {
         rel: 'preload',
         as: 'font',
@@ -67,7 +71,10 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const appDocument = useMatches({ select: (matches) => matches.some((match) => match.routeId === '/_app') });
+  /* The app and the standalone tools both wear the dark theme. */
+  const appDocument = useMatches({
+    select: (matches) => matches.some((match) => match.routeId === '/_app' || match.routeId === '/_tool'),
+  });
   /* Storybook already owns the document and supplies the isolated database and auth providers.
      The generated route tree still passes through this production root in every page story. */
   if (import.meta.env.STORYBOOK) {

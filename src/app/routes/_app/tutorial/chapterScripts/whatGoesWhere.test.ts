@@ -6,6 +6,7 @@ import { arrakisBoardCapture } from '@shared/play/fixtures/board';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { nextToMove, movementOrder } from '@shared/play/movement';
 import type { PieceAction } from '@shared/play/protocol';
+import { spiceBlowSpot } from '@shared/play/spiceBlowSpot';
 import { stormOrder } from '@shared/play/stormSector';
 import { BOARD_RADIUS } from '@shared/play/tableGeometry';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
@@ -137,24 +138,69 @@ test('deleting the last Harkonnen stack does not stand in for moving it to the T
   expect(task.done()).toBe(false);
 });
 
-test('the revealed card requires the indicated bank spice in its territory', () => {
+test('the recorded spice cards carry their blow, so a revealed card lights its territory and offers Place spice', () => {
+  const stored = (table.room.snapshot as unknown as { table: { pieces: TablePiece[] } }).table.pieces;
+  const cards = stored.flatMap((piece) => piece.items).filter((item) => item.artwork?.type === 'card-spice');
+  expect(cards.length).toBeGreaterThanOrEqual(20);
+  for (const card of cards) {
+    expect(Boolean(card.artwork?.spiceBlow)).toBe(card.artwork?.name !== 'Shai-Hulud');
+  }
+});
+
+test('turning over the drawn card, then placing it from its ring, completes the Spice Blow', () => {
   const flip = check('spice');
-  expect(spiceBlow(spiceDeck())).toBeUndefined();
+  expect(spiceBlow(snapshot(), spiceDeck())).toBeUndefined();
   drop(spiceDeck(), [6.72, 0.132, 0], 'top');
-  expect(spiceBlow(singleSpiceCard())).toBeUndefined();
+  expect(spiceBlow(snapshot(), singleSpiceCard())).toBeUndefined();
   act({ kind: 'flip', pieceId: singleSpiceCard().id });
   expect(flip.done()).toBe(true);
-  const blow = spiceBlow(singleSpiceCard())!;
-  expect(blow).toBeDefined();
+  const blow = spiceBlow(snapshot(), singleSpiceCard())!;
+  expect(blow.amount).toBeGreaterThan(0);
+  const place = check('place-spice');
+  expect(place.done()).toBe(false);
+  const card = singleSpiceCard() as TablePiece;
+  const spot = spiceBlowSpot(snapshot(), snapshot().table.pieces as TablePiece[], card)!;
+  const { amount: _amount, ...placement } = spot;
+  act({ kind: 'spice-blow', ...placement, position: [...placement.position] });
+  expect(table.refusal).toBeUndefined();
+  expect(place.done()).toBe(true);
+});
+
+test('spice spawned from the bank by hand still counts once the full amount lies in the territory', () => {
+  const flip = check('spice');
+  drop(spiceDeck(), [6.72, 0.132, 0], 'top');
+  act({ kind: 'flip', pieceId: singleSpiceCard().id });
+  expect(flip.done()).toBe(true);
+  const blow = spiceBlow(snapshot(), singleSpiceCard())!;
   const place = check('place-spice');
   act({ kind: 'spice-spawn', count: blow.amount - 1 });
-  drop(spiceStack(), point(blow.territory));
+  drop(spiceStack(), point(blow.territories[0]!));
   expect(place.done()).toBe(false);
   act({ kind: 'spice-spawn', count: 1 });
   drop(spiceStack(1), point('Cielago South'));
   expect(place.done()).toBe(false);
-  drop(spiceStack(1), point(blow.territory));
+  drop(spiceStack(1), point(blow.territories[0]!));
   expect(place.done()).toBe(true);
+});
+
+test('the whole deck turned over is no Spice Blow', () => {
+  const flip = check('spice');
+  act({ kind: 'flip', pieceId: spiceDeck().id });
+  expect(table.refusal).toBeUndefined();
+  expect(spiceDeck().items.at(-1)?.faceUp).toBe(true);
+  expect(flip.done()).toBe(false);
+});
+
+test('a card turned over on top of another card still counts', () => {
+  const flip = check('spice');
+  drop(spiceDeck(), [6.72, 0.132, 0], 'top');
+  const first = singleSpiceCard();
+  drop(spiceDeck(), first.position, 'top');
+  const pile = snapshot().table.pieces.find((piece) => piece.id !== spiceDeck().id && piece.items.length === 2)!;
+  expect(pile).toBeDefined();
+  expect(flip.done()).toBe(false);
+  act({ kind: 'flip', pieceId: pile.id });
+  expect(flip.done()).toBe(true);
 });
 
 test('preceding factions finish, then the learner ships, moves territories and marks done', () => {

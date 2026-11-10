@@ -17,6 +17,7 @@ import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
+import { reserveDiscordChannel } from './lib/playDiscord';
 import { playerSummary } from './lib/playerSummary';
 import { playRateLimiter } from './lib/playRateLimits';
 import { unenrolCreator } from './lib/playSeatPass';
@@ -57,6 +58,7 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
     game: {
       rulesetId,
       minimumPlayers,
+      discordVoice: game.discord_voice === true,
       ...(lastTurn === undefined ? {} : { lastTurn }),
       creator: { userId: creatorId, ...playerSummary(profile) },
     },
@@ -156,6 +158,7 @@ export const confirmProvisioning = mutation({
       return { ok: false };
     }
     await ctx.db.patch(game._id, { state: 'ready', confirmed_at: Date.now() });
+    await reserveDiscordChannel(ctx, game);
     return { ok: true };
   },
 });

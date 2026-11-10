@@ -7,6 +7,8 @@
  * Every image in flight joins the gate once it knows its place; a decoded image is revealed only when no image in its own tile or earlier in the order is still loading, so a page fills from the top instead of in network order.
  */
 
+import { publishedCopyWidth } from '@shared/asset-publishing/publishedThumbnail';
+
 /** A decoded image waiting on an earlier one is revealed after this long anyway, so one slow image cannot hold the page. */
 const MAX_WAIT_MS = 700;
 
@@ -20,18 +22,30 @@ const STAGGER_MS = 40;
 const ROW_PX = 24;
 
 /*
- * Every src decoded during this page session, with the URL it was drawn from, which can be a resized copy.
+ * Every src decoded during this page session, with each URL it was drawn from, which can be a resized copy.
  * Module scope survives client navigation, so returning to a page shows its images at once instead of replaying their arrival.
  */
-const decoded = new Map<string, string>();
+const decoded = new Map<string, Set<string>>();
 
-/** The URL a src was drawn from earlier in this page session, or undefined when it has not been drawn. */
+/**
+ * The smallest URL a src was drawn from earlier in this page session, or undefined when it has not been drawn.
+ * The smallest, so a small tile that mounts after a close look at the same image does not decode the full capture;
+ * a tile that needs more sharpens itself.
+ */
 export function decodedFrom(src: string) {
-  return decoded.get(src);
+  let smallest: string | undefined;
+  for (const drawn of decoded.get(src) ?? []) {
+    if (smallest === undefined || publishedCopyWidth(drawn) < publishedCopyWidth(smallest)) {
+      smallest = drawn;
+    }
+  }
+  return smallest;
 }
 
 export function markDecoded(src: string, drawn: string = src) {
-  decoded.set(src, drawn);
+  const copies = decoded.get(src) ?? new Set<string>();
+  copies.add(drawn);
+  decoded.set(src, copies);
 }
 
 const unordered = new Map<HTMLElement, (order: number) => void>();

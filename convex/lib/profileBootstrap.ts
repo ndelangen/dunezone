@@ -5,6 +5,9 @@ import { scheduleAvatarRehostIfPending } from './profileAvatar';
 import { allocateProfileSlug, profileBootstrapSlug } from './profileSlugs';
 import { nowIso } from './utils';
 
+/** The username a profile gets when its provider sent no name. */
+const NAMELESS = 'nameless';
+
 export type ProfileBootstrapSources = {
   displayName: string | null;
   imageUrl: string | null;
@@ -43,7 +46,8 @@ async function refreshExistingProfile(
   if (accountStateOf(existing) !== 'active') {
     return existing;
   }
-  const fillUsername = existing.username ?? displayName;
+  /* A profile that started without a provider name holds the placeholder, which the first real name replaces. */
+  const fillUsername = (existing.username === NAMELESS ? null : existing.username) ?? displayName ?? existing.username;
   const fillAvatar = existing.avatar_url ?? imageUrl;
   const needsRefresh =
     fillUsername !== existing.username || fillAvatar !== existing.avatar_url || existing.account_state === undefined;
@@ -94,7 +98,7 @@ export async function ensureProfileForUser(
     return refreshed;
   }
 
-  const username = displayName ?? 'nameless';
+  const username = displayName ?? NAMELESS;
   const slug = await allocateProfileSlug(ctx, profileBootstrapSlug(username));
   const now = nowIso();
   const inserted = await ctx.db.insert('profiles', {

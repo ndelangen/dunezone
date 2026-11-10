@@ -44,4 +44,16 @@ describe('a faction sheet any viewer may read', () => {
     expect(sheet.leaders).toEqual(assetPublishingFaction.leaders);
     expect(Object.keys(sheet).sort()).toEqual(['background', 'emblem', 'leaders', 'rules']);
   });
+
+  /* Every player may see why one seat keeps a Treachery tracker, so the rule is part of the sheet. */
+  it('keeps the Treachery tracker rule', () => {
+    const definition = factionCaptureSchema.shape.definition.parse({
+      ...assetPublishingFaction,
+      rules: { ...assetPublishingFaction.rules, treacheryTracker: true },
+    });
+    const sheet = publicFaction({ definition } as FactionCapture);
+
+    expect(definition.rules.treacheryTracker).toBe(true);
+    expect(sheet.rules.treacheryTracker).toBe(true);
+  });
 });

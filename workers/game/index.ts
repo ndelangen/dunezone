@@ -1,6 +1,8 @@
 import { describeCardDraw } from '../../src/shared/play/cardDraw';
 import type { CardDraw } from '../../src/shared/play/cardDraw';
 export { HomepageRoom } from './homepage';
+export { BiddingTable } from './biddingTable';
+import { biddingTableResponse } from './biddingTable';
 export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
 
@@ -38,6 +40,8 @@ import type {
 } from '../../src/shared/play/protocol';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
+  OUTDATED_PAGE_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   PASS_EXPIRED_CLOSE_CODE,
@@ -56,6 +60,7 @@ import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
 import { bugReportGamePathPattern, isBugReportRequest } from './bugReportHttp';
 import { GameCatalogue } from './catalogue';
+import { clientAddress } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
@@ -64,6 +69,7 @@ import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { NudgeDelivery } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
@@ -80,6 +86,8 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
+  /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
+  client?: string;
   admitting: boolean;
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
@@ -134,6 +142,7 @@ type RememberedConnection = Pick<
 };
 function openConnection(
   state: Pick<Connection, 'connectionId' | 'openedAt'> &
+    Partial<Pick<Connection, 'client'>> &
     Partial<Pick<Connection, Exclude<keyof RememberedConnection, 'epoch' | 'revision'> | 'everAuthorized'>>
 ): Connection {
   return {
@@ -176,6 +185,12 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
   connection.rumbledAt = now;
   return sound;
 }
+/*
+ * A room holds this many connections that have not been admitted yet, each for at most PLAY_PENDING_TIMEOUT_MS.
+ * One address may hold only a quarter of them, so a visitor who knows a game's address needs four addresses to keep its players from reconnecting.
+ */
+const PENDING_CONNECTION_LIMIT = 16;
+const CLIENT_PENDING_LIMIT = 4;
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
@@ -224,9 +239,14 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' }>;
-const isPageRead = (message: ClientMessage): message is PageRead =>
-  message.type === 'log-history' || message.type === 'spice-history' || message.type === 'faction';
+type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
+const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
+  'log-history',
+  'spice-history',
+  'faction',
+  'treachery-deck',
+]);
+const isPageRead = (message: ClientMessage): message is PageRead => PAGE_READS.has(message.type);
 type ConversationRequest = Extract<
   ClientMessage,
   { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
@@ -297,6 +317,7 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number):
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly directory: DirectoryDelivery;
+  private readonly nudges: NudgeDelivery;
   private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -398,6 +419,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       scheduleAlarm: () => this.scheduleAlarm(),
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
+    this.nudges = new NudgeDelivery({
+      ensureDirectory: () => this.directory.deliver(),
+      session: this.session,
+      diagnostics: this.diagnostics,
+      convex: () => this.convex(),
+      scheduleAlarm: () => this.scheduleAlarm(),
+      waitUntil: (work) => this.ctx.waitUntil(work),
+    });
     this.draft = new RoomDraft({
       session: this.session,
       diagnostics: this.diagnostics,
@@ -411,6 +440,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
     if (!this.closed && this.metadata) {
+      if (this.metadata.confirmed && this.session.pendingNudge()) {
+        this.nudges.soon();
+      }
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.directory.soon();
       }
@@ -982,19 +1014,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Whether a new connection may wait for admission: the room has a waiting place left, and the visitor has not taken their share. */
+  private hasWaitingPlace(address: string | undefined) {
+    const waiting = [...this.connections.values()].filter((connection) => !connection.viewer);
+    if (waiting.length >= PENDING_CONNECTION_LIMIT) {
+      return false;
+    }
+    return !address || waiting.filter((connection) => connection.client === address).length < CLIENT_PENDING_LIMIT;
+  }
+
   private openSocket(request: Request): Response {
     if (!this.metadata!.confirmed || !isApplicationSocket(request, this.env.APPLICATION_ORIGIN)) {
       return refused();
     }
-    if (
-      this.connections.size >= 128 ||
-      [...this.connections.values()].filter((connection) => !connection.viewer).length >= 16
-    ) {
+    const address = clientAddress(request, this.env);
+    if (this.connections.size >= 128 || !this.hasWaitingPlace(address)) {
       return refused();
     }
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    this.connections.set(server, openConnection({ connectionId: crypto.randomUUID(), openedAt: Date.now() }));
+    this.connections.set(
+      server,
+      openConnection({
+        connectionId: crypto.randomUUID(),
+        openedAt: Date.now(),
+        ...(address ? { client: address } : {}),
+      })
+    );
     this.summary.connections(this.connections.size);
     this.ensureSweep();
     return new Response(null, { status: 101, webSocket: client });
@@ -1017,6 +1063,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.remember();
       await this.directory.deliver();
+      await this.nudges.deliver();
       /* What the wake sent and called waits in the summary, which a running sweep writes; a quiet room saves it again. */
       if (!this.sweepTimer && this.summary.pending(this.counters())) {
         this.rest();
@@ -1027,7 +1074,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * One alarm serves the battle deadline, the directory retry and, while the sweep is stopped, the next
+   * One alarm serves the battle deadline, delivery retries and, while the sweep is stopped, the next
    * seat pass to expire: whichever is due first. A pass whose session ended cannot be renewed, so the
    * alarm wakes a sleeping room to pause that table, as the sweep does in a busy one.
    * Only a change reaches storage, so a command that leaves the deadlines alone writes no alarm.
@@ -1125,9 +1172,28 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.canAdmit(socket, connection)) {
       return;
     }
+    if (request.protocol !== PLAY_PROTOCOL_VERSION) {
+      this.refuseProtocol(socket, request.protocol ?? 0);
+      return;
+    }
     connection.admitting = true;
     connection.replaces = request.replaces;
     await this.admitWithPass(socket, connection, request.pass);
+  }
+
+  /*
+   * A page on another protocol never sees the table. An older one, a tab opened before a deploy, is told to refresh and stops.
+   * A newer one meets a Worker that is not updated yet, so it closes as a restart does and the page tries again.
+   */
+  private refuseProtocol(socket: WebSocket, protocol: number) {
+    this.disconnect(socket);
+    if (protocol < PLAY_PROTOCOL_VERSION) {
+      /* A page from before 4426 existed knows only that a frame it cannot read means refresh; a current page reads the close code. */
+      socket.send(JSON.stringify({ type: 'outdated-page' }));
+      socket.close(OUTDATED_PAGE_CLOSE_CODE, 'Refresh the page to continue.');
+      return;
+    }
+    socket.close(1012, 'The table is being updated.');
   }
 
   /*
@@ -1637,7 +1703,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
-  private sendPage(socket: WebSocket, message: PageRead) {
+  private sendPage(socket: WebSocket, message: PageRead, connection: Connection) {
     switch (message.type) {
       case 'log-history':
         this.send(socket, {
@@ -1657,6 +1723,12 @@ export class GameRoom extends DurableObject<GameEnv> {
           faction: this.session.publicFaction(message.factionId),
         });
         return;
+      case 'treachery-deck':
+        this.send(socket, {
+          type: 'treachery-deck',
+          cards: this.session.treacheryDeck(connection.viewer?.viewerSeat ?? null),
+        });
+        return;
     }
   }
 
@@ -1666,7 +1738,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Exclude<ClientMessage, { type: 'admit' | 'pass' | 'catalogue' | 'pointer' | 'pose' | 'telemetry' }>
   ) {
     if (isPageRead(message)) {
-      this.sendPage(socket, message);
+      this.sendPage(socket, message, connection);
       return;
     }
     if (isConversationRequest(message)) {
@@ -1725,6 +1797,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (saved.inserted) {
       this.publishConversationMessage(request, saved.message);
       this.directory.soon();
+      if (this.session.pendingNudge()) {
+        this.nudges.soon();
+      }
       return;
     }
     /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
@@ -2240,6 +2315,10 @@ export default {
       isApplicationSocket(request, env.APPLICATION_ORIGIN)
     ) {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
+    }
+    const bidding = await biddingTableResponse(request, env);
+    if (bidding) {
+      return bidding;
     }
     const route = gameRequest(request, env.APPLICATION_ORIGIN);
     if (!route) {

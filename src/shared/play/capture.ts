@@ -88,6 +88,9 @@ export const factionDefinitionWireSchema = factionDefinitionSchema.extend({
   data: heroKeyedDefinitionData.nullable(),
 });
 
+/** The part of a faction's definition the battle wheel tool reads: who it is, and its stored data with linked backgrounds resolved. */
+export const battleWheelFactionSchema = factionDefinitionWireSchema.pick({ faction: true, data: true });
+
 /** A catalogue row as a capture reads it: its identity and its stored data, which the capture validates per type. */
 const supplyEntrySchema = z.object({
   id: z.string(),

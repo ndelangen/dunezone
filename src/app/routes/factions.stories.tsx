@@ -1,7 +1,9 @@
 import preview from '@sb/preview';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
 import { expect, within } from 'storybook/test';
 
 import {
+  withTreacheryTracker,
   withTroopDetails,
   withPlanets,
   expectLeaderLane,
@@ -48,6 +50,17 @@ export const Detail = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'House Atreides' })).resolves.toBeVisible();
     await expect(page.queryByRole('region', { name: 'Planets' })).not.toBeInTheDocument();
+  },
+});
+
+/** A faction whose rules keep the Treachery tracker says so in its Setup, beside its start and revival. */
+export const DetailKeepsATreacheryTracker = meta.story({
+  args: { path: '/factions/house-atreides' },
+  parameters: { database: withTreacheryTracker },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const setup = await page.findByRole('region', { name: 'Setup' }, { timeout: 30_000 });
+    await expect(within(setup).getByText(TREACHERY_TRACKER_RULE)).toBeVisible();
   },
 });
 

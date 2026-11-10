@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { playDiscordMenuSchema } from './discord';
 import { lastTurnSchema } from './lastTurn';
 import { PHASE_CHANGE_COOLDOWN_MS } from './phases';
 import { tableSeatCountSchema } from './schema';
@@ -52,6 +53,8 @@ const playMinimumPlayersSchema = tableSeatCountSchema;
 export const playGameProvisionSchema = z.object({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
+  /* Absent on older games; Convex checks their saved opt-in before delivering a nudge. */
+  discordVoice: z.boolean().optional(),
   /* Chosen on the create page; a game created before that plays the standard ten turns. */
   lastTurn: lastTurnSchema.optional(),
   creator: z.object({
@@ -150,6 +153,7 @@ export const playCreateGameRequestSchema = z.strictObject({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
   lastTurn: lastTurnSchema.optional(),
+  discordVoice: z.boolean().optional(),
 });
 export const playCreateGameResultSchema = z.union([
   z.object({ ok: z.literal(true), gameId: identifierSchema }),
@@ -177,5 +181,6 @@ export const playGameAddressAccessSchema = z.union([
      * Null until the account is enrolled here, which the page asks for once with `playAdmission.enrolPlayer`.
      */
     pass: z.string().max(4096).nullable(),
+    voice: playDiscordMenuSchema.nullable().optional(),
   }),
 ]);

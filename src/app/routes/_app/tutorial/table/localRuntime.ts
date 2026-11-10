@@ -4,8 +4,9 @@ import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/pla
 import type { ServerMessage } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 
-import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
-import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
+import type { GameRuntime, GameSocket } from '@db/tabletop/gameRuntime';
+
 import { LocalConversations } from './localConversations';
 import type { LocalTable, TableMessage } from './localTable';
 
@@ -88,6 +89,9 @@ export function localRuntime(
           return conversations.admitted();
         case 'faction':
           return this.later({ ...message, faction: factions[message.factionId] ?? null });
+        /* The tutorial keeps no Treachery tracker, so it answers as a game without a deck to track. */
+        case 'treachery-deck':
+          return this.later({ type: 'treachery-deck', cards: null });
         case 'conversation-history':
         case 'conversation-send':
         case 'conversation-read':

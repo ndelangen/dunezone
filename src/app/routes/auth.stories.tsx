@@ -1,7 +1,7 @@
 import preview from '@sb/preview';
 import { expect, within } from 'storybook/test';
 
-import { lastSignedInWithDiscord } from './auth.stories.fixture';
+import { backFromSteamAwaitingTheBackend, lastSignedInWithDiscord, steamReturnPath } from './auth.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -18,7 +18,20 @@ export const Login = meta.story({
       page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 })
     ).resolves.toBeEnabled();
     await expect(page.getByRole('button', { name: 'Continue with Discord' })).toBeEnabled();
-    await expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(2);
+    await expect(page.getByRole('button', { name: 'Continue with Steam' })).toBeEnabled();
+    await expect(page.getAllByRole('button', { name: /^Continue with / })).toHaveLength(3);
+  },
+});
+/** Back from Steam, the page holds the reader while the backend checks Steam's answer. */
+export const SteamReturn = meta.story({
+  args: { path: steamReturnPath },
+  parameters: { identity: null },
+  beforeEach: backFromSteamAwaitingTheBackend,
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const status = await page.findByRole('status', {}, { timeout: 30_000 });
+    await expect(within(status).getByRole('heading', { name: 'Signing you in with Steam' })).toBeVisible();
+    await expect(status).toHaveTextContent('Steam sent you back. Checking your sign-in with Steam.');
   },
 });
 export const LoginAfterUnfinishedSignIn = meta.story({

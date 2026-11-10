@@ -65,7 +65,9 @@ function PrivacyPage() {
                     An email address retained from an earlier sign-in, if one was supplied. Current sign-in requests
                     identity access only.
                   </List.Item>
-                  <List.Item>Whether you signed in with Google or Discord, and the account ID they give us.</List.Item>
+                  <List.Item>
+                    Whether you signed in with Google, Discord or Steam, and the account ID they give us.
+                  </List.Item>
                   <List.Item>The sign-in records needed to keep you logged in and protect your account.</List.Item>
                   <List.Item>
                     Basic technical details such as your IP address, browser, when you visited, and errors that
@@ -97,6 +99,28 @@ function PrivacyPage() {
               </Stack>
             </Section>
           </SimpleGrid>
+
+          <Section title="Discord voice rooms">
+            <Stack gap="md">
+              <Text>
+                Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
+                can join, including spectators. You do not need to connect Discord to your Dune Zone account to use the
+                invite. Discord receives the game name and can see which Discord accounts join and use the channel.
+              </Text>
+              <Text>
+                Joining the Discord server is your choice. We never add you automatically or change your channel access
+                when you leave a seat. Channels are deleted 24 hours after the game ends or after 14 days without game
+                activity.
+              </Text>
+              <Text>
+                In a game with Discord voice, a message containing only another player&apos;s faction or display name,
+                optionally preceded by @ or /nudge, can mention them in the voice channel&apos;s text chat. They need a
+                connected Discord account to receive the mention. We send the waiting faction&apos;s name and the game
+                name, never the conversation itself. Each seat can receive at most one ping every five minutes. Discord
+                controls notification delivery through each player&apos;s settings.
+              </Text>
+            </Stack>
+          </Section>
 
           <Section title="Your choices">
             <Stack gap="md">
@@ -155,8 +179,8 @@ function PrivacyPage() {
                 the website useful and working. You can object to processing based on those interests.
               </Text>
               <Text>
-                Google or Discord handles sign-in. Convex stores application data. Cloudflare hosts and protects the
-                website and provides Web Analytics. These providers receive the information needed for those jobs.
+                Google, Discord or Steam handles sign-in. Convex stores application data. Cloudflare hosts and protects
+                the website and provides Web Analytics. These providers receive the information needed for those jobs.
               </Text>
               <Text>
                 We do not sell your data. Your profile and contributions are free for people to view, but we do not sell
@@ -276,7 +300,7 @@ function PrivacyPage() {
           </Section>
 
           <Text c="dimmed" size="sm">
-            Last updated 13 October 2026. If anything changes, we will update this page.
+            Last updated 10 November 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

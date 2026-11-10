@@ -9,8 +9,13 @@ import { fileURLToPath } from 'node:url';
 
 import type { IncomingRequestCfProperties, SqlStorageValue } from '@cloudflare/workers-types/experimental/index.ts';
 import { build } from 'esbuild';
-import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
-import type { RequestInit, V4WorkerdStructuredLog } from 'miniflare';
+import { Miniflare, convertV4MiniflareOptions, fetch as nativeFetch } from 'miniflare';
+import type {
+  Request as NativeRequest,
+  RequestInit,
+  Response as NativeResponse,
+  V4WorkerdStructuredLog,
+} from 'miniflare';
 import { z } from 'zod';
 
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
@@ -30,12 +35,14 @@ import { playPublishSummaryRequestSchema } from '../../src/shared/play/directory
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
+import { playPublishNudgeRequestSchema } from '../../src/shared/play/nudges';
 import {
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   serverMessageSchema,
   serverClockSchema,
 } from '../../src/shared/play/protocol.ts';
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol.ts';
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
@@ -60,6 +67,7 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playProvisioning:confirmProvisioning'), args: playProvisionRequestSchema }),
   z.object({ function: z.literal('playProvisioning:failProvisioning'), args: playProvisionFailureSchema }),
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
+  z.object({ function: z.literal('playDiscordNudges:publishNudge'), args: playPublishNudgeRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
   z.object({ function: z.literal('arrakis:board'), args: z.object({}) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
@@ -99,6 +107,8 @@ export interface NativePeer {
   testPhaseCooldownMs: number | undefined;
   testStartStage: z.infer<typeof playTestStartStageSchema> | undefined;
   directoryMode: 'ack' | 'hold' | 'error';
+  nudgeMode: 'ack' | 'hold' | 'error' | 'refuse';
+  nudges: z.infer<typeof playPublishNudgeRequestSchema>[];
   seatLimitReached: Set<string>;
   /* `hold` keeps a pass admission's seat-limit read open, `error` fails it. */
   seatLimitMode: 'answer' | 'hold' | 'error';
@@ -120,6 +130,19 @@ export interface NativePeer {
   close(): Promise<void>;
 }
 export type NativeBindings = Record<string, string | number | boolean> & { APPLICATION_ORIGIN?: string };
+/**
+ * Binds the real report coordinator and its export bucket beside the game room.
+ * `github` answers every request the Worker sends to api.github.com;
+ * anything else goes out unchanged, so the peer still answers Convex calls.
+ */
+/** The report RPCs a GameRoom serves to the report coordinator. */
+export interface NativeReportRoom {
+  captureBugReport(requestId: string, actorId: string, displayName: string, browser: unknown): Promise<string>;
+  finishBugReport(requestId: string, actorId: string, displayName: string, issueUrl: string): Promise<void>;
+}
+export interface NativeReportServices {
+  github(request: NativeRequest): Promise<NativeResponse> | NativeResponse;
+}
 type CaptureResult<K extends 'ruleset' | 'faction'> =
   | { ok: true; record: K extends 'ruleset' ? RulesetCapture : FactionCapture }
   | { ok: false; message: string; record?: undefined };
@@ -140,6 +163,8 @@ export interface NativeConnection {
   socket: NonNullable<Awaited<ReturnType<Miniflare['dispatchFetch']>>['webSocket']>;
   messages: NativeMessage[];
   unapplied: Extract<NativeMessage, { type: 'update' }>[];
+  /* Frames the room sends on purpose outside the protocol, which only a page from before them fails to read. */
+  outsideProtocol: unknown[];
   keepalives: number;
   closed: boolean;
   closeCode: number | null;
@@ -188,7 +213,7 @@ const prepared = await build({
   external: ['cloudflare:workers', 'node:*'],
 });
 const runtimeScripts = new Map(prepared.outputFiles.map((file) => [basename(file.path, '.js'), file.text]));
-const gameId = 'fixture-game';
+export const gameId = 'fixture-game';
 const secret = 'a'.repeat(64);
 const attemptId = 'b'.repeat(64);
 
@@ -329,6 +354,15 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
         record.release({ ok: true, sequence: record.args.sequence });
       }
       break;
+    case 'playDiscordNudges:publishNudge':
+      peer.nudges.push(record.args);
+      if (peer.nudgeMode === 'error') {
+        record.response.writeHead(503);
+        record.response.end('Nudge unavailable');
+      } else if (peer.nudgeMode !== 'hold') {
+        record.release({ ok: peer.nudgeMode === 'ack' });
+      }
+      break;
     case 'playProvisioning:failProvisioning':
       record.release({ ok: true });
       break;
@@ -388,6 +422,8 @@ export async function createPeer(): Promise<NativePeer> {
     testPhaseCooldownMs: undefined,
     testStartStage: undefined,
     directoryMode: 'ack',
+    nudgeMode: 'ack',
+    nudges: [],
     seatLimitReached: new Set(),
     seatLimitMode: 'answer',
     bugReportMode: 'allow',
@@ -439,7 +475,8 @@ export async function createRuntime(
   peer: NativePeer,
   kind: keyof typeof runtimeEntries = 'game',
   bindings: NativeBindings = {},
-  script = runtimeScripts.get(kind)
+  script = runtimeScripts.get(kind),
+  reports?: NativeReportServices
 ) {
   const logs: V4WorkerdStructuredLog[] = [];
   const origin = bindings.APPLICATION_ORIGIN ?? 'http://table.test';
@@ -459,7 +496,17 @@ export async function createRuntime(
       durableObjects:
         kind === 'homepage'
           ? { HOMEPAGE_ROOMS: { className: 'HomepageRoom', useSQLite: true } }
-          : { GAME_ROOMS: { className: 'GameRoom', useSQLite: true } },
+          : {
+              GAME_ROOMS: { className: 'GameRoom', useSQLite: true },
+              ...(reports ? { BUG_REPORTS: { className: 'BugReports', useSQLite: true } } : {}),
+            },
+      ...(reports
+        ? {
+            r2Buckets: ['BUG_REPORT_STATES'],
+            outboundService: (request: NativeRequest) =>
+              new URL(request.url).origin === 'https://api.github.com' ? reports.github(request) : nativeFetch(request),
+          }
+        : {}),
       bindings: {
         PEER_URL: peer.url,
         CONVEX_URL: peer.url,
@@ -542,6 +589,38 @@ export async function createRuntime(
       const room = namespace.get(namespace.idFromName(gameId));
       const response = await room.fetch(`https://native-test/native-test/load-${stop ? 'stop' : 'status'}`);
       return fixtureJson<NativeLoadStatus>(response);
+    },
+    /** A report's export, as the report coordinator stored it in R2. */
+    async reportState(exportId: string) {
+      const bucket = await instance.getR2Bucket('BUG_REPORT_STATES');
+      const object = await bucket.get(`reports/${exportId}.json`);
+      return object ? fixtureJson<Record<string, unknown>>(object) : null;
+    },
+    /**
+     * The report RPCs of the room with any name, called from inside the Worker over a real Durable Object stub as the report coordinator calls them.
+     * Each resolves to what crossed back, or rejects with the message the room threw.
+     */
+    reportRoom(name: string): NativeReportRoom {
+      const call = async (method: keyof NativeReportRoom, args: unknown[]) => {
+        const response = await this.object(gameId, '/native-test/report-rpc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room: name, method, args }),
+        });
+        const outcome = await fixtureJson<{ ok: true; result: string | null } | { ok: false; message: string }>(
+          response
+        );
+        if (!outcome.ok) {
+          throw new Error(outcome.message);
+        }
+        return outcome.result;
+      };
+      return {
+        captureBugReport: async (...args) => (await call('captureBugReport', args)) as string,
+        finishBugReport: async (...args) => {
+          await call('finishBugReport', args);
+        },
+      };
     },
     fetch(path: string, init?: RequestInit<Partial<IncomingRequestCfProperties>>) {
       return instance.dispatchFetch(`${origin}${path}`, init);
@@ -650,6 +729,7 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
     socket,
     messages: [],
     unapplied: [],
+    outsideProtocol: [],
     keepalives: 0,
     closed: false,
     closeCode: null,
@@ -681,6 +761,11 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
       return;
     }
     const raw: unknown = JSON.parse(event.data);
+    if ((raw as { type?: unknown }).type === 'outdated-page') {
+      connection.outsideProtocol.push(raw);
+      wake();
+      return;
+    }
     serverMessageSchema.parse(raw);
     optionalClockSchema.parse(raw);
     // Keep the original frame, including unexpected fields that privacy assertions must observe.
@@ -732,7 +817,7 @@ export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> 
 /** Admits the suffix's synthetic account with a seat pass and waits for the first view. */
 export async function admitPlayer(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', pass: await fixturePass(suffix, overrides) });
+  connection.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass(suffix, overrides) });
   await connection.message('view');
   return connection;
 }

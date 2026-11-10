@@ -9,11 +9,11 @@ import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG, rosterFactionIds }
 import type { ClientMessage, GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { isSwapAction } from '@shared/play/swapping';
 import { heldTechTokens } from '@shared/play/techToken';
+import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 
 import { STORYBOOK_NOW } from '@db/storybook';
-
-import { browserGameRuntime } from './multiplayer/gameRuntime';
-import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
+import type { GameRuntime, GameSocket } from '@db/tabletop/gameRuntime';
 
 /* Mid-game Treachery hands the other factions hold in a story; the viewer's own count always matches what it holds. */
 const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
@@ -66,6 +66,7 @@ export function storyTransport(
     conversationMessages = [],
     conversationSummaries,
     factions = {},
+    treacheryDeck = null,
     admitView,
     answerCommand,
     receive,
@@ -85,6 +86,8 @@ export function storyTransport(
     conversationSummaries?: Omit<Extract<ServerMessage, { type: 'conversations' }>, 'type' | 'generation'>;
     /* The seated factions' captured sheets by faction id; one not listed answers as a game without its capture. */
     factions?: Readonly<Partial<Record<string, PublicFaction>>>;
+    /* The game's captured Treachery deck, as the tracker reads it; null answers as a game without one. */
+    treacheryDeck?: TreacheryDeckCard[] | null;
   } = {}
 ) {
   const messages: ClientMessage[] = [];
@@ -177,6 +180,9 @@ export function storyTransport(
       }
       if (message.type === 'faction') {
         queueMicrotask(() => this.deliver({ ...message, faction: factions[message.factionId] ?? null }));
+      }
+      if (message.type === 'treachery-deck') {
+        queueMicrotask(() => this.deliver({ type: 'treachery-deck', cards: treacheryDeck }));
       }
       if (message.type === 'conversation-history') {
         const after = clearedThrough.get(message.peerId) ?? 0;

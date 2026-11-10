@@ -33,6 +33,8 @@ export const resultActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('result-cancel') }),
   z.strictObject({ kind: z.literal('result-declare'), result: gameResultKindSchema, factionIds: factionIdsSchema }),
   z.strictObject({ kind: z.literal('result-continue') }),
+  /* The only seated player ends the game in any phase of play: it finishes with no winner, keeping its replay. */
+  z.strictObject({ kind: z.literal('result-end') }),
 ]);
 export type ResultAction = z.infer<typeof resultActionSchema>;
 export const isResultAction = actionKindGuard(resultActionSchema);

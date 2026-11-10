@@ -11,8 +11,9 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { ArrowRight, History } from 'lucide-react';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useState } from 'react';
 import type { SVGProps } from 'react';
+import { FaSteam } from 'react-icons/fa6';
 import { SiDiscord } from 'react-icons/si';
 
 import {
@@ -20,6 +21,8 @@ import {
   noteSignInStarted,
   settleStartedSignIn,
   useLastSignInMethod,
+  useConnectedSignInMethods,
+  useProviderSignIn,
   useSignInProviders,
 } from '@db/accounts';
 import type { AuthProvider } from '@db/accounts';
@@ -104,6 +107,7 @@ function SignInPanel({
   reauthenticate: boolean;
 }) {
   const { signIn, signOut } = useAuthActions();
+  const providerSignIn = useProviderSignIn();
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(reduceSignIn, { busy: null, error: null, email: '', password: '' });
   const lastUsed = useLastSignInMethod();
@@ -133,7 +137,7 @@ function SignInPanel({
         forgetStoredPlayTables();
         await signOut();
       }
-      const { redirect, signingIn } = await signIn(provider, { redirectTo: returnTo });
+      const { redirect, signingIn } = await providerSignIn(provider, { redirectTo: returnTo });
       /* The browser is already leaving for the provider, and a second click would replace this sign-in's verifier.
          The buttons come back only if the back button restores this page from the browser's cache. */
       if (redirect) {
@@ -251,21 +255,48 @@ function SignInPanel({
           Loading sign-in methods
         </StatusBadge>
       )}
-      <Text size="sm" className={styles.fine}>
-        No password to remember. Your first sign-in creates your account.
-      </Text>
+      {!reauthenticate && (
+        <Text size="sm" className={styles.fine}>
+          No password to remember. Your first sign-in creates your account.
+        </Text>
+      )}
     </Stack>
   );
 }
 
-function ProviderMark({ provider }: { provider: AuthProvider }) {
-  return provider === 'google' ? <GoogleColoredMark width={22} height={22} /> : <SiDiscord size={22} aria-hidden />;
+function ProviderMark({ provider }: Readonly<{ provider: AuthProvider }>) {
+  switch (provider) {
+    case 'google':
+      return <GoogleColoredMark width={22} height={22} />;
+    case 'discord':
+      return <SiDiscord size={22} aria-hidden />;
+    case 'steam':
+      return <FaSteam size={22} aria-hidden />;
+  }
+}
+
+/*
+ * Signing in again must land in the same account, and only a method already connected to it does:
+ * any other one signs in to a separate account, the way a first sign-in creates one.
+ * The connected methods are kept from while the reader was still signed in, since picking one signs out first.
+ */
+function useReauthenticationProviders(reauthenticate: boolean) {
+  const providers = useSignInProviders();
+  const connectedNow = useConnectedSignInMethods();
+  const [connected, setConnected] = useState<AuthProvider[] | null>(null);
+  if (reauthenticate && connected === null && connectedNow?.length) {
+    setConnected(connectedNow);
+  }
+  if (!reauthenticate || !providers || !connected) {
+    return providers;
+  }
+  return providers.filter((method) => connected.includes(method.provider));
 }
 
 function LoginPage() {
   const profile = useCurrentProfile();
-  const providers = useSignInProviders();
   const { redirect: returnTo, failed, reauthenticate = false } = Route.useSearch();
+  const providers = useReauthenticationProviders(reauthenticate);
   const navigate = useNavigate();
   const signedIn = Boolean(profile.data);
   /* The password form signs in without leaving the page, and a reader who is already signed in has nothing to do here either, so both go back to the page they came from. */
@@ -303,7 +334,7 @@ function LoginPage() {
             />
             <Text className={styles.lead}>
               {reauthenticate
-                ? 'Sign in once more to carry on where you were.'
+                ? 'Sign in once more, with a method already connected to your profile, to carry on where you were.'
                 : 'Build factions, write your own rulesets and play Dune with friends.'}
             </Text>
             <SignInPanel

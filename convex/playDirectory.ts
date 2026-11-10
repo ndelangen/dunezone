@@ -15,6 +15,7 @@ import { canonicalAccount } from './lib/accountIdentity';
 import { isActiveProfile } from './lib/accountLifecycle';
 import { resolveBackgrounds } from './lib/backgroundPresets';
 import { authenticatedPlayRequest, currentPlaySession, isRealGame } from './lib/playAuthorization';
+import { syncDiscordDirectory } from './lib/playDiscord';
 
 /*
  * The directory: what the lobby may know about each game. The game Worker publishes a summary
@@ -45,6 +46,7 @@ export const publishSummary = mutation({
       directory_stage: args.summary.stage,
       directory: args.summary,
     });
+    await syncDiscordDirectory(ctx, { ...game, directory: args.summary, directory_stage: args.summary.stage });
     return { ok: true as const, sequence: args.sequence };
   },
 });

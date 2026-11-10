@@ -16,9 +16,11 @@ import { browserLaunchTests } from './browser-launch-tests.ts';
 import { coverageExclude, coverageInclude } from './coverage-denominator.ts';
 import { browserBundleBudgets, THREE_BUILD } from './scripts/lib/browserBundleBudgets.ts';
 import { readJsonc } from './scripts/lib/jsonc.ts';
+import { quietBuildReportInCi } from './scripts/lib/quietBuildReport.ts';
 import { reactCompiler } from './scripts/lib/reactCompiler.ts';
 import { threeRendererStackAliases, threeRendererStackTreeShaking } from './scripts/lib/threeRendererStack.ts';
 import { unsyncedMediaPreview } from './scripts/lib/unsyncedMediaPreview.ts';
+import { PRERENDERED_PAGE_NONCE, TOOL_PAGES } from './src/shared/recordlessPublicPages.ts';
 
 /**
  * Codecov's bundle-report normalizer wildcards from the first `-` to the next `.`, so a dash or dot inside a base name either collapses distinct files into one normalized name (lato-latin-300-normal -> lato-*) or leaves the hash un-wildcarded (floating-ui.react-dom-<hash>).
@@ -54,6 +56,33 @@ function sandboxAsyncHooksInBrowser(): PluginOption {
     resolveId(source) {
       if (source === 'node:async_hooks' && this.environment.config.consumer === 'client') {
         return slice;
+      }
+    },
+  };
+}
+
+/**
+ * The `ssr` environment's side-effect rule below drops unused Mantine imports from Rolldown 1.3.0 on.
+ * The Rolldown inside vite-plus (1.2.14 in vite-plus 1.3.0, still 1.2.16 in vite-plus 1.5.0) ignores that rule for an external import that another chunk also uses and leaves a bare `import "@mantine/core"`, so this blanks exactly that line in server chunks.
+ * The line stays (empty) so source maps keep their positions.
+ * When a server build has no such line, the plugin warns that it can be deleted.
+ */
+function unusedMantineImportOnServer(): PluginOption {
+  const bareImport = /^import "@mantine\/core";$/mu;
+  return {
+    name: 'dunezone:unused-mantine-import-on-server',
+    applyToEnvironment: (environment) => environment.name === 'ssr',
+    /* Rolldown writes a chunk's external imports after `renderChunk`, so the finished chunk is edited here. */
+    generateBundle(_options, bundle) {
+      let stripped = false;
+      for (const output of Object.values(bundle)) {
+        if (output.type === 'chunk' && bareImport.test(output.code)) {
+          output.code = output.code.replace(bareImport, '');
+          stripped = true;
+        }
+      }
+      if (!stripped) {
+        this.warn('No bare `import "@mantine/core"` left in the server build: delete unusedMantineImportOnServer.');
       }
     },
   };
@@ -96,6 +125,9 @@ function gameTableCryptoInBrowser(): PluginOption {
  */
 const APP_MODULES_WITHOUT_SIDE_EFFECTS = /^(?!.*\/node_modules\/).*\/src\/(?:shared|app\/db|app\/ui)\/[^?]*\.tsx?$/u;
 
+/* Mantine's JavaScript entry; its package.json marks only CSS as having side effects. */
+const MANTINE_JS = /^@mantine\/core$/u;
+
 function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] {
   if (!process.env.VITEST) {
     return plugins;
@@ -119,6 +151,9 @@ function withoutRouteSplittingInVitest(plugins: PluginOption[]): PluginOption[] 
   return kept;
 }
 
+/** Chunks of Play panels that only some seats ever open, imported on demand by the table. */
+const ON_DEMAND_PANELS = /\/TreacheryTrackerPanel-[^/]+\.js$/u;
+
 const config = defineConfig({
   /* Oxfmt and Oxlint keep their own config files, which scripts and docs read; Vite+ takes them from here. */
   fmt: readJsonc(fileURLToPath(new URL('./.oxfmtrc.json', import.meta.url))) as UserConfig['fmt'],
@@ -126,6 +161,12 @@ const config = defineConfig({
   server: {
     proxy: process.env.PLAY_WORKER_URL ? { '/__play': { target: process.env.PLAY_WORKER_URL, ws: true } } : undefined,
   },
+  /*
+   * Prerender fetches from this server while it renders other pages on the same thread.
+   * On `localhost` Node tries ::1 then 127.0.0.1 with a 250 ms per-address timeout, so a render that blocks longer fails the bound address and the fallback is refused.
+   * One literal address leaves nothing to fall back to.
+   */
+  preview: { host: '127.0.0.1' },
   test: {
     /* Standalone HTML exports need the compiled CSS Module classes and declarations, as they have no browser module loader. */
     css: { include: [/\.module\.css(?:\?.*)?$/, /\.css\?inline$/], modules: { classNameStrategy: 'scoped' } },
@@ -143,6 +184,16 @@ const config = defineConfig({
     assetsDir: 'public', // will make your static assets appear under /public/
     /* browserBundleBudgets fails any client chunk over its budget, so Vite's 500 kB advisory only repeats it. */
     chunkSizeWarningLimit: Number.POSITIVE_INFINITY,
+    /* CI hides the per-file report (quietBuildReportInCi), so it skips gzipping every file just to size it. */
+    reportCompressedSize: !process.env.CI,
+    /*
+     * A panel loaded on demand keeps only its stylesheets in its importer's preload list: its scripts load with it, and the
+     * long list of shared chunk names would otherwise sit in the table's own bundle.
+     */
+    modulePreload: {
+      resolveDependencies: (filename, deps) =>
+        ON_DEMAND_PANELS.test(filename) ? deps.filter((dep) => dep.endsWith('.css')) : deps,
+    },
     rollupOptions: {
       /* The per-build plugin timing report printed on every build and every CI run; profile locally instead. */
       checks: { bundlerTimings: false },
@@ -157,6 +208,18 @@ const config = defineConfig({
     },
   },
   environments: {
+    /*
+     * Mantine's JavaScript has no side effects (its package.json lists only CSS), so an import of it whose bindings
+     * all went unused is dropped. Without this, the server router chunk keeps a bare `import "@mantine/core"`, which
+     * Wrangler's bundler drops with a warning on every build and dry run.
+     */
+    ssr: {
+      build: {
+        rollupOptions: {
+          treeshake: { moduleSideEffects: [{ test: MANTINE_JS, external: true, sideEffects: false }] },
+        },
+      },
+    },
     /**
      * Client-only: server chunk names never reach Codecov and TanStack Start owns the server entry layout.
      * These mirror
@@ -232,6 +295,8 @@ const config = defineConfig({
     gameTableCryptoInBrowser(),
     sandboxAsyncHooksInBrowser(),
     sandboxWorkerAsyncInDevelopment(),
+    unusedMantineImportOnServer(),
+    quietBuildReportInCi(),
     tanstackStart({
       srcDirectory: './src/app',
       start: { entry: './routes/start.ts' },
@@ -251,6 +316,14 @@ const config = defineConfig({
         concurrency: Math.max(1, os.cpus().length),
         crawlLinks: false,
       },
+      /**
+       * Each built tool is a static page, prerendered to `tools/<slug>/index.html` and served by the Worker in place of a server render.
+       * It renders with a placeholder nonce that every delivery swaps for a fresh one.
+       */
+      pages: TOOL_PAGES.map((path) => ({
+        path,
+        prerender: { enabled: true, headers: { Connection: 'close', 'X-Application-Nonce': PRERENDERED_PAGE_NONCE } },
+      })),
       spa: {
         enabled: true,
         prerender: {

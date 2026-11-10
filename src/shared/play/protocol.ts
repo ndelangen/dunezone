@@ -53,6 +53,7 @@ import { spiceGiftSchema, spiceReserveActionSchema, spiceReserveSchema, spiceTra
 import { swapActionSchema, swappingStateSchema } from './swapping';
 import { heldTechTokenSchema } from './techToken';
 import { territoryTintActionSchema, territoryTintsSchema } from './territoryTints';
+import { treacheryDeckSchema } from './treacheryDeck';
 
 const factionArtworkSchema = z.record(
   z.string(),
@@ -269,6 +270,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('admit'),
+    /* The protocol the page speaks, `PLAY_PROTOCOL_VERSION` when it was built; the Worker admits only its own, and a page built before versioning sends none. */
+    protocol: count.optional(),
     /* A page proves who it is with its seat pass for this game. */
     pass: seatPassSchema,
     /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
@@ -314,6 +317,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('log-history'), tab: logTabSchema, before: count }),
   /* A seated faction's starting sheet as the game captured it; nothing when the game holds no capture of it. */
   z.strictObject({ type: z.literal('faction'), factionId: id }),
+  /* The game's Treachery deck as the tracker reads it; only a faction whose rules allow the tracker asks. */
+  z.strictObject({ type: z.literal('treachery-deck') }),
   z.strictObject({ type: z.literal('metrics') }),
   z.strictObject({ type: z.literal('sync') }),
   /* A browser's periodic account of how the table felt, in whole milliseconds; the room only logs it. */
@@ -401,6 +406,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
     more: z.boolean(),
   }),
   z.object({ type: z.literal('faction'), factionId: id, faction: publicFactionSchema.nullable() }),
+  z.object({ type: z.literal('treachery-deck'), cards: treacheryDeckSchema.nullable() }),
   z.object({
     type: z.literal('catalogue'),
     requestId: id,
@@ -476,6 +482,9 @@ export type ServerMessage = z.infer<typeof serverMessageSchema>;
  * Unlike a refusal it is not final: the browser renews its pass and reconnects.
  */
 export const PASS_EXPIRED_CLOSE_CODE = 4410;
+export { PLAY_PROTOCOL_VERSION } from './protocolVersion';
+/** The code the Worker closes a socket with when the page speaks an older protocol; final, the page asks to be refreshed. */
+export const OUTDATED_PAGE_CLOSE_CODE = 4426;
 /** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
 export const ADMISSION_REFUSED_CLOSE_CODE = 4401;
 /** The code the Worker closes a socket with when it sent too many messages; the browser waits longer before reconnecting. */

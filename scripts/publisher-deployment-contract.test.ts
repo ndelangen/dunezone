@@ -460,18 +460,49 @@ describe('production homepage showcase budget', () => {
   });
 });
 
-test('deployment rehearses before assembly, then omits raster copies before the exact release', () => {
-  const workflow = parse(
-    readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
-  );
-  const commands = workflow.jobs.deploy.steps.map((step: { run?: string }) => step.run ?? '');
-  const rehearsal = commands.indexOf('bun run scripts/verify-application-runtime-local.ts');
+test('PR CI rehearses the runtime; deployment assembles, then omits raster copies before the exact release', () => {
+  const readWorkflow = (name: string) =>
+    parse(readFileSync(path.resolve(import.meta.dirname, `../.github/workflows/${name}`), 'utf8'));
+  const runs = (job: { steps: { run?: string }[] }) => job.steps.map((step) => step.run ?? '');
+  const rehearsalCommand = 'bun run scripts/verify-application-runtime-local.ts';
+  /* Main only takes merges whose PR checks passed on an up-to-date branch, so the PR rehearsal covers the deployed tree. */
+  const publisherRelease = readWorkflow('reusable-verify.yml').jobs.publisher_release;
+  const rehearsalStep = publisherRelease.steps.find((step: { run?: string }) => step.run === rehearsalCommand);
+  expect(publisherRelease.if).toBe('${{ !inputs.hosted_only && !inputs.draft }}');
+  /* Skipped only when an earlier pass verified identical publisher inputs (scripts/lib/ci-job-inputs.ts). */
+  expect(rehearsalStep?.if).toBe("steps.prior.outputs.reuse != 'true'");
+  const commands = runs(readWorkflow('deploy-main.yml').jobs.deploy);
   const assembly = commands.indexOf('bun run publisher:assets');
   const omission = commands.indexOf('bun run publisher:omit-static-rasters');
   const exactRelease = commands.indexOf('bun run publisher:release:dry-run');
-  expect(rehearsal).toBeGreaterThan(-1);
-  expect(assembly).toBeGreaterThan(rehearsal);
+  expect(commands).not.toContain(rehearsalCommand);
+  expect(assembly).toBeGreaterThan(-1);
   expect(omission).toBeGreaterThan(assembly);
   expect(exactRelease).toBeGreaterThan(omission);
   expect(commands.some((command: string) => command.includes('retain-assets'))).toBe(false);
+});
+
+test('deployment restores the proved variant entries before publishing skips them', () => {
+  const workflow = parse(
+    readFileSync(path.resolve(import.meta.dirname, '../.github/workflows/deploy-main.yml'), 'utf8')
+  );
+  const steps: { name?: string; run?: string; uses?: string; with?: Record<string, string> }[] =
+    workflow.jobs.deploy.steps;
+  const restore = steps.findIndex(
+    (step) => step.uses?.startsWith('actions/cache/restore@') && step.name?.includes('variant entries')
+  );
+  const publish = steps.findIndex((step) => step.run?.includes('bun run media:publish --rotated-token'));
+  const workerDeploy = steps.findIndex((step) => step.run?.includes('--config workers/publisher/wrangler.jsonc --tag'));
+  const verify = steps.findIndex((step) => step.run?.includes('bun run media:publish --verify'));
+  const save = steps.findIndex((step) => step.uses?.startsWith('actions/cache/save@'));
+  expect(restore).toBeGreaterThan(-1);
+  /* The record must be the one the verify step saves, at the path media-publish.ts reads by default. */
+  expect(steps[restore].with?.path).toBe('.cache/media-verified');
+  expect(steps[restore].with?.['restore-keys']).toBe('media-verified-');
+  expect(steps[restore].with?.key).toBe('media-verified-${{ github.run_id }}-${{ github.run_attempt }}');
+  expect(steps[save].with).toMatchObject({ path: steps[restore].with?.path, key: steps[restore].with?.key });
+  expect(publish).toBeGreaterThan(restore);
+  expect(workerDeploy).toBeGreaterThan(publish);
+  expect(verify).toBeGreaterThan(workerDeploy);
+  expect(save).toBeGreaterThan(verify);
 });

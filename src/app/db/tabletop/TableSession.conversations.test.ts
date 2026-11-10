@@ -2,10 +2,10 @@ import { initialSnapshot } from '@shared/play/commands';
 import type { GameSnapshot, ServerMessage, Viewer } from '@shared/play/protocol';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 
-import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
 import { ConversationSession } from './ConversationSession';
+import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
 import { TableSession } from './TableSession';
 
 let stop: (() => void) | undefined;

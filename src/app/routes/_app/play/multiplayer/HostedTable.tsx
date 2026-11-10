@@ -16,11 +16,21 @@ import { FormError } from '@ui/block/FormError';
 import { Section } from '@ui/block/Section';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Dices } from 'lucide-react';
-import { useContext, useDeferredValue, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  lazy,
+  useContext,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -57,6 +67,8 @@ import { ConnectedPrivateSideTablePanel } from '../panels/sideTable/usePrivateSi
 import { ConnectedSpiceReservePanel } from '../panels/spice/useSpiceReservePanel';
 import { ConnectedTerritoryTintsPanel } from '../panels/tints/useTerritoryTintsPanel';
 import { ConnectedSpiceTransfersPanel } from '../panels/transfers/useSpiceTransfersPanel';
+import { useTrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
+import type { TrackerSeat } from '../panels/treacheryTracker/useTrackerSeat';
 import { AllianceCoinsScene } from './AllianceCoins';
 import { AllianceStrip, showsAlliances } from './Alliances';
 import { useAutoClearChatsAtNewTurn } from './autoClearChats';
@@ -65,7 +77,6 @@ import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
-import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
@@ -81,6 +92,19 @@ import { TechTokenStrip } from './TechTokenStrip';
 import { ServerClockContext } from './useServerNow';
 import { initialWindowFocus, nextWindowFocus } from './windowFocus';
 import '../dune-play.css';
+
+/* Only a faction whose rules keep the Treachery tracker loads it, so the table's own bundle stays within its budget. */
+const ConnectedTreacheryTrackerPanel = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.ConnectedTreacheryTrackerPanel,
+  }))
+);
+/* The tracker follows the table even while its panel is closed, from the same chunk. */
+const TreacheryTrackerFollower = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.TreacheryTrackerFollower,
+  }))
+);
 
 /* The viewer's own faction token on the table, for the compass's flip and pass commands; none without a seat or a token. */
 function viewerToken(client: TableSession, table: TableProjection): CompassTable['token'] {
@@ -339,7 +363,7 @@ function handPanels({ client, table }: TableControlProps) {
 }
 
 /** The Result panel, while a declared result or an ending game asks the table to settle it. */
-function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
+function resultPanels({ client, table, error, declare }: Omit<ControlPanelsProps, 'tracker'>) {
   return resultFocus(table)
     ? [
         {
@@ -350,8 +374,12 @@ function resultPanels({ client, table, error, declare }: ControlPanelsProps) {
     : [];
 }
 
-/** The private destinations are only installed for a viewer with a hand. */
-function yoursGroup({ client, table }: TableControlProps): TablePanel {
+/** The private destinations are only installed for a viewer with a hand; the Treachery tracker only for a faction whose rules allow it. */
+function yoursGroup({
+  client,
+  table,
+  tracker,
+}: TableControlProps & Readonly<{ tracker: TrackerSeat | null }>): TablePanel {
   return {
     key: 'yours',
     label: 'Yours',
@@ -362,6 +390,18 @@ function yoursGroup({ client, table }: TableControlProps): TablePanel {
       ...handPanels({ client, table }),
       ...(table.snapshot.bank
         ? [{ ...PANEL_WINDOWS.spice, content: <ConnectedSpiceReservePanel client={client} table={table} /> }]
+        : []),
+      ...(tracker
+        ? [
+            {
+              ...PANEL_WINDOWS.treacheryTracker,
+              content: (
+                <Suspense fallback={<Loader size="sm" />}>
+                  <ConnectedTreacheryTrackerPanel client={client} table={table} tracker={tracker} />
+                </Suspense>
+              ),
+            },
+          ]
         : []),
     ],
   };
@@ -504,7 +544,7 @@ function historyGroup({ client, table, error }: ConnectionControlsProps, hasInve
 }
 
 /** The left rail keeps personal resources first and omits groups with no stage content. */
-type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice }>;
+type ControlPanelsProps = ConnectionControlsProps & Readonly<{ declare: DeclareChoice; tracker: TrackerSeat | null }>;
 
 function controlPanels(
   props: ControlPanelsProps & Readonly<{ report: { enabled: boolean; content: ReactNode } }>
@@ -637,11 +677,13 @@ function HostedGameMenu({
   identity,
   error,
   onClearConfetti,
-}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void }>) {
+  voice,
+}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void; voice?: ReactNode }>) {
   return (
     <>
       {table.snapshot.stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
       <GameMenu
+        voice={voice}
         sharing={<GameLink address={identity.address} page={identity.page} />}
         client={client}
         table={table}
@@ -662,7 +704,9 @@ function ConnectedTable({
   diagnostics,
   reportsEnabled,
   exitControl,
+  voice,
 }: Readonly<{
+  voice?: ReactNode;
   exitControl: ReactNode;
   client: TableSession;
   table: TableProjection;
@@ -679,6 +723,7 @@ function ConnectedTable({
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
   const celebration = useResultCelebration(table);
   const declare = useDeclareChoice(table);
+  const tracker = useTrackerSeat(client, table);
   /* Each player fades the bidder for themselves, so the choice stays in this browser tab. */
   const [bidderFaded, setBidderFaded] = useState(false);
   /* The territory under the battle marker while it is carried, which the board lights. */
@@ -728,6 +773,7 @@ function ConnectedTable({
               }
               gameMenu={
                 <HostedGameMenu
+                  voice={voice}
                   client={client}
                   table={table}
                   identity={identity}
@@ -751,12 +797,18 @@ function ConnectedTable({
                 table: normal,
                 error,
                 declare,
+                tracker,
                 report: { enabled: reportsEnabled, content: bugReport },
               })}
               tableGuidance={phaseGuidance(table)}
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
           </CompassTableContext>
+          {tracker ? (
+            <Suspense fallback={null}>
+              <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+            </Suspense>
+          ) : null}
         </div>
       </TabletopSessionProvider>
     </PredictionEmblemsContext>
@@ -768,7 +820,9 @@ export default function HostedTable({
   exitControl,
   identity,
   onReady,
+  voice,
 }: Readonly<{
+  voice?: ReactNode;
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
@@ -806,6 +860,7 @@ export default function HostedTable({
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
+        voice={voice}
         gameId={gameId}
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}

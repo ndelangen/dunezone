@@ -10,7 +10,10 @@
  * It downloads every entry no earlier deploy proved, plus a random sample of those one did (`scripts/lib/media-verified.ts`), then adds this run's entries to that record.
  * `--verify --all` downloads every entry whatever the record says.
  *
- * Publishing still asks R2 about every variant, so a release never goes live naming one R2 lacks or stores with other bytes.
+ * Publishing asks R2 only about the entries that record lacks, and uploads any R2 lacks.
+ * An entry the record holds was downloaded intact from R2 by an earlier deploy, and R2 objects are create-only, so asking again proves nothing new.
+ * Whether stored media stays intact is the monthly media report's concern (`.github/workflows/media-gc-report.yml`), not the deploy's.
+ * `--all` asks about every variant, which also re-uploads any that went missing.
  * The bytes come from the store `generate:images` fills (`scripts/lib/media-store.ts`), so run that first.
  * MEDIA_ORIGIN picks the Worker, https://dune.zone by default.
  * The Worker creates a variant only if it is absent and answers 409 when a stored one differs, so a run can be repeated or resumed at any point.
@@ -202,7 +205,7 @@ const checks = selectChecks(entries, verified);
 /* Publishing sends each name once, and verifying probes the legacy path of every entry it checks. */
 const queue = verifyOnly
   ? [...checks.unproved, ...checks.sampled].map(({ variant }) => variant)
-  : [...new Map(plan.map((variant) => [variant.name, variant])).values()];
+  : [...new Map(checks.unproved.map(({ variant }) => [variant.name, variant])).values()];
 const counts: Record<Outcome | 'failed', number> = { present: 0, published: 0, verified: 0, failed: 0 };
 async function worker() {
   for (let next = queue.shift(); next; next = queue.shift()) {
@@ -218,7 +221,7 @@ await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
 const selection = verifyOnly
   ? { unproved: checks.unproved.length, sampled: checks.sampled.length, skipped: checks.skipped }
-  : {};
+  : { unproved: checks.unproved.length, skipped: entries.length - checks.unproved.length };
 console.log(
   JSON.stringify({ origin, mode: verifyOnly ? 'verify' : 'publish', variants: plan.length, ...selection, ...counts })
 );

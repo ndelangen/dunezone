@@ -102,7 +102,7 @@ every browser-only path and every unknown URL. The homepage follows this rule, a
 assembly fails if the shell carries any of the three.
 `src/app/routes/start.ts` makes server rendering opt-in. The document root renders on the server;
 the shared layout, homepage, faction catalogue and detail, asset catalogue, type listings and detail pages
-also render on the server, as do the Glossary, Future plans and Privacy pages, the media catalogue and
+also render on the server, as do the Glossary, Future plans, Tools and Privacy pages (with each tool below /tools), the media catalogue and
 its eight game galleries, which have no record behind them. Their anonymous page result supplies visible content and metadata.
 The browser hydrates that result, then its existing Convex subscription supplies live content and
 permissions. Management controls wait for that live result. Login-required pages stay browser-only.
@@ -131,7 +131,7 @@ retain their existing delivery rules.
 
 `publisher:application-runtime:verify` starts the assembled Worker locally and checks complete HTML,
 hydration-entry availability, public dispatch, browser-only paths and protected capture delivery.
-Both PR CI and deployment run it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment runs the rehearsal before the final production build and exact-release checks. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
+PR CI runs it through `scripts/verify-application-runtime-local.ts`, which owns an isolated Convex backend and local artifact store. Deployment does not repeat it: main only accepts a merge whose PR checks passed on an up-to-date branch, so a normal merge deploys a tree whose publisher inputs CI rehearsed, possibly by reusing an earlier pass on identical inputs (the reasoning that removed the deploy-time verify job in #286). An admin-bypass merge or a direct push to main ships without it. The rehearsal refuses to start without its loopback fixture, so it cannot silently read production. It caught truncated output from React's streaming renderer when
 the shared layout was opted into SSR before its child pages. Public page rendering and the layout
 now opt in together, with browser hydration checked against the assembled Worker.
 
@@ -408,7 +408,10 @@ deploying. In every other case the `deploy` job runs:
 1. Install dependencies, then verify schema-narrowing prerequisites
    (`migrations:narrow-check`). This runs *before* the Convex deploy and blocks
    it.
-2. Deploy Convex and run required migrations.
+2. Deploy Convex and run required migrations. Since Convex 1.47, `convex deploy` exits before
+   pushing when it would create or change an index on a table of 100,000 documents or more, because
+   CI cannot answer its confirmation. Stage such an index (`staged: true`) and enable it in a later
+   release once it has backfilled.
 3. Create `admin_settings` when absent, with pickup disabled and the checked-in
    Renderer revision map. Existing settings are unchanged.
 4. Validate the exact Worker release contract.
@@ -418,8 +421,8 @@ deploying. In every other case the `deploy` job runs:
    output digest.
 7. Build the SPA and capture bundle once with the production Convex URL.
 8. Remove raster copies served from R2. Check the final
-   Static Assets file count and reject generated-source drift. The earlier local rehearsal keeps its
-   raster copies because its buckets start empty.
+   Static Assets file count and reject generated-source drift. Local rehearsals keep the raster
+   copies because their buckets start empty.
 9. Dry-run both Worker releases with their exact checked-in configurations.
 10. Deploy the private game Worker first. Require its exact tagged version to be active, then verify
     its bound SQLite namespace, configuration and lack of public ingress before deploying the publisher.
@@ -431,7 +434,9 @@ deploying. In every other case the `deploy` job runs:
     token stopped serving requests in the #2037 reproduction; the new token became usable after 9.4
     seconds. An unexpected refusal stops the check, and a token that never becomes usable fails at
     the deadline. Once ready, `bun run media:publish --rotated-token` uploads the
-    variants R2 lacks to `/m` and HEADs every variant the release names. A failure here leaves the
+    variants R2 lacks to `/m`. It HEADs only the variants the `media-verified-*` Actions cache has not
+    already proved: R2 objects are create-only, so a proved variant stays stored, and a cache miss
+    HEADs them all. A failure here leaves the
     previous release serving; see [Media runbooks](./technical/media-runbooks.md).
     During that command's first minute, a write that reaches a stale bearer rechecks readiness and
     retries the identical write. That window is shared by the whole command, and ordinary publishing
@@ -580,8 +585,11 @@ else who calls it directly.
 ## Pull-request Cloudflare drift guard
 
 `.github/workflows/cloudflare-live-drift.yml` compares production Cloudflare state
-with trusted `main` on every pull request. It uses `pull_request_target`, checks out
-only the base SHA, and never executes pull-request-authored code.
+with trusted `main` on every pull request. It runs on `pull_request`, because GitHub
+blocks `pull_request_target` in public repositories from 2 December 2026. It checks out
+the base branch, not the pull request head, so the audit script is always main's. A fork
+pull request gets no secrets, so its audit fails; open such a change from a branch in this
+repository instead.
 
 Configure `CLOUDFLARE_READ_API_TOKEN` with only:
 

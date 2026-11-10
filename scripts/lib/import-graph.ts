@@ -2,7 +2,7 @@
  * The repository files a set of entry points imports, transitively, as esbuild resolves them.
  * The contract tests that hold a hand-kept file list to the code (`scripts/hosted-play-closure.test.ts`, `scripts/ci-job-inputs.test.ts`) walk the graph through here.
  */
-import { resolve } from 'node:path';
+import { basename, dirname, resolve } from 'node:path';
 
 import { build } from 'esbuild';
 
@@ -59,6 +59,23 @@ export async function importGraph(
     loader: Object.fromEntries(ASSET_EXTENSIONS.map((extension) => [extension, 'empty'])),
     plugins: [
       {
+        name: 'vite-worker-url',
+        setup(bundler) {
+          bundler.onLoad({ filter: /\.[cm]?[jt]sx?$/, namespace: 'file' }, (args) => {
+            const query = new URLSearchParams(args.suffix.slice(1));
+            if (!query.has('worker') || !query.has('url')) {
+              return null;
+            }
+            /* The import supplies a URL, but the affected-job graph must still walk the worker's code. */
+            return {
+              contents: `import ${JSON.stringify(`./${basename(args.path)}`)}; export default '';`,
+              loader: 'js',
+              resolveDir: dirname(args.path),
+            };
+          });
+        },
+      },
+      {
         name: 'outside-the-graph',
         setup(bundler) {
           bundler.onResolve({ filter: outside }, (args) => (args.kind === 'entry-point' ? null : { external: true }));
@@ -81,7 +98,8 @@ export async function importGraph(
     /* An external import is one the graph stops at, not a file it reads. */
     for (const { path, external } of imports) {
       const imported = external ? undefined : repositoryFile(path);
-      if (imported !== undefined) {
+      /* The URL module and the worker body are one repository file, without a synthetic self-import. */
+      if (imported !== undefined && imported !== file) {
         graph.set(imported, (graph.get(imported) ?? new Set()).add(file));
       }
     }
