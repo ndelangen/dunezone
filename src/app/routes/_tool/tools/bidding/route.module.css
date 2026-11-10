@@ -145,6 +145,7 @@
   border-radius: 50%;
 }
 .handTotal {
+  color: var(--color-text);
   font-family: C_Desdemona, Georgia, serif;
   display: flex;
   align-items: baseline;
