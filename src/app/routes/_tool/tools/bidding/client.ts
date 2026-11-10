@@ -39,6 +39,7 @@ const SNAPSHOT_MS = 30_000;
 const REMOTE_SILENCE_MS = 7000;
 const COMMAND_WAIT_MS = 2000;
 const TIMER_INTERRUPTION_MS = 1500;
+const NO_CONNECTED_DEVICES: readonly string[] = [];
 
 const savedCentralSchema = z.strictObject({
   version: z.literal(1),
@@ -86,6 +87,8 @@ export type BiddingClientState = Readonly<{
   deadline: number | null;
   connection: string;
   connected: boolean;
+  /** Remote device IDs with a usable path to this central device; assignments remain in the snapshot. */
+  connectedDeviceIds: readonly string[];
   pending: boolean;
   feedback: readonly string[];
   storageError: string | null;
@@ -138,6 +141,13 @@ function messageOf(error: unknown): string {
 
 function contextKey(context: BiddingContext): string {
   return `${context.tableId}/${context.centralInstanceId}/${context.generation}/${context.opportunity}`;
+}
+
+function connectedRemoteIds(state: BiddingLinkState, previous: readonly string[]): readonly string[] {
+  const ids = [...new Set([...(state.relay ? state.remotes : []), ...state.direct])]
+    .filter((id) => id !== 'central')
+    .sort();
+  return ids.length === previous.length && ids.every((id, index) => id === previous[index]) ? previous : ids;
 }
 
 /** Browser effects surround the single authoritative session; neither transport nor React decides an auction. */
@@ -195,6 +205,7 @@ export class BiddingClient {
       deadline: null,
       connection: 'No table connected',
       connected: false,
+      connectedDeviceIds: NO_CONNECTED_DEVICES,
       pending: false,
       feedback: [],
       storageError: null,
@@ -652,7 +663,13 @@ export class BiddingClient {
     this.lastAuthorityAt = 0;
     this.lastSyncAt = -Infinity;
     this.centralAddress = null;
-    this.update({ listening: false, announcing: false, voiceMessage: '', deadline: null });
+    this.update({
+      listening: false,
+      announcing: false,
+      voiceMessage: '',
+      deadline: null,
+      connectedDeviceIds: NO_CONNECTED_DEVICES,
+    });
   }
 
   private installCentral(
@@ -769,7 +786,11 @@ export class BiddingClient {
       : state.relay
         ? 'Phone relay connected'
         : 'Phone relay unavailable';
-    this.update({ connection, connected: this.session !== null });
+    this.update({
+      connection,
+      connected: this.session !== null,
+      connectedDeviceIds: connectedRemoteIds(state, this.state.connectedDeviceIds),
+    });
     if (!state.relay && !state.direct.length) {
       return;
     }

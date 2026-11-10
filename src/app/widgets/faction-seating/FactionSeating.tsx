@@ -29,6 +29,7 @@ export function FactionSeating({
   removeDisabledReason,
   addDisabledReason,
   renderAddTarget,
+  renderStatus,
 }: Readonly<{
   seats: readonly FactionToken[];
   onReorder: (ids: readonly string[]) => void;
@@ -38,6 +39,8 @@ export function FactionSeating({
   addDisabledReason?: string;
   /** A caller can anchor its chooser to the shared add control. */
   renderAddTarget?: (action: ReactElement) => ReactNode;
+  /** A caller supplies each faction's current status beside its name. */
+  renderStatus?: (seat: FactionToken) => ReactNode;
 }>) {
   const touch = useTouchSurface();
   const actionSize = useTouchActionSize();
@@ -78,9 +81,12 @@ export function FactionSeating({
                     <SortableReorderHandle label={`Move ${faction.name}`} emphasis="silent" {...handle} />
                     <span className={styles.who}>
                       <FactionTokenFace token={faction} size={touch ? 36 : 28} aria-hidden />
-                      <Text size="sm" component="span" className={styles.name}>
-                        {faction.name}
-                      </Text>
+                      <span className={styles.identity}>
+                        <Text size="sm" component="span" className={styles.name}>
+                          {faction.name}
+                        </Text>
+                        {renderStatus?.(faction)}
+                      </span>
                     </span>
                     <IconAction
                       label={`Remove ${faction.name}`}

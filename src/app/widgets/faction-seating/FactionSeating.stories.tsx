@@ -1,4 +1,5 @@
 import preview from '@sb/preview';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { TouchSurface } from '@ui/surface/TouchSheet';
 import { fn } from 'storybook/test';
 
@@ -22,6 +23,21 @@ const meta = preview.meta({
 export const SeatOrder = meta.story({});
 
 export const TouchSeatOrder = meta.story({
+  render: (args) => (
+    <TouchSurface>
+      <FactionSeating {...args} />
+    </TouchSurface>
+  ),
+});
+
+export const ConnectionStatus = meta.story({
+  args: {
+    renderStatus: (seat) => (
+      <StatusBadge tone={seat.id === 'atreides' ? 'positive' : 'neutral'}>
+        {seat.id === 'atreides' ? 'Connected' : 'No phone'}
+      </StatusBadge>
+    ),
+  },
   render: (args) => (
     <TouchSurface>
       <FactionSeating {...args} />
