@@ -1,12 +1,17 @@
 'use node';
 
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
+import type { ActionCtx } from './_generated/server';
 import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordVoiceSnapshot } from './lib/discordVoiceSnapshot';
+import type { VoiceSnapshot } from './lib/discordVoiceSnapshot';
 import { VOICE_BATCH, voiceCandidateValidator } from './lib/playDiscordVoice';
+
+type VoiceCandidate = Infer<typeof voiceCandidateValidator>;
 
 /** Permission and transport failures leave occupancy unknown; only a definite missing channel can retire. */
 async function probeMissing(rest: DiscordRest, id: string): Promise<'missing' | 'unknown' | 'stop'> {
@@ -53,6 +58,25 @@ async function confirmedMissing(rest: DiscordRest, missing: string[], deadline: 
   return confirmed;
 }
 
+/** Confirm exceptional missing targets before passing the fresh observation to the fenced deletion mutation. */
+async function retireSnapshotChannels(
+  ctx: ActionCtx,
+  rest: DiscordRest,
+  channels: VoiceCandidate[],
+  snapshot: VoiceSnapshot,
+  deadline: number
+) {
+  const observedAt = Date.now();
+  const retired = new Set([...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))]);
+  if (retired.size === 0) {
+    return;
+  }
+  await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
+    channels: channels.filter((channel) => retired.has(channel.discordChannelId)),
+    observedAt,
+  });
+}
+
 /** Hourly occupancy cleanup has no resident connection, reconnect loop, or external token handoff. */
 export const cleanup = internalAction({
   args: { channels: v.array(voiceCandidateValidator) },
@@ -86,15 +110,7 @@ export const cleanup = internalAction({
       if (snapshot === null) {
         return null;
       }
-      const observedAt = Date.now();
-      const retired = new Set([...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))]);
-      if (retired.size === 0) {
-        return null;
-      }
-      await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
-        channels: channels.filter((channel) => retired.has(channel.discordChannelId)),
-        observedAt,
-      });
+      await retireSnapshotChannels(ctx, rest, channels, snapshot, deadline);
     } catch (error) {
       console.error('Discord voice cleanup could not finish.', {
         operation: 'voice-cleanup',
