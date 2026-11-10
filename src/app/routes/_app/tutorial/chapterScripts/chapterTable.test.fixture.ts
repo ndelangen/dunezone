@@ -36,7 +36,7 @@ export function chapterTable(script: ChapterScript) {
     captured: () => undefined,
     capturedPieces: () => [],
   };
-  script.opening?.(players);
+  script.opening?.(players, 0);
   const tasks = script.tasks(snapshot, players);
   const finishes: (() => void)[] = [];
   return {

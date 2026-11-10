@@ -12,7 +12,7 @@ import type { TablePlayers } from './chapterScript';
 import { ATREIDES_BATTLE_LOSS_COUNTER } from './kwisatzHaderach';
 import { mentatRecall } from './mentatRecall';
 
-function practice() {
+function practice(firstTask = 0) {
   const table = new LocalTable(
     startAt(setup as unknown as TutorialSetup, mentatRecall.checkpoint, 'https://dune.zone', mentatRecall)
   );
@@ -33,7 +33,7 @@ function practice() {
     acceptedActions: () => [],
     pings: () => [],
   };
-  mentatRecall.opening!(players);
+  mentatRecall.opening!(players, firstTask);
   return { table, players, view: () => table.frame().snapshot };
 }
 
@@ -121,4 +121,16 @@ test('returning from the earliest checkpoint restores the unchanged live board a
   } finally {
     game.table.dispose();
   }
+});
+
+test('a chapter opened inside the recall finds it running at Turn 1, Storm', () => {
+  const { view } = practice(8);
+  const review = view().review!;
+  expect(review.startedAt).not.toBeNull();
+  expect(review.step).toBe(view().reviewCheckpoints![0]!.step);
+  expect(review.context).toBe('Turn 1, Storm');
+});
+
+test('a chapter opened before the request has no recall yet', () => {
+  expect(practice(4).view().review ?? null).toBeNull();
 });

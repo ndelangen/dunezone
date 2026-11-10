@@ -102,8 +102,14 @@ function playTurn(context: HistoryPlayers, turn: number) {
   }
 }
 
-/** Two completed turns and the next storm, recorded through the same commands as a real table. */
-export function openRecallHistory(players: TablePlayers) {
+/* The first task that happens inside a running recall, counted from 0: Look around the frozen table. */
+const FIRST_RECALL_TASK = 5;
+
+/**
+ * Two completed turns and the next storm, recorded through the same commands as a real table.
+ * A chapter opened at a task inside the recall also finds the recall running at Turn 1, Storm, as the learner would have asked for it and the table agreed.
+ */
+export function openRecallHistory(players: TablePlayers, firstTask = 0) {
   const roster = players.viewOf(players.others()[0]!).roster!;
   const learner = roster.seats.find((seat) => seat.faction?.name === 'House Atreides')!;
   const context = {
@@ -116,4 +122,18 @@ export function openRecallHistory(players: TablePlayers) {
   playTurn(context, 2);
   storm(context, 3);
   act(context, { kind: 'phase' });
+  if (firstTask >= FIRST_RECALL_TASK) {
+    recallFirstCheckpoint(context);
+  }
+}
+
+/* The learner asks to recall the first checkpoint and the other seats agree until the recall runs. */
+function recallFirstCheckpoint(context: HistoryPlayers) {
+  act(context, { kind: 'review-propose', step: view(context).reviewCheckpoints![0]!.step });
+  for (const seat of context.players.others()) {
+    const review = view(context).review;
+    if (review?.startedAt === null) {
+      context.players.act(seat, { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
+    }
+  }
 }
