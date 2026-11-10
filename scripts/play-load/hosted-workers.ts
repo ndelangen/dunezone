@@ -142,6 +142,7 @@ export async function prepareHostedWorkers({
         namespace_id: '11050001',
         simple: { limit: 120, period: 10 },
       },
+      { name: 'BIDDING_CREATION_RATE_LIMIT', namespace_id: '11050002', simple: { limit: 6, period: 60 } },
     ],
     rules: [
       { type: 'Text', globs: ['**/*.css'], fallthrough: true },

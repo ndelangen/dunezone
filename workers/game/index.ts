@@ -1,6 +1,8 @@
 import { describeCardDraw } from '../../src/shared/play/cardDraw';
 import type { CardDraw } from '../../src/shared/play/cardDraw';
 export { HomepageRoom } from './homepage';
+export { BiddingTable } from './biddingTable';
+import { biddingTableResponse } from './biddingTable';
 export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
 
@@ -2313,6 +2315,10 @@ export default {
       isApplicationSocket(request, env.APPLICATION_ORIGIN)
     ) {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
+    }
+    const bidding = await biddingTableResponse(request, env);
+    if (bidding) {
+      return bidding;
     }
     const route = gameRequest(request, env.APPLICATION_ORIGIN);
     if (!route) {
