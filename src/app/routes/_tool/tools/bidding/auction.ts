@@ -34,7 +34,7 @@ export function createAuction({ seats, ruleset, deck = null, seconds = 15 }: Auc
 }
 
 /** The fixed seating order supplies the next suggested starter, independently of the winner. */
-export function nextNonFull(state: AuctionState, after: string | null): string {
+function nextNonFull(state: AuctionState, after: string | null): string {
   const start = state.seats.findIndex((seat) => seat.id === after);
   for (let step = 1; step <= state.seats.length; step += 1) {
     const candidate = state.seats[(start + step) % state.seats.length];
@@ -45,7 +45,7 @@ export function nextNonFull(state: AuctionState, after: string | null): string {
   return state.seats[0].id;
 }
 
-export function factionName(state: AuctionState, id: string | null): string {
+function factionName(state: AuctionState, id: string | null): string {
   return state.seats.find((seat) => seat.id === id)?.name ?? 'Player';
 }
 

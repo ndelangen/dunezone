@@ -287,27 +287,35 @@ export class BiddingLink {
   }
   private received(frame: BiddingServerFrame) {
     if (frame.type === 'relay') {
-      if (frame.from === 'central') {
-        if (this.options.role !== 'remote' || frame.connectionId !== this.centralConnectionId) {
-          return;
-        }
-      } else if (this.options.role !== 'central' || this.remotes.get(frame.from) !== frame.connectionId) {
+      this.receivedRelay(frame);
+    } else {
+      this.receivedPresence(frame);
+    }
+  }
+
+  private receivedRelay(frame: Extract<BiddingServerFrame, { type: 'relay' }>): void {
+    if (frame.from === 'central') {
+      if (this.options.role !== 'remote' || frame.connectionId !== this.centralConnectionId) {
         return;
       }
-      if (frame.packet.kind === 'app') {
-        this.options.onMessage(frame.from, frame.packet.data);
-      } else if (frame.packet.kind === 'offer' && this.options.role === 'central') {
-        void this.answer(frame.from, frame.connectionId, frame.packet);
-      } else if (frame.packet.kind === 'answer' && this.options.role === 'remote') {
-        const peer = this.peers.get('central');
-        if (peer?.negotiationId === frame.packet.negotiationId && peer.remoteConnectionId === frame.connectionId) {
-          void peer.connection
-            .setRemoteDescription({ type: 'answer', sdp: frame.packet.sdp })
-            .catch(() => this.drop('central', peer));
-        }
-      }
+    } else if (this.options.role !== 'central' || this.remotes.get(frame.from) !== frame.connectionId) {
       return;
     }
+    if (frame.packet.kind === 'app') {
+      this.options.onMessage(frame.from, frame.packet.data);
+    } else if (frame.packet.kind === 'offer' && this.options.role === 'central') {
+      void this.answer(frame.from, frame.connectionId, frame.packet);
+    } else if (frame.packet.kind === 'answer' && this.options.role === 'remote') {
+      const peer = this.peers.get('central');
+      if (peer?.negotiationId === frame.packet.negotiationId && peer.remoteConnectionId === frame.connectionId) {
+        void peer.connection
+          .setRemoteDescription({ type: 'answer', sdp: frame.packet.sdp })
+          .catch(() => this.drop('central', peer));
+      }
+    }
+  }
+
+  private receivedPresence(frame: Exclude<BiddingServerFrame, { type: 'relay' }>): void {
     if (this.state.tableId && frame.tableId !== this.state.tableId) {
       this.stop('refused', 'The table identity changed.');
       return;
@@ -371,45 +379,53 @@ export class BiddingLink {
         this.options.onMessage(id, parsed.data.data);
         return;
       }
-      const chunk = parsed.data;
-      if (chunk.part === 0) {
-        clearTimeout(entry.assembly?.deadline);
-        entry.assembly = {
-          id: chunk.id,
-          total: chunk.total,
-          parts: [],
-          bytes: 0,
-          deadline: setTimeout(() => {
-            entry.assembly = undefined;
-          }, 5000),
-        };
-      }
-      const assembly = entry.assembly;
-      if (
-        !assembly ||
-        assembly.id !== chunk.id ||
-        assembly.total !== chunk.total ||
-        assembly.parts.length !== chunk.part
-      ) {
-        return;
-      }
-      assembly.bytes += new TextEncoder().encode(chunk.data).byteLength;
-      if (assembly.bytes > BIDDING_FRAME_BYTES) {
-        clearTimeout(assembly.deadline);
-        entry.assembly = undefined;
-        return;
-      }
-      assembly.parts.push(chunk.data);
-      if (assembly.parts.length === assembly.total) {
-        clearTimeout(assembly.deadline);
-        entry.assembly = undefined;
-        const decoded = biddingPacketSchema.safeParse(readJson(assembly.parts.join('')));
-        if (decoded.success && decoded.data.kind === 'app') {
-          this.options.onMessage(id, decoded.data.data);
-        }
-      }
+      this.receivedChunk(id, entry, parsed.data);
     };
   }
+
+  private receivedChunk(
+    id: string,
+    entry: Peer,
+    chunk: Extract<ReturnType<typeof biddingDirectFrameSchema.parse>, { kind: 'chunk' }>
+  ): void {
+    if (chunk.part === 0) {
+      clearTimeout(entry.assembly?.deadline);
+      entry.assembly = {
+        id: chunk.id,
+        total: chunk.total,
+        parts: [],
+        bytes: 0,
+        deadline: setTimeout(() => {
+          entry.assembly = undefined;
+        }, 5000),
+      };
+    }
+    const assembly = entry.assembly;
+    if (
+      !assembly ||
+      assembly.id !== chunk.id ||
+      assembly.total !== chunk.total ||
+      assembly.parts.length !== chunk.part
+    ) {
+      return;
+    }
+    assembly.bytes += new TextEncoder().encode(chunk.data).byteLength;
+    if (assembly.bytes > BIDDING_FRAME_BYTES) {
+      clearTimeout(assembly.deadline);
+      entry.assembly = undefined;
+      return;
+    }
+    assembly.parts.push(chunk.data);
+    if (assembly.parts.length === assembly.total) {
+      clearTimeout(assembly.deadline);
+      entry.assembly = undefined;
+      const decoded = biddingPacketSchema.safeParse(readJson(assembly.parts.join('')));
+      if (decoded.success && decoded.data.kind === 'app') {
+        this.options.onMessage(id, decoded.data.data);
+      }
+    }
+  }
+
   private peer(id: string, remoteConnectionId: string, negotiationId: string): Peer {
     const connection = new RTCPeerConnection({ iceServers: [] });
     const entry: Peer = { connection, remoteConnectionId, negotiationId };

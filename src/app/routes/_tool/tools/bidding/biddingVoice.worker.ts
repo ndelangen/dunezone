@@ -109,21 +109,21 @@ function load(): Promise<void> {
   );
 }
 
-scope.onmessage = ({ data }: MessageEvent<ToVoiceWorker>) => {
-  if (data.type === 'load') {
-    if (loading) {
-      return;
-    }
-    loading = true;
-    void load().catch(() => post({ type: 'failed', message: 'The listener could not start. Try Listen again.' }));
+function startLoading(): void {
+  if (loading) {
     return;
   }
-  if (data.type === 'reset') {
-    epoch = data.epoch;
-    stream?.free();
-    stream = spotter?.createStream();
-    return;
-  }
+  loading = true;
+  void load().catch(() => post({ type: 'failed', message: 'The listener could not start. Try Listen again.' }));
+}
+
+function resetStream(nextEpoch: number): void {
+  epoch = nextEpoch;
+  stream?.free();
+  stream = spotter?.createStream();
+}
+
+function processAudio(data: Extract<ToVoiceWorker, { type: 'audio' }>): void {
   if (data.epoch !== epoch || !spotter || !stream) {
     post({ type: 'processed', epoch: data.epoch });
     return;
@@ -135,13 +135,26 @@ scope.onmessage = ({ data }: MessageEvent<ToVoiceWorker>) => {
       const { keyword } = spotter.getResult(stream);
       if (keyword) {
         post({ type: 'heard', epoch, keyword });
-        stream.free();
-        stream = spotter.createStream();
+        resetStream(epoch);
         break;
       }
     }
     post({ type: 'processed', epoch: data.epoch });
   } catch {
     post({ type: 'failed', message: 'Listening stopped. Try Listen again.' });
+  }
+}
+
+scope.onmessage = ({ data }: MessageEvent<ToVoiceWorker>) => {
+  switch (data.type) {
+    case 'load':
+      startLoading();
+      break;
+    case 'reset':
+      resetStream(data.epoch);
+      break;
+    case 'audio':
+      processAudio(data);
+      break;
   }
 };

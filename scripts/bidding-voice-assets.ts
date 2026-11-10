@@ -32,7 +32,8 @@ try {
     }
     const file = path.join(temp, `${name}.archive`);
     await writeFile(file, bytes);
-    execFileSync('tar', ['-xf', file, '-C', temp]);
+    /* Use system tar and its decompressors without inheriting PATH or TAR_OPTIONS. */
+    execFileSync('/usr/bin/tar', ['-xf', file, '-C', temp], { env: { PATH: '/usr/bin:/bin' } });
   }
   const pkg = path.join(temp, 'package');
   const model = path.join(temp, 'sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01');

@@ -28,6 +28,7 @@ const config: KnipConfig = {
         /* The isolated stack's load runs start the game Worker from this entry by filename. */
         'workers/game/load-entry.ts',
         /* Native workerd tests bundle these entries with esbuild by filename. */
+        'workers/game/biddingTable.native.fixture.ts',
         'workers/game/bugReports.native.fixture.ts',
         'workers/game/game-room.native.fixture.ts',
         'workers/game/homepage.native.fixture.ts',
@@ -41,6 +42,8 @@ const config: KnipConfig = {
         'scripts/play-load/run.ts',
         /* A service worker, registered by its URL from .storybook/storyImages.ts. */
         'workers/storybook/story-images.sw.ts',
+        /* The speech worker imports these pinned adapters by their content-addressed runtime URLs. */
+        'public/tools/bidding-listener/v1/*.mjs',
       ],
       /**
        * Non-default vite config locations (custom `config` overrides the plugin default, so the root config must be listed too).

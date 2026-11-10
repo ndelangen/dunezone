@@ -344,28 +344,21 @@ type State = Omit<AuctionState, 'seats'> &
     received: string;
     recovery: boolean;
   };
-type Event =
-  | { type: 'edit'; id: string; field: 'hand' | 'limit' | 'full' | 'pass'; value: number | boolean }
-  | {
-      type: 'field';
-      field:
-        | 'amount'
-        | 'phoneAmount'
-        | 'cards'
-        | 'seconds'
-        | 'starter'
-        | 'selected'
-        | 'listen'
-        | 'speaking'
-        | 'remote'
-        | 'ruleset'
-        | 'showNames';
-      value: number | string | boolean | null;
-    }
-  | { type: 'start' | 'reset' | 'resume' | 'promote' | 'next-phase' }
-  | { type: 'seats'; ids: string[] }
-  | { type: 'remove'; id: string };
 const nameOf = (state: AuctionState, id: string | null) => state.seats.find((s) => s.id === id)?.name ?? 'Player';
+function phoneTurnLabel(state: AuctionState, factionId: string): string {
+  switch (state.stage) {
+    case 'active':
+      return state.turn === factionId ? 'Your turn' : `${nameOf(state, state.turn)} to bid`;
+    case 'ready':
+      return 'Start new bid';
+    case 'paused':
+      return 'Table paused';
+    case 'over':
+      return 'Bidding is over';
+    default:
+      return 'Waiting for the table';
+  }
+}
 function BiddingScreen({
   client,
   view,
@@ -423,46 +416,9 @@ function BiddingScreen({
     opportunity: game.opportunity,
   };
   const act = (action: BiddingAction) => client.act(action, context);
-  const dispatch = (event: Event) => {
-    if (event.type === 'edit') {
-      if ((event.field === 'hand' || event.field === 'limit') && typeof event.value === 'number') {
-        act({ type: 'edit-hand', id: event.id, field: event.field, value: event.value });
-      } else if ((event.field === 'full' || event.field === 'pass') && typeof event.value === 'boolean') {
-        act({ type: 'edit-status', id: event.id, field: event.field, value: event.value });
-      }
-    } else if (event.type === 'field') {
-      const { field, value } = event;
-      if ((field === 'amount' || field === 'phoneAmount') && typeof value === 'number') {
-        setLocal({ type: 'edit-bid', amount: value, opportunity: game.opportunity });
-      } else if (
-        (field === 'cards' || field === 'seconds') &&
-        typeof value === 'number' &&
-        Number.isSafeInteger(value)
-      ) {
-        act({ type: 'configure', [field]: value });
-      } else if (field === 'starter' && typeof value === 'string') {
-        act({ type: 'select-starter', id: value });
-      } else if (field === 'ruleset' && typeof value === 'string') {
-        void onRuleset(value, context);
-      } else if (field === 'remote' && (typeof value === 'string' || value === null)) {
-        act({ type: 'assign', factionId: value });
-      } else if (field === 'listen') {
-        client.setListening(Boolean(value));
-      } else if (field === 'speaking') {
-        client.setAnnouncements(Boolean(value));
-      } else if (field === 'selected' && typeof value === 'string') {
-        setLocal({ type: 'select-hand', id: value });
-      } else if (field === 'showNames') {
-        setLocal({ type: 'show-names', value: Boolean(value) });
-      }
-    } else if (event.type === 'seats') {
-      act({ type: 'configure', seats: event.ids.flatMap((id) => game.seats.filter((seat) => seat.id === id)) });
-    } else if (event.type === 'remove') {
-      act({ type: 'configure', seats: game.seats.filter((seat) => seat.id !== event.id) });
-    } else if (event.type === 'promote') {
-      void client.promote();
-    } else {
-      act({ type: event.type });
+  const configureCount = (field: 'cards' | 'seconds', value: number) => {
+    if (Number.isSafeInteger(value)) {
+      act({ type: 'configure', [field]: value });
     }
   };
   const sensors = useSensors(
@@ -491,13 +447,13 @@ function BiddingScreen({
           label={`${seat.name} hand count`}
           title="Cards in hand"
           value={seat.hand}
-          onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'hand', value })}
+          onChange={(value) => act({ type: 'edit-hand', id: seat.id, field: 'hand', value })}
         />
         <CountControl
           label={`${seat.name} hand limit`}
           title="Hand limit"
           value={seat.limit}
-          onChange={(value) => dispatch({ type: 'edit', id: seat.id, field: 'limit', value })}
+          onChange={(value) => act({ type: 'edit-hand', id: seat.id, field: 'limit', value })}
         />
         <Group grow>
           <Switch
@@ -505,14 +461,14 @@ function BiddingScreen({
             label="Full"
             aria-label={`${seat.name} Full`}
             checked={seat.full}
-            onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'full', value: e.currentTarget.checked })}
+            onChange={(e) => act({ type: 'edit-status', id: seat.id, field: 'full', value: e.currentTarget.checked })}
           />
           <Switch
             size="md"
             label="Always pass"
             aria-label={`${seat.name} Always pass`}
             checked={seat.pass}
-            onChange={(e) => dispatch({ type: 'edit', id: seat.id, field: 'pass', value: e.currentTarget.checked })}
+            onChange={(e) => act({ type: 'edit-status', id: seat.id, field: 'pass', value: e.currentTarget.checked })}
           />
         </Group>
         <Text size="sm" c="dimmed">
@@ -528,7 +484,7 @@ function BiddingScreen({
         title="Your bid"
         value={source === 'Phone' ? state.phoneAmount : state.amount}
         min={(state.high?.amount ?? 0) + 1}
-        onChange={(value) => dispatch({ type: 'field', field: source === 'Phone' ? 'phoneAmount' : 'amount', value })}
+        onChange={(value) => setLocal({ type: 'edit-bid', amount: value, opportunity: game.opportunity })}
       />
       <Group grow wrap="nowrap">
         <LabeledAction
@@ -579,7 +535,7 @@ function BiddingScreen({
               size="3rem"
               emphasis="quiet"
               pressed={state.starter === seat.id}
-              onClick={() => dispatch({ type: 'field', field: 'starter', value: seat.id })}
+              onClick={() => act({ type: 'select-starter', id: seat.id })}
             />
           ))}
         </div>
@@ -592,7 +548,7 @@ function BiddingScreen({
         intent="positive"
         emphasis="strong"
         icon={<Play size={20} />}
-        onClick={() => dispatch({ type: 'start' })}
+        onClick={() => act({ type: 'start' })}
       >
         Start new bid
       </LabeledAction>
@@ -746,7 +702,7 @@ function BiddingScreen({
             aria-label="Ruleset"
             value={state.ruleset.id}
             data={rulesets.map((r) => ({ value: r.id, label: r.name }))}
-            onChange={(value) => value && dispatch({ type: 'field', field: 'ruleset', value })}
+            onChange={(value) => value && void onRuleset(value, context)}
           />
         }
       />
@@ -757,14 +713,7 @@ function BiddingScreen({
           const from = state.seats.findIndex((s) => s.id === active.id);
           const to = state.seats.findIndex((s) => s.id === over?.id);
           if (from >= 0 && to >= 0 && from !== to) {
-            dispatch({
-              type: 'seats',
-              ids: arrayMove(
-                state.seats.map((s) => s.id),
-                from,
-                to
-              ),
-            });
+            act({ type: 'configure', seats: arrayMove(game.seats, from, to) });
           }
         }}
       >
@@ -785,7 +734,7 @@ function BiddingScreen({
                       emphasis="quiet"
                       icon={<X size={18} />}
                       disabledReason={state.seats.length <= 2 ? 'Keep at least two factions.' : undefined}
-                      onClick={() => dispatch({ type: 'remove', id: s.id })}
+                      onClick={() => act({ type: 'configure', seats: game.seats.filter((seat) => seat.id !== s.id) })}
                     />
                   </Group>
                 )}
@@ -811,7 +760,7 @@ function BiddingScreen({
               min={0}
               allowNegative={false}
               allowDecimal={false}
-              onChange={(value) => dispatch({ type: 'field', field: 'cards', value: Number(value) })}
+              onChange={(value) => configureCount('cards', Number(value))}
             />
           }
         />
@@ -828,7 +777,7 @@ function BiddingScreen({
                   label: `${(i + 1) * 5} seconds`,
                 })),
               ]}
-              onChange={(value) => dispatch({ type: 'field', field: 'seconds', value: Number(value) })}
+              onChange={(value) => configureCount('seconds', Number(value))}
             />
           }
         />
@@ -885,7 +834,7 @@ function BiddingScreen({
           label="Toggle listening"
           pressed={state.listen}
           icon={state.listen ? <Mic size={21} /> : <MicOff size={21} />}
-          onClick={() => dispatch({ type: 'field', field: 'listen', value: !state.listen })}
+          onClick={() => client.setListening(!state.listen)}
         />
         <IconAction
           size="xl"
@@ -893,7 +842,7 @@ function BiddingScreen({
           label="Toggle announcements"
           pressed={state.speaking}
           icon={state.speaking ? <Volume2 size={21} /> : <VolumeX size={21} />}
-          onClick={() => dispatch({ type: 'field', field: 'speaking', value: !state.speaking })}
+          onClick={() => client.setAnnouncements(!state.speaking)}
         />
         <Menu
           position={side === 'far' ? 'bottom-start' : 'top-end'}
@@ -916,14 +865,14 @@ function BiddingScreen({
             <Menu.Item
               role="menuitemcheckbox"
               aria-checked={state.showNames}
-              onClick={() => dispatch({ type: 'field', field: 'showNames', value: !state.showNames })}
+              onClick={() => setLocal({ type: 'show-names', value: !state.showNames })}
             >
               Show faction names
             </Menu.Item>
             <Menu.Item
               leftSection={<RotateCcw size={18} />}
               disabled={!['active', 'paused'].includes(state.stage)}
-              onClick={() => dispatch({ type: 'reset' })}
+              onClick={() => act({ type: 'reset' })}
             >
               Reset this card
             </Menu.Item>
@@ -954,7 +903,7 @@ function BiddingScreen({
             intent="positive"
             emphasis="strong"
             icon={<Play size={20} />}
-            onClick={() => dispatch({ type: 'start' })}
+            onClick={() => act({ type: 'start' })}
           >
             Start new bid
           </LabeledAction>
@@ -964,12 +913,12 @@ function BiddingScreen({
             intent="positive"
             emphasis="strong"
             icon={<Play size={20} />}
-            onClick={() => dispatch({ type: 'resume' })}
+            onClick={() => act({ type: 'resume' })}
           >
             Resume
           </LabeledAction>
         ) : state.stage === 'over' ? (
-          <LabeledAction size="md" icon={<ArrowRight size={20} />} onClick={() => dispatch({ type: 'next-phase' })}>
+          <LabeledAction size="md" icon={<ArrowRight size={20} />} onClick={() => act({ type: 'next-phase' })}>
             Next phase
           </LabeledAction>
         ) : (
@@ -1089,7 +1038,7 @@ function BiddingScreen({
                 icon={<Play size={20} />}
                 intent="positive"
                 emphasis="strong"
-                onClick={() => dispatch({ type: 'promote' })}
+                onClick={() => void client.promote()}
                 disabledReason={view.busy ? 'Opening the new table…' : undefined}
               >
                 Use this phone as central
@@ -1113,7 +1062,7 @@ function BiddingScreen({
                   size="lg"
                   justify="start"
                   icon={<FactionTokenFace token={s} size={30} aria-hidden />}
-                  onClick={() => dispatch({ type: 'field', field: 'remote', value: s.id })}
+                  onClick={() => act({ type: 'assign', factionId: s.id })}
                 >{`${s.name}${s.linked ? ' · phone linked' : ''}`}</LabeledAction>
               ))}
             </Stack>
@@ -1126,17 +1075,7 @@ function BiddingScreen({
                   {state.stage === 'over' ? 'Phase complete' : `Card ${state.card} of ${state.cards}`}
                 </Text>
                 <Text className={styles.phoneTurn} fw={700}>
-                  {state.stage === 'active'
-                    ? state.turn === remoteSeat.id
-                      ? 'Your turn'
-                      : `${nameOf(state, state.turn)} to bid`
-                    : state.stage === 'ready'
-                      ? 'Start new bid'
-                      : state.stage === 'paused'
-                        ? 'Table paused'
-                        : state.stage === 'over'
-                          ? 'Bidding is over'
-                          : 'Waiting for the table'}
+                  {phoneTurnLabel(state, remoteSeat.id)}
                 </Text>
                 {state.stage === 'active' ? (
                   <>
@@ -1166,7 +1105,7 @@ function BiddingScreen({
                   label={`${remoteSeat.name} hand count`}
                   title="Your cards"
                   value={remoteSeat.hand}
-                  onChange={(value) => dispatch({ type: 'edit', id: remoteSeat.id, field: 'hand', value })}
+                  onChange={(value) => act({ type: 'edit-hand', id: remoteSeat.id, field: 'hand', value })}
                 />
                 <Group justify="space-between" wrap="nowrap" className={styles.statusControls}>
                   <Switch
@@ -1176,7 +1115,7 @@ function BiddingScreen({
                     aria-label={`${remoteSeat.name} Full`}
                     checked={remoteSeat.full}
                     onChange={(e) =>
-                      dispatch({ type: 'edit', id: remoteSeat.id, field: 'full', value: e.currentTarget.checked })
+                      act({ type: 'edit-status', id: remoteSeat.id, field: 'full', value: e.currentTarget.checked })
                     }
                   />
                   <Switch
@@ -1186,7 +1125,7 @@ function BiddingScreen({
                     aria-label={`${remoteSeat.name} Always pass`}
                     checked={remoteSeat.pass}
                     onChange={(e) =>
-                      dispatch({ type: 'edit', id: remoteSeat.id, field: 'pass', value: e.currentTarget.checked })
+                      act({ type: 'edit-status', id: remoteSeat.id, field: 'pass', value: e.currentTarget.checked })
                     }
                   />
                 </Group>
@@ -1203,7 +1142,7 @@ function BiddingScreen({
                     <Menu.Dropdown>
                       <Menu.Item
                         leftSection={<Users size={18} />}
-                        onClick={() => dispatch({ type: 'field', field: 'remote', value: null })}
+                        onClick={() => act({ type: 'assign', factionId: null })}
                       >
                         Change faction
                       </Menu.Item>
@@ -1213,7 +1152,7 @@ function BiddingScreen({
                       <Menu.Item
                         leftSection={<RotateCcw size={18} />}
                         disabled={!['active', 'paused'].includes(state.stage)}
-                        onClick={() => dispatch({ type: 'reset' })}
+                        onClick={() => act({ type: 'reset' })}
                       >
                         Reset this card
                       </Menu.Item>
@@ -1264,18 +1203,23 @@ function BiddingScreen({
             : state.panel === 'history'
               ? 'Completed wins'
               : 'Join the table';
-  const panelContent = (
-    <div className={styles.sheetContent}>
-      {state.panel === 'add' ? (
-        <LiveFactionSearch
-          seated={state.seats.map((seat) => seat.id)}
-          onPick={(faction) => {
-            void onAddFaction(faction.id, context);
-            setPanel(null);
-          }}
-        />
-      ) : state.panel === 'bid' ? (
-        state.stage === 'active' ? (
+  function renderPanelBody() {
+    switch (state.panel) {
+      case 'add':
+        return (
+          <LiveFactionSearch
+            seated={state.seats.map((seat) => seat.id)}
+            onPick={(faction) => {
+              void onAddFaction(faction.id, context);
+              setPanel(null);
+            }}
+          />
+        );
+      case 'bid':
+        if (state.stage !== 'active') {
+          return <Text>{state.note || 'The auction changed. Close this panel to continue.'}</Text>;
+        }
+        return (
           <Stack gap="md">
             <Section title={`${nameOf(state, state.turn)} to bid`}>
               <Text size="sm">
@@ -1294,51 +1238,59 @@ function BiddingScreen({
             <LabeledAction
               icon={<RotateCcw size={18} />}
               onClick={() => {
-                dispatch({ type: 'reset' });
+                act({ type: 'reset' });
                 setPanel(null);
               }}
             >
               Reset this card
             </LabeledAction>
           </Stack>
+        );
+      case 'hand':
+        return (
+          <Stack gap="md">
+            <div
+              className={styles.starterTokens}
+              role="group"
+              aria-label="Faction to edit"
+              style={{ gridTemplateColumns: `repeat(${Math.min(6, state.seats.length)}, minmax(0, 1fr))` }}
+            >
+              {state.seats.map((seat) => (
+                <IconAction
+                  key={seat.id}
+                  label={`Edit ${seat.name} hand`}
+                  icon={<SeatToken seat={seat} size={38} />}
+                  size="3rem"
+                  emphasis="quiet"
+                  pressed={state.selected === seat.id}
+                  onClick={() => setLocal({ type: 'select-hand', id: seat.id })}
+                />
+              ))}
+            </div>
+            <Text fw={700}>{nameOf(state, state.selected)}</Text>
+            {handControls(state.selected)}
+          </Stack>
+        );
+      case 'limit':
+        return remoteSeat ? (
+          <CountControl
+            title="Hand limit"
+            label={`${remoteSeat.name} hand limit`}
+            value={remoteSeat.limit}
+            onChange={(value) => act({ type: 'edit-hand', id: remoteSeat.id, field: 'limit', value })}
+          />
         ) : (
-          <Text>{state.note || 'The auction changed. Close this panel to continue.'}</Text>
-        )
-      ) : state.panel === 'hand' ? (
-        <Stack gap="md">
-          <div
-            className={styles.starterTokens}
-            role="group"
-            aria-label="Faction to edit"
-            style={{ gridTemplateColumns: `repeat(${Math.min(6, state.seats.length)}, minmax(0, 1fr))` }}
-          >
-            {state.seats.map((seat) => (
-              <IconAction
-                key={seat.id}
-                label={`Edit ${seat.name} hand`}
-                icon={<SeatToken seat={seat} size={38} />}
-                size="3rem"
-                emphasis="quiet"
-                pressed={state.selected === seat.id}
-                onClick={() => dispatch({ type: 'field', field: 'selected', value: seat.id })}
-              />
-            ))}
-          </div>
-          <Text fw={700}>{nameOf(state, state.selected)}</Text>
-          {handControls(state.selected)}
-        </Stack>
-      ) : state.panel === 'limit' && remoteSeat ? (
-        <CountControl
-          title="Hand limit"
-          label={`${remoteSeat.name} hand limit`}
-          value={remoteSeat.limit}
-          onChange={(value) => dispatch({ type: 'edit', id: remoteSeat.id, field: 'limit', value })}
-        />
-      ) : state.panel === 'history' ? (
-        results
-      ) : (
-        qr
-      )}
+          qr
+        );
+      case 'history':
+        return results;
+      default:
+        return qr;
+    }
+  }
+  const panelContent = (
+    <div className={styles.sheetContent}>
+      {renderPanelBody()}
       {state.panel === 'bid' && (
         <div className={styles.actionRecord} aria-live="polite">
           {state.log.slice(0, 3).map((line, i) => (

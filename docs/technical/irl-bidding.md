@@ -286,12 +286,12 @@ confirmation rule if such a repair becomes necessary.
 ## Local verification evidence
 
 These results were collected on 2026-11-10 before CI and production delivery. A combined run of
-the nine bidding, catalogue and asset unit suites passed all 64 tests. Counts overlap where
+the nine bidding, catalogue and asset unit suites passed all 65 tests. Counts overlap where
 a focused suite was rerun; they are not a cumulative test total.
 
 | Check | Completed evidence | Scope |
 | --- | --- | --- |
-| Auction, command and recovery seams | 35 tests in [auction](../../src/app/routes/_tool/tools/bidding/auction.test.ts), [session](../../src/app/routes/_tool/tools/bidding/session.test.ts) and [recovery](../../src/app/routes/_tool/tools/bidding/recovery.test.ts) pass. | Pure transitions, conflict rules and validated records. Actual storage and timers belong to the client and browser checks. |
+| Auction, command and recovery seams | 36 tests in [auction](../../src/app/routes/_tool/tools/bidding/auction.test.ts), [session](../../src/app/routes/_tool/tools/bidding/session.test.ts) and [recovery](../../src/app/routes/_tool/tools/bidding/recovery.test.ts) pass. | Pure transitions, conflict rules and validated records. Actual storage and timers belong to the client and browser checks. |
 | Browser orchestration seam | All 12 [client tests](../../src/app/routes/_tool/tools/bidding/client.test.ts) pass. | Retries, fresh timers, promotion, storage refusal, competing local centrals, cadence and direct-link continuity with replaceable browser dependencies. |
 | Catalogue and pending setup | Four [catalogue tests](../../convex/biddingTool.test.ts) and three [deferred-request tests](../../src/app/routes/_tool/tools/bidding/setupRequests.test.ts) pass. | Selected ruleset data, deleted records, reversed responses and edits made during a pending request. |
 | Relay and deployment contracts | Seven files, 122 tests pass. The seven [native relay tests](../../workers/game/biddingTable.native.test.ts) passed again after the closing-socket attachment fix. | Real workerd restart and admission behavior; transport browser seams; publisher forwarding and deployment contracts. This is not 122 distinct relay tests. |
@@ -325,6 +325,30 @@ The working-code reviews found and corrected the following holes:
 | Creation and a normal full-table join burst needed different limits. | Creation has a separate six-per-minute IP limit before forwarding. The central allowance accepts 24 simultaneous remote joins and 72 replies; a 25th remote is refused. Native and publisher tests pass. |
 | A closed socket could remain in the runtime's list across hibernation. | Persist its closed state in the socket attachment instead of relying on an in-memory set. Restart tests pass; a hosted hibernation during the close has not been forced. |
 | The quick increment was too small and route state bypassed the local-reducer decision. | The +1 button now measures 50 pixels high on the remote. Named reducers own the welcome and local view state, and the route compiler and scoped lint pass. |
+
+## Pull request review follow-up
+
+The first draft CI run passed the game Worker suite, 621 tests across 74 files with two skipped,
+and found unused exports plus dynamic entries that Knip could not discover. The unused exports
+were removed. Knip now names the pinned runtime adapters and the native fixture as entry points,
+and its local check passes. Three affected-job graph tests also exposed missing support for Vite
+worker-URL imports. The tracer now follows the underlying worker and its dependencies while
+representing the imported URL correctly. Two behavioral fixtures cover both query-parameter
+orders; all 103 graph and closure tests pass locally, including the three CI failures.
+
+The external review findings led to typed UI commands, simpler recovery comparisons and private
+handlers for connection events, relay messages, chunks and worker audio messages. The generator
+uses an absolute tar executable and a minimal environment. An isolated run with a hostile PATH
+and TAR_OPTIONS reproduced its pinned output unchanged. The post-review Chromium journeys pass
+with coverage collection, 15.2 seconds for tablet-only and 30.3 seconds for remote recovery.
+
+The CodeScene findings were reviewed individually. Ordered protocol guards, one-page composition
+and complete recovery journeys retain their existing owners where a size or complexity score did
+not identify an independent responsibility. No external service exclusions or suppression settings
+were changed. Sonar's vendored runtime findings concern intentional Emscripten control flow and
+its virtual filesystem; the owned generator's PATH finding was fixed. CodeRabbit declined the
+manual review because the shared free-review limit had been reached. The separate model reviews
+remain the code and architecture review evidence.
 
 ## Remaining empirical questions
 

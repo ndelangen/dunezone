@@ -7,8 +7,8 @@ const count = z
   .min(0)
   .max(Number.MAX_SAFE_INTEGER - 1);
 const whole = count.min(1);
-export const biddingSecondsSchema = z.union([z.literal(0), z.number().int().min(5).max(70).multipleOf(5)]);
-export const biddingFactionSchema = z.strictObject({
+const biddingSecondsSchema = z.union([z.literal(0), z.number().int().min(5).max(70).multipleOf(5)]);
+const biddingFactionSchema = z.strictObject({
   id,
   name: z.string().min(1).max(160),
   src: z.string().max(2048).nullable().optional(),
@@ -21,8 +21,8 @@ export const biddingFactionSchema = z.strictObject({
   paid: z.boolean().optional(),
 });
 export type BiddingFaction = z.infer<typeof biddingFactionSchema>;
-export const biddingRulesetSchema = z.strictObject({ id, name: z.string().min(1).max(160) });
-export const biddingDeckSchema = z.strictObject({ name: z.string().max(160), back: z.string().max(2048) });
+const biddingRulesetSchema = z.strictObject({ id, name: z.string().min(1).max(160) });
+const biddingDeckSchema = z.strictObject({ name: z.string().max(160), back: z.string().max(2048) });
 const resumableStage = z.enum(['setup', 'ready', 'active', 'over']);
 export const auctionStateSchema = z
   .strictObject({

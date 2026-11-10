@@ -1,13 +1,8 @@
 import { TOOL_HIDDEN_RULESETS } from '@shared/rulesets/hidden';
-import type { FunctionReturnType } from 'convex/server';
 
 import { db } from '@db/core';
 
 import { api } from '../../../convex/_generated/api';
-
-export type BiddingSetup = NonNullable<FunctionReturnType<typeof api.biddingTool.setup>>;
-export type BiddingFaction = BiddingSetup['seats'][number];
-export type BiddingRuleset = BiddingSetup['ruleset'];
 
 /** The existing bounded tool ruleset list, read once when setup opens. */
 export async function readBiddingRulesets() {

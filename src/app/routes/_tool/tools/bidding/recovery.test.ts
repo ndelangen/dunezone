@@ -121,6 +121,21 @@ describe('bidding recovery copy', () => {
     expect(acceptBiddingPublication(answer.copy, publication(changed), saved.tableId, 300).accepted).toBe(false);
   });
 
+  it('requires a new central instance for a higher generation and rejects older generations', () => {
+    const saved = inProgress();
+    const newer = restoreCentralSnapshot(saved, 'instance-b');
+    const newerCopy = { snapshot: newer, receivedAt: 100 };
+    expect(acceptBiddingPublication(newerCopy, publication(saved), saved.tableId, 200).accepted).toBe(false);
+    expect(
+      acceptBiddingPublication(
+        { snapshot: saved, receivedAt: 100 },
+        publication({ ...newer, centralInstanceId: saved.centralInstanceId }),
+        saved.tableId,
+        200
+      ).accepted
+    ).toBe(false);
+  });
+
   it('refuses malformed, unsupported or oversized copies without overwriting a valid copy', () => {
     const saved = inProgress();
     const copy = { snapshot: saved, receivedAt: 100 };

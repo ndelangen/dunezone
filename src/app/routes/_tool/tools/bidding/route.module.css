@@ -259,7 +259,7 @@
   .cardMiddle {
     width: 38%;
   }
-  .cardMiddle > p:not(.currentBidder):not(.highAmount) {
+  .cardMiddle > p:not(.currentBidder, .highAmount) {
     font-size: 0.7rem;
   }
   .seatStatus {

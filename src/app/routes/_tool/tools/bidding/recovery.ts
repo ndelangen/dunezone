@@ -94,30 +94,32 @@ export function acceptBiddingPublication(
   if (!snapshot || snapshot.tableId !== tableId) {
     return reject('That state belongs to another table.');
   }
-  if (current?.snapshot.tableId === tableId) {
-    const prior = current.snapshot;
-    if (snapshot.code !== prior.code) {
-      return reject('The join code cannot change within the same table.');
+  if (current?.snapshot.tableId !== tableId) {
+    return { accepted: true, changed: true, copy: { snapshot, receivedAt }, publication, reason: '' };
+  }
+  const prior = current.snapshot;
+  if (snapshot.code !== prior.code) {
+    return reject('The join code cannot change within the same table.');
+  }
+  if (snapshot.generation < prior.generation) {
+    return reject('That state belongs to an older central instance.');
+  }
+  if (snapshot.generation > prior.generation) {
+    return snapshot.centralInstanceId === prior.centralInstanceId
+      ? reject('A new command generation must have a new central instance.')
+      : { accepted: true, changed: true, copy: { snapshot, receivedAt }, publication, reason: '' };
+  }
+  if (snapshot.centralInstanceId !== prior.centralInstanceId) {
+    return reject('That central instance has not replaced this one.');
+  }
+  if (snapshot.revision < prior.revision) {
+    return reject('That state is older than the saved copy.');
+  }
+  if (snapshot.revision === prior.revision) {
+    if (JSON.stringify(snapshot) !== JSON.stringify(prior)) {
+      return reject('The same state revision has conflicting contents.');
     }
-    if (snapshot.generation < prior.generation) {
-      return reject('That state belongs to an older central instance.');
-    }
-    if (snapshot.generation === prior.generation) {
-      if (snapshot.centralInstanceId !== prior.centralInstanceId) {
-        return reject('That central instance has not replaced this one.');
-      }
-      if (snapshot.revision < prior.revision) {
-        return reject('That state is older than the saved copy.');
-      }
-      if (snapshot.revision === prior.revision) {
-        if (JSON.stringify(snapshot) !== JSON.stringify(prior)) {
-          return reject('The same state revision has conflicting contents.');
-        }
-        return { accepted: true, changed: false, copy: { snapshot: prior, receivedAt }, publication, reason: '' };
-      }
-    } else if (snapshot.centralInstanceId === prior.centralInstanceId) {
-      return reject('A new command generation must have a new central instance.');
-    }
+    return { accepted: true, changed: false, copy: { snapshot: prior, receivedAt }, publication, reason: '' };
   }
   return { accepted: true, changed: true, copy: { snapshot, receivedAt }, publication, reason: '' };
 }

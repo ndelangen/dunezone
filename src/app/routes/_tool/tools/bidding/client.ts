@@ -620,36 +620,45 @@ export class BiddingClient {
       return;
     }
     if (this.state.role === 'central') {
-      const connection = state.direct.length
-        ? 'Direct phone connections'
-        : state.relay
-          ? 'Phone relay connected'
-          : 'Phone relay unavailable';
-      this.update({ connection, connected: this.session !== null });
-      if (state.relay || state.direct.length) {
-        const oldPeers = new Set(prior?.remotes ?? []);
-        for (const id of state.remotes) {
-          if (!oldPeers.has(id)) {
-            this.publish(id);
-          }
-        }
-        if (!prior?.relay && state.relay) {
-          this.publish();
-        }
-      }
+      this.centralConnectionChanged(state, prior);
     } else {
-      const usable = state.central && (state.relay || state.direct.includes('central'));
-      const previouslyUsable = prior?.central && (prior.relay || prior.direct.includes('central'));
-      if (usable && !previouslyUsable) {
-        this.requestSync();
-      } else if (!usable) {
-        this.remoteUnavailable();
+      this.remoteConnectionChanged(state, prior);
+    }
+  }
+
+  private centralConnectionChanged(state: BiddingLinkState, prior: BiddingLinkState | null): void {
+    const connection = state.direct.length
+      ? 'Direct phone connections'
+      : state.relay
+        ? 'Phone relay connected'
+        : 'Phone relay unavailable';
+    this.update({ connection, connected: this.session !== null });
+    if (!state.relay && !state.direct.length) {
+      return;
+    }
+    const oldPeers = new Set(prior?.remotes ?? []);
+    for (const id of state.remotes) {
+      if (!oldPeers.has(id)) {
+        this.publish(id);
       }
-      if (this.state.connected) {
-        this.update({
-          connection: state.direct.includes('central') ? 'Direct to the table' : 'Connected through the relay',
-        });
-      }
+    }
+    if (!prior?.relay && state.relay) {
+      this.publish();
+    }
+  }
+
+  private remoteConnectionChanged(state: BiddingLinkState, prior: BiddingLinkState | null): void {
+    const usable = state.central && (state.relay || state.direct.includes('central'));
+    const previouslyUsable = prior?.central && (prior.relay || prior.direct.includes('central'));
+    if (usable && !previouslyUsable) {
+      this.requestSync();
+    } else if (!usable) {
+      this.remoteUnavailable();
+    }
+    if (this.state.connected) {
+      this.update({
+        connection: state.direct.includes('central') ? 'Direct to the table' : 'Connected through the relay',
+      });
     }
   }
 
@@ -752,15 +761,7 @@ export class BiddingClient {
 
   private received(from: string, data: unknown): void {
     if (this.state.role === 'central' && this.session && from !== 'central') {
-      if (!this.ensureLocalAuthority() || !this.session) {
-        return;
-      }
-      if (syncSchema.safeParse(data).success) {
-        this.publish(from);
-        return;
-      }
-      const result = this.session.receive(from, data);
-      this.link?.send(from, result);
+      this.receivedCommand(from, data);
       return;
     }
     if (this.state.role !== 'remote' || from !== 'central' || !this.address?.tableId) {
@@ -773,30 +774,45 @@ export class BiddingClient {
     }
     const alive = aliveSchema.safeParse(data);
     if (alive.success) {
-      const current = this.copy?.snapshot;
-      if (
-        !current ||
-        alive.data.tableId !== current.tableId ||
-        alive.data.centralInstanceId !== current.centralInstanceId ||
-        alive.data.generation !== current.generation ||
-        alive.data.revision > current.revision
-      ) {
-        this.requestSync();
-        return;
-      }
-      if (alive.data.revision < current.revision) {
-        return;
-      }
-      this.authorityPresent(alive.data.deadline, alive.data.sentAt);
+      this.receivedAlive(alive.data);
       return;
     }
-    const received = acceptBiddingPublication(this.copy, data, this.address.tableId, this.dependencies.now());
+    this.receivedPublication(data, this.address.tableId, this.address.code);
+  }
+
+  private receivedCommand(from: string, data: unknown): void {
+    if (!this.ensureLocalAuthority() || !this.session) {
+      return;
+    }
+    if (syncSchema.safeParse(data).success) {
+      this.publish(from);
+      return;
+    }
+    const result = this.session.receive(from, data);
+    this.link?.send(from, result);
+  }
+
+  private receivedAlive(alive: z.infer<typeof aliveSchema>): void {
+    const current = this.copy?.snapshot;
     if (
-      !received.accepted ||
-      !received.copy ||
-      !received.publication ||
-      received.copy.snapshot.code !== this.address.code
+      !current ||
+      alive.tableId !== current.tableId ||
+      alive.centralInstanceId !== current.centralInstanceId ||
+      alive.generation !== current.generation ||
+      alive.revision > current.revision
     ) {
+      this.requestSync();
+      return;
+    }
+    if (alive.revision < current.revision) {
+      return;
+    }
+    this.authorityPresent(alive.deadline, alive.sentAt);
+  }
+
+  private receivedPublication(data: unknown, tableId: string, code: string): void {
+    const received = acceptBiddingPublication(this.copy, data, tableId, this.dependencies.now());
+    if (!received.accepted || !received.copy || !received.publication || received.copy.snapshot.code !== code) {
       return;
     }
     const before = this.copy?.snapshot;
