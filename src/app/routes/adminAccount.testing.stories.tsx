@@ -120,3 +120,24 @@ export const ContentFinishedDiscordPending = meta.story({
     await expect(page.getByText(/Discord channel deletion is still pending/)).toBeVisible();
   },
 });
+
+export const ReplacementPickerPhone = meta.story({
+  args: { path: managedAccountPath },
+  globals: { viewport: { value: 'appMobile' } },
+  parameters: { database: activeAccount },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Choose a replacement owner' }));
+    const picker = await page.findByRole('dialog');
+    await waitForFrame(async () => {
+      await expect(finishTransitions(picker)).toBeVisible();
+      const bounds = picker.getBoundingClientRect();
+      await expect(bounds.left).toBeGreaterThanOrEqual(0);
+      await expect(bounds.right).toBeLessThanOrEqual(canvasElement.ownerDocument.defaultView!.innerWidth);
+      await expect(picker.scrollWidth).toBeLessThanOrEqual(picker.clientWidth);
+      const action = within(picker).getByRole('button', { name: 'Use this profile' }).getBoundingClientRect();
+      await expect(action.left).toBeGreaterThanOrEqual(bounds.left);
+      await expect(action.right).toBeLessThanOrEqual(bounds.right);
+    });
+  },
+});

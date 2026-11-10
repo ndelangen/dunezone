@@ -202,6 +202,7 @@ function AccountModerationPage() {
                         opened={draft.pickerOpen}
                         onChange={(open) => dispatch({ type: 'picker', open })}
                         width={420}
+                        styles={{ dropdown: { maxWidth: 'calc(100vw - var(--space-md) * 2)' } }}
                         position="bottom-start"
                         trapFocus
                         closeOnEscape
