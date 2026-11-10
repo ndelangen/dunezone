@@ -22,7 +22,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
-import { discordConfiguration } from './lib/discordRest';
+import { discordEnabled } from './lib/discordStatus';
 import { currentPlaySession, livePlaySession } from './lib/playAuthorization';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
@@ -224,7 +224,7 @@ export const creatable = viewerQuery({
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
     return {
       access: 'allowed' as const,
-      discordVoiceAvailable: discordConfiguration() !== null,
+      discordVoiceAvailable: await discordEnabled(ctx),
       rulesets,
       preview: chosen ? await rulesetPreview(ctx, chosen._id) : null,
     };

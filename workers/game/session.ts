@@ -23,6 +23,8 @@ import {
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { emptyPublicControls } from '../../src/shared/play/inventory';
 import type { LogTab } from '../../src/shared/play/log';
+import { PLAY_NUDGE_MAX_AGE_MS } from '../../src/shared/play/nudges';
+import type { PlayNudge } from '../../src/shared/play/nudges';
 import { isSeatAction, seatSubject } from '../../src/shared/play/participation';
 import { composeTurn, lobbyPhaseIndex, recomposedTurn } from '../../src/shared/play/phases';
 import type { PhaseEntry } from '../../src/shared/play/phases';
@@ -69,6 +71,7 @@ import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
+import { NudgeOutbox, nudgeTarget } from './nudges';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
@@ -183,6 +186,7 @@ export class GameSession {
   private readonly swapping: Swapping;
   private readonly spiceLedger: SpiceLedger;
   private readonly directory: DirectoryOutbox;
+  private readonly nudges: NudgeOutbox;
   private readonly captures: CaptureStore;
   private metadata: Metadata | undefined;
   private room: Room | undefined;
@@ -208,6 +212,7 @@ export class GameSession {
     this.history = new SessionHistory(this.storage, this.actors, this.spiceLedger);
     this.publicActions = new PublicActions(this.storage);
     this.directory = new DirectoryOutbox(this.storage);
+    this.nudges = new NudgeOutbox(this.storage);
     this.captures = new CaptureStore(this.storage);
     const sql = this.storage.sql;
     initializeSessionStorage(sql);
@@ -545,6 +550,7 @@ export class GameSession {
         this.removal.scrub(userId);
         this.reviews.scrub(userId);
         this.conversations.scrub(userId);
+        this.nudges.scrub(userId);
         this.actors.delete(userId, eventId, vacatedEventId);
         this.spiceLedger.deleteActor(userId);
         if (!stored) {
@@ -1166,6 +1172,35 @@ export class GameSession {
     this.requireReady(`faction ${capture.faction.name}`, capture.readiness, options);
     return this.storage.transactionSync(() => this.captures.retainFaction(capture));
   }
+  nudgeCurrent(nudge: PlayNudge) {
+    return Boolean(
+      this.metadata?.game &&
+      this.metadata.game.discordVoice !== false &&
+      nudge.at + PLAY_NUDGE_MAX_AGE_MS > Date.now() &&
+      (this.room?.snapshot.stage === 'setup' || this.room?.snapshot.stage === 'play') &&
+      this.actors.seated().some(({ seat, userId }) => seat === nudge.toSeat && userId === nudge.toUserId)
+    );
+  }
+  pendingNudge() {
+    if (!this.metadata?.game || this.metadata.game.discordVoice === false) {
+      return;
+    }
+    for (let pending = this.nudges.pending(); pending; pending = this.nudges.pending()) {
+      if (this.nudgeCurrent(pending.nudge)) {
+        return pending;
+      }
+      this.nudges.acknowledge(pending.nudge.nudgeId);
+    }
+  }
+  reserveNudge(nudgeId: string, retryAt: number) {
+    this.nudges.reserve(nudgeId, retryAt);
+  }
+  acknowledgeNudge(nudgeId: string) {
+    this.nudges.acknowledge(nudgeId);
+  }
+  deferNudge(nudgeId: string, retryAt: number) {
+    this.nudges.defer(nudgeId, retryAt);
+  }
   pendingDirectory() {
     return this.directory.pending();
   }
@@ -1198,6 +1233,7 @@ export class GameSession {
       paused ? 0 : this.battleDeadline,
       paused ? 0 : this.biddingDeadline,
       this.directory.pending()?.retryAt,
+      this.pendingNudge()?.retryAt,
       this.tradingDeadline,
     ].filter((deadline): deadline is number => Boolean(deadline));
     return deadlines.length ? Math.min(...deadlines) : undefined;
@@ -1378,9 +1414,36 @@ export class GameSession {
     }
     this.conversations.authorize(this.room!.snapshot, viewer, request, this.reviews.running()?.id);
     return this.storage.transactionSync(() => {
-      const saved = this.conversations.save(viewer, request, Date.now());
+      const now = Date.now();
+      const saved = this.conversations.save(viewer, request, now);
       if (saved.inserted) {
-        this.stageDirectory(this.room!.snapshot, Date.now());
+        const snapshot = this.room!.snapshot;
+        this.stageDirectory(snapshot, now);
+        if (
+          this.metadata?.game &&
+          snapshot.roster &&
+          this.metadata.game.discordVoice !== false &&
+          (snapshot.stage === 'setup' || snapshot.stage === 'play')
+        ) {
+          const target = nudgeTarget(
+            request.text,
+            request.factionId,
+            request.peerId,
+            snapshot.roster,
+            this.actors.occupants()
+          );
+          const from = snapshot.roster.seats.find((seat) => seat.faction?.id === request.factionId)?.faction;
+          if (target && from) {
+            this.nudges.stage({
+              nudgeId: crypto.randomUUID(),
+              fromFactionId: from.id,
+              fromFactionName: from.name.slice(0, 160),
+              toSeat: target.seat,
+              toUserId: target.userId,
+              at: now,
+            });
+          }
+        }
       }
       return saved;
     });

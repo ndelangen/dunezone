@@ -7,12 +7,24 @@ import { GAME_KEY, productGameDatabase } from './product.stories.fixture';
 
 export const VOICE_INVITE = 'https://discord.gg/story-only';
 
-export function voiceParameters(enabled = true) {
+export function voiceParameters(enabled = true, withNudgeFailure = false) {
   return {
     database: db(
       (baseline) => {
         productGameDatabase(baseline, { state: 'ready' });
         baseline.play_games.find((game) => game.$key === GAME_KEY)!.discord_voice = true;
+        if (withNudgeFailure) {
+          baseline.play_game_discord_nudges.push({
+            game_id: ref(GAME_KEY),
+            to_seat: 'seat-2',
+            nudge_id: 'story-nudge',
+            from_faction_name: 'Atreides',
+            at: STORYBOOK_NOW,
+            state: 'failed',
+            attempts: 1,
+            error: 'Discord request failed (403).',
+          });
+        }
         baseline.play_game_discord_channels.push({
           game_id: ref(GAME_KEY),
           guild_id: '100',

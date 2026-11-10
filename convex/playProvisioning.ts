@@ -58,6 +58,7 @@ async function provisionShape(ctx: MutationCtx, game: Doc<'play_games'>) {
     game: {
       rulesetId,
       minimumPlayers,
+      discordVoice: game.discord_voice === true,
       ...(lastTurn === undefined ? {} : { lastTurn }),
       creator: { userId: creatorId, ...playerSummary(profile) },
     },
