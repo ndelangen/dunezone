@@ -1,4 +1,4 @@
-import { BIDDING_REFUSED, BIDDING_REPLACED } from '@shared/tools/biddingTransport';
+import { BIDDING_CODE_ALPHABET, BIDDING_REFUSED, BIDDING_REPLACED } from '@shared/tools/biddingTransport';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { BiddingLink, createBiddingDevice, createBiddingTable } from './transport';
@@ -217,4 +217,34 @@ test('retries a code collision without replacing its owner', async () => {
     code: expect.stringMatching(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/),
   });
   expect(fetcher.mock.calls[0]![1].body).toBe(fetcher.mock.calls[1]![1].body);
+});
+
+test('rejects random bytes 248 through 255 so every join-code symbol has eight accepted byte values', async () => {
+  const bytes = [248, 249, 250, 251, 252, 253, 254, 255, ...Array.from({ length: 248 }, (_, byte) => byte), 0, 1, 2, 3];
+  let consumed = 0;
+  vi.stubGlobal('crypto', {
+    randomUUID: crypto.randomUUID.bind(crypto),
+    getRandomValues(array: Uint8Array) {
+      if (array.length === 32) {
+        return array.fill(0xa5);
+      }
+      for (let index = 0; index < array.length; index++) {
+        expect(consumed).toBeLessThan(bytes.length);
+        array[index] = bytes[consumed++]!;
+      }
+      return array;
+    },
+  });
+  const fetcher = vi.fn().mockImplementation(async () => new Response(null, { status: 201 }));
+  vi.stubGlobal('fetch', fetcher);
+  const codes: string[] = [];
+  for (let index = 0; index < 42; index++) {
+    const address = await createBiddingTable();
+    expect(address.centralSecret).toBe('a5'.repeat(32));
+    codes.push(address.code);
+  }
+  expect(codes.every((code) => code.length === 6)).toBe(true);
+  expect(codes.join('')).toBe(BIDDING_CODE_ALPHABET.repeat(8) + BIDDING_CODE_ALPHABET.slice(0, 4));
+  expect(consumed).toBe(bytes.length);
+  expect(fetcher).toHaveBeenCalledTimes(42);
 });

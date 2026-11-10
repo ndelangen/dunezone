@@ -27,13 +27,24 @@ export function createBiddingDevice(): BiddingDevice {
   return { id: crypto.randomUUID(), secret: secret() };
 }
 
+function createCode(): string {
+  const limit = 256 - (256 % BIDDING_CODE_ALPHABET.length);
+  let code = '';
+  while (code.length < 6) {
+    for (const byte of crypto.getRandomValues(new Uint8Array(6 - code.length))) {
+      if (byte < limit) {
+        code += BIDDING_CODE_ALPHABET[byte % BIDDING_CODE_ALPHABET.length];
+      }
+    }
+  }
+  return code;
+}
+
 /** Reserves a new code without replacing any table already using it. */
 export async function createBiddingTable(options: { signal?: AbortSignal } = {}): Promise<BiddingTableAddress> {
   const identity = { tableId: crypto.randomUUID(), centralSecret: secret() };
   for (let attempt = 0; attempt < 5; attempt++) {
-    const code = [...crypto.getRandomValues(new Uint8Array(6))]
-      .map((n) => BIDDING_CODE_ALPHABET[n % BIDDING_CODE_ALPHABET.length])
-      .join('');
+    const code = createCode();
     const response = await fetch(biddingPath(code, 'create'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -336,6 +336,10 @@ worker-URL imports. The tracer now follows the underlying worker and its depende
 representing the imported URL correctly. Two behavioral fixtures cover both query-parameter
 orders; all 103 graph and closure tests pass locally, including the three CI failures.
 
+CodeQL also identified modulo bias in the 31-symbol join alphabet. Rejection sampling now
+discards bytes 248 through 255 before mapping; a public-API test covers every accepted byte and
+verifies equal symbol counts without changing the capability secrets.
+
 The external review findings led to typed UI commands, simpler recovery comparisons and private
 handlers for connection events, relay messages, chunks and worker audio messages. The generator
 uses an absolute tar executable and a minimal environment. An isolated run with a hostile PATH
