@@ -26,7 +26,7 @@ async function probeMissing(rest: DiscordRest, id: string): Promise<'missing' | 
     if (!(error instanceof DiscordFailure)) {
       return 'unknown';
     }
-    if (error.status === 429) {
+    if (error.status === 429 && error.global) {
       return 'stop';
     }
     return error.status === 404 && error.code === 10_003 ? 'missing' : 'unknown';

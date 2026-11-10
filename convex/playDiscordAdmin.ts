@@ -6,13 +6,13 @@ import { z } from 'zod';
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { action, internalQuery } from './_generated/server';
-import type { ActionCtx } from './_generated/server';
+import type { ActionCtx, QueryCtx } from './_generated/server';
 import { adminQuery, mutation } from './functions';
 import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordNeedsAttention, retryDiscordChannel } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
-import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
+import { discordChannel as trackedDiscordChannel, DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
 import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
 import { requireAdminUserId } from './lib/policy';
 
@@ -188,24 +188,41 @@ export const enabledForAdmin = internalQuery({
   },
 });
 
-/* Actions recheck both admin identity and tracked IDs at the database boundary. */
+async function matchesActiveCreation(ctx: QueryCtx, candidate: Infer<typeof orphan>) {
+  const prefix = 'dune-play-';
+  if (!candidate.name.startsWith(prefix)) {
+    return false;
+  }
+  const gameId = ctx.db.normalizeId('play_games', candidate.name.slice(prefix.length));
+  if (!gameId) {
+    return false;
+  }
+  const channel = await trackedDiscordChannel(ctx, gameId);
+  if (channel?.state !== 'creating' || channel.creation_marker !== candidate.name) {
+    return false;
+  }
+  return channel.guild_id === candidate.guild_id && channel.creation_category_id === candidate.parent_id;
+}
+
+async function isTracked(ctx: QueryCtx, candidate: Infer<typeof orphan>) {
+  const tracked = await ctx.db
+    .query('play_game_discord_channels')
+    .withIndex('by_channel_id', (q) => q.eq('channel_id', candidate.id))
+    .first();
+  return !!tracked || (await matchesActiveCreation(ctx, candidate));
+}
+
+/* Both checks share a snapshot, so adoption cannot slip between the ID and marker reads. */
 export const untracked = internalQuery({
-  args: { ids: v.array(v.string()) },
+  args: { candidates: v.array(orphan) },
   returns: v.array(v.string()),
-  handler: async (ctx, { ids }) => {
+  handler: async (ctx, { candidates }) => {
     await requireAdminUserId(ctx);
-    if (ids.length > 500) {
+    if (candidates.length > 500) {
       throw new Error('Too many channels.');
     }
-    const tracked = await Promise.all(
-      ids.map((id) =>
-        ctx.db
-          .query('play_game_discord_channels')
-          .withIndex('by_channel_id', (q) => q.eq('channel_id', id))
-          .first()
-      )
-    );
-    return ids.filter((_, i) => !tracked[i]);
+    const tracked = await Promise.all(candidates.map((candidate) => isTracked(ctx, candidate)));
+    return candidates.filter((_, i) => !tracked[i]).map((candidate) => candidate.id);
   },
 });
 
@@ -233,7 +250,7 @@ export const refreshOrphans = action({
   args: {},
   returns: v.array(orphan),
   handler: async (ctx): Promise<Infer<typeof orphan>[]> => {
-    await ctx.runQuery(internal.playDiscordAdmin.untracked, { ids: [] });
+    await ctx.runQuery(internal.playDiscordAdmin.untracked, { candidates: [] });
     const config = discordConfiguration();
     if (!config) {
       throw new Error('Discord is not configured.');
@@ -244,17 +261,13 @@ export const refreshOrphans = action({
       .parse(
         await retryAdminRequest(() => rest(ctx, config.token).request('GET', `/guilds/${config.guildId}/channels`))
       );
-    const eligible = channels.filter(
-      (c) => c.type === 2 && c.parent_id && config.categoryIds.includes(c.parent_id) && oldEnough(c.id)
-    );
-    const untrackedIds: string[] = await ctx.runQuery(internal.playDiscordAdmin.untracked, {
-      ids: eligible.map((c) => c.id),
-    });
+    const eligible = channels
+      .filter((c) => c.type === 2 && c.parent_id && config.categoryIds.includes(c.parent_id) && oldEnough(c.id))
+      .map((c) => ({ id: c.id, name: c.name, parent_id: c.parent_id!, guild_id: c.guild_id ?? config.guildId }))
+      .filter((c) => c.guild_id === config.guildId);
+    const untrackedIds: string[] = await ctx.runQuery(internal.playDiscordAdmin.untracked, { candidates: eligible });
     const ids = new Set(untrackedIds);
-    return eligible
-      .filter((c) => ids.has(c.id))
-      .slice(0, 100)
-      .map((c) => ({ id: c.id, name: c.name, parent_id: c.parent_id!, guild_id: config.guildId }));
+    return eligible.filter((c) => ids.has(c.id)).slice(0, 100);
   },
 });
 
@@ -285,11 +298,16 @@ export const deleteOrphan = action({
     ) {
       throw new Error('Channel is outside the configured Games categories.');
     }
-    const untracked = await ctx.runQuery(internal.playDiscordAdmin.untracked, { ids: [channelId] });
-    if (untracked.length !== 1) {
-      throw new Error('Channel is tracked by a game.');
-    }
-    await retryAdminRequest(() => client.remove(channelId));
+    const { id, name, parent_id, guild_id } = channel;
+    await retryAdminRequest(async () => {
+      const untracked = await ctx.runQuery(internal.playDiscordAdmin.untracked, {
+        candidates: [{ id, name, parent_id, guild_id }],
+      });
+      if (untracked.length !== 1) {
+        throw new Error('Channel is tracked by a game.');
+      }
+      await client.remove(channelId);
+    });
     return null;
   },
 });

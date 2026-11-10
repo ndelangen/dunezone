@@ -265,7 +265,7 @@ test.each([
   }
 );
 
-test.each(['rate-limited', 'paused'] as const)(
+test.each(['globally rate-limited', 'paused'] as const)(
   'missing-channel checks stop taking new rooms when the batch is %s',
   async (mode) => {
     const { world } = await endedWorld();
@@ -282,13 +282,50 @@ test.each(['rate-limited', 'paused'] as const)(
       if (path === '/gateway/bot') {
         return snapshotDiscovery;
       }
-      throw mode === 'rate-limited' ? new DiscordFailure(429, undefined, 60_000) : new DiscordPaused();
+      throw mode === 'globally rate-limited' ? new DiscordFailure(429, undefined, 60_000, true) : new DiscordPaused();
     });
     await cleanup(world);
     /* The four already-started checks may settle; none of the remaining rooms may start another cooldown read. */
     expect(requests.mock.calls.filter(([_method, path]) => path.startsWith('/channels/'))).toHaveLength(4);
   }
 );
+
+test('a channel-scoped hold does not stop later missing-channel checks', async () => {
+  const { world, discord } = await endedWorld();
+  const original = (await world.channel())!;
+  const { _id: _ignoredId, _creationTime: _ignoredTime, ...fields } = original;
+  const laterId = await world.t.run(async (ctx) => {
+    const game = (await ctx.db.get(world.gameId))!;
+    const { _id: _gameId, _creationTime: _gameTime, ...gameFields } = game;
+    const rooms = [];
+    for (const channelId of ['401', '402', '403', '404']) {
+      const gameId = await ctx.db.insert('play_games', { ...gameFields, slug: `game-${channelId}` });
+      rooms.push(
+        await ctx.db.insert('play_game_discord_channels', {
+          ...fields,
+          game_id: gameId,
+          channel_id: channelId,
+        })
+      );
+    }
+    return rooms.at(-1)!;
+  });
+  SnapshotSocket.onIdentify = (socket) =>
+    queueMicrotask(() => socket.packet(0, { ...snapshotGuild(), channels: [] }, 'GUILD_CREATE'));
+  discord.fetch.mockImplementation(async (input) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (url.endsWith('/gateway/bot')) {
+      return Response.json(snapshotDiscovery);
+    }
+    if (url.endsWith('/channels/300')) {
+      return Response.json({ retry_after: 60 }, { status: 429, headers: { 'X-RateLimit-Scope': 'shared' } });
+    }
+    return Response.json({ code: 10_003 }, { status: 404 });
+  });
+  await cleanup(world);
+  expect(await world.channel()).toMatchObject({ state: 'ready' });
+  expect(await world.t.run((ctx) => ctx.db.get(laterId))).toMatchObject({ state: 'deleted' });
+});
 
 test('browser responses contain neither bot credentials nor game secrets', async () => {
   const { world } = await endedWorld();
