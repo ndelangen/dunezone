@@ -80,7 +80,7 @@ test('finished games rename once and retain an occupied room beyond both former 
   }
   await world.publish(3, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
-  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true, ended_at: ended });
+  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true, work_revision: 1 });
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
 });
@@ -146,7 +146,7 @@ test('continue during the ended-name PATCH restores the name before the hourly c
   ]);
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: false });
-  expect((await world.channel())?.ended_at).toBeUndefined();
+  expect((await world.channel())?.work_revision).toBe(2);
   expect(await world.menu()).toMatchObject({ voice: { url: 'https://discord.gg/shared-room' } });
 });
 

@@ -8,7 +8,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { action, internalQuery } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { adminQuery, mutation } from './functions';
-import { DiscordRest, discordConfiguration } from './lib/discordRest';
+import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
 import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
@@ -175,6 +175,19 @@ function rest(ctx: ActionCtx, token: string) {
     hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
   });
 }
+/** Interactive admin requests retain their two short retries; lifecycle retries belong to the scheduler. */
+async function retryAdminRequest<T>(request: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      if (!(error instanceof DiscordFailure) || error.status !== 429 || attempt >= 2 || error.retryAfterMs > 5000) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, error.retryAfterMs));
+    }
+  }
+}
 function oldEnough(id: string) {
   return Number((BigInt(id) >> 22n) + 1_420_070_400_000n) <= Date.now() - ORPHAN_AGE;
 }
@@ -191,7 +204,9 @@ export const refreshOrphans = action({
     const channels = z
       .array(discordChannel)
       .max(500)
-      .parse(await rest(ctx, config.token).request('GET', `/guilds/${config.guildId}/channels`));
+      .parse(
+        await retryAdminRequest(() => rest(ctx, config.token).request('GET', `/guilds/${config.guildId}/channels`))
+      );
     const eligible = channels.filter(
       (c) => c.type === 2 && c.parent_id && config.categoryIds.includes(c.parent_id) && oldEnough(c.id)
     );
@@ -221,7 +236,9 @@ export const deleteOrphan = action({
       throw new Error('Discord is not configured.');
     }
     const client = rest(ctx, config.token);
-    const channel = discordChannel.parse(await client.request('GET', `/channels/${channelId}`));
+    const channel = discordChannel.parse(
+      await retryAdminRequest(() => client.request('GET', `/channels/${channelId}`))
+    );
     if (
       channel.id !== channelId ||
       channel.guild_id !== config.guildId ||
@@ -235,7 +252,7 @@ export const deleteOrphan = action({
     if (untracked.length !== 1) {
       throw new Error('Channel is tracked by a game.');
     }
-    await client.remove(channelId);
+    await retryAdminRequest(() => client.remove(channelId));
     return null;
   },
 });

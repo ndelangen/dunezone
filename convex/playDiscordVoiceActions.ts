@@ -16,7 +16,7 @@ type VoiceCandidate = Infer<typeof voiceCandidateValidator>;
 /** Permission and transport failures leave occupancy unknown; only a definite missing channel can retire. */
 async function probeMissing(rest: DiscordRest, id: string): Promise<'missing' | 'unknown' | 'stop'> {
   try {
-    await rest.request('GET', `/channels/${id}`, undefined, 0);
+    await rest.request('GET', `/channels/${id}`);
     return 'unknown';
   } catch (error) {
     if (error instanceof DiscordPaused) {
@@ -67,12 +67,14 @@ async function retireSnapshotChannels(
   deadline: number
 ) {
   const observedAt = Date.now();
-  const retired = new Set([...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))]);
-  if (retired.size === 0) {
+  const empty = new Set(snapshot.empty);
+  const missing = new Set(await confirmedMissing(rest, snapshot.missing, deadline));
+  if (empty.size === 0 && missing.size === 0) {
     return;
   }
   await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
-    channels: channels.filter((channel) => retired.has(channel.discordChannelId)),
+    channels: channels.filter((channel) => empty.has(channel.discordChannelId)),
+    missingChannels: channels.filter((channel) => missing.has(channel.discordChannelId)),
     observedAt,
   });
 }
@@ -100,7 +102,7 @@ export const cleanup = internalAction({
       deadline
     );
     try {
-      const discovery = await rest.request('GET', '/gateway/bot', undefined, 0);
+      const discovery = await rest.request('GET', '/gateway/bot');
       if ((await ctx.runQuery(internal.playDiscord.cooldownUntil, {})) === null) {
         return null;
       }

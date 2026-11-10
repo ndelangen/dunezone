@@ -5,13 +5,15 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { docValidator } from './lib/collaborativeAccessValidators';
+import { discordRetryOperation, retryCreationCategory } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
-import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
+import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY, markDiscordDeleted } from './lib/playDiscord';
 import { playRateLimiter } from './lib/playRateLimits';
 
 const channelValidator = docValidator('play_game_discord_channels');
-const claimArgs = { channelId: v.id('play_game_discord_channels'), lease: v.string() };
+const reconcileArgs = { channelId: v.id('play_game_discord_channels') };
+const claimArgs = { ...reconcileArgs, lease: v.string() };
 
 /** A shared deadline also stops requests from actions already working on other games. */
 export const cooldownUntil = internalQuery({
@@ -36,31 +38,39 @@ export const holdRequests = internalMutation({
 });
 
 export const claim = internalMutation({
-  args: { channelId: v.id('play_game_discord_channels') },
+  args: reconcileArgs,
   returns: v.union(v.null(), channelValidator),
   handler: async (ctx, { channelId }) => {
     const row = await ctx.db.get(channelId);
     if (!(await discordEnabled(ctx)) || !row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
       return null;
     }
-    /* A creation-budget delay cannot hold a discarded reservation that never acquired a channel. */
-    if ((row.retry_after ?? 0) > Date.now() && !retiresWithoutChannel(row, await ctx.db.get(row.game_id))) {
+    /* New lifecycle work can supersede application backoff, but never Discord's hard cooldown. */
+    const sameWork = row.retry?.revision === (row.work_revision ?? 0);
+    const notBefore = Math.max(row.retry_after ?? 0, sameWork && row.retry?.kind === 'backoff' ? row.retry.until : 0);
+    if (notBefore > Date.now() && !retiresWithoutChannel(row, await ctx.db.get(row.game_id))) {
       return null;
     }
     const cooldown = await ctx.db.query('play_discord_cooldown').unique();
     if (cooldown && cooldown.blocked_until > Date.now()) {
-      await ctx.db.patch(row._id, { next_attempt_at: cooldown.blocked_until });
+      await ctx.db.patch(row._id, { next_attempt_at: cooldown.blocked_until, retry_after: cooldown.blocked_until });
+      await ctx.scheduler.runAt(cooldown.blocked_until, internal.playDiscordActions.reconcile, {
+        channelId,
+      });
       return null;
     }
     const lease = playCredential();
     const until = Date.now() + DISCORD_LEASE;
+    const retry = sameWork && row.retry?.kind === 'short' ? row.retry : undefined;
     await ctx.db.patch(row._id, {
       lease,
       lease_until: until,
       lease_revision: row.work_revision ?? 0,
       next_attempt_at: until,
+      retry_after: undefined,
+      retry,
     });
-    return { ...row, lease, lease_until: until, next_attempt_at: until };
+    return { ...row, lease, lease_until: until, next_attempt_at: until, retry_after: undefined, retry };
   },
 });
 
@@ -101,7 +111,7 @@ export const work = internalMutation({
     const name = game?.name ?? 'Dune Play';
     const remove = retirementDue(channel, game);
     /* Avoid category requests while creation is exhausted; startCreation still spends quota atomically before POST. */
-    if (!remove && channel.state === 'pending' && !channel.channel_id) {
+    if (!remove && channel.state === 'pending' && !channel.channel_id && !retryCreationCategory(channel)) {
       const quota = await playRateLimiter.check(ctx, 'discordChannelCreateGlobal');
       if (!quota.ok) {
         await ctx.db.patch(channel._id, {
@@ -121,7 +131,7 @@ export const work = internalMutation({
 
 /** Persist before POST: a process that dies after Discord accepts the request must never blindly repeat it. */
 export const startCreation = internalMutation({
-  args: claimArgs,
+  args: { ...claimArgs, categoryId: v.optional(v.string()) },
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
@@ -134,10 +144,13 @@ export const startCreation = internalMutation({
     ) {
       return false;
     }
-    const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
-    if (!quota.ok) {
-      await ctx.db.patch(row._id, { retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY) });
-      return false;
+    const retryCategory = retryCreationCategory(row);
+    if (!retryCategory || retryCategory !== args.categoryId) {
+      const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
+      if (!quota.ok) {
+        await ctx.db.patch(row._id, { retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY) });
+        return false;
+      }
     }
     await ctx.db.patch(row._id, {
       state: 'creating',
@@ -235,23 +248,35 @@ export const removed = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (row?.lease === args.lease) {
-      await ctx.db.patch(row._id, {
-        state: 'deleted',
-        deleted_at: Date.now(),
-        invite_url: undefined,
-        error: undefined,
-      });
+      await markDiscordDeleted(ctx, row);
     }
     return null;
   },
 });
 
 export const release = internalMutation({
-  args: { ...claimArgs, error: v.optional(v.string()), retryAfterMs: v.optional(v.number()) },
+  args: {
+    ...claimArgs,
+    error: v.optional(v.string()),
+    retryAfterMs: v.optional(v.number()),
+    retryOperation: v.optional(discordRetryOperation),
+    retryCategoryId: v.optional(v.string()),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (!row || row.lease !== args.lease) {
+      return null;
+    }
+    if (row.state === 'deleted') {
+      await ctx.db.patch(row._id, {
+        lease: undefined,
+        lease_until: undefined,
+        lease_revision: undefined,
+        retry_after: undefined,
+        retry: undefined,
+        error: undefined,
+      });
       return null;
     }
     const game = await ctx.db.get(row.game_id);
@@ -259,9 +284,25 @@ export const release = internalMutation({
     /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
     let next = game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
     const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
+    const retry = row.retry?.kind === 'short' ? row.retry : undefined;
+    const attempts =
+      retry?.revision === (row.work_revision ?? 0) &&
+      retry.operation === args.retryOperation &&
+      retry.categoryId === args.retryCategoryId
+        ? retry.attempts
+        : 0;
+    const shortRetry =
+      !changed &&
+      row.state !== 'creating' &&
+      args.retryOperation !== undefined &&
+      (args.retryAfterMs ?? 0) > 0 &&
+      args.retryAfterMs! <= 5000 &&
+      attempts < 2;
     if (changed && row.state !== 'creating') {
       /* A failed old invite or rename must not postpone a newly discarded game, except for Discord's rate limit. */
       next = Math.max(Date.now(), retryAfter ?? 0, Date.now() + (args.retryAfterMs ?? 0));
+    } else if (shortRetry) {
+      next = Date.now() + args.retryAfterMs!;
     } else if (args.error || row.state === 'creating') {
       next = Date.now() + Math.max(DISCORD_RETRY, args.retryAfterMs ?? 0);
     } else if (row.state === 'pending') {
@@ -273,9 +314,20 @@ export const release = internalMutation({
       lease_revision: undefined,
       next_attempt_at: next,
       retry_after: args.retryAfterMs ? Date.now() + args.retryAfterMs : retryAfter,
+      retry: shortRetry
+        ? {
+            kind: 'short',
+            operation: args.retryOperation!,
+            attempts: attempts === 0 ? 1 : 2,
+            categoryId: args.retryCategoryId,
+            revision: row.work_revision ?? 0,
+          }
+        : !changed && attempts >= 2 && (args.retryAfterMs ?? 0) > 0 && args.retryAfterMs! <= 5000
+          ? { kind: 'backoff', revision: row.work_revision ?? 0, until: next }
+          : undefined,
       error: row.state === 'creating' ? row.error : args.error,
     });
-    if (row.state !== 'deleted' && row.state !== 'creating' && (changed || next <= Date.now())) {
+    if (row.state !== 'creating' && (changed || next <= Date.now() || (args.retryAfterMs ?? 0) > 0)) {
       await ctx.scheduler.runAfter(Math.max(0, next - Date.now()), internal.playDiscordActions.reconcile, {
         channelId: row._id,
       });
@@ -292,6 +344,7 @@ export const retryDue = internalMutation({
     if (!(await discordEnabled(ctx))) {
       return null;
     }
+    let moreDue = false;
     for (const state of ['pending', 'ready', 'deleting'] as const) {
       const due: Doc<'play_game_discord_channels'>[] = await ctx.db
         .query('play_game_discord_channels')
@@ -302,8 +355,11 @@ export const retryDue = internalMutation({
         await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: row._id });
       }
       if (due.length === DISCORD_BATCH) {
-        await ctx.scheduler.runAfter(0, internal.playDiscord.retryDue, {});
+        moreDue = true;
       }
+    }
+    if (moreDue) {
+      await ctx.scheduler.runAfter(0, internal.playDiscord.retryDue, {});
     }
     return null;
   },

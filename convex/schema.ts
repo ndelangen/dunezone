@@ -17,6 +17,7 @@ import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
+import { discordRetryState } from './lib/discordRetry';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
@@ -164,6 +165,7 @@ export default defineSchema({
       v.literal('deleted')
     ),
     created_at: v.number(),
+    /* Retained until the approved finish-marker retirement has run; new writes use directory transitions. */
     ended_at: v.optional(v.number()),
     renamed_ended: v.optional(v.boolean()),
     voice_checked_at: v.optional(v.number()),
@@ -174,6 +176,7 @@ export default defineSchema({
     cleanup_at: v.number(),
     next_attempt_at: v.number(),
     retry_after: v.optional(v.number()),
+    retry: v.optional(discordRetryState),
     lease: v.optional(v.string()),
     lease_until: v.optional(v.number()),
     error: v.optional(v.string()),

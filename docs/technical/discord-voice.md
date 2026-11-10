@@ -60,6 +60,8 @@ is renamed with an `(ended)` suffix. Hourly cleanup deletes ended channels that 
 continues before deletion commits, the channel stays and its original name is restored. A committed
 deletion cannot be reversed. Active games still lose their channel after 14 days without game activity.
 Missing channels are treated as already removed only when Discord returns Unknown Channel.
+An hourly check that confirms Unknown Channel retires the tracked record directly after rechecking
+the game, channel identity, revision and pause setting. It sends no redundant DELETE.
 The empty observation commits deletion. Discord has no atomic delete-if-empty operation, so a
 join after that decision does not cancel it.
 
@@ -83,6 +85,20 @@ One attempted nudge uses one Worker-to-Convex action call and at most one Discor
 rate-limit mutation reads current eligibility and spends the per-seat quota. There are no delivery
 or expiry jobs. Idle channel reconciliation uses the existing 15-minute cron, with no Discord
 request when nothing is due. The admin page has bounded reads and manual orphan refresh.
+
+Lifecycle REST calls make one attempt. A definite short rate limit schedules up to two retries at
+Discord's deadline, then uses the existing 15-minute backoff. Each scheduled retry acquires a fresh
+lease and rechecks current work. The channel keeps the short retry budget so scheduled work and
+cron recovery use the same attempts. Its deadline and revision fence stale work. A retry of the same definitely rejected creation reuses its
+creation reservation. An ambiguous creation response still stops automatic creation. Interactive
+admin requests retain their two short retries; nudges and occupancy checks never retry inline.
+
+Finish transitions compare the previous and accepted directory stages in one transaction. The
+obsolete `ended_at` channel marker remains in the schema only for the retirement window.
+`discordMigrations:discord_channel_end_marker_retire_v1` removes that field in batches of 50, and
+`discord_channel_end_marker_verify_v1` checks completion. Run retirement only within the confirmed
+production scope, after the new transition code is deployed. No channel, game, invite, lease or
+ownership value changes in that retirement.
 
 After a release, check both Worker health identities, create an opted-in game, and verify the invite
 and VC text message destination. Repeat a nudge inside its cooldown and check that no second
