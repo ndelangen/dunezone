@@ -50,12 +50,12 @@
   justify-content: center;
   padding: var(--space-xs) var(--space-md);
 }
-.tabletBody[data-setup] {
+.tabletBody[data-recovery] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 21rem;
   gap: var(--space-md);
 }
-.tabletBody:not([data-setup]) {
+.tabletBody:not([data-recovery]) {
   container-type: size;
 }
 .circleColumn {
@@ -74,6 +74,7 @@
   width: 100%;
   min-width: 0;
   container-type: inline-size;
+  container-name: bidding-arena;
 }
 .arrow {
   position: absolute;
@@ -101,14 +102,14 @@
 }
 .bidDisc {
   position: relative;
-  width: clamp(3rem, 13cqi, 5.5rem);
+  width: clamp(4rem, 20cqi, 8rem);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
 }
 .highAmount {
   position: absolute;
-  font-size: clamp(1.5rem, 8cqi, 3rem);
+  font-size: clamp(2.5rem, 12cqi, 5rem);
   line-height: 1;
   font-family: C_Advokat_Modern, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -116,6 +117,14 @@
   text-shadow:
     0 0 4px black,
     0 0 8px black;
+}
+.bidCountdown {
+  font-family: C_Advokat_Modern, sans-serif;
+  font-size: clamp(1.25rem, 5cqi, 2.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px var(--ui-ground);
 }
 .cardMiddle > img {
   width: 40%;
@@ -145,6 +154,7 @@
   border-radius: 50%;
 }
 .handTotal {
+  color: var(--color-text);
   font-family: C_Desdemona, Georgia, serif;
   display: flex;
   align-items: baseline;
@@ -161,13 +171,6 @@
 }
 .seatStatus {
   min-height: 1.25em;
-}
-.seatList {
-  display: grid;
-  gap: var(--space-xs);
-  padding: 0;
-  margin: 0;
-  list-style: none;
 }
 .phone {
   display: flex;
@@ -206,6 +209,7 @@
   padding-block: var(--space-md) var(--space-xs);
   min-height: 3.5rem;
 }
+.setupFooter,
 .phoneDock {
   position: sticky;
   bottom: 0;
@@ -236,7 +240,8 @@
   margin: auto;
 }
 .qr {
-  width: 5rem;
+  /* Reserve room for the close control and join instructions in the 85dvh sheet. */
+  width: min(100%, max(8rem, calc(85dvh - 11rem)));
   flex-shrink: 0;
 }
 .qr svg {
@@ -248,7 +253,7 @@
   gap: var(--space-xs);
 }
 @container tablet (width < 48rem) {
-  .tabletBody[data-setup] {
+  .tabletBody[data-recovery] {
     grid-template-columns: 1fr;
   }
 }
@@ -259,20 +264,20 @@
   .cardMiddle {
     width: 38%;
   }
-  .cardMiddle > p:not(.currentBidder, .highAmount) {
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
     font-size: 0.7rem;
   }
   .seatStatus {
     font-size: 0.65rem;
   }
 }
-.tool .tablet:not(:has(.tabletBody[data-setup])) {
+.tool .tablet:not(:has(.tabletBody[data-recovery])) {
   height: 100%;
 }
 .tool .circleColumn {
   max-width: min(100%, calc(100dvh - 14rem));
 }
-.tool .tabletBody:not([data-setup]) .circleColumn {
+.tool .tabletBody:not([data-recovery]) .circleColumn {
   width: 100%;
   max-width: min(100%, 100cqh);
 }
@@ -325,6 +330,7 @@
 }
 .tableBarContents {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
@@ -334,8 +340,12 @@
 }
 .tableBarActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
+}
+.moderatorStep {
+  min-height: 3.125rem;
 }
 .tableNotice {
   text-align: center;
@@ -501,4 +511,66 @@
 }
 .connectionBar {
   padding: var(--space-xs) var(--space-md);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  container: bidding-setup / inline-size;
+}
+
+.setupContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+.setupFooter {
+  display: flex;
+  flex-direction: column;
+}
+
+.setupJoin {
+  min-width: 0;
+}
+
+.setupJoin .qr {
+  /* Setup also reserves space for its heading, storm-order guidance and fixed footer. */
+  width: min(100%, max(8rem, calc(100dvh - 25rem)));
+}
+
+@container bidding-setup (width < 48rem) {
+  .setupJoin {
+    order: -1;
+  }
+}
+
+@container bidding-arena (width < 30rem) {
+  .seat {
+    --seat-token-size: 18cqi;
+  }
+  .arena[data-many] .seat {
+    --seat-token-size: 13cqi;
+  }
+  .bidDisc {
+    width: 20cqi;
+  }
+  .highAmount {
+    font-size: 12cqi;
+  }
+  .bidCountdown {
+    font-size: 6cqi;
+  }
+  .handTotal strong {
+    font-size: 9cqi;
+  }
+  .handTotal span {
+    font-size: 3cqi;
+  }
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
+    display: none;
+  }
 }

@@ -119,6 +119,10 @@ const setup: AuctionSetup = {
 };
 const snapshot = (client: BiddingClient): BiddingSnapshot => client.getSnapshot().snapshot!;
 const act = (client: BiddingClient, action: BiddingAction) => client.act(action, biddingContextOf(snapshot(client)));
+function startAuction(client: BiddingClient) {
+  act(client, { type: 'finish-setup' });
+  act(client, { type: 'start' });
+}
 const kind = (frame: Frame) => (frame.data as { type?: string }).type;
 
 describe('bidding browser orchestration', () => {
@@ -185,11 +189,59 @@ describe('bidding browser orchestration', () => {
     vi.useRealTimers();
   });
 
+  test('a phone starts first and later phases while waiting tables have no timer', async () => {
+    const { central, remote } = await tableAndPhone();
+    act(remote, { type: 'assign', factionId: 'seat-0' });
+    act(central, { type: 'configure', cards: 1 });
+    act(central, { type: 'finish-setup' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(snapshot(remote).auction.stage).toBe('ready');
+    expect(central.getSnapshot().deadline).toBeNull();
+    act(remote, { type: 'select-starter', id: 'seat-1' });
+    act(remote, { type: 'start' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'active', turn: 'seat-1' });
+    expect(central.getSnapshot().deadline).toBe(Date.now() + 5000);
+    act(central, { type: 'bid', amount: 2 });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    expect(snapshot(remote).auction.stage).toBe('over');
+    act(remote, { type: 'next-phase' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'ready', phase: 2, turn: null });
+    expect(central.getSnapshot().deadline).toBeNull();
+    act(remote, { type: 'select-starter', id: 'seat-2' });
+    act(remote, { type: 'start' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'active', phase: 2, turn: 'seat-2' });
+    expect(central.getSnapshot().deadline).toBe(Date.now() + 5000);
+  });
+
+  test('announces first-auction readiness separately from completed cards and resets', async () => {
+    const central = make();
+    await central.newTable(setup);
+    central.setAnnouncements(true);
+    act(central, { type: 'finish-setup' });
+    expect(voice.announce).toHaveBeenLastCalledWith('The table is ready. Choose the first bidder.');
+    act(central, { type: 'start' });
+    act(central, { type: 'reset' });
+    expect(voice.announce).toHaveBeenLastCalledWith('Ready for a new bid. Choose the starting faction.');
+    act(central, { type: 'start' });
+    act(central, { type: 'bid', amount: 2 });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    expect(snapshot(central).auction.card).toBe(2);
+    expect(voice.announce).toHaveBeenLastCalledWith('Ready for a new bid. Choose the starting faction.');
+    act(central, { type: 'start' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'next-phase' });
+    expect(voice.announce).toHaveBeenLastCalledWith('The table is ready. Choose the first bidder.');
+  });
+
   test('a lost acknowledgement retries one envelope and applies the accepted bid once', async () => {
     const { central, remote } = await tableAndPhone();
     act(remote, { type: 'assign', factionId: 'seat-0' });
     expect(remote.getSnapshot().pending).toBe(false);
-    act(central, { type: 'start' });
+    startAuction(central);
     let dropped = false;
     links.allow = (frame) => {
       if (kind(frame) === 'result' && !dropped) {
@@ -212,6 +264,38 @@ describe('bidding browser orchestration', () => {
     expect(bids[0].data).toEqual(bids[1].data);
   });
 
+  test('accepted remote auction feedback reaches the tablet once without replay or rejection noise', async () => {
+    const { central, remote } = await tableAndPhone();
+    startAuction(central);
+    act(remote, { type: 'claim-moderator' });
+    let dropped = false;
+    links.allow = (frame) => {
+      if (kind(frame) === 'result' && !dropped) {
+        dropped = true;
+        return false;
+      }
+      return true;
+    };
+    act(remote, { type: 'raise-one' });
+    expect(central.getSnapshot().feedback[0]).toBe('Atreides bid 1.');
+    const raised = central.getSnapshot().feedback;
+    const command = links.frames.findLast(
+      (frame) => kind(frame) === 'command' && (frame.data as { action?: { type: string } }).action?.type === 'raise-one'
+    )!;
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(remote.getSnapshot().pending).toBe(false);
+    expect(central.getSnapshot().feedback).toBe(raised);
+    act(remote, { type: 'advance' });
+    expect(central.getSnapshot().feedback[0]).toBe('Fremen is selected.');
+    const advanced = central.getSnapshot().feedback;
+    const endpoint = links.endpoints.find((candidate) => candidate.options.role === 'central')!;
+    endpoint.options.onMessage(remote.getSnapshot().deviceId, command.data);
+    act(remote, { type: 'bid', amount: 4 });
+    endpoint.options.onMessage(remote.getSnapshot().deviceId, { type: 'command' });
+    expect(central.getSnapshot().feedback).toBe(advanced);
+    expect(snapshot(central).auction.high).toMatchObject({ id: 'seat-0', amount: 1 });
+  });
+
   test('reload restores the same bid and assignment paused, then grants a fresh timer', async () => {
     const storage = new MemoryStorage();
     const central = make(storage);
@@ -220,7 +304,7 @@ describe('bidding browser orchestration', () => {
     remote.join(snapshot(central).code, snapshot(central).tableId);
     await vi.advanceTimersByTimeAsync(0);
     act(remote, { type: 'assign', factionId: 'seat-0' });
-    act(central, { type: 'start' });
+    startAuction(central);
     act(remote, { type: 'bid', amount: 3 });
     await vi.advanceTimersByTimeAsync(4000);
     const before = snapshot(central);
@@ -247,7 +331,7 @@ describe('bidding browser orchestration', () => {
   test('promotion closes the old room, creates a new code and ignores delayed old frames', async () => {
     const { central, remote } = await tableAndPhone();
     act(remote, { type: 'assign', factionId: 'seat-0' });
-    act(central, { type: 'start' });
+    startAuction(central);
     act(remote, { type: 'bid', amount: 2 });
     const before = snapshot(remote);
     const old = links.endpoints.find((entry) => entry.options.device.id === remote.getSnapshot().deviceId)!;
@@ -292,7 +376,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const central = make(storage);
     await central.newTable(setup);
-    act(central, { type: 'start' });
+    startAuction(central);
     central.setListening(true);
     const writes = storage.writes.length;
     const before = snapshot(central);
@@ -309,7 +393,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     act(old, { type: 'bid', amount: 3 });
     links.state(old, { status: 'disconnected', relay: false });
     const replacement = make(storage);
@@ -330,7 +414,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     const selected = make(storage);
     await selected.newTable(setup);
     const persisted = storage.getItem('dune-bidding-central-v1');
@@ -352,7 +436,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage, { locks: { request } });
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     act(old, { type: 'bid', amount: 7 });
     const replacement = make(storage, { locks: { request } });
     await replacement.initialize();
@@ -371,11 +455,79 @@ describe('bidding browser orchestration', () => {
     expect(links.frames.filter((frame) => kind(frame) === 'sync')).toHaveLength(0);
   });
 
+  test('connected device IDs follow phone presence independently of faction assignments', async () => {
+    const { central, remote } = await tableAndPhone();
+    const deviceId = remote.getSnapshot().deviceId;
+    const ids = central.getSnapshot().connectedDeviceIds;
+    expect(ids).toEqual([deviceId]);
+    expect(remote.getSnapshot().connectedDeviceIds).toEqual([]);
+    expect(snapshot(central).assignments[deviceId]).toBeUndefined();
+    act(remote, { type: 'assign', factionId: 'seat-0' });
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-0');
+    act(remote, { type: 'assign', factionId: 'seat-1' });
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-1');
+    links.presence();
+    expect(central.getSnapshot().connectedDeviceIds).toBe(ids);
+    await remote.leaveTable();
+    links.presence();
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-1');
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([deviceId]);
+  });
+
+  test('relay loss retains only direct device IDs until relay presence reconnects', async () => {
+    const central = make();
+    await central.newTable(setup);
+    const directId = crypto.randomUUID();
+    const relayId = crypto.randomUUID();
+    links.state(central, { remotes: [relayId, directId], direct: [directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([directId, relayId].sort());
+    const both = central.getSnapshot().connectedDeviceIds;
+    links.state(central, { remotes: [directId, relayId], direct: [directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toBe(both);
+    links.state(central, {
+      status: 'disconnected',
+      relay: false,
+      remotes: [relayId, directId],
+      direct: [directId],
+    });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([directId]);
+    links.state(central, { status: 'disconnected', relay: false, remotes: [relayId, directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    links.state(central, { remotes: [relayId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([relayId]);
+  });
+
+  test('terminal replacement and leaving clear live device IDs and ignore late presence', async () => {
+    const { central, remote } = await tableAndPhone();
+    const deviceId = remote.getSnapshot().deviceId;
+    const endpoint = links.endpoints.find((entry) => entry.options.role === 'central')!;
+    links.state(central, { status: 'replaced', relay: false, remotes: [deviceId], direct: [deviceId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    endpoint.options.onState({
+      status: 'connected',
+      relay: true,
+      central: true,
+      tableId: snapshot(central).tableId,
+      remotes: [deviceId],
+      direct: [deviceId],
+    });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    const next = make();
+    await next.newTable(setup);
+    links.state(next, { direct: [deviceId] });
+    expect(next.getSnapshot().connectedDeviceIds).toEqual([deviceId]);
+    await next.leaveTable();
+    expect(next.getSnapshot().connectedDeviceIds).toEqual([]);
+  });
+
   test('leaving stops this central device and a new table survives reload', async () => {
     const storage = new MemoryStorage();
     const client = make(storage);
     await client.newTable(setup);
-    act(client, { type: 'start' });
+    startAuction(client);
     client.setListening(true);
     client.setAnnouncements(true);
     const old = snapshot(client);
@@ -462,7 +614,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     links.state(old, { status: 'disconnected', relay: false });
     const selected = make(storage);
     await selected.initialize();
@@ -508,7 +660,7 @@ describe('bidding browser orchestration', () => {
     const client = make(storage, { locks: { request } });
     await client.newTable(setup);
     const writes = storage.writes.filter((key) => key === 'dune-bidding-central-v1').length;
-    act(client, { type: 'start' });
+    startAuction(client);
     act(client, { type: 'bid', amount: 9 });
     await client.leaveTable();
     await tail;
@@ -688,7 +840,7 @@ describe('bidding browser orchestration', () => {
   test('old microphone capture and a replaced timer cannot act on the following bidder', async () => {
     const central = make();
     await central.newTable(setup);
-    act(central, { type: 'start' });
+    startAuction(central);
     central.setListening(true);
     const captured = biddingContextOf(snapshot(central));
     await vi.advanceTimersByTimeAsync(4000);
@@ -700,6 +852,128 @@ describe('bidding browser orchestration', () => {
     expect(snapshot(central).auction.turn).toBe('seat-1');
     expect(central.getSnapshot().deadline).toBe(Date.now() + 4000);
     expect(voice.setContext).toHaveBeenCalledWith(nextOpportunity, expect.any(String));
+  });
+
+  test('claiming moderator stops listening and fences an already queued timer or microphone result', async () => {
+    const { central, remote } = await tableAndPhone();
+    const timers = vi.spyOn(globalThis, 'setTimeout');
+    startAuction(central);
+    const expired = timers.mock.calls.find(([, delay]) => delay === 5000)?.[0] as (() => void) | undefined;
+    expect(expired).toBeTypeOf('function');
+    timers.mockRestore();
+    central.setListening(true);
+    const captured = biddingContextOf(snapshot(central));
+    expect(central.getSnapshot().listening).toBe(true);
+    expect(central.getSnapshot().deadline).not.toBeNull();
+    act(remote, { type: 'claim-moderator' });
+    expect(snapshot(central)).toMatchObject({
+      moderatorDeviceId: remote.getSnapshot().deviceId,
+      auction: { controlMode: 'manual', stage: 'active' },
+    });
+    expect(snapshot(central).assignments[remote.getSnapshot().deviceId]).toBeUndefined();
+    expect(central.getSnapshot()).toMatchObject({ listening: false, deadline: null });
+    expect(voice.stop).toHaveBeenCalledOnce();
+    const manual = snapshot(central).auction;
+    expired!();
+    voiceOptions.onCommand({ type: 'pass' }, captured);
+    voiceOptions.onState({ status: 'listening', message: null });
+    central.setListening(true);
+    expect(voice.start).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(snapshot(central).auction).toEqual(manual);
+    expect(central.getSnapshot()).toMatchObject({ listening: false, deadline: null });
+    act(central, { type: 'reset' });
+    act(central, { type: 'set-control-mode', mode: 'automatic' });
+    voiceOptions.onState({ status: 'listening', message: null });
+    expect(central.getSnapshot().listening).toBe(false);
+    central.setListening(true);
+    expect(voice.start).toHaveBeenCalledTimes(2);
+    expect(central.getSnapshot().listening).toBe(true);
+  });
+
+  test('manual mode and its moderator survive central recovery without restarting the timer', async () => {
+    const storage = new MemoryStorage();
+    const central = make(storage);
+    await central.newTable(setup);
+    const remote = make();
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    startAuction(central);
+    act(remote, { type: 'claim-moderator' });
+    act(remote, { type: 'raise-one' });
+    act(remote, { type: 'advance' });
+    const manual = snapshot(central).auction;
+    central.dispose();
+    const restored = make(storage);
+    await restored.initialize();
+    expect(snapshot(restored)).toMatchObject({
+      moderatorDeviceId: remote.getSnapshot().deviceId,
+      auction: { controlMode: 'manual', stage: 'paused', turn: manual.turn, high: manual.high },
+    });
+    act(restored, { type: 'resume' });
+    const resumed = snapshot(restored).auction;
+    restored.setListening(true);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(snapshot(restored).auction).toEqual(resumed);
+    expect(restored.getSnapshot()).toMatchObject({ listening: false, deadline: null });
+    expect(voice.start).not.toHaveBeenCalled();
+  });
+
+  test('promoting a moderator phone keeps manual mode but releases the old moderator identity', async () => {
+    const { central, remote } = await tableAndPhone();
+    startAuction(central);
+    act(remote, { type: 'claim-moderator' });
+    act(remote, { type: 'raise-one' });
+    const manual = snapshot(remote).auction;
+    await remote.promote();
+    expect(snapshot(remote)).toMatchObject({
+      moderatorDeviceId: null,
+      auction: { controlMode: 'manual', stage: 'paused', turn: manual.turn, high: manual.high },
+    });
+    act(remote, { type: 'resume' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(snapshot(remote).auction).toMatchObject({ stage: 'active', turn: manual.turn, high: manual.high });
+    expect(remote.getSnapshot()).toMatchObject({ listening: false, deadline: null });
+  });
+
+  test('returning to a faction remote releases moderator control on the same connection', async () => {
+    const { central, remote } = await tableAndPhone();
+    startAuction(central);
+    act(remote, { type: 'claim-moderator' });
+    const staleModerator = biddingContextOf(snapshot(remote));
+    const connections = links.endpoints.length;
+    act(remote, { type: 'assign', factionId: 'seat-1' });
+    expect(snapshot(remote)).toMatchObject({
+      moderatorDeviceId: null,
+      assignments: { [remote.getSnapshot().deviceId]: 'seat-1' },
+      auction: { controlMode: 'manual' },
+    });
+    remote.act({ type: 'raise-one' }, staleModerator);
+    expect(snapshot(central).auction.high).toBeNull();
+    expect(remote.getSnapshot()).toMatchObject({ role: 'remote', pending: false, connected: true });
+    expect(links.endpoints).toHaveLength(connections);
+    act(central, { type: 'reset' });
+    act(central, { type: 'set-control-mode', mode: 'automatic' });
+    act(central, { type: 'start' });
+    expect(central.getSnapshot().deadline).toBe(Date.now() + 5000);
+    expect(central.getSnapshot().listening).toBe(false);
+  });
+
+  test('a new phone preserves the absence of moderator support on a legacy central copy', async () => {
+    const central = make();
+    await central.newTable(setup);
+    links.allow = () => false;
+    const remote = make();
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    const legacy = { ...snapshot(central), auction: { ...snapshot(central).auction } };
+    delete legacy.auction.controlMode;
+    delete legacy.moderatorDeviceId;
+    const endpoint = links.endpoints.findLast((candidate) => candidate.options.role === 'remote')!;
+    endpoint.options.onMessage('central', { type: 'state', snapshot: legacy, deadline: null, sentAt: Date.now() });
+    expect(remote.getSnapshot()).toMatchObject({ connected: true, error: null, joinPersisted: true });
+    expect(snapshot(remote).moderatorDeviceId).toBeUndefined();
+    expect(snapshot(remote).auction.controlMode).toBeUndefined();
   });
 
   test('live play remains available when persistence fails', async () => {
@@ -722,7 +996,7 @@ describe('bidding browser orchestration', () => {
     });
     clients.push(client);
     await client.newTable(setup);
-    act(client, { type: 'start' });
+    startAuction(client);
     act(client, { type: 'bid', amount: 4 });
     expect(snapshot(client).auction.high?.amount).toBe(4);
     expect(client.getSnapshot().storageError).toContain('recovery copy');

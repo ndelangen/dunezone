@@ -193,3 +193,9 @@ export const chapterArt = (chapter: TutorialChapter) => {
   const slug = ['find-a-game', 'create-a-game'].includes(chapter.slug) ? 'find-or-create' : chapter.slug;
   return `/tutorial/${slug}.webp`;
 };
+
+/* The text on a chapter's social card, which fits the wide card's four lines (120 characters). */
+export const chapterCardText = (chapter: TutorialChapter) => {
+  const long = `${chapter.goal}. A ${chapter.minutes}-minute chapter at a table you can play with.`;
+  return Array.from(long).length <= 120 ? long : `${chapter.goal}. A ${chapter.minutes}-minute chapter.`;
+};

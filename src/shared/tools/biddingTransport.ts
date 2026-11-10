@@ -14,6 +14,7 @@ export type BiddingRole = 'central' | 'remote';
 
 export const BIDDING_FRAME_BYTES = 262_144;
 export const BIDDING_REMOTE_LIMIT = 24;
+export const BIDDING_PROTOCOL_VERSION = 3;
 export const BIDDING_REPLACED = 4001;
 export const BIDDING_REFUSED = 4003;
 export const BIDDING_PING = 'bidding:ping';
@@ -44,6 +45,7 @@ export const biddingClientFrameSchema = z.discriminatedUnion('type', [
     .object({
       type: z.literal('join'),
       role: z.enum(['central', 'remote']),
+      protocol: z.int().min(1).optional(),
       tableId: z.uuid().optional(),
       device: biddingDeviceSchema,
       centralSecret: z

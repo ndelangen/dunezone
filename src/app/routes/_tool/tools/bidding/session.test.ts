@@ -22,11 +22,55 @@ function remote(table: BiddingSession, device: string, action: BiddingAction) {
 function started() {
   const table = session();
   expect(remote(table, 'phone-a', { type: 'assign', factionId: 'a' }).accepted).toBe(true);
+  expect(table.dispatch({ type: 'finish-setup' }).accepted).toBe(true);
   expect(table.dispatch({ type: 'start' }).accepted).toBe(true);
   return table;
 }
 
 describe('bidding command authority', () => {
+  it('lets assigned remotes select and start the first and later phases after central setup', () => {
+    const table = session();
+    expect(remote(table, 'phone-a', { type: 'assign', factionId: 'a' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'finish-setup' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(false);
+    expect(table.dispatch({ type: 'configure', cards: 1 }).accepted).toBe(true);
+    expect(table.dispatch({ type: 'finish-setup' }).accepted).toBe(true);
+    expect(remote(table, 'unassigned', { type: 'start' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'configure', cards: 2 }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'select-starter', id: 'b' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction.turn).toBe('b');
+    table.dispatch({ type: 'bid', amount: 2 });
+    table.dispatch({ type: 'pass' });
+    table.dispatch({ type: 'pass' });
+    expect(table.getSnapshot().auction.stage).toBe('over');
+    expect(remote(table, 'unassigned', { type: 'next-phase' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'next-phase' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'ready', phase: 2, turn: null });
+    expect(remote(table, 'phone-a', { type: 'select-starter', id: 'c' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'active', turn: 'c', phase: 2 });
+    expect(table.getSnapshot().auction.results).toHaveLength(1);
+  });
+
+  it('rejects old setup commands and accepts only one competing start for the ready table', () => {
+    const table = session();
+    remote(table, 'phone-a', { type: 'assign', factionId: 'a' });
+    remote(table, 'phone-b', { type: 'assign', factionId: 'b' });
+    const oldStart = request(table, 'phone-a', { type: 'start' });
+    const setupContext = table.captureContext();
+    table.dispatch({ type: 'configure', seconds: 20 });
+    expect(table.dispatch({ type: 'finish-setup' }, setupContext).accepted).toBe(false);
+    expect(table.getSnapshot().auction.stage).toBe('setup');
+    table.dispatch({ type: 'finish-setup' });
+    expect(table.receive('phone-a', oldStart).accepted).toBe(false);
+    const first = request(table, 'phone-a', { type: 'start' });
+    const second = request(table, 'phone-b', { type: 'start' });
+    expect(table.receive('phone-a', first).accepted).toBe(true);
+    expect(table.receive('phone-b', second).accepted).toBe(false);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'active', turn: 'a', high: null });
+  });
+
   it('accepts one of competing phone, tablet, voice and timer actions for the captured opportunity', () => {
     const table = started();
     const context = table.captureContext();
@@ -200,5 +244,134 @@ describe('bidding command authority', () => {
     stop();
     table.dispatch({ type: 'pass' });
     expect(seen).toHaveLength(1);
+  });
+});
+
+describe('moderator command authority', () => {
+  function moderated() {
+    const table = session();
+    expect(table.dispatch({ type: 'finish-setup' }).accepted).toBe(true);
+    expect(remote(table, 'moderator', { type: 'claim-moderator' }).accepted).toBe(true);
+    expect(remote(table, 'moderator', { type: 'start' }).accepted).toBe(true);
+    return table;
+  }
+
+  it('lets an unassigned phone claim moderation and releases only its own faction assignment', () => {
+    const table = session();
+    remote(table, 'phone-a', { type: 'assign', factionId: 'a' });
+    remote(table, 'phone-b', { type: 'assign', factionId: 'b' });
+    expect(remote(table, 'phone-a', { type: 'claim-moderator' }).accepted).toBe(true);
+    expect(table.getSnapshot()).toMatchObject({
+      moderatorDeviceId: 'phone-a',
+      assignments: { 'phone-b': 'b' },
+      auction: { controlMode: 'manual' },
+    });
+    expect(table.getSnapshot().assignments['phone-a']).toBeUndefined();
+    expect(table.dispatch({ type: 'claim-moderator' }).accepted).toBe(false);
+  });
+
+  it('allows only the current moderator or central to drive a manual auction', () => {
+    const table = moderated();
+    remote(table, 'player', { type: 'assign', factionId: 'a' });
+    for (const action of [
+      { type: 'raise-one' },
+      { type: 'advance' },
+      { type: 'back' },
+      { type: 'reset' },
+      { type: 'end-phase' },
+      { type: 'bid', amount: 2 },
+      { type: 'pass' },
+    ] as const) {
+      expect(remote(table, 'player', action).accepted, action.type).toBe(false);
+    }
+    expect(remote(table, 'player', { type: 'edit-hand', id: 'a', field: 'hand', value: 8 }).accepted).toBe(true);
+    expect(table.getSnapshot().auction.turn).toBe('a');
+    expect(remote(table, 'moderator', { type: 'raise-one' }).accepted).toBe(true);
+    expect(table.dispatch({ type: 'advance' }).accepted).toBe(true);
+    expect(remote(table, 'moderator', { type: 'back' }).accepted).toBe(true);
+    expect(table.dispatch({ type: 'bid', amount: 2 }).accepted).toBe(false);
+    expect(table.dispatch({ type: 'pass' }).accepted).toBe(false);
+    expect(remote(table, 'player', { type: 'confirm-winner' }).accepted).toBe(false);
+  });
+
+  it('fences a delayed first claim and old moderator controls after an explicit takeover', () => {
+    const table = moderated();
+    const delayed = request(table, 'late-phone', { type: 'claim-moderator' });
+    const oldRaise = request(table, 'moderator', { type: 'raise-one' });
+    expect(remote(table, 'replacement', { type: 'claim-moderator' }).accepted).toBe(true);
+    expect(table.receive('late-phone', delayed).accepted).toBe(false);
+    expect(table.receive('moderator', oldRaise).accepted).toBe(false);
+    expect(remote(table, 'moderator', { type: 'raise-one' }).accepted).toBe(false);
+    expect(table.getSnapshot().moderatorDeviceId).toBe('replacement');
+    expect(remote(table, 'replacement', { type: 'raise-one' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction.high).toEqual({ id: 'a', amount: 1 });
+  });
+
+  it('applies retries once and prevents a delayed confirmation from awarding another card', () => {
+    const table = moderated();
+    const raise = request(table, 'moderator', { type: 'raise-one' });
+    const raised = table.receive('moderator', raise);
+    expect(raised.accepted).toBe(true);
+    expect(table.receive('moderator', raise)).toEqual(raised);
+    expect(table.getSnapshot().auction.high?.amount).toBe(1);
+    const confirm = request(table, 'moderator', { type: 'confirm-winner' });
+    const confirmed = table.receive('moderator', confirm);
+    expect(confirmed.accepted).toBe(true);
+    expect(table.receive('moderator', confirm)).toEqual(confirmed);
+    expect(table.getSnapshot().auction.seats[0].hand).toBe(2);
+    expect(table.getSnapshot().auction.results).toHaveLength(1);
+    remote(table, 'moderator', { type: 'start' });
+    remote(table, 'moderator', { type: 'raise-one' });
+    const late = { ...request(table, 'moderator', { type: 'confirm-winner' }), opportunity: confirm.opportunity };
+    expect(table.receive('moderator', late).accepted).toBe(false);
+    expect(table.getSnapshot().auction.results).toHaveLength(1);
+  });
+
+  it('rejects controls captured before a raise even when its pointer did not move', () => {
+    const table = moderated();
+    const context = table.captureContext();
+    expect(remote(table, 'moderator', { type: 'raise-one' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction.turn).toBe('a');
+    expect(table.dispatch({ type: 'advance' }, context).accepted).toBe(false);
+    expect(table.dispatch({ type: 'confirm-winner' }, context).accepted).toBe(false);
+    expect(table.getSnapshot().auction.results).toEqual([]);
+  });
+
+  it('keeps manual control when the moderator releases or returns to a faction', () => {
+    const table = moderated();
+    remote(table, 'moderator', { type: 'raise-one' });
+    expect(remote(table, 'other', { type: 'release-moderator' }).accepted).toBe(false);
+    expect(remote(table, 'moderator', { type: 'release-moderator' }).accepted).toBe(true);
+    expect(table.getSnapshot()).toMatchObject({
+      moderatorDeviceId: null,
+      auction: { controlMode: 'manual', high: { id: 'a', amount: 1 } },
+    });
+    expect(remote(table, 'moderator', { type: 'advance' }).accepted).toBe(false);
+    expect(table.dispatch({ type: 'advance' }).accepted).toBe(true);
+    remote(table, 'moderator', { type: 'claim-moderator' });
+    const old = request(table, 'moderator', { type: 'raise-one' });
+    expect(remote(table, 'moderator', { type: 'assign', factionId: 'c' }).accepted).toBe(true);
+    expect(table.getSnapshot()).toMatchObject({
+      moderatorDeviceId: null,
+      assignments: { moderator: 'c' },
+      auction: { controlMode: 'manual' },
+    });
+    expect(table.receive('moderator', old).accepted).toBe(false);
+  });
+
+  it('returns to automatic only between auctions and clears the moderator claim', () => {
+    const table = moderated();
+    remote(table, 'moderator', { type: 'raise-one' });
+    expect(remote(table, 'moderator', { type: 'set-control-mode', mode: 'automatic' }).accepted).toBe(false);
+    expect(table.dispatch({ type: 'set-control-mode', mode: 'automatic' }).accepted).toBe(false);
+    expect(table.getSnapshot().auction.results).toEqual([]);
+    remote(table, 'moderator', { type: 'reset' });
+    expect(remote(table, 'moderator', { type: 'set-control-mode', mode: 'automatic' }).accepted).toBe(true);
+    expect(table.getSnapshot()).toMatchObject({
+      moderatorDeviceId: null,
+      auction: { controlMode: 'automatic', stage: 'ready', high: null },
+    });
+    expect(table.dispatch({ type: 'start' }).accepted).toBe(true);
+    expect(table.dispatch({ type: 'bid', amount: 2 }).accepted).toBe(true);
   });
 });

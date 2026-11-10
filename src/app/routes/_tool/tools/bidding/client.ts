@@ -39,6 +39,7 @@ const SNAPSHOT_MS = 30_000;
 const REMOTE_SILENCE_MS = 7000;
 const COMMAND_WAIT_MS = 2000;
 const TIMER_INTERRUPTION_MS = 1500;
+const NO_CONNECTED_DEVICES: readonly string[] = [];
 
 const savedCentralSchema = z.strictObject({
   version: z.literal(1),
@@ -86,6 +87,8 @@ export type BiddingClientState = Readonly<{
   deadline: number | null;
   connection: string;
   connected: boolean;
+  /** Remote device IDs with a usable path to this central device; assignments remain in the snapshot. */
+  connectedDeviceIds: readonly string[];
   pending: boolean;
   feedback: readonly string[];
   storageError: string | null;
@@ -138,6 +141,13 @@ function messageOf(error: unknown): string {
 
 function contextKey(context: BiddingContext): string {
   return `${context.tableId}/${context.centralInstanceId}/${context.generation}/${context.opportunity}`;
+}
+
+function connectedRemoteIds(state: BiddingLinkState, previous: readonly string[]): readonly string[] {
+  const ids = [...new Set([...(state.relay ? state.remotes : []), ...state.direct])]
+    .filter((id) => id !== 'central')
+    .sort();
+  return ids.length === previous.length && ids.every((id, index) => id === previous[index]) ? previous : ids;
 }
 
 /** Browser effects surround the single authoritative session; neither transport nor React decides an auction. */
@@ -195,6 +205,7 @@ export class BiddingClient {
       deadline: null,
       connection: 'No table connected',
       connected: false,
+      connectedDeviceIds: NO_CONNECTED_DEVICES,
       pending: false,
       feedback: [],
       storageError: null,
@@ -540,6 +551,10 @@ export class BiddingClient {
     if (this.state.role !== 'central' || !this.ensureLocalAuthority() || !this.session) {
       return;
     }
+    if (enabled && this.session.getSnapshot().auction.controlMode === 'manual') {
+      this.feedback('Listening is off while a moderator controls bidding.');
+      return;
+    }
     this.listeningRequested = enabled;
     if (!enabled) {
       this.voice?.stop();
@@ -553,7 +568,10 @@ export class BiddingClient {
     const key = contextKey(context);
     this.voiceContextKey = key;
     void voice.start(context, key).catch((error: unknown) => {
-      if (!this.disposed && this.run === run) {
+      if (this.voiceContextKey !== key) {
+        return;
+      }
+      if (this.run === run && this.listeningRequested) {
         this.update({ listening: false, voiceMessage: messageOf(error) });
       }
     });
@@ -652,7 +670,13 @@ export class BiddingClient {
     this.lastAuthorityAt = 0;
     this.lastSyncAt = -Infinity;
     this.centralAddress = null;
-    this.update({ listening: false, announcing: false, voiceMessage: '', deadline: null });
+    this.update({
+      listening: false,
+      announcing: false,
+      voiceMessage: '',
+      deadline: null,
+      connectedDeviceIds: NO_CONNECTED_DEVICES,
+    });
   }
 
   private installCentral(
@@ -675,6 +699,7 @@ export class BiddingClient {
       },
       auction: snapshot.auction,
       assignments: snapshot.assignments,
+      moderatorDeviceId: snapshot.moderatorDeviceId,
       revision: snapshot.revision,
     });
     this.update({
@@ -769,7 +794,11 @@ export class BiddingClient {
       : state.relay
         ? 'Phone relay connected'
         : 'Phone relay unavailable';
-    this.update({ connection, connected: this.session !== null });
+    this.update({
+      connection,
+      connected: this.session !== null,
+      connectedDeviceIds: connectedRemoteIds(state, this.state.connectedDeviceIds),
+    });
     if (!state.relay && !state.direct.length) {
       return;
     }
@@ -807,6 +836,9 @@ export class BiddingClient {
     const snapshot = this.session.getSnapshot();
     this.update({ snapshot });
     this.synchronizeTimer();
+    if (snapshot.auction.controlMode === 'manual' && this.listeningRequested) {
+      this.setListening(false);
+    }
     this.updateVoiceContext();
     this.persistCentral();
     this.publish();
@@ -822,7 +854,7 @@ export class BiddingClient {
   private synchronizeTimer(): void {
     const snapshot = this.session?.getSnapshot();
     const key =
-      snapshot?.auction.stage === 'active' && snapshot.auction.seconds > 0
+      snapshot?.auction.stage === 'active' && snapshot.auction.controlMode !== 'manual' && snapshot.auction.seconds > 0
         ? `${contextKey(biddingContextOf(snapshot))}/${snapshot.auction.seconds}`
         : null;
     if (key === this.timerKey) {
@@ -925,7 +957,15 @@ export class BiddingClient {
       this.publish(from);
       return;
     }
-    const result = this.session.receive(from, data);
+    const session = this.session;
+    const revision = session.getSnapshot().revision;
+    const result = session.receive(from, data);
+    if (this.session !== session) {
+      return;
+    }
+    if (result.accepted && result.revision > revision) {
+      this.feedback(result.reason);
+    }
     this.link?.send(from, result);
   }
 
@@ -1125,6 +1165,9 @@ export class BiddingClient {
         if (this.run !== run || this.disposed) {
           return;
         }
+        if (!this.listeningRequested || this.session?.getSnapshot().auction.controlMode === 'manual') {
+          return;
+        }
         if (['off', 'interrupted', 'failed', 'unsupported'].includes(state.status)) {
           this.listeningRequested = false;
         }
@@ -1134,7 +1177,10 @@ export class BiddingClient {
         });
       },
       onCommand: (command, context) => {
-        if (this.run !== run || this.disposed || !this.session) {
+        if (this.run !== run || this.disposed) {
+          return;
+        }
+        if (!this.session || !this.listeningRequested) {
           return;
         }
         this.voice?.cancelAnnouncement();
@@ -1155,7 +1201,10 @@ export class BiddingClient {
       return;
     }
     const snapshot = this.session.getSnapshot();
-    const context = snapshot.auction.stage === 'active' ? biddingContextOf(snapshot) : null;
+    const context =
+      snapshot.auction.stage === 'active' && snapshot.auction.controlMode !== 'manual'
+        ? biddingContextOf(snapshot)
+        : null;
     const key = context ? contextKey(context) : null;
     if (key === this.voiceContextKey) {
       return;
@@ -1177,7 +1226,9 @@ export class BiddingClient {
         : auction.stage === 'paused'
           ? 'The table is paused.'
           : auction.stage === 'ready'
-            ? 'Card complete. The next card is ready.'
+            ? auction.opener === null
+              ? 'The table is ready. Choose the first bidder.'
+              : 'Ready for a new bid. Choose the starting faction.'
             : auction.stage === 'over'
               ? 'The phase is complete.'
               : 'Set up the table.';
