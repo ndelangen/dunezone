@@ -189,6 +189,33 @@ test('orphan cleanup protects the exact creation marker before and after adoptio
   expect(fetch.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
 });
 
+test('orphan deletion rechecks the category after a Discord rate limit', async () => {
+  vi.useFakeTimers();
+  const { admin } = await setup();
+  const id = '700000000000000000';
+  const candidate = { id, name: 'room', type: 2, parent_id: '200', guild_id: '100' };
+  const requests: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, options?: RequestInit) => {
+      const method = options?.method ?? 'GET';
+      requests.push(method);
+      if (method === 'DELETE') {
+        candidate.parent_id = '2010';
+        return Response.json({ retry_after: 1 }, { status: 429 });
+      }
+      return Response.json(candidate);
+    })
+  );
+  const deletion = expect(admin.action(api.playDiscordAdmin.deleteOrphan, { channelId: id })).rejects.toThrow(
+    'outside the configured Games categories'
+  );
+  await vi.waitFor(() => expect(requests).toContain('DELETE'));
+  await vi.advanceTimersByTimeAsync(1000);
+  await deletion;
+  expect(requests).toEqual(['GET', 'DELETE', 'GET']);
+});
+
 test('paused integration refuses manual channel deletion', async () => {
   const { t, admin } = await setup();
   const channelId = await t.run(async (ctx) => {

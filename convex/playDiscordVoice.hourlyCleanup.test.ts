@@ -312,6 +312,7 @@ test('a channel-scoped hold does not stop later missing-channel checks', async (
   });
   SnapshotSocket.onIdentify = (socket) =>
     queueMicrotask(() => socket.packet(0, { ...snapshotGuild(), channels: [] }, 'GUILD_CREATE'));
+  const otherProbes = Promise.withResolvers<void>();
   discord.fetch.mockImplementation(async (input) => {
     const url = input instanceof Request ? input.url : String(input);
     if (url.endsWith('/gateway/bot')) {
@@ -320,9 +321,19 @@ test('a channel-scoped hold does not stop later missing-channel checks', async (
     if (url.endsWith('/channels/300')) {
       return Response.json({ retry_after: 60 }, { status: 429, headers: { 'X-RateLimit-Scope': 'shared' } });
     }
+    await otherProbes.promise;
     return Response.json({ code: 10_003 }, { status: 404 });
   });
-  await cleanup(world);
+  const run = cleanup(world);
+  await vi.waitFor(async () => {
+    const hold = await world.t.query(internal.playDiscordRateLimits.inspect, {
+      route: 'channel.read',
+      major: 'channel:300',
+    });
+    expect(hold?.blockedUntil).toBeGreaterThan(Date.now());
+  });
+  otherProbes.resolve();
+  await run;
   expect(await world.channel()).toMatchObject({ state: 'ready' });
   expect(await world.t.run((ctx) => ctx.db.get(laterId))).toMatchObject({ state: 'deleted' });
 });

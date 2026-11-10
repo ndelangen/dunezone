@@ -271,6 +271,21 @@ export const refreshOrphans = action({
   },
 });
 
+async function readOrphanTarget(
+  client: DiscordRest,
+  config: NonNullable<ReturnType<typeof discordConfiguration>>,
+  channelId: string
+): Promise<Infer<typeof orphan>> {
+  const channel = discordChannel.parse(await client.request('GET', `/channels/${channelId}`));
+  if (channel.id !== channelId || channel.guild_id !== config.guildId || channel.type !== 2) {
+    throw new Error('Channel is outside the configured Games categories.');
+  }
+  if (!channel.parent_id || !config.categoryIds.includes(channel.parent_id)) {
+    throw new Error('Channel is outside the configured Games categories.');
+  }
+  return { id: channel.id, name: channel.name, parent_id: channel.parent_id, guild_id: channel.guild_id };
+}
+
 export const deleteOrphan = action({
   args: { channelId: v.string() },
   returns: v.null(),
@@ -286,22 +301,10 @@ export const deleteOrphan = action({
       throw new Error('Discord is not configured.');
     }
     const client = rest(ctx, config.token);
-    const channel = discordChannel.parse(
-      await retryAdminRequest(() => client.request('GET', `/channels/${channelId}`))
-    );
-    if (
-      channel.id !== channelId ||
-      channel.guild_id !== config.guildId ||
-      channel.type !== 2 ||
-      !channel.parent_id ||
-      !config.categoryIds.includes(channel.parent_id)
-    ) {
-      throw new Error('Channel is outside the configured Games categories.');
-    }
-    const { id, name, parent_id, guild_id } = channel;
     await retryAdminRequest(async () => {
+      const candidate = await readOrphanTarget(client, config, channelId);
       const untracked = await ctx.runQuery(internal.playDiscordAdmin.untracked, {
-        candidates: [{ id, name, parent_id, guild_id }],
+        candidates: [candidate],
       });
       if (untracked.length !== 1) {
         throw new Error('Channel is tracked by a game.');
