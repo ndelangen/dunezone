@@ -22,6 +22,7 @@ import { Route as AppTutorialRouteRouteImport } from './routes/_app/tutorial/rou
 import { Route as AuthOauthRouteRouteImport } from './routes/auth/oauth.route'
 import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as AppAdminAccountsRouteRouteImport } from './routes/_app/admin/accounts.route'
+import { Route as AppAdminDiscordRouteRouteImport } from './routes/_app/admin/discord.route'
 import { Route as AppAdminGameDebuggerRouteRouteImport } from './routes/_app/admin/game-debugger/route'
 import { Route as AppAdminJobsRouteRouteImport } from './routes/_app/admin/jobs.route'
 import { Route as AppAdminMigrationsRouteRouteImport } from './routes/_app/admin/migrations.route'
@@ -154,6 +155,11 @@ const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
 const AppAdminAccountsRouteRoute = AppAdminAccountsRouteRouteImport.update({
   id: '/accounts',
   path: '/accounts',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminDiscordRouteRoute = AppAdminDiscordRouteRouteImport.update({
+  id: '/discord',
+  path: '/discord',
   getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppAdminGameDebuggerRouteRoute =
@@ -551,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/tutorial': typeof AppTutorialRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/discord': typeof AppAdminDiscordRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -630,6 +637,7 @@ export interface FileRoutesByTo {
   '/media': typeof AppMediaRouteRouteWithChildren
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/admin/discord': typeof AppAdminDiscordRouteRoute
   '/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/admin/jobs': typeof AppAdminJobsRouteRoute
   '/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -716,6 +724,7 @@ export interface FileRoutesById {
   '/auth/oauth': typeof AuthOauthRouteRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/accounts': typeof AppAdminAccountsRouteRoute
+  '/_app/admin/discord': typeof AppAdminDiscordRouteRoute
   '/_app/admin/game-debugger': typeof AppAdminGameDebuggerRouteRoute
   '/_app/admin/jobs': typeof AppAdminJobsRouteRoute
   '/_app/admin/migrations': typeof AppAdminMigrationsRouteRoute
@@ -801,6 +810,7 @@ export interface FileRouteTypes {
     | '/tutorial'
     | '/auth/oauth'
     | '/admin/accounts'
+    | '/admin/discord'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
@@ -880,6 +890,7 @@ export interface FileRouteTypes {
     | '/media'
     | '/auth/oauth'
     | '/admin/accounts'
+    | '/admin/discord'
     | '/admin/game-debugger'
     | '/admin/jobs'
     | '/admin/migrations'
@@ -965,6 +976,7 @@ export interface FileRouteTypes {
     | '/auth/oauth'
     | '/_app/'
     | '/_app/admin/accounts'
+    | '/_app/admin/discord'
     | '/_app/admin/game-debugger'
     | '/_app/admin/jobs'
     | '/_app/admin/migrations'
@@ -1136,6 +1148,13 @@ declare module '@tanstack/react-router' {
       path: '/accounts'
       fullPath: '/admin/accounts'
       preLoaderRoute: typeof AppAdminAccountsRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/discord': {
+      id: '/_app/admin/discord'
+      path: '/discord'
+      fullPath: '/admin/discord'
+      preLoaderRoute: typeof AppAdminDiscordRouteRouteImport
       parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/admin/game-debugger': {
@@ -1633,6 +1652,7 @@ declare module '@tanstack/react-router' {
 
 interface AppAdminRouteRouteChildren {
   AppAdminAccountsRouteRoute: typeof AppAdminAccountsRouteRoute
+  AppAdminDiscordRouteRoute: typeof AppAdminDiscordRouteRoute
   AppAdminGameDebuggerRouteRoute: typeof AppAdminGameDebuggerRouteRoute
   AppAdminJobsRouteRoute: typeof AppAdminJobsRouteRoute
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
@@ -1642,6 +1662,7 @@ interface AppAdminRouteRouteChildren {
 
 const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
   AppAdminAccountsRouteRoute: AppAdminAccountsRouteRoute,
+  AppAdminDiscordRouteRoute: AppAdminDiscordRouteRoute,
   AppAdminGameDebuggerRouteRoute: AppAdminGameDebuggerRouteRoute,
   AppAdminJobsRouteRoute: AppAdminJobsRouteRoute,
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,

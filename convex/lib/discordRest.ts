@@ -20,6 +20,12 @@ export class DiscordFailure extends Error {
   }
 }
 
+export class DiscordPaused extends Error {
+  constructor() {
+    super('Discord integration is disabled.');
+  }
+}
+
 export function discordConfiguration() {
   const categoryIds = process.env.DISCORD_GAMES_CATEGORY_IDS?.split(',')
     .map((id) => id.trim())
@@ -66,7 +72,7 @@ export class DiscordRest {
   constructor(
     private readonly token: string,
     private readonly reason: string,
-    private readonly cooldown: { until: () => Promise<number>; hold: (until: number) => Promise<unknown> }
+    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> }
   ) {}
 
   private async fetchResponse(method: string, path: string, body: unknown) {
@@ -86,12 +92,16 @@ export class DiscordRest {
     }
   }
 
-  async request(method: string, path: string, body?: unknown): Promise<unknown> {
+  async request(method: string, path: string, body?: unknown, rateLimitRetries = 2): Promise<unknown> {
     for (let attempt = 0; ; attempt += 1) {
       if (!discordConfiguration()) {
         throw new DiscordFailure(0, undefined);
       }
-      const blocked = (await this.cooldown.until()) - Date.now();
+      const until = await this.cooldown.until();
+      if (until === null) {
+        throw new DiscordPaused();
+      }
+      const blocked = until - Date.now();
       if (blocked > 0) {
         throw new DiscordFailure(429, undefined, blocked);
       }
@@ -104,7 +114,7 @@ export class DiscordRest {
       if (response.status === 429) {
         await this.cooldown.hold(Date.now() + failure.retryAfterMs);
       }
-      if (response.status === 429 && attempt < 2 && failure.retryAfterMs <= 5000) {
+      if (response.status === 429 && attempt < rateLimitRetries && failure.retryAfterMs <= 5000) {
         await new Promise((resolve) => setTimeout(resolve, failure.retryAfterMs));
         continue;
       }
@@ -136,6 +146,27 @@ export class DiscordRest {
       .object({ code: z.string().regex(/^[A-Za-z0-9-]+$/) })
       .parse(await this.request('POST', `/channels/${channelId}/invites`, { max_uses: 0, max_age: 0, unique: false }));
     return `https://discord.gg/${result.code}`;
+  }
+
+  /** The scheduler owns nudge retries so expiry and account linkage are checked before each POST. */
+  async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string, nonce: string) {
+    const plain = (value: string) => value.replace(/\s+/g, ' ').replace(/[\\`*_~|<>[\]]/g, '\\$&');
+    const result = await this.request(
+      'POST',
+      `/channels/${channelId}/messages`,
+      {
+        content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
+        allowed_mentions: { parse: [], users: [userId], replied_user: false },
+        nonce,
+        enforce_nonce: true,
+      },
+      0
+    );
+    const parsed = z.object({ id: snowflake }).safeParse(result);
+    if (!parsed.success) {
+      throw new DiscordFailure(0, undefined);
+    }
+    return parsed.data.id;
   }
 
   async remove(channelId: string) {

@@ -4,7 +4,7 @@ import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
-import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
+import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
 
 type Claim = { channelId: Id<'play_game_discord_channels'>; lease: string };
 
@@ -24,12 +24,15 @@ async function createRoom(
     try {
       channelId = await rest.create(row.guild_id, categoryId, name);
     } catch (error) {
-      if (!(error instanceof DiscordFailure && error.status >= 400 && error.status < 500)) {
+      if (
+        !(error instanceof DiscordPaused) &&
+        !(error instanceof DiscordFailure && error.status >= 400 && error.status < 500)
+      ) {
         throw error;
       }
       await ctx.runMutation(internal.playDiscord.rejectedCreation, claim);
       /* A category may have filled since listing it; Discord rejected the create, so trying the next category is safe. */
-      if (error.status === 400 && error.code === 50_035) {
+      if (error instanceof DiscordFailure && error.status === 400 && error.code === 50_035) {
         continue;
       }
       throw error;

@@ -5,7 +5,7 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { docValidator } from './lib/collaborativeAccessValidators';
-import { discordConfiguration } from './lib/discordRest';
+import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
 import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
 
@@ -15,8 +15,9 @@ const claimArgs = { channelId: v.id('play_game_discord_channels'), lease: v.stri
 /** A shared deadline also stops requests from actions already working on other games. */
 export const cooldownUntil = internalQuery({
   args: {},
-  returns: v.number(),
-  handler: async (ctx) => (await ctx.db.query('play_discord_cooldown').unique())?.blocked_until ?? 0,
+  returns: v.union(v.number(), v.null()),
+  handler: async (ctx) =>
+    (await discordEnabled(ctx)) ? ((await ctx.db.query('play_discord_cooldown').unique())?.blocked_until ?? 0) : null,
 });
 
 export const holdRequests = internalMutation({
@@ -39,7 +40,7 @@ export const claim = internalMutation({
   handler: async (ctx, { channelId }) => {
     const row = await ctx.db.get(channelId);
     if (
-      !discordConfiguration() ||
+      !(await discordEnabled(ctx)) ||
       !row ||
       row.state === 'deleted' ||
       (row.lease_until ?? 0) > Date.now() ||
@@ -71,7 +72,7 @@ export const work = internalMutation({
   returns: v.union(v.null(), v.object({ channel: channelValidator, name: v.string(), remove: v.boolean() })),
   handler: async (ctx, args) => {
     const channel = await ctx.db.get(args.channelId);
-    if (!discordConfiguration() || !channel || channel.lease !== args.lease || channel.state === 'deleted') {
+    if (!(await discordEnabled(ctx)) || !channel || channel.lease !== args.lease || channel.state === 'deleted') {
       return null;
     }
     const game = await ctx.db.get(channel.game_id);
@@ -86,7 +87,7 @@ export const startCreation = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (
-      !discordConfiguration() ||
+      !(await discordEnabled(ctx)) ||
       row?.lease !== args.lease ||
       row.state !== 'pending' ||
       row.channel_id !== undefined ||
@@ -135,7 +136,7 @@ export const invited = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (
-      !discordConfiguration() ||
+      !(await discordEnabled(ctx)) ||
       row?.lease !== args.lease ||
       row.state !== 'pending' ||
       !row.channel_id ||
@@ -155,7 +156,7 @@ export const beginDeletion = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (
-      !discordConfiguration() ||
+      !(await discordEnabled(ctx)) ||
       !row ||
       row.lease !== args.lease ||
       row.state === 'creating' ||
@@ -221,7 +222,7 @@ export const retryDue = internalMutation({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    if (!discordConfiguration()) {
+    if (!(await discordEnabled(ctx))) {
       return null;
     }
     for (const state of ['pending', 'ready', 'deleting'] as const) {

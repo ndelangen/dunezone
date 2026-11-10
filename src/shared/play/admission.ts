@@ -53,6 +53,8 @@ const playMinimumPlayersSchema = tableSeatCountSchema;
 export const playGameProvisionSchema = z.object({
   rulesetId: identifierSchema,
   minimumPlayers: playMinimumPlayersSchema,
+  /* Absent on older games; Convex checks their saved opt-in before delivering a nudge. */
+  discordVoice: z.boolean().optional(),
   /* Chosen on the create page; a game created before that plays the standard ten turns. */
   lastTurn: lastTurnSchema.optional(),
   creator: z.object({
