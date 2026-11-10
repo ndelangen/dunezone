@@ -15,7 +15,7 @@ import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
-import { chapterArt, chapterAt, TUTORIAL_CHAPTERS } from './chapters';
+import { chapterArt, chapterAt, chapterCardText, TUTORIAL_CHAPTERS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 
 /*
@@ -61,7 +61,7 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       social: {
         kind: 'Tutorial · Playing Dune',
         shape: 'landscape',
-        text: `${chapter.goal}. A ${chapter.minutes}-minute chapter at a table you can play with.`,
+        text: chapterCardText(chapter),
       },
       trail: [{ name: 'Learn to play', pathname: '/tutorial' }],
     });

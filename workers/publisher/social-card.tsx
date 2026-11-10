@@ -67,14 +67,11 @@ function art(input: CardInput, width: number, height: number): ReactNode {
     </div>
   );
 }
-/*
- * Portrait and round artwork (cards, tokens, portraits) sits in a tall slot beside a wide text column.
- * Landscape artwork (screenshots of the table) gets a wide slot and the text column narrows to make room, so the picture reads at a glance.
- */
 /* Clips the card's text on a word boundary, so it never ends in half a word. */
-function clipAtWord(value: string, limit: number): string {
+export function clipAtWord(value: string, limit: number): string {
   const clipped = clipSocialCardText(value, limit);
-  if (!clipped.endsWith('…')) {
+  /* Only text that was cut loses its last word; an ellipsis the author wrote stays. */
+  if (Array.from(value.replace(/\s+/g, ' ').trim()).length <= limit) {
     return clipped;
   }
   const words = clipped
@@ -84,6 +81,10 @@ function clipAtWord(value: string, limit: number): string {
   return `${words || clipped.slice(0, -1)}…`;
 }
 
+/*
+ * Portrait and round artwork (cards, tokens, portraits) sits in a tall slot beside a wide text column.
+ * Landscape artwork (screenshots of the table) gets a wide slot and the text column narrows to make room, so the picture reads at a glance.
+ */
 const LAYOUTS = {
   tall: {
     textWidth: 610,

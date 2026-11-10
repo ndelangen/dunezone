@@ -20,7 +20,11 @@ export const Route = createFileRoute('/_app/create/')({
       description:
         'Tutorials for making your own homebrew content for the Dune board game: factions, cards, tokens, boards, Rulesets and Rulebooks.',
       image: loaderData?.socialImage,
-      social: { kind: 'Tutorials · Creating content', shape: 'landscape' },
+      social: {
+        kind: 'Tutorials · Creating content',
+        shape: 'landscape',
+        text: 'Interactive tutorials for making your own factions, cards, tokens, boards and Rulebooks.',
+      },
     }),
   component: CreatorTutorials,
 });

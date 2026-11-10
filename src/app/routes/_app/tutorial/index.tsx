@@ -21,7 +21,11 @@ export const Route = createFileRoute('/_app/tutorial/')({
       description:
         'Short interactive chapters that teach Dune Zone Play: find or create a game, move pieces, deal cards, bid, battle and finish a game of the Dune board game online.',
       image: loaderData?.socialImage,
-      social: { kind: 'Tutorials · Playing Dune', shape: 'landscape' },
+      social: {
+        kind: 'Tutorials · Playing Dune',
+        shape: 'landscape',
+        text: 'Short interactive chapters that teach you to play the Dune board game online at Dune Zone.',
+      },
     }),
   component: PlayTutorials,
 });
