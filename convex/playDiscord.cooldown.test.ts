@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
 import { DiscordRest } from './lib/discordRest';
+import type { DiscordRequestGate } from './lib/discordRest';
 import { DISCORD_RETRY, requestDiscordDeletion } from './lib/playDiscord';
 import { playRateLimiter } from './lib/playRateLimits';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
@@ -22,18 +23,22 @@ afterEach(() => {
 test('one global rate limit pauses other games, including their already-running clients', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
-  const cooldown = {
-    until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
-    hold: (until: number) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+  const gate: DiscordRequestGate = {
+    inspect: (scope) => world.t.query(internal.playDiscordRateLimits.inspect, scope),
+    observe: (observation) => world.t.mutation(internal.playDiscordRateLimits.observe, observation),
   };
-  const first = new DiscordRest('test-token', 'First game', cooldown);
-  const second = new DiscordRest('test-token', 'Second game', cooldown);
+  const first = new DiscordRest('test-token', 'First game', gate);
+  const second = new DiscordRest('test-token', 'Second game', gate);
   discord.fetch.mockResolvedValue(Response.json({ retry_after: 60, global: true }, { status: 429 }));
   await expect(first.invite('300')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
   await expect(second.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
   expect(discord.fetch).toHaveBeenCalledTimes(1);
-  await cooldown.hold(Date.now() + 1000);
-  expect(await cooldown.until()).toBe(Date.now() + 60_000);
+  await gate.observe({
+    route: 'channelInvite.create',
+    major: 'channel:300',
+    limit: { until: Date.now() + 1000, global: true },
+  });
+  expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(Date.now() + 60_000);
   expect(await world.t.mutation(internal.playDiscord.claim, { channelId: (await world.channel())!._id })).toBeNull();
 });
 
@@ -46,19 +51,74 @@ async function nextRetry(world: Awaited<ReturnType<typeof voiceWorld>>) {
   return retry!;
 }
 
-test('a short rate limit releases its action and retries at the shared deadline', async () => {
-  const discord = discordStub();
-  const world = await voiceWorld();
-  discord.fetch.mockResolvedValueOnce(Response.json({ retry_after: 1, global: true }, { status: 429 }));
-  await world.reconcile();
-  expect(discord.fetch).toHaveBeenCalledTimes(1);
-  expect((await world.channel())!.lease).toBeUndefined();
-  const retry = await nextRetry(world);
-  expect(retry.scheduledTime).toBe(Date.now() + 1000);
-  vi.setSystemTime(retry.scheduledTime);
-  await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
-  expect(await world.channel()).toMatchObject({ state: 'ready' });
-});
+test.each([false, true])(
+  'a short rate limit releases its action and retries at its deadline, global=%s',
+  async (global) => {
+    const discord = discordStub();
+    const world = await voiceWorld();
+    discord.fetch.mockResolvedValueOnce(Response.json({ retry_after: 1, global }, { status: 429 }));
+    await world.reconcile();
+    expect(discord.fetch).toHaveBeenCalledTimes(1);
+    expect((await world.channel())!.lease).toBeUndefined();
+    expect((await world.channel())!.retry_after).toBe(global ? Date.now() + 1000 : undefined);
+    const retry = await nextRetry(world);
+    expect(retry.scheduledTime).toBe(Date.now() + 1000);
+    await world.reconcile();
+    expect(discord.fetch).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(retry.scheduledTime);
+    await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
+    expect(await world.channel()).toMatchObject({ state: 'ready' });
+  }
+);
+
+test.each(['user', 'shared', 'global'] as const)(
+  'discard during an in-flight %s invite limit consults the DELETE scope',
+  async (scope) => {
+    const discord = discordStub();
+    const world = await voiceWorld();
+    const normal = discord.fetch.getMockImplementation()!;
+    discord.fetch.mockImplementation(async (input, options) => {
+      if (
+        options?.method === 'POST' &&
+        (input instanceof Request ? input.url : String(input)).endsWith('/channels/300/invites')
+      ) {
+        await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
+        return Response.json(
+          { retry_after: 60, global: scope === 'global' },
+          { status: 429, headers: { 'X-RateLimit-Scope': scope, 'X-RateLimit-Bucket': 'invites' } }
+        );
+      }
+      return await normal(input, options);
+    });
+    await world.reconcile();
+    const until = Date.now() + 60_000;
+    expect((await world.channel())!.retry_after).toBe(scope === 'global' ? until : undefined);
+    expect((await world.channel())!.retry).toBeUndefined();
+    const before = discord.fetch.mock.calls.length;
+    await world.reconcile();
+    if (scope === 'global') {
+      expect(discord.fetch).toHaveBeenCalledTimes(before);
+      expect((await world.channel())!.next_attempt_at).toBe(until);
+      vi.setSystemTime(until);
+      await world.reconcile();
+    } else {
+      expect(
+        await world.t.query(internal.playDiscordRateLimits.inspect, {
+          route: 'channelInvite.create',
+          major: 'channel:300',
+        })
+      ).toMatchObject({ blockedUntil: until, globalUntil: 0 });
+      expect(
+        await world.t.query(internal.playDiscordRateLimits.inspect, {
+          route: 'channel.delete',
+          major: 'channel:300',
+        })
+      ).toMatchObject({ blockedUntil: 0, globalUntil: 0 });
+    }
+    expect(await world.channel()).toMatchObject({ state: 'deleted' });
+    expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
+  }
+);
 
 test('a queued room cannot bypass its retry-after deadline', async () => {
   const discord = discordStub();
@@ -82,13 +142,15 @@ test("retirement supersedes application backoff while retaining Discord's hard d
   const world = await voiceWorld();
   await world.reconcile();
   const row = (await world.channel())!;
+  await world.t.mutation(internal.playDiscord.holdRequests, { until: Date.now() + 60_000 });
   await world.t.run(async (ctx) => {
     await ctx.db.patch(row._id, {
-      retry_after: Date.now() + 60_000,
+      retry_after: Date.now() + 120_000,
       retry: { kind: 'backoff', until: Date.now() + DISCORD_RETRY, revision: row.work_revision ?? 0 },
     });
     await requestDiscordDeletion(ctx, (await ctx.db.get(row._id))!);
   });
+  expect((await world.channel())!.retry_after).toBeUndefined();
   await world.reconcile();
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
   vi.setSystemTime(Date.now() + 60_000);
@@ -190,7 +252,7 @@ test.each(['discard', 'cron'] as const)(
   }
 );
 
-test('a lost creation response after a scheduled retry never schedules another creation', async () => {
+test('a lost creation response after a scheduled retry stays unconfirmed during the recovery window', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const normal = discord.fetch.getMockImplementation()!;

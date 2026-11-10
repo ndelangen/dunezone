@@ -1,13 +1,133 @@
 import { testingPreview } from '@sb/preview';
-import { expect, userEvent, waitFor, within } from 'storybook/test';
+import { useEffect } from 'react';
+import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
+import { useStorybookDatabaseClient } from '@db/storybook';
+
+import { adminDiscordRecoveryParameters } from './adminDiscord.stories.fixture';
 import { expectRefused, withoutAdmins } from './adminPages.stories.fixture';
 import { voiceParameters } from './discord.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
+const adminDatabase: { client: ReturnType<typeof useStorybookDatabaseClient> | null } = { client: null };
+
+function ObserveAdminDatabase() {
+  const client = useStorybookDatabaseClient();
+  useEffect(() => {
+    adminDatabase.client = client;
+    return () => {
+      adminDatabase.client = null;
+    };
+  }, [client]);
+  return null;
+}
+
 const meta = testingPreview.meta({
   title: 'Admin/Discord',
   ...pageStoryMeta,
+  decorators: [
+    (Story) => (
+      <>
+        <ObserveAdminDatabase />
+        <Story />
+      </>
+    ),
+  ],
+});
+
+async function expectRecoveryStates(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByRole('columnheader', { name: /^Cleanup$/ })).resolves.toBeVisible();
+  const active = within(page.getByRole('row', { name: /Creation in progress/ }));
+  const expired = within(page.getByRole('row', { name: /Creation retry/ }));
+  await expect(active.getByText('Creating', { exact: true })).toBeVisible();
+  await expect(expired.getByText('Retrying', { exact: true })).toBeVisible();
+  for (const state of page.getAllByText(/^(Creating|Retrying|pending|ready)$/)) {
+    await expect(state.scrollWidth).toBeLessThanOrEqual(state.clientWidth);
+  }
+  await expect(expired.getByText('Discord did not confirm channel creation.')).toBeVisible();
+  await expect(expired.getByRole('button', { name: 'Retry now for Creation retry' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true'
+  );
+  await expect(active.getByText(/^Scheduled retry:/)).toHaveTextContent('UTC');
+  await expect(page.getByRole('cell', { name: /^Awaiting channel setup$/ })).toBeVisible();
+  await expect(page.getByRole('cell', { name: /^Awaiting channel rename$/ })).toBeVisible();
+  await expect(page.getByRole('cell', { name: /^Hourly, when voice is empty$/ })).toBeVisible();
+  await expect(page.queryByText(/Check Discord first/)).toBeNull();
+  return page;
+}
+
+export const RecoveryStates = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: adminDiscordRecoveryParameters(),
+  play: async ({ canvasElement }) => {
+    await expectRecoveryStates(canvasElement);
+  },
+});
+
+export const RecoveryStatesPhone = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: adminDiscordRecoveryParameters(),
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = await expectRecoveryStates(canvasElement);
+    const table = page.getByRole('columnheader', { name: /^Cleanup$/ }).closest('table')!;
+    const scrollport = table.closest<HTMLElement>('[data-scrollarea-viewport]')!;
+    await expect(scrollport.clientWidth).toBeLessThan(table.scrollWidth);
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView!.innerWidth
+    );
+  },
+});
+
+export const RetryChannel = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: adminDiscordRecoveryParameters(),
+  play: async ({ canvasElement }) => {
+    const page = await expectRecoveryStates(canvasElement);
+    const mutation = spyOn(adminDatabase.client!, 'mutation');
+    const row = within(page.getByRole('row', { name: /Creation in progress/ }));
+    await userEvent.click(row.getByRole('button', { name: 'Retry now for Creation in progress' }));
+    await waitFor(async () => {
+      await expect(mutation).toHaveBeenCalledWith(
+        expect.anything(),
+        { channelId: expect.any(String) },
+        expect.anything()
+      );
+      await expect(row.getByRole('button', { name: 'Retry now for Creation in progress' })).not.toHaveAttribute(
+        'aria-busy',
+        'true'
+      );
+      await expect(row.getByText('Creating', { exact: true })).toBeVisible();
+    });
+    const toggle = page.getByRole('switch', { name: 'Discord integration' });
+    await userEvent.click(toggle);
+    await waitFor(async () => {
+      await expect(page.getAllByRole('cell', { name: /^Paused$/ })).toHaveLength(6);
+      await expect(row.getByRole('button', { name: 'Retry now for Creation in progress' })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      await expect(row.getByRole('button', { name: 'Retry now for Creation in progress' })).toHaveAccessibleDescription(
+        'Discord integration is disabled.'
+      );
+    });
+  },
+});
+
+export const RetryFailure = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: adminDiscordRecoveryParameters(),
+  play: async ({ canvasElement }) => {
+    const page = await expectRecoveryStates(canvasElement);
+    spyOn(adminDatabase.client!, 'mutation').mockRejectedValueOnce(
+      new Error('The channel could not be queued. Try again.')
+    );
+    await userEvent.click(page.getByRole('button', { name: 'Retry now for Creation retry' }));
+    await expect(page.findByRole('alert')).resolves.toHaveTextContent('Channel retry failed');
+    await expect(page.getByRole('alert')).toHaveTextContent('The channel could not be queued. Try again.');
+  },
 });
 
 export const DashboardWiring = meta.story({

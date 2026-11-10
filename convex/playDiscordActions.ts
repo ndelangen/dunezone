@@ -1,11 +1,13 @@
 import type { FunctionReturnType } from 'convex/server';
 import { v } from 'convex/values';
 import type { Infer } from 'convex/values';
+import { ZodError } from 'zod';
 
 import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
+import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { retryCreationCategory } from './lib/discordRetry';
 import type { discordRetryOperation } from './lib/discordRetry';
@@ -19,12 +21,48 @@ type Perform = <T>(
   categoryId?: string
 ) => Promise<T>;
 
+class NoDiscordChannelRoom extends Error {
+  constructor() {
+    super('No configured Discord category has room for another voice channel.');
+  }
+}
+
+class DiscordRecoveryUnavailable extends Error {}
+
+async function postCreation(
+  ctx: ActionCtx,
+  rest: DiscordRest,
+  claim: Claim,
+  row: Doc<'play_game_discord_channels'>,
+  categoryId: string,
+  perform: Perform
+) {
+  let channelId: string;
+  try {
+    channelId = await perform(
+      'create',
+      () => rest.create(row.guild_id, categoryId, row.creation_marker ?? `dune-play-${row.game_id}`),
+      categoryId
+    );
+  } catch (error) {
+    if (
+      error instanceof DiscordPaused ||
+      (error instanceof DiscordFailure && error.status >= 400 && error.status < 500)
+    ) {
+      await ctx.runMutation(internal.playDiscord.rejectedCreation, claim);
+    }
+    throw error;
+  }
+  if (!(await ctx.runMutation(internal.playDiscord.created, { ...claim, discordChannelId: channelId }))) {
+    await perform('delete', () => rest.remove(channelId));
+  }
+}
+
 async function createRoom(
   ctx: ActionCtx,
   rest: DiscordRest,
   claim: Claim,
   row: Doc<'play_game_discord_channels'>,
-  name: string,
   perform: Perform
 ): Promise<Progress> {
   const retryCategory = retryCreationCategory(row);
@@ -35,17 +73,9 @@ async function createRoom(
     if (!(await ctx.runMutation(internal.playDiscord.startCreation, { ...claim, categoryId }))) {
       return 'complete';
     }
-    let channelId: string;
     try {
-      channelId = await perform('create', () => rest.create(row.guild_id, categoryId, name), categoryId);
+      await postCreation(ctx, rest, claim, row, categoryId, perform);
     } catch (error) {
-      if (
-        !(error instanceof DiscordPaused) &&
-        !(error instanceof DiscordFailure && error.status >= 400 && error.status < 500)
-      ) {
-        throw error;
-      }
-      await ctx.runMutation(internal.playDiscord.rejectedCreation, claim);
       /* A category may have filled since listing it; Discord rejected the create, so trying the next category is safe. */
       if (error instanceof DiscordFailure && error.status === 400 && error.code === 50_035) {
         if (retryCategory === categoryId) {
@@ -59,12 +89,62 @@ async function createRoom(
       }
       throw error;
     }
-    if (!(await ctx.runMutation(internal.playDiscord.created, { ...claim, discordChannelId: channelId }))) {
-      await perform('delete', () => rest.remove(channelId));
-    }
     return 'continue';
   }
-  throw new Error('No configured Discord category has room for another voice channel.');
+  throw new NoDiscordChannelRoom();
+}
+
+/** A listing proves only what is visible. Administrator changes and late Discord commits can defeat correlation. */
+async function recoverCreation(
+  ctx: ActionCtx,
+  rest: DiscordRest,
+  claim: Claim,
+  row: Work['channel'],
+  perform: Perform
+): Promise<Progress> {
+  const marker = row.creation_marker;
+  const categoryId = row.creation_category_id;
+  if (!marker || !categoryId) {
+    throw new DiscordRecoveryUnavailable(
+      'This older creation has no saved marker. An administrator must inspect Discord.'
+    );
+  }
+  const channels = await perform('recover', () => rest.listChannels(row.guild_id));
+  const matches = channels.filter((channel) => channel.name === marker);
+  if (matches.length > 0) {
+    const match = matches[0]!;
+    if (
+      matches.length !== 1 ||
+      match.type !== 2 ||
+      match.parent_id !== categoryId ||
+      (match.guild_id && match.guild_id !== row.guild_id)
+    ) {
+      throw new DiscordRecoveryUnavailable(
+        'Discord has conflicting creation markers. Recovery will check again later.'
+      );
+    }
+    const adopted = await ctx.runMutation(internal.playDiscord.created, { ...claim, discordChannelId: match.id });
+    return adopted ? 'continue' : 'complete';
+  }
+  if (
+    !channels.some(
+      (channel) =>
+        channel.id === categoryId && channel.type === 4 && (!channel.guild_id || channel.guild_id === row.guild_id)
+    )
+  ) {
+    throw new DiscordRecoveryUnavailable('The saved Discord category is not visible. Recovery will check again later.');
+  }
+  const replace = await ctx.runMutation(internal.playDiscord.replaceMissingCreation, {
+    ...claim,
+    marker,
+    categoryId,
+    attempt: row.creation_attempt ?? 0,
+  });
+  if (!replace) {
+    return 'complete';
+  }
+  await postCreation(ctx, rest, claim, row, categoryId, perform);
+  return 'continue';
 }
 
 /** Commit retirement before DELETE, so later activity cannot reverse a request already sent to Discord. */
@@ -108,7 +188,7 @@ async function reconcileStep(ctx: ActionCtx, rest: DiscordRest, claim: Claim, pe
     return 'complete';
   }
   if (work.channel.state === 'creating') {
-    throw new Error('Channel creation has no confirmed result. Check Discord before retrying it.');
+    return await recoverCreation(ctx, rest, claim, work.channel, perform);
   }
   if (work.remove) {
     await removeRoom(ctx, rest, claim, work.channel, perform);
@@ -116,10 +196,13 @@ async function reconcileStep(ctx: ActionCtx, rest: DiscordRest, claim: Claim, pe
   }
   if (work.channel.state === 'pending') {
     if (work.channel.channel_id) {
+      if (work.channel.creation_name_pending) {
+        return await renameRoom(ctx, rest, claim, work, perform);
+      }
       const url = await perform('invite', () => rest.invite(work.channel.channel_id!));
       await ctx.runMutation(internal.playDiscord.invited, { ...claim, url });
     } else {
-      return await createRoom(ctx, rest, claim, work.channel, work.name, perform);
+      return await createRoom(ctx, rest, claim, work.channel, perform);
     }
     return 'continue';
   }
@@ -143,10 +226,7 @@ export const reconcile = internalAction({
       return null;
     }
     const claim = { ...args, lease: row.lease };
-    const rest = new DiscordRest(config.token, `Dune Play game ${row.game_id}`, {
-      until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-      hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-    });
+    const rest = new DiscordRest(config.token, `Dune Play game ${row.game_id}`, discordCooldown(ctx));
     let retryOperation: Infer<typeof discordRetryOperation> | undefined;
     let retryCategoryId: string | undefined;
     const perform: Perform = async (operation, request, categoryId) => {
@@ -158,6 +238,8 @@ export const reconcile = internalAction({
       | {
           error: string;
           retryAfterMs?: number;
+          retryAt?: number;
+          retryGlobal?: boolean;
           retryOperation?: Infer<typeof discordRetryOperation>;
           retryCategoryId?: string;
         }
@@ -169,10 +251,34 @@ export const reconcile = internalAction({
         }
       }
     } catch (error) {
+      const diagnostic =
+        error instanceof NoDiscordChannelRoom || error instanceof DiscordRecoveryUnavailable
+          ? error.message
+          : error instanceof ZodError
+            ? 'Discord returned an invalid channel response. Retry is scheduled.'
+            : 'Discord channel work failed before it could finish. Retry is scheduled.';
+      if (!(error instanceof DiscordFailure) && !(error instanceof DiscordPaused)) {
+        console.error('Discord channel work failed.', {
+          kind:
+            error instanceof NoDiscordChannelRoom
+              ? 'no-room'
+              : error instanceof DiscordRecoveryUnavailable
+                ? 'recovery-unavailable'
+                : error instanceof ZodError
+                  ? 'invalid-response'
+                  : 'unexpected',
+        });
+      }
       failure = {
-        error: error instanceof DiscordFailure ? error.message : 'Discord voice work could not finish.',
+        error: error instanceof DiscordFailure || error instanceof DiscordPaused ? error.message : diagnostic,
         ...(error instanceof DiscordFailure
-          ? { retryAfterMs: error.retryAfterMs, retryOperation, retryCategoryId }
+          ? {
+              retryAfterMs: error.retryAfterMs,
+              retryAt: error.retryAt,
+              retryGlobal: error.global,
+              retryOperation,
+              retryCategoryId,
+            }
           : {}),
       };
     } finally {

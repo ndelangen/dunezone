@@ -85,6 +85,7 @@ export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'pla
     cleanup_at: Date.now(),
     next_attempt_at: Date.now(),
     invite_url: undefined,
+    retry_after: undefined,
     retry: undefined,
     error: undefined,
     work_revision: (channel.work_revision ?? 0) + 1,
@@ -120,7 +121,7 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
   await ctx.db.patch(channel._id, {
     cleanup_at: cleanupAt,
     ...(changed
-      ? { next_attempt_at: Date.now(), work_revision: (channel.work_revision ?? 0) + 1 }
+      ? { next_attempt_at: Date.now(), retry_after: undefined, work_revision: (channel.work_revision ?? 0) + 1 }
       : { next_attempt_at: Math.min(channel.next_attempt_at, cleanupAt) }),
   });
   if (changed) {

@@ -175,8 +175,8 @@ test.each(['body', 'global header', 'scope header'] as const)(
     const until = Date.now() + 60_000;
     expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(until);
     const rest = new DiscordRest('test-token', 'Another game', {
-      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
-      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+      inspect: (scope) => world.t.query(internal.playDiscordRateLimits.inspect, scope),
+      observe: (observation) => world.t.mutation(internal.playDiscordRateLimits.observe, observation),
     });
     await expect(rest.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
     expect(world.fetch).toHaveBeenCalledTimes(1);
@@ -195,8 +195,8 @@ test.each(['user', 'shared'] as const)(
     expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(0);
     world.fetch.mockResolvedValueOnce(Response.json({ code: 'next-room' }));
     const rest = new DiscordRest('test-token', 'Another game', {
-      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
-      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+      inspect: (scope) => world.t.query(internal.playDiscordRateLimits.inspect, scope),
+      observe: (observation) => world.t.mutation(internal.playDiscordRateLimits.observe, observation),
     });
     expect(await rest.invite('301')).toBe('https://discord.gg/next-room');
     expect(world.fetch).toHaveBeenCalledTimes(2);
