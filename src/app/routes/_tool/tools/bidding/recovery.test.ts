@@ -2,7 +2,7 @@ import { parseBiddingSnapshot } from '@shared/tools/biddingSession';
 import type { BiddingPublication } from '@shared/tools/biddingSession';
 import { describe, expect, it } from 'vite-plus/test';
 
-import { createAuction } from './auction';
+import { applyAuctionAction, createAuction } from './auction';
 import { acceptBiddingPublication, promoteSnapshot, restoreCentralSnapshot } from './recovery';
 import { BiddingSession, createBiddingCommand } from './session';
 
@@ -25,6 +25,7 @@ function inProgress() {
     }),
   });
   table.receive('phone-a', createBiddingCommand(table.getSnapshot(), 'phone-a', { type: 'assign', factionId: 'a' }));
+  table.dispatch({ type: 'finish-setup' });
   table.dispatch({ type: 'start' });
   table.dispatch({ type: 'bid', amount: 3 });
   return table.getSnapshot();
@@ -37,6 +38,21 @@ const publication = (snapshot = inProgress()): BiddingPublication => ({
 });
 
 describe('bidding recovery copy', () => {
+  it('restores a finished setup to ready only after Resume and still waits for Start', () => {
+    const previous = inProgress();
+    const auction = createAuction({ seats: previous.auction.seats, ruleset: previous.auction.ruleset });
+    const waiting = applyAuctionAction(auction, { type: 'finish-setup' });
+    expect(waiting.accepted).toBe(true);
+    const saved = { ...previous, auction: waiting.state };
+    const restored = restoreCentralSnapshot(saved, 'instance-b');
+    expect(restored.auction).toMatchObject({ stage: 'paused', resumeStage: 'ready', opener: null, turn: null });
+    const resumed = applyAuctionAction(restored.auction, { type: 'resume' });
+    expect(resumed.accepted).toBe(true);
+    expect(resumed.state).toMatchObject({ stage: 'ready', opener: null, turn: null, high: null, cardsChosen: false });
+    expect(applyAuctionAction(resumed.state, { type: 'start' }).state.stage).toBe('active');
+    expect(parseBiddingSnapshot({ ...saved, auction: { ...waiting.state, card: 2 } })).toBeNull();
+  });
+
   it('restores the same table paused, preserving bid, bidder, setup and assignments', () => {
     const saved = inProgress();
     const restored = restoreCentralSnapshot(JSON.parse(JSON.stringify(saved)), 'instance-b');

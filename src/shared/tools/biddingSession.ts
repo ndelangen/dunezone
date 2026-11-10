@@ -79,8 +79,11 @@ export const auctionStateSchema = z
     if (effectiveStage !== 'active' && (state.turn !== null || state.high !== null || state.passed.length > 0)) {
       ctx.addIssue({ code: 'custom', message: 'A waiting or finished auction cannot contain an active bid.' });
     }
-    if (effectiveStage === 'ready' && (state.opener === null || state.card > state.cards)) {
-      ctx.addIssue({ code: 'custom', message: 'The next card must follow an existing auction within this phase.' });
+    if (effectiveStage === 'ready' && (state.opener === null ? state.card !== 1 : state.card > state.cards)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A ready table must await its first auction or the next card in this phase.',
+      });
     }
     const resultCards = new Set(state.results.map((result) => `${result.phase}:${result.card}`));
     if (
@@ -100,6 +103,7 @@ export type AuctionState = z.infer<typeof auctionStateSchema>;
 export const biddingActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('bid'), amount: whole }),
   z.strictObject({ type: z.literal('pass') }),
+  z.strictObject({ type: z.literal('finish-setup') }),
   z.strictObject({ type: z.literal('start') }),
   z.strictObject({ type: z.literal('reset') }),
   z.strictObject({ type: z.literal('resume') }),
