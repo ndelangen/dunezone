@@ -659,7 +659,9 @@ test('merged accounts retain the combined Discord voice channel limit', async ()
     discordVoice: true,
   });
   expect(result.ok).toBe(true);
-  if (!result.ok) throw new Error('Game creation failed');
+  if (!result.ok) {
+    throw new Error('Game creation failed');
+  }
   expect(await t.run(async (ctx) => await ctx.db.get(result.gameId as Id<'play_games'>))).toMatchObject({
     discord_voice: false,
   });

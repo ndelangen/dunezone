@@ -385,7 +385,9 @@ async function moveGameOwnership(ctx: MutationCtx, operation: Doc<'account_merge
       .query('play_game_discord_channels')
       .withIndex('by_game_id', (q) => q.eq('game_id', row._id))
       .unique();
-    if (channel) await ctx.db.patch(channel._id, { creator_id: target });
+    if (channel) {
+      await ctx.db.patch(channel._id, { creator_id: target });
+    }
     await ctx.db.patch(row._id, { creator_id: target, creator_actor_id: row.creator_actor_id ?? source });
   }
   return rows.length;
@@ -397,7 +399,9 @@ async function moveDiscordChannelOwnership(ctx: MutationCtx, operation: Doc<'acc
     .query('play_game_discord_channels')
     .withIndex('by_creator_id_state', (q) => q.eq('creator_id', operation.source_user_id))
     .take(BATCH);
-  for (const row of rows) await ctx.db.patch(row._id, { creator_id: operation.target_user_id });
+  for (const row of rows) {
+    await ctx.db.patch(row._id, { creator_id: operation.target_user_id });
+  }
   return rows.length;
 }
 

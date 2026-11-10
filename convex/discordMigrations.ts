@@ -18,7 +18,9 @@ export const discord_channel_creators_v1 = migrations.define({
   migrateOne: async (ctx, row) => {
     const game = await ctx.db.get(row.game_id);
     const creatorId = game?.creator_id ?? row.creator_id ?? null;
-    if (row.creator_id !== creatorId) await ctx.db.patch(row._id, { creator_id: creatorId });
+    if (row.creator_id !== creatorId) {
+      await ctx.db.patch(row._id, { creator_id: creatorId });
+    }
   },
 });
 

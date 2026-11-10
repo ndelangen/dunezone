@@ -75,7 +75,9 @@ test('the global create budget delays channels from different creators until ret
   await confirm(gameIds[1]!);
   const rows = await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').collect());
   await t.run(async (ctx) => await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 30 }));
-  for (const row of rows) await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
+  for (const row of rows) {
+    await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
+  }
   for (const row of rows) {
     const pending = (await t.run(async (ctx) => await ctx.db.get(row._id)))!;
     expect(pending.state).toBe('pending');
@@ -95,7 +97,9 @@ test('the global create budget delays channels from different creators until ret
 
 test('game creation remains available at the voice cap and voice returns after deletion', async () => {
   const { t, gameIds, rulesetId, confirm, viewer } = await world();
-  for (const gameId of gameIds.slice(0, 3)) await confirm(gameId);
+  for (const gameId of gameIds.slice(0, 3)) {
+    await confirm(gameId);
+  }
   const create = (generatedName: string) =>
     viewer.action(api.playGames.createGeneratedGame, {
       rulesetId,
@@ -105,13 +109,17 @@ test('game creation remains available at the voice cap and voice returns after d
     });
   const fourth = await create('Secret Caladan picnic');
   expect(fourth.ok).toBe(true);
-  if (!fourth.ok) throw new Error('Game creation failed');
+  if (!fourth.ok) {
+    throw new Error('Game creation failed');
+  }
   expect(await t.run(async (ctx) => await ctx.db.get(fourth.gameId))).toMatchObject({ discord_voice: false });
   const row = (await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').first()))!;
   await t.run(async (ctx) => await ctx.db.patch(row._id, { state: 'deleted' }));
   const next = await create('Arrakeen surprise party');
   expect(next.ok).toBe(true);
-  if (!next.ok) throw new Error('Game creation failed');
+  if (!next.ok) {
+    throw new Error('Game creation failed');
+  }
   const game = await t.run(async (ctx) => await ctx.db.get(next.gameId));
   expect(game).toMatchObject({ discord_voice: true });
   await t.mutation(api.playProvisioning.confirmProvisioning, {
