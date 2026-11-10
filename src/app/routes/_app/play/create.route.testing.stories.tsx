@@ -299,7 +299,9 @@ export const DiscordVoiceLimit = meta.story({
     const voice = page.getByRole('switch', { name: 'Discord voice chat' });
     await expect(voice).toBeDisabled();
     await expect(voice).not.toBeChecked();
-    await expect(voice).toHaveAccessibleDescription('You already have 3 games with Discord voice chat.');
+    await expect(voice).toHaveAccessibleDescription(
+      'You have reached your limit for active Discord voice channels. You can still create the game without voice chat.'
+    );
     await expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true');
   },
 });

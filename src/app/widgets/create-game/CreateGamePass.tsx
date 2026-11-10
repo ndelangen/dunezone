@@ -301,7 +301,7 @@ export function CreateGamePass({
                     />
                     <Text id={voiceHintId} size="sm" c="dimmed">
                       {discordVoiceAtLimit
-                        ? 'You already have 3 games with Discord voice chat.'
+                        ? 'You have reached your limit for active Discord voice channels. You can still create the game without voice chat.'
                         : 'Give this game its own Discord voice channel. Anyone with its invite can join.'}
                     </Text>
                   </Stack>

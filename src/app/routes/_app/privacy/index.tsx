@@ -100,7 +100,7 @@ function PrivacyPage() {
             </Section>
           </SimpleGrid>
 
-          <Section title="Discord voice rooms">
+          <Section title="Discord voice chat">
             <Stack gap="md">
               <Text>
                 Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
