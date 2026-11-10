@@ -1,4 +1,4 @@
-import { Anchor, Code, Group, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Code, Group, Stack, Switch, Table, Text, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -107,7 +107,6 @@ function DiscordDashboard() {
             error={deleteChannel.error}
             onDelete={(channelId) => deleteChannel.mutate({ channelId })}
           />
-          <NudgeDeliveryIssues issues={result.nudgeErrors} />
           <UntrackedChannels
             configured={result.configured}
             enabled={result.enabled}
@@ -169,7 +168,7 @@ function TrackedChannels({
           Game invites are shared. Individual Discord access is not tracked.
         </Text>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="sm">
+          <Table striped verticalSpacing="sm">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Game</Table.Th>
@@ -205,6 +204,7 @@ function TrackedChannels({
                         rel="noreferrer"
                       >
                         {channel.channel_id}
+                        <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     ) : channel.state === 'creating' ? (
                       'Creation unconfirmed'
@@ -219,7 +219,13 @@ function TrackedChannels({
                     <StatusBadge>{channel.state}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
-                  <Table.Td>{utcDateTime.format(channel.cleanup_at)}</Table.Td>
+                  <Table.Td>
+                    {channel.waiting_for_empty
+                      ? enabled
+                        ? 'Hourly, when voice is empty'
+                        : 'Paused'
+                      : utcDateTime.format(channel.cleanup_at)}
+                  </Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>
                   </Table.Td>
@@ -244,7 +250,7 @@ function TrackedChannels({
           </Table>
         </Table.ScrollContainer>
         <ActionError subject="channel" verb="delete" error={error} />
-        <Group justify="center" aria-label="Channel pages">
+        <Group role="group" justify="center" aria-label="Channel pages">
           <LabeledAction
             icon={<ChevronLeft size={16} />}
             disabledReason={cursors.length === 1 ? 'This is the first page.' : undefined}
@@ -261,55 +267,6 @@ function TrackedChannels({
             Next
           </LabeledAction>
         </Group>
-      </Section>
-    </Surface>
-  );
-}
-
-function NudgeDeliveryIssues({ issues }: { issues: DashboardResult['nudgeErrors'] }) {
-  return (
-    <Surface padding="lg">
-      <Section title="Recent nudge delivery issues">
-        {issues.length === 0 ? (
-          <EmptyNote>No recent delivery issues.</EmptyNote>
-        ) : (
-          <Table.ScrollContainer minWidth={700}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Time</Table.Th>
-                  <Table.Th>Game</Table.Th>
-                  <Table.Th>Seat</Table.Th>
-                  <Table.Th>State</Table.Th>
-                  <Table.Th>Error</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {issues.map((failure, index) => (
-                  <Table.Tr key={`${failure.at}-${index}`}>
-                    <Table.Td>{utcDateTime.format(failure.at)}</Table.Td>
-                    <Table.Td>
-                      {failure.gameSlug ? (
-                        <Anchor
-                          renderRoot={(props) => (
-                            <Link {...props} to="/play/$gameId" params={{ gameId: failure.gameSlug! }} />
-                          )}
-                        >
-                          {failure.gameName ?? failure.gameSlug}
-                        </Anchor>
-                      ) : (
-                        <Code>{failure.game_id}</Code>
-                      )}
-                    </Table.Td>
-                    <Table.Td>{failure.toSeat}</Table.Td>
-                    <Table.Td>{failure.state === 'sending' ? 'Sending (unconfirmed)' : failure.state}</Table.Td>
-                    <Table.Td>{failure.error ?? 'None'}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
       </Section>
     </Surface>
   );
@@ -364,7 +321,7 @@ function UntrackedChannels({
         <ActionError subject="untracked channel" verb="delete" error={deleteError} />
         {channels && (
           <Table.ScrollContainer minWidth={600}>
-            <Table>
+            <Table striped>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Name</Table.Th>
@@ -385,6 +342,7 @@ function UntrackedChannels({
                         rel="noreferrer"
                       >
                         {channel.id}
+                        <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     </Table.Td>
                     <Table.Td>

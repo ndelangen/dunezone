@@ -31,10 +31,26 @@ export const coreColors = {
 } as const;
 
 /* An external provider keeps its own identity when an action opens it. */
-export const providerColors = { discord: '#5865f2' } as const;
+export const providerColors = {
+  discord: '#5865f2',
+  discordHover: '#4752c4',
+  discordText: '#b2b8ff',
+} as const;
 
 /* Mantine requires ten positions per ramp; positions reuse pigments instead of declaring ten more shades. */
 export const themeRamps = {
+  discord: [
+    coreColors.paper,
+    coreColors.paper,
+    providerColors.discordText,
+    providerColors.discordText,
+    providerColors.discordText,
+    providerColors.discordText,
+    providerColors.discord,
+    providerColors.discord,
+    providerColors.discord,
+    providerColors.discordHover,
+  ],
   cta: [
     coreColors.text,
     coreColors.text,

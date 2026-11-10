@@ -68,7 +68,7 @@ async function acknowledgeDeletion(
   const { game, args } = request;
   const id = ctx.db.normalizeId('play_account_deletions', args.eventId);
   const event = id ? await ctx.db.get(id) : null;
-  if (event?.game_id === game._id && event.state === 'pending') {
+  if (event?.game_id === game._id && event.state === 'pending' && !event.ban_retirement) {
     await ctx.db.patch(event._id, { state: 'acknowledged' });
   }
 }

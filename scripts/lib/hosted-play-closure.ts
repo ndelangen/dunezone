@@ -69,6 +69,8 @@ const HOSTED_PLAY_CLOSURE: readonly string[] = [
   'src/app/router.tsx',
   'src/app/routes/start.ts',
   'src/app/routes/__root.tsx',
+  'src/app/routes/__root.module.css',
+  'src/app/routes/bannedAccount.tsx',
   'src/app/routes/pageTitle.ts',
   'src/app/routes/publicPage.ts',
   'src/app/routes/growingSearch.ts',

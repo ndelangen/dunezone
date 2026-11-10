@@ -52,6 +52,7 @@ describe('account lifecycle', () => {
       userId: null,
       profile: null,
       isAdmin: false,
+      isBanned: false,
     });
     await expect(pending.mutation(api.profiles.bootstrapCurrent, {})).rejects.toThrow(/Not authenticated/);
     await expect(t.query(api.profiles.pageBySlug, { slug: 'pending-user' })).rejects.toThrow(/not found/);

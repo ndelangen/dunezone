@@ -1,7 +1,9 @@
 import { ConvexAuthProvider } from '@convex-dev/auth/react';
-import { createRootRoute, HeadContent, Scripts, useMatches } from '@tanstack/react-router';
+import { createRootRoute, HeadContent, Outlet, Scripts, useMatches } from '@tanstack/react-router';
+import { lazy, Suspense } from 'react';
 
 import { convex } from '@db/core';
+import { useAccountBanState } from '@db/profiles';
 import { pageTitle } from '@app/routes/pageTitle';
 import { SignInCallback } from '@app/shell/SignInCallback';
 import { installStaleBundleReload } from '@app/shell/staleBundleReload';
@@ -15,6 +17,7 @@ import '@fontsource/lato/latin-italic.css';
 import '../styles/fonts.css';
 import '../styles/page.css';
 import '../styles/tokens.css';
+import styles from './__root.module.css';
 
 /* Installed as the entry runs, before hydration starts loading the matched routes' chunks; Storybook serves its own bundle, which no deploy replaces. */
 if (typeof window !== 'undefined' && !import.meta.env.STORYBOOK) {
@@ -68,6 +71,7 @@ export const Route = createRootRoute({
     ],
   }),
   shellComponent: RootDocument,
+  component: AccountAccess,
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -94,5 +98,26 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </ConvexAuthProvider>
       </body>
     </html>
+  );
+}
+
+const BannedAccount = lazy(() => import('./bannedAccount'));
+
+/** The root owns access for app pages, tools and bare renderers alike. */
+function AccountAccess() {
+  const access = useAccountBanState();
+  if (access.pending) {
+    return (
+      <div role="status" className={styles.pending}>
+        Checking account access…
+      </div>
+    );
+  }
+  return access.banned ? (
+    <Suspense fallback={null}>
+      <BannedAccount />
+    </Suspense>
+  ) : (
+    <Outlet />
   );
 }

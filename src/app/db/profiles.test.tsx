@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 const mocks = vi.hoisted(() => ({
   dbQuery: vi.fn(),
   useQuery: vi.fn(),
+  useAuth: vi.fn(),
 }));
 
 vi.mock('@db/core', () => ({ db: { query: mocks.dbQuery, mutation: vi.fn() } }));
 vi.mock('convex/react', () => ({
+  useConvexAuth: mocks.useAuth,
   useConvex: () => undefined,
   useQuery: mocks.useQuery,
   useMutation: vi.fn(),
@@ -16,7 +18,7 @@ vi.mock('convex/react', () => ({
 
 import { renderHook } from '@testing-library/react';
 
-import { loadProfileBySlug, useSessionViewer } from './profiles';
+import { loadProfileBySlug, useAccountBanState, useSessionViewer } from './profiles';
 
 const profile = {
   _id: 'profile-1',
@@ -47,6 +49,7 @@ const serverPage = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
 });
 
 describe('profile page interface', () => {
@@ -100,5 +103,29 @@ describe('the session tri-state', () => {
     const { result } = renderHook(() => useSessionViewer());
 
     expect(result.current).toEqual({ kind: 'profile', profile, isAdmin: true });
+  });
+});
+
+describe('account access at the root', () => {
+  test('waits for the signed-in account before rendering any route', () => {
+    mocks.useQuery.mockReturnValue(undefined);
+    const { result } = renderHook(() => useAccountBanState());
+    expect(result.current).toEqual({ pending: true, banned: false });
+  });
+
+  test('a live ban replaces access without losing the authenticated session', () => {
+    mocks.useQuery.mockReturnValue({ userId: 'user-1', profile, isAdmin: false, isBanned: false });
+    const { result, rerender } = renderHook(() => useAccountBanState());
+    expect(result.current).toEqual({ pending: false, banned: false });
+    mocks.useQuery.mockReturnValue({ userId: null, profile: null, isAdmin: false, isBanned: true });
+    rerender();
+    expect(result.current).toEqual({ pending: false, banned: true });
+  });
+
+  test('an anonymous browser does not wait for a profile query', () => {
+    mocks.useAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
+    mocks.useQuery.mockReturnValue(undefined);
+    const { result } = renderHook(() => useAccountBanState());
+    expect(result.current).toEqual({ pending: false, banned: false });
   });
 });

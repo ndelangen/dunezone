@@ -11,6 +11,7 @@ import { adminQuery, mutation } from './functions';
 import { DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
+import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
 import { requireAdminUserId } from './lib/policy';
 
 const row = v.object({
@@ -27,10 +28,12 @@ const row = v.object({
   ),
   created_at: v.number(),
   cleanup_at: v.number(),
+  waiting_for_empty: v.optional(v.boolean()),
   error: v.optional(v.string()),
   gameSlug: v.optional(v.string()),
   gameName: v.optional(v.string()),
 });
+/* Older deployed admin pages still read this field during the Convex-first rollout. */
 const nudgeError = v.object({
   game_id: v.id('play_games'),
   gameSlug: v.optional(v.string()),
@@ -84,42 +87,14 @@ export const dashboard = adminQuery({
           state: channel.state,
           created_at: channel.created_at,
           cleanup_at: channel.cleanup_at,
+          waiting_for_empty: canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel),
           error: channel.error,
           gameSlug: game?.slug,
           gameName: game?.name,
         };
       })
     );
-    const failed = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'failed'))
-      .order('desc')
-      .take(10);
-    const uncertain = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'uncertain'))
-      .order('desc')
-      .take(10);
-    const sending = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'sending'))
-      .order('desc')
-      .take(10);
-    const latest = [...failed, ...uncertain, ...sending].sort((a, b) => b.at - a.at).slice(0, 10);
-    const nudgeErrors = await Promise.all(
-      latest.map(async ({ game_id, to_seat, at, state, error }) => {
-        const game = await getGame(game_id);
-        return {
-          game_id,
-          gameSlug: game?.slug,
-          gameName: game?.name,
-          toSeat: to_seat,
-          at,
-          state: state as 'failed' | 'uncertain' | 'sending',
-          error,
-        };
-      })
-    );
+    const nudgeErrors: Infer<typeof nudgeError>[] = [];
     return {
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),

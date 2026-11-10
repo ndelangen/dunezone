@@ -7,7 +7,9 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { discordVoiceAtLimit } from './lib/playDiscord';
 import { insertPendingGame } from './lib/playProvisioningSchedule';
+import { playRuleset } from './play.test.fixture';
 
 /* Answers a merge's session cutoff as the room does, acknowledging it as soon as it arrives; unanswered, it would retry for the pass lifetime. */
 function roomAcknowledgesCutoffs(t: ReturnType<typeof setup>) {
@@ -596,4 +598,71 @@ test('only a signed-in reader learns which sign-in methods are connected, for si
   expect(
     await t.withIdentity({ subject: `${reader.userId}|${reader.sessionId}` }).query(api.accounts.connectedMethods, {})
   ).toEqual(['google']);
+});
+
+test('merged accounts retain the combined Discord voice channel limit', async () => {
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  vi.stubEnv('DISCORD_BOT_TOKEN', 'test-token');
+  vi.stubEnv('DISCORD_GUILD_ID', '100');
+  vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '200');
+  vi.stubEnv('TYPESAFE_API_KEY', '');
+  const source = await account(t, 'voice-source', 'discord');
+  const target = await account(t, 'voice-target', 'google', true);
+  const channelIds = [];
+  for (const creatorId of [source.userId, source.userId, target.userId]) {
+    const game = await t.mutation(internal.playTesting.createFixture, {});
+    channelIds.push(
+      await t.run(async (ctx) => {
+        await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId });
+        return await ctx.db.insert('play_game_discord_channels', {
+          game_id: game.gameId,
+          creator_id: creatorId,
+          guild_id: '100',
+          category_ids: ['200'],
+          state: 'ready',
+          created_at: Date.now(),
+          cleanup_at: Date.now() + 60_000,
+          next_attempt_at: Date.now() + 60_000,
+        });
+      })
+    );
+  }
+  const orphanGame = await t.mutation(internal.playTesting.createFixture, {});
+  const orphanId = await t.run(async (ctx) => {
+    await ctx.db.delete(orphanGame.gameId);
+    return await ctx.db.insert('play_game_discord_channels', {
+      game_id: orphanGame.gameId,
+      creator_id: source.userId,
+      guild_id: '100',
+      category_ids: ['200'],
+      state: 'deleted',
+      created_at: Date.now(),
+      cleanup_at: Date.now(),
+      next_attempt_at: Date.now(),
+    });
+  });
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  expect(await t.run(async (ctx) => await discordVoiceAtLimit(ctx, target.userId))).toBe(true);
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  for (const id of channelIds) {
+    expect(await t.run(async (ctx) => await ctx.db.get(id))).toMatchObject({ creator_id: target.userId });
+  }
+  expect(await t.run(async (ctx) => await ctx.db.get(orphanId))).toMatchObject({ creator_id: target.userId });
+  expect(await t.run(async (ctx) => await discordVoiceAtLimit(ctx, target.userId))).toBe(true);
+  const rulesetId = await t.run(async (ctx) => await playRuleset(ctx, target.userId));
+  const result = await admin.action(api.playGames.createGeneratedGame, {
+    rulesetId,
+    minimumPlayers: 4,
+    generatedName: 'Secret Caladan picnic',
+    discordVoice: true,
+  });
+  expect(result.ok).toBe(true);
+  if (!result.ok) {
+    throw new Error('Game creation failed');
+  }
+  expect(await t.run(async (ctx) => await ctx.db.get(result.gameId as Id<'play_games'>))).toMatchObject({
+    discord_voice: false,
+  });
 });

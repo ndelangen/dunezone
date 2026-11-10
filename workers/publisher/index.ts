@@ -1,4 +1,5 @@
 import { publisherFailureFields } from '../../src/shared/asset-publishing/publisher-diagnostics';
+import { HOMEPAGE_ACCOUNT_CUTOFF_PATH } from '../../src/shared/homepage/protocol';
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
@@ -76,7 +77,9 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   // Only a path the game Worker would route counts as a callback, so a malformed one cannot
   // borrow the callback counter's budget.
   const operation = request.method === 'POST' && !url.search ? playGamePathPattern.exec(url.pathname)?.[2] : undefined;
-  const callback = operation !== undefined && operation !== 'socket';
+  const callback =
+    (operation !== undefined && operation !== 'socket') ||
+    (request.method === 'POST' && !url.search && url.pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH);
   const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   if (createsBiddingTable(request, url) && !(await env.BIDDING_CREATION_RATE_LIMIT.limit({ key: clientIp })).success) {
     return false;

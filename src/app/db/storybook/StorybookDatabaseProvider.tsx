@@ -190,11 +190,14 @@ export function useStorybookDatabaseClient() {
 }
 
 /**
- * A story decorator that holds every Convex query unanswered, as a page sees an unreachable deployment.
+ * A story decorator that holds page queries unanswered after account access has been established.
  * Story decorators render inside the browser-local database, so this replaces the query it installs on each render.
  */
 export function convexNeverAnswers(Story: ComponentType) {
-  mocked(convexUseQuery).mockImplementation((() => undefined) as typeof convexUseQuery);
+  mocked(convexUseQuery).mockImplementation(((query, args) =>
+    getFunctionName(query) === getFunctionName(api.profiles.session)
+      ? useConvexStorybookQuery(query, args)
+      : undefined) as typeof convexUseQuery);
   mocked(convexUseQueries).mockImplementation((queries) =>
     Object.fromEntries(Object.keys(queries).map((key) => [key, undefined]))
   );

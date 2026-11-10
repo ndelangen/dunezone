@@ -30,7 +30,6 @@ const VIEWER_QUERIES: Record<string, string> = {
   'playGameDirectory:getGameByAddress': 'Only an active Play session may resolve an admitted game.',
   'playGameNameAvailability:nameAvailability': 'Only an active Play session may check a name address.',
   'profiles:defaultGroupPreference': "The viewer's own preference.",
-  'profiles:session': 'Who the viewer is: their user id, profile and admin flag.',
   'profiles:settings': "The viewer's own settings and sign-in methods.",
   'rulebooks:creationPage': 'Only editors of the ruleset may create a rulebook.',
   'rulebooks:editorBySlugs': 'Drafts are visible to editors only.',
@@ -87,7 +86,7 @@ describe('query audience', () => {
     expect(queries.size).toBeGreaterThan(50);
   });
 
-  test('every client-callable query is built with publicQuery, viewerQuery or adminQuery', () => {
+  test('every client-callable query declares its audience', () => {
     const unmarked = [...queries]
       .filter(([name, audience]) => audience === undefined && !(name in LIBRARY_QUERIES))
       .map(([name]) => name);
@@ -97,5 +96,10 @@ describe('query audience', () => {
   test('viewer queries are exactly the reviewed list', () => {
     const viewer = [...queries].filter(([, audience]) => audience === 'viewer').map(([name]) => name);
     expect(viewer.sort()).toEqual(Object.keys(VIEWER_QUERIES).sort());
+  });
+
+  test('only the session envelope may answer a banned caller', () => {
+    const lifecycle = [...queries].filter(([, audience]) => audience === 'lifecycle').map(([name]) => name);
+    expect(lifecycle).toEqual(['profiles:session']);
   });
 });

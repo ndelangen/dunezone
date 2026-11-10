@@ -27,6 +27,7 @@ import { rulesetCoverValidator } from './lib/rulesetCover';
 
 const accountStateValidator = v.union(
   v.literal('active'),
+  v.literal('banned'),
   v.literal('merge_pending'),
   v.literal('deletion_pending'),
   v.literal('deleted')
@@ -90,6 +91,7 @@ export default defineSchema({
    * Any signed-in player may create and enter a real game.
    */
   play_games: defineTable({
+    ban_operation_id: v.optional(v.id('account_deletion_operations')),
     fixture_key: v.optional(v.string()),
     name: v.string(),
     slug: v.string(),
@@ -122,6 +124,7 @@ export default defineSchema({
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   play_discord_cooldown: defineTable({ blocked_until: v.number() }),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
+  /** Retired: kept for the approved retirement migration, then removed in a separate narrowing release. */
   play_game_discord_nudges: defineTable({
     game_id: v.id('play_games'),
     to_seat: v.string(),
@@ -146,6 +149,8 @@ export default defineSchema({
     .index('by_state_at', ['state', 'at'])
     .index('by_at', ['at']),
   play_game_discord_channels: defineTable({
+    creator_id: v.optional(v.union(v.id('users'), v.null())),
+    ban_operation_id: v.optional(v.id('account_deletion_operations')),
     game_id: v.id('play_games'),
     guild_id: v.string(),
     category_ids: v.array(v.string()),
@@ -160,7 +165,12 @@ export default defineSchema({
     ),
     created_at: v.number(),
     ended_at: v.optional(v.number()),
+    renamed_ended: v.optional(v.boolean()),
+    voice_checked_at: v.optional(v.number()),
+    work_revision: v.optional(v.number()),
+    lease_revision: v.optional(v.number()),
     deleted_at: v.optional(v.number()),
+    deletion_requested_at: v.optional(v.number()),
     cleanup_at: v.number(),
     next_attempt_at: v.number(),
     retry_after: v.optional(v.number()),
@@ -169,8 +179,11 @@ export default defineSchema({
     error: v.optional(v.string()),
   })
     .index('by_game_id', ['game_id'])
+    .index('by_creator_id_state', ['creator_id', 'state'])
     .index('by_channel_id', ['channel_id'])
-    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
+    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at'])
+    .index('by_ban_operation_id_state', ['ban_operation_id', 'state']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -187,6 +200,7 @@ export default defineSchema({
     .index('by_game_id_user_id', ['game_id', 'user_id'])
     .index('by_user_id', ['user_id']),
   play_account_deletions: defineTable({
+    ban_retirement: v.optional(v.boolean()),
     game_id: v.id('play_games'),
     user_id: v.id('users'),
     operation_id: v.id('account_deletion_operations'),
@@ -196,6 +210,7 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
+    .index('by_operation_id_state_next_attempt_at', ['operation_id', 'state', 'next_attempt_at'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */
@@ -222,6 +237,9 @@ export default defineSchema({
     merged_into_user_id: v.optional(v.id('users')),
     account_merge_operation_id: v.optional(v.id('account_merge_operations')),
     account_state: v.optional(accountStateValidator),
+    banned_at: v.optional(v.string()),
+    banned_by: v.optional(v.id('users')),
+    banned_reason: v.optional(v.string()),
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
   })
@@ -256,6 +274,8 @@ export default defineSchema({
     default_group_id: v.optional(v.union(v.id('groups'), v.null())),
     bgg_profile_url: v.optional(v.string()),
     account_state: accountStateValidator,
+    banned_at: v.optional(v.string()),
+    banned_by: v.optional(v.id('users')),
     deleted_at: v.optional(v.string()),
     account_deletion_operation_id: v.optional(v.id('account_deletion_operations')),
     slug: v.string(),
@@ -265,6 +285,7 @@ export default defineSchema({
     .index('by_user_id', ['user_id'])
     .index('by_slug', ['slug'])
     .index('by_account_state_username', ['account_state', 'username'])
+    .index('by_account_state_slug', ['account_state', 'slug'])
     .index('by_merged_into_profile_id', ['merged_into_profile_id']),
   groups: defineTable({
     name: v.string(),
@@ -718,6 +739,14 @@ export default defineSchema({
     completed_at: v.union(v.number(), v.null()),
   }).index('by_state', ['state']),
   account_deletion_operations: defineTable({
+    kind: v.optional(v.union(v.literal('deletion'), v.literal('ban'))),
+    initiator_user_id: v.optional(v.id('users')),
+    homepage_cutoff_token: v.optional(v.string()),
+    homepage_cutoff_at: v.optional(v.number()),
+    ban_games_cursor: v.optional(v.union(v.string(), v.null())),
+    ban_games_queued: v.optional(v.boolean()),
+    ban_accounts_queued: v.optional(v.boolean()),
+    ban_accounts_cursor: v.optional(v.union(v.string(), v.null())),
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),
     replacement_user_id: v.union(v.id('users'), v.null()),

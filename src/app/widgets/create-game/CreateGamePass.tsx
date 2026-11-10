@@ -145,6 +145,7 @@ export function CreateGamePass({
   rulesetCheck = 'ready',
   onRecheck,
   discordVoiceAvailable = false,
+  discordVoiceAtLimit = false,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
@@ -168,6 +169,7 @@ export function CreateGamePass({
   /** Runs the check of the chosen ruleset again; absent when there is nothing to check here, such as a ruleset the server already refuses. */
   onRecheck?: (() => void) | undefined;
   discordVoiceAvailable?: boolean;
+  discordVoiceAtLimit?: boolean;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
   const started = useRef<number | undefined>(undefined);
@@ -187,12 +189,13 @@ export function CreateGamePass({
     },
     []
   );
+  const voiceHintId = useId();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
-    discordVoice: discordVoiceAvailable && draft.discordVoice,
+    discordVoice: discordVoiceAvailable && !discordVoiceAtLimit && draft.discordVoice,
   });
   const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
@@ -282,16 +285,24 @@ export function CreateGamePass({
                 />
                 {discordVoiceAvailable ? (
                   <Stack gap="xs">
-                    <Switch
-                      label="Discord voice chat"
-                      checked={draft.discordVoice}
-                      onChange={(event) =>
-                        dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
-                      }
-                      disabled={pending}
+                    <ControlBlock
+                      title="Discord voice chat"
+                      input={(field) => (
+                        <Switch
+                          {...field}
+                          aria-describedby={voiceHintId}
+                          checked={draft.discordVoice && !discordVoiceAtLimit}
+                          onChange={(event) =>
+                            dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
+                          }
+                          disabled={pending || discordVoiceAtLimit}
+                        />
+                      )}
                     />
-                    <Text size="sm" c="dimmed">
-                      Give this game its own Discord voice channel. Anyone with its invite can join.
+                    <Text id={voiceHintId} size="sm" c="dimmed">
+                      {discordVoiceAtLimit
+                        ? 'You have reached your limit for active Discord voice channels. You can still create the game without voice chat.'
+                        : 'Give this game its own Discord voice channel. Anyone with its invite can join.'}
                     </Text>
                   </Stack>
                 ) : null}

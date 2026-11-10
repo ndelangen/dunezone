@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 const snowflake = z.string().regex(/^\d+$/);
 const channel = z.object({ id: snowflake, type: z.number(), parent_id: snowflake.nullish() });
-const errorBody = z.object({ code: z.number().optional(), retry_after: z.number().optional() });
+const errorBody = z.object({
+  code: z.number().optional(),
+  retry_after: z.number().optional(),
+  global: z.boolean().optional(),
+});
 const configuration = z.object({
   token: z.string().trim().min(1),
   guildId: z.string().trim().pipe(snowflake),
@@ -14,7 +18,8 @@ export class DiscordFailure extends Error {
   constructor(
     readonly status: number,
     readonly code: number | undefined,
-    readonly retryAfterMs = 0
+    readonly retryAfterMs = 0,
+    readonly global = false
   ) {
     super(status === 0 ? 'Discord did not return a confirmed response.' : `Discord request failed (${status}).`);
   }
@@ -63,7 +68,11 @@ function responseFailure(response: Response, data: unknown) {
   return new DiscordFailure(
     response.status,
     parsed.success ? parsed.data.code : undefined,
-    response.status === 429 ? delay : 0
+    response.status === 429 ? delay : 0,
+    response.status === 429 &&
+      (response.headers.get('X-RateLimit-Global') === 'true' ||
+        response.headers.get('X-RateLimit-Scope') === 'global' ||
+        (parsed.success && parsed.data.global === true))
   );
 }
 
@@ -72,11 +81,16 @@ export class DiscordRest {
   constructor(
     private readonly token: string,
     private readonly reason: string,
-    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> }
+    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> },
+    private readonly deadline?: number
   ) {}
 
   private async fetchResponse(method: string, path: string, body: unknown) {
     try {
+      const timeout = Math.min(15_000, this.deadline === undefined ? 15_000 : this.deadline - Date.now());
+      if (timeout <= 0) {
+        throw new DiscordFailure(0, undefined);
+      }
       return await fetch(`https://discord.com/api/v10${path}`, {
         method,
         headers: {
@@ -85,7 +99,7 @@ export class DiscordRest {
           ...(method === 'GET' ? {} : { 'X-Audit-Log-Reason': encodeURIComponent(this.reason) }),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(Math.ceil(timeout)),
       });
     } catch {
       throw new DiscordFailure(0, undefined);
@@ -111,7 +125,7 @@ export class DiscordRest {
         return data;
       }
       const failure = responseFailure(response, data);
-      if (response.status === 429) {
+      if (response.status === 429 && failure.global) {
         await this.cooldown.hold(Date.now() + failure.retryAfterMs);
       }
       if (response.status === 429 && attempt < rateLimitRetries && failure.retryAfterMs <= 5000) {
@@ -148,8 +162,12 @@ export class DiscordRest {
     return `https://discord.gg/${result.code}`;
   }
 
-  /** The scheduler owns nudge retries so expiry and account linkage are checked before each POST. */
-  async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string, nonce: string) {
+  async rename(channelId: string, name: string) {
+    await this.request('PATCH', `/channels/${channelId}`, { name });
+  }
+
+  /** One best-effort POST, with only the intended recipient allowed to be mentioned. */
+  async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string) {
     const plain = (value: string) => value.replace(/\s+/g, ' ').replace(/[\\`*_~|<>[\]]/g, '\\$&');
     const result = await this.request(
       'POST',
@@ -157,8 +175,6 @@ export class DiscordRest {
       {
         content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
         allowed_mentions: { parse: [], users: [userId], replied_user: false },
-        nonce,
-        enforce_nonce: true,
       },
       0
     );

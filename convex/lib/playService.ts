@@ -14,7 +14,7 @@ function allowsServiceTransport(url: URL) {
 }
 
 /** The callback host comes from deployment configuration, never from a request or game record. */
-function playServiceOrigin(): string {
+export function playServiceOrigin(): string {
   const service = new URL(process.env.PLAY_SERVICE_URL ?? '');
   const site = new URL(process.env.SITE_URL ?? '');
   const validOrigin = service.origin === site.origin && isOriginOnly(service);

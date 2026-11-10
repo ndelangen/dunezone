@@ -14,18 +14,20 @@ import { ProfileOptionContent } from './ProfilePicker.parts';
 export interface ProfilePickerProps {
   onPick: (profile: ReplacementProfile) => void;
   onCancel: () => void;
+  adminSourceUserId?: string;
 }
 
 /**
- * A lazy domain Picker: it reads only the replacement-owner projection, the people who share a Group with the viewer, and reports a selected profile.
- * Only a co-member may take over the viewer's content (Norbert, 2026-11-07), so the copy says who is on offer rather than letting an empty list read as "nobody exists".
+ * Replacement-owner Picker: self-service offers co-members;
+ * administrators may choose any active profile.
+ * The caller mounts it while open and receives the chosen profile.
  */
-export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
+export function ProfilePicker({ onPick, onCancel, adminSourceUserId }: ProfilePickerProps) {
   /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter choose the highlighted row, which Mantine gates on the dropdown state. */
   const combobox = useCombobox({ defaultOpened: true });
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<ReplacementProfile['userId'] | ''>('');
-  const picker = useReplacementProfiles(search.trim());
+  const picker = useReplacementProfiles(search.trim(), adminSourceUserId);
 
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
   const rows = picker.data;
@@ -55,14 +57,18 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
       <div>
         <Text fw={700}>Choose the new owner</Text>
         <Text size="sm" c="dimmed">
-          Only people who share a group with you can receive your direct ownership.
+          {adminSourceUserId
+            ? "Choose an active profile to receive this account's content."
+            : 'Only people who share a group with you can receive your direct ownership.'}
         </Text>
       </div>
       {unsearched && loading ? (
         <Pending>Loading profiles</Pending>
-      ) : unsearched && rows.length === 0 ? (
+      ) : unsearched && rows.length === 0 && picker.status === 'Exhausted' ? (
         <EmptyNote>
-          Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.
+          {adminSourceUserId
+            ? 'No active replacement profiles are available.'
+            : 'Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.'}
         </EmptyNote>
       ) : (
         <Combobox

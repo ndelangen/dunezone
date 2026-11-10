@@ -573,6 +573,10 @@ function seedSnapshotRulebookDrafts(deployment: TargetDeployment, env: NodeJS.Pr
 
 /** Seed data travels in the request body because board definitions exceed Linux's per-argument limit. */
 export async function insertLocalSeedDocuments(deployment: SelfHostedDeployment, documents: SeedDocument[]) {
+  /* The local provisioning endpoint accepts inserts only; deferred story patches stay in the browser worker. */
+  if (documents.some((document) => document.operation === 'patch')) {
+    throw new Error('Local fixture insertion does not accept Storybook seed patches.');
+  }
   /* Admin authorization permits the internal mutation through this disposable backend's HTTP transport. */
   const reference = makeFunctionReference<
     'mutation',

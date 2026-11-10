@@ -3,7 +3,8 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api } from './_generated/api';
-import { playPerson, playTest } from './play.test.fixture';
+import type { Doc } from './_generated/dataModel';
+import { playPerson, playRuleset, playTest } from './play.test.fixture';
 import { configureDiscord } from './playDiscord.test.fixture';
 
 beforeEach(configureDiscord);
@@ -155,7 +156,7 @@ test('paused integration refuses manual channel deletion', async () => {
   expect(await t.run(async (ctx) => (await ctx.db.get(channelId))?.state)).toBe('ready');
 });
 
-test('inventory reports cleanup deadlines and unconfirmed nudge sends', async () => {
+test('inventory reports cleanup deadlines', async () => {
   const { t, admin } = await setup();
   await t.run(async (ctx) => {
     const game = await ctx.db.insert('play_games', {
@@ -176,21 +177,113 @@ test('inventory reports cleanup deadlines and unconfirmed nudge sends', async ()
       cleanup_at: 42,
       next_attempt_at: 0,
     });
-    await ctx.db.insert('play_game_discord_nudges', {
-      game_id: game,
-      to_seat: 'seat',
-      nudge_id: 'nudge',
-      from_faction_name: 'House',
-      at: 10,
-      state: 'sending',
-      attempts: 1,
-      error: 'Unconfirmed',
-    });
   });
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
   expect(page.channels.page[0]).toMatchObject({ state: 'creating', cleanup_at: 42 });
-  expect(page.nudgeErrors).toMatchObject([
-    { state: 'sending', at: 10, error: 'Unconfirmed', gameName: 'Game', gameSlug: 'game-delivery', toSeat: 'seat' },
-  ]);
-  expect(JSON.stringify(page.nudgeErrors)).not.toContain('secret');
+  /* The previous admin UI reads issues.length and maps the field without guarding its presence. */
+  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
+});
+
+test('old admin consumers receive an empty delivery list while legacy records await retirement', async () => {
+  const { t, admin } = await setup();
+  await t.run(async (ctx) => {
+    const gameId = await ctx.db.insert('play_games', {
+      name: 'Retired delivery',
+      slug: 'retired-delivery',
+      state: 'ready',
+      secret: 'secret',
+      attempt_id: 'attempt',
+      created_at: 0,
+      provision_expires_at: 0,
+    });
+    await ctx.db.insert('play_game_discord_nudges', {
+      game_id: gameId,
+      to_seat: 'seat-1',
+      nudge_id: 'legacy',
+      from_faction_name: 'Atreides',
+      at: Date.now(),
+      state: 'failed',
+      attempts: 1,
+      error: 'Legacy failure',
+    });
+  });
+  const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
+  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
+  expect(await t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(2))).toHaveLength(1);
+});
+
+test('inventory reports an empty-voice wait only for hourly-eligible channels', async () => {
+  const { t, admin, people } = await setup();
+  const { gameId, channelId } = await t.run(async (ctx) => {
+    const rulesetId = await playRuleset(ctx, people.player.userId);
+    const gameId = await ctx.db.insert('play_games', {
+      name: 'Finished game',
+      slug: 'finished-game',
+      state: 'ready',
+      ruleset_id: rulesetId,
+      discord_voice: true,
+      secret: 'secret',
+      attempt_id: 'attempt',
+      created_at: 0,
+      provision_expires_at: 0,
+      directory: { stage: 'finished', seatCount: 6, seats: [], phase: null, lastActivityAt: 0, result: null },
+    });
+    const channelId = await ctx.db.insert('play_game_discord_channels', {
+      game_id: gameId,
+      guild_id: '100',
+      category_ids: ['200'],
+      channel_id: '300',
+      state: 'ready',
+      renamed_ended: true,
+      created_at: 0,
+      cleanup_at: 0,
+      next_attempt_at: 0,
+    });
+    return { gameId, channelId };
+  });
+  const waiting = async () => {
+    const result = await admin.query(api.playDiscordAdmin.dashboard, {
+      paginationOpts: { numItems: 5, cursor: null },
+    });
+    return result.channels.page.find((row) => row._id === channelId)!.waiting_for_empty;
+  };
+  expect(await waiting()).toBe(true);
+  const channelCases: Partial<Doc<'play_game_discord_channels'>>[] = [
+    { state: 'pending' },
+    { state: 'creating' },
+    { state: 'deleting' },
+    { state: 'deleted' },
+    { channel_id: undefined },
+    { renamed_ended: undefined },
+    { renamed_ended: false },
+    { deletion_requested_at: 0 },
+  ];
+  for (const fields of channelCases) {
+    const previous = await t.run(async (ctx) => {
+      const { _id: _ignoredId, _creationTime: _ignoredTime, ...previous } = (await ctx.db.get(channelId))!;
+      await ctx.db.patch(channelId, fields);
+      return previous;
+    });
+    expect(await waiting(), JSON.stringify(fields)).toBe(false);
+    await t.run((ctx) => ctx.db.replace(channelId, previous));
+  }
+  const gameCases: Partial<Doc<'play_games'>>[] = [
+    { state: 'expired' },
+    { discord_voice: false },
+    { ruleset_id: undefined },
+    { fixture_key: 'fixture' },
+    { directory: { stage: 'play', seatCount: 6, seats: [], phase: null, lastActivityAt: 0, result: null } },
+  ];
+  for (const fields of gameCases) {
+    const previous = await t.run(async (ctx) => {
+      const { _id: _ignoredId, _creationTime: _ignoredTime, ...previous } = (await ctx.db.get(gameId))!;
+      await ctx.db.patch(gameId, fields);
+      return previous;
+    });
+    expect(await waiting(), JSON.stringify(fields)).toBe(false);
+    await t.run((ctx) => ctx.db.replace(gameId, previous));
+  }
+  expect(await waiting()).toBe(true);
 });

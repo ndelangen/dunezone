@@ -24,6 +24,7 @@ import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
 import { discordEnabled } from './lib/discordStatus';
 import { currentPlaySession, livePlaySession } from './lib/playAuthorization';
+import { discordVoiceAtLimit } from './lib/playDiscord';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
 import { createPendingGame } from './lib/playProvisioningSchedule';
@@ -190,6 +191,7 @@ export const creatable = viewerQuery({
     v.object({
       access: v.literal('allowed'),
       discordVoiceAvailable: v.boolean(),
+      discordVoiceAtLimit: v.boolean(),
       rulesets: v.array(
         v.object({
           id: v.id('rulesets'),
@@ -203,7 +205,8 @@ export const creatable = viewerQuery({
     })
   ),
   handler: async (ctx, { rulesetId }) => {
-    if (!(await currentPlaySession(ctx))) {
+    const session = await currentPlaySession(ctx);
+    if (!session) {
       return { access: 'unauthenticated' as const };
     }
     const rows = await ctx.db
@@ -225,6 +228,7 @@ export const creatable = viewerQuery({
     return {
       access: 'allowed' as const,
       discordVoiceAvailable: await discordEnabled(ctx),
+      discordVoiceAtLimit: await discordVoiceAtLimit(ctx, session.userId),
       rulesets,
       preview: chosen ? await rulesetPreview(ctx, chosen._id) : null,
     };
@@ -430,7 +434,7 @@ export async function createAuthorizedGame(
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
       last_turn: args.lastTurn,
-      discord_voice: args.discordVoice === true,
+      discord_voice: args.discordVoice === true && !(await discordVoiceAtLimit(ctx, eligible.userId)),
       creator_id: eligible.userId,
       name,
     },

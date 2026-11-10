@@ -25,6 +25,7 @@ type AccountPage = NonNullable<ReturnType<typeof useAccountManagementPage>>;
 type ManagedProfile = AccountPage['profiles']['page'][number];
 type MergeOperation = AccountPage['operations'][number];
 type AccountManagementState = {
+  accountState: 'active' | 'banned';
   failedCursors: (string | null)[];
   cursor: string | null;
   previous: (string | null)[];
@@ -39,6 +40,7 @@ function AccountManagement() {
   const [state, dispatch] = useReducer(
     (state: AccountManagementState, update: Partial<typeof state>) => ({ ...state, ...update }),
     {
+      accountState: 'active',
       failedCursors: [null],
       cursor: null,
       previous: [],
@@ -52,7 +54,8 @@ function AccountManagement() {
   const page = useAccountManagementPage(
     state.cursor,
     [state.source, state.target].filter((id): id is string => id !== null),
-    state.failedCursors.at(-1) ?? null
+    state.failedCursors.at(-1) ?? null,
+    state.accountState
   );
   const merge = useMergeAccounts();
   const resume = useResumeAccountMerge();
@@ -87,18 +90,44 @@ function AccountManagement() {
         <PageTitle
           breadcrumb={<Breadcrumb to="/admin">Admin tools</Breadcrumb>}
           title="Accounts"
-          lede="Combine profiles and keep their sign-in methods, content and access."
+          lede="Manage account access, ownership and sign-in methods."
         />
       </PageLayout.Header>
       <PageLayout.Content>
         <Stack gap="lg">
-          <MergeProfiles
-            options={options}
-            state={state}
-            source={source}
-            target={target}
-            onUpdate={dispatch}
-            onSubmit={() => void submit()}
+          {state.accountState === 'active' ? (
+            <MergeProfiles
+              options={options}
+              state={state}
+              source={source}
+              target={target}
+              onUpdate={dispatch}
+              onSubmit={() => void submit()}
+            />
+          ) : null}
+          <ControlBlock
+            title="Account status"
+            input={(fieldProps) => (
+              <Select
+                {...fieldProps}
+                value={state.accountState}
+                data={[
+                  { value: 'active', label: 'Active accounts' },
+                  { value: 'banned', label: 'Banned accounts' },
+                ]}
+                allowDeselect={false}
+                onChange={(value) =>
+                  dispatch({
+                    accountState: value === 'banned' ? 'banned' : 'active',
+                    cursor: null,
+                    previous: [],
+                    source: null,
+                    target: null,
+                    review: false,
+                  })
+                }
+              />
+            )}
           />
           <ProfilesTable
             profiles={page.profiles}
@@ -293,6 +322,7 @@ function ProfilesTable({
                 <Table.Tr>
                   <Table.Th>Profile</Table.Th>
                   <Table.Th>Sign-in methods</Table.Th>
+                  <Table.Th>Account access</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -311,6 +341,11 @@ function ProfilesTable({
                         .filter((method) => method.connected)
                         .map((method) => authProviderNames[method.provider])
                         .join(', ') || 'No connected provider'}
+                    </Table.Td>
+                    <Table.Td>
+                      <Link to="/admin/account/$profileSlug" params={{ profileSlug: profile.slug }}>
+                        Manage account
+                      </Link>
                     </Table.Td>
                   </Table.Tr>
                 ))}
