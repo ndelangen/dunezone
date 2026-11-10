@@ -32,7 +32,11 @@ export const Route = createFileRoute('/_app/create/faction')({
       description:
         'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, emblem, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
       image: loaderData?.socialImage,
-      social: { kind: 'Tutorial · Creating content', shape: 'landscape' },
+      social: {
+        kind: 'Tutorial · Creating content',
+        shape: 'landscape',
+        text: `${TUTORIAL.goal}, in a ${TUTORIAL.minutes}-minute tutorial.`,
+      },
       trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),
   /* `?step=4` opens the tutorial at its fourth task, up to Save: the task after it needs the faction Save makes. */

@@ -71,9 +71,36 @@ function art(input: CardInput, width: number, height: number): ReactNode {
  * Portrait and round artwork (cards, tokens, portraits) sits in a tall slot beside a wide text column.
  * Landscape artwork (screenshots of the table) gets a wide slot and the text column narrows to make room, so the picture reads at a glance.
  */
+/* Clips the card's text on a word boundary, so it never ends in half a word. */
+function clipAtWord(value: string, limit: number): string {
+  const clipped = clipSocialCardText(value, limit);
+  if (!clipped.endsWith('…')) {
+    return clipped;
+  }
+  const words = clipped
+    .slice(0, -1)
+    .replace(/\s+\S*$/, '')
+    .replace(/[\s,;:.]+$/, '');
+  return `${words || clipped.slice(0, -1)}…`;
+}
+
 const LAYOUTS = {
-  tall: { textWidth: 610, artLeft: 745, artWidth: 370, artHeight: 420, titleSizes: [39, 48, 62] },
-  wide: { textWidth: 470, artLeft: 580, artWidth: 560, artHeight: 420, titleSizes: [34, 42, 54] },
+  tall: {
+    textWidth: 610,
+    artLeft: 745,
+    artWidth: 370,
+    artHeight: 420,
+    titleSizes: [39, 48, 62],
+    textLimits: [140, 180],
+  },
+  wide: {
+    textWidth: 470,
+    artLeft: 580,
+    artWidth: 560,
+    artHeight: 420,
+    titleSizes: [34, 42, 54],
+    textLimits: [120, 120],
+  },
 } as const;
 
 export function socialCard(input: CardInput) {
@@ -109,7 +136,7 @@ export function socialCard(input: CardInput) {
               color: '#dedecb',
             }}
           >
-            {clipSocialCardText(input.text, name.length > 46 ? 140 : 180)}
+            {clipAtWord(input.text, name.length > 46 ? layout.textLimits[0] : layout.textLimits[1])}
           </div>
         )}
       </div>

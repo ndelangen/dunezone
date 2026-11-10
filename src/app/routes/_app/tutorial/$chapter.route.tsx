@@ -58,7 +58,11 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       pathname: `/tutorial/${chapter.slug}`,
       description: `${chapter.goal}. An interactive ${chapter.minutes}-minute chapter of the Dune Zone Play tutorial, at a table you can play with.`,
       image: loaderData?.socialImage,
-      social: { kind: 'Tutorial · Playing Dune', shape: 'landscape' },
+      social: {
+        kind: 'Tutorial · Playing Dune',
+        shape: 'landscape',
+        text: `${chapter.goal}. A ${chapter.minutes}-minute chapter at a table you can play with.`,
+      },
       trail: [{ name: 'Learn to play', pathname: '/tutorial' }],
     });
   },
