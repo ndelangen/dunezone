@@ -20,9 +20,9 @@ The source contracts are [auction and hand controls](https://github.com/ndelange
 
 The revised layout follows the user's direction to reuse the existing tools, optimize the remote for a phone, and give the tablet's space to hand counts and the bidder.
 
-The tablet shows the fixed seating circle, large counts, current bidder, current high bid and timer. Tap a faction to adjust its hand. The bottom action opens tablet bidding controls. Setup keeps the seating controls beside the circle where there is room.
+The tablet shows large faction tokens in a fixed circle. Hand counts use the Dune typeface, face the same direction as their tokens and sit between each token and the pointer. A background-colored outline keeps the counts legible. The pointer aims at the token centre; its centre shows the highest bidding faction and amount, with an optional timer. Full darkens the token and adds the black prohibition mark used by Dune Play. Faction names are optional and off by default. Identical top and bottom controls face opposite sides of the table, including their sheets. Bid, Pass and the green +1 are separate controls. Setup keeps the seating controls beside the circle where there is room.
 
-The phone keeps its bid amount, Pass and Bid at the bottom. Hand count, Full and Always pass remain on the main screen. Hand limit opens from its small settings action. Reset and Change faction are in the remote settings menu.
+The phone keeps its bid amount, Pass, Bid, green +1 and hand controls within thumb reach at the bottom. Choosing the next starter uses faction tokens. Hand count, Full and Always pass remain on the main screen. Hand limit opens from its small settings action. Reset and Change faction are in the remote settings menu.
 
 These arrangements use existing tool patterns:
 
@@ -33,7 +33,7 @@ These arrangements use existing tool patterns:
 
 The route uses the existing Mantine theme and published Storybook fixture artwork. The isolated entry keeps this preview out of the generated application route tree. The screen is available only in development mode.
 
-The visual flow remains awaiting the user's review. Agent checks establish that the prototype runs and follows the recorded decisions; they do not establish human agreement or device capability.
+The user approved this layout on 2026-11-10 and requested a production playtest. The separate working implementation must provide the real timer, connections, voice and recovery. This branch remains the approved visual reference.
 
 ## Captured review
 
@@ -48,6 +48,24 @@ The visual flow remains awaiting the user's review. Agent checks establish that 
 - [Phone recovery](review/recovery.png)
 - [Phone used as the central device](review/phone-central.png)
 
-The revised layout passed 29 browser interaction checks. They cover hand-count and limit recalculation, the Full override, persistent pass, separate bid drafts, action feedback, wins and corrections, Reset, starter removal, keyboard seat reordering, local Resume, phone recovery and phase completion. Bid controls fit at 320 × 568, their main touch targets are at least 44 pixels high, and the six-faction tablet view fits at 1024 × 768. The eight-faction central view was also inspected at phone width. No browser errors were observed.
+An earlier revision passed 29 browser interaction checks. Those results do not cover every later layout change. They cover hand-count and limit recalculation, the Full override, persistent pass, separate bid drafts, action feedback, wins and corrections, Reset, starter removal, keyboard seat reordering, local Resume, phone recovery and phase completion. Bid controls fit at 320 × 568, their main touch targets are at least 44 pixels high, and the six-faction tablet view fits at 1024 × 768. The eight-faction central view was also inspected at phone width. No browser errors were observed.
 
 Type checking, targeted lint, app layout, breakpoint, CSS ownership, CSS variable and prose checks passed. GPT-6.1 Sol and GPT-6 Astra separately reviewed the source and architecture against the agreed contracts. Their corrections are incorporated. These checks do not validate physical devices, audio capture or networking.
+
+
+## Independent review, 2026-11-10
+
+Four agents reviewed the approved prototype using different models:
+
+| Concern | Model | Result |
+| --- | --- | --- |
+| UI consistency | GPT-6.1 Sol | Phone actions fit at 320 by 568. Corrected the far-side sheet to match the near-side width and attach to the top. |
+| Architecture | GPT-6 Astra | Requires a real central session, validated commands, protected central reconnection, complete recovery and browser-compatible voice packaging. |
+| Code quality | GPT-6.1 Terra | Production must capture timer opportunities, validate all commands and transitions, freeze the chosen phase count and settle when no eligible faction remains. |
+| Test coverage | GPT-6 Sol | Visual checks do not cover live behavior. Add auction, command, storage and transport seam tests plus a real central-and-remote browser flow. |
+
+All four agree that removing the development guard would not produce a working playtest. The current state, QR, audio, timer and recovery are simulations. The working tool must implement the canonical issue contracts and receive another review against its actual code.
+
+The Before view now uses the saved capture. Shared styling had changed the live reconstruction, so it can no longer serve as historical evidence. The approved view remains interactive.
+
+Voice packaging must work under the release CSP without dynamic JavaScript evaluation. Physical-device and room-voice tests have not been run. They are part of the requested playtest, and their results must be recorded separately from automated checks.

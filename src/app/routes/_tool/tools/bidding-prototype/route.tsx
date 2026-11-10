@@ -15,7 +15,6 @@ import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
-import { Stepper } from '@ui/control/Stepper';
 import { PageLayout } from '@ui/layout/PageLayout';
 import { Surface } from '@ui/surface/Surface';
 import { SheetPopover, TouchSurface } from '@ui/surface/TouchSheet';
@@ -1415,7 +1414,13 @@ function BiddingFlowReview() {
         size="auto"
         withCloseButton={false}
         title={panelLabel}
-        classNames={{ content: styles.farSheet, header: styles.farSheetHeader }}
+        padding="md"
+        classNames={{
+          inner: styles.farSheetInner,
+          content: styles.farSheet,
+          header: styles.farSheetHeader,
+          body: styles.farDrawerBody,
+        }}
       >
         <TouchSurface>
           <div className={styles.farSheetBody}>
@@ -1435,51 +1440,11 @@ function BiddingFlowReview() {
     </>
   );
   const baseline = (
-    <>
-      <div className={styles.baselineTablet}>
-        <Group justify="space-between" className={styles.deviceHeader}>
-          <Text fw={700}>Turn 2 · Bidding</Text>
-          <Group gap="md">
-            <RotateCcw size={19} aria-label="Take back" />
-            <VolumeX size={19} />
-            <Text size="xs">Direct over the Wi-Fi</Text>
-          </Group>
-        </Group>
-        {circle(true)}
-        <Text ta="center" size="xl" fw={700}>
-          Spacing Guild to bid
-        </Text>
-        <Text ta="center">Fremen has 2 · 15 s</Text>
-        <Text ta="center" size="sm" c="dimmed">
-          Harkonnen pays 3 spice and takes the card. Harkonnen also draws a free card.
-        </Text>
-      </div>
-      <div className={styles.phone}>
-        <Group className={styles.deviceHeader} gap="sm">
-          <FactionTokenFace token={factions[3]} size={36} aria-hidden />
-          <Stack gap="xs">
-            <Text fw={700}>Spacing Guild</Text>
-            <Text size="xs">Linked to the tablet</Text>
-          </Stack>
-        </Group>
-        <Stack gap="md">
-          <Text size="xl" fw={700}>
-            Your bid · 15
-          </Text>
-          <Text c="dimmed">Beat 2</Text>
-          <Stepper label="Original remote bid" value={3} min={3} onChange={() => {}} />
-          <Group grow>
-            <LabeledAction icon={<ArrowRight size={15} />} intent="positive" emphasis="strong">
-              Bid 3
-            </LabeledAction>
-            <LabeledAction icon={<ArrowRight size={15} />}>Pass</LabeledAction>
-          </Group>
-          <Text size="xs" c="dimmed">
-            Direct over the Wi-Fi
-          </Text>
-        </Stack>
-      </div>
-    </>
+    <img
+      className={styles.baselineTablet}
+      src={new URL('./review/before.png', import.meta.url).href}
+      alt="Captured reconstruction of prototype H before the agreed changes: tablet bidding circle and separate phone remote."
+    />
   );
   return (
     <PageLayout height="fullscreen">
@@ -1499,7 +1464,7 @@ function BiddingFlowReview() {
                 Throwaway flow review · simulated devices and audio
               </Text>
               <Text size="xl" fw={700}>
-                {before ? 'Recorded prototype H' : 'Agreed changes'}
+                {before ? 'Captured reconstruction of prototype H' : 'Agreed changes'}
               </Text>
             </div>
             <Group gap="xs">
@@ -1549,7 +1514,7 @@ function BiddingFlowReview() {
           )}
           <Text size="sm" c="dimmed" className={styles.reviewNote}>
             {before
-              ? 'Baseline view reproduces the recorded H controls and fixture data. The hand controls, manual card starts and recovery screens are agreed additions.'
+              ? 'This saved capture preserves the reconstruction of prototype H. The agreed changes are interactive.'
               : descriptions[step]}
           </Text>
           <div className={styles.devices} data-view={view} data-before={before || undefined}>
