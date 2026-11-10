@@ -502,7 +502,7 @@ export async function verifyHomepage({
       const preview = await who.page.evaluate(() => ({
         hash: window.location.hash,
         invitation: document.querySelector('#play-preview [role="status"]')?.textContent ?? null,
-        link: document.querySelector('a[href="#play-preview"]')?.getAttribute('href') ?? null,
+        link: document.querySelector('a[href$="#play-preview"]')?.getAttribute('href') ?? null,
       }));
       throw new Error(`${who.label}'s preview invitation did not appear: ${JSON.stringify(preview)}`, { cause });
     }
