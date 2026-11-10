@@ -13,6 +13,8 @@ import { SiDiscord } from 'react-icons/si';
 
 import { rememberSeatPass, useGameAccess } from '@db/play';
 import { forgetStoredPlayTable } from '@db/playTables';
+import type { GameRuntime } from '@db/tabletop/gameRuntime';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 import { pageHead } from '@app/routes/pageTitle';
 import { LoginGate } from '@app/widgets/page-message/LoginGate';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -20,8 +22,6 @@ import { TableWait } from '@app/widgets/tabletop/TableWait';
 
 import { GameLink } from './GameLink';
 import { loadHostedTable } from './hostedTableChunk';
-import type { GameRuntime } from './multiplayer/gameRuntime';
-import { GameRuntimeContext } from './multiplayer/gameRuntime';
 import { SERVER_UNREACHABLE, useServerUnreachable } from './useServerUnreachable';
 
 const HostedTable = lazy(loadHostedTable);

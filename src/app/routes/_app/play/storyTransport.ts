@@ -12,9 +12,8 @@ import { heldTechTokens } from '@shared/play/techToken';
 import type { TreacheryDeckCard } from '@shared/play/treacheryDeck';
 
 import { STORYBOOK_NOW } from '@db/storybook';
-
-import { browserGameRuntime } from './multiplayer/gameRuntime';
-import type { GameRuntime, GameSocket } from './multiplayer/gameRuntime';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
+import type { GameRuntime, GameSocket } from '@db/tabletop/gameRuntime';
 
 /* Mid-game Treachery hands the other factions hold in a story; the viewer's own count always matches what it holds. */
 const OTHER_HAND_COUNTS = [2, 1, 3, 0, 4, 1];
