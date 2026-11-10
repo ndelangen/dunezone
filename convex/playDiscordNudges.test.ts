@@ -1,6 +1,7 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import type { PlaySendNudgeRequest } from '../src/shared/play/nudges';
 import { api, internal } from './_generated/api';
 import { ACCOUNT_STATES } from './lib/accountLifecycle';
 import { DiscordRest } from './lib/discordRest';
@@ -60,31 +61,33 @@ test('the single target-seat cooldown lasts five minutes', async () => {
   expect(world.fetch).toHaveBeenCalledTimes(2);
 });
 
-test.each([
-  'disabled',
-  'voice off',
-  'finished',
-  'discarded',
-  'missing sender',
-  'missing target',
-  'unlinked',
-  'deleted',
-  'anonymous',
-  'channel missing',
-  'self',
-] as const)('%s drops a nudge before Discord', async (state) => {
+test.each(['disabled', 'voice off', 'finished', 'discarded', 'channel missing'] as const)(
+  '%s drops a nudge before Discord',
+  async (state) => {
+    const world = await nudgeWorld();
+    const channel = await world.channel();
+    await world.t.run(async (ctx) => {
+      if (state === 'disabled') {
+        await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() });
+      }
+      if (state === 'voice off') {
+        await ctx.db.patch(world.gameId, { discord_voice: false });
+      }
+      if (state === 'finished' || state === 'discarded') {
+        await ctx.db.patch(world.gameId, { directory_stage: state });
+      }
+      if (state === 'channel missing') {
+        await ctx.db.delete(channel!._id);
+      }
+    });
+    await world.publishNudge();
+    expect(world.fetch).not.toHaveBeenCalled();
+  }
+);
+
+test.each(['unlinked', 'deleted', 'anonymous'] as const)('%s drops a nudge before Discord', async (state) => {
   const world = await nudgeWorld();
-  const channel = await world.channel();
   await world.t.run(async (ctx) => {
-    if (state === 'disabled') {
-      await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() });
-    }
-    if (state === 'voice off') {
-      await ctx.db.patch(world.gameId, { discord_voice: false });
-    }
-    if (state === 'finished' || state === 'discarded') {
-      await ctx.db.patch(world.gameId, { directory_stage: state });
-    }
     if (state === 'unlinked') {
       await ctx.db.delete(world.authAccountId);
     }
@@ -94,15 +97,18 @@ test.each([
     if (state === 'anonymous') {
       await ctx.db.patch(world.identity.userId, { isAnonymous: true });
     }
-    if (state === 'channel missing') {
-      await ctx.db.delete(channel!._id);
-    }
   });
-  await world.publishNudge({
-    ...(state === 'missing sender' ? { fromSeat: 'absent' } : {}),
-    ...(state === 'missing target' ? { toSeat: 'absent' } : {}),
-    ...(state === 'self' ? { fromSeat: 'seat-1' } : {}),
-  });
+  await world.publishNudge();
+  expect(world.fetch).not.toHaveBeenCalled();
+});
+
+test.each([
+  { state: 'missing sender', request: { fromSeat: 'absent' } },
+  { state: 'missing target', request: { toSeat: 'absent' } },
+  { state: 'self', request: { fromSeat: 'seat-1' } },
+])('$state drops a nudge before Discord', async ({ request }) => {
+  const world = await nudgeWorld();
+  await world.publishNudge(request);
   expect(world.fetch).not.toHaveBeenCalled();
 });
 
@@ -203,17 +209,27 @@ test.each(['user', 'shared'] as const)(
   }
 );
 
+async function expectCooldownUnspent(
+  world: Awaited<ReturnType<typeof nudgeWorld>>,
+  restore: () => Promise<unknown>,
+  request: Partial<PlaySendNudgeRequest> = {}
+) {
+  expect(await world.publishNudge(request)).toEqual({ ok: true });
+  expect(world.fetch).not.toHaveBeenCalled();
+  await restore();
+  await world.publishNudge(request);
+  expect(world.fetch).toHaveBeenCalledTimes(1);
+}
+
 /* This table also covers bans when the account-ban release adds its state. */
 test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
   'a sender changed to %s after the directory snapshot cannot nudge or consume quota',
   async (state) => {
     const world = await nudgeWorld();
     await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: state }));
-    expect(await world.publishNudge()).toEqual({ ok: true });
-    expect(world.fetch).not.toHaveBeenCalled();
-    await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }));
-    await world.publishNudge();
-    expect(world.fetch).toHaveBeenCalledTimes(1);
+    await expectCooldownUnspent(world, () =>
+      world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }))
+    );
   }
 );
 
@@ -237,20 +253,18 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
       await ctx.db.patch(world.spectator.userId, { account_state: state });
       return aliasId;
     });
-    expect(await world.publishNudge({ fromUserId: aliasId })).toEqual({ ok: true });
-    expect(world.fetch).not.toHaveBeenCalled();
-    await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }));
-    await world.publishNudge({ fromUserId: aliasId });
-    expect(world.fetch).toHaveBeenCalledTimes(1);
+    await expectCooldownUnspent(
+      world,
+      () => world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' })),
+      { fromUserId: aliasId }
+    );
   }
 );
 
 test('an anonymous sender cannot nudge or consume quota', async () => {
   const world = await nudgeWorld();
   await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: true }));
-  await world.publishNudge();
-  expect(world.fetch).not.toHaveBeenCalled();
-  await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: false }));
-  await world.publishNudge();
-  expect(world.fetch).toHaveBeenCalledTimes(1);
+  await expectCooldownUnspent(world, () =>
+    world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: false }))
+  );
 });
