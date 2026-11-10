@@ -94,11 +94,12 @@ export const dashboard = adminQuery({
         };
       })
     );
+    const nudgeErrors: Infer<typeof nudgeError>[] = [];
     return {
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),
       channels: { ...channels, page },
-      nudgeErrors: [],
+      nudgeErrors,
     };
   },
 });
