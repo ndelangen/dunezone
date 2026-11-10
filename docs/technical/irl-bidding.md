@@ -48,6 +48,7 @@ Always pass is a persistent choice; an ordinary Pass consumes only the current o
 | Next card | Wait for Start new bid. Suggest the next non-full faction after the previous starter, wrapping in configured order. Let a player choose another starter. |
 | Reset | Abandon only the current card's auction. Keep setup, hands, Full, Always pass, completed wins and the chosen phase count. Wait for a new explicit start. |
 | Finish | End after the chosen cards, when all pass on an unbid card, or when nobody remains eligible. Show results. A later phase gets a fresh card-count suggestion. |
+| Leave | Confirm leaving this device's table and removing its local recovery copy. Return to New table / Join table and clear the join URL. Other devices keep their copies. A stale tab must not erase a newer tab's recovery record. |
 
 Every faction starts with a hand limit of 4. Counts and limits accept manual corrections. Changing
 either recalculates Full as `count >= limit`; a manual Full override lasts until that next change.
@@ -353,6 +354,23 @@ were changed. Sonar's vendored runtime findings concern intentional Emscripten c
 its virtual filesystem; the owned generator's PATH finding was fixed. CodeRabbit declined the
 manual review because the shared free-review limit had been reached. The separate model reviews
 remain the code and architecture review evidence.
+
+The final lifecycle audit found that persistent recovery made the welcome screen unreachable
+after joining or creating a table. Leave table returns to that existing screen, separately from
+Reset and Next phase. It stops local input and connections without resetting the old auction or
+deleting another device's copy. A new game starts with a new table code and fresh results.
+Consumed QR join parameters must clear only after the matching recovery copy is saved, without
+restarting the active client. A promoted phone then reloads its new table instead of the old QR
+destination.
+The nine focused suites now pass 79 tests, including 25 client tests. They cover retirement of
+saved copies, cleanup retries, queued writes and confirmed persistence before URL cleanup. Browser
+QA also revisits the same QR URL without a document reload, consumes it again, leaves and reloads
+to the welcome screen. Near-side, far-side and phone confirmations reuse the existing sheets.
+
+The actual development route exposed Vite rewriting dynamic imports of the pinned speech modules.
+Absolute same-origin module URLs fix that path without changing CSP. The route accepted a
+synthesized bid of five through microphone capture and WASM, then stopped listening. It requested
+no voice assets before Listen and seven afterward. The production-built voice suite also passed.
 
 ## Remaining empirical questions
 

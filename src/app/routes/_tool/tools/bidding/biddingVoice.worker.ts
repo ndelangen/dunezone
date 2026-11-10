@@ -65,8 +65,8 @@ function verifiedBytes(asset: (typeof VOICE_ASSETS)[keyof typeof VOICE_ASSETS]):
 
 /* The repository's worker bundle contract uses promises rather than native async functions. */
 function load(): Promise<void> {
-  const engineUrl = `${VOICE_ASSET_ROOT}${VOICE_ASSETS.glue.file}`;
-  const spotterUrl = `${VOICE_ASSET_ROOT}${VOICE_ASSETS.spotter.file}`;
+  const engineUrl = new URL(`${VOICE_ASSET_ROOT}${VOICE_ASSETS.glue.file}`, scope.location.origin).href;
+  const spotterUrl = new URL(`${VOICE_ASSET_ROOT}${VOICE_ASSETS.spotter.file}`, scope.location.origin).href;
   return Promise.all([
     import(/* @vite-ignore */ engineUrl) as Promise<{
       makeEngine: (adapters: unknown) => (config: unknown) => Promise<unknown>;

@@ -28,6 +28,9 @@ class MemoryStorage {
     this.writes.push(key);
     this.values.set(key, value);
   }
+  removeItem(key: string) {
+    this.values.delete(key);
+  }
 }
 
 /* The application-message seam delivers synchronously, including an acknowledgement before send returns. */
@@ -368,6 +371,301 @@ describe('bidding browser orchestration', () => {
     expect(links.frames.filter((frame) => kind(frame) === 'sync')).toHaveLength(0);
   });
 
+  test('leaving stops this central device and a new table survives reload', async () => {
+    const storage = new MemoryStorage();
+    const client = make(storage);
+    await client.newTable(setup);
+    act(client, { type: 'start' });
+    client.setListening(true);
+    client.setAnnouncements(true);
+    const old = snapshot(client);
+    const oldEndpoint = links.endpoints.at(-1)!;
+    const frames = links.frames.length;
+    await client.leaveTable();
+    expect(client.getSnapshot()).toMatchObject({
+      role: 'welcome',
+      snapshot: null,
+      busy: false,
+      pending: false,
+      connected: false,
+      listening: false,
+      announcing: false,
+      deadline: null,
+      receivedAt: null,
+    });
+    expect(oldEndpoint.closed).toBe(true);
+    expect(voice.dispose).toHaveBeenCalled();
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+    expect(storage.getItem('dune-bidding-device-v1')).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(35_000);
+    expect(links.frames).toHaveLength(frames);
+    const welcome = make(storage);
+    await welcome.initialize();
+    expect(welcome.getSnapshot().role).toBe('welcome');
+    await client.newTable(setup);
+    const next = snapshot(client);
+    expect(next.tableId).not.toBe(old.tableId);
+    const reloaded = make(storage);
+    await reloaded.initialize();
+    expect(snapshot(reloaded)).toMatchObject({ tableId: next.tableId, generation: 2, auction: { stage: 'paused' } });
+  });
+
+  test('a remote leaves without retrying and can join another table without an older role restoring', async () => {
+    const storage = new MemoryStorage();
+    const remote = make(storage);
+    await remote.newTable(setup);
+    const oldCentral = storage.getItem('dune-bidding-central-v1');
+    const central = make();
+    await central.newTable(setup);
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    const oldEndpoint = links.endpoints.at(-1)!;
+    const publication = { type: 'state', snapshot: snapshot(central), deadline: null, sentAt: Date.now() };
+    links.allow = (frame) => kind(frame) !== 'command';
+    act(remote, { type: 'assign', factionId: 'seat-0' });
+    expect(remote.getSnapshot().pending).toBe(true);
+    const commands = links.frames.filter((frame) => kind(frame) === 'command').length;
+    await remote.leaveTable();
+    oldEndpoint.options.onMessage('central', publication);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(links.frames.filter((frame) => kind(frame) === 'command')).toHaveLength(commands);
+    expect(remote.getSnapshot()).toMatchObject({ role: 'welcome', snapshot: null, pending: false });
+    expect(storage.getItem('dune-bidding-remote-v1')).toBeNull();
+    expect(storage.getItem('dune-bidding-receipt-v1')).toBeNull();
+    expect(storage.getItem('dune-bidding-central-v1')).toBe(oldCentral);
+    const reloaded = make(storage);
+    await reloaded.initialize();
+    expect(reloaded.getSnapshot().role).toBe('welcome');
+    const other = make();
+    await other.newTable(setup);
+    remote.join(snapshot(other).code, snapshot(other).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(snapshot(remote).tableId).toBe(snapshot(other).tableId);
+    expect(remote.getSnapshot().connected).toBe(true);
+  });
+
+  test('leaving a displaced central tab preserves the newer central selection and saved state', async () => {
+    const storage = new MemoryStorage();
+    const old = make(storage);
+    await old.newTable(setup);
+    const replacement = make(storage);
+    await replacement.initialize();
+    const saved = [...storage.values];
+    await old.leaveTable();
+    expect([...storage.values]).toEqual(saved);
+    const reloaded = make(storage);
+    await reloaded.initialize();
+    expect(snapshot(reloaded).generation).toBe(3);
+  });
+
+  test('an older live central cannot resurrect a newer table after its owner leaves', async () => {
+    const storage = new MemoryStorage();
+    const old = make(storage);
+    await old.newTable(setup);
+    act(old, { type: 'start' });
+    links.state(old, { status: 'disconnected', relay: false });
+    const selected = make(storage);
+    await selected.initialize();
+    await selected.leaveTable();
+    const oldState = snapshot(old);
+    act(old, { type: 'bid', amount: 8 });
+    old.dispose();
+    expect(snapshot(old)).toEqual(oldState);
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+    expect(JSON.parse(storage.getItem('dune-bidding-central-owner-v1')!)).toMatchObject({ retired: true });
+    const reloaded = make(storage);
+    await reloaded.initialize();
+    expect(reloaded.getSnapshot().role).toBe('welcome');
+  });
+
+  test('leaving an older remote tab preserves another tab copy even at the same table', async () => {
+    const central = make();
+    await central.newTable(setup);
+    const storage = new MemoryStorage();
+    const old = make(storage);
+    old.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    const selected = make(storage);
+    selected.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    const saved = [...storage.values];
+    await old.leaveTable();
+    expect([...storage.values]).toEqual(saved);
+    const reloaded = make(storage);
+    await reloaded.initialize();
+    expect(reloaded.getSnapshot().role).toBe('remote');
+    expect(snapshot(reloaded).tableId).toBe(snapshot(central).tableId);
+  });
+
+  test('a queued save cannot resurrect a table after this client leaves', async () => {
+    let tail = Promise.resolve();
+    const request = (<T>(_name: string, callback: LockGrantedCallback<T>): Promise<T> => {
+      const answer = tail.then(() => callback(null));
+      tail = answer.then(() => undefined);
+      return answer;
+    }) as LockManager['request'];
+    const storage = new MemoryStorage();
+    const client = make(storage, { locks: { request } });
+    await client.newTable(setup);
+    const writes = storage.writes.filter((key) => key === 'dune-bidding-central-v1').length;
+    act(client, { type: 'start' });
+    act(client, { type: 'bid', amount: 9 });
+    await client.leaveTable();
+    await tail;
+    expect(storage.writes.filter((key) => key === 'dune-bidding-central-v1')).toHaveLength(writes);
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+    const restored = make(storage);
+    await restored.initialize();
+    expect(restored.getSnapshot().role).toBe('welcome');
+  });
+
+  test('leaving aborts a pending creation and ignores its late result', async () => {
+    let finish!: (address: BiddingTableAddress) => void;
+    let signal: AbortSignal | undefined;
+    const storage = new MemoryStorage();
+    const client = make(storage, {
+      createTable: (options) => {
+        signal = options?.signal;
+        return new Promise((resolve) => {
+          finish = resolve;
+        });
+      },
+    });
+    const creation = client.newTable(setup);
+    await client.leaveTable();
+    expect(signal?.aborted).toBe(true);
+    finish({ code: 'ABC234', tableId: crypto.randomUUID(), centralSecret: 'a'.repeat(64) });
+    await creation;
+    expect(client.getSnapshot()).toMatchObject({ role: 'welcome', snapshot: null, busy: false });
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+    expect(links.endpoints).toHaveLength(0);
+  });
+
+  test('a failed retirement reports the storage failure while stopping live controls', async () => {
+    const storage = new MemoryStorage();
+    const client = make(storage);
+    await client.newTable(setup);
+    const remove = vi.spyOn(storage, 'removeItem').mockImplementation(() => {
+      throw new Error('Denied');
+    });
+    await expect(client.leaveTable()).rejects.toThrow('saved copy could not be removed');
+    expect(client.getSnapshot()).toMatchObject({ role: 'central', connected: false, busy: false });
+    expect(client.getSnapshot().storageError).toContain('saved copy could not be removed');
+    const restored = make(storage);
+    await restored.initialize();
+    expect(restored.getSnapshot().role).toBe('welcome');
+    remove.mockRestore();
+    await client.leaveTable();
+    expect(client.getSnapshot()).toMatchObject({ role: 'welcome', snapshot: null, storageError: null });
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+  });
+
+  test('ownership read failures keep retirement available for retry', async () => {
+    const storage = new MemoryStorage();
+    const client = make(storage);
+    await client.newTable(setup);
+    const read = vi.spyOn(storage, 'getItem').mockImplementation((key) => {
+      if (key === 'dune-bidding-central-owner-v1') {
+        throw new Error('Denied');
+      }
+      return storage.values.get(key) ?? null;
+    });
+    await expect(client.leaveTable()).rejects.toThrow('saved copy could not be removed');
+    expect(client.getSnapshot()).toMatchObject({ role: 'central', connected: false });
+    read.mockRestore();
+    await client.leaveTable();
+    expect(storage.getItem('dune-bidding-central-v1')).toBeNull();
+    expect(client.getSnapshot().role).toBe('welcome');
+  });
+
+  test('queued remote cleanup preserves a newer tab selection under the same storage lock', async () => {
+    let tail = Promise.resolve();
+    const request = (<T>(_name: string, callback: LockGrantedCallback<T>): Promise<T> => {
+      const answer = tail.then(() => callback(null));
+      tail = answer.then(() => undefined);
+      return answer;
+    }) as LockManager['request'];
+    const central = make();
+    await central.newTable(setup);
+    const storage = new MemoryStorage();
+    const old = make(storage, { locks: { request } });
+    old.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    const selected = make(storage, { locks: { request } });
+    selected.join(snapshot(central).code, snapshot(central).tableId);
+    await old.leaveTable();
+    await tail;
+    const role = JSON.parse(storage.getItem('dune-bidding-role-v1')!);
+    expect(role.role).toBe('remote');
+    expect(JSON.parse(storage.getItem('dune-bidding-remote-v1')!).selectionId).toBe(role.id);
+  });
+
+  test('a joined table is not marked persisted while its recovery save waits for the browser lock', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const request = (<T>(_name: string, callback: LockGrantedCallback<T>): Promise<T> =>
+      gate.then(() => callback(null))) as LockManager['request'];
+    const central = make();
+    await central.newTable(setup);
+    const storage = new MemoryStorage();
+    const remote = make(storage, { locks: { request } });
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(remote.getSnapshot()).toMatchObject({ connected: true, joinPersisted: false });
+    expect(storage.getItem('dune-bidding-remote-v1')).toBeNull();
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(remote.getSnapshot().joinPersisted).toBe(true);
+    expect(JSON.parse(storage.getItem('dune-bidding-remote-v1')!).snapshot.tableId).toBe(snapshot(central).tableId);
+    await remote.leaveTable();
+    expect(remote.getSnapshot().joinPersisted).toBe(false);
+  });
+
+  test('a failed recovery copy write cannot mark a join persisted until a later save succeeds', async () => {
+    const central = make();
+    await central.newTable(setup);
+    const storage = new MemoryStorage();
+    const write = vi.spyOn(storage, 'setItem').mockImplementation((key, value) => {
+      if (key === 'dune-bidding-remote-v1') {
+        throw new Error('Quota exceeded');
+      }
+      storage.values.set(key, value);
+    });
+    const remote = make(storage);
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(remote.getSnapshot()).toMatchObject({ connected: true, joinPersisted: false });
+    expect(remote.getSnapshot().storageError).toContain('recovery copy');
+    write.mockRestore();
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(remote.getSnapshot().joinPersisted).toBe(true);
+    expect(storage.getItem('dune-bidding-remote-v1')).not.toBeNull();
+  });
+
+  test('a late cleanup failure cannot replace a subsequent remote selection', async () => {
+    let fail!: (reason: Error) => void;
+    let delay = false;
+    const request = (<T>(_name: string, callback: LockGrantedCallback<T>): Promise<T> => {
+      if (delay) {
+        delay = false;
+        return new Promise((_, reject) => {
+          fail = reject;
+        });
+      }
+      return Promise.resolve(callback(null));
+    }) as LockManager['request'];
+    const client = make(new MemoryStorage(), { locks: { request } });
+    await client.newTable(setup);
+    delay = true;
+    const leaving = client.leaveTable();
+    client.join('DEF567', crypto.randomUUID());
+    fail(new Error('Lock failed'));
+    await expect(leaving).rejects.toThrow('saved copy could not be removed');
+    expect(client.getSnapshot()).toMatchObject({ role: 'remote', storageError: null, busy: false });
+  });
+
   test('old microphone capture and a replaced timer cannot act on the following bidder', async () => {
     const central = make();
     await central.newTable(setup);
@@ -392,6 +690,9 @@ describe('bidding browser orchestration', () => {
           throw new Error('Denied');
         },
         setItem() {
+          throw new Error('Denied');
+        },
+        removeItem() {
           throw new Error('Denied');
         },
       },

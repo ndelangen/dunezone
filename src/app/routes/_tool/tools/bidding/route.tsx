@@ -50,6 +50,7 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
+  LogOut,
 } from 'lucide-react';
 import {
   useEffect,
@@ -106,6 +107,7 @@ type WelcomeState = {
   rulesetId: string | null;
   rulesets: RulesetChoice[];
   loading: boolean;
+  leaving: boolean;
   error: string | null;
 };
 type WelcomeEvent =
@@ -113,6 +115,8 @@ type WelcomeEvent =
   | { type: 'choose-ruleset'; id: string | null }
   | { type: 'edit-code'; code: string }
   | { type: 'loading' }
+  | { type: 'leaving' }
+  | { type: 'left-table' }
   | { type: 'settled'; error: string | null }
   | { type: 'failed'; error: string };
 function welcomeReducer(state: WelcomeState, event: WelcomeEvent): WelcomeState {
@@ -125,10 +129,14 @@ function welcomeReducer(state: WelcomeState, event: WelcomeEvent): WelcomeState 
       return { ...state, code: event.code };
     case 'loading':
       return { ...state, loading: true, error: null };
+    case 'leaving':
+      return { ...state, loading: true, leaving: true, error: null };
+    case 'left-table':
+      return { ...state, code: '', loading: false, leaving: false, error: null };
     case 'settled':
-      return { ...state, loading: false, error: event.error };
+      return { ...state, loading: false, leaving: false, error: event.error };
     case 'failed':
-      return { ...state, loading: false, error: event.error };
+      return { ...state, loading: false, leaving: false, error: event.error };
   }
 }
 type RulesetChoice = Awaited<ReturnType<typeof readBiddingRulesets>>[number];
@@ -147,32 +155,100 @@ async function loadNewTableSetup(rulesets: RulesetChoice[], selectedId: string |
   return auctionSetupFrom(setup);
 }
 function BiddingApplication({ initial }: Readonly<{ initial: { join?: string; table?: string } }>) {
+  /* Consuming a join link changes the URL, not the client that owns this table. */
+  const [bootSearch] = useState(initial);
   const [owner, setOwner] = useState<{ client: BiddingClient; key: string } | null>(null);
   useEffect(() => {
     const client = new BiddingClient();
     // oxlint-disable-next-line react-hooks/set-state-in-effect -- Each effect owns a fresh client because cleanup disposes it, including during StrictMode replay.
     setOwner({ client, key: crypto.randomUUID() });
-    void client.initialize({ join: initial.join, table: initial.table });
+    void client.initialize(bootSearch);
     return () => client.dispose();
-  }, [initial.join, initial.table]);
+  }, [bootSearch]);
   return owner ? (
     <ConnectedBiddingApplication key={owner.key} client={owner.client} initial={initial} />
   ) : (
     <Text>Opening the bidding table…</Text>
   );
 }
+function selectedNewCentral(view: BiddingClientState, previousTable: string | undefined): boolean {
+  return view.role === 'central' && view.snapshot !== null && view.snapshot.tableId !== previousTable;
+}
 function ConnectedBiddingApplication({
   client,
   initial,
 }: Readonly<{ client: BiddingClient; initial: { join?: string; table?: string } }>) {
+  const navigate = Route.useNavigate();
   const view = useSyncExternalStore(client.subscribe, client.getSnapshot);
   const [local, change] = useReducer(welcomeReducer, {
     code: initial.join ?? '',
     rulesetId: null,
     rulesets: [],
     loading: false,
+    leaving: false,
     error: null,
   });
+  const selectionRequest = useRef(0);
+  useEffect(
+    () => () => {
+      selectionRequest.current += 1;
+    },
+    []
+  );
+  const handledJoin = useRef(initial);
+  const searchCleanup = useRef<{ key: string; promise: Promise<void> } | null>(null);
+  const followJoin = useEffectEvent(() => {
+    const previous = handledJoin.current;
+    handledJoin.current = initial;
+    if (initial.join !== previous.join || initial.table !== previous.table) {
+      searchCleanup.current = null;
+    }
+    if (initial.join && (initial.join !== previous.join || initial.table !== previous.table)) {
+      selectionRequest.current += 1;
+      change({ type: 'settled', error: null });
+      client.join(initial.join, initial.table);
+    }
+  });
+  useEffect(() => {
+    followJoin();
+  }, [initial.join, initial.table]);
+  const searchKey = JSON.stringify(initial);
+  const clearJoinSearch = () => {
+    if (searchCleanup.current?.key !== searchKey) {
+      const promise: Promise<void> = navigate({
+        to: '/tools/bidding',
+        search: (current) =>
+          current.join === initial.join && current.table === initial.table
+            ? { join: undefined, table: undefined }
+            : current,
+        replace: true,
+      }).finally(() => {
+        if (searchCleanup.current?.promise === promise) {
+          searchCleanup.current = null;
+        }
+      });
+      searchCleanup.current = { key: searchKey, promise };
+    }
+    return searchCleanup.current.promise;
+  };
+  const consumeJoin = useEffectEvent(() => {
+    const request = selectionRequest.current;
+    void clearJoinSearch().catch(() => {
+      if (request === selectionRequest.current) {
+        change({ type: 'failed', error: 'The table link could not be cleared.' });
+      }
+    });
+  });
+  const joinedRequestedTable = Boolean(
+    initial.join &&
+    view.snapshot?.code === initial.join.trim().toUpperCase() &&
+    (!initial.table || view.snapshot.tableId === initial.table)
+  );
+  useEffect(() => {
+    if (joinedRequestedTable && view.connected && view.joinPersisted) {
+      consumeJoin();
+    }
+  }, [joinedRequestedTable, view.connected, view.joinPersisted]);
   const rulesetRequest = useRef<Promise<RulesetChoice[]> | null>(null);
   const loadRulesets = () => {
     if (!rulesetRequest.current) {
@@ -199,13 +275,28 @@ function ConnectedBiddingApplication({
     }
   }, [view.role]);
   const newTable = async () => {
+    const request = ++selectionRequest.current;
+    const previousTable = client.getSnapshot().snapshot?.tableId;
     change({ type: 'loading' });
     try {
       const setup = await loadNewTableSetup(await loadRulesets(), local.rulesetId);
+      if (request !== selectionRequest.current) {
+        return;
+      }
       await client.newTable(setup);
-      change({ type: 'settled', error: null });
+      if (request !== selectionRequest.current) {
+        return;
+      }
+      if (selectedNewCentral(client.getSnapshot(), previousTable)) {
+        await clearJoinSearch();
+      }
+      if (request === selectionRequest.current) {
+        change({ type: 'settled', error: null });
+      }
     } catch (error) {
-      change({ type: 'failed', error: error instanceof Error ? error.message : 'The table could not open.' });
+      if (request === selectionRequest.current) {
+        change({ type: 'failed', error: error instanceof Error ? error.message : 'The table could not open.' });
+      }
     }
   };
   const setupRequests = useMemo(
@@ -221,6 +312,47 @@ function ConnectedBiddingApplication({
   );
   const chooseRuleset = (id: string) => setupRequests.ruleset(() => readBiddingSetup(id));
   const addFaction = (id: string) => setupRequests.faction(() => readBiddingFaction(id));
+  const joinTable = () => {
+    selectionRequest.current += 1;
+    client.join(local.code);
+  };
+  const promoteTable = async () => {
+    const request = ++selectionRequest.current;
+    const previousTable = client.getSnapshot().snapshot?.tableId;
+    await client.promote();
+    if (request === selectionRequest.current && selectedNewCentral(client.getSnapshot(), previousTable)) {
+      await clearJoinSearch().catch(() => {
+        if (request === selectionRequest.current) {
+          change({ type: 'failed', error: 'The table link could not be cleared.' });
+        }
+      });
+    }
+  };
+  const leaveTable = async () => {
+    const request = ++selectionRequest.current;
+    change({ type: 'leaving' });
+    try {
+      await client.leaveTable();
+      if (request !== selectionRequest.current) {
+        return;
+      }
+      await clearJoinSearch();
+      if (request === selectionRequest.current) {
+        change({ type: 'left-table' });
+      }
+    } catch (error) {
+      if (request !== selectionRequest.current) {
+        return;
+      }
+      await clearJoinSearch().catch(() => undefined);
+      if (request === selectionRequest.current) {
+        change({
+          type: 'failed',
+          error: error instanceof Error ? error.message : 'This device could not leave the table.',
+        });
+      }
+    }
+  };
   if (!view.snapshot) {
     return (
       <div className={styles.welcome}>
@@ -266,7 +398,7 @@ function ConnectedBiddingApplication({
             />
             <LabeledAction
               icon={<QrCode size={20} />}
-              onClick={() => client.join(local.code)}
+              onClick={joinTable}
               disabledReason={
                 local.loading
                   ? 'Wait for setup to finish.'
@@ -300,6 +432,9 @@ function ConnectedBiddingApplication({
       }
       onRuleset={chooseRuleset}
       onAddFaction={addFaction}
+      onLeave={leaveTable}
+      onPromote={promoteTable}
+      leaving={local.leaving}
       error={local.error}
       loading={local.loading}
     />
@@ -310,7 +445,7 @@ type Local = {
   amount: number;
   draftOpportunity: number;
   selected: string;
-  panel: 'bid' | 'hand' | 'limit' | 'join' | 'history' | 'add' | null;
+  panel: 'bid' | 'hand' | 'limit' | 'join' | 'history' | 'add' | 'leave' | null;
   panelSide: 'near' | 'far';
   showNames: boolean;
 };
@@ -366,6 +501,9 @@ function BiddingScreen({
   onLoadRulesets,
   onRuleset,
   onAddFaction,
+  onLeave,
+  onPromote,
+  leaving,
   error,
   loading,
 }: Readonly<{
@@ -375,6 +513,9 @@ function BiddingScreen({
   onLoadRulesets: () => void;
   onRuleset: (id: string, context: BiddingContext) => Promise<void>;
   onAddFaction: (id: string, context: BiddingContext) => Promise<void>;
+  onLeave: () => Promise<void>;
+  onPromote: () => Promise<void>;
+  leaving: boolean;
   error: string | null;
   loading: boolean;
 }>) {
@@ -876,6 +1017,10 @@ function BiddingScreen({
             >
               Reset this card
             </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item leftSection={<LogOut size={18} />} onClick={() => setPanel('leave', side)}>
+              Leave table
+            </Menu.Item>
           </Menu.Dropdown>
         </Menu>
         {state.stage === 'active' ? (
@@ -1038,7 +1183,7 @@ function BiddingScreen({
                 icon={<Play size={20} />}
                 intent="positive"
                 emphasis="strong"
-                onClick={() => void client.promote()}
+                onClick={() => void onPromote()}
                 disabledReason={view.busy ? 'Opening the new table…' : undefined}
               >
                 Use this phone as central
@@ -1048,6 +1193,9 @@ function BiddingScreen({
                   Return to remote
                 </LabeledAction>
               )}
+              <LabeledAction size="lg" icon={<LogOut size={20} />} onClick={() => setPanel('leave')}>
+                Leave table
+              </LabeledAction>
             </Stack>
           </div>
         ) : !remoteSeat ? (
@@ -1065,6 +1213,9 @@ function BiddingScreen({
                   onClick={() => act({ type: 'assign', factionId: s.id })}
                 >{`${s.name}${s.linked ? ' · phone linked' : ''}`}</LabeledAction>
               ))}
+              <LabeledAction size="lg" icon={<LogOut size={20} />} onClick={() => setPanel('leave')}>
+                Leave table
+              </LabeledAction>
             </Stack>
           </div>
         ) : (
@@ -1156,6 +1307,10 @@ function BiddingScreen({
                       >
                         Reset this card
                       </Menu.Item>
+                      <Menu.Divider />
+                      <Menu.Item leftSection={<LogOut size={18} />} onClick={() => setPanel('leave')}>
+                        Leave table
+                      </Menu.Item>
                     </Menu.Dropdown>
                   </Menu>
                   <Text size="sm" c="dimmed">
@@ -1191,20 +1346,48 @@ function BiddingScreen({
       </div>
     </TouchSurface>
   );
-  const panelLabel =
-    state.panel === 'add'
-      ? 'Add a faction'
-      : state.panel === 'bid'
-        ? `${nameOf(state, state.turn)} to bid`
-        : state.panel === 'hand'
-          ? 'Hand controls'
-          : state.panel === 'limit'
-            ? 'Hand limit'
-            : state.panel === 'history'
-              ? 'Completed wins'
-              : 'Join the table';
+  const panelLabels: Record<NonNullable<Local['panel']>, string> = {
+    add: 'Add a faction',
+    bid: `${nameOf(state, state.turn)} to bid`,
+    hand: 'Hand controls',
+    limit: 'Hand limit',
+    history: 'Completed wins',
+    join: 'Join the table',
+    leave: 'Leave table',
+  };
+  const panelLabel = panelLabels[state.panel ?? 'join'];
   function renderPanelBody() {
     switch (state.panel) {
+      case 'leave':
+        return (
+          <Stack gap="md">
+            <Section title="Leave table">
+              <Text>
+                This device will leave the table and remove its local copy. Other phones keep their saved copies.
+              </Text>
+            </Section>
+            <Group grow>
+              <LabeledAction
+                size="lg"
+                icon={<X size={20} />}
+                onClick={() => setPanel(null)}
+                disabledReason={leaving ? 'Leaving the table…' : undefined}
+              >
+                Cancel
+              </LabeledAction>
+              <LabeledAction
+                size="lg"
+                icon={<LogOut size={20} />}
+                intent="negative"
+                emphasis="strong"
+                onClick={() => void onLeave()}
+                disabledReason={leaving ? 'Leaving the table…' : undefined}
+              >
+                Leave table
+              </LabeledAction>
+            </Group>
+          </Stack>
+        );
       case 'add':
         return (
           <LiveFactionSearch

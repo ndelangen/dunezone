@@ -29,6 +29,7 @@ import type { BiddingVoice } from './voice';
 
 const DEVICE_KEY = 'dune-bidding-device-v1';
 const CENTRAL_KEY = 'dune-bidding-central-v1';
+const CENTRAL_OWNER_KEY = 'dune-bidding-central-owner-v1';
 const REMOTE_KEY = 'dune-bidding-remote-v1';
 const RECEIPT_KEY = 'dune-bidding-receipt-v1';
 const LAST_ROLE_KEY = 'dune-bidding-role-v1';
@@ -48,16 +49,19 @@ const savedCentralSchema = z.strictObject({
 type SavedCentral = z.infer<typeof savedCentralSchema>;
 const savedOwnershipSchema = z.object({
   snapshot: biddingIdentitySchema.strip().extend({ revision: z.number().int().nonnegative() }),
+  retired: z.boolean().optional(),
 });
 type SavedOwnership = z.infer<typeof savedOwnershipSchema>;
 const remoteAddressSchema = biddingTableAddressSchema.omit({ centralSecret: true });
 const savedRemoteSchema = z.strictObject({
   version: z.literal(1),
+  selectionId: z.uuid().optional(),
   address: remoteAddressSchema,
   snapshot: biddingSnapshotSchema,
   receivedAt: z.number().int().nonnegative(),
 });
 const receiptSchema = z.strictObject({
+  selectionId: z.uuid().optional(),
   tableId: z.uuid(),
   centralInstanceId: z.string(),
   revision: z.number().int().nonnegative(),
@@ -73,6 +77,7 @@ const aliveSchema = biddingContextSchema
   })
   .strict();
 const syncSchema = z.strictObject({ type: z.literal('sync') });
+const selectionSchema = z.strictObject({ role: z.enum(['central', 'remote']), id: z.uuid() });
 
 export type BiddingClientState = Readonly<{
   role: 'welcome' | 'central' | 'remote';
@@ -91,9 +96,10 @@ export type BiddingClientState = Readonly<{
   announcing: boolean;
   voiceMessage: string;
   busy: boolean;
+  joinPersisted: boolean;
 }>;
 
-type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;
+type StoragePort = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 type LinkPort = Pick<BiddingLink, 'send' | 'close'>;
 type LinkOptions = ConstructorParameters<typeof BiddingLink>[0];
 type Dependencies = Readonly<{
@@ -110,6 +116,12 @@ type PendingCommand = {
   attempts: number;
   result?: BiddingResult;
   timer?: ReturnType<typeof setTimeout>;
+};
+type Retirement = {
+  selection: z.infer<typeof selectionSchema> | null;
+  snapshot: BiddingSnapshot | null;
+  role: BiddingClientState['role'];
+  unclaimedRole: string | null | undefined;
 };
 
 function browserStorage(): StoragePort | null {
@@ -158,6 +170,11 @@ export class BiddingClient {
   private abort?: AbortController;
   private initialized = false;
   private disposed = false;
+  private selection: z.infer<typeof selectionSchema> | null = null;
+  private selectionBaseRole: string | null = null;
+  private selectionClaimed = false;
+  private retirement: Retirement | null = null;
+  private persistenceEpoch = 0;
 
   constructor(dependencies: Partial<Dependencies> = {}) {
     this.dependencies = {
@@ -188,6 +205,7 @@ export class BiddingClient {
       announcing: false,
       voiceMessage: '',
       busy: false,
+      joinPersisted: false,
     };
     const stored = this.read(DEVICE_KEY, biddingDeviceSchema);
     if (stored) {
@@ -223,12 +241,20 @@ export class BiddingClient {
       this.join(search.join, search.table);
       return;
     }
+    const operation = this.operation;
     const restore = () => {
-      if (this.disposed) {
+      if (!this.isCurrent(operation)) {
         return;
       }
+      const storedRole = this.readText(LAST_ROLE_KEY);
+      if (storedRole === 'welcome') {
+        return;
+      }
+      const lastRole =
+        storedRole === 'central' || storedRole === 'remote'
+          ? storedRole
+          : this.read(LAST_ROLE_KEY, selectionSchema)?.role;
       const central = this.read(CENTRAL_KEY, savedCentralSchema);
-      const lastRole = this.readText(LAST_ROLE_KEY);
       const remote = this.readRemote();
       if (central && lastRole !== 'remote') {
         if (central.snapshot.tableId !== central.address.tableId || central.snapshot.code !== central.address.code) {
@@ -290,6 +316,9 @@ export class BiddingClient {
   }
 
   join(code: string, tableId?: string): void {
+    if (this.disposed) {
+      return;
+    }
     const parsed = biddingCodeSchema.safeParse(code.trim().toUpperCase());
     if (!parsed.success || (tableId !== undefined && !z.uuid().safeParse(tableId).success)) {
       this.update({ error: 'Enter the six-character table code shown on the central device.' });
@@ -321,8 +350,9 @@ export class BiddingClient {
       receivedAt: this.copy?.receivedAt ?? null,
       recovering: false,
       busy: false,
+      joinPersisted: false,
     });
-    this.writeText(LAST_ROLE_KEY, 'remote');
+    this.claimSelection('remote');
     this.openLink('remote');
     this.heartbeat = setInterval(() => {
       if (this.dependencies.now() - this.lastAuthorityAt > REMOTE_SILENCE_MS) {
@@ -378,6 +408,9 @@ export class BiddingClient {
     this.update({ connected: false, connection: 'Creating the recovered table', pending: false, recovering: true });
     try {
       let address = await this.dependencies.createTable({ signal: this.abort?.signal });
+      if (!this.isCurrent(operation)) {
+        return;
+      }
       if (address.code === saved.snapshot.code) {
         address = await this.dependencies.createTable({ signal: this.abort?.signal });
       }
@@ -402,6 +435,105 @@ export class BiddingClient {
     }
   }
 
+  /** Leaving retires this browser's selection without changing the auction on any other device. */
+  async leaveTable(): Promise<void> {
+    if (this.disposed) {
+      return;
+    }
+    const retirement = this.retirement ?? {
+      selection: this.selection,
+      snapshot: this.state.snapshot,
+      role: this.state.role,
+      unclaimedRole: this.selectionClaimed ? undefined : this.selectionBaseRole,
+    };
+    this.retirement = retirement;
+    const { selection, snapshot } = retirement;
+    const operation = ++this.operation;
+    this.abort?.abort();
+    this.abort = undefined;
+    this.persistenceEpoch += 1;
+    this.stopCurrent();
+    this.selection = null;
+    this.address = null;
+    this.copy = null;
+    this.sequence = 0;
+    this.recoveryRequested = false;
+    this.update({
+      role: 'welcome',
+      snapshot: null,
+      connection: 'No table connected',
+      connected: false,
+      feedback: [],
+      error: null,
+      receivedAt: null,
+      recovering: false,
+      busy: true,
+      joinPersisted: false,
+    });
+    const retire = () => {
+      const storage = this.dependencies.storage;
+      if (!storage) {
+        throw new Error('Browser storage is unavailable. The saved table could not be removed.');
+      }
+      const storedRole = storage.getItem(LAST_ROLE_KEY);
+      if (selection && (storedRole === JSON.stringify(selection) || storedRole === retirement.unclaimedRole)) {
+        /* Retain the deliberate welcome choice so an older role's copy cannot become the fallback. */
+        storage.setItem(LAST_ROLE_KEY, 'welcome');
+      }
+      if (selection?.role === 'central' && snapshot) {
+        const saved = (
+          this.readForRetirement(CENTRAL_OWNER_KEY, savedOwnershipSchema) ??
+          this.readForRetirement(CENTRAL_KEY, savedOwnershipSchema)
+        )?.snapshot;
+        if (
+          saved?.tableId === snapshot.tableId &&
+          saved.centralInstanceId === snapshot.centralInstanceId &&
+          saved.generation === snapshot.generation
+        ) {
+          storage.setItem(CENTRAL_OWNER_KEY, JSON.stringify({ snapshot: saved, retired: true }));
+          storage.removeItem(CENTRAL_KEY);
+        }
+      } else if (selection?.role === 'remote') {
+        const saved = this.readForRetirement(REMOTE_KEY, savedRemoteSchema);
+        if (saved?.selectionId === selection.id) {
+          storage.removeItem(REMOTE_KEY);
+        }
+        if (this.readForRetirement(RECEIPT_KEY, receiptSchema)?.selectionId === selection.id) {
+          storage.removeItem(RECEIPT_KEY);
+        }
+      }
+    };
+    try {
+      if (this.dependencies.locks) {
+        await this.dependencies.locks.request(CENTRAL_LOCK, retire);
+      } else {
+        retire();
+      }
+      if (this.retirement === retirement) {
+        this.retirement = null;
+      }
+      if (this.isCurrent(operation)) {
+        this.update({ storageError: null });
+      }
+    } catch {
+      const message =
+        'This device left the table, but its saved copy could not be removed. Try again before reloading.';
+      if (this.isCurrent(operation)) {
+        this.update({
+          role: retirement.role,
+          snapshot,
+          connection: 'This device left the table',
+          storageError: message,
+        });
+      }
+      throw new Error(message);
+    } finally {
+      if (this.isCurrent(operation)) {
+        this.update({ busy: false });
+      }
+    }
+  }
+
   setListening(enabled: boolean): void {
     if (this.state.role !== 'central' || !this.ensureLocalAuthority() || !this.session) {
       return;
@@ -414,11 +546,12 @@ export class BiddingClient {
       return;
     }
     const voice = this.getVoice();
+    const run = this.run;
     const context = this.session.captureContext();
     const key = contextKey(context);
     this.voiceContextKey = key;
     void voice.start(context, key).catch((error: unknown) => {
-      if (!this.disposed) {
+      if (!this.disposed && this.run === run) {
         this.update({ listening: false, voiceMessage: messageOf(error) });
       }
     });
@@ -555,9 +688,11 @@ export class BiddingClient {
       receivedAt,
       recovering,
       busy: false,
+      joinPersisted: false,
     });
-    this.writeText(LAST_ROLE_KEY, 'central');
+    this.claimSelection('central');
     /* Callers hold CENTRAL_LOCK where browser locks are available; this write claims the selected table. */
+    this.write(CENTRAL_OWNER_KEY, { snapshot: { ...biddingContextOf(snapshot), code: snapshot.code }, retired: false });
     this.write(CENTRAL_KEY, this.centralRecord());
     this.unsubscribeSession = this.session.subscribe(() => this.centralChanged());
     this.synchronizeTimer();
@@ -830,24 +965,55 @@ export class BiddingClient {
     this.sequence = Math.max(this.sequence, snapshot.commandSequences[this.device.id] ?? 0);
     this.update({ snapshot, receivedAt: received.copy.receivedAt, error: null });
     this.authorityPresent(received.publication.deadline, received.publication.sentAt);
-    if (received.changed) {
-      this.write(REMOTE_KEY, {
-        version: 1,
-        address: { code: snapshot.code, tableId: snapshot.tableId },
-        snapshot,
-        receivedAt: received.copy.receivedAt,
-      });
-    }
-    this.write(RECEIPT_KEY, {
-      tableId: snapshot.tableId,
-      centralInstanceId: snapshot.centralInstanceId,
-      revision: snapshot.revision,
-      receivedAt: received.copy.receivedAt,
-    });
+    this.persistRemote(received.changed);
     if (before?.assignments[this.device.id] && !snapshot.assignments[this.device.id]) {
       this.feedback('This faction is using another remote. Choose a faction to take control again.');
     }
     this.finishPending();
+  }
+
+  private persistRemote(changed: boolean, locked = false): void {
+    const copy = this.copy;
+    const selection = this.selection;
+    if (!copy || !selection) {
+      return;
+    }
+    const epoch = this.persistenceEpoch;
+    const save = () => {
+      if (
+        this.persistenceEpoch !== epoch ||
+        this.selection !== selection ||
+        this.readText(LAST_ROLE_KEY) !== JSON.stringify(selection)
+      ) {
+        return;
+      }
+      const snapshot = copy.snapshot;
+      const copied =
+        changed || !this.state.joinPersisted
+          ? this.write(REMOTE_KEY, {
+              version: 1,
+              selectionId: selection.id,
+              address: { code: snapshot.code, tableId: snapshot.tableId },
+              snapshot,
+              receivedAt: copy.receivedAt,
+            })
+          : true;
+      const receipted = this.write(RECEIPT_KEY, {
+        selectionId: selection.id,
+        tableId: snapshot.tableId,
+        centralInstanceId: snapshot.centralInstanceId,
+        revision: snapshot.revision,
+        receivedAt: copy.receivedAt,
+      });
+      if (copied && receipted && this.selection === selection) {
+        this.update({ joinPersisted: true });
+      }
+    };
+    if (this.dependencies.locks && !locked) {
+      void this.dependencies.locks.request(CENTRAL_LOCK, save).catch(() => this.saveFailed(epoch));
+    } else {
+      save();
+    }
   }
 
   private authorityPresent(deadline: number | null, sentAt: number): void {
@@ -1049,6 +1215,7 @@ export class BiddingClient {
       return false;
     }
     return (
+      saved.retired === true ||
       saved.snapshot.tableId !== snapshot.tableId ||
       saved.snapshot.generation > snapshot.generation ||
       (saved.snapshot.generation === snapshot.generation &&
@@ -1061,7 +1228,7 @@ export class BiddingClient {
     if (!snapshot) {
       return false;
     }
-    if (!this.displacedBy(this.read(CENTRAL_KEY, savedOwnershipSchema), snapshot)) {
+    if (!this.displacedBy(this.readOwnership(), snapshot)) {
       return true;
     }
     this.stopCurrent();
@@ -1074,7 +1241,7 @@ export class BiddingClient {
   }
 
   private storageChanged = (event: StorageEvent): void => {
-    if (event.key === CENTRAL_KEY && this.session) {
+    if ((event.key === CENTRAL_KEY || event.key === CENTRAL_OWNER_KEY) && this.session) {
       this.ensureLocalAuthority();
     }
   };
@@ -1084,12 +1251,17 @@ export class BiddingClient {
     if (!record) {
       return;
     }
+    const epoch = this.persistenceEpoch;
+    const selection = this.selection;
     const save = () => {
-      const saved = this.read(CENTRAL_KEY, savedOwnershipSchema);
-      if (this.displacedBy(saved, record.snapshot)) {
+      if (this.persistenceEpoch !== epoch || this.selection !== selection) {
+        return;
+      }
+      if (this.displacedBy(this.readOwnership(), record.snapshot)) {
         this.ensureLocalAuthority();
         return;
       }
+      const saved = this.read(CENTRAL_KEY, savedOwnershipSchema);
       if (
         saved?.snapshot.centralInstanceId === record.snapshot.centralInstanceId &&
         saved.snapshot.revision >= record.snapshot.revision
@@ -1100,11 +1272,7 @@ export class BiddingClient {
     };
     /* A queued save keeps its complete revision, but cannot overwrite a newer central claim while waiting. */
     if (this.dependencies.locks) {
-      void this.dependencies.locks.request(CENTRAL_LOCK, save).catch(() => {
-        this.update({
-          storageError: 'The recovery copy could not be saved. Live play continues; keep another device connected.',
-        });
-      });
+      void this.dependencies.locks.request(CENTRAL_LOCK, save).catch(() => this.saveFailed(epoch));
     } else {
       save();
     }
@@ -1125,6 +1293,46 @@ export class BiddingClient {
       return { ...saved, receivedAt: receipt.receivedAt };
     }
     return saved;
+  }
+
+  private claimSelection(role: 'central' | 'remote'): void {
+    const selection = { role, id: this.dependencies.uuid() };
+    this.selection = selection;
+    this.retirement = null;
+    this.selectionBaseRole = this.readText(LAST_ROLE_KEY);
+    this.selectionClaimed = false;
+    const epoch = this.persistenceEpoch;
+    const claim = () => {
+      if (this.selection !== selection || this.persistenceEpoch !== epoch) {
+        return;
+      }
+      this.selectionClaimed = this.write(LAST_ROLE_KEY, selection);
+      if (role === 'remote') {
+        this.persistRemote(true, true);
+      }
+    };
+    if (role === 'remote' && this.dependencies.locks) {
+      void this.dependencies.locks.request(CENTRAL_LOCK, claim).catch(() => this.saveFailed(epoch));
+    } else {
+      claim();
+    }
+  }
+
+  private readOwnership(): SavedOwnership | null {
+    return this.read(CENTRAL_OWNER_KEY, savedOwnershipSchema) ?? this.read(CENTRAL_KEY, savedOwnershipSchema);
+  }
+
+  private readForRetirement<T>(key: string, schema: z.ZodType<T>): T | null {
+    const raw = this.dependencies.storage!.getItem(key);
+    return raw ? schema.parse(JSON.parse(raw)) : null;
+  }
+
+  private saveFailed(epoch: number): void {
+    if (this.persistenceEpoch === epoch) {
+      this.update({
+        storageError: 'The recovery copy could not be saved. Live play continues; keep another device connected.',
+      });
+    }
   }
 
   private read<T>(key: string, schema: z.ZodType<T>): T | null {
@@ -1162,20 +1370,22 @@ export class BiddingClient {
     }
   }
 
-  private write(key: string, value: unknown): void {
-    this.writeText(key, JSON.stringify(value));
+  private write(key: string, value: unknown): boolean {
+    return this.writeText(key, JSON.stringify(value));
   }
 
-  private writeText(key: string, value: string): void {
+  private writeText(key: string, value: string): boolean {
     try {
       if (!this.dependencies.storage) {
         throw new Error('Storage unavailable');
       }
       this.dependencies.storage.setItem(key, value);
+      return true;
     } catch {
       this.update({
         storageError: 'The recovery copy could not be saved. Live play continues; keep another device connected.',
       });
+      return false;
     }
   }
 }

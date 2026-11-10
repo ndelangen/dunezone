@@ -74,10 +74,12 @@ async function remoteMenu(page: Page, item: string) {
   await page.getByRole('menuitem', { name: item, exact: true }).click();
 }
 
-async function join(page: Page, origin: string, code: string) {
-  await page.goto(`${origin}/tools/bidding`);
-  await page.getByRole('textbox', { name: 'Table code', exact: true }).fill(code);
-  await page.getByRole('button', { name: 'Join table', exact: true }).click();
+async function join(page: Page, origin: string, code: string, viaJoinLink = false) {
+  await page.goto(`${origin}/tools/bidding${viaJoinLink ? `?join=${code}` : ''}`);
+  if (!viaJoinLink) {
+    await page.getByRole('textbox', { name: 'Table code', exact: true }).fill(code);
+    await page.getByRole('button', { name: 'Join table', exact: true }).click();
+  }
   await phone(page).getByRole('button', { name: 'Atreides', exact: true }).click();
   await expect(phone(page).getByRole('textbox', { name: 'Atreides hand count', exact: true })).toBeVisible();
 }
@@ -186,7 +188,7 @@ test('a physical table bids through a remote, restores and recovers into a new t
   try {
     const centralRelay = await relayOutage(page);
     const remoteRelay = await relayOutage(remote.page);
-    await test.step('set up real catalogue factions and join by code', async () => {
+    await test.step('set up real catalogue factions and join through the QR link', async () => {
       await page.setViewportSize({ width: 1024, height: 768 });
       await page.goto(`${runtime.origin}/tools/bidding`);
       await choose(page, 'Ruleset', fixture.rulesetName);
@@ -199,7 +201,8 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await choose(page, 'Bid timer', 'Off');
       await fillNumber(page, 'Cards this phase', 2);
       originalCode = await tableCode(page);
-      await join(remote.page, runtime.origin, originalCode);
+      await join(remote.page, runtime.origin, originalCode, true);
+      await expect(remote.page).toHaveURL(`${runtime.origin}/tools/bidding`);
       await expect(remote.page.getByRole('status', { name: 'Table connection' })).toHaveText('Direct to the table');
     });
 
@@ -278,6 +281,10 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await expect(near(remote.page).getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
       recoveredCode = await tableCode(remote.page);
       expect(recoveredCode).not.toBe(originalCode);
+      await remote.page.reload();
+      await expect(near(remote.page).getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
+      expect(await tableCode(remote.page)).toBe(recoveredCode);
+      await expect(tablet(remote.page).getByRole('img', { name: 'Harkonnen has 1 spice', exact: true })).toBeVisible();
       await near(page).getByRole('button', { name: '+1', exact: true }).click();
       await near(page).getByRole('button', { name: '+1', exact: true }).click();
       await expect(tablet(page).getByRole('img', { name: 'Harkonnen has 3 spice', exact: true })).toBeVisible();
@@ -287,7 +294,8 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await secondRemote.page.context().addInitScript(() => {
         Object.defineProperty(window, 'RTCPeerConnection', { value: undefined });
       });
-      await join(secondRemote.page, runtime.origin, recoveredCode);
+      await join(secondRemote.page, runtime.origin, recoveredCode, true);
+      await expect(secondRemote.page).toHaveURL(`${runtime.origin}/tools/bidding`);
       await expect(secondRemote.page.getByRole('status', { name: 'Table connection' })).toHaveText(
         'Connected through the relay'
       );
@@ -319,11 +327,61 @@ test('a physical table bids through a remote, restores and recovers into a new t
       expect(Date.now() - resumedAt).toBeGreaterThanOrEqual(4500);
       await expect(phone(secondRemote.page).getByText('Phase complete', { exact: true })).toBeVisible();
     });
+
+    await test.step('leave and rejoin a phone without restoring its old join link', async () => {
+      await remoteMenu(secondRemote.page, 'Leave table');
+      await secondRemote.page
+        .getByRole('dialog', { name: 'Leave table', exact: true })
+        .getByRole('button', { name: 'Leave table', exact: true })
+        .click();
+      await expect(secondRemote.page).toHaveURL(`${runtime.origin}/tools/bidding`);
+      await expect(secondRemote.page.getByRole('button', { name: 'New table', exact: true })).toBeVisible();
+      await secondRemote.page.reload();
+      await expect(secondRemote.page.getByRole('button', { name: 'New table', exact: true })).toBeVisible();
+      await secondRemote.page.getByRole('textbox', { name: 'Table code', exact: true }).fill(recoveredCode);
+      await secondRemote.page.getByRole('button', { name: 'Join table', exact: true }).click();
+      await expect(
+        phone(secondRemote.page).getByRole('textbox', { name: 'Atreides hand count', exact: true })
+      ).toHaveValue('5');
+      await fillNumber(phone(secondRemote.page), 'Atreides hand count', 6);
+      await expect(
+        tablet(remote.page).getByRole('button', { name: 'Atreides, 6 cards, Full', exact: true })
+      ).toBeVisible();
+    });
+
+    await test.step('leave the promoted central and create a fresh table that survives reload', async () => {
+      await tableMenu(remote.page, 'Leave table');
+      await remote.page
+        .getByRole('dialog', { name: 'Leave table', exact: true })
+        .getByRole('button', { name: 'Leave table', exact: true })
+        .click();
+      await expect(remote.page).toHaveURL(`${runtime.origin}/tools/bidding`);
+      await expect(remote.page.getByRole('button', { name: 'New table', exact: true })).toBeVisible();
+      await remote.page.reload();
+      await expect(remote.page.getByRole('button', { name: 'New table', exact: true })).toBeVisible();
+      await choose(remote.page, 'Ruleset', fixture.rulesetName);
+      await remote.page.getByRole('button', { name: 'New table', exact: true }).click();
+      await expect(tablet(remote.page).locator('[data-seat-id]')).toHaveCount(6);
+      await expect(tablet(remote.page).getByRole('button', { name: 'Atreides, 1 cards', exact: true })).toBeVisible();
+      const freshCode = await tableCode(remote.page);
+      expect(freshCode).not.toBe(recoveredCode);
+      expect(freshCode).not.toBe(originalCode);
+      await tableMenu(remote.page, 'Completed wins');
+      await expect(remote.page.getByRole('dialog')).toContainText('No completed wins yet.');
+      await closeDialog(remote.page);
+      await remote.page.reload();
+      await expect(near(remote.page).getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
+      expect(await tableCode(remote.page)).toBe(freshCode);
+      await expect(tablet(remote.page).getByRole('button', { name: 'Atreides, 1 cards', exact: true })).toBeVisible();
+      await near(remote.page).getByRole('button', { name: 'Resume', exact: true }).click();
+      await expect(tablet(remote.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
+    });
     expect(errors).toEqual([]);
     await info.attach('bidding-flow.json', {
       body: JSON.stringify({
         centralAndRemote: true,
         recoveryCreatesNewCode: originalCode !== recoveredCode,
+        leaveAndNewTable: true,
         timerSeconds: 5,
         errors,
       }),
