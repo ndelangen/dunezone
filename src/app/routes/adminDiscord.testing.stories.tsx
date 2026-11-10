@@ -203,3 +203,39 @@ export const DashboardPhone = meta.story({
     await expect(page.getByRole('group', { name: 'Channel pages' })).toBeVisible();
   },
 });
+
+export const ExhaustedChannelActions = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: adminDiscordRecoveryParameters(true),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await page.findByRole('heading', { name: 'Tracked channels' });
+    for (const name of ['Rename needs attention', 'Deletion needs attention', 'Unconfirmed creation']) {
+      const row = within(page.getByRole('row', { name: new RegExp(name) }));
+      await expect(row.getByText('Needs attention', { exact: true })).toBeVisible();
+      await expect(row.getByRole('button', { name: `Retry now for ${name}` })).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    }
+    const uncertain = within(page.getByRole('row', { name: /Unconfirmed creation/ }));
+    await expect(
+      uncertain.getByText('Check Discord for the unconfirmed channel. Retry checks again without creating another.')
+    ).toBeVisible();
+    await expect(uncertain.getByText('Channel creation is unconfirmed.')).toBeVisible();
+    await expect(uncertain.getByRole('cell', { name: 'Manual Discord inspection' })).toBeVisible();
+    for (const badge of page.getAllByText('Needs attention', { exact: true })) {
+      await expect(badge.scrollWidth).toBeLessThanOrEqual(badge.clientWidth);
+    }
+    const deletion = within(page.getByRole('row', { name: /Deletion needs attention/ }));
+    await expect(
+      deletion.getByText('Automatic retries stopped. Retry to continue removing this channel.')
+    ).toBeVisible();
+    await expect(
+      deletion.getByRole('button', { name: 'Delete channel for Deletion needs attention' })
+    ).toHaveAccessibleDescription('Channel removal stopped. Use Retry to continue.');
+    const mutation = spyOn(adminDatabase.client!, 'mutation');
+    await userEvent.click(deletion.getByRole('button', { name: 'Retry now for Deletion needs attention' }));
+    await waitFor(() => expect(mutation).toHaveBeenCalled());
+  },
+});

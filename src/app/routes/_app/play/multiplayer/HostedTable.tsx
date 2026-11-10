@@ -649,7 +649,12 @@ function spiceBlowCommand(table: TableProjection): (() => void) | null {
   return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
 }
 
-function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+function useHostedControls(
+  client: TableSession,
+  table: TableProjection,
+  error: string | null,
+  discordNudgesAvailable: boolean
+) {
   useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
@@ -657,6 +662,21 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
   const compassTable: CompassTable = {
     ...players,
     recall,
+    nudge:
+      discordNudgesAvailable &&
+      !recall &&
+      !table.playback &&
+      !table.historyPending &&
+      table.canHandleTable &&
+      (table.snapshot.stage === 'setup' || table.snapshot.stage === 'play')
+        ? {
+            targets: players.players.filter(
+              (player) =>
+                !player.own && table.snapshot.controls?.players.some((occupant) => occupant.seat === player.seat)
+            ),
+            send: (seat) => client.nudge(seat),
+          }
+        : null,
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
     clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
@@ -705,8 +725,10 @@ function ConnectedTable({
   reportsEnabled,
   exitControl,
   voice,
+  discordNudgesAvailable = false,
 }: Readonly<{
   voice?: ReactNode;
+  discordNudgesAvailable?: boolean;
   exitControl: ReactNode;
   client: TableSession;
   table: TableProjection;
@@ -728,7 +750,7 @@ function ConnectedTable({
   const [bidderFaded, setBidderFaded] = useState(false);
   /* The territory under the battle marker while it is carried, which the board lights. */
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
-  const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
+  const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
@@ -821,8 +843,10 @@ export default function HostedTable({
   identity,
   onReady,
   voice,
+  discordNudgesAvailable = false,
 }: Readonly<{
   voice?: ReactNode;
+  discordNudgesAvailable?: boolean;
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
@@ -861,6 +885,7 @@ export default function HostedTable({
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
         voice={voice}
+        discordNudgesAvailable={discordNudgesAvailable}
         gameId={gameId}
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}

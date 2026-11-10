@@ -93,7 +93,7 @@ export const prepare = internalMutation({
   },
 });
 
-/** A saved message earns one best-effort POST. Failures are logged and dropped. */
+/** An explicit nudge requests one best-effort POST. Failures are logged and dropped. */
 export const sendNudge = action({
   args: zodToConvex(playSendNudgeRequestSchema),
   returns: zodToConvex(playPublishNudgeResultSchema),

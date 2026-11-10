@@ -154,6 +154,12 @@ function responseFailure(response: Response, data: unknown, receivedAt: number) 
 
 /** Discord actions share one persisted request gate; writes carry an audit reason. */
 export class DiscordRest {
+  private sentRequests = 0;
+
+  get requestsMade() {
+    return this.sentRequests;
+  }
+
   constructor(
     private readonly token: string,
     private readonly reason: string,
@@ -167,6 +173,7 @@ export class DiscordRest {
       if (timeout <= 0) {
         throw new DiscordFailure(0, undefined);
       }
+      this.sentRequests += 1;
       return await fetch(`https://discord.com/api/v10${path}`, {
         method,
         headers: {

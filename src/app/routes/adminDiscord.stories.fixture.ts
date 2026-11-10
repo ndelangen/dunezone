@@ -2,7 +2,7 @@ import { db, ref, STORYBOOK_NOW, storybookViewer } from '@db/storybook';
 
 import { GAME_KEY, productGameDatabase } from './_app/play/product.stories.fixture';
 
-export function adminDiscordRecoveryParameters() {
+export function adminDiscordRecoveryParameters(attention = false) {
   return {
     database: db(
       (baseline) => {
@@ -22,6 +22,31 @@ export function adminDiscordRecoveryParameters() {
           { name: 'Finished setup', state: 'pending', channel: true, finished: true },
           { name: 'Finished rename', state: 'ready', channel: true, finished: true },
           { name: 'Finished voice', state: 'ready', channel: true, finished: true, renamed: true },
+          ...(attention
+            ? ([
+                {
+                  name: 'Rename needs attention',
+                  state: 'ready',
+                  channel: true,
+                  finished: true,
+                  operation: 'rename-ended',
+                },
+                {
+                  name: 'Deletion needs attention',
+                  state: 'deleting',
+                  channel: true,
+                  finished: false,
+                  operation: 'delete',
+                },
+                {
+                  name: 'Unconfirmed creation',
+                  state: 'creating',
+                  channel: false,
+                  finished: false,
+                  operation: 'provision',
+                },
+              ] as const)
+            : []),
         ] as const;
         for (const [index, entry] of cases.entries()) {
           const gameKey = `admin-discord-game-${index}`;
@@ -54,6 +79,18 @@ export function adminDiscordRecoveryParameters() {
             state: entry.state,
             ...('lease' in entry ? { lease: `story-lease-${index}`, lease_until: entry.lease } : {}),
             ...('renamed' in entry ? { renamed_ended: entry.renamed } : {}),
+            ...('operation' in entry
+              ? {
+                  retry: {
+                    kind: 'bounded' as const,
+                    operation: entry.operation,
+                    revision: 0,
+                    attempts: 3 as const,
+                    needsAttention: true,
+                  },
+                  error: 'Discord request failed (403).',
+                }
+              : {}),
             ...(entry.name === 'Creation retry' ? { error: 'Discord did not confirm channel creation.' } : {}),
             created_at: STORYBOOK_NOW,
             cleanup_at: STORYBOOK_NOW + 14 * 86_400_000,

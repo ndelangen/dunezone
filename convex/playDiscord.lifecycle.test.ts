@@ -51,7 +51,17 @@ test('a deletion request during creation saves its returned ID even when the fir
     return response;
   });
   await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'pending', channel_id: '300', next_attempt_at: Date.now() });
+  expect(deletions).toBe(0);
+  /* The changed revision starts deletion under a fresh claim, after saving the late create result. */
+  await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleting', channel_id: '300' });
+  expect(deletions).toBe(1);
+  const retryAt = (await world.channel())!.next_attempt_at;
+  expect(retryAt).toBeGreaterThan(Date.now());
+  await world.reconcile();
+  expect(deletions).toBe(1);
+  vi.setSystemTime(retryAt);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted', channel_id: '300' });
   expect(deletions).toBe(2);
@@ -111,6 +121,10 @@ test.each(['creation', 'invite'] as const)(
       return response;
     });
     await world.reconcile();
+    expect(await world.channel()).toMatchObject({ channel_id: '300', next_attempt_at: Date.now() });
+    expect((await world.channel())?.invite_url).toBeUndefined();
+    expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
+    await world.reconcile();
 
     expect(discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST')).toHaveLength(
       1
@@ -139,6 +153,9 @@ test('continue during the ended-name PATCH restores the name before the hourly c
     }
     return response;
   });
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ renamed_ended: true, next_attempt_at: Date.now() });
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
   await world.reconcile();
 
   expect(discord.calls.filter((call) => call.method === 'PATCH').map((call) => call.body)).toEqual([
@@ -184,7 +201,11 @@ test('a finish arriving under a held lease remains due when that owner releases 
   const world = await voiceWorld();
   await world.reconcile();
   const row = (await world.channel())!;
+  /* Persist a completed active-name PATCH while its real rename lease is still held. */
+  await world.t.run((ctx) => ctx.db.patch(row._id, { renamed_ended: true, next_attempt_at: Date.now() }));
   const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  expect(claim).not.toBeNull();
+  await world.t.mutation(internal.playDiscord.renamed, { channelId: row._id, lease: claim.lease!, ended: false });
   await world.publish(2, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
   await world.t.mutation(internal.playDiscord.release, { channelId: row._id, lease: claim.lease! });
@@ -275,7 +296,12 @@ test('a missing Discord channel counts as deleted, but a different 404 remains r
   vi.setSystemTime(Date.now() + 14 * DISCORD_DAY);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleting' });
+  const retryAt = (await world.channel())!.next_attempt_at;
+  expect(retryAt).toBeGreaterThan(Date.now());
   code = 10_003;
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'deleting' });
+  vi.setSystemTime(retryAt);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
 });

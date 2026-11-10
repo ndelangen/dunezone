@@ -60,7 +60,14 @@ test.each([false, true])(
     await world.reconcile();
     expect(discord.fetch).toHaveBeenCalledTimes(1);
     expect((await world.channel())!.lease).toBeUndefined();
-    expect((await world.channel())!.retry_after).toBe(global ? Date.now() + 1000 : undefined);
+    expect((await world.channel())!.retry_after).toBe(Date.now() + 1000);
+    expect((await world.channel())!.retry).toMatchObject({
+      kind: 'bounded',
+      operation: 'provision',
+      attempts: 1,
+      needsAttention: false,
+      until: Date.now() + 1000,
+    });
     const retry = await nextRetry(world);
     expect(retry.scheduledTime).toBe(Date.now() + 1000);
     await world.reconcile();
@@ -137,7 +144,7 @@ test('a queued room cannot bypass its retry-after deadline', async () => {
   expect(await world.channel()).toMatchObject({ retry_after: Date.now() + 60_000 });
 });
 
-test("retirement supersedes application backoff while retaining Discord's hard deadline", async () => {
+test("retirement supersedes a parked rename while retaining Discord's global deadline", async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   await world.reconcile();
@@ -146,7 +153,14 @@ test("retirement supersedes application backoff while retaining Discord's hard d
   await world.t.run(async (ctx) => {
     await ctx.db.patch(row._id, {
       retry_after: Date.now() + 120_000,
-      retry: { kind: 'backoff', until: Date.now() + DISCORD_RETRY, revision: row.work_revision ?? 0 },
+      renamed_ended: true,
+      retry: {
+        kind: 'bounded',
+        operation: 'rename-active',
+        attempts: 3,
+        needsAttention: true,
+        revision: row.work_revision ?? 0,
+      },
     });
     await requestDiscordDeletion(ctx, (await ctx.db.get(row._id))!);
   });
@@ -159,28 +173,39 @@ test("retirement supersedes application backoff while retaining Discord's hard d
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
 });
 
-test('repeated short rate limits stop after three attempts and retain the long backoff', async () => {
-  const discord = discordStub();
-  const world = await voiceWorld();
-  discord.fetch.mockImplementation(async () => Response.json({ retry_after: 1, global: true }, { status: 429 }));
-  await world.reconcile();
-  for (let attempt = 1; attempt < 3; attempt += 1) {
-    const retry = await nextRetry(world);
-    expect(retry.scheduledTime).toBe(Date.now() + 1000);
-    vi.setSystemTime(retry.scheduledTime);
-    await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
+test.each([false, true])(
+  'repeated short limits park after three attempts and retain inactivity cleanup, global=%s',
+  async (global) => {
+    const discord = discordStub();
+    const world = await voiceWorld();
+    discord.fetch.mockImplementation(async () => Response.json({ retry_after: 1, global }, { status: 429 }));
+    await world.reconcile();
+    const firstRetry = await nextRetry(world);
+    for (let attempt = 1; attempt < 3; attempt += 1) {
+      const retry = await nextRetry(world);
+      expect(retry.scheduledTime).toBe(Date.now() + 1000);
+      vi.setSystemTime(retry.scheduledTime);
+      await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
+    }
+    expect(discord.fetch).toHaveBeenCalledTimes(3);
+    const parked = (await world.channel())!;
+    expect(parked.retry).toMatchObject({
+      kind: 'bounded',
+      operation: 'provision',
+      attempts: 3,
+      needsAttention: true,
+      revision: parked.work_revision ?? 0,
+    });
+    expect(parked.next_attempt_at).toBe(parked.cleanup_at);
+    expect(parked.lease).toBeUndefined();
+    vi.setSystemTime(Date.now() + DISCORD_RETRY);
+    await world.t.mutation(internal.playDiscord.retryDue, {});
+    await world.reconcile();
+    await world.t.action(internal.playDiscordActions.reconcile, firstRetry.args[0]);
+    expect(discord.fetch).toHaveBeenCalledTimes(3);
+    expect((await world.channel())!.retry).toEqual(parked.retry);
   }
-  expect(discord.fetch).toHaveBeenCalledTimes(3);
-  expect((await world.channel())!.next_attempt_at).toBe(Date.now() + DISCORD_RETRY);
-  const retry = await nextRetry(world);
-  expect(retry.scheduledTime).toBe(Date.now() + DISCORD_RETRY);
-  vi.setSystemTime(Date.now() + 1000);
-  await world.reconcile();
-  expect(discord.fetch).toHaveBeenCalledTimes(3);
-  vi.setSystemTime(retry.scheduledTime);
-  await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
-  expect(discord.fetch).toHaveBeenCalledTimes(4);
-});
+);
 
 test('definite creation retries reuse one creation reservation and the same category', async () => {
   const discord = discordStub();
@@ -247,17 +272,31 @@ test.each(['discard', 'cron'] as const)(
       vi.setSystemTime(finalRetry.scheduledTime);
       await world.reconcile();
       expect(posts).toBe(3);
-      expect((await world.channel())!.next_attempt_at).toBe(Date.now() + DISCORD_RETRY);
+      const parked = (await world.channel())!;
+      expect(parked.retry).toMatchObject({
+        kind: 'bounded',
+        operation: 'provision',
+        attempts: 3,
+        needsAttention: true,
+      });
+      expect(parked.next_attempt_at).toBe(parked.cleanup_at);
+      vi.setSystemTime(Date.now() + DISCORD_RETRY);
+      await world.t.mutation(internal.playDiscord.retryDue, {});
+      await world.reconcile();
+      expect(posts).toBe(3);
     }
   }
 );
 
-test('a lost creation response after a scheduled retry stays unconfirmed during the recovery window', async () => {
+test('a lost creation response after a scheduled retry parks without a replacement POST', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const normal = discord.fetch.getMockImplementation()!;
   let posts = 0;
   discord.fetch.mockImplementation(async (input, options) => {
+    if (options?.method === 'GET' && input === 'https://discord.com/api/v10/guilds/100/channels') {
+      return Response.json([{ id: '200', type: 4, name: 'Games', guild_id: '100' }]);
+    }
     if (
       options?.method === 'POST' &&
       (input instanceof Request ? input.url : String(input)).endsWith('/guilds/100/channels')
@@ -274,6 +313,14 @@ test('a lost creation response after a scheduled retry stays unconfirmed during 
   vi.setSystemTime(retry.scheduledTime);
   await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
   expect(await world.channel()).toMatchObject({ state: 'creating' });
+  vi.setSystemTime(Date.now() + DISCORD_RETRY);
+  await world.t.mutation(internal.playDiscord.retryDue, {});
+  await world.reconcile();
+  expect(posts).toBe(2);
+  expect(await world.channel()).toMatchObject({
+    state: 'creating',
+    retry: { kind: 'bounded', operation: 'provision', attempts: 3, needsAttention: true },
+  });
   vi.setSystemTime(Date.now() + DISCORD_RETRY);
   await world.t.mutation(internal.playDiscord.retryDue, {});
   await world.reconcile();

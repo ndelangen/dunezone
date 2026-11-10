@@ -86,6 +86,7 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
+  protocol?: number;
   /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
   client?: string;
   admitting: boolean;
@@ -128,6 +129,7 @@ type RememberedConnection = Pick<
   Connection,
   | 'connectionId'
   | 'openedAt'
+  | 'protocol'
   | 'viewer'
   | 'seatLimitReached'
   | 'pass'
@@ -169,7 +171,7 @@ const COMMAND_TIMINGS = 1024;
 const RATE_BURST = 120;
 const RATE_PER_SECOND = 60;
 /*
- * Table commands draw on a smaller bucket of their own, since each one writes the table and sends every player a frame.
+ * Table commands and Discord nudges draw on a smaller bucket because they trigger writes or external requests.
  * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
  */
 const COMMAND_BURST = 30;
@@ -474,6 +476,10 @@ export class GameRoom extends DurableObject<GameEnv> {
         socket.close(1012, 'Reconnect to the table.');
         continue;
       }
+      if (remembered.protocol !== PLAY_PROTOCOL_VERSION) {
+        this.refuseProtocol(socket, remembered.protocol ?? 0);
+        continue;
+      }
       const { epoch, revision, ...connection } = remembered;
       this.connections.set(socket, openConnection({ ...connection, everAuthorized: true }));
       if (this.session.ready && epoch) {
@@ -535,6 +541,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const remembered: RememberedConnection = {
         connectionId: connection.connectionId,
         openedAt: connection.openedAt,
+        protocol: connection.protocol,
         /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
         viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
         seatLimitReached: connection.seatLimitReached,
@@ -1166,6 +1173,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refuseProtocol(socket, request.protocol ?? 0);
       return;
     }
+    connection.protocol = request.protocol;
     connection.admitting = true;
     connection.replaces = request.replaces;
     await this.admitWithPass(socket, connection, request.pass);
@@ -1674,13 +1682,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.refuseRate(socket);
   }
 
-  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  /* Commands and nudges over budget are refused individually; the socket stays open. */
   private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
-    if (message.type !== 'command') {
+    if (message.type !== 'command' && message.type !== 'nudge') {
       return message;
     }
     if (connection.commandTokens < 1) {
-      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      this.send(socket, { type: 'rejected', requestId: messageId(message), message: COMMAND_RATE_REFUSAL });
       return;
     }
     connection.commandTokens--;
@@ -1745,6 +1753,17 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'metrics':
         this.sendMetrics(socket);
         return;
+      case 'nudge':
+        publishNudge(
+          {
+            session: this.session,
+            diagnostics: this.diagnostics,
+            convex: () => this.convex(),
+            waitUntil: (work) => this.ctx.waitUntil(work),
+          },
+          this.session.nudge(connection.viewer!, message.toSeat)
+        );
+        return;
       case 'command':
       case 'drop':
         this.commit(socket, connection, message);
@@ -1787,17 +1806,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (saved.inserted) {
       this.publishConversationMessage(request, saved.message);
       this.directory.soon();
-      if (saved.nudge) {
-        publishNudge(
-          {
-            session: this.session,
-            diagnostics: this.diagnostics,
-            convex: () => this.convex(),
-            waitUntil: (work) => this.ctx.waitUntil(work),
-          },
-          saved.nudge
-        );
-      }
       return;
     }
     /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */

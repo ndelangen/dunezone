@@ -3,7 +3,7 @@ import { playPublishNudgeResultSchema } from '../../src/shared/play/nudges';
 import type { PlayNudge } from '../../src/shared/play/nudges';
 import type { DirectoryRoom } from './directoryDelivery';
 
-/** One attempt after chat commits. A failure never schedules another attempt. */
+/** One attempt for an explicit nudge request. A failure never schedules another attempt. */
 export function publishNudge(room: Omit<DirectoryRoom, 'scheduleAlarm'>, nudge: PlayNudge) {
   const metadata = room.session.info;
   if (!metadata?.confirmed) {

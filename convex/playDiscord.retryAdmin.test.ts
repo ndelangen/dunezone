@@ -40,7 +40,13 @@ test.each(['pending', 'creating'] as const)(
     const jobsBefore = await world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(100));
     await expect(world.player.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id })).rejects.toThrow();
     await world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id });
-    expect(await world.channel()).toEqual({ ...before, next_attempt_at: at });
+    expect(await world.channel()).toMatchObject({
+      state,
+      lease: before!.lease,
+      lease_until: before!.lease_until,
+      next_attempt_at: at,
+      work_revision: (before!.work_revision ?? 0) + 1,
+    });
     const jobs = await world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(100));
     const added = jobs.filter((job) => !jobsBefore.some((before) => before._id === job._id));
     expect(added).toHaveLength(1);
@@ -49,36 +55,24 @@ test.each(['pending', 'creating'] as const)(
   }
 );
 
-test('admin retry keeps a scheduled short retry and queues the first retry at an unscheduled lease deadline', async () => {
+test('admin retry respects an existing provider deadline when re-arming work', async () => {
   const world = await setup();
   const row = (await world.channel())!;
-  const claim = await world.t.mutation(internal.playDiscord.claim, { channelId: row._id });
-  expect(claim).not.toBeNull();
-  const jobs = () => world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(100));
-  const leased = (await world.channel())!;
-  const beforeLeaseRetry = await jobs();
+  const deadline = Date.now() + 60_000;
+  await world.t.run((ctx) =>
+    ctx.db.patch(row._id, {
+      retry_after: deadline,
+      retry: { kind: 'backoff', revision: row.work_revision ?? 0, until: deadline },
+    })
+  );
   await world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id });
-  const afterLeaseRetry = await jobs();
-  expect(afterLeaseRetry).toHaveLength(beforeLeaseRetry.length + 1);
-  expect(afterLeaseRetry.find((job) => !beforeLeaseRetry.some((before) => before._id === job._id))).toMatchObject({
-    name: 'playDiscordActions:reconcile',
-    scheduledTime: leased.lease_until,
-  });
-  await world.t.mutation(internal.playDiscord.release, {
-    channelId: row._id,
-    lease: claim!.lease,
-    error: 'Discord request failed (429).',
-    retryAfterMs: 1000,
-    retryOperation: 'categories',
-  });
-  const released = await world.channel();
-  const scheduled = await jobs();
-  expect(released?.retry).toMatchObject({ kind: 'short', until: Date.now() + 1000 });
-  for (let click = 0; click < 2; click += 1) {
-    await world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id });
-  }
-  expect(await jobs()).toEqual(scheduled);
-  expect(await world.channel()).toEqual(released);
+  const updated = (await world.channel())!;
+  expect(updated.retry_after).toBe(deadline);
+  expect(updated.next_attempt_at).toBeGreaterThanOrEqual(deadline);
+  const jobs = await world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(100));
+  expect(jobs).toContainEqual(
+    expect.objectContaining({ name: 'playDiscordActions:reconcile', scheduledTime: updated.next_attempt_at })
+  );
 });
 
 test('admin retry refuses paused work and completed channel states', async () => {
@@ -89,12 +83,10 @@ test('admin retry refuses paused work and completed channel states', async () =>
     'Enable Discord'
   );
   await world.admin.mutation(api.playDiscordAdmin.setEnabled, { enabled: true });
-  for (const state of ['ready', 'deleting', 'deleted'] as const) {
-    await world.t.run((ctx) => ctx.db.patch(row._id, { state }));
-    await expect(world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id })).rejects.toThrow(
-      'Only pending'
-    );
-  }
+  await world.t.run((ctx) => ctx.db.patch(row._id, { state: 'deleted' }));
+  await expect(world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id })).rejects.toThrow(
+    'no longer tracked'
+  );
 });
 
 test('cleanup status distinguishes finished setup, failed rename, hourly readiness and pause without changing eligibility', async () => {
@@ -202,3 +194,43 @@ test('a shared invite hold cannot postpone deletion of the same channel', async 
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
 });
+
+test.each([
+  { state: 'ready', operation: 'rename-ended', channelId: '300' },
+  { state: 'ready', operation: 'rename-active', channelId: '300' },
+  { state: 'deleting', operation: 'delete', channelId: '300' },
+  { state: 'creating', operation: 'provision', channelId: undefined },
+] as const)(
+  'admin re-arms exhausted $operation work without changing channel identity',
+  async ({ state, operation, channelId }) => {
+    const world = await setup();
+    const row = (await world.channel())!;
+    const discord = discordStub();
+    await world.t.run((ctx) =>
+      ctx.db.patch(row._id, {
+        state,
+        channel_id: channelId,
+        creation_marker: `dune-play-${row.game_id}`,
+        creation_category_id: '200',
+        work_revision: 7,
+        next_attempt_at: Number.MAX_SAFE_INTEGER,
+        retry: { kind: 'bounded', operation, revision: 7, attempts: 3, needsAttention: true },
+      })
+    );
+    const page = () =>
+      world.admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 10, cursor: null } });
+    expect((await page()).channels.page[0]).toMatchObject({ needs_attention: true });
+    await expect(world.player.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id })).rejects.toThrow();
+    await world.admin.mutation(api.playDiscordAdmin.requestRetry, { channelId: row._id });
+    const result = (await world.channel())!;
+    expect(result).toMatchObject({
+      state,
+      creation_marker: `dune-play-${row.game_id}`,
+      creation_category_id: '200',
+    });
+    expect(result.channel_id).toBe(channelId);
+    expect((await page()).channels.page[0]).toMatchObject({ needs_attention: false });
+    expect(result.next_attempt_at).toBeLessThan(Number.MAX_SAFE_INTEGER);
+    expect(discord.fetch).not.toHaveBeenCalled();
+  }
+);

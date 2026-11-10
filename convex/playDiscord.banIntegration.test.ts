@@ -120,6 +120,15 @@ test('a channel ID returned after ban survives a failed delete and never gains a
   await world.reconcile();
   expect(race.operationId).toBeDefined();
   expect(await world.channel()).toMatchObject({
+    state: 'pending',
+    channel_id: '300',
+    ban_operation_id: race.operationId,
+    next_attempt_at: Date.now(),
+  });
+  expect(race.deleteAttempts).toBe(0);
+  expect((await world.channel())?.invite_url).toBeUndefined();
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({
     state: 'deleting',
     channel_id: '300',
     ban_operation_id: race.operationId,

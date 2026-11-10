@@ -43,6 +43,17 @@ const cleanup = async (world: Awaited<ReturnType<typeof voiceWorld>>) => {
   return await world.t.action(internal.playDiscordVoiceActions.cleanup, { channels });
 };
 
+/* The ended-name PATCH can finish before its reconciliation owner releases the lease. */
+async function holdCompletedRename(world: Awaited<ReturnType<typeof voiceWorld>>) {
+  const row = (await world.channel())!;
+  await world.t.run((ctx) => ctx.db.patch(row._id, { renamed_ended: false, next_attempt_at: Date.now() }));
+  const claimed = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  expect(claimed).not.toBeNull();
+  const claim = { channelId: row._id, lease: claimed.lease! };
+  await world.t.mutation(internal.playDiscord.renamed, { ...claim, ended: true });
+  return claim;
+}
+
 test('the hourly action uses one snapshot and deletes only an empty ended room', async () => {
   const { world, discord } = await endedWorld();
   await cleanup(world);
@@ -144,10 +155,8 @@ test.each(
 
 test('a held reconcile lease cannot revive a channel confirmed missing', async () => {
   const { world, discord } = await endedWorld();
+  const claim = await holdCompletedRename(world);
   const channels = await world.t.run(voiceCandidates);
-  const row = (await world.channel())!;
-  const claimed = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
-  const claim = { channelId: row._id, lease: claimed.lease! };
   await world.t.mutation(internal.playDiscordVoice.reportEmpty, {
     channels: [],
     missingChannels: channels,
@@ -170,15 +179,14 @@ test('a held reconcile lease cannot revive a channel confirmed missing', async (
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
 });
 
-test('empty deletion requested under a held provisioning lease is not lost on release', async () => {
+test('empty deletion requested under a held rename lease is not lost on release', async () => {
   const { world, discord } = await endedWorld();
+  const claim = await holdCompletedRename(world);
   const channels = await world.t.run(voiceCandidates);
-  const row = (await world.channel())!;
-  const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
   await world.t.mutation(internal.playDiscordVoice.reportEmpty, { channels, observedAt: Date.now() });
   await world.reconcile();
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  await world.t.mutation(internal.playDiscord.release, { channelId: row._id, lease: claim.lease! });
+  await world.t.mutation(internal.playDiscord.release, claim);
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });

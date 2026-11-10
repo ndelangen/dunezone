@@ -10,6 +10,7 @@ import type { ActionCtx } from './_generated/server';
 import { adminQuery, mutation } from './functions';
 import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
+import { discordNeedsAttention, retryDiscordChannel } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
 import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
@@ -39,6 +40,7 @@ const row = v.object({
   ),
   lease_until: v.optional(v.number()),
   next_attempt_at: v.number(),
+  needs_attention: v.boolean(),
   waiting_for_empty: v.optional(v.boolean()),
   error: v.optional(v.string()),
   gameSlug: v.optional(v.string()),
@@ -118,6 +120,7 @@ export const dashboard = adminQuery({
           cleanup_status: cleanupStatus(channel, game),
           lease_until: channel.lease_until,
           next_attempt_at: channel.next_attempt_at,
+          needs_attention: discordNeedsAttention(channel),
           waiting_for_empty: canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel),
           error: channel.error,
           gameSlug: game?.slug,
@@ -181,26 +184,10 @@ export const requestRetry = mutation({
       throw new Error('Enable Discord before retrying channels.');
     }
     const channel = await ctx.db.get(channelId);
-    if (!channel || (channel.state !== 'pending' && channel.state !== 'creating')) {
-      throw new Error('Only pending channel work can be retried.');
+    if (!channel || channel.state === 'deleted') {
+      throw new Error('Channel is no longer tracked.');
     }
-    const cooldown = await ctx.db.query('play_discord_cooldown').unique();
-    const sameWork = channel.retry?.revision === (channel.work_revision ?? 0);
-    const at = Math.max(
-      Date.now(),
-      channel.lease_until ?? 0,
-      cooldown?.blocked_until ?? 0,
-      channel.retry_after ?? 0,
-      sameWork ? (channel.retry?.until ?? 0) : 0
-    );
-    /* Release already schedules same-work short retries. A lease or cron deadline alone does not prove a job exists. */
-    if (sameWork && channel.retry?.kind === 'short' && channel.retry.until === at && at > Date.now()) {
-      return null;
-    }
-    if (channel.next_attempt_at !== at) {
-      await ctx.db.patch(channelId, { next_attempt_at: at });
-    }
-    await ctx.scheduler.runAt(at, internal.playDiscordActions.reconcile, { channelId });
+    await retryDiscordChannel(ctx, channel);
     return null;
   },
 });

@@ -4,11 +4,18 @@ import type { Infer } from 'convex/values';
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
-import type { QueryCtx } from './_generated/server';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { accountStateOf } from './lib/accountLifecycle';
 import { docValidator } from './lib/collaborativeAccessValidators';
-import { discordRetryOperation, retryCreationCategory } from './lib/discordRetry';
+import {
+  DISCORD_ATTEMPTS,
+  DISCORD_PARKED,
+  discordLifecycleOperation,
+  discordNeedsAttention,
+  discordRetryOperation,
+  retryCreationCategory,
+} from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
 import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY, markDiscordDeleted } from './lib/playDiscord';
@@ -40,40 +47,182 @@ export const holdRequests = internalMutation({
   },
 });
 
+type LifecycleOperation = Infer<typeof discordLifecycleOperation>;
+
+function parkedDeadline(
+  row: Doc<'play_game_discord_channels'>,
+  game: Doc<'play_games'> | null,
+  operation: LifecycleOperation
+) {
+  if (
+    operation === 'delete' ||
+    row.state === 'creating' ||
+    game?.directory?.stage === 'finished' ||
+    game?.directory?.stage === 'discarded'
+  ) {
+    return DISCORD_PARKED;
+  }
+  return row.cleanup_at > Date.now() ? row.cleanup_at : DISCORD_PARKED;
+}
+
+async function parkChannel(
+  ctx: MutationCtx,
+  row: Doc<'play_game_discord_channels'>,
+  game: Doc<'play_games'> | null,
+  operation: LifecycleOperation,
+  attempts: 1 | 2 | 3,
+  error = row.error ?? 'Discord channel work needs attention after three attempts.'
+) {
+  const previousUntil = row.retry?.revision === (row.work_revision ?? 0) ? (row.retry.until ?? 0) : 0;
+  const until = Math.max(previousUntil, row.retry_after ?? 0);
+  await ctx.db.patch(row._id, {
+    lease: undefined,
+    lease_until: undefined,
+    lease_revision: undefined,
+    retry: {
+      kind: 'bounded',
+      operation,
+      revision: row.work_revision ?? 0,
+      attempts,
+      needsAttention: true,
+      until: until > Date.now() && until < DISCORD_PARKED ? until : undefined,
+    },
+    next_attempt_at: parkedDeadline(row, game, operation),
+    error,
+  });
+}
+
+function operationForWork(
+  channel: Doc<'play_game_discord_channels'>,
+  game: Doc<'play_games'> | null,
+  remove: boolean
+): LifecycleOperation | null {
+  if (channel.state === 'creating') {
+    return 'provision';
+  }
+  if (remove) {
+    return 'delete';
+  }
+  if (channel.state === 'pending') {
+    return 'provision';
+  }
+  if (channel.channel_id && !!channel.renamed_ended !== (game?.directory?.stage === 'finished')) {
+    return game?.directory?.stage === 'finished' ? 'rename-ended' : 'rename-active';
+  }
+  return null;
+}
+
+function priorAttempts(row: Doc<'play_game_discord_channels'>, operation: LifecycleOperation) {
+  const retry = row.retry;
+  if (retry?.revision !== (row.work_revision ?? 0)) {
+    return 0;
+  }
+  if (retry.kind === 'bounded') {
+    return retry.operation === operation ? retry.attempts : 0;
+  }
+  return retry.kind === 'short' ? retry.attempts : DISCORD_ATTEMPTS;
+}
+
+function inactivityRetiresParked(row: Doc<'play_game_discord_channels'>, game: Doc<'play_games'> | null) {
+  return (
+    row.retry?.kind === 'bounded' &&
+    row.retry.operation !== 'delete' &&
+    row.state !== 'creating' &&
+    game?.state === 'ready' &&
+    game.directory?.stage !== 'finished' &&
+    game.directory?.stage !== 'discarded' &&
+    row.cleanup_at <= Date.now()
+  );
+}
+
 export const claim = internalMutation({
   args: reconcileArgs,
   returns: v.union(v.null(), channelValidator),
   handler: async (ctx, { channelId }) => {
-    const row = await ctx.db.get(channelId);
-    if (!(await discordEnabled(ctx)) || !row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
+    let row = await ctx.db.get(channelId);
+    if (!row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
       return null;
     }
-    /* New lifecycle work can supersede application backoff, but never Discord's hard cooldown. */
+    if (discordNeedsAttention(row) && row.retry?.kind === 'bounded' && row.retry.operation === 'delete') {
+      return null;
+    }
+    const game = await ctx.db.get(row.game_id);
+    const parked = discordNeedsAttention(row);
+    if (parked && !inactivityRetiresParked(row, game)) {
+      return null;
+    }
+    if (!(await discordEnabled(ctx))) {
+      return null;
+    }
+    if (parked) {
+      const freshWork = {
+        work_revision: (row.work_revision ?? 0) + 1,
+        retry: undefined,
+        error: undefined,
+        deletion_requested_at: Date.now(),
+        state: row.state === 'creating' ? ('creating' as const) : ('deleting' as const),
+      };
+      await ctx.db.patch(row._id, freshWork);
+      row = { ...row, ...freshWork };
+    }
+    if (retiresWithoutChannel(row, game)) {
+      await markDiscordDeleted(ctx, row);
+      return null;
+    }
+    const operation = operationForWork(row, game, await retirementRequired(ctx, row, game));
+    if (!operation) {
+      await ctx.db.patch(row._id, {
+        retry: undefined,
+        next_attempt_at: game?.directory?.stage === 'finished' ? DISCORD_PARKED : row.cleanup_at,
+      });
+      return null;
+    }
+    const attempts = priorAttempts(row, operation);
+    if (attempts >= DISCORD_ATTEMPTS) {
+      await parkChannel(ctx, row, game, operation, 3);
+      return null;
+    }
+    if (row.state === 'creating' && (!row.creation_marker || !row.creation_category_id)) {
+      await parkChannel(
+        ctx,
+        row,
+        game,
+        operation,
+        1,
+        'This older creation has no saved marker. An administrator must inspect Discord.'
+      );
+      return null;
+    }
     const sameWork = row.retry?.revision === (row.work_revision ?? 0);
     const notBefore = Math.max(row.retry_after ?? 0, sameWork ? (row.retry?.until ?? 0) : 0);
-    if (notBefore > Date.now() && !retiresWithoutChannel(row, await ctx.db.get(row.game_id))) {
+    if (notBefore > Date.now()) {
       return null;
     }
     const cooldown = await ctx.db.query('play_discord_cooldown').unique();
     if (cooldown && cooldown.blocked_until > Date.now()) {
       await ctx.db.patch(row._id, { next_attempt_at: cooldown.blocked_until, retry_after: cooldown.blocked_until });
-      await ctx.scheduler.runAt(cooldown.blocked_until, internal.playDiscordActions.reconcile, {
-        channelId,
-      });
+      await ctx.scheduler.runAt(cooldown.blocked_until, internal.playDiscordActions.reconcile, { channelId });
       return null;
     }
     const lease = playCredential();
     const until = Date.now() + DISCORD_LEASE;
-    const retry = sameWork && row.retry?.kind === 'short' ? row.retry : undefined;
-    await ctx.db.patch(row._id, {
+    const retry: Extract<NonNullable<Doc<'play_game_discord_channels'>['retry']>, { kind: 'bounded' }> = {
+      kind: 'bounded',
+      operation,
+      revision: row.work_revision ?? 0,
+      attempts: (attempts + 1) as 1 | 2 | 3,
+      needsAttention: false,
+    };
+    const patch = {
       lease,
       lease_until: until,
       lease_revision: row.work_revision ?? 0,
       next_attempt_at: until,
       retry_after: undefined,
       retry,
-    });
-    return { ...row, lease, lease_until: until, next_attempt_at: until, retry_after: undefined, retry };
+    };
+    await ctx.db.patch(row._id, patch);
+    return { ...row, ...patch };
   },
 });
 
@@ -126,7 +275,14 @@ export const work = internalMutation({
   ),
   handler: async (ctx, args) => {
     const channel = await ctx.db.get(args.channelId);
-    if (!(await discordEnabled(ctx)) || !channel || channel.lease !== args.lease || channel.state === 'deleted') {
+    if (
+      !(await discordEnabled(ctx)) ||
+      !channel ||
+      channel.lease !== args.lease ||
+      channel.state === 'deleted' ||
+      discordNeedsAttention(channel) ||
+      (channel.work_revision ?? 0) !== (channel.lease_revision ?? 0)
+    ) {
       return null;
     }
     const game = await ctx.db.get(channel.game_id);
@@ -162,6 +318,7 @@ export const startCreation = internalMutation({
       !(await discordEnabled(ctx)) ||
       row?.lease !== args.lease ||
       (row.lease_until ?? 0) <= Date.now() ||
+      (row.work_revision ?? 0) !== (row.lease_revision ?? 0) ||
       row.state !== 'pending' ||
       row.channel_id !== undefined ||
       (args.categoryId !== undefined && !row.category_ids.includes(args.categoryId))
@@ -191,54 +348,6 @@ export const startCreation = internalMutation({
           }
         : {}),
       error: 'Channel creation has no confirmed result. Recovery will check Discord before trying again.',
-    });
-    return true;
-  },
-});
-
-/** A successful visible listing authorizes one replacement; adoption saves its ID through created instead. */
-export const replaceMissingCreation = internalMutation({
-  args: { ...claimArgs, marker: v.string(), categoryId: v.string(), attempt: v.number() },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const row = await ctx.db.get(args.channelId);
-    if (
-      !(await discordEnabled(ctx)) ||
-      row?.lease !== args.lease ||
-      (row.lease_until ?? 0) <= Date.now() ||
-      row.state !== 'creating' ||
-      row.channel_id ||
-      row.creation_marker !== args.marker ||
-      row.creation_category_id !== args.categoryId ||
-      (row.creation_attempt ?? 0) !== args.attempt
-    ) {
-      return false;
-    }
-    if (!(await creationNeeded(ctx, row))) {
-      const game = await ctx.db.get(row.game_id);
-      if ((await retirementRequired(ctx, row, game)) || game?.directory?.stage === 'finished') {
-        await markDiscordDeleted(ctx, row);
-      } else {
-        await ctx.db.patch(row._id, { retry_after: Date.now() + DISCORD_RETRY });
-      }
-      return false;
-    }
-    const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
-    if (!quota.ok) {
-      await ctx.db.patch(row._id, {
-        retry: {
-          kind: 'backoff',
-          revision: row.work_revision ?? 0,
-          until: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY),
-        },
-      });
-      return false;
-    }
-    /* An ambiguous POST never inherits the definitely-rejected short-retry reservation. */
-    await ctx.db.patch(row._id, {
-      retry: undefined,
-      creation_name_pending: true,
-      creation_attempt: args.attempt + 1,
     });
     return true;
   },
@@ -346,80 +455,51 @@ const releaseArgs = v.object({
   retryGlobal: v.optional(v.boolean()),
   retryOperation: v.optional(discordRetryOperation),
   retryCategoryId: v.optional(v.string()),
+  attempted: v.optional(v.boolean()),
+  needsAttention: v.optional(v.boolean()),
+  operation: v.optional(discordLifecycleOperation),
+  paused: v.optional(v.boolean()),
 });
-type ReleaseArgs = Infer<typeof releaseArgs>;
 
-function matchingShortRetryAttempts(row: Doc<'play_game_discord_channels'>, args: ReleaseArgs) {
-  const retry = row.retry?.kind === 'short' ? row.retry : undefined;
-  return retry?.revision === (row.work_revision ?? 0) &&
-    retry.operation === args.retryOperation &&
-    retry.categoryId === args.retryCategoryId
-    ? retry.attempts
-    : 0;
+type BoundedRetry = Extract<NonNullable<Doc<'play_game_discord_channels'>['retry']>, { kind: 'bounded' }>;
+const releasedLease = { lease: undefined, lease_until: undefined, lease_revision: undefined };
+
+function retryBudget(row: Doc<'play_game_discord_channels'>, operation: LifecycleOperation): BoundedRetry {
+  if (row.retry?.kind === 'bounded' && row.retry.revision === (row.work_revision ?? 0)) {
+    return row.retry;
+  }
+  return { kind: 'bounded', operation, revision: row.work_revision ?? 0, attempts: 1, needsAttention: false };
 }
 
-function releaseHistory(row: Doc<'play_game_discord_channels'>, args: ReleaseArgs) {
-  const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
-  const backoff =
-    row.retry?.kind === 'backoff' && row.retry.revision === (row.work_revision ?? 0) ? row.retry : undefined;
-  const attempts = matchingShortRetryAttempts(row, args);
-  const shortRetry =
-    !changed &&
-    row.state !== 'creating' &&
-    args.retryOperation !== undefined &&
-    (args.retryAfterMs ?? 0) > 0 &&
-    args.retryAfterMs! <= 5000 &&
-    attempts < 2;
-  return { changed, backoff, attempts, shortRetry };
-}
-
-function nextAttemptForRelease(
-  row: Doc<'play_game_discord_channels'>,
-  game: Doc<'play_games'> | null,
-  args: ReleaseArgs,
-  history: ReturnType<typeof releaseHistory>,
-  timing: { retryAt: number; retryAfter: number | undefined; hardUntil: number }
+function releasedOperation(
+  operation: LifecycleOperation | undefined,
+  request: Infer<typeof discordRetryOperation> | undefined
 ) {
-  if (history.changed && row.state !== 'creating') {
-    /* A failed old invite or rename must not postpone a newly discarded game, except for Discord's rate limit. */
-    return Math.max(Date.now(), timing.hardUntil);
+  if (operation || !request) {
+    return operation;
   }
-  if (history.shortRetry) {
-    return Math.max(Date.now(), timing.retryAt);
+  if (request === 'rename-ended' || request === 'rename-active' || request === 'delete') {
+    return request;
   }
-  if (args.error || row.state === 'creating') {
-    return Math.max(Date.now() + DISCORD_RETRY, timing.retryAt, timing.retryAfter ?? 0, history.backoff?.until ?? 0);
-  }
-  if (row.state === 'pending') {
-    return Math.max(Date.now(), timing.retryAfter ?? 0);
-  }
-  /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
-  return game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
+  return 'provision';
 }
 
-function retryForRelease(
+async function queueReleasedWork(
+  ctx: MutationCtx,
   row: Doc<'play_game_discord_channels'>,
-  args: ReleaseArgs,
-  history: ReturnType<typeof releaseHistory>,
-  next: number
-): Doc<'play_game_discord_channels'>['retry'] {
-  if (history.shortRetry) {
-    return {
-      kind: 'short',
-      operation: args.retryOperation!,
-      attempts: history.attempts === 0 ? 1 : 2,
-      categoryId: args.retryCategoryId,
-      revision: row.work_revision ?? 0,
-      until: next,
-    };
-  }
-  if (!history.changed && history.attempts >= 2 && (args.retryAfterMs ?? 0) > 0 && args.retryAfterMs! <= 5000) {
-    return { kind: 'backoff', revision: row.work_revision ?? 0, until: next };
-  }
-  if (history.backoff && history.backoff.until > Date.now()) {
-    return history.backoff;
-  }
-  return undefined;
+  next: number,
+  retry: Doc<'play_game_discord_channels'>['retry'],
+  hardUntil: number,
+  error: string | undefined
+) {
+  await ctx.db.patch(row._id, {
+    ...releasedLease,
+    next_attempt_at: next,
+    retry,
+    retry_after: hardUntil > Date.now() ? hardUntil : undefined,
+    error,
+  });
+  await ctx.scheduler.runAt(next, internal.playDiscordActions.reconcile, { channelId: row._id });
 }
 
 export const release = internalMutation({
@@ -431,39 +511,74 @@ export const release = internalMutation({
       return null;
     }
     if (row.state === 'deleted') {
-      await ctx.db.patch(row._id, {
-        lease: undefined,
-        lease_until: undefined,
-        lease_revision: undefined,
-        retry_after: undefined,
-        retry: undefined,
-        error: undefined,
-      });
+      await ctx.db.patch(row._id, { ...releasedLease, retry_after: undefined, retry: undefined, error: undefined });
       return null;
     }
     const game = await ctx.db.get(row.game_id);
-    const retryAfter = retiresWithoutChannel(row, game) ? undefined : row.retry_after;
-    const history = releaseHistory(row, args);
-    const retryAt = args.retryAt ?? Date.now() + (args.retryAfterMs ?? 0);
+    const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
     const globalUntil = args.retryGlobal
       ? ((await ctx.db.query('play_discord_cooldown').unique())?.blocked_until ?? 0)
       : 0;
-    const hardUntil = Math.max(retryAfter ?? 0, globalUntil);
-    const next = nextAttemptForRelease(row, game, args, history, { retryAt, retryAfter, hardUntil });
-    await ctx.db.patch(row._id, {
-      lease: undefined,
-      lease_until: undefined,
-      lease_revision: undefined,
-      next_attempt_at: next,
-      retry_after: hardUntil > Date.now() ? hardUntil : undefined,
-      retry: retryForRelease(row, args, history, next),
-      error: args.error ?? (row.state === 'creating' ? row.error : undefined),
-    });
-    if (history.changed || row.state === 'creating' || next <= Date.now() || (args.retryAfterMs ?? 0) > 0) {
-      await ctx.scheduler.runAfter(Math.max(0, next - Date.now()), internal.playDiscordActions.reconcile, {
-        channelId: row._id,
-      });
+    const providerUntil = (args.retryAfterMs ?? 0) > 0 ? (args.retryAt ?? Date.now() + args.retryAfterMs!) : 0;
+    const remaining = operationForWork(row, game, retirementDue(row, game));
+    const previousOperation = releasedOperation(args.operation, args.retryOperation);
+    const sameOperation = previousOperation === undefined || previousOperation === remaining;
+    const heldUntil = Math.max(row.retry_after ?? 0, globalUntil, changed && sameOperation ? providerUntil : 0);
+    if (changed) {
+      if (discordNeedsAttention(row)) {
+        await ctx.db.patch(row._id, releasedLease);
+        return null;
+      }
+      const retry = row.retry?.revision === (row.work_revision ?? 0) ? row.retry : undefined;
+      await queueReleasedWork(ctx, row, Math.max(Date.now(), heldUntil), retry, heldUntil, row.error);
+      return null;
     }
+    if (!remaining) {
+      await ctx.db.patch(row._id, {
+        ...releasedLease,
+        retry: undefined,
+        retry_after: undefined,
+        error: undefined,
+        next_attempt_at: game?.directory?.stage === 'finished' ? DISCORD_PARKED : row.cleanup_at,
+      });
+      return null;
+    }
+    const budget = retryBudget(row, remaining);
+    if (remaining !== budget.operation) {
+      await queueReleasedWork(ctx, row, Math.max(Date.now(), heldUntil), undefined, heldUntil, undefined);
+      return null;
+    }
+    const hardUntil = Math.max(heldUntil, providerUntil);
+    const waitForFailure = args.error && !args.paused && (args.retryAfterMs ?? 0) <= 0;
+    const next = Math.max(waitForFailure ? Date.now() + DISCORD_RETRY : Date.now(), hardUntil);
+    if (args.attempted === false && !args.needsAttention) {
+      const retry: BoundedRetry | undefined =
+        budget.attempts > 1
+          ? { ...budget, attempts: (budget.attempts - 1) as 1 | 2, until: next, needsAttention: false }
+          : undefined;
+      await queueReleasedWork(ctx, row, next, retry, hardUntil, args.error ?? row.error);
+      return null;
+    }
+    if (args.needsAttention || budget.attempts >= DISCORD_ATTEMPTS || discordNeedsAttention(row)) {
+      await ctx.db.patch(row._id, { ...releasedLease, retry_after: hardUntil > Date.now() ? hardUntil : undefined });
+      await parkChannel(
+        ctx,
+        { ...row, retry_after: hardUntil },
+        game,
+        remaining,
+        budget.attempts,
+        args.error ?? row.error
+      );
+      return null;
+    }
+    await queueReleasedWork(
+      ctx,
+      row,
+      next,
+      { ...budget, until: next, needsAttention: false },
+      hardUntil,
+      args.error ?? row.error
+    );
     return null;
   },
 });
@@ -483,6 +598,10 @@ export const retryDue = internalMutation({
         .withIndex('by_state_next_attempt_at', (q) => q.eq('state', state).lte('next_attempt_at', Date.now()))
         .take(DISCORD_BATCH);
       for (const row of due) {
+        if (discordNeedsAttention(row) && !inactivityRetiresParked(row, await ctx.db.get(row.game_id))) {
+          await ctx.db.patch(row._id, { next_attempt_at: DISCORD_PARKED });
+          continue;
+        }
         await ctx.db.patch(row._id, { next_attempt_at: Date.now() + DISCORD_RETRY });
         await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: row._id });
       }

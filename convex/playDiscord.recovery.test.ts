@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { DISCORD_PARKED, retryDiscordChannel } from './lib/discordRetry';
 import { DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
 import { playPerson } from './play.test.fixture';
 import { configureDiscord, voiceWorld } from './playDiscord.test.fixture';
@@ -162,27 +163,31 @@ test.each(['lost', '500'] as const)(
   }
 );
 
-test('a complete visible listing with the saved category permits exactly one replacement', async () => {
+test('a complete negative listing parks creation instead of authorizing a replacement', async () => {
   const { world, remote } = await uncertainCreation();
   await retry(world);
+  const calls = remote.calls.length;
   await world.reconcile();
-  expect(remote.creates).toBe(2);
-  const creates = remote.calls.filter((call) => call.method === 'POST' && call.path === '/guilds/100/channels');
-  expect(creates.map((call) => call.body)).toEqual(
-    [0, 1].map(() => ({ name: `dune-play-${world.gameId}`, type: 2, parent_id: '200' }))
-  );
-  expect(await world.channel()).toMatchObject({ state: 'ready', channel_id: '301', creation_attempt: 2 });
+  await world.t.mutation(internal.playDiscord.retryDue, {});
+  expect(remote.creates).toBe(1);
+  expect(remote.calls).toHaveLength(calls);
+  expect(await world.channel()).toMatchObject({
+    state: 'creating',
+    creation_attempt: 1,
+    next_attempt_at: DISCORD_PARKED,
+    retry: { kind: 'bounded', operation: 'provision', needsAttention: true },
+  });
 });
 
-test('an ambiguous replacement can be adopted on its next recovery without another POST', async () => {
+test('an explicit retry can adopt a later visible marker without another POST', async () => {
   const { world, remote } = await uncertainCreation();
-  remote.outcomes.push({ kind: 'lost', visible: true });
   await retry(world);
-  expect(await world.channel()).toMatchObject({ state: 'creating', creation_attempt: 2 });
-  expect(remote.creates).toBe(2);
-  await retry(world);
-  expect(remote.creates).toBe(2);
-  expect(await world.channel()).toMatchObject({ state: 'ready', channel_id: '301' });
+  remote.channels.push({ id: '700', type: 2, name: `dune-play-${world.gameId}`, parent_id: '200', guild_id: '100' });
+  const parked = (await world.channel())!;
+  await world.t.run(async (ctx) => retryDiscordChannel(ctx, (await ctx.db.get(parked._id))!));
+  await world.reconcile();
+  expect(remote.creates).toBe(1);
+  expect(await world.channel()).toMatchObject({ state: 'ready', channel_id: '700' });
 });
 
 test.each(['duplicates', 'wrong type', 'wrong category', 'wrong guild', 'missing category', 'failed listing'] as const)(
@@ -213,12 +218,20 @@ test.each(['duplicates', 'wrong type', 'wrong category', 'wrong guild', 'missing
     expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
     expect(await world.channel()).toMatchObject({ state: 'creating', creation_attempt: 1 });
     expect((await world.channel())!.channel_id).toBeUndefined();
-    expect((await world.channel())!.next_attempt_at).toBeGreaterThanOrEqual(Date.now() + DISCORD_RETRY);
+    if (condition !== 'failed listing') {
+      expect(await world.channel()).toMatchObject({ next_attempt_at: DISCORD_PARKED, retry: { needsAttention: true } });
+    } else {
+      await retry(world);
+      expect(await world.channel()).toMatchObject({
+        next_attempt_at: DISCORD_PARKED,
+        retry: { attempts: 3, needsAttention: true },
+      });
+    }
   }
 );
 
-test('deployment guild and category switches cannot move a recovery out of its saved target', async () => {
-  const { world, remote } = await uncertainCreation();
+test('deployment guild and category switches cannot move adoption out of its saved target', async () => {
+  const { world, remote } = await uncertainCreation({ kind: 'lost', visible: true });
   vi.stubEnv('DISCORD_GUILD_ID', '101');
   vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '900');
   await retry(world);
@@ -226,7 +239,7 @@ test('deployment guild and category switches cannot move a recovery out of its s
     state: 'ready',
     guild_id: '100',
     creation_category_id: '200',
-    channel_id: '301',
+    channel_id: '300',
   });
   expect(
     remote.calls
@@ -235,10 +248,7 @@ test('deployment guild and category switches cannot move a recovery out of its s
   ).toBe(true);
   expect(
     remote.calls.filter((call) => call.method === 'POST' && call.path.endsWith('/channels')).map((call) => call.body)
-  ).toEqual([
-    { name: `dune-play-${world.gameId}`, type: 2, parent_id: '200' },
-    { name: `dune-play-${world.gameId}`, type: 2, parent_id: '200' },
-  ]);
+  ).toEqual([{ name: `dune-play-${world.gameId}`, type: 2, parent_id: '200' }]);
 });
 
 test.each(['ban', 'discard'] as const)('%s during a negative listing prevents replacement', async (removal) => {
@@ -248,8 +258,9 @@ test.each(['ban', 'discard'] as const)('%s during a negative listing prevents re
     await removeDuringRecovery(world, removal);
   };
   await retry(world);
+  await world.reconcile();
   expect(remote.creates).toBe(1);
-  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(await world.channel()).toMatchObject({ state: 'creating', retry: { needsAttention: true } });
   expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
 });
 
@@ -266,6 +277,7 @@ test.each(['ban', 'discard'] as const)(
       expect(await world.channel()).toMatchObject({ state: 'deleting', channel_id: '300' });
     };
     await retry(world);
+    await world.reconcile();
     expect(remote.creates).toBe(1);
     expect(await world.channel()).toMatchObject({ state: 'deleted', channel_id: '300' });
     expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
@@ -273,7 +285,7 @@ test.each(['ban', 'discard'] as const)(
   }
 );
 
-test('live, expired, and superseded leases cannot authorize a competing replacement', async () => {
+test('live and superseded leases cannot claim or adopt a competing creation', async () => {
   const remote = remoteDiscord();
   const world = await voiceWorld();
   const row = (await world.channel())!;
@@ -283,43 +295,12 @@ test('live, expired, and superseded leases cannot authorize a competing replacem
   await world.reconcile();
   expect(remote.calls).toEqual([]);
   vi.setSystemTime(Date.now() + DISCORD_LEASE + 1);
-  expect(
-    await world.t.mutation(internal.playDiscord.replaceMissingCreation, {
-      ...claim,
-      marker: `dune-play-${world.gameId}`,
-      categoryId: '200',
-      attempt: 1,
-    })
-  ).toBe(false);
+  expect(await world.t.mutation(internal.playDiscord.startCreation, { ...claim, categoryId: '200' })).toBe(false);
   const successor = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
   expect(successor.lease).not.toBe(claim.lease);
-  expect(
-    await world.t.mutation(internal.playDiscord.replaceMissingCreation, {
-      ...claim,
-      marker: `dune-play-${world.gameId}`,
-      categoryId: '200',
-      attempt: 1,
-    })
-  ).toBe(false);
+  expect(await world.t.mutation(internal.playDiscord.created, { ...claim, discordChannelId: '700' })).toBe(false);
   expect(await world.channel()).toMatchObject({ state: 'creating', creation_attempt: 1, lease: successor.lease });
   expect(remote.calls).toEqual([]);
-});
-
-test('one negative listing authorizes only one replacement for its creation attempt', async () => {
-  const { world } = await uncertainCreation();
-  vi.setSystemTime((await world.channel())!.next_attempt_at);
-  const row = (await world.channel())!;
-  const claimed = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
-  const authorization = {
-    channelId: row._id,
-    lease: claimed.lease!,
-    marker: row.creation_marker!,
-    categoryId: row.creation_category_id!,
-    attempt: row.creation_attempt!,
-  };
-  expect(await world.t.mutation(internal.playDiscord.replaceMissingCreation, authorization)).toBe(true);
-  expect(await world.t.mutation(internal.playDiscord.replaceMissingCreation, authorization)).toBe(false);
-  expect(await world.channel()).toMatchObject({ creation_attempt: 2 });
 });
 
 test('a finished game without a visible channel never creates a replacement', async () => {
@@ -327,7 +308,7 @@ test('a finished game without a visible channel never creates a replacement', as
   await world.publish(2, world.summary(undefined, { stage: 'finished' }));
   await retry(world);
   expect(remote.creates).toBe(1);
-  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(await world.channel()).toMatchObject({ state: 'creating', retry: { needsAttention: true } });
 });
 
 test('a legacy uncertain creation without a saved marker stays diagnostic and never POSTs', async () => {
@@ -344,5 +325,25 @@ test('a legacy uncertain creation without a saved marker stays diagnostic and ne
     error: 'This older creation has no saved marker. An administrator must inspect Discord.',
   });
   expect(remote.calls).toEqual([]);
-  expect((await world.channel())!.next_attempt_at).toBeGreaterThanOrEqual(Date.now() + DISCORD_RETRY);
+  expect((await world.channel())!.next_attempt_at).toBe(DISCORD_PARKED);
+});
+
+test('parking legacy exhausted work preserves its real deadline through explicit retry', async () => {
+  const remote = remoteDiscord();
+  const world = await voiceWorld();
+  const row = (await world.channel())!;
+  const until = Date.now() + 60_000;
+  await world.t.run((ctx) =>
+    ctx.db.patch(row._id, { retry: { kind: 'backoff', revision: row.work_revision ?? 0, until } })
+  );
+  expect(await world.t.mutation(internal.playDiscord.claim, { channelId: row._id })).toBeNull();
+  expect(await world.channel()).toMatchObject({ retry: { kind: 'bounded', needsAttention: true, until } });
+  await world.t.run(async (ctx) => retryDiscordChannel(ctx, (await ctx.db.get(row._id))!));
+  expect((await world.channel())!.next_attempt_at).toBe(until);
+  await world.reconcile();
+  expect(remote.calls).toEqual([]);
+  vi.setSystemTime(until);
+  await world.reconcile();
+  expect(remote.creates).toBe(1);
+  expect(await world.channel()).toMatchObject({ state: 'ready', channel_id: '300' });
 });

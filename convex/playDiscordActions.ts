@@ -119,7 +119,20 @@ async function recoverCreation(
       'This older creation has no saved marker. An administrator must inspect Discord.'
     );
   }
-  const channels = await perform('recover', () => rest.listChannels(row.guild_id));
+  let channels: Awaited<ReturnType<DiscordRest['listChannels']>>;
+  try {
+    channels = await perform('recover', () => rest.listChannels(row.guild_id));
+  } catch (error) {
+    if (
+      error instanceof DiscordPaused ||
+      (error instanceof DiscordFailure && (error.status === 0 || error.status === 429 || error.status >= 500))
+    ) {
+      throw error;
+    }
+    throw new DiscordRecoveryUnavailable(
+      'Discord did not provide a usable channel listing. An administrator must inspect Discord.'
+    );
+  }
   const matches = channels.filter((channel) => channel.name === marker);
   if (matches.length > 0) {
     const match = matches[0]!;
@@ -130,31 +143,15 @@ async function recoverCreation(
       (match.guild_id && match.guild_id !== row.guild_id)
     ) {
       throw new DiscordRecoveryUnavailable(
-        'Discord has conflicting creation markers. Recovery will check again later.'
+        'Discord has conflicting creation markers. An administrator must inspect Discord.'
       );
     }
     const adopted = await ctx.runMutation(internal.playDiscord.created, { ...claim, discordChannelId: match.id });
     return adopted ? 'continue' : 'complete';
   }
-  if (
-    !channels.some(
-      (channel) =>
-        channel.id === categoryId && channel.type === 4 && (!channel.guild_id || channel.guild_id === row.guild_id)
-    )
-  ) {
-    throw new DiscordRecoveryUnavailable('The saved Discord category is not visible. Recovery will check again later.');
-  }
-  const replace = await ctx.runMutation(internal.playDiscord.replaceMissingCreation, {
-    ...claim,
-    marker,
-    categoryId,
-    attempt: row.creation_attempt ?? 0,
-  });
-  if (!replace) {
-    return 'complete';
-  }
-  await postCreation(ctx, rest, claim, row, categoryId, perform);
-  return 'continue';
+  throw new DiscordRecoveryUnavailable(
+    'Discord did not show a matching channel. An administrator must inspect Discord before any new creation.'
+  );
 }
 
 /** Commit retirement before DELETE, so later activity cannot reverse a request already sent to Discord. */
@@ -240,6 +237,9 @@ function failureForRelease(
   retryOperation: Infer<typeof discordRetryOperation> | undefined,
   retryCategoryId: string | undefined
 ) {
+  if (error instanceof DiscordRecoveryUnavailable) {
+    return { error: error.message, needsAttention: true };
+  }
   if (error instanceof DiscordFailure) {
     return {
       error: error.message,
@@ -251,7 +251,7 @@ function failureForRelease(
     };
   }
   if (error instanceof DiscordPaused) {
-    return { error: error.message };
+    return { error: error.message, paused: true };
   }
   const diagnostic = unexpectedFailure(error);
   console.error('Discord channel work failed.', { kind: diagnostic.kind });
@@ -290,7 +290,12 @@ export const reconcile = internalAction({
     } catch (error) {
       failure = failureForRelease(error, retryOperation, retryCategoryId);
     } finally {
-      await ctx.runMutation(internal.playDiscord.release, { ...claim, ...failure });
+      await ctx.runMutation(internal.playDiscord.release, {
+        ...claim,
+        attempted: rest.requestsMade > 0,
+        operation: row.retry?.kind === 'bounded' ? row.retry.operation : undefined,
+        ...failure,
+      });
     }
     return null;
   },

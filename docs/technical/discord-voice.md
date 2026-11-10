@@ -7,15 +7,16 @@ access.
 
 ## Manual nudges
 
-In the existing faction or table conversation, a message containing only another seated player's
-faction or display name requests a nudge. Matching ignores case and surrounding whitespace, and
-accepts an optional `@` or `/nudge` prefix. A faction conversation can nudge only its peer. Ambiguous
-names, self names and recall chat do nothing. The message itself is saved and displayed normally.
+During setup or play, a seated player can choose a Nudge command in the Compass for another
+occupied seat. The commands appear when the game has a ready Discord voice channel and can be
+found by the player's name, faction name or "nudge". Spectators, recall and playback cannot nudge.
+Chat messages never trigger nudges, including names, `@mentions` and `/nudge` text.
 
-After saving a matching message, the Worker makes one authenticated Convex action call with the
-sender and target seat identities and the sender faction reference. It does not wait for the directory
-summary to publish. Conversation text stays in the Worker, and a failed call does not delay chat or
-schedule another attempt.
+The browser sends one nudge request through its existing game connection. The Worker validates
+the current sender and target seats, then makes one authenticated Convex action call with their
+identities and the sender faction reference. It does not wait for the directory summary to publish.
+The request creates no chat message or saved game action and is not replayed on reconnect. A failed
+call is logged without scheduling another attempt.
 
 Convex checks the game's credential, live state, voice setting and channel, then resolves the current
 seat occupants and the target's linked Discord account. Both sender and recipient must resolve to
@@ -32,7 +33,7 @@ phone or desktop notification.
 
 New Workers call the `sendNudge` action. During rollout, the old `publishNudge` mutation stays
 authenticated and acknowledges legacy events without sending them. A new Worker whose action is
-not deployed yet logs and drops that attempt while its chat message remains saved.
+not deployed yet logs and drops that attempt.
 
 A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
 no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
@@ -53,8 +54,9 @@ excluded from snapshots and cannot enable an unconfigured deployment.
 The page lists tracked channels and cleanup deadlines. It fetches a
 bounded page only while open. Cleanup distinguishes active inactivity deadlines, finished setup or
 rename work, hourly occupancy checks and completed removal. Paused rows show that cleanup is paused.
-Pending and creating rows offer Retry now, which queues the guarded reconciliation and records its
-scheduled time. It cannot bypass a live lease or a Discord request's rate limit.
+Unfinished work stops after three reconciliation attempts and shows Needs attention. Retry now
+starts a fresh attempt budget and records its scheduled time. It cannot bypass a live lease or a
+Discord request's rate limit. Rename and deletion failures use the same control as provisioning.
 Untracked channels are discovered only on explicit refresh, only in
 configured Games categories, and only after the creation window has passed. They are never deleted
 automatically. A deliberate removal rechecks the target before deleting it.
@@ -63,21 +65,22 @@ Before creating a channel, Convex saves an exact temporary name, `dune-play-{gam
 category. The temporary name is briefly visible. A successful response saves the channel ID before
 renaming it to the game name or requesting an invite. A lost response leaves that attempt marked as
 creating. Recovery lists the saved guild after the old owner has released or lost its 31-minute lease.
-One exact matching voice channel in the saved category is adopted. A replacement requires a complete
-successful listing, the saved category visible as a category, and no visible marker match or conflict.
-The replacement rechecks its lease, creation attempt, current game need and deletion intent, and spends
-a new creation reservation. Each ambiguous replacement goes through the same recovery process.
+One exact matching voice channel in the saved category is adopted. A negative listing never
+authorizes a replacement POST. Negative or conflicting results, inaccessible categories and older
+attempts without a saved marker stop for administrator inspection. Retry can inspect again and
+adopt a later visible match; it cannot create a replacement for an uncertain result.
 
-This establishes that no matching room is visible, not that none exists. Administrator renames, moves
-or permission changes, and late Discord commits, can defeat correlation. Conflicting matches or a
-missing category remain retryable without another POST. Older uncertain attempts without a saved
-marker need administrator inspection. Configuration changes affect new reservations only; existing
+Administrator renames, moves or permission changes, and late Discord commits, can defeat correlation.
+Configuration changes affect new reservations only; existing
 creation, recovery and cleanup stay pinned to their saved guild and category, using the current token.
 
 Discarding a game schedules its channel for immediate deletion. When a game finishes, the channel
 is renamed with an `(ended)` suffix. Hourly cleanup deletes ended channels that are empty. If play
 continues before deletion commits, the channel stays and its original name is restored. A committed
-deletion cannot be reversed. Active games still lose their channel after 14 days without game activity.
+deletion cannot be reversed. Active games request channel deletion after 14 days without game activity.
+This deadline can start new deletion work after provisioning or renaming has stopped. It never
+restarts the failed provisioning or rename operation. Deletion itself stops after three failed
+attempts and needs an explicit Retry.
 Missing channels are treated as already removed only when Discord returns Unknown Channel.
 An hourly check that confirms Unknown Channel retires the tracked record directly after rechecking
 the game, channel identity, revision and pause setting. It sends no redundant DELETE.
@@ -97,8 +100,8 @@ continued game.
 
 Hourly cleanup uses brief action time on the existing Convex deployment. It adds no Worker service
 or continuously active Durable Object. With no ended channels to check, it makes no Discord request.
-Ordinary chat does not call Convex for nudges. Games without Discord voice skip nudge matching,
-and non-Discord directory summaries skip the channel lookup.
+Chat does not call Convex for nudges. Only an explicit Compass command requests a nudge, and
+non-Discord directory summaries skip the channel lookup.
 
 One attempted nudge uses one Worker-to-Convex action call and at most one Discord POST. The
 rate-limit mutation reads current eligibility and spends the per-seat quota. There are no delivery
@@ -110,13 +113,15 @@ a ready row until its stored reconciliation deadline arrives. Creator backfill p
 so the row keeps its cap slot until normal retirement changes its state. Cap checks add no provider
 requests or game scans to reconcile those older records.
 
-Lifecycle REST calls make one attempt. A definite short rate limit schedules up to two retries at
-Discord's deadline, then uses the existing 15-minute backoff. Each scheduled retry acquires a fresh
-lease and rechecks current work. The channel keeps the short retry budget so scheduled work and
-cron recovery use the same attempts. Its deadline and revision fence stale work. A retry of the same
-definitely rejected creation reuses its creation reservation. Ambiguous attempts use the recovery
-checks above and cannot borrow that short-retry reservation. Interactive
-admin requests retain their two short retries; nudges and occupancy checks never retry inline.
+Lifecycle REST calls make one attempt. The existing lease claim durably spends one of three
+reconciliation attempts, so a crashed action also uses its budget. Provisioning covers category
+selection, creation or inspection, initial naming and invitation; each completed step is saved.
+Renaming and deletion have their own bounded work. Scheduled retries and cron use the same budget
+and preserve Discord's deadlines. Ordinary activity, duplicate stage updates, pause/resume and
+repeated hourly observations cannot reset an exhausted operation. An explicit Retry or genuinely
+new lifecycle work starts a fresh budget. A retry of a definitely rejected creation keeps its
+reservation; an uncertain creation can only be inspected and adopted. Interactive admin requests
+retain their two short retries; nudges and occupancy checks never retry inline.
 
 Every request checks a persisted gate. Only explicit global limits block all bot work. Other limits,
 including shared limits, use the observed bucket plus major guild or channel ID. Without a bucket
@@ -135,14 +140,15 @@ production scope, after the new transition code is deployed. No channel, game, i
 ownership value changes in that retirement.
 
 After a release, check both Worker health identities, create an opted-in game, and verify the invite
-and VC text message destination. Repeat a nudge inside its cooldown and check that no second
-message appears. Check unlinked recipients and paused integration with synthetic local data.
+and VC text message destination. Choose a Nudge command in the Compass, repeat it inside its
+cooldown and check that no second message appears. Send a player name, `@mention` and `/nudge`
+as chat messages and check that none sends a Discord message. Check unlinked recipients and
+paused integration with synthetic local data.
 Inspect Convex logs for dropped Discord nudges and Worker diagnostics for operation `nudge`. Use the existing [Convex usage report](./convex-usage.md) to compare execution and database
 usage; do not infer invoice savings from request counts alone.
 
-The automatic-waiting triggers, DMs, community-server move and voice-presence display remain later
-work. A few real multiplayer games and native notification checks are adoption evidence, separate
-from automated delivery tests.
+There are no automatic waiting or offline triggers, chat commands or DMs. A few real multiplayer
+games and native notification checks are adoption evidence, separate from automated delivery tests.
 
 ## Sources
 

@@ -70,7 +70,6 @@ import type { SetAsideJudgement } from './drafting';
 import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { logContext, PublicLog } from './log';
-import { nudgeTarget } from './nudges';
 import type { SeatPlan } from './participation';
 import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
@@ -1393,33 +1392,35 @@ export class GameSession {
       }
       return saved;
     });
+    return saved;
+  }
+
+  /** The request names a seat; current room records supply both account identities. */
+  nudge(viewer: Viewer, toSeat: string): PlayNudge {
     const snapshot = this.room!.snapshot;
-    let nudge: PlayNudge | undefined;
-    if (
-      saved.inserted &&
-      this.metadata?.game?.discordVoice === true &&
-      snapshot.roster &&
-      (snapshot.stage === 'setup' || snapshot.stage === 'play')
-    ) {
-      const target = nudgeTarget(
-        request.text,
-        request.factionId,
-        request.peerId,
-        snapshot.roster,
-        this.actors.occupants()
-      );
-      const from = snapshot.roster.seats.find((seat) => seat.faction?.id === request.factionId);
-      if (target && from) {
-        nudge = {
-          fromSeat: from.id,
-          fromUserId: viewer.userId,
-          fromFactionId: request.factionId,
-          toSeat: target.seat,
-          toUserId: target.userId,
-        };
-      }
+    if (this.metadata?.game?.discordVoice !== true || (snapshot.stage !== 'setup' && snapshot.stage !== 'play')) {
+      throw new GameRejection('Discord nudges are available only during setup or play in a game with Discord voice.');
     }
-    return { ...saved, nudge };
+    if (this.reviews.running()) {
+      throw new GameRejection('Discord nudges are unavailable during Mentat recall.');
+    }
+    const occupants = this.actors.occupants();
+    const from = occupants.find((occupant) => occupant.userId === viewer.userId);
+    const faction = snapshot.roster?.seats.find((seat) => seat.id === from?.seat)?.faction;
+    if (!from || !faction) {
+      throw new GameRejection('Only a seated player with a faction can send a Discord nudge.');
+    }
+    const target = occupants.find((occupant) => occupant.seat === toSeat);
+    if (!target || target.userId === viewer.userId || !snapshot.roster?.seats.some((seat) => seat.id === toSeat)) {
+      throw new GameRejection('Choose another occupied seat to nudge.');
+    }
+    return {
+      fromSeat: from.seat,
+      fromUserId: viewer.userId,
+      fromFactionId: faction.id,
+      toSeat: target.seat,
+      toUserId: target.userId,
+    };
   }
 
   conversationMembers(request: Extract<ClientMessage, { type: 'conversation-send' }>) {

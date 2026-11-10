@@ -110,18 +110,18 @@ function PrivacyPage() {
               <Text>
                 Joining the Discord server is your choice. We never add you automatically or change your channel access
                 when you leave a seat. Discarding a game requests immediate deletion of its channel. While the
-                integration is enabled, we attempt deletion right away and retry if the request fails. When a game
-                finishes, its channel is marked as ended. An hourly check deletes ended channels that are empty.
-                Channels for active games are also deleted after 14 days without game activity. Pausing the integration
-                delays channel cleanup until it resumes. We briefly check whether an ended channel is occupied for
-                cleanup and do not save voice participants' identities.
+                integration is enabled, we attempt deletion right away. Repeated failures stop after three attempts and
+                need an administrator to retry. When a game finishes, its channel is marked as ended. An hourly check
+                deletes ended channels that are empty. Channels for active games are also deleted after 14 days without
+                game activity. Pausing the integration delays channel cleanup until it resumes. We briefly check whether
+                an ended channel is occupied for cleanup and do not save voice participants' identities.
               </Text>
               <Text>
-                In a game with Discord voice, a message containing only another player&apos;s faction or display name,
-                optionally preceded by @ or /nudge, can mention them in the voice channel&apos;s text chat. They need a
-                connected Discord account to receive the mention. We send the waiting faction&apos;s name and the game
-                name, never the conversation itself. Each seat can receive at most one ping every five minutes. Discord
-                controls notification delivery through each player&apos;s settings.
+                In a game with Discord voice, a seated player can choose a Nudge command in the Compass to mention
+                another player in the voice channel&apos;s text chat. The recipient needs a connected Discord account.
+                We send the waiting faction&apos;s name and the game name. Chat messages never trigger nudges or get
+                sent to Discord. Each seat can receive at most one nudge every five minutes. Discord controls
+                notification delivery through each player&apos;s settings.
               </Text>
             </Stack>
           </Section>

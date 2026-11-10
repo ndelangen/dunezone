@@ -134,6 +134,9 @@ function cleanupLabel(channel: DashboardResult['channels']['page'][number], avai
   if (channel.cleanup_status === 'deleted') {
     return 'Removed';
   }
+  if (channel.needs_attention && channel.state === 'creating' && !channel.channel_id) {
+    return 'Manual Discord inspection';
+  }
   if (!available) {
     return 'Paused';
   }
@@ -168,13 +171,15 @@ function trackedDeleteReason(channel: DashboardResult['channels']['page'][number
     return 'This channel has already been removed.';
   }
   if (channel.state === 'deleting') {
-    return 'Channel removal is in progress.';
+    return channel.needs_attention
+      ? 'Channel removal stopped. Use Retry to continue.'
+      : 'Channel removal is in progress.';
   }
   if (!enabled) {
     return 'Discord integration is disabled.';
   }
   if (channel.state === 'creating' && !channel.channel_id) {
-    return 'Channel creation is being checked. Retry is available.';
+    return 'Channel creation is unconfirmed. Check Discord before removing it.';
   }
   return undefined;
 }
@@ -190,6 +195,9 @@ function retryDisabledReason(configured: boolean, enabled: boolean) {
 }
 
 function trackedStateLabel(channel: DashboardResult['channels']['page'][number], observedAt: number) {
+  if (channel.needs_attention) {
+    return 'Needs attention';
+  }
   if (channel.state !== 'creating') {
     return channel.state;
   }
@@ -209,7 +217,8 @@ function RetryChannelAction({
 }>) {
   const retry = useRetryDiscordChannel();
   const scheduled = new Date(channel.next_attempt_at);
-  const scheduledRetry = channel.next_attempt_at > observedAt && !Number.isNaN(scheduled.getTime());
+  const scheduledRetry =
+    !channel.needs_attention && channel.next_attempt_at > observedAt && !Number.isNaN(scheduled.getTime());
   return (
     <>
       <LabeledAction
@@ -288,7 +297,11 @@ function TrackedChannels({
                         <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     ) : channel.state === 'creating' ? (
-                      'Channel creation is being checked.'
+                      channel.needs_attention ? (
+                        'Channel creation is unconfirmed.'
+                      ) : (
+                        'Channel creation is being checked.'
+                      )
                     ) : (
                       'Not created'
                     )}
@@ -296,17 +309,27 @@ function TrackedChannels({
                       Guild {channel.guild_id}
                     </Text>
                   </Table.Td>
-                  <Table.Td miw="7rem">
+                  <Table.Td miw="11rem">
                     <StatusBadge>{trackedStateLabel(channel, observedAt)}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
                   <Table.Td>{cleanupLabel(channel, configured && enabled)}</Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>
+                    {channel.needs_attention && channel.state === 'deleting' && (
+                      <Text size="xs" c="dimmed">
+                        Automatic retries stopped. Retry to continue removing this channel.
+                      </Text>
+                    )}
+                    {channel.needs_attention && channel.state === 'creating' && !channel.channel_id && (
+                      <Text size="xs" c="dimmed">
+                        Check Discord for the unconfirmed channel. Retry checks again without creating another.
+                      </Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
                     <Stack gap="xs">
-                      {(channel.state === 'pending' || channel.state === 'creating') && (
+                      {(channel.needs_attention || channel.state === 'pending' || channel.state === 'creating') && (
                         <RetryChannelAction
                           channel={channel}
                           enabled={enabled}
