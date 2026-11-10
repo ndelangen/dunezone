@@ -26,13 +26,7 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { listFactionRulesets } from './lib/factionCatalogue';
-import {
-  loadFactionCatalogue,
-  loadFactionCataloguePage,
-  loadFactionCatalogueSearch,
-  selectFactionCatalogueSpotlights,
-} from './lib/factionCatalogue';
+import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import {
   factionInputForWrite,
@@ -188,31 +182,6 @@ export const list = publicQuery({
   },
 });
 
-/**
- * The unpaged catalogue bundle, superseded by `catalogue`.
- * Deleting a public query is expand/contract: this goes in the release after the one that moves the route off it.
- */
-export const cataloguePage = publicQuery({
-  args: {},
-  returns: v.object({
-    factions: v.array(catalogueFactionValidator),
-    rulesets: v.array(rulesetSummaryValidator),
-    spotlights: v.object({
-      newArrival: v.union(catalogueFactionValidator, v.null()),
-      freshlyUpdated: v.union(catalogueFactionValidator, v.null()),
-    }),
-  }),
-  handler: async (ctx) => {
-    const { factions, rulesets } = await loadFactionCatalogue(ctx);
-
-    return {
-      factions,
-      rulesets,
-      spotlights: selectFactionCatalogueSpotlights(factions),
-    };
-  },
-});
-
 const catalogueSortValidator = v.union(...FACTION_CATALOGUE_SORTS.map((sort) => v.literal(sort)));
 
 const catalogueSpotlightsValidator = v.object({
@@ -271,7 +240,6 @@ const catalogueSearchValidator = v.object({
  * The Faction catalogue, the same for every viewer: the route's search parameters in, the visible cards and the counts out.
  * A search is the load-more search, best matches first up to `limit`;
  * without one the catalogue is browsed, in pages.
- * Replaces `cataloguePage`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {
