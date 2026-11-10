@@ -361,6 +361,7 @@ export const snapshotPolicy = {
  * #1576 tracks deleting these tables from production.
  */
 export const retiredTables = {
+  play_game_discord_nudges: 'retired private game notification delivery state',
   /* Left the schema in 2304c35e5e9, after `asset_claim_snapshots_retire_v1` deleted its rows. */
   asset_claim_snapshots: 'retired asset publisher bookkeeping, not content',
   /* Left the schema in 2304c35e5e9, after `asset_publisher_state_retire_v1` deleted its rows. */

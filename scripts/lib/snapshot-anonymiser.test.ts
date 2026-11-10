@@ -340,6 +340,22 @@ describe('anonymiseExport', () => {
     expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
   });
 
+  test.each([false, true])('drops a retired nudge table from raw exports, populated=%s', (populated) => {
+    const { world } = authorWorld();
+    world.numberOf('play_game_discord_nudges');
+    if (populated) {
+      world.add('play_game_discord_nudges', { error: 'private retired delivery' });
+    }
+    const { entries, report } = anonymiseExport(world.entries());
+    expect(entries.has('play_game_discord_nudges/documents.jsonl')).toBe(false);
+    expect([...entries.values()].join('\n')).not.toContain('private retired delivery');
+    expect(report.tables.find(({ table }) => table === 'play_game_discord_nudges')).toMatchObject({
+      rowsIn: populated ? 1 : 0,
+      rowsOut: 0,
+    });
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+  });
+
   test('points user references at the placeholder owner and nulls references to dropped rows', () => {
     const { world, group } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
