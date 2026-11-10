@@ -209,34 +209,14 @@ function FactionEditPage() {
             review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
             centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
             accessActions={
-              <>
-                {canAssignGroup && !assignedGroup ? (
-                  <FactionGroupPopover
-                    disabled={setFactionGroup.isPending}
-                    assignableGroups={assignableGroups}
-                    onAssignGroup={async (nextGroupId) => {
-                      await setFactionGroup.mutateAsync({
-                        id: faction._id,
-                        groupId: nextGroupId,
-                      });
-                    }}
-                  />
-                ) : null}
-                {canAssignGroup && assignedGroup ? (
-                  <IconAction
-                    label="Remove group"
-                    tooltip={`Remove group access (${assignedGroup.name})`}
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    disabled={setFactionGroup.isPending}
-                    onClick={() =>
-                      void setFactionGroup.mutateAsync({ id: faction._id, groupId: null }).catch(() => undefined)
-                    }
-                    icon={<UserRoundMinus size={17} aria-hidden />}
-                  />
-                ) : null}
-              </>
+              canAssignGroup ? (
+                <FactionGroupActions
+                  factionId={faction._id}
+                  assignedGroup={assignedGroup}
+                  assignableGroups={assignableGroups}
+                  setGroup={setFactionGroup}
+                />
+              ) : null
             }
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
@@ -281,5 +261,42 @@ function FactionEditPage() {
         </PageLayout.Content>
       </PageLayout>
     </BackgroundLibrary>
+  );
+}
+
+/** Assigning the faction to a Group, or removing the one it has; a failure shows on the page through the mutation's own error. */
+function FactionGroupActions({
+  factionId,
+  assignedGroup,
+  assignableGroups,
+  setGroup,
+}: Readonly<{
+  factionId: string;
+  assignedGroup: { name: string } | null;
+  assignableGroups: Parameters<typeof FactionGroupPopover>[0]['assignableGroups'];
+  setGroup: ReturnType<typeof useSetFactionGroup>;
+}>) {
+  if (!assignedGroup) {
+    return (
+      <FactionGroupPopover
+        disabled={setGroup.isPending}
+        assignableGroups={assignableGroups}
+        onAssignGroup={async (groupId) => {
+          await setGroup.mutateAsync({ id: factionId, groupId });
+        }}
+      />
+    );
+  }
+  return (
+    <IconAction
+      label="Remove group"
+      tooltip={`Remove group access (${assignedGroup.name})`}
+      emphasis="standard"
+      intent="neutral"
+      size="lg"
+      disabled={setGroup.isPending}
+      onClick={() => void setGroup.mutateAsync({ id: factionId, groupId: null }).catch(() => undefined)}
+      icon={<UserRoundMinus size={17} aria-hidden />}
+    />
   );
 }
