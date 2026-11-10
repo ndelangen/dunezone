@@ -380,6 +380,21 @@ async function handleLifecycleRequest(request: WorkerRequest): Promise<unknown> 
     return null;
   }
   if (request.operation === 'reset') {
+    /* The opt-in resets with each world; other stories keep Discord disabled and this worker still rejects every network call. */
+    Object.assign(globalThis, {
+      process: {
+        env: {
+          ...STORYBOOK_ENV,
+          ...(request.discordVoice
+            ? {
+                DISCORD_BOT_TOKEN: 'storybook-only',
+                DISCORD_GUILD_ID: '100',
+                DISCORD_GAMES_CATEGORY_IDS: '200',
+              }
+            : {}),
+        },
+      },
+    });
     storyNow = STORYBOOK_NOW;
     world = createWorld(request.seed);
     await world;
