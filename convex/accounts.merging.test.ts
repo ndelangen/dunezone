@@ -597,3 +597,58 @@ test('only a signed-in reader learns which sign-in methods are connected, for si
     await t.withIdentity({ subject: `${reader.userId}|${reader.sessionId}` }).query(api.accounts.connectedMethods, {})
   ).toEqual(['google']);
 });
+
+test('channel ownership remains correct when an account merges after creator backfill', async () => {
+  const t = setup();
+  roomAcknowledgesCutoffs(t);
+  vi.stubEnv('DISCORD_BOT_TOKEN', 'test-token');
+  vi.stubEnv('DISCORD_GUILD_ID', '100');
+  vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '200');
+  vi.stubEnv('TYPESAFE_API_KEY', '');
+  const source = await account(t, 'voice-source', 'discord');
+  const target = await account(t, 'voice-target', 'google', true);
+  const channelIds = [];
+  for (const creatorId of [source.userId, source.userId, target.userId]) {
+    const game = await t.mutation(internal.playTesting.createFixture, {});
+    channelIds.push(
+      await t.run(async (ctx) => {
+        await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId });
+        return await ctx.db.insert('play_game_discord_channels', {
+          game_id: game.gameId,
+          creator_id: creatorId,
+          guild_id: '100',
+          category_ids: ['200'],
+          state: 'ready',
+          created_at: Date.now(),
+          cleanup_at: Date.now() + 60_000,
+          next_attempt_at: Date.now() + 60_000,
+        });
+      })
+    );
+  }
+  const orphanGame = await t.mutation(internal.playTesting.createFixture, {});
+  const orphanId = await t.run(async (ctx) => {
+    await ctx.db.delete(orphanGame.gameId);
+    return await ctx.db.insert('play_game_discord_channels', {
+      game_id: orphanGame.gameId,
+      creator_id: source.userId,
+      guild_id: '100',
+      category_ids: ['200'],
+      state: 'deleted',
+      created_at: Date.now(),
+      cleanup_at: Date.now(),
+      next_attempt_at: Date.now(),
+    });
+  });
+  await t.mutation(internal.migrations.runRequired, {
+    ids: ['discord_channel_creators_v1', 'discord_channel_creators_verify_v1'],
+  });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
+  await admin.mutation(api.accounts.merge, { sourceUserId: source.userId, targetUserId: target.userId });
+  await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+  for (const id of channelIds) {
+    expect(await t.run(async (ctx) => await ctx.db.get(id))).toMatchObject({ creator_id: target.userId });
+  }
+  expect(await t.run(async (ctx) => await ctx.db.get(orphanId))).toMatchObject({ creator_id: target.userId });
+});
