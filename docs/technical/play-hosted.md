@@ -90,12 +90,15 @@ rows in the new shape.
 
 Each command names the revision its sender last saw, and `Room.assertRevision` in
 `workers/game/room.ts` refuses one sent against a table that has changed since with "The table
-changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spice spawns, deck
-draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
-checked against the live table instead, so seats acting at the same moment do not turn each other
-away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
-that changed more than who is ready. A spice reserve withdrawal stays strict, so two tabs of one player
-cannot both spend from a spice reserve they saw once.
+changed. Try the action again." Every move declares how it is judged in one place, `ACTION_POLICY`
+in `workers/game/actionPolicy.ts`, and a new move does not compile until it has an entry there.
+Moves marked `tolerant` (battle actions, bids, draft picks, seat requests, alliance offers, hand
+arrangement and more) name what they change and are checked against the live table instead, so
+seats acting at the same moment do not turn each other away. Moves marked `readiness` (`ready`,
+`draft-ready`, `swap-ready`) may cross other readiness, but not a commit that changed more than who
+is ready. Everything else is `strict`; the entry's comment says why where it matters, as for a
+spice reserve withdrawal, which stays strict so two tabs of one player cannot both spend from a
+spice reserve they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
