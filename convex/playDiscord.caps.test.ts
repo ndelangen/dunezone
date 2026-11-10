@@ -66,22 +66,30 @@ test('concurrent confirmations reserve at most three channels and leave the four
   expect(await viewer.query(api.playGames.creatable, {})).toMatchObject({ discordVoiceAtLimit: false });
 });
 
-test('global create budget leaves a channel pending until a token refills', async () => {
-  const discord = discordStub();
+test('the global create budget delays channels from different creators until retryDue runs after refill', async () => {
+  const discord = discordStub(['300', '301']);
   const { t, gameIds, confirm } = await world();
+  const other = await t.run(async (ctx) => await playPerson(ctx, 'Another creator'));
+  await t.run(async (ctx) => await ctx.db.patch(gameIds[1]!, { creator_id: other.userId }));
   await confirm(gameIds[0]!);
-  const row = (await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').first()))!;
+  await confirm(gameIds[1]!);
+  const rows = await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').collect());
   await t.run(async (ctx) => await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 30 }));
-  await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
-  const pending = (await t.run(async (ctx) => await ctx.db.get(row._id)))!;
-  expect(pending.state).toBe('pending');
-  expect(pending.next_attempt_at).toBeGreaterThan(Date.now());
+  for (const row of rows) await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
+  for (const row of rows) {
+    const pending = (await t.run(async (ctx) => await ctx.db.get(row._id)))!;
+    expect(pending.state).toBe('pending');
+    expect(pending.next_attempt_at).toBeGreaterThan(Date.now());
+  }
   expect(discord.calls.filter((call) => call.method === 'POST')).toHaveLength(0);
-  vi.advanceTimersByTime(2 * 60_000);
-  await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
-  expect(await t.run(async (ctx) => await ctx.db.get(row._id))).toMatchObject({ state: 'ready' });
+  vi.advanceTimersByTime(4 * 60_000);
+  await t.mutation(internal.playDiscord.retryDue, {});
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  for (const row of rows) {
+    expect(await t.run(async (ctx) => await ctx.db.get(row._id))).toMatchObject({ state: 'ready' });
+  }
   expect(discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST')).toHaveLength(
-    1
+    2
   );
 });
 
@@ -136,6 +144,32 @@ test('creator backfill handles legacy rows and replays without changes', async (
         next_attempt_at: Date.now(),
       })
   );
+  const orphanId = await t.run(async (ctx) => {
+    await ctx.db.delete(gameIds[2]!);
+    return await ctx.db.insert('play_game_discord_channels', {
+      game_id: gameIds[2]!,
+      guild_id: '100',
+      category_ids: ['200'],
+      state: 'deleted',
+      created_at: Date.now(),
+      cleanup_at: Date.now(),
+      next_attempt_at: Date.now(),
+    });
+  });
+  const other = await t.run(async (ctx) => await playPerson(ctx, 'Previous creator'));
+  const staleId = await t.run(
+    async (ctx) =>
+      await ctx.db.insert('play_game_discord_channels', {
+        game_id: gameIds[1]!,
+        creator_id: other.userId,
+        guild_id: '100',
+        category_ids: ['200'],
+        state: 'ready',
+        created_at: Date.now(),
+        cleanup_at: Date.now() + 60_000,
+        next_attempt_at: Date.now(),
+      })
+  );
   expect(await viewer.query(api.playGames.creatable, {})).toMatchObject({ discordVoiceAtLimit: true });
   const ids = ['discord_channel_creators_v1', 'discord_channel_creators_verify_v1'];
   for (let pass = 0; pass < 2; pass++) {
@@ -145,6 +179,8 @@ test('creator backfill handles legacy rows and replays without changes', async (
       ok: true,
     });
     expect(await t.run(async (ctx) => await ctx.db.get(rowId))).toMatchObject({ creator_id: user.userId });
+    expect(await t.run(async (ctx) => await ctx.db.get(staleId))).toMatchObject({ creator_id: user.userId });
+    expect(await t.run(async (ctx) => await ctx.db.get(orphanId))).toMatchObject({ creator_id: null });
   }
   expect(await viewer.query(api.playGames.creatable, {})).toMatchObject({ discordVoiceAtLimit: false });
 });
