@@ -5,11 +5,11 @@ import { expect, waitFor, within } from 'storybook/test';
 
 import { storedAuthTokenKey, STORED_PLAY_TABLE_PREFIX } from '@db/playTables';
 import { convexNeverAnswers, STORYBOOK_NOW } from '@db/storybook';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
 
 import { storedTableText } from '../../../db/tabletop/storedTable';
 import { StorybookPage } from '../../storybook';
 import { gameMeta, install, session } from './game.stories.fixture';
-import { browserGameRuntime } from './multiplayer/gameRuntime';
 import { nativeGetContext, withoutGraphics, expectGraphicsMessage } from './opening.stories.fixture';
 import { tablePage } from './playing.stories.fixture';
 import {

@@ -9,15 +9,15 @@ import type { LogEntry } from '@shared/play/log';
 import type { TablePiece, Vector3Tuple } from '@shared/play/model';
 import { PEEK_DECK_LIMIT } from '@shared/play/peeking';
 import { PHASE_CHANGE_COOLDOWN_MS } from '@shared/play/phases';
-import { tableForViewer } from '@shared/play/protocol';
+import { PLAY_PROTOCOL_VERSION, tableForViewer } from '@shared/play/protocol';
 import type { ActivityChange, GameSnapshot, ServerMessage, TablePing, Viewer } from '@shared/play/protocol';
 import { createSpiceStack } from '@shared/play/spiceBank';
 import { flipPieceInState, heldPieceFor } from '@shared/play/tableState';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 
-import { hidden, runtime, Socket } from '../../routes/_app/play/multiplayer/gameRuntime.test.fixture';
+import { hidden, runtime, Socket } from './gameRuntime.test.fixture';
 import { TableSession } from './TableSession';
 
 function connection(gameId: string, request: ConstructorParameters<typeof GameSubscription>[1]) {
@@ -473,7 +473,7 @@ describe('hosted table admission', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(socket().gameId).toBe('fixture-one');
     socket().open();
-    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
+    expect(socket().sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.a' }]);
     client.moveStormBy(1);
     client.beginGesture('harkonnen-force-stack', 'whole');
     client.publishPointer([0, 0, 0]);
@@ -541,7 +541,7 @@ describe('hosted table admission', () => {
     client.publishPointer([0, 0.38, 0]);
     await vi.advanceTimersByTimeAsync(1000);
     expect(client.getSnapshot().table?.state.viewerSeat).toBe('neutral');
-    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
+    expect(socket().sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.a' }]);
   });
 
   test('server time runs on from the freshest frame, whatever the wall clock or a late frame says', async () => {
@@ -618,7 +618,9 @@ describe('hosted table admission', () => {
     old.deliver(view({ epoch: 'old' }));
     expectLocked(client);
     expect(issue).toHaveBeenCalledTimes(2);
-    expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.2', replaces: 'connection-one' }]);
+    expect(socket().sent).toEqual([
+      { type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.2', replaces: 'connection-one' },
+    ]);
     authorize(initialSnapshot(), { ...viewer, connectionId: 'connection-two' });
     expect(table(client).viewer.connectionId).toBe('connection-two');
   });
@@ -1455,7 +1457,7 @@ test('compact update gaps pause commands until a full resync restores the table'
   const snapshot = initialSnapshot();
   socket().deliver(view({ sequence: 1, snapshot }));
   /* A view asks for nothing, so the admission is the only message before the gap. */
-  expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
+  expect(socket().sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.a' }]);
   deliverGap();
   expect(socket().sent.at(-1)).toEqual({ type: 'sync' });
   expect(table(client).canInteract).toBe(false);
@@ -1844,7 +1846,9 @@ describe('fresh reconnect recovery', () => {
       expect(table(client).renderedPieces.find((piece) => piece.id === source.id)?.position).toEqual(
         committed ? position : source.position
       );
-      expect(socket().sent).toEqual([{ type: 'admit', pass: 'pass.a', replaces: 'connection-one' }]);
+      expect(socket().sent).toEqual([
+        { type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.a', replaces: 'connection-one' },
+      ]);
       expect(client.getSnapshot().error).toBe('The connection dropped as you placed a piece. Check where it landed.');
     }
   );
