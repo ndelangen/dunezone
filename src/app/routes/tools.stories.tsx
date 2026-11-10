@@ -99,7 +99,7 @@ export const ComingSoonPhone = meta.story({
   globals: { viewport: { value: 'appMobile' } },
   play: async ({ canvasElement }) => {
     const page = await findTitledPage(canvasElement, /^Faction draft$/);
-    await expectWithinWidth(canvasElement, [page.getByRole('link', { name: 'Share an idea' })]);
+    await expectWithinWidth(canvasElement, [page.getByRole('link', { name: 'Share an idea (opens in a new tab)' })]);
   },
 });
 
