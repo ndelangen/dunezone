@@ -29,7 +29,6 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { SortableItem } from '@ui/control/SortableItem';
 import { SortableReorderHandle } from '@ui/control/SortableReorderHandle';
 import { PageLayout } from '@ui/layout/PageLayout';
-import { Surface } from '@ui/surface/Surface';
 import { SheetPopover, TouchSurface } from '@ui/surface/TouchSheet';
 import {
   Plus,
@@ -356,69 +355,71 @@ function ConnectedBiddingApplication({
   if (!view.snapshot) {
     return (
       <div className={styles.welcome}>
-        <Surface>
-          <Stack gap="lg">
-            <Section title="Bidding at your table">
-              <Text>Keep cards and spice on the board. Use this device in the centre, or join as a phone remote.</Text>
-            </Section>
-            {local.rulesets.length > 0 && (
-              <ControlBlock
-                title="Ruleset"
-                input={
-                  <Select
-                    aria-label="Ruleset"
-                    data={local.rulesets.map((r) => ({ value: r.id, label: r.name }))}
-                    value={local.rulesetId ?? (local.rulesets.find((r) => r.slug === 'gf9') ?? local.rulesets[0]).id}
-                    onChange={(value) => change({ type: 'choose-ruleset', id: value })}
-                  />
-                }
-              />
-            )}
-            <LabeledAction
-              icon={<Users size={20} />}
-              intent="positive"
-              emphasis="strong"
-              onClick={() => void newTable()}
-              disabledReason={local.loading || view.busy ? 'Opening the table…' : undefined}
-            >
-              New table
-            </LabeledAction>
+        <Stack gap="lg">
+          <Section title="Bidding at your table">
+            <Text>Keep cards and spice on the board. Use this device in the centre, or join as a phone remote.</Text>
+          </Section>
+          {local.rulesets.length > 0 && (
             <ControlBlock
-              title="Join a table"
+              title="Ruleset"
               input={
-                <TextInput
-                  aria-label="Table code"
-                  autoCapitalize="characters"
-                  value={local.code}
-                  maxLength={6}
-                  onChange={(e) => change({ type: 'edit-code', code: e.currentTarget.value.toUpperCase() })}
-                  placeholder="Six-character code"
+                <Select
+                  aria-label="Ruleset"
+                  size="lg"
+                  data={local.rulesets.map((r) => ({ value: r.id, label: r.name }))}
+                  value={local.rulesetId ?? (local.rulesets.find((r) => r.slug === 'gf9') ?? local.rulesets[0]).id}
+                  onChange={(value) => change({ type: 'choose-ruleset', id: value })}
                 />
               }
             />
-            <LabeledAction
-              icon={<QrCode size={20} />}
-              onClick={joinTable}
-              disabledReason={
-                local.loading
-                  ? 'Wait for setup to finish.'
-                  : view.busy
-                    ? 'Connecting…'
-                    : local.code.length !== 6
-                      ? 'Enter the six-character table code.'
-                      : undefined
-              }
-            >
-              Join table
-            </LabeledAction>
-            {(local.error || view.error) && (
-              <FormError title="Table unavailable">{local.error || view.error || 'Try again.'}</FormError>
-            )}
-            <Text role="status" aria-label="Table connection" size="sm" c="dimmed">
-              {view.connection}
-            </Text>
-          </Stack>
-        </Surface>
+          )}
+          <LabeledAction
+            icon={<Users size={20} />}
+            size="lg"
+            intent="positive"
+            emphasis="strong"
+            onClick={() => void newTable()}
+            disabledReason={local.loading || view.busy ? 'Opening the table…' : undefined}
+          >
+            New table
+          </LabeledAction>
+          <ControlBlock
+            title="Join a table"
+            input={
+              <TextInput
+                aria-label="Table code"
+                size="lg"
+                autoCapitalize="characters"
+                value={local.code}
+                maxLength={6}
+                onChange={(e) => change({ type: 'edit-code', code: e.currentTarget.value.toUpperCase() })}
+                placeholder="Six-character code"
+              />
+            }
+          />
+          <LabeledAction
+            icon={<QrCode size={20} />}
+            size="lg"
+            onClick={joinTable}
+            disabledReason={
+              local.loading
+                ? 'Wait for setup to finish.'
+                : view.busy
+                  ? 'Connecting…'
+                  : local.code.length !== 6
+                    ? 'Enter the six-character table code.'
+                    : undefined
+            }
+          >
+            Join table
+          </LabeledAction>
+          {(local.error || view.error) && (
+            <FormError title="Table unavailable">{local.error || view.error || 'Try again.'}</FormError>
+          )}
+          <Text role="status" aria-label="Table connection" size="sm" c="dimmed">
+            {view.connection}
+          </Text>
+        </Stack>
       </div>
     );
   }
@@ -1531,13 +1532,12 @@ function BiddingScreen({
   return (
     <div ref={reviewRef} className={styles.tool} data-motion={motion ? 'ok' : 'reduce'}>
       <div className={styles.devices} data-view={view.role === 'central' ? 'tablet' : 'phone'}>
-        <Surface
-          as="section"
+        <section
           aria-label={view.role === 'central' ? 'Central tablet' : 'Player phone'}
           className={view.role === 'central' ? styles.tabletFrame : styles.phoneFrame}
         >
           {view.role === 'central' ? tablet : remote}
-        </Surface>
+        </section>
       </div>
       <div className={styles.connectionBar}>
         <Text role="status" aria-label="Table connection" size="xs" c="dimmed">

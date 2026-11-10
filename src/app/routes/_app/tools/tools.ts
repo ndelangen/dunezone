@@ -145,6 +145,8 @@ const TOOL_ENTRIES = [
     statement:
       "Place a tablet beside the board to show the bidder and each faction's hand count. Players can bid through phone remotes, voice or the tablet while cards and spice stay on the table.",
     icon: Gavel,
+    art: '/tools/bidding.webp',
+    largeArt: '/tools/bidding-large.webp',
     group: 'During the game',
     issue: 2835,
     built: true,
