@@ -270,6 +270,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   }),
   z.strictObject({
     type: z.literal('admit'),
+    /* The protocol the page speaks, `PLAY_PROTOCOL_VERSION` when it was built; the Worker admits only its own, and a page built before versioning sends none. */
+    protocol: count.optional(),
     /* A page proves who it is with its seat pass for this game. */
     pass: seatPassSchema,
     /* The connection this page held before it reconnected, which the Worker retires once this one is admitted. */
@@ -480,6 +482,9 @@ export type ServerMessage = z.infer<typeof serverMessageSchema>;
  * Unlike a refusal it is not final: the browser renews its pass and reconnects.
  */
 export const PASS_EXPIRED_CLOSE_CODE = 4410;
+export { PLAY_PROTOCOL_VERSION } from './protocolVersion';
+/** The code the Worker closes a socket with when the page speaks an older protocol; final, the page asks to be refreshed. */
+export const OUTDATED_PAGE_CLOSE_CODE = 4426;
 /** The code the Worker closes a socket with when admission was refused; final, so the browser does not reconnect. */
 export const ADMISSION_REFUSED_CLOSE_CODE = 4401;
 /** The code the Worker closes a socket with when it sent too many messages; the browser waits longer before reconnecting. */

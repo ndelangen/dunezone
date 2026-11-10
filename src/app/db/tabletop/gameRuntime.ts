@@ -3,7 +3,7 @@ import { createContext } from 'react';
 import { storageNow, storedAuthToken, storedAuthTokenKey } from '@db/playTables';
 import type { GameRuntime } from '@db/tabletop/runtime';
 
-import { sessionTableStore, tokenAccount } from '../../../../db/tabletop/storedTable';
+import { sessionTableStore, tokenAccount } from './storedTable';
 export type { GameRuntime, GameSocket } from '@db/tabletop/runtime';
 
 export const browserGameRuntime: GameRuntime = {

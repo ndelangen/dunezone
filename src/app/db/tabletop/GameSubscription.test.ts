@@ -1,7 +1,13 @@
 import { PLAY_ADMISSION_RETRY_MAX_MS, PLAY_PENDING_TIMEOUT_MS, PLAY_REQUEST_TIMEOUT_MS } from '@shared/play/admission';
 import type { CardDraw } from '@shared/play/cardDraw';
 import { initialSnapshot } from '@shared/play/commands';
-import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PONG, PASS_EXPIRED_CLOSE_CODE } from '@shared/play/protocol';
+import {
+  KEEPALIVE_INTERVAL_MS,
+  KEEPALIVE_PONG,
+  OUTDATED_PAGE_CLOSE_CODE,
+  PASS_EXPIRED_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
+} from '@shared/play/protocol';
 import { testSeatPass as seatPass } from '@shared/play/seatPass.test.fixture';
 import { frameChange } from '@shared/play/updates';
 import type { RoomView } from '@shared/play/updates';
@@ -187,7 +193,7 @@ test('disconnect forgets the old baseline, rejects its late messages and accepts
 
 test('applies a saved movement patch that the admission never asked for', async () => {
   const { subscription, socket, view } = await subscribed();
-  expect(socket.sent).toEqual([{ type: 'admit', pass: 'pass.a' }]);
+  expect(socket.sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.a' }]);
   const next = structuredClone(view);
   next.snapshot.revision++;
   next.snapshot.table.pieces[0].position = [2, 0, 2];
@@ -223,6 +229,24 @@ test('a suspended admission reads as the connection opening until the table has 
   });
 });
 
+test('a page the Worker finds outdated asks to be refreshed and stops reconnecting', async () => {
+  const requestAdmission = vi.fn(async () => ({ ok: true as const, pass: 'pass.a' }));
+  const subscription = new GameSubscription('game', requestAdmission, runtime);
+  const listener = vi.fn();
+  stops.push(subscription.subscribe(listener));
+  await vi.advanceTimersByTimeAsync(0);
+  const socket = Socket.instances.at(-1)!;
+  socket.open();
+  socket.close(OUTDATED_PAGE_CLOSE_CODE);
+  expect(subscription.status).toBe('denied');
+  expect(listener.mock.lastCall?.[0]).toEqual({
+    type: 'connection',
+    error: 'This table needs a newer version of the page. Refresh to continue.',
+  });
+  await vi.advanceTimersByTimeAsync(60_000);
+  expect(requestAdmission).toHaveBeenCalledTimes(1);
+});
+
 test('an expired pass reconnects with a new one, waiting longer each time until a view, and a denial stops', async () => {
   let issued = 0;
   const requestAdmission = vi.fn(async () => ({
@@ -250,7 +274,7 @@ test('an expired pass reconnects with a new one, waiting longer each time until 
   await expire(opened(), 2000);
   await expire(opened(), 4000);
   const admitted = opened();
-  expect(admitted.sent).toEqual([{ type: 'admit', pass: 'pass.4' }]);
+  expect(admitted.sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.4' }]);
   admitted.deliver(initial());
   expect(subscription.status).toBe('authorized');
   await expire(admitted, 1000);
@@ -319,7 +343,7 @@ test('an admission answered after the request timeout is taken by the next attem
   expect(requestAdmission).toHaveBeenCalledTimes(1);
   const socket = Socket.instances.at(-1)!;
   socket.open();
-  expect(socket.sent).toEqual([{ type: 'admit', pass: 'pass.1' }]);
+  expect(socket.sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: 'pass.1' }]);
   socket.deliver(initial());
   expect(subscription.status).toBe('authorized');
 });
@@ -548,7 +572,7 @@ test('a seat pass admits, hands a fresher one to the open socket and renews befo
   await vi.advanceTimersByTimeAsync(0);
   const socket = Socket.instances.at(-1)!;
   socket.open();
-  expect(socket.sent).toEqual([{ type: 'admit', pass: first }]);
+  expect(socket.sent).toEqual([{ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: first }]);
   socket.deliver(initial());
   expect(subscription.status).toBe('authorized');
 
