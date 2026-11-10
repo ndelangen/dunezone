@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@db/accountDeletion', () => ({ useReplacementProfiles: mocks.hook }));
 
-import { resetPickerDom, stubPickerDom } from './pickerTestDom';
+import { resetPickerDom, searchAndEnter, stubPickerDom } from './pickerTestDom';
 import { ProfilePicker } from './ProfilePicker';
 
 const profiles = [
@@ -34,14 +34,18 @@ beforeEach(() => {
 
 afterEach(resetPickerDom);
 
+function renderPicker({ onPick = vi.fn(), onCancel = vi.fn() }: { onPick?: () => void; onCancel?: () => void }) {
+  return render(
+    <MantineProvider theme={appContentTheme}>
+      <ProfilePicker onPick={onPick} onCancel={onCancel} />
+    </MantineProvider>
+  );
+}
+
 describe('ProfilePicker', () => {
   it('searches, selects with keyboard-compatible options, and returns the chosen profile', () => {
     const onPick = vi.fn();
-    const view = render(
-      <MantineProvider theme={appContentTheme}>
-        <ProfilePicker onPick={onPick} onCancel={vi.fn()} />
-      </MantineProvider>
-    );
+    const view = renderPicker({ onPick });
     fireEvent.change(view.getByRole('searchbox', { name: 'Search profiles' }), { target: { value: 'chani' } });
     expect(mocks.hook).toHaveBeenLastCalledWith('chani');
     expect(view.queryByText('Paul Atreides')).toBeNull();
@@ -54,14 +58,8 @@ describe('ProfilePicker', () => {
 
   it('highlights the first match of a search, so Enter chooses it', () => {
     const onPick = vi.fn();
-    const view = render(
-      <MantineProvider theme={appContentTheme}>
-        <ProfilePicker onPick={onPick} onCancel={vi.fn()} />
-      </MantineProvider>
-    );
-    const search = view.getByRole('searchbox', { name: 'Search profiles' });
-    fireEvent.change(search, { target: { value: 'chani' } });
-    fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
+    const view = renderPicker({ onPick });
+    searchAndEnter(view.getByRole('searchbox', { name: 'Search profiles' }), 'chani');
     fireEvent.click(view.getByRole('button', { name: 'Use this profile' }));
     expect(onPick).toHaveBeenCalledWith(profiles[1]);
   });
@@ -69,11 +67,7 @@ describe('ProfilePicker', () => {
   it('supports cancellation and empty/loading states', () => {
     const onCancel = vi.fn();
     mocks.hook.mockReturnValue({ data: [], status: 'LoadingFirstPage', loadMore: mocks.loadMore });
-    const view = render(
-      <MantineProvider theme={appContentTheme}>
-        <ProfilePicker onPick={vi.fn()} onCancel={onCancel} />
-      </MantineProvider>
-    );
+    const view = renderPicker({ onCancel });
     expect(view.getByRole('status').textContent).toBe('Loading profiles');
     fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);

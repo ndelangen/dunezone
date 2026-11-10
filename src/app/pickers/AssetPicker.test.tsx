@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -15,7 +15,7 @@ vi.mock('./AssetPicker.parts', () => ({
 }));
 
 import { AssetPicker } from './AssetPicker';
-import { resetPickerDom, stubPickerDom } from './pickerTestDom';
+import { resetPickerDom, searchAndEnter, stubPickerDom } from './pickerTestDom';
 
 const row = (id: string, name: string) => ({
   id,
@@ -51,9 +51,7 @@ describe('AssetPicker', () => {
   it('picks the first match of a search with Enter, not a row of the list before it', () => {
     const onPick = vi.fn();
     const view = renderPicker(onPick);
-    const search = view.getByRole('searchbox', { name: 'Search cards' });
-    fireEvent.change(search, { target: { value: 'crys' } });
-    fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
+    searchAndEnter(view.getByRole('searchbox', { name: 'Search cards' }), 'crys');
     expect(onPick).toHaveBeenCalledTimes(1);
     expect(onPick.mock.calls[0]?.[0]).toMatchObject({ id: 'card-2', name: 'Crysknife' });
   });
@@ -61,7 +59,7 @@ describe('AssetPicker', () => {
   it('highlights nothing before the reader types', () => {
     const onPick = vi.fn();
     const view = renderPicker(onPick);
-    fireEvent.keyDown(view.getByRole('searchbox', { name: 'Search cards' }), { key: 'Enter', code: 'Enter' });
+    searchAndEnter(view.getByRole('searchbox', { name: 'Search cards' }));
     expect(onPick).not.toHaveBeenCalled();
   });
 });

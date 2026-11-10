@@ -1,4 +1,4 @@
-import { cleanup } from '@testing-library/react';
+import { cleanup, fireEvent } from '@testing-library/react';
 import { vi } from 'vite-plus/test';
 
 class ResizeObserverStub {
@@ -24,4 +24,12 @@ export function resetPickerDom() {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+}
+
+/** Types into a picker's search box, if text is given, and presses Enter there. */
+export function searchAndEnter(searchbox: HTMLElement, text?: string) {
+  if (text !== undefined) {
+    fireEvent.change(searchbox, { target: { value: text } });
+  }
+  fireEvent.keyDown(searchbox, { key: 'Enter', code: 'Enter' });
 }
