@@ -7,6 +7,7 @@ import { discordEnabled } from './discordStatus';
 
 export const DISCORD_DAY = 24 * 60 * 60_000;
 export const DISCORD_BATCH = 32;
+export const DISCORD_CREATOR_LIMIT = 3;
 export const DISCORD_RETRY = 15 * 60_000;
 /* Longer than Convex's ten-minute action lifetime and the transport timeout, so a replacement never overlaps a live owner. */
 export const DISCORD_LEASE = 11 * 60_000;
@@ -16,6 +17,25 @@ export async function discordChannel(ctx: QueryCtx, gameId: Id<'play_games'>) {
     .query('play_game_discord_channels')
     .withIndex('by_game_id', (q) => q.eq('game_id', gameId))
     .unique();
+}
+
+/** Legacy rows without an owner block new reservations until the backfill has visited them. */
+export async function discordVoiceAtLimit(ctx: QueryCtx, creatorId: Id<'users'>) {
+  let count = 0;
+  for (const state of ['pending', 'creating', 'ready'] as const) {
+    const legacy = await ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_creator_id_state', (q) => q.eq('creator_id', undefined).eq('state', state))
+      .first();
+    if (legacy) return true;
+    const channels = await ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_creator_id_state', (q) => q.eq('creator_id', creatorId).eq('state', state))
+      .take(DISCORD_CREATOR_LIMIT);
+    count += channels.length;
+    if (count >= DISCORD_CREATOR_LIMIT) return true;
+  }
+  return false;
 }
 
 function discordGameFinished(game: Doc<'play_games'>) {
@@ -35,9 +55,14 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
   ) {
     return;
   }
+  if (!game.creator_id || (await discordVoiceAtLimit(ctx, game.creator_id))) {
+    await ctx.db.patch(game._id, { discord_voice: false });
+    return;
+  }
   const now = Date.now();
   const channelId = await ctx.db.insert('play_game_discord_channels', {
     game_id: game._id,
+    creator_id: game.creator_id,
     guild_id: config.guildId,
     category_ids: config.categoryIds,
     state: 'pending',
