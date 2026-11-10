@@ -11,6 +11,7 @@ import {
   BIDDING_FRAME_BYTES,
   BIDDING_PING,
   BIDDING_PONG,
+  BIDDING_PROTOCOL_VERSION,
   BIDDING_REFUSED,
   BIDDING_REPLACED,
   biddingServerFrameSchema,
@@ -257,18 +258,18 @@ test('admits 24 simultaneous remotes and their central response burst without di
   expect(await owner.next('relay')).toMatchObject({ packet: { data: 'still connected' } });
 });
 
-test.each([undefined, 1])(
+test.each([undefined, 1, 2])(
   'keeps legacy tables working and retires legacy phones only after central upgrades, protocol %s',
   async (protocol) => {
     await create();
-    const oldOwner = await central();
+    const oldOwner = await central(1, crypto.randomUUID(), protocol);
     const oldPhone = await remote(device(), protocol);
-    const currentPhone = await remote(device(), 2);
+    const currentPhone = await remote(device(), BIDDING_PROTOCOL_VERSION);
     for (const phone of [oldPhone, currentPhone]) {
       phone.send({ type: 'relay', to: 'central', packet: { kind: 'app', data: 'compatible with old central' } });
       expect(await oldOwner.next('relay')).toMatchObject({ from: phone.device.id });
     }
-    const owner = await central(2, crypto.randomUUID(), 2);
+    const owner = await central(2, crypto.randomUUID(), BIDDING_PROTOCOL_VERSION);
     expect(await oldOwner.closed).toBe(BIDDING_REPLACED);
     expect(await oldPhone.closedEvent).toEqual({
       code: BIDDING_REFUSED,
@@ -282,7 +283,7 @@ test.each([undefined, 1])(
       code: BIDDING_REFUSED,
       reason: 'Refresh this phone to use the updated bidding table.',
     });
-    const refreshed = await remote(oldPhone.device, 2);
+    const refreshed = await remote(oldPhone.device, BIDDING_PROTOCOL_VERSION);
     refreshed.send({ type: 'relay', to: 'central', packet: { kind: 'app', data: 'refreshed' } });
     expect(await owner.next('relay')).toMatchObject({ from: oldPhone.device.id, packet: { data: 'refreshed' } });
   }
@@ -290,7 +291,7 @@ test.each([undefined, 1])(
 
 test('retains the protocol requirement while central is absent and after the object restarts', async () => {
   await create();
-  await central(1, crypto.randomUUID(), 2);
+  await central(1, crypto.randomUUID(), BIDDING_PROTOCOL_VERSION);
   for (const open of sockets.splice(0)) {
     open.close();
   }
@@ -302,8 +303,8 @@ test('retains the protocol requirement while central is absent and after the obj
     code: BIDDING_REFUSED,
     reason: 'Refresh this phone to use the updated bidding table.',
   });
-  const phone = await remote(device(), 2);
-  const owner = await central(2, crypto.randomUUID(), 2);
+  const phone = await remote(device(), BIDDING_PROTOCOL_VERSION);
+  const owner = await central(2, crypto.randomUUID(), BIDDING_PROTOCOL_VERSION);
   phone.send({ type: 'relay', to: 'central', packet: { kind: 'app', data: 'restored protocol' } });
   expect(await owner.next('relay')).toMatchObject({ packet: { data: 'restored protocol' } });
 });
@@ -311,7 +312,7 @@ test('retains the protocol requirement while central is absent and after the obj
 test('a reconnect cannot lower the same central instance protocol requirement', async () => {
   await create();
   const instance = crypto.randomUUID();
-  const owner = await central(1, instance, 2);
+  const owner = await central(1, instance, BIDDING_PROTOCOL_VERSION);
   const stale = await socket();
   stale.send({
     type: 'join',
@@ -322,7 +323,7 @@ test('a reconnect cannot lower the same central instance protocol requirement', 
     device: device(),
   });
   expect(await stale.closed).toBe(BIDDING_REPLACED);
-  const phone = await remote(device(), 2);
+  const phone = await remote(device(), BIDDING_PROTOCOL_VERSION);
   phone.send({ type: 'relay', to: 'central', packet: { kind: 'app', data: 'current owner retained' } });
   expect(await owner.next('relay')).toMatchObject({ packet: { data: 'current owner retained' } });
 });

@@ -22,6 +22,7 @@ its acceptance evidence.
 | Auction, hands, corrections and phase progression | [Bidding tool: decide auction rules, hand counts and corrections](https://github.com/ndelangen/dunezone/issues/2838#issuecomment-6752912315) |
 | Authority, local restoration and phone promotion | [Bidding tool: decide table authority, access and recovery](https://github.com/ndelangen/dunezone/issues/2836#issuecomment-6753348442) |
 | Voice, phone, tablet and timer competition | [Bidding tool: agree mixed-input behavior](https://github.com/ndelangen/dunezone/issues/2840#issuecomment-6753627037) |
+| Manual moderator controller and explicit winners | [Bidding tool: deliver moderator phone controls](https://github.com/ndelangen/dunezone/issues/2886) |
 | Approved visual reference | [Bidding flow review at the approved revision](https://github.com/ndelangen/dunezone/tree/3a2d970c579/src/app/routes/_tool/tools/bidding-prototype) |
 | Browser and connection limits | [Bidding tool: establish browser and network capabilities](https://github.com/ndelangen/dunezone/issues/2837#issuecomment-6751836174) |
 | Local speech engine and device questions | [Bidding tool: establish offline voice capabilities](https://github.com/ndelangen/dunezone/issues/2844#issuecomment-6751854891) |
@@ -73,6 +74,37 @@ Useful acceptance examples:
 - If Emperor wins, its payment reminder names the bank. Otherwise a seated Emperor receives the
   payment, with the bank as the fallback when Emperor is absent. These inherited reminders do
   not implement arbitrary faction powers.
+
+## Moderator mode
+
+One phone can control every faction while players announce their bids to its holder. A phone
+chooses Moderator mode instead of a faction, or switches through Remote settings. Taking control
+replaces the previous moderator and releases that phone's faction assignment. The central tablet
+can always operate the same manual controls.
+
+| Control | Result |
+| --- | --- |
+| Back | Move the pointer back one faction in the configured order, wrapping at the beginning. Keep the bid. |
+| +1 | Raise the highest amount by one for the pointed faction. Keep the pointer in place. |
+| Pass | Move the pointer forward one faction. Keep the bid. |
+| Confirm winner | Award the card to the highest bidder exactly once, add one to their hand count, then wait for the next card. Returning to the highest bidder never awards automatically. |
+| Reset | Clear only this card's auction. Keep completed wins, hand counts and setup, then choose any faction with the existing starter tokens. |
+| End phase | End an unbid auction or waiting phase without recording a winner. A high bid must be confirmed or reset first. |
+
+Full, hand limits and Always pass do not restrict manual bidding or end the phase. The card-count
+suggestion uses every seated faction. Hand counts remain available for the table, and a confirmed
+win still adds one card. The moderator phone focuses on auction controls rather than hand editing.
+Timer passes and voice commands stop in this mode; other faction remotes cannot move the auction.
+
+Leaving or losing the moderator phone keeps the table manual. Another phone can take control,
+or the tablet can continue. Use player remotes switches back to automatic bidding only between
+auctions. Reload retains the moderator claim and pauses the table; recovery to a new central
+device retains manual mode, clears old phone claims, and waits for Resume and a fresh join code.
+
+Existing saved tables remain readable. New central devices use protocol 3 so older phones receive
+the existing refresh instruction instead of silently ignoring the extended snapshot. A new phone
+can still join an older central device for ordinary bidding; moderator entry appears only when
+the central snapshot supports it. No new service or subscription is required.
 
 ## Approved UI
 
