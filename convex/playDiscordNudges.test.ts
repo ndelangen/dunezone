@@ -271,6 +271,53 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
   }
 );
 
+test.each(['banned', 'unlinked'] as const)(
+  'an alias whose canonical recipient is %s cannot be pinged or consume cooldown',
+  async (state) => {
+    const world = await nudgeWorld();
+    const aliasId = await world.t.run(async (ctx) => {
+      const aliasId = await ctx.db.insert('users', {
+        name: 'Old recipient',
+        account_state: 'merge_pending',
+        merged_into_user_id: world.identity.userId,
+      });
+      const game = (await ctx.db.get(world.gameId))!;
+      await ctx.db.patch(world.gameId, {
+        directory: {
+          ...game.directory!,
+          seats: game.directory!.seats.map((seat) => (seat.seat === 'seat-1' ? { ...seat, userId: aliasId } : seat)),
+        },
+      });
+      if (state === 'banned') {
+        await ctx.db.patch(world.identity.userId, { account_state: 'banned' });
+      } else {
+        await ctx.db.delete(world.authAccountId);
+      }
+      return aliasId;
+    });
+
+    expect(await world.publishNudge({ toUserId: aliasId })).toEqual({ ok: true });
+    expect(world.fetch).not.toHaveBeenCalled();
+
+    await world.t.run(async (ctx) => {
+      if (state === 'banned') {
+        await ctx.db.patch(world.identity.userId, { account_state: 'active' });
+      } else {
+        await ctx.db.insert('authAccounts', {
+          userId: world.identity.userId,
+          provider: 'discord',
+          providerAccountId: '123456789',
+        });
+      }
+    });
+    await world.publishNudge({ toUserId: aliasId });
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+    expect(await new Response(world.fetch.mock.calls[0][1]?.body).json()).toMatchObject({
+      allowed_mentions: { users: ['123456789'] },
+    });
+  }
+);
+
 test('an anonymous sender cannot nudge or consume quota', async () => {
   const world = await nudgeWorld();
   await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: true }));
