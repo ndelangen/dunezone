@@ -8,6 +8,7 @@ import { docValidator } from './lib/collaborativeAccessValidators';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
 import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
+import { playRateLimiter } from './lib/playRateLimits';
 
 const channelValidator = docValidator('play_game_discord_channels');
 const claimArgs = { channelId: v.id('play_game_discord_channels'), lease: v.string() };
@@ -118,6 +119,11 @@ export const startCreation = internalMutation({
       row.channel_id !== undefined ||
       retirementDue(row, await ctx.db.get(row.game_id))
     ) {
+      return false;
+    }
+    const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
+    if (!quota.ok) {
+      await ctx.db.patch(row._id, { retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY) });
       return false;
     }
     await ctx.db.patch(row._id, {
@@ -245,7 +251,7 @@ export const release = internalMutation({
     } else if (args.error || row.state === 'creating') {
       next = Date.now() + Math.max(DISCORD_RETRY, args.retryAfterMs ?? 0);
     } else if (row.state === 'pending') {
-      next = Date.now();
+      next = Math.max(Date.now(), row.retry_after ?? 0);
     }
     await ctx.db.patch(row._id, {
       lease: undefined,

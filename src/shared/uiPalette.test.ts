@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test';
 
-import { coreColors, cssOpacity, cssPalette, playUiColors, themeRamps, withAlpha } from './uiPalette';
+import { coreColors, cssOpacity, cssPalette, playUiColors, providerColors, themeRamps, withAlpha } from './uiPalette';
 
 function contrast(first: string, second: string) {
   const luminance = (color: string) => {
@@ -19,10 +19,19 @@ describe('shared UI palette contract', () => {
     expect(canonical.size).toBeLessThanOrEqual(25);
     const roles = [
       ...Object.values(playUiColors),
-      ...Object.values(themeRamps).flat(),
+      ...Object.entries(themeRamps)
+        .filter(([family]) => family !== 'discord')
+        .flatMap(([, ramp]) => ramp),
       ...Object.values(cssPalette).flatMap(Object.values),
     ];
     expect(roles.filter((value) => !canonical.has(value))).toEqual([]);
+  });
+  it('keeps Discord branding in its own ramp with readable labels', () => {
+    const allowed = new Set<string>([coreColors.paper, ...Object.values(providerColors)]);
+    expect(themeRamps.discord.filter((value) => !allowed.has(value))).toEqual([]);
+    expect(contrast(coreColors.paper, providerColors.discord)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(coreColors.paper, providerColors.discordHover)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(providerColors.discordText, coreColors.raised)).toBeGreaterThanOrEqual(4.5);
   });
   it('keeps all pigments opaque, with alpha defined separately', () => {
     const pigments = [

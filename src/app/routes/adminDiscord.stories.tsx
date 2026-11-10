@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 
-import { voiceParameters } from './_app/play/voice.stories.fixture';
+import { voiceParameters } from './discord.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
