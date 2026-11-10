@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { ALL, BACKGROUND, GENERIC, LEADERS, EMBLEM, PLANET, TEXTURE, TROOP, TROOP_MODIFIER } from '../assetIds';
 import { backgroundSourceSchema } from '../backgrounds/source';
 import { marksOnlyFormattedTextSchema, proseFormattedTextSchema } from '../formattedText';
-import { renameLegacyEmblems } from '../legacyEmblem';
 import { slugify } from '../slugify';
 import { extraPhasesSchema } from './extraPhases';
 import { factionExtrasSchema, storedFactionExtrasSchema } from './extras';
@@ -50,20 +49,12 @@ function isRecord(input: unknown): input is Record<string, unknown> {
  * Stored factions carry `factionLeader` alone, so the live decoders read that key only.
  * Frozen sheet jobs and game captures keep the `hero` literal, and so does the catalogue answer a game Worker captures from, so their decoders keep the fallback.
  */
-function readFactionLeaderKey(input: unknown): unknown {
+export function readFactionLeaderKey(input: unknown): unknown {
   if (!isRecord(input) || !('hero' in input)) {
     return input;
   }
   const { hero, ...rest } = input;
   return rest.factionLeader === undefined ? { ...rest, factionLeader: hero } : rest;
-}
-
-/**
- * `readFactionLeaderKey` plus the emblem rename's old names read as the new ones, for the decoders that may meet data stored before either rename.
- * The emblem rename's fallback stays for the same frozen copies (see src/shared/legacyEmblem.ts).
- */
-export function readLegacyFactionKeys(input: unknown): unknown {
-  return renameLegacyEmblems(readFactionLeaderKey(input));
 }
 
 /** A faction under the `hero` literal in place of `factionLeader`. */
@@ -79,8 +70,7 @@ export function toStoredHeroKey<T extends { factionLeader: unknown }>({ factionL
 }
 
 /** `toStoredHeroKey` as a preprocess, for a decoder that may meet either key. */
-function writeStoredHeroKey(stored: unknown): unknown {
-  const input = renameLegacyEmblems(stored);
+function writeStoredHeroKey(input: unknown): unknown {
   if (!isRecord(input) || !('factionLeader' in input)) {
     return input;
   }
@@ -390,7 +380,7 @@ export const HistoricalFactionPublicationObject = z.strictObject({
  * The glossary term is "Faction leader", and `readFactionLeaderKey` explains the fallback.
  */
 export const HistoricalFactionPublicationSchema = z.preprocess(
-  readLegacyFactionKeys,
+  readFactionLeaderKey,
   HistoricalFactionPublicationObject
 );
 
