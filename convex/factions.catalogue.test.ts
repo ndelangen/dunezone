@@ -7,11 +7,13 @@ import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPub
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { syncSeededFactionCards } from './factions.test.fixture';
+import { applicationTriggers } from './lib/applicationTriggers';
 
 describe('faction catalogue page', () => {
   test('returns active enriched factions, all active rulesets, and distinct spotlights', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Catalogue owner' });
       const advancedId = await ctx.db.insert('rulesets', {
         name: 'Advanced',
@@ -86,18 +88,19 @@ describe('faction catalogue page', () => {
     });
 
     await t.run(syncSeededFactionCards);
-    const catalogue = await t.query(api.factions.cataloguePage, {});
+    const catalogue = await t.query(api.factions.catalogue, {});
 
-    expect(catalogue.factions.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
+    expect(catalogue.cards.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
     expect(catalogue.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced', 'Empty']);
-    expect(catalogue.factions[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced']);
+    expect(catalogue.cards[0]?.rulesets.map((ruleset) => ruleset.name)).toEqual(['Advanced']);
     expect(catalogue.spotlights.newArrival?.data.name).toBe('New arrival');
     expect(catalogue.spotlights.freshlyUpdated?.data.name).toBe('Recently updated');
   });
 
   test('ships what the catalogue draws and leaves the rest of the blob behind', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Narrowing owner' });
       await ctx.db.insert('factions', {
         owner_id: ownerId,
@@ -111,8 +114,8 @@ describe('faction catalogue page', () => {
     });
 
     await t.run(syncSeededFactionCards);
-    const catalogue = await t.query(api.factions.cataloguePage, {});
-    const row = catalogue.factions[0];
+    const catalogue = await t.query(api.factions.catalogue, {});
+    const row = catalogue.cards[0];
 
     expect(Object.keys(row ?? {}).sort()).toEqual(['_id', 'created_at', 'data', 'rulesets', 'slug', 'updated_at']);
     expect(Object.keys(row?.data ?? {}).sort()).toEqual([
@@ -129,7 +132,8 @@ describe('faction catalogue page', () => {
 
   test('rejects malformed faction data at the query boundary', async () => {
     const t = applicationTest();
-    await t.run(async (ctx) => {
+    await t.run(async (rawCtx) => {
+      const ctx = applicationTriggers.wrapDB(rawCtx);
       const ownerId = await ctx.db.insert('users', { name: 'Malformed owner' });
       await ctx.db.insert('factions', {
         owner_id: ownerId,
@@ -143,6 +147,6 @@ describe('faction catalogue page', () => {
     });
 
     await t.run(syncSeededFactionCards);
-    await expect(t.query(api.factions.cataloguePage, {})).rejects.toThrow();
+    await expect(t.query(api.factions.catalogue, {})).rejects.toThrow();
   });
 });
