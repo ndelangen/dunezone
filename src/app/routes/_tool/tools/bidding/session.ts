@@ -234,9 +234,10 @@ export class BiddingSession {
     ) {
       reason = 'That faction assignment changed. Choose a faction again.';
     } else if (
-      action.type === 'configure' &&
+      (action.type === 'configure' || action.type === 'finish-setup') &&
       (this.snapshot.revisions.setup > command.revision ||
-        (action.seats !== undefined &&
+        (action.type === 'configure' &&
+          action.seats !== undefined &&
           Object.values(this.snapshot.revisions.hands).some((fields) =>
             Object.values(fields).some((revision) => revision > command.revision)
           )))
@@ -244,7 +245,10 @@ export class BiddingSession {
       reason = 'Table setup or hand information changed. Check it before trying again.';
     } else if (sender !== CENTRAL_SENDER && action.type !== 'assign' && !factionId) {
       reason = 'Choose a faction before using this remote.';
-    } else if (sender !== CENTRAL_SENDER && (action.type === 'configure' || action.type === 'pause')) {
+    } else if (
+      sender !== CENTRAL_SENDER &&
+      (action.type === 'configure' || action.type === 'finish-setup' || action.type === 'pause')
+    ) {
       reason = 'Use the central device for this table setting.';
     } else if (
       sender !== CENTRAL_SENDER &&

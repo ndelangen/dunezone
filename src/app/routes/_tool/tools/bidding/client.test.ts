@@ -119,6 +119,10 @@ const setup: AuctionSetup = {
 };
 const snapshot = (client: BiddingClient): BiddingSnapshot => client.getSnapshot().snapshot!;
 const act = (client: BiddingClient, action: BiddingAction) => client.act(action, biddingContextOf(snapshot(client)));
+function startAuction(client: BiddingClient) {
+  act(client, { type: 'finish-setup' });
+  act(client, { type: 'start' });
+}
 const kind = (frame: Frame) => (frame.data as { type?: string }).type;
 
 describe('bidding browser orchestration', () => {
@@ -185,11 +189,59 @@ describe('bidding browser orchestration', () => {
     vi.useRealTimers();
   });
 
+  test('a phone starts first and later phases while waiting tables have no timer', async () => {
+    const { central, remote } = await tableAndPhone();
+    act(remote, { type: 'assign', factionId: 'seat-0' });
+    act(central, { type: 'configure', cards: 1 });
+    act(central, { type: 'finish-setup' });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(snapshot(remote).auction.stage).toBe('ready');
+    expect(central.getSnapshot().deadline).toBeNull();
+    act(remote, { type: 'select-starter', id: 'seat-1' });
+    act(remote, { type: 'start' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'active', turn: 'seat-1' });
+    expect(central.getSnapshot().deadline).toBe(Date.now() + 5000);
+    act(central, { type: 'bid', amount: 2 });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    expect(snapshot(remote).auction.stage).toBe('over');
+    act(remote, { type: 'next-phase' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'ready', phase: 2, turn: null });
+    expect(central.getSnapshot().deadline).toBeNull();
+    act(remote, { type: 'select-starter', id: 'seat-2' });
+    act(remote, { type: 'start' });
+    expect(snapshot(central).auction).toMatchObject({ stage: 'active', phase: 2, turn: 'seat-2' });
+    expect(central.getSnapshot().deadline).toBe(Date.now() + 5000);
+  });
+
+  test('announces first-auction readiness separately from completed cards and resets', async () => {
+    const central = make();
+    await central.newTable(setup);
+    central.setAnnouncements(true);
+    act(central, { type: 'finish-setup' });
+    expect(voice.announce).toHaveBeenLastCalledWith('The table is ready. Choose the first bidder.');
+    act(central, { type: 'start' });
+    act(central, { type: 'reset' });
+    expect(voice.announce).toHaveBeenLastCalledWith('Ready for a new bid. Choose the starting faction.');
+    act(central, { type: 'start' });
+    act(central, { type: 'bid', amount: 2 });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    expect(snapshot(central).auction.card).toBe(2);
+    expect(voice.announce).toHaveBeenLastCalledWith('Ready for a new bid. Choose the starting faction.');
+    act(central, { type: 'start' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'pass' });
+    act(central, { type: 'next-phase' });
+    expect(voice.announce).toHaveBeenLastCalledWith('The table is ready. Choose the first bidder.');
+  });
+
   test('a lost acknowledgement retries one envelope and applies the accepted bid once', async () => {
     const { central, remote } = await tableAndPhone();
     act(remote, { type: 'assign', factionId: 'seat-0' });
     expect(remote.getSnapshot().pending).toBe(false);
-    act(central, { type: 'start' });
+    startAuction(central);
     let dropped = false;
     links.allow = (frame) => {
       if (kind(frame) === 'result' && !dropped) {
@@ -220,7 +272,7 @@ describe('bidding browser orchestration', () => {
     remote.join(snapshot(central).code, snapshot(central).tableId);
     await vi.advanceTimersByTimeAsync(0);
     act(remote, { type: 'assign', factionId: 'seat-0' });
-    act(central, { type: 'start' });
+    startAuction(central);
     act(remote, { type: 'bid', amount: 3 });
     await vi.advanceTimersByTimeAsync(4000);
     const before = snapshot(central);
@@ -247,7 +299,7 @@ describe('bidding browser orchestration', () => {
   test('promotion closes the old room, creates a new code and ignores delayed old frames', async () => {
     const { central, remote } = await tableAndPhone();
     act(remote, { type: 'assign', factionId: 'seat-0' });
-    act(central, { type: 'start' });
+    startAuction(central);
     act(remote, { type: 'bid', amount: 2 });
     const before = snapshot(remote);
     const old = links.endpoints.find((entry) => entry.options.device.id === remote.getSnapshot().deviceId)!;
@@ -292,7 +344,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const central = make(storage);
     await central.newTable(setup);
-    act(central, { type: 'start' });
+    startAuction(central);
     central.setListening(true);
     const writes = storage.writes.length;
     const before = snapshot(central);
@@ -309,7 +361,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     act(old, { type: 'bid', amount: 3 });
     links.state(old, { status: 'disconnected', relay: false });
     const replacement = make(storage);
@@ -330,7 +382,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     const selected = make(storage);
     await selected.newTable(setup);
     const persisted = storage.getItem('dune-bidding-central-v1');
@@ -352,7 +404,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage, { locks: { request } });
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     act(old, { type: 'bid', amount: 7 });
     const replacement = make(storage, { locks: { request } });
     await replacement.initialize();
@@ -375,7 +427,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const client = make(storage);
     await client.newTable(setup);
-    act(client, { type: 'start' });
+    startAuction(client);
     client.setListening(true);
     client.setAnnouncements(true);
     const old = snapshot(client);
@@ -462,7 +514,7 @@ describe('bidding browser orchestration', () => {
     const storage = new MemoryStorage();
     const old = make(storage);
     await old.newTable(setup);
-    act(old, { type: 'start' });
+    startAuction(old);
     links.state(old, { status: 'disconnected', relay: false });
     const selected = make(storage);
     await selected.initialize();
@@ -508,7 +560,7 @@ describe('bidding browser orchestration', () => {
     const client = make(storage, { locks: { request } });
     await client.newTable(setup);
     const writes = storage.writes.filter((key) => key === 'dune-bidding-central-v1').length;
-    act(client, { type: 'start' });
+    startAuction(client);
     act(client, { type: 'bid', amount: 9 });
     await client.leaveTable();
     await tail;
@@ -688,7 +740,7 @@ describe('bidding browser orchestration', () => {
   test('old microphone capture and a replaced timer cannot act on the following bidder', async () => {
     const central = make();
     await central.newTable(setup);
-    act(central, { type: 'start' });
+    startAuction(central);
     central.setListening(true);
     const captured = biddingContextOf(snapshot(central));
     await vi.advanceTimersByTimeAsync(4000);
@@ -722,7 +774,7 @@ describe('bidding browser orchestration', () => {
     });
     clients.push(client);
     await client.newTable(setup);
-    act(client, { type: 'start' });
+    startAuction(client);
     act(client, { type: 'bid', amount: 4 });
     expect(snapshot(client).auction.high?.amount).toBe(4);
     expect(client.getSnapshot().storageError).toContain('recovery copy');

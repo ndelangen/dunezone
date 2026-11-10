@@ -47,6 +47,7 @@ test('a spoken bid reaches the auction under release CSP, then the listener rest
       auction: createAuction({ ruleset: { id: 'test', name: 'Test' }, seconds: 0,
         seats: ['fremen', 'atreides'].map(id => ({ id, name: id, hand: 0, limit: 4, full: false, pass: false })) }),
     });
+    table.dispatch({ type: 'finish-setup' });
     table.dispatch({ type: 'start' });
     const check = window.voiceCheck = { states: [], tracks: [], starts: [], commands: [], deny: true };
     const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
