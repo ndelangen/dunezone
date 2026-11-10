@@ -3,6 +3,7 @@ import {
   Eye,
   Download,
   Gamepad2,
+  Gavel,
   Image,
   Layers,
   Lock,
@@ -136,6 +137,22 @@ const TOOL_ENTRIES = [
       { icon: Smartphone, title: 'At the table', detail: 'One phone per player, no wheel to turn.' },
     ],
     built: true,
+  },
+  {
+    slug: 'bidding',
+    title: 'Bidding',
+    goal: 'Run Treachery auctions around the table and keep every hand count visible',
+    statement:
+      "Place a tablet beside the board to show the bidder and each faction's hand count. Players can bid through phone remotes, voice or the tablet while cards and spice stay on the table.",
+    icon: Gavel,
+    group: 'During the game',
+    issue: 2835,
+    built: true,
+    capabilities: [
+      { icon: Users, title: 'Around the table', detail: 'Arrange faction tokens to match the seats.' },
+      { icon: Smartphone, title: 'Mixed controls', detail: 'Phone remotes, voice and tablet controls together.' },
+      { icon: Layers, title: 'Every hand', detail: 'Editable card counts, limits and Full status.' },
+    ],
   },
   {
     slug: 'tts-faction-exporter',

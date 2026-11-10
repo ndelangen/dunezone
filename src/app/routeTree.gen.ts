@@ -56,6 +56,7 @@ import { Route as AppToolsToolRouteRouteImport } from './routes/_app/tools/$tool
 import { Route as AppTutorialIndexRouteImport } from './routes/_app/tutorial/index'
 import { Route as AppTutorialChapterRouteRouteImport } from './routes/_app/tutorial/$chapter.route'
 import { Route as ToolToolsBattleWheelRouteRouteImport } from './routes/_tool/tools/battle-wheel/route'
+import { Route as ToolToolsBiddingRouteRouteImport } from './routes/_tool/tools/bidding/route'
 import { Route as ToolToolsPredictionLocketRouteRouteImport } from './routes/_tool/tools/prediction-locket/route'
 import { Route as ToolToolsSpiceDeckRouteRouteImport } from './routes/_tool/tools/spice-deck/route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
@@ -329,6 +330,11 @@ const ToolToolsBattleWheelRouteRoute =
     path: '/tools/battle-wheel',
     getParentRoute: () => ToolRouteRoute,
   } as any)
+const ToolToolsBiddingRouteRoute = ToolToolsBiddingRouteRouteImport.update({
+  id: '/tools/bidding',
+  path: '/tools/bidding',
+  getParentRoute: () => ToolRouteRoute,
+} as any)
 const ToolToolsPredictionLocketRouteRoute =
   ToolToolsPredictionLocketRouteRouteImport.update({
     id: '/tools/prediction-locket',
@@ -570,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/tools/bidding': typeof ToolToolsBiddingRouteRoute
   '/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
   '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
@@ -649,6 +656,7 @@ export interface FileRoutesByTo {
   '/tools/$tool': typeof AppToolsToolRouteRoute
   '/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/tools/bidding': typeof ToolToolsBiddingRouteRoute
   '/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
   '/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
@@ -735,6 +743,7 @@ export interface FileRoutesById {
   '/_app/tools/$tool': typeof AppToolsToolRouteRoute
   '/_app/tutorial/$chapter': typeof AppTutorialChapterRouteRoute
   '/_tool/tools/battle-wheel': typeof ToolToolsBattleWheelRouteRoute
+  '/_tool/tools/bidding': typeof ToolToolsBiddingRouteRoute
   '/_tool/tools/prediction-locket': typeof ToolToolsPredictionLocketRouteRoute
   '/_tool/tools/spice-deck': typeof ToolToolsSpiceDeckRouteRoute
   '/preview/sheet/$factionSlug': typeof PreviewSheetFactionSlugRouteRoute
@@ -820,6 +829,7 @@ export interface FileRouteTypes {
     | '/tools/$tool'
     | '/tutorial/$chapter'
     | '/tools/battle-wheel'
+    | '/tools/bidding'
     | '/tools/prediction-locket'
     | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
@@ -899,6 +909,7 @@ export interface FileRouteTypes {
     | '/tools/$tool'
     | '/tutorial/$chapter'
     | '/tools/battle-wheel'
+    | '/tools/bidding'
     | '/tools/prediction-locket'
     | '/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
@@ -984,6 +995,7 @@ export interface FileRouteTypes {
     | '/_app/tools/$tool'
     | '/_app/tutorial/$chapter'
     | '/_tool/tools/battle-wheel'
+    | '/_tool/tools/bidding'
     | '/_tool/tools/prediction-locket'
     | '/_tool/tools/spice-deck'
     | '/preview/sheet/$factionSlug'
@@ -1374,6 +1386,13 @@ declare module '@tanstack/react-router' {
       path: '/tools/battle-wheel'
       fullPath: '/tools/battle-wheel'
       preLoaderRoute: typeof ToolToolsBattleWheelRouteRouteImport
+      parentRoute: typeof ToolRouteRoute
+    }
+    '/_tool/tools/bidding': {
+      id: '/_tool/tools/bidding'
+      path: '/tools/bidding'
+      fullPath: '/tools/bidding'
+      preLoaderRoute: typeof ToolToolsBiddingRouteRouteImport
       parentRoute: typeof ToolRouteRoute
     }
     '/_tool/tools/prediction-locket': {
@@ -1864,6 +1883,7 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 
 interface ToolRouteRouteChildren {
   ToolToolsBattleWheelRouteRoute: typeof ToolToolsBattleWheelRouteRoute
+  ToolToolsBiddingRouteRoute: typeof ToolToolsBiddingRouteRoute
   ToolToolsPredictionLocketRouteRoute: typeof ToolToolsPredictionLocketRouteRoute
   ToolToolsSpiceDeckRouteRoute: typeof ToolToolsSpiceDeckRouteRoute
   ToolToolsAtreidesTreacheryTrackerIndexRoute: typeof ToolToolsAtreidesTreacheryTrackerIndexRoute
@@ -1871,6 +1891,7 @@ interface ToolRouteRouteChildren {
 
 const ToolRouteRouteChildren: ToolRouteRouteChildren = {
   ToolToolsBattleWheelRouteRoute: ToolToolsBattleWheelRouteRoute,
+  ToolToolsBiddingRouteRoute: ToolToolsBiddingRouteRoute,
   ToolToolsPredictionLocketRouteRoute: ToolToolsPredictionLocketRouteRoute,
   ToolToolsSpiceDeckRouteRoute: ToolToolsSpiceDeckRouteRoute,
   ToolToolsAtreidesTreacheryTrackerIndexRoute:
