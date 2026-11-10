@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { playRateLimiter } from './lib/playRateLimits';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';
 import { configureDiscord, discordStub } from './playDiscord.test.fixture';
@@ -112,7 +113,9 @@ test('game creation remains available at the voice cap and voice returns after d
   if (!fourth.ok) {
     throw new Error('Game creation failed');
   }
-  expect(await t.run(async (ctx) => await ctx.db.get(fourth.gameId))).toMatchObject({ discord_voice: false });
+  expect(await t.run(async (ctx) => await ctx.db.get(fourth.gameId as Id<'play_games'>))).toMatchObject({
+    discord_voice: false,
+  });
   const row = (await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').first()))!;
   await t.run(async (ctx) => await ctx.db.patch(row._id, { state: 'deleted' }));
   const next = await create('Arrakeen surprise party');
@@ -120,7 +123,7 @@ test('game creation remains available at the voice cap and voice returns after d
   if (!next.ok) {
     throw new Error('Game creation failed');
   }
-  const game = await t.run(async (ctx) => await ctx.db.get(next.gameId));
+  const game = await t.run(async (ctx) => await ctx.db.get(next.gameId as Id<'play_games'>));
   expect(game).toMatchObject({ discord_voice: true });
   await t.mutation(api.playProvisioning.confirmProvisioning, {
     gameId: game!._id,
