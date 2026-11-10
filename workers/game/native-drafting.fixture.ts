@@ -6,7 +6,13 @@ import { factionDefinitionSchema } from '../../src/shared/play/capture';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import { cardPage, deckPage, slot } from './native-catalogue.fixture.ts';
-import type { NativePeer, NativeRuntime, NativeConnection, NativeBindings } from './native-runtime.fixture.ts';
+import type {
+  NativePeer,
+  NativeRuntime,
+  NativeConnection,
+  NativeBindings,
+  NativeReportServices,
+} from './native-runtime.fixture.ts';
 import {
   accepted,
   admitPlayer,
@@ -126,6 +132,7 @@ export async function playToTurnOne(players: NativeConnection[]) {
  * `bindings` override the game Worker's.
  * `testPhaseCooldownMs` and `testStartStage` are what the synthetic backend sends at provisioning.
  * `prepare` edits the peer's catalogue before the game is provisioned.
+ * `reports` binds the real report coordinator beside the room.
  */
 export async function draftingRuntime(
   extras: [string, string][] = [],
@@ -135,8 +142,10 @@ export async function draftingRuntime(
     testPhaseCooldownMs,
     testStartStage,
     prepare,
+    reports,
   }: {
     bindings?: NativeBindings;
+    reports?: NativeReportServices;
     testPhaseCooldownMs?: number;
     testStartStage?: 'play';
     prepare?: (peer: NativePeer) => void;
@@ -177,7 +186,7 @@ export async function draftingRuntime(
   prepare?.(peer);
   let runtime;
   try {
-    runtime = await createRuntime(peer, 'game', bindings);
+    runtime = await createRuntime(peer, 'game', bindings, undefined, reports);
     if ((await provision(runtime)).status !== 200) {
       throw new Error('The real game did not provision.');
     }

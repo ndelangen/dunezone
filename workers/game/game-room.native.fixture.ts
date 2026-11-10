@@ -4,6 +4,9 @@ Date.now = () => realNow() + clockOffset;
 
 import worker, { GameRoom as ProductionGameRoom } from './index';
 
+/* Lets a runtime bind the real report coordinator beside the real room. */
+export { BugReports } from './index';
+
 export class GameRoom extends ProductionGameRoom {
   override async fetch(request: Request): Promise<Response> {
     if (new URL(request.url).pathname === '/native-test/audit') {
@@ -48,6 +51,24 @@ export class GameRoom extends ProductionGameRoom {
           { ok: false, message: error instanceof Error ? error.message : 'failed' },
           { status: 409 }
         );
+      }
+    }
+    if (new URL(request.url).pathname === '/native-test/report-rpc' && request.method === 'POST') {
+      /* Calls a report RPC on the named room over a real Durable Object stub, as the report coordinator does, and reports what crossed back. */
+      const call = (await request.json()) as {
+        room: string;
+        method: 'captureBugReport' | 'finishBugReport';
+        args: [string, string, string, never];
+      };
+      const room = this.env.GAME_ROOMS.getByName(call.room);
+      try {
+        const result =
+          call.method === 'captureBugReport'
+            ? await room.captureBugReport(...call.args)
+            : await room.finishBugReport(...call.args);
+        return Response.json({ ok: true, result: result ?? null });
+      } catch (error) {
+        return Response.json({ ok: false, message: error instanceof Error ? error.message : String(error) });
       }
     }
     if (new URL(request.url).pathname === '/native-test/captures') {
