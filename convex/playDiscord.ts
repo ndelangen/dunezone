@@ -7,8 +7,7 @@ import { internalMutation } from './functions';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
-import { clearDiscordVoice, DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
-import { playRateLimiter } from './lib/playRateLimits';
+import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
 
 const channelValidator = docValidator('play_game_discord_channels');
 const claimArgs = { channelId: v.id('play_game_discord_channels'), lease: v.string() };
@@ -121,11 +120,6 @@ export const startCreation = internalMutation({
     ) {
       return false;
     }
-    const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
-    if (!quota.ok) {
-      await ctx.db.patch(row._id, { retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY) });
-      return false;
-    }
     await ctx.db.patch(row._id, {
       state: 'creating',
       error: 'Channel creation has no confirmed result. Check Discord before retrying it.',
@@ -211,7 +205,6 @@ export const beginDeletion = internalMutation({
     if (!retirementDue(row, await ctx.db.get(row.game_id))) {
       return false;
     }
-    await clearDiscordVoice(ctx, row.game_id);
     await ctx.db.patch(row._id, { state: 'deleting' });
     return true;
   },
@@ -223,7 +216,6 @@ export const removed = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (row?.lease === args.lease) {
-      await clearDiscordVoice(ctx, row.game_id);
       await ctx.db.patch(row._id, {
         state: 'deleted',
         deleted_at: Date.now(),
@@ -253,7 +245,7 @@ export const release = internalMutation({
     } else if (args.error || row.state === 'creating') {
       next = Date.now() + Math.max(DISCORD_RETRY, args.retryAfterMs ?? 0);
     } else if (row.state === 'pending') {
-      next = Math.max(Date.now(), row.retry_after ?? 0);
+      next = Date.now();
     }
     await ctx.db.patch(row._id, {
       lease: undefined,

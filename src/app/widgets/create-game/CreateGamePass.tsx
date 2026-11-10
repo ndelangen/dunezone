@@ -145,7 +145,6 @@ export function CreateGamePass({
   rulesetCheck = 'ready',
   onRecheck,
   discordVoiceAvailable = false,
-  discordVoiceAtLimit = false,
 }: Readonly<{
   rulesets: readonly PassRuleset[];
   preview: CreatableRulesetPreview | null;
@@ -169,7 +168,6 @@ export function CreateGamePass({
   /** Runs the check of the chosen ruleset again; absent when there is nothing to check here, such as a ruleset the server already refuses. */
   onRecheck?: (() => void) | undefined;
   discordVoiceAvailable?: boolean;
-  discordVoiceAtLimit?: boolean;
 }>) {
   /* The departure marks the document, so the planet keeps rising while the route changes to the table; a called-off departure ends at once. */
   const started = useRef<number | undefined>(undefined);
@@ -195,7 +193,7 @@ export function CreateGamePass({
     rulesetId: draft.rulesetId,
     minimumPlayers: draft.minimumPlayers,
     lastTurn: draft.lastTurn,
-    discordVoice: discordVoiceAvailable && !discordVoiceAtLimit && draft.discordVoice,
+    discordVoice: discordVoiceAvailable && draft.discordVoice,
   });
   const { nameError, nameReady } = customNameCheck(draft);
   const objection = chosen?.objection ?? null;
@@ -291,18 +289,16 @@ export function CreateGamePass({
                         <Switch
                           {...field}
                           aria-describedby={voiceHintId}
-                          checked={draft.discordVoice && !discordVoiceAtLimit}
+                          checked={draft.discordVoice}
                           onChange={(event) =>
                             dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
                           }
-                          disabled={pending || discordVoiceAtLimit}
+                          disabled={pending}
                         />
                       )}
                     />
                     <Text id={voiceHintId} size="sm" c="dimmed">
-                      {discordVoiceAtLimit
-                        ? 'Voice chat is unavailable if you already have three active channels or while your account is merging. You can still create this game without voice chat.'
-                        : 'Give this game its own Discord voice channel. Anyone with its invite can join.'}
+                      Give this game its own Discord voice channel. Anyone with its invite can join.
                     </Text>
                   </Stack>
                 ) : null}
