@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -20,9 +20,9 @@ const rootDirectory = path.resolve(import.meta.dirname, '..');
 const cleanupScript = path.join(import.meta.dirname, 'local-dev-cleanup.ts');
 const baseEnvironment = localApplicationEnvironment(process.env);
 
-function run(command: string, args: string[], environment: NodeJS.ProcessEnv) {
+function run(command: string, args: string[], environment: NodeJS.ProcessEnv, cwd = rootDirectory) {
   const result = spawnSync(command, args, {
-    cwd: rootDirectory,
+    cwd,
     env: environment,
     encoding: 'utf8',
     timeout: 120_000,
@@ -70,12 +70,13 @@ async function assertHealthy(stack: Stack) {
   assert(response.ok, 'The surviving backend stopped answering');
 }
 
-function convex(stack: Stack, deployment: SelfHostedDeployment, args: string[]) {
+function convex(stack: Stack, deployment: SelfHostedDeployment, args: string[], cwd = rootDirectory) {
   assert.equal(new URL(deployment.url).hostname, '127.0.0.1', 'The proof only accepts a loopback deployment');
   return run(
     process.execPath,
     ['--no-env-file', 'x', 'convex', ...args, '--url', deployment.url, '--admin-key', deployment.adminKey],
-    selfHostedEnvironment(stack.environment, deployment)
+    selfHostedEnvironment(stack.environment, deployment),
+    cwd
   );
 }
 
@@ -89,6 +90,61 @@ function assertOwnRow(stack: Stack, deployment: SelfHostedDeployment) {
   const rows = JSON.parse(convex(stack, deployment, ['data', 'isolation_probe', '--format', 'json', '--limit', '2']));
   assert.equal(rows.length, 1, 'The isolated database has an unexpected row count');
   assert.equal(rows[0].owner, stack.instance.composeProjectName, "The database contains another launch's row");
+}
+
+/** The real Node executor must reach both mapped origins from inside the backend namespace. */
+function proveNodeCallbacks(stack: Stack, deployment: SelfHostedDeployment) {
+  const source = path.join(stack.directory, 'node-callbacks');
+  const functions = path.join(source, 'convex');
+  mkdirSync(functions, { recursive: true });
+  symlinkSync(path.join(rootDirectory, 'node_modules'), path.join(source, 'node_modules'), 'dir');
+  const rootPackage = JSON.parse(readFileSync(path.join(rootDirectory, 'package.json'), 'utf8'));
+  writeFileSync(
+    path.join(source, 'package.json'),
+    JSON.stringify({ private: true, type: 'module', dependencies: { convex: rootPackage.dependencies.convex } })
+  );
+  writeFileSync(path.join(source, 'convex.json'), JSON.stringify({ functions: 'convex/' }));
+  writeFileSync(
+    path.join(functions, 'probe.ts'),
+    `
+    import { internalQueryGeneric, internalMutationGeneric } from 'convex/server';
+    import { v } from 'convex/values';
+    export const query = internalQueryGeneric({ args: {}, returns: v.string(), handler: async () => 'callback-ok' });
+    export const mutation = internalMutationGeneric({ args: {}, returns: v.string(), handler: async () => 'callback-ok' });
+  `
+  );
+  writeFileSync(
+    path.join(functions, 'http.ts'),
+    `
+    import { httpRouter, httpActionGeneric } from 'convex/server';
+    const http = httpRouter();
+    http.route({ path: '/loopback-probe', method: 'GET', handler: httpActionGeneric(async () => new Response('callback-ok')) });
+    export default http;
+  `
+  );
+  writeFileSync(
+    path.join(functions, 'nodeCallbacks.ts'),
+    `
+    'use node';
+    import { internalActionGeneric, makeFunctionReference } from 'convex/server';
+    import { v } from 'convex/values';
+    export const inspect = internalActionGeneric({
+      args: {}, returns: v.object({ query: v.string(), mutation: v.string(), site: v.string() }),
+      handler: async ctx => ({
+        query: await ctx.runQuery(makeFunctionReference('probe:query'), {}),
+        mutation: await ctx.runMutation(makeFunctionReference('probe:mutation'), {}),
+        site: await (await fetch(process.env.CONVEX_SITE_URL + '/loopback-probe', { signal: AbortSignal.timeout(15_000) })).text(),
+      }),
+    });
+  `
+  );
+  convex(stack, deployment, ['dev', '--once', '--typecheck', 'disable'], source);
+  const result = JSON.parse(convex(stack, deployment, ['run', 'nodeCallbacks:inspect', '{}'], source));
+  assert.deepEqual(
+    result,
+    { query: 'callback-ok', mutation: 'callback-ok', site: 'callback-ok' },
+    'Node callbacks could not reach their own backend and site origins'
+  );
 }
 
 async function proveDockerIsolation() {
@@ -132,6 +188,9 @@ async function proveDockerIsolation() {
     seedOwnRow(second, secondDeployment);
     assertOwnRow(first, firstDeployment);
     assertOwnRow(second, secondDeployment);
+    proveNodeCallbacks(first, firstDeployment);
+    proveNodeCallbacks(second, secondDeployment);
+    console.log('Both local Node executors reached their own query, mutation and site HTTP callbacks.');
 
     cleanStack(first);
     await assertHealthy(second);

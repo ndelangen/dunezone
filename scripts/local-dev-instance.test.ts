@@ -73,13 +73,26 @@ describe('local development instance', () => {
     expect(createLocalDevelopmentInstance({ PORT: '42000' }).appPort).toBe(42_000);
   });
 
+  test('accepts the backend default port pair', () => {
+    const instance = createLocalDevelopmentInstance({
+      APP_DEV_PORT: '41000',
+      CONVEX_BACKEND_PORT: '3210',
+      CONVEX_SITE_PORT: '3211',
+      CONVEX_DASHBOARD_PORT: '41003',
+    });
+    expect([instance.backendPort, instance.sitePort]).toEqual([3210, 3211]);
+  });
+
   test.each(['0', '65536', '1.5', '12abc'])('rejects invalid port %s', (port) => {
     expect(() => createLocalDevelopmentInstance({ APP_DEV_PORT: port })).toThrow('integer from 1 through 65535');
   });
 
-  test('rejects duplicate ports and the backend-internal proxy port', () => {
+  test('rejects duplicate ports and collisions with backend-internal listeners', () => {
     expect(() => createLocalDevelopmentInstance({ APP_DEV_PORT: '41000', CONVEX_BACKEND_PORT: '41000' })).toThrow(
       'both resolve to port 41000'
+    );
+    expect(() => createLocalDevelopmentInstance({ CONVEX_BACKEND_PORT: '3211' })).toThrow(
+      'CONVEX_BACKEND_PORT cannot be 3211'
     );
     expect(() => createLocalDevelopmentInstance({ CONVEX_SITE_PORT: '3210' })).toThrow(
       'CONVEX_SITE_PORT cannot be 3210'
