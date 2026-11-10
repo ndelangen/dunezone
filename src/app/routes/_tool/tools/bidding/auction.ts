@@ -49,6 +49,11 @@ function factionName(state: AuctionState, id: string | null): string {
   return state.seats.find((seat) => seat.id === id)?.name ?? 'Player';
 }
 
+function awaitingFirstAuction(state: AuctionState): boolean {
+  const stage = state.stage === 'paused' ? state.resumeStage : state.stage;
+  return stage === 'ready' && state.opener === null && state.card === 1;
+}
+
 function finished(state: AuctionState, note: string): AuctionState {
   return { ...state, stage: 'over', resumeStage: null, turn: null, high: null, passed: [], note };
 }
@@ -134,7 +139,7 @@ function editHand(
     edited.full = edited.hand >= edited.limit;
   }
   let next = { ...state, seats: state.seats.map((candidate) => (candidate.id === action.id ? edited : candidate)) };
-  if (next.stage === 'setup' && !next.cardsChosen) {
+  if ((next.stage === 'setup' || awaitingFirstAuction(next)) && !next.cardsChosen) {
     next.cards = next.seats.filter((candidate) => !candidate.full).length;
   }
   if (next.stage === 'active') {
@@ -175,9 +180,15 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
       const next = progress({ ...state, passed: [...new Set([...state.passed, state.turn])] }, state.turn);
       return decided(state, next, `${name} passed.`, true);
     }
+    case 'finish-setup': {
+      if (state.stage !== 'setup') {
+        return refused(state, 'Table setup is already complete.');
+      }
+      return decided(state, { ...state, stage: 'ready' }, 'The table is ready to start bidding.', true);
+    }
     case 'start': {
-      if (state.stage !== 'setup' && state.stage !== 'ready') {
-        return refused(state, 'This card is already in progress.');
+      if (state.stage !== 'ready') {
+        return refused(state, 'Finish setup or the current auction before starting a card.');
       }
       if (state.cards === 0) {
         return decided(state, finished(state, 'No cards were chosen for this phase.'), 'The phase is complete.', true);
@@ -249,7 +260,7 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
         state,
         {
           ...state,
-          stage: 'setup',
+          stage: 'ready',
           resumeStage: null,
           phase: state.phase + 1,
           card: 1,
@@ -259,9 +270,12 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
           opener: null,
           high: null,
           passed: [],
+          starter:
+            state.seats.find((seat) => seat.id === state.starter && !seat.full)?.id ??
+            nextNonFull(state, state.starter),
           note: '',
         },
-        'The next phase is ready to set up.',
+        'The next phase is ready to start.',
         true
       );
     }
@@ -278,8 +292,17 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
     case 'edit-status':
       return editHand(state, action);
     case 'configure': {
-      if (state.stage !== 'setup') {
-        return refused(state, 'Change table setup before the phase starts.');
+      if (
+        state.stage !== 'setup' &&
+        !(
+          state.stage === 'ready' &&
+          awaitingFirstAuction(state) &&
+          action.seats === undefined &&
+          action.ruleset === undefined &&
+          action.deck === undefined
+        )
+      ) {
+        return refused(state, 'Choose factions during setup and phase settings before its first auction.');
       }
       const seats = action.seats ?? state.seats;
       const cardsChosen = action.cards !== undefined || state.cardsChosen;

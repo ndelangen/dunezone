@@ -50,12 +50,12 @@
   justify-content: center;
   padding: var(--space-xs) var(--space-md);
 }
-.tabletBody[data-setup] {
+.tabletBody[data-recovery] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 21rem;
   gap: var(--space-md);
 }
-.tabletBody:not([data-setup]) {
+.tabletBody:not([data-recovery]) {
   container-type: size;
 }
 .circleColumn {
@@ -145,6 +145,7 @@
   border-radius: 50%;
 }
 .handTotal {
+  color: var(--color-text);
   font-family: C_Desdemona, Georgia, serif;
   display: flex;
   align-items: baseline;
@@ -161,13 +162,6 @@
 }
 .seatStatus {
   min-height: 1.25em;
-}
-.seatList {
-  display: grid;
-  gap: var(--space-xs);
-  padding: 0;
-  margin: 0;
-  list-style: none;
 }
 .phone {
   display: flex;
@@ -206,6 +200,7 @@
   padding-block: var(--space-md) var(--space-xs);
   min-height: 3.5rem;
 }
+.setupFooter,
 .phoneDock {
   position: sticky;
   bottom: 0;
@@ -236,7 +231,8 @@
   margin: auto;
 }
 .qr {
-  width: 5rem;
+  /* Reserve room for the close control and join instructions in the 85dvh sheet. */
+  width: min(100%, max(8rem, calc(85dvh - 11rem)));
   flex-shrink: 0;
 }
 .qr svg {
@@ -248,7 +244,7 @@
   gap: var(--space-xs);
 }
 @container tablet (width < 48rem) {
-  .tabletBody[data-setup] {
+  .tabletBody[data-recovery] {
     grid-template-columns: 1fr;
   }
 }
@@ -266,13 +262,13 @@
     font-size: 0.65rem;
   }
 }
-.tool .tablet:not(:has(.tabletBody[data-setup])) {
+.tool .tablet:not(:has(.tabletBody[data-recovery])) {
   height: 100%;
 }
 .tool .circleColumn {
   max-width: min(100%, calc(100dvh - 14rem));
 }
-.tool .tabletBody:not([data-setup]) .circleColumn {
+.tool .tabletBody:not([data-recovery]) .circleColumn {
   width: 100%;
   max-width: min(100%, 100cqh);
 }
@@ -501,4 +497,23 @@
 }
 .connectionBar {
   padding: var(--space-xs) var(--space-md);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.setupContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+.setupFooter {
+  display: flex;
+  flex-direction: column;
 }

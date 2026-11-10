@@ -221,7 +221,8 @@ export function publicPageHead({
   description: string;
   image?: string | null;
   imageDetails?: { alt: string; type: string; width: number; height: number };
-  social?: { kind?: string; shape: SocialCardInput['shape'] };
+  /** The social card's kind line and art shape, and its own shorter text when the description reads too long beside a picture. */
+  social?: { kind?: string; shape: SocialCardInput['shape']; text?: string };
   /** The catalogue pages between the homepage and this one, for the breadcrumb trail. */
   trail?: readonly PublicPageLink[];
   entity?: PublicPageEntity;
@@ -237,7 +238,13 @@ export function publicPageHead({
     ? [lead, clipExcerpt(description, EXCERPT_LIMIT - Array.from(lead).length - 1)].filter(Boolean).join(' ')
     : description;
   const imagePath = social
-    ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
+    ? socialCardHref({
+        name,
+        description: social.text ?? description,
+        image,
+        kind: social.kind ?? kind ?? '',
+        shape: social.shape,
+      })
     : image || bandPoster;
   const imageUrl = absoluteUrl(imagePath);
   const details = social

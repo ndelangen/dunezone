@@ -22,11 +22,55 @@ function remote(table: BiddingSession, device: string, action: BiddingAction) {
 function started() {
   const table = session();
   expect(remote(table, 'phone-a', { type: 'assign', factionId: 'a' }).accepted).toBe(true);
+  expect(table.dispatch({ type: 'finish-setup' }).accepted).toBe(true);
   expect(table.dispatch({ type: 'start' }).accepted).toBe(true);
   return table;
 }
 
 describe('bidding command authority', () => {
+  it('lets assigned remotes select and start the first and later phases after central setup', () => {
+    const table = session();
+    expect(remote(table, 'phone-a', { type: 'assign', factionId: 'a' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'finish-setup' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(false);
+    expect(table.dispatch({ type: 'configure', cards: 1 }).accepted).toBe(true);
+    expect(table.dispatch({ type: 'finish-setup' }).accepted).toBe(true);
+    expect(remote(table, 'unassigned', { type: 'start' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'configure', cards: 2 }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'select-starter', id: 'b' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction.turn).toBe('b');
+    table.dispatch({ type: 'bid', amount: 2 });
+    table.dispatch({ type: 'pass' });
+    table.dispatch({ type: 'pass' });
+    expect(table.getSnapshot().auction.stage).toBe('over');
+    expect(remote(table, 'unassigned', { type: 'next-phase' }).accepted).toBe(false);
+    expect(remote(table, 'phone-a', { type: 'next-phase' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'ready', phase: 2, turn: null });
+    expect(remote(table, 'phone-a', { type: 'select-starter', id: 'c' }).accepted).toBe(true);
+    expect(remote(table, 'phone-a', { type: 'start' }).accepted).toBe(true);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'active', turn: 'c', phase: 2 });
+    expect(table.getSnapshot().auction.results).toHaveLength(1);
+  });
+
+  it('rejects old setup commands and accepts only one competing start for the ready table', () => {
+    const table = session();
+    remote(table, 'phone-a', { type: 'assign', factionId: 'a' });
+    remote(table, 'phone-b', { type: 'assign', factionId: 'b' });
+    const oldStart = request(table, 'phone-a', { type: 'start' });
+    const setupContext = table.captureContext();
+    table.dispatch({ type: 'configure', seconds: 20 });
+    expect(table.dispatch({ type: 'finish-setup' }, setupContext).accepted).toBe(false);
+    expect(table.getSnapshot().auction.stage).toBe('setup');
+    table.dispatch({ type: 'finish-setup' });
+    expect(table.receive('phone-a', oldStart).accepted).toBe(false);
+    const first = request(table, 'phone-a', { type: 'start' });
+    const second = request(table, 'phone-b', { type: 'start' });
+    expect(table.receive('phone-a', first).accepted).toBe(true);
+    expect(table.receive('phone-b', second).accepted).toBe(false);
+    expect(table.getSnapshot().auction).toMatchObject({ stage: 'active', turn: 'a', high: null });
+  });
+
   it('accepts one of competing phone, tablet, voice and timer actions for the captured opportunity', () => {
     const table = started();
     const context = table.captureContext();

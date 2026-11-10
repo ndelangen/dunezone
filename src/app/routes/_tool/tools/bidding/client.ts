@@ -1177,7 +1177,9 @@ export class BiddingClient {
         : auction.stage === 'paused'
           ? 'The table is paused.'
           : auction.stage === 'ready'
-            ? 'Card complete. The next card is ready.'
+            ? auction.opener === null
+              ? 'The table is ready. Choose the first bidder.'
+              : 'Ready for a new bid. Choose the starting faction.'
             : auction.stage === 'over'
               ? 'The phase is complete.'
               : 'Set up the table.';

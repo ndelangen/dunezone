@@ -3,6 +3,7 @@ import {
   BIDDING_FRAME_BYTES,
   BIDDING_PING,
   BIDDING_PONG,
+  BIDDING_PROTOCOL_VERSION,
   BIDDING_REFUSED,
   BIDDING_REPLACED,
   biddingCodeSchema,
@@ -225,6 +226,7 @@ export class BiddingLink {
         JSON.stringify({
           type: 'join',
           role: this.options.role,
+          protocol: BIDDING_PROTOCOL_VERSION,
           tableId: this.state.tableId ?? undefined,
           device: this.options.device,
           centralSecret: this.options.centralSecret,

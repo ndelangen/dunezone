@@ -1,0 +1,44 @@
+.seating {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  align-items: center;
+  min-height: 36px;
+}
+
+.row[data-touch="true"] {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  min-height: 52px;
+}
+
+.who {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.touchAdd {
+  width: 100%;
+}
