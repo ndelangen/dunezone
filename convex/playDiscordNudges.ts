@@ -11,6 +11,7 @@ import { action } from './_generated/server';
 import { internalMutation, mutation } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { accountStateOf } from './lib/accountLifecycle';
+import { discordCooldown } from './lib/discordCooldown';
 import { discordConfiguration, DiscordFailure, DiscordRest } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 import { authenticatedPlayRequest } from './lib/playAuthorization';
@@ -105,10 +106,7 @@ export const sendNudge = action({
       const prepared = await ctx.runMutation(internal.playDiscordNudges.prepare, args);
       const work = prepared.delivery;
       if (work) {
-        const rest = new DiscordRest(configuration.token, 'Dune Play nudge', {
-          until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-          hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-        });
+        const rest = new DiscordRest(configuration.token, 'Dune Play nudge', discordCooldown(ctx));
         await rest.nudge(work.channelId, work.discordUserId, work.fromFactionName, work.gameName);
       }
       return { ok: prepared.ok };

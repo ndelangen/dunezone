@@ -6,7 +6,7 @@ import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, ChevronsDown, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { useReplacementProfiles } from '@db/accountDeletion';
+import { useAdminReplacementProfiles, useReplacementProfiles } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
 
 import { ProfileOptionContent } from './ProfilePicker.parts';
@@ -22,12 +22,41 @@ export interface ProfilePickerProps {
  * administrators may choose any active profile.
  * The caller mounts it while open and receives the chosen profile.
  */
-export function ProfilePicker({ onPick, onCancel, adminSourceUserId }: ProfilePickerProps) {
+export function ProfilePicker(props: ProfilePickerProps) {
+  return props.adminSourceUserId ? (
+    <AdminProfilePicker {...props} adminSourceUserId={props.adminSourceUserId} />
+  ) : (
+    <OwnProfilePicker {...props} />
+  );
+}
+
+function OwnProfilePicker(props: ProfilePickerProps) {
+  const [search, setSearch] = useState('');
+  const picker = useReplacementProfiles(search.trim());
+  return <ProfilePickerView {...props} search={search} onSearch={setSearch} picker={picker} />;
+}
+
+function AdminProfilePicker(props: ProfilePickerProps & { adminSourceUserId: string }) {
+  const [search, setSearch] = useState('');
+  const picker = useAdminReplacementProfiles(search.trim(), props.adminSourceUserId);
+  return <ProfilePickerView {...props} search={search} onSearch={setSearch} picker={picker} />;
+}
+
+function ProfilePickerView({
+  onPick,
+  onCancel,
+  adminSourceUserId,
+  search,
+  onSearch,
+  picker,
+}: ProfilePickerProps & {
+  search: string;
+  onSearch: (search: string) => void;
+  picker: ReturnType<typeof useReplacementProfiles>;
+}) {
   /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter choose the highlighted row, which Mantine gates on the dropdown state. */
   const combobox = useCombobox({ defaultOpened: true });
-  const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<ReplacementProfile['userId'] | ''>('');
-  const picker = useReplacementProfiles(search.trim(), adminSourceUserId);
 
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
   const rows = picker.data;
@@ -85,7 +114,7 @@ export function ProfilePicker({ onPick, onCancel, adminSourceUserId }: ProfilePi
                   name="profile-search"
                   autoComplete="off"
                   value={search}
-                  onChange={(event) => setSearch(event.currentTarget.value)}
+                  onChange={(event) => onSearch(event.currentTarget.value)}
                 />
               </Combobox.EventsTarget>
             )}

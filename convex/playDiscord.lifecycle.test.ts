@@ -69,6 +69,7 @@ test('finished games rename once and retain an occupied room beyond both former 
   await world.reconcile();
 
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toEqual([
+    expect.objectContaining({ path: '/channels/300', body: { name: 'Quiet Sietch' } }),
     expect.objectContaining({ path: '/channels/300', body: { name: 'Quiet Sietch (ended)' } }),
   ]);
   expect(await world.menu()).toMatchObject({ voice: null });
@@ -82,7 +83,7 @@ test('finished games rename once and retain an occupied room beyond both former 
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true, work_revision: 1 });
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
 });
 
 test.each(['finished', 'discarded'] as const)('%s before creation does not allocate a Discord room', async (stage) => {
@@ -141,6 +142,7 @@ test('continue during the ended-name PATCH restores the name before the hourly c
   await world.reconcile();
 
   expect(discord.calls.filter((call) => call.method === 'PATCH').map((call) => call.body)).toEqual([
+    { name: 'Quiet Sietch' },
     { name: 'Quiet Sietch (ended)' },
     { name: 'Quiet Sietch' },
   ]);
@@ -151,22 +153,23 @@ test('continue during the ended-name PATCH restores the name before the hourly c
 });
 
 test.each([
-  { status: 403, delay: 0 },
-  { status: 429, delay: 60_000 },
-])('discard during invite refusal $status waits only for a required Discord rate limit', async ({ status, delay }) => {
+  { status: 403, delay: 0, global: false },
+  { status: 429, delay: 60_000, global: false },
+  { status: 429, delay: 60_000, global: true },
+])('discard during invite refusal $status honors only global=$global', async ({ status, delay, global }) => {
   const discord = discordStub();
   const world = await voiceWorld();
   const normal = discord.fetch.getMockImplementation()!;
   discord.fetch.mockImplementation(async (input, options) => {
     if (input === 'https://discord.com/api/v10/channels/300/invites') {
       await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
-      return Response.json({ code: 50_013, retry_after: delay / 1000 }, { status });
+      return Response.json({ code: 50_013, retry_after: delay / 1000, global }, { status });
     }
     return await normal(input, options);
   });
   await world.reconcile();
-  expect((await world.channel())!.next_attempt_at).toBe(Date.now() + delay);
-  if (delay > 0) {
+  expect((await world.channel())!.next_attempt_at).toBe(Date.now() + (global ? delay : 0));
+  if (global && delay > 0) {
     await world.reconcile();
     expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
     vi.setSystemTime(Date.now() + delay);
@@ -188,7 +191,7 @@ test('a finish arriving under a held lease remains due when that owner releases 
 
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
-  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
 });
 
 test.each([10_003, 10_004])(

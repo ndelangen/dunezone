@@ -124,6 +124,10 @@ export default defineSchema({
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_discord_route_buckets: defineTable({ route: v.string(), bucket_id: v.string() }).index('by_route', ['route']),
+  play_discord_rate_limits: defineTable({ key: v.string(), blocked_until: v.number() })
+    .index('by_key', ['key'])
+    .index('by_blocked_until', ['blocked_until']),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
   /** Retired: kept for the approved retirement migration, then removed in a separate narrowing release. */
   play_game_discord_nudges: defineTable({
@@ -156,6 +160,10 @@ export default defineSchema({
     guild_id: v.string(),
     category_ids: v.array(v.string()),
     channel_id: v.optional(v.string()),
+    creation_marker: v.optional(v.string()),
+    creation_category_id: v.optional(v.string()),
+    creation_name_pending: v.optional(v.boolean()),
+    creation_attempt: v.optional(v.number()),
     invite_url: v.optional(v.string()),
     state: v.union(
       v.literal('pending'),

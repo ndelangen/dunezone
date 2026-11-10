@@ -70,6 +70,7 @@ import type * as lib_collaborativeAccessValidators from "../lib/collaborativeAcc
 import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
+import type * as lib_discordCooldown from "../lib/discordCooldown.js";
 import type * as lib_discordRest from "../lib/discordRest.js";
 import type * as lib_discordRetry from "../lib/discordRetry.js";
 import type * as lib_discordStatus from "../lib/discordStatus.js";
@@ -164,6 +165,7 @@ import type * as playDiscord from "../playDiscord.js";
 import type * as playDiscordActions from "../playDiscordActions.js";
 import type * as playDiscordAdmin from "../playDiscordAdmin.js";
 import type * as playDiscordNudges from "../playDiscordNudges.js";
+import type * as playDiscordRateLimits from "../playDiscordRateLimits.js";
 import type * as playDiscordVoice from "../playDiscordVoice.js";
 import type * as playDiscordVoiceActions from "../playDiscordVoiceActions.js";
 import type * as playGameDirectory from "../playGameDirectory.js";
@@ -270,6 +272,7 @@ const fullApi: ApiFromModules<{
   "lib/customCardTokens": typeof lib_customCardTokens;
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
+  "lib/discordCooldown": typeof lib_discordCooldown;
   "lib/discordRest": typeof lib_discordRest;
   "lib/discordRetry": typeof lib_discordRetry;
   "lib/discordStatus": typeof lib_discordStatus;
@@ -364,6 +367,7 @@ const fullApi: ApiFromModules<{
   playDiscordActions: typeof playDiscordActions;
   playDiscordAdmin: typeof playDiscordAdmin;
   playDiscordNudges: typeof playDiscordNudges;
+  playDiscordRateLimits: typeof playDiscordRateLimits;
   playDiscordVoice: typeof playDiscordVoice;
   playDiscordVoiceActions: typeof playDiscordVoiceActions;
   playGameDirectory: typeof playGameDirectory;

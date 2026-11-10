@@ -8,6 +8,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { action, internalQuery } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { adminQuery, mutation } from './functions';
+import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
@@ -28,6 +29,16 @@ const row = v.object({
   ),
   created_at: v.number(),
   cleanup_at: v.number(),
+  cleanup_status: v.union(
+    v.literal('scheduled'),
+    v.literal('awaiting_setup'),
+    v.literal('awaiting_rename'),
+    v.literal('waiting_for_empty'),
+    v.literal('deleting'),
+    v.literal('deleted')
+  ),
+  lease_until: v.optional(v.number()),
+  next_attempt_at: v.number(),
   waiting_for_empty: v.optional(v.boolean()),
   error: v.optional(v.string()),
   gameSlug: v.optional(v.string()),
@@ -54,9 +65,26 @@ const discordChannel = z.object({
 });
 const ORPHAN_AGE = DISCORD_LEASE + 4 * 60_000;
 
+function cleanupStatus(channel: Doc<'play_game_discord_channels'>, game: Doc<'play_games'> | null) {
+  if (channel.state === 'deleted') {
+    return 'deleted' as const;
+  }
+  if (channel.state === 'deleting' || channel.deletion_requested_at !== undefined) {
+    return 'deleting' as const;
+  }
+  if (game?.directory?.stage !== 'finished') {
+    return 'scheduled' as const;
+  }
+  if (canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel)) {
+    return 'waiting_for_empty' as const;
+  }
+  return channel.state === 'ready' ? ('awaiting_rename' as const) : ('awaiting_setup' as const);
+}
+
 export const dashboard = adminQuery({
   args: { paginationOpts: paginationOptsValidator },
   returns: v.object({
+    observed_at: v.number(),
     configured: v.boolean(),
     enabled: v.boolean(),
     channels: paginationResultValidator(row),
@@ -87,6 +115,9 @@ export const dashboard = adminQuery({
           state: channel.state,
           created_at: channel.created_at,
           cleanup_at: channel.cleanup_at,
+          cleanup_status: cleanupStatus(channel, game),
+          lease_until: channel.lease_until,
+          next_attempt_at: channel.next_attempt_at,
           waiting_for_empty: canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel),
           error: channel.error,
           gameSlug: game?.slug,
@@ -96,6 +127,7 @@ export const dashboard = adminQuery({
     );
     const nudgeErrors: Infer<typeof nudgeError>[] = [];
     return {
+      observed_at: Date.now(),
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),
       channels: { ...channels, page },
@@ -139,6 +171,40 @@ export const requestDelete = mutation({
   },
 });
 
+/** A manual retry queues the same guarded reconciliation as cron; it never changes creation state. */
+export const requestRetry = mutation({
+  args: { channelId: v.id('play_game_discord_channels') },
+  returns: v.null(),
+  handler: async (ctx, { channelId }) => {
+    await requireAdminUserId(ctx);
+    if (!(await discordEnabled(ctx))) {
+      throw new Error('Enable Discord before retrying channels.');
+    }
+    const channel = await ctx.db.get(channelId);
+    if (!channel || (channel.state !== 'pending' && channel.state !== 'creating')) {
+      throw new Error('Only pending channel work can be retried.');
+    }
+    const cooldown = await ctx.db.query('play_discord_cooldown').unique();
+    const sameWork = channel.retry?.revision === (channel.work_revision ?? 0);
+    const at = Math.max(
+      Date.now(),
+      channel.lease_until ?? 0,
+      cooldown?.blocked_until ?? 0,
+      channel.retry_after ?? 0,
+      sameWork ? (channel.retry?.until ?? 0) : 0
+    );
+    /* Release already schedules same-work short retries. A lease or cron deadline alone does not prove a job exists. */
+    if (sameWork && channel.retry?.kind === 'short' && channel.retry.until === at && at > Date.now()) {
+      return null;
+    }
+    if (channel.next_attempt_at !== at) {
+      await ctx.db.patch(channelId, { next_attempt_at: at });
+    }
+    await ctx.scheduler.runAt(at, internal.playDiscordActions.reconcile, { channelId });
+    return null;
+  },
+});
+
 export const enabledForAdmin = internalQuery({
   args: {},
   returns: v.boolean(),
@@ -170,10 +236,7 @@ export const untracked = internalQuery({
 });
 
 function rest(ctx: ActionCtx, token: string) {
-  return new DiscordRest(token, 'Dune Play admin orphan cleanup', {
-    until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-    hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-  });
+  return new DiscordRest(token, 'Dune Play admin orphan cleanup', discordCooldown(ctx));
 }
 /** Interactive admin requests retain their two short retries; lifecycle retries belong to the scheduler. */
 async function retryAdminRequest<T>(request: () => Promise<T>): Promise<T> {

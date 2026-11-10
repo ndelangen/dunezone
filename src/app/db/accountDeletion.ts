@@ -12,16 +12,21 @@ export function useAccountDeletionPage(profileSlug: string) {
   return toLiveQueryResult(useLiveQuery(api.accountDeletion.page, { profileSlug }));
 }
 
-export function useReplacementProfiles(search: string, adminSourceUserId?: string) {
-  const own = usePaginatedQuery(api.accountDeletion.listReplacementProfiles, adminSourceUserId ? 'skip' : { search }, {
-    initialNumItems: 24,
-  });
-  const managed = usePaginatedQuery(
+export function useReplacementProfiles(search: string) {
+  const result = usePaginatedQuery(api.accountDeletion.listReplacementProfiles, { search }, { initialNumItems: 24 });
+  return {
+    data: result.results,
+    status: result.status,
+    loadMore: () => result.loadMore(24),
+  };
+}
+
+export function useAdminReplacementProfiles(search: string, sourceUserId: string) {
+  const result = usePaginatedQuery(
     api.accountDeletion.adminListReplacementProfiles,
-    adminSourceUserId ? { search, sourceUserId: adminSourceUserId as Id<'users'> } : 'skip',
+    { search, sourceUserId: sourceUserId as Id<'users'> },
     { initialNumItems: 24 }
   );
-  const result = adminSourceUserId ? managed : own;
   return {
     data: result.results,
     status: result.status,

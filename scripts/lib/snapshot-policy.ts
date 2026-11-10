@@ -171,6 +171,8 @@ export const snapshotPolicy = {
   play_games: { drop: 'Play games carry provisioning secrets and are not published content' },
   play_game_discord_channels: { drop: 'Game voice room provisioning is not published content' },
   play_discord_cooldown: { drop: 'Deployment-specific Discord retry deadline' },
+  play_discord_route_buckets: { drop: 'Discord route aliases are learned by each deployment' },
+  play_discord_rate_limits: { drop: 'Deployment-specific Discord bucket retry deadlines' },
   play_discord_settings: { drop: 'Deployment-specific Discord switch' },
   play_game_discord_nudges: { drop: 'Private game notification delivery state' },
   homepage_tickets: { drop: 'Homepage editing tickets' },

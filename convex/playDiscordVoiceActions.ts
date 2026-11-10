@@ -6,6 +6,7 @@ import type { Infer } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
+import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordVoiceSnapshot } from './lib/discordVoiceSnapshot';
 import type { VoiceSnapshot } from './lib/discordVoiceSnapshot';
@@ -92,15 +93,7 @@ export const cleanup = internalAction({
       return null;
     }
     const deadline = Date.now() + 25_000;
-    const rest = new DiscordRest(
-      config.token,
-      'Dune Play hourly voice cleanup',
-      {
-        until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-        hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-      },
-      deadline
-    );
+    const rest = new DiscordRest(config.token, 'Dune Play hourly voice cleanup', discordCooldown(ctx), deadline);
     try {
       const discovery = await rest.request('GET', '/gateway/bot');
       if ((await ctx.runQuery(internal.playDiscord.cooldownUntil, {})) === null) {

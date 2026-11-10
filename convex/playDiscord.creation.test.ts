@@ -25,7 +25,7 @@ test('repeated confirmations and concurrent workers create one ordinary voice ch
   const creates = discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST');
   expect(creates).toHaveLength(1);
   expect(creates[0]?.body).toEqual({
-    name: 'Quiet Sietch',
+    name: `dune-play-${world.gameId}`,
     type: 2,
     parent_id: '200',
   });

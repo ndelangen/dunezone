@@ -34,6 +34,8 @@ export const SNAPSHOT_REBUILD_CONTRACT = {
     'play_games',
     'play_game_discord_channels',
     'play_discord_cooldown',
+    'play_discord_route_buckets',
+    'play_discord_rate_limits',
     'play_discord_settings',
     'play_game_discord_nudges',
     'play_game_slug_reservations',

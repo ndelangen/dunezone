@@ -4,6 +4,7 @@ import type { Doc } from '../_generated/dataModel';
 
 export const discordRetryOperation = v.union(
   v.literal('categories'),
+  v.literal('recover'),
   v.literal('create'),
   v.literal('invite'),
   v.literal('rename-ended'),
@@ -19,6 +20,7 @@ export const discordRetryState = v.union(
     attempts: v.union(v.literal(1), v.literal(2)),
     categoryId: v.optional(v.string()),
     revision: v.number(),
+    until: v.optional(v.number()),
   }),
   v.object({ kind: v.literal('backoff'), revision: v.number(), until: v.number() })
 );

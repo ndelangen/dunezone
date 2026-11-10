@@ -36,7 +36,8 @@ not deployed yet logs and drops that attempt while its chat message remains save
 
 A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
 no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
-REST work until its deadline; a channel or route limit affects only that attempted nudge.
+REST work until its deadline; a channel or route limit holds requests in that scoped bucket. The
+failed nudge itself is not retried.
 
 ## Configuration and administration
 
@@ -50,10 +51,28 @@ Existing channels and invites remain available while paused. Its deployment-loca
 excluded from snapshots and cannot enable an unconfigured deployment.
 
 The page lists tracked channels and cleanup deadlines. It fetches a
-bounded page only while open. Untracked channels are discovered only on explicit refresh, only in
+bounded page only while open. Cleanup distinguishes active inactivity deadlines, finished setup or
+rename work, hourly occupancy checks and completed removal. Paused rows show that cleanup is paused.
+Pending and creating rows offer Retry now, which queues the guarded reconciliation and records its
+scheduled time. It cannot bypass a live lease or a Discord request's rate limit.
+Untracked channels are discovered only on explicit refresh, only in
 configured Games categories, and only after the creation window has passed. They are never deleted
-automatically. A deliberate removal rechecks the target before deleting it. An unconfirmed creation
-must be inspected in Discord; never blindly retry its POST.
+automatically. A deliberate removal rechecks the target before deleting it.
+
+Before creating a channel, Convex saves an exact temporary name, `dune-play-{gameId}`, and the selected
+category. The temporary name is briefly visible. A successful response saves the channel ID before
+renaming it to the game name or requesting an invite. A lost response leaves that attempt marked as
+creating. Recovery lists the saved guild after the old owner has released or lost its 31-minute lease.
+One exact matching voice channel in the saved category is adopted. A replacement requires a complete
+successful listing, the saved category visible as a category, and no visible marker match or conflict.
+The replacement rechecks its lease, creation attempt, current game need and deletion intent, and spends
+a new creation reservation. Each ambiguous replacement goes through the same recovery process.
+
+This establishes that no matching room is visible, not that none exists. Administrator renames, moves
+or permission changes, and late Discord commits, can defeat correlation. Conflicting matches or a
+missing category remain retryable without another POST. Older uncertain attempts without a saved
+marker need administrator inspection. Configuration changes affect new reservations only; existing
+creation, recovery and cleanup stay pinned to their saved guild and category, using the current token.
 
 Discarding a game schedules its channel for immediate deletion. When a game finishes, the channel
 is renamed with an `(ended)` suffix. Hourly cleanup deletes ended channels that are empty. If play
@@ -86,12 +105,27 @@ rate-limit mutation reads current eligibility and spends the per-seat quota. The
 or expiry jobs. Idle channel reconciliation uses the existing 15-minute cron, with no Discord
 request when nothing is due. The admin page has bounded reads and manual orphan refresh.
 
+The creator cap counts pending, creating and ready tracking rows. A legacy discarded game can retain
+a ready row until its stored reconciliation deadline arrives. Creator backfill preserves that deadline,
+so the row keeps its cap slot until normal retirement changes its state. Cap checks add no provider
+requests or game scans to reconcile those older records.
+
 Lifecycle REST calls make one attempt. A definite short rate limit schedules up to two retries at
 Discord's deadline, then uses the existing 15-minute backoff. Each scheduled retry acquires a fresh
 lease and rechecks current work. The channel keeps the short retry budget so scheduled work and
-cron recovery use the same attempts. Its deadline and revision fence stale work. A retry of the same definitely rejected creation reuses its
-creation reservation. An ambiguous creation response still stops automatic creation. Interactive
+cron recovery use the same attempts. Its deadline and revision fence stale work. A retry of the same
+definitely rejected creation reuses its creation reservation. Ambiguous attempts use the recovery
+checks above and cannot borrow that short-retry reservation. Interactive
 admin requests retain their two short retries; nudges and occupancy checks never retry inline.
+
+Every request checks a persisted gate. Only explicit global limits block all bot work. Other limits,
+including shared limits, use the observed bucket plus major guild or channel ID. Without a bucket
+header, the exact method/route template and major resource identify the hold. A new lifecycle operation
+does not inherit an old operation's scoped delay. Route aliases are written only when changed; a 429
+combines its alias and hold update. A rate limit received by an in-flight request survives pause and
+resume; pausing still blocks new requests. Rare observation mutations prune at most eight expired scoped
+holds through an expiry index. No cleanup cron is added. The admin page does not read these holds
+for every displayed row.
 
 Finish transitions compare the previous and accepted directory stages in one transaction. The
 obsolete `ended_at` channel marker remains in the schema only for the retirement window.
@@ -129,7 +163,8 @@ empty. The dashboard returns an empty legacy `nudgeErrors` array so older admin 
 Keep its snapshot-policy and provisioning-contract entries during this compatibility window.
 
 After the new Worker has deployed and the approved retirement has finished, a separate narrowing
-release removes the table, those entries, the dashboard compatibility field and the temporary
-migration module. Deleting these delivery records does not affect games, seats, linked accounts or
+release removes the table, its active provisioning entries, the dashboard compatibility field and the
+temporary migration module. Its snapshot exclusion moves to the retired-table list because Convex
+exports can retain removed tables. Deleting these delivery records does not affect games, seats, linked accounts or
 voice channels. The records are disposable;
 recovery means fixing forward while nudges continue as best-effort requests, not replaying old pings.
