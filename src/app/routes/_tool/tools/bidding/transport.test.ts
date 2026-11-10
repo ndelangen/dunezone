@@ -1,4 +1,9 @@
-import { BIDDING_CODE_ALPHABET, BIDDING_REFUSED, BIDDING_REPLACED } from '@shared/tools/biddingTransport';
+import {
+  BIDDING_CODE_ALPHABET,
+  BIDDING_PROTOCOL_VERSION,
+  BIDDING_REFUSED,
+  BIDDING_REPLACED,
+} from '@shared/tools/biddingTransport';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { BiddingLink, createBiddingDevice, createBiddingTable } from './transport';
@@ -126,7 +131,7 @@ test('keeps the direct path when the relay drops and never places credentials in
   const held = await linked();
   expect(held.socket.url.href).toBe('wss://dune.zone/__play/bidding/DUNE42/socket');
   expect(JSON.parse(held.socket.sent[0]!).device).toEqual(held.device);
-  expect(JSON.parse(held.socket.sent[0]!).protocol).toBe(2);
+  expect(JSON.parse(held.socket.sent[0]!).protocol).toBe(BIDDING_PROTOCOL_VERSION);
   held.socket.remoteClose(1006);
   expect(held.link.state).toMatchObject({ relay: false, central: true, direct: ['central'] });
   expect(held.link.send('central', { commandId: 'bid-on-direct' })).toBe(true);
