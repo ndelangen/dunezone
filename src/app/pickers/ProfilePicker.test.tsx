@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -12,13 +12,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@db/accountDeletion', () => ({ useReplacementProfiles: mocks.hook }));
 
+import { resetPickerDom, stubPickerDom } from './pickerTestDom';
 import { ProfilePicker } from './ProfilePicker';
-
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
 
 const profiles = [
   { profileId: 'profile-1', userId: 'user-1', username: 'Paul Atreides', slug: 'paul-atreides', avatarUrl: null },
@@ -34,24 +29,10 @@ beforeEach(() => {
     status: 'CanLoadMore',
     loadMore: mocks.loadMore,
   }));
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-    configurable: true,
-    value: vi.fn(),
-  });
+  stubPickerDom();
 });
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+afterEach(resetPickerDom);
 
 describe('ProfilePicker', () => {
   it('searches, selects with keyboard-compatible options, and returns the chosen profile', () => {

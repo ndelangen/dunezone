@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -22,12 +22,7 @@ vi.mock('./FactionPicker.parts', () => ({
 }));
 
 import { FactionPicker } from './FactionPicker';
-
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+import { resetPickerDom, stubPickerDom } from './pickerTestDom';
 
 const row = (id: string, name: string) => ({
   id,
@@ -44,21 +39,10 @@ beforeEach(() => {
     data: { rows: [row('f-1', 'Atreides'), row('f-2', 'Harkonnen'), row('f-3', 'Fremen')], memberGroupIds: [] },
     isPending: false,
   });
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
+  stubPickerDom();
 });
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+afterEach(resetPickerDom);
 
 function renderPicker(onPick: () => void) {
   return render(

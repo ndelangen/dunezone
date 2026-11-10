@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -15,12 +15,7 @@ vi.mock('./AssetPicker.parts', () => ({
 }));
 
 import { AssetPicker } from './AssetPicker';
-
-class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+import { resetPickerDom, stubPickerDom } from './pickerTestDom';
 
 const row = (id: string, name: string) => ({
   id,
@@ -35,34 +30,27 @@ const cards = [row('card-1', 'Lasgun'), row('card-2', 'Crysknife'), row('card-3'
 
 beforeEach(() => {
   mocks.catalogue.mockReturnValue({ data: cards, isPending: false });
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  })) as unknown as typeof window.matchMedia;
-  vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
+  stubPickerDom();
 });
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-});
+afterEach(resetPickerDom);
+
+function renderPicker(onPick: () => void) {
+  return render(
+    <MantineProvider theme={appContentTheme}>
+      <AssetPicker
+        types={['card-treachery']}
+        copy={{ searchLabel: 'Search cards', searchPlaceholder: 'Name', emptyMessage: 'No cards.' }}
+        onPick={onPick}
+      />
+    </MantineProvider>
+  );
+}
 
 describe('AssetPicker', () => {
   it('picks the first match of a search with Enter, not a row of the list before it', () => {
     const onPick = vi.fn();
-    const view = render(
-      <MantineProvider theme={appContentTheme}>
-        <AssetPicker
-          types={['card-treachery']}
-          copy={{ searchLabel: 'Search cards', searchPlaceholder: 'Name', emptyMessage: 'No cards.' }}
-          onPick={onPick}
-        />
-      </MantineProvider>
-    );
+    const view = renderPicker(onPick);
     const search = view.getByRole('searchbox', { name: 'Search cards' });
     fireEvent.change(search, { target: { value: 'crys' } });
     fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
@@ -72,15 +60,7 @@ describe('AssetPicker', () => {
 
   it('highlights nothing before the reader types', () => {
     const onPick = vi.fn();
-    const view = render(
-      <MantineProvider theme={appContentTheme}>
-        <AssetPicker
-          types={['card-treachery']}
-          copy={{ searchLabel: 'Search cards', searchPlaceholder: 'Name', emptyMessage: 'No cards.' }}
-          onPick={onPick}
-        />
-      </MantineProvider>
-    );
+    const view = renderPicker(onPick);
     fireEvent.keyDown(view.getByRole('searchbox', { name: 'Search cards' }), { key: 'Enter', code: 'Enter' });
     expect(onPick).not.toHaveBeenCalled();
   });
