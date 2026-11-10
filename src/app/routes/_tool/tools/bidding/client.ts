@@ -1,0 +1,1165 @@
+import {
+  BIDDING_SNAPSHOT_BYTES,
+  biddingContextSchema,
+  biddingIdentitySchema,
+  biddingResultSchema,
+  biddingSnapshotSchema,
+} from '@shared/tools/biddingSession';
+import type {
+  BiddingAction,
+  BiddingCommand,
+  BiddingContext,
+  BiddingPublication,
+  BiddingResult,
+  BiddingSnapshot,
+} from '@shared/tools/biddingSession';
+import { biddingCodeSchema, biddingDeviceSchema, biddingTableAddressSchema } from '@shared/tools/biddingTransport';
+import type { BiddingDevice, BiddingTableAddress } from '@shared/tools/biddingTransport';
+import { z } from 'zod';
+
+import { createAuction } from './auction';
+import type { AuctionSetup } from './auction';
+import { acceptBiddingPublication, promoteSnapshot, restoreCentralSnapshot } from './recovery';
+import type { SavedRemoteCopy } from './recovery';
+import { BiddingSession, biddingContextOf, createBiddingCommand } from './session';
+import { BiddingLink, createBiddingDevice, createBiddingTable } from './transport';
+import type { BiddingLinkState } from './transport';
+import { createBiddingVoice } from './voice';
+import type { BiddingVoice } from './voice';
+
+const DEVICE_KEY = 'dune-bidding-device-v1';
+const CENTRAL_KEY = 'dune-bidding-central-v1';
+const REMOTE_KEY = 'dune-bidding-remote-v1';
+const RECEIPT_KEY = 'dune-bidding-receipt-v1';
+const LAST_ROLE_KEY = 'dune-bidding-role-v1';
+const CENTRAL_LOCK = 'dune-bidding-central-v1';
+const HEARTBEAT_MS = 2000;
+const SNAPSHOT_MS = 30_000;
+const REMOTE_SILENCE_MS = 7000;
+const COMMAND_WAIT_MS = 2000;
+const TIMER_INTERRUPTION_MS = 1500;
+
+const savedCentralSchema = z.strictObject({
+  version: z.literal(1),
+  address: biddingTableAddressSchema,
+  device: biddingDeviceSchema,
+  snapshot: biddingSnapshotSchema,
+});
+type SavedCentral = z.infer<typeof savedCentralSchema>;
+const savedOwnershipSchema = z.object({
+  snapshot: biddingIdentitySchema.strip().extend({ revision: z.number().int().nonnegative() }),
+});
+type SavedOwnership = z.infer<typeof savedOwnershipSchema>;
+const remoteAddressSchema = biddingTableAddressSchema.omit({ centralSecret: true });
+const savedRemoteSchema = z.strictObject({
+  version: z.literal(1),
+  address: remoteAddressSchema,
+  snapshot: biddingSnapshotSchema,
+  receivedAt: z.number().int().nonnegative(),
+});
+const receiptSchema = z.strictObject({
+  tableId: z.uuid(),
+  centralInstanceId: z.string(),
+  revision: z.number().int().nonnegative(),
+  receivedAt: z.number().int().nonnegative(),
+});
+const aliveSchema = biddingContextSchema
+  .omit({ opportunity: true })
+  .extend({
+    type: z.literal('alive'),
+    revision: z.number().int().nonnegative(),
+    deadline: z.number().int().nonnegative().nullable(),
+    sentAt: z.number().int().nonnegative(),
+  })
+  .strict();
+const syncSchema = z.strictObject({ type: z.literal('sync') });
+
+export type BiddingClientState = Readonly<{
+  role: 'welcome' | 'central' | 'remote';
+  deviceId: string;
+  snapshot: BiddingSnapshot | null;
+  deadline: number | null;
+  connection: string;
+  connected: boolean;
+  pending: boolean;
+  feedback: readonly string[];
+  storageError: string | null;
+  error: string | null;
+  receivedAt: number | null;
+  recovering: boolean;
+  listening: boolean;
+  announcing: boolean;
+  voiceMessage: string;
+  busy: boolean;
+}>;
+
+type StoragePort = Pick<Storage, 'getItem' | 'setItem'>;
+type LinkPort = Pick<BiddingLink, 'send' | 'close'>;
+type LinkOptions = ConstructorParameters<typeof BiddingLink>[0];
+type Dependencies = Readonly<{
+  storage: StoragePort | null;
+  now: () => number;
+  uuid: () => string;
+  createTable: typeof createBiddingTable;
+  link: (options: LinkOptions) => LinkPort;
+  voice: typeof createBiddingVoice<BiddingContext>;
+  locks: Pick<LockManager, 'request'> | null;
+}>;
+type PendingCommand = {
+  command: BiddingCommand;
+  attempts: number;
+  result?: BiddingResult;
+  timer?: ReturnType<typeof setTimeout>;
+};
+
+function browserStorage(): StoragePort | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : 'The table could not finish that action.';
+}
+
+function contextKey(context: BiddingContext): string {
+  return `${context.tableId}/${context.centralInstanceId}/${context.generation}/${context.opportunity}`;
+}
+
+/** Browser effects surround the single authoritative session; neither transport nor React decides an auction. */
+export class BiddingClient {
+  private readonly dependencies: Dependencies;
+  private readonly listeners = new Set<() => void>();
+  private state: BiddingClientState;
+  private device: BiddingDevice;
+  private address: { code: string; tableId?: string } | null = null;
+  private centralAddress: BiddingTableAddress | null = null;
+  private session: BiddingSession | null = null;
+  private unsubscribeSession?: () => void;
+  private link: LinkPort | null = null;
+  private linkState: BiddingLinkState | null = null;
+  private voice: BiddingVoice<BiddingContext> | null = null;
+  private voiceContextKey: string | null = null;
+  private listeningRequested = false;
+  private copy: SavedRemoteCopy | null = null;
+  private pending: PendingCommand | null = null;
+  private sequence = 0;
+  private timer?: ReturnType<typeof setTimeout>;
+  private timerKey: string | null = null;
+  private heartbeat?: ReturnType<typeof setInterval>;
+  private lastSnapshotAt = 0;
+  private lastAuthorityAt = 0;
+  private lastSyncAt = -Infinity;
+  private recoveryRequested = false;
+  private operation = 0;
+  private run = 0;
+  private abort?: AbortController;
+  private initialized = false;
+  private disposed = false;
+
+  constructor(dependencies: Partial<Dependencies> = {}) {
+    this.dependencies = {
+      storage: browserStorage(),
+      now: Date.now,
+      uuid: () => crypto.randomUUID(),
+      createTable: createBiddingTable,
+      link: (options) => new BiddingLink(options),
+      voice: createBiddingVoice<BiddingContext>,
+      locks: typeof navigator === 'undefined' ? null : (navigator.locks ?? null),
+      ...dependencies,
+    };
+    this.device = createBiddingDevice();
+    this.state = {
+      role: 'welcome',
+      deviceId: this.device.id,
+      snapshot: null,
+      deadline: null,
+      connection: 'No table connected',
+      connected: false,
+      pending: false,
+      feedback: [],
+      storageError: null,
+      error: null,
+      receivedAt: null,
+      recovering: false,
+      listening: false,
+      announcing: false,
+      voiceMessage: '',
+      busy: false,
+    };
+    const stored = this.read(DEVICE_KEY, biddingDeviceSchema);
+    if (stored) {
+      this.device = stored;
+    } else {
+      this.write(DEVICE_KEY, this.device);
+    }
+    this.state = { ...this.state, deviceId: this.device.id };
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.visibilityChanged);
+      document.addEventListener('freeze', this.interrupt);
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', this.interrupt);
+      window.addEventListener('storage', this.storageChanged);
+    }
+  }
+
+  getSnapshot = (): BiddingClientState => this.state;
+
+  subscribe = (listener: () => void): (() => void) => {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  };
+
+  /** An explicit join link takes precedence over a saved central table on this browser. */
+  async initialize(search: { join?: string; table?: string } = {}): Promise<void> {
+    if (this.initialized || this.disposed) {
+      return;
+    }
+    this.initialized = true;
+    if (search.join) {
+      this.join(search.join, search.table);
+      return;
+    }
+    const restore = () => {
+      if (this.disposed) {
+        return;
+      }
+      const central = this.read(CENTRAL_KEY, savedCentralSchema);
+      const lastRole = this.readText(LAST_ROLE_KEY);
+      const remote = this.readRemote();
+      if (central && lastRole !== 'remote') {
+        if (central.snapshot.tableId !== central.address.tableId || central.snapshot.code !== central.address.code) {
+          this.update({ error: 'The saved table identity is incomplete. Set up a new table or use a phone copy.' });
+          return;
+        }
+        this.device = central.device;
+        this.write(DEVICE_KEY, this.device);
+        this.installCentral(central.address, restoreCentralSnapshot(central.snapshot, this.dependencies.uuid()), true);
+      } else if (remote) {
+        this.join(remote.address.code, remote.address.tableId);
+      }
+    };
+    /* Read and write inside one browser lock, so two restored tabs cannot choose the same generation. */
+    try {
+      if (this.dependencies.locks) {
+        await this.dependencies.locks.request(CENTRAL_LOCK, restore);
+      } else {
+        restore();
+      }
+    } catch (error) {
+      this.update({ error: messageOf(error) });
+    }
+  }
+
+  async newTable(setup: AuctionSetup): Promise<void> {
+    const operation = this.beginOperation();
+    try {
+      const auction = createAuction(setup);
+      const address = await this.dependencies.createTable({ signal: this.abort?.signal });
+      if (!this.isCurrent(operation)) {
+        return;
+      }
+      const session = new BiddingSession({
+        identity: {
+          tableId: address.tableId,
+          code: address.code,
+          centralInstanceId: this.dependencies.uuid(),
+          generation: 1,
+        },
+        auction,
+      });
+      const claim = () => {
+        if (this.isCurrent(operation)) {
+          this.installCentral(address, session.getSnapshot(), false);
+        }
+      };
+      if (this.dependencies.locks) {
+        await this.dependencies.locks.request(CENTRAL_LOCK, claim);
+      } else {
+        claim();
+      }
+      session.close();
+    } catch (error) {
+      if (this.isCurrent(operation)) {
+        this.update({ error: messageOf(error), busy: false });
+      }
+    }
+  }
+
+  join(code: string, tableId?: string): void {
+    const parsed = biddingCodeSchema.safeParse(code.trim().toUpperCase());
+    if (!parsed.success || (tableId !== undefined && !z.uuid().safeParse(tableId).success)) {
+      this.update({ error: 'Enter the six-character table code shown on the central device.' });
+      return;
+    }
+    this.operation += 1;
+    this.abort?.abort();
+    const saved = this.readRemote();
+    this.stopCurrent();
+    this.address = { code: parsed.data, tableId };
+    this.copy =
+      saved && saved.address.code === parsed.data && saved.address.tableId === tableId
+        ? { snapshot: saved.snapshot, receivedAt: saved.receivedAt }
+        : null;
+    if (this.copy) {
+      this.address.tableId = this.copy.snapshot.tableId;
+    }
+    this.sequence = this.copy?.snapshot.commandSequences[this.device.id] ?? 0;
+    this.update({
+      role: 'remote',
+      deviceId: this.device.id,
+      snapshot: this.copy?.snapshot ?? null,
+      deadline: null,
+      connection: 'Connecting to the table',
+      connected: false,
+      pending: false,
+      feedback: [],
+      error: null,
+      receivedAt: this.copy?.receivedAt ?? null,
+      recovering: false,
+      busy: false,
+    });
+    this.writeText(LAST_ROLE_KEY, 'remote');
+    this.openLink('remote');
+    this.heartbeat = setInterval(() => {
+      if (this.dependencies.now() - this.lastAuthorityAt > REMOTE_SILENCE_MS) {
+        this.remoteUnavailable();
+      }
+    }, HEARTBEAT_MS);
+  }
+
+  /** Commands use the context visible when the control or microphone captured the action. */
+  act(action: BiddingAction, context: BiddingContext): void {
+    if (this.disposed) {
+      return;
+    }
+    if (this.state.role === 'central') {
+      if (!this.ensureLocalAuthority() || !this.session) {
+        this.feedback('This central connection is no longer active.');
+        return;
+      }
+      const result = this.session.dispatch(action, context);
+      this.feedback(result.reason);
+      if (result.accepted && action.type === 'resume') {
+        this.update({ recovering: false });
+      }
+      return;
+    }
+    const snapshot = this.state.snapshot;
+    if (this.state.role !== 'remote' || !snapshot || !this.state.connected) {
+      this.feedback('The central device is unavailable. Check the table before trying again.');
+      return;
+    }
+    if (this.pending) {
+      this.feedback('Wait for the table to answer your previous action.');
+      return;
+    }
+    const command = {
+      ...createBiddingCommand(snapshot, this.device.id, action, { sequence: ++this.sequence }),
+      ...context,
+    };
+    this.pending = { command, attempts: 0 };
+    this.update({ pending: true });
+    this.sendPending();
+  }
+
+  async promote(): Promise<void> {
+    const saved = this.copy;
+    if (this.state.role !== 'remote' || !saved) {
+      this.update({ error: 'No complete phone recovery copy is available.' });
+      return;
+    }
+    const operation = this.beginOperation();
+    /* Promotion leaves the old room before creating the new one; no late old command can follow it. */
+    this.stopCurrent();
+    this.update({ connected: false, connection: 'Creating the recovered table', pending: false, recovering: true });
+    try {
+      let address = await this.dependencies.createTable({ signal: this.abort?.signal });
+      if (address.code === saved.snapshot.code) {
+        address = await this.dependencies.createTable({ signal: this.abort?.signal });
+      }
+      if (!this.isCurrent(operation)) {
+        return;
+      }
+      const recovered = promoteSnapshot(saved.snapshot, address, this.dependencies.uuid());
+      const claim = () => {
+        if (this.isCurrent(operation)) {
+          this.installCentral(address, recovered, true, saved.receivedAt);
+        }
+      };
+      if (this.dependencies.locks) {
+        await this.dependencies.locks.request(CENTRAL_LOCK, claim);
+      } else {
+        claim();
+      }
+    } catch (error) {
+      if (this.isCurrent(operation)) {
+        this.update({ error: messageOf(error), busy: false });
+      }
+    }
+  }
+
+  setListening(enabled: boolean): void {
+    if (this.state.role !== 'central' || !this.ensureLocalAuthority() || !this.session) {
+      return;
+    }
+    this.listeningRequested = enabled;
+    if (!enabled) {
+      this.voice?.stop();
+      this.voiceContextKey = null;
+      this.update({ listening: false, voiceMessage: '' });
+      return;
+    }
+    const voice = this.getVoice();
+    const context = this.session.captureContext();
+    const key = contextKey(context);
+    this.voiceContextKey = key;
+    void voice.start(context, key).catch((error: unknown) => {
+      if (!this.disposed) {
+        this.update({ listening: false, voiceMessage: messageOf(error) });
+      }
+    });
+    this.updateVoiceContext();
+  }
+
+  setAnnouncements(enabled: boolean): void {
+    if (this.state.role !== 'central' || !this.ensureLocalAuthority() || !this.session) {
+      return;
+    }
+    this.update({ announcing: enabled });
+    this.getVoice().setAnnouncements(enabled);
+    if (enabled) {
+      this.announce();
+    }
+  }
+
+  showRecovery(): void {
+    this.recoveryRequested = true;
+    this.update({ recovering: true });
+  }
+  hideRecovery(): void {
+    this.recoveryRequested = false;
+    if (this.state.connected) {
+      this.update({ recovering: false });
+    }
+  }
+
+  dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+    this.interrupt();
+    this.disposed = true;
+    this.operation += 1;
+    this.abort?.abort();
+    this.stopCurrent();
+    this.listeners.clear();
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.visibilityChanged);
+      document.removeEventListener('freeze', this.interrupt);
+    }
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('pagehide', this.interrupt);
+      window.removeEventListener('storage', this.storageChanged);
+    }
+  }
+
+  private update(change: Partial<BiddingClientState>): void {
+    if (
+      this.disposed ||
+      Object.entries(change).every(([key, value]) => this.state[key as keyof BiddingClientState] === value)
+    ) {
+      return;
+    }
+    this.state = { ...this.state, ...change };
+    for (const listener of this.listeners) {
+      listener();
+    }
+  }
+
+  private feedback(line: string): void {
+    this.update({ feedback: [line, ...this.state.feedback].slice(0, 5) });
+  }
+
+  private beginOperation(): number {
+    this.abort?.abort();
+    this.abort = new AbortController();
+    this.update({ busy: true, error: null });
+    return ++this.operation;
+  }
+
+  private isCurrent(operation: number): boolean {
+    return !this.disposed && this.operation === operation;
+  }
+
+  private stopCurrent(): void {
+    this.run += 1;
+    clearTimeout(this.timer);
+    clearInterval(this.heartbeat);
+    this.timer = undefined;
+    this.heartbeat = undefined;
+    this.timerKey = null;
+    this.clearPending();
+    this.unsubscribeSession?.();
+    this.unsubscribeSession = undefined;
+    this.session?.close();
+    this.session = null;
+    this.link?.close();
+    this.link = null;
+    this.linkState = null;
+    this.voice?.dispose();
+    this.voice = null;
+    this.voiceContextKey = null;
+    this.listeningRequested = false;
+    this.lastAuthorityAt = 0;
+    this.lastSyncAt = -Infinity;
+    this.centralAddress = null;
+    this.update({ listening: false, announcing: false, voiceMessage: '', deadline: null });
+  }
+
+  private installCentral(
+    address: BiddingTableAddress,
+    snapshot: BiddingSnapshot,
+    recovering: boolean,
+    receivedAt: number | null = null
+  ): void {
+    this.stopCurrent();
+    this.address = { code: address.code, tableId: address.tableId };
+    this.centralAddress = address;
+    this.copy = null;
+    this.recoveryRequested = false;
+    this.session = new BiddingSession({
+      identity: {
+        tableId: snapshot.tableId,
+        code: snapshot.code,
+        centralInstanceId: snapshot.centralInstanceId,
+        generation: snapshot.generation,
+      },
+      auction: snapshot.auction,
+      assignments: snapshot.assignments,
+      revision: snapshot.revision,
+    });
+    this.update({
+      role: 'central',
+      deviceId: this.device.id,
+      snapshot: this.session.getSnapshot(),
+      deadline: null,
+      connection: 'Connecting phone remotes',
+      connected: true,
+      pending: false,
+      feedback: [],
+      error: null,
+      receivedAt,
+      recovering,
+      busy: false,
+    });
+    this.writeText(LAST_ROLE_KEY, 'central');
+    /* Callers hold CENTRAL_LOCK where browser locks are available; this write claims the selected table. */
+    this.write(CENTRAL_KEY, this.centralRecord());
+    this.unsubscribeSession = this.session.subscribe(() => this.centralChanged());
+    this.synchronizeTimer();
+    this.openLink('central');
+    this.heartbeat = setInterval(() => {
+      if (!this.ensureLocalAuthority() || !this.session) {
+        return;
+      }
+      if (this.dependencies.now() - this.lastSnapshotAt >= SNAPSHOT_MS) {
+        this.publish();
+      } else {
+        this.link?.send('remotes', this.alive());
+      }
+    }, HEARTBEAT_MS);
+  }
+
+  private openLink(role: 'central' | 'remote'): void {
+    if (!this.address) {
+      return;
+    }
+    const run = this.run;
+    this.link = this.dependencies.link({
+      address: this.address,
+      role,
+      device: this.device,
+      centralSecret: this.centralAddress?.centralSecret,
+      centralInstanceId: this.session?.getSnapshot().centralInstanceId,
+      generation: this.session?.getSnapshot().generation,
+      onState: (state) => {
+        if (this.run === run && !this.disposed) {
+          this.connectionChanged(state);
+        }
+      },
+      onMessage: (from, data) => {
+        if (this.run === run && !this.disposed) {
+          this.received(from, data);
+        }
+      },
+    });
+  }
+
+  private connectionChanged(state: BiddingLinkState): void {
+    const prior = this.linkState;
+    this.linkState = state;
+    if (state.tableId && this.address) {
+      this.address.tableId = state.tableId;
+    }
+    if (state.status === 'replaced' || state.status === 'refused') {
+      /* A displaced tab must not overwrite the replacement's persisted generation with its older copy. */
+      this.stopCurrent();
+      this.update({
+        connected: false,
+        listening: false,
+        announcing: false,
+        deadline: null,
+        connection: state.status === 'replaced' ? 'This connection was replaced' : 'Table connection refused',
+        error: state.reason || 'Reconnect deliberately to choose which device controls the table.',
+        recovering: this.state.role === 'remote' && this.copy !== null,
+      });
+      return;
+    }
+    if (this.state.role === 'central') {
+      const connection = state.direct.length
+        ? 'Direct phone connections'
+        : state.relay
+          ? 'Phone relay connected'
+          : 'Phone relay unavailable';
+      this.update({ connection, connected: this.session !== null });
+      if (state.relay || state.direct.length) {
+        const oldPeers = new Set(prior?.remotes ?? []);
+        for (const id of state.remotes) {
+          if (!oldPeers.has(id)) {
+            this.publish(id);
+          }
+        }
+        if (!prior?.relay && state.relay) {
+          this.publish();
+        }
+      }
+    } else {
+      const usable = state.central && (state.relay || state.direct.includes('central'));
+      const previouslyUsable = prior?.central && (prior.relay || prior.direct.includes('central'));
+      if (usable && !previouslyUsable) {
+        this.requestSync();
+      } else if (!usable) {
+        this.remoteUnavailable();
+      }
+      if (this.state.connected) {
+        this.update({
+          connection: state.direct.includes('central') ? 'Direct to the table' : 'Connected through the relay',
+        });
+      }
+    }
+  }
+
+  private centralChanged(): void {
+    if (!this.ensureLocalAuthority() || !this.session) {
+      return;
+    }
+    const before = this.state.snapshot;
+    const snapshot = this.session.getSnapshot();
+    this.update({ snapshot });
+    this.synchronizeTimer();
+    this.updateVoiceContext();
+    this.persistCentral();
+    this.publish();
+    if (
+      !before ||
+      before.auction.opportunity !== snapshot.auction.opportunity ||
+      before.auction.stage !== snapshot.auction.stage
+    ) {
+      this.announce();
+    }
+  }
+
+  private synchronizeTimer(): void {
+    const snapshot = this.session?.getSnapshot();
+    const key =
+      snapshot?.auction.stage === 'active' && snapshot.auction.seconds > 0
+        ? `${contextKey(biddingContextOf(snapshot))}/${snapshot.auction.seconds}`
+        : null;
+    if (key === this.timerKey) {
+      return;
+    }
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    this.timerKey = key;
+    if (!key || !snapshot) {
+      this.update({ deadline: null });
+      return;
+    }
+    const context = biddingContextOf(snapshot);
+    const deadline = this.dependencies.now() + snapshot.auction.seconds * 1000;
+    this.update({ deadline });
+    this.timer = setTimeout(() => {
+      if (!this.ensureLocalAuthority() || !this.session || this.timerKey !== key) {
+        return;
+      }
+      if (
+        this.dependencies.now() - deadline > TIMER_INTERRUPTION_MS ||
+        (typeof document !== 'undefined' && document.hidden)
+      ) {
+        this.interrupt();
+        this.feedback('The central device was interrupted. Check the table, then Resume.');
+      } else {
+        const result = this.session.dispatch({ type: 'pass' }, context);
+        if (result.accepted) {
+          this.feedback('The timer expired. This turn passed.');
+        }
+      }
+    }, snapshot.auction.seconds * 1000);
+  }
+
+  private publication(): BiddingPublication | null {
+    if (!this.session) {
+      return null;
+    }
+    return {
+      type: 'state',
+      snapshot: this.session.getSnapshot(),
+      deadline: this.state.deadline,
+      sentAt: this.dependencies.now(),
+    };
+  }
+
+  private alive(): z.infer<typeof aliveSchema> | null {
+    const snapshot = this.session?.getSnapshot();
+    return snapshot
+      ? {
+          type: 'alive',
+          tableId: snapshot.tableId,
+          centralInstanceId: snapshot.centralInstanceId,
+          generation: snapshot.generation,
+          revision: snapshot.revision,
+          deadline: this.state.deadline,
+          sentAt: this.dependencies.now(),
+        }
+      : null;
+  }
+
+  private publish(to = 'remotes'): void {
+    if (!this.ensureLocalAuthority()) {
+      return;
+    }
+    const publication = this.publication();
+    if (!publication) {
+      return;
+    }
+    this.link?.send(to, publication);
+    this.lastSnapshotAt = this.dependencies.now();
+  }
+
+  private received(from: string, data: unknown): void {
+    if (this.state.role === 'central' && this.session && from !== 'central') {
+      if (!this.ensureLocalAuthority() || !this.session) {
+        return;
+      }
+      if (syncSchema.safeParse(data).success) {
+        this.publish(from);
+        return;
+      }
+      const result = this.session.receive(from, data);
+      this.link?.send(from, result);
+      return;
+    }
+    if (this.state.role !== 'remote' || from !== 'central' || !this.address?.tableId) {
+      return;
+    }
+    const result = biddingResultSchema.safeParse(data);
+    if (result.success) {
+      this.receivedResult(result.data);
+      return;
+    }
+    const alive = aliveSchema.safeParse(data);
+    if (alive.success) {
+      const current = this.copy?.snapshot;
+      if (
+        !current ||
+        alive.data.tableId !== current.tableId ||
+        alive.data.centralInstanceId !== current.centralInstanceId ||
+        alive.data.generation !== current.generation ||
+        alive.data.revision > current.revision
+      ) {
+        this.requestSync();
+        return;
+      }
+      if (alive.data.revision < current.revision) {
+        return;
+      }
+      this.authorityPresent(alive.data.deadline, alive.data.sentAt);
+      return;
+    }
+    const received = acceptBiddingPublication(this.copy, data, this.address.tableId, this.dependencies.now());
+    if (
+      !received.accepted ||
+      !received.copy ||
+      !received.publication ||
+      received.copy.snapshot.code !== this.address.code
+    ) {
+      return;
+    }
+    const before = this.copy?.snapshot;
+    const snapshot = received.copy.snapshot;
+    const generationChanged =
+      before && (before.centralInstanceId !== snapshot.centralInstanceId || before.generation !== snapshot.generation);
+    if (generationChanged) {
+      if (this.pending) {
+        this.feedback('The table restored. The previous pending action was discarded.');
+      }
+      this.clearPending();
+      this.sequence = snapshot.commandSequences[this.device.id] ?? 0;
+    }
+    this.copy = received.copy;
+    this.sequence = Math.max(this.sequence, snapshot.commandSequences[this.device.id] ?? 0);
+    this.update({ snapshot, receivedAt: received.copy.receivedAt, error: null });
+    this.authorityPresent(received.publication.deadline, received.publication.sentAt);
+    if (received.changed) {
+      this.write(REMOTE_KEY, {
+        version: 1,
+        address: { code: snapshot.code, tableId: snapshot.tableId },
+        snapshot,
+        receivedAt: received.copy.receivedAt,
+      });
+    }
+    this.write(RECEIPT_KEY, {
+      tableId: snapshot.tableId,
+      centralInstanceId: snapshot.centralInstanceId,
+      revision: snapshot.revision,
+      receivedAt: received.copy.receivedAt,
+    });
+    if (before?.assignments[this.device.id] && !snapshot.assignments[this.device.id]) {
+      this.feedback('This faction is using another remote. Choose a faction to take control again.');
+    }
+    this.finishPending();
+  }
+
+  private authorityPresent(deadline: number | null, sentAt: number): void {
+    this.lastAuthorityAt = this.dependencies.now();
+    const localDeadline = deadline === null ? null : this.lastAuthorityAt + Math.max(0, deadline - sentAt);
+    const changedDeadline =
+      localDeadline === null || this.state.deadline === null || Math.abs(localDeadline - this.state.deadline) > 250;
+    this.update({
+      connected: true,
+      connection: this.linkState?.direct.includes('central') ? 'Direct to the table' : 'Connected through the relay',
+      ...(!this.recoveryRequested ? { recovering: false } : {}),
+      ...(changedDeadline ? { deadline: localDeadline } : {}),
+    });
+  }
+
+  private remoteUnavailable(): void {
+    if (this.state.role !== 'remote') {
+      return;
+    }
+    if (
+      this.linkState?.direct.includes('central') &&
+      this.dependencies.now() - this.lastAuthorityAt <= REMOTE_SILENCE_MS
+    ) {
+      return;
+    }
+    this.update({
+      connected: false,
+      deadline: null,
+      connection: this.copy ? 'Central device unavailable' : 'Waiting for the central device',
+      recovering: this.copy !== null,
+    });
+  }
+
+  private requestSync(): void {
+    if (this.dependencies.now() - this.lastSyncAt < 500) {
+      return;
+    }
+    this.lastSyncAt = this.dependencies.now();
+    this.link?.send('central', { type: 'sync' });
+  }
+
+  private sendPending(): void {
+    const pending = this.pending;
+    if (!pending) {
+      return;
+    }
+    pending.attempts += 1;
+    this.link?.send('central', pending.command);
+    if (this.pending !== pending) {
+      return;
+    }
+    pending.timer = setTimeout(() => {
+      if (this.pending !== pending) {
+        return;
+      }
+      if (pending.result) {
+        this.requestSync();
+        this.feedback('The table answered, but its new state has not arrived. Check the central display.');
+        this.clearPending();
+      } else if (pending.attempts < 2) {
+        this.sendPending();
+      } else {
+        this.feedback('No action result arrived. Check the table before trying again.');
+        this.clearPending();
+      }
+    }, COMMAND_WAIT_MS);
+  }
+
+  private receivedResult(result: BiddingResult): void {
+    if (!this.pending || this.pending.command.commandId !== result.commandId) {
+      return;
+    }
+    this.pending.result = result;
+    if (!result.accepted) {
+      this.feedback(result.reason);
+      this.clearPending();
+      this.requestSync();
+    } else {
+      this.finishPending();
+    }
+  }
+
+  private finishPending(): void {
+    const pending = this.pending;
+    if (!pending?.result || !this.copy || this.copy.snapshot.revision < pending.result.revision) {
+      return;
+    }
+    this.feedback(pending.result.reason);
+    this.clearPending();
+  }
+
+  private clearPending(): void {
+    if (this.pending) {
+      clearTimeout(this.pending.timer);
+    }
+    this.pending = null;
+    this.update({ pending: false });
+  }
+
+  private getVoice(): BiddingVoice<BiddingContext> {
+    if (this.voice) {
+      return this.voice;
+    }
+    const run = this.run;
+    this.voice = this.dependencies.voice({
+      onState: (state) => {
+        if (this.run !== run || this.disposed) {
+          return;
+        }
+        if (['off', 'interrupted', 'failed', 'unsupported'].includes(state.status)) {
+          this.listeningRequested = false;
+        }
+        this.update({
+          listening: state.status === 'listening' || state.status === 'loading',
+          voiceMessage: state.message ?? (state.status === 'listening' ? 'Listening for bidding commands' : ''),
+        });
+      },
+      onCommand: (command, context) => {
+        if (this.run !== run || this.disposed || !this.session) {
+          return;
+        }
+        this.voice?.cancelAnnouncement();
+        this.act(
+          command.type === 'raise'
+            ? { type: 'bid', amount: (this.session.getSnapshot().auction.high?.amount ?? 0) + 1 }
+            : command,
+          context
+        );
+      },
+    });
+    this.voice.setAnnouncements(this.state.announcing);
+    return this.voice;
+  }
+
+  private updateVoiceContext(): void {
+    if (!this.voice || !this.listeningRequested || !this.session) {
+      return;
+    }
+    const snapshot = this.session.getSnapshot();
+    const context = snapshot.auction.stage === 'active' ? biddingContextOf(snapshot) : null;
+    const key = context ? contextKey(context) : null;
+    if (key === this.voiceContextKey) {
+      return;
+    }
+    this.voiceContextKey = key;
+    this.voice.setContext(context, key);
+    this.voice.cancelAnnouncement();
+  }
+
+  private announce(): void {
+    if (!this.state.announcing || !this.session) {
+      return;
+    }
+    const auction = this.session.getSnapshot().auction;
+    const name = auction.seats.find((seat) => seat.id === auction.turn)?.name ?? '';
+    const text =
+      auction.stage === 'active'
+        ? `${name}, your turn. ${auction.high ? `Highest offer, ${auction.high.amount} spice.` : 'No offer yet.'}`
+        : auction.stage === 'paused'
+          ? 'The table is paused.'
+          : auction.stage === 'ready'
+            ? 'Card complete. The next card is ready.'
+            : auction.stage === 'over'
+              ? 'The phase is complete.'
+              : 'Set up the table.';
+    this.getVoice().announce(text);
+  }
+
+  private visibilityChanged = (): void => {
+    if (document.hidden) {
+      this.interrupt();
+    }
+  };
+
+  private interrupt = (): void => {
+    if (this.disposed || !this.ensureLocalAuthority() || !this.session) {
+      return;
+    }
+    this.setListening(false);
+    this.voice?.cancelAnnouncement();
+    if (this.session.getSnapshot().auction.stage !== 'paused') {
+      this.session.dispatch({ type: 'pause' });
+    }
+  };
+
+  private centralRecord(): SavedCentral | null {
+    return this.session && this.centralAddress
+      ? {
+          version: 1,
+          address: this.centralAddress,
+          device: this.device,
+          snapshot: this.session.getSnapshot(),
+        }
+      : null;
+  }
+
+  private displacedBy(saved: SavedOwnership | null, snapshot: BiddingSnapshot): boolean {
+    if (!saved) {
+      return false;
+    }
+    return (
+      saved.snapshot.tableId !== snapshot.tableId ||
+      saved.snapshot.generation > snapshot.generation ||
+      (saved.snapshot.generation === snapshot.generation &&
+        saved.snapshot.centralInstanceId !== snapshot.centralInstanceId)
+    );
+  }
+
+  private ensureLocalAuthority(): boolean {
+    const snapshot = this.session?.getSnapshot();
+    if (!snapshot) {
+      return false;
+    }
+    if (!this.displacedBy(this.read(CENTRAL_KEY, savedOwnershipSchema), snapshot)) {
+      return true;
+    }
+    this.stopCurrent();
+    this.update({
+      connected: false,
+      connection: 'Another tab controls the table',
+      error: 'This browser opened a newer central table. Reload to restore that table.',
+    });
+    return false;
+  }
+
+  private storageChanged = (event: StorageEvent): void => {
+    if (event.key === CENTRAL_KEY && this.session) {
+      this.ensureLocalAuthority();
+    }
+  };
+
+  private persistCentral(): void {
+    const record = this.centralRecord();
+    if (!record) {
+      return;
+    }
+    const save = () => {
+      const saved = this.read(CENTRAL_KEY, savedOwnershipSchema);
+      if (this.displacedBy(saved, record.snapshot)) {
+        this.ensureLocalAuthority();
+        return;
+      }
+      if (
+        saved?.snapshot.centralInstanceId === record.snapshot.centralInstanceId &&
+        saved.snapshot.revision >= record.snapshot.revision
+      ) {
+        return;
+      }
+      this.write(CENTRAL_KEY, record);
+    };
+    /* A queued save keeps its complete revision, but cannot overwrite a newer central claim while waiting. */
+    if (this.dependencies.locks) {
+      void this.dependencies.locks.request(CENTRAL_LOCK, save).catch(() => {
+        this.update({
+          storageError: 'The recovery copy could not be saved. Live play continues; keep another device connected.',
+        });
+      });
+    } else {
+      save();
+    }
+  }
+
+  private readRemote(): z.infer<typeof savedRemoteSchema> | null {
+    const saved = this.read(REMOTE_KEY, savedRemoteSchema);
+    if (!saved || saved.snapshot.tableId !== saved.address.tableId || saved.snapshot.code !== saved.address.code) {
+      return null;
+    }
+    const receipt = this.read(RECEIPT_KEY, receiptSchema);
+    if (
+      receipt &&
+      receipt.tableId === saved.snapshot.tableId &&
+      receipt.centralInstanceId === saved.snapshot.centralInstanceId &&
+      receipt.revision === saved.snapshot.revision
+    ) {
+      return { ...saved, receivedAt: receipt.receivedAt };
+    }
+    return saved;
+  }
+
+  private read<T>(key: string, schema: z.ZodType<T>): T | null {
+    const raw = this.readText(key);
+    if (!raw) {
+      return null;
+    }
+    try {
+      if (new TextEncoder().encode(raw).byteLength > BIDDING_SNAPSHOT_BYTES + 16_384) {
+        throw new Error('The saved table is too large.');
+      }
+      const result = schema.safeParse(JSON.parse(raw));
+      if (result.success) {
+        return result.data;
+      }
+      this.update({
+        storageError:
+          'A saved bidding copy is invalid. Live play is available, but that copy cannot restore the table.',
+      });
+    } catch {
+      this.update({ storageError: 'A saved bidding copy could not be read. Live play is still available.' });
+    }
+    return null;
+  }
+
+  private readText(key: string): string | null {
+    try {
+      if (!this.dependencies.storage) {
+        throw new Error('Storage unavailable');
+      }
+      return this.dependencies.storage.getItem(key);
+    } catch {
+      this.update({ storageError: 'Browser storage is unavailable. This device cannot keep a recovery copy.' });
+      return null;
+    }
+  }
+
+  private write(key: string, value: unknown): void {
+    this.writeText(key, JSON.stringify(value));
+  }
+
+  private writeText(key: string, value: string): void {
+    try {
+      if (!this.dependencies.storage) {
+        throw new Error('Storage unavailable');
+      }
+      this.dependencies.storage.setItem(key, value);
+    } catch {
+      this.update({
+        storageError: 'The recovery copy could not be saved. Live play continues; keep another device connected.',
+      });
+    }
+  }
+}

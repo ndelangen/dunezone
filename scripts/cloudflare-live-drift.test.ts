@@ -8,6 +8,7 @@ import { checkCloudflareLiveDrift } from './cloudflare-live-drift';
 const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
 const HOMEPAGE_NAMESPACE_ID = 'abcdef1234567890abcdef1234567890';
 const BUG_REPORT_NAMESPACE_ID = 'c'.repeat(32);
+const BIDDING_NAMESPACE_ID = 'b'.repeat(32);
 const WORKER = 'faction-sheet-asset-publisher';
 
 function envelope(result: unknown, resultInfo?: unknown, status = 200): Response {
@@ -30,6 +31,12 @@ function liveBindings() {
       type: 'ratelimit',
       namespace_id: '10960001',
       simple: { limit: 120, period: 10 },
+    },
+    {
+      name: 'BIDDING_CREATION_RATE_LIMIT',
+      type: 'ratelimit',
+      namespace_id: '28350001',
+      simple: { limit: 6, period: 60 },
     },
     {
       name: 'SOCIAL_RENDER_RATE_LIMIT',
@@ -103,6 +110,7 @@ function gameResponse(url: URL): Response {
       bindings: [
         { name: 'GAME_ROOMS', type: 'durable_object_namespace', namespace_id: ACCOUNT_ID },
         { name: 'HOMEPAGE_ROOMS', type: 'durable_object_namespace', namespace_id: HOMEPAGE_NAMESPACE_ID },
+        { name: 'BIDDING_TABLES', type: 'durable_object_namespace', namespace_id: BIDDING_NAMESPACE_ID },
         { name: 'BUG_REPORTS', type: 'durable_object_namespace', namespace_id: BUG_REPORT_NAMESPACE_ID },
         { name: 'BUG_REPORT_STATES', type: 'r2_bucket', bucket_name: 'dunezone-bug-report-states' },
         { name: 'CF_VERSION_METADATA', type: 'version_metadata' },
@@ -157,6 +165,7 @@ function liveFetcher(
         [
           { id: ACCOUNT_ID, class: 'GameRoom', script: 'dunezone-game', use_sqlite: true },
           { id: HOMEPAGE_NAMESPACE_ID, class: 'HomepageRoom', script: 'dunezone-game', use_sqlite: true },
+          { id: BIDDING_NAMESPACE_ID, class: 'BiddingTable', script: 'dunezone-game', use_sqlite: true },
           { id: BUG_REPORT_NAMESPACE_ID, class: 'BugReports', script: 'dunezone-game', use_sqlite: true },
         ],
         {
@@ -267,7 +276,7 @@ describe('Cloudflare live drift check', () => {
     ).resolves.toEqual({
       worker: WORKER,
       domainCount: 1,
-      bindingCount: 24,
+      bindingCount: 25,
       secretCount: 4,
       retiredSecrets: ['ASSET_PUBLISHER_CACHE_TOKEN_SECRET'],
       cronCount: 1,
@@ -278,7 +287,8 @@ describe('Cloudflare live drift check', () => {
         namespaceId: ACCOUNT_ID,
         homepageNamespaceId: HOMEPAGE_NAMESPACE_ID,
         bugReportNamespaceId: BUG_REPORT_NAMESPACE_ID,
-        bindingCount: 9,
+        biddingNamespaceId: BIDDING_NAMESPACE_ID,
+        bindingCount: 10,
       },
     });
     expect(live.requests).toHaveLength(18);

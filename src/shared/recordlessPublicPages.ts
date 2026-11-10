@@ -14,6 +14,7 @@ export const TOOL_PAGES: string[] = [
   '/tools/atreides-treachery-tracker',
   '/tools/spice-deck',
   '/tools/battle-wheel',
+  '/tools/bidding',
 ];
 
 /**

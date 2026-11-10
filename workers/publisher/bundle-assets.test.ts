@@ -53,6 +53,21 @@ describe('hashed bundle files', () => {
     expect(response?.headers.get('Content-Type')).not.toContain('text/html');
   });
 
+  test('grants WASM only to the stored bidding voice worker', async () => {
+    const policy = "default-src 'self'; script-src 'self'";
+    const fetcher = assets(
+      new Response('export {}', { headers: { 'Content-Type': 'text/javascript', 'Content-Security-Policy': policy } })
+    );
+    const worker = await get('/public/biddingVoice_worker-abcdef.js', fetcher);
+    expect(worker?.headers.get('Content-Security-Policy')).toBe(
+      "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; object-src 'none'"
+    );
+    const ordinary = await get('/public/route-abcdef.js', fetcher);
+    expect(ordinary?.headers.get('Content-Security-Policy')).toBe(policy);
+    const similar = await get('/public/biddingVoice_worker-abcdef.js/other', fetcher);
+    expect(similar?.headers.get('Content-Security-Policy')).toBe(policy);
+  });
+
   test('never stores a failed asset read', async () => {
     const response = await get('/public/glossary-CMtIjJrP.js', assets(new Response('bad gateway', { status: 502 })));
     expect(response?.status).toBe(404);
