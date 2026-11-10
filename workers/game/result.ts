@@ -143,3 +143,21 @@ function requireOpener(snapshot: StoredSnapshot, viewer: Viewer) {
     throw new GameRejection('Only the player determining the winner can do that.');
   }
 }
+
+/*
+ * A recall pauses the table's clocks with it, so a timed bid or battle countdown resumes with the time it had left.
+ * A finished game's clocks already stand still until it continues, which moves them on by the whole time it stood finished,
+ * so a recall closing then moves nothing: shifting both would count the recall twice.
+ */
+export function clocksAfterRecall<Snapshot extends StoredSnapshot>(next: Snapshot, paused: number): Snapshot {
+  if (next.stage === 'finished') {
+    return next;
+  }
+  const battle = next.battleState;
+  const bidding = next.bidding;
+  return {
+    ...next,
+    ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
+    ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
+  };
+}

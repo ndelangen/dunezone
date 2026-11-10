@@ -77,7 +77,7 @@ import { ownRequests, Participation } from './participation';
 import { revealPlacedPredictions } from './predictionCards';
 import { PublicActions } from './publicActions';
 import { RemovalVotes } from './removal';
-import { applyResult, settleEnding } from './result';
+import { applyResult, clocksAfterRecall, settleEnding } from './result';
 import { TableReviews } from './review';
 import type { ReviewCommand } from './review';
 import { Room } from './room';
@@ -649,14 +649,7 @@ export class GameSession {
     if (!reviewRunning(running) || this.reviews.running()) {
       return next;
     }
-    const paused = now - running.startedAt;
-    const battle = next.battleState;
-    const bidding = next.bidding;
-    return {
-      ...next,
-      ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
-      ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
-    };
+    return clocksAfterRecall(next, now - running.startedAt);
   }
 
   /*

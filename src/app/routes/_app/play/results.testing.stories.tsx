@@ -309,12 +309,18 @@ export const ReplayRefusal = meta.story({
   },
 });
 
+/* The game menu, opened once the table has loaded. */
+async function openedGameMenu(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+  return page;
+}
+
 /* The finished hold of the last player ends the game rather than leaving it. */
 export const LastPlayerHoldsToEndTheGame = meta.story({
   beforeEach: install(() => productTransport('seat-2', lastPlayerSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    const page = await openedGameMenu(canvasElement);
     const end = await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to end the game' }));
     await completeHold(end);
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'result-end' }), { timeout: 10_000 });
@@ -325,8 +331,7 @@ export const LastPlayerHoldsToEndTheGame = meta.story({
 export const LastPlayerLeavesTheEndedGame = meta.story({
   beforeEach: install(() => productTransport('seat-2', endedSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    const page = await openedGameMenu(canvasElement);
     await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' }));
     await expect(page.queryByRole('menuitem', { name: /end the game|discard the game/ })).toBeNull();
   },
@@ -336,8 +341,7 @@ export const LastPlayerLeavesTheEndedGame = meta.story({
 export const LastPlayerEndsThenLeaves = meta.story({
   beforeEach: install(() => productTransport('seat-2', lastPlayerSnapshot('seat-2'))),
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    const page = await openedGameMenu(canvasElement);
     await completeHold(await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to end the game' })));
     await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'result-end' }), { timeout: 10_000 });
     const ended = endedSnapshot('seat-2');

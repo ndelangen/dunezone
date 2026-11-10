@@ -84,8 +84,8 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect(required(next).deadline).toBeGreaterThan(required(deadline));
   });
 
-  /* A game in play with a raised timed bid, then a review the second player agrees to, which pauses the bid clock. */
-  async function timedBidUnderReview() {
+  /* A game in play, with two players, where the first has raised a timed bid. */
+  async function timedBidInPlay() {
     const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
     await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
       JSON.stringify({ ...readSnapshot(rows[0].data), stage: 'play' }),
@@ -100,6 +100,12 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     );
     const raised = await accepted(a, { kind: 'bid-raise' as const, round });
     const deadline = required(required(raised.snapshot.bidding).deadline);
+    return { a, b, faction, raised, deadline };
+  }
+
+  /* A game in play with a raised timed bid, then a review the second player agrees to, which pauses the bid clock. */
+  async function timedBidUnderReview() {
+    const { a, b, faction, raised, deadline } = await timedBidInPlay();
     const left = deadline - required(raised.serverNow);
     const step = required(required((await syncView(a)).snapshot.reviewCheckpoints).at(-1)).step;
     const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
@@ -128,20 +134,7 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
   });
 
   it('holds a timed bid while its last player has ended the game, then resumes it with the time it had left', async () => {
-    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
-    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
-      JSON.stringify({ ...readSnapshot(rows[0].data), stage: 'play' }),
-    ]);
-    await runtime.restart();
-    const a = await admitPlayer(runtime, 'a');
-    const b = await admitPlayer(runtime, 'b');
-    const faction = required((await syncView(a)).snapshot.bank).factionId;
-    await accepted(a, { kind: 'bid-timing' as const, enabled: true });
-    const { round } = required(
-      (await accepted(a, { kind: 'bid-start' as const, factionId: faction })).snapshot.bidding
-    );
-    const raised = await accepted(a, { kind: 'bid-raise' as const, round });
-    const deadline = required(required(raised.snapshot.bidding).deadline);
+    const { a, b, faction, deadline } = await timedBidInPlay();
     await accepted(b, { kind: 'seat-depart' as const });
     const ended = await accepted(a, { kind: 'result-end' as const });
     expect(ended.snapshot.stage).toBe('finished');
@@ -160,6 +153,25 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect(resumed - required(continued.serverNow)).toBeGreaterThan(left - 1000);
     expect(required(continued.snapshot.bidding).turn).toBe(faction);
     expect((await runtime.alarm()).scheduledAt).toBe(resumed);
+  });
+
+  it('counts a recall during an ended game once, so the bid still resumes with the time it had left', async () => {
+    const { a, b, faction, deadline } = await timedBidInPlay();
+    await accepted(b, { kind: 'seat-depart' as const });
+    const ended = await accepted(a, { kind: 'result-end' as const });
+    const left = deadline - required(ended.serverNow);
+    /* A finished game recalls without a vote; the recall runs a minute, then closes. */
+    const step = required(required(ended.snapshot.reviewCheckpoints).at(-1)).step;
+    const review = required((await accepted(a, { kind: 'review-propose' as const, step })).snapshot.review);
+    expect(review.startedAt).not.toBeNull();
+    await runtime.clock(deadline - Date.now() + 60_000);
+    const closed = await accepted(a, { kind: 'review-end' as const, reviewId: review.id });
+    expect(required(closed.snapshot.bidding)).toMatchObject({ turn: faction, deadline });
+
+    const continued = await accepted(a, { kind: 'result-continue' as const });
+    const resumed = required(required(continued.snapshot.bidding).deadline);
+    expect(resumed - required(continued.serverNow)).toBeLessThanOrEqual(left + 50);
+    expect(resumed - required(continued.serverNow)).toBeGreaterThan(left - 1000);
   });
 
   it('re-arms the bid clock when the proposer of a running review deletes their account', async () => {
