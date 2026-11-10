@@ -343,21 +343,28 @@ export async function installHomepageArtwork(context: BrowserContext) {
   }
 }
 
-/* Hold saved sign-in and the first recovery reply without reordering Convex messages. */
+/* Hold saved sign-in, the first refusal and its recovery reply without reordering Convex messages. */
 async function prepareHandlingRecovery(context: BrowserContext, backendSocketOrigin: string) {
   let sessionReleased = false;
-  const admission: { refused: boolean; releaseSession: (() => void) | null; releaseHandling: (() => void) | null } = {
+  const admission: {
+    refused: boolean;
+    releaseSession: (() => void) | null;
+    releaseRefusal: (() => void) | null;
+    releaseHandling: (() => void) | null;
+  } = {
     refused: false,
     releaseSession: null,
+    releaseRefusal: null,
     releaseHandling: null,
   };
   let handlingReleased = false;
-  /* Let the board paint while the saved sign-in is still resolving. */
+  /* Keep account access pending until the driver releases the saved sign-in replies. */
   await context.routeWebSocket(
     (url) => url.origin === backendSocketOrigin,
     (socket) => {
       const server = socket.connectToServer();
       const waiting: (string | Buffer)[] = [];
+      const refusalWaiting: (string | Buffer)[] = [];
       const handlingWaiting: (string | Buffer)[] = [];
       const ticketRequests = new Set<number>();
       socket.onMessage((message) => {
@@ -368,6 +375,10 @@ async function prepareHandlingRecovery(context: BrowserContext, backendSocketOri
         server.send(message);
       });
       server.onMessage((message) => {
+        if (admission.releaseRefusal && !admission.refused) {
+          refusalWaiting.push(message);
+          return;
+        }
         if (admission.releaseHandling && !handlingReleased) {
           handlingWaiting.push(message);
           return;
@@ -388,8 +399,15 @@ async function prepareHandlingRecovery(context: BrowserContext, backendSocketOri
           return;
         }
         if (issuedTicket && !admission.refused) {
-          admission.refused = true;
-          message = JSON.stringify({ ...reply, result: null });
+          refusalWaiting.push(JSON.stringify({ ...reply, result: null }));
+          admission.releaseRefusal = () => {
+            admission.refused = true;
+            for (const held of refusalWaiting) {
+              socket.send(held);
+            }
+            refusalWaiting.length = 0;
+          };
+          return;
         }
         if (sessionReleased) {
           socket.send(message);
@@ -462,6 +480,21 @@ export async function verifyHomepage({
   let initialCanvas;
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
+    if (who === member) {
+      const access = who.page.getByText('Checking account access…', { exact: true });
+      await access.waitFor();
+      const releaseSession = await until(
+        () => admission.releaseSession,
+        'Saved sign-in did not open its held Convex connection.'
+      );
+      assert.equal(await who.page.locator('#play-preview canvas').count(), 0);
+      assert.equal(who.sockets.length, 0, 'The homepage opened a socket before account access resolved.');
+      assert.equal(who.admission.tickets.length, 0, 'The homepage requested handling before account access resolved.');
+      await capture(member, 'homepage-account-access-pending');
+      releaseSession();
+      await access.waitFor({ state: 'hidden' });
+      passed('Saved account access resolves before the signed-in homepage opens');
+    }
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
     await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
     if (who === member) {
@@ -472,7 +505,6 @@ export async function verifyHomepage({
       assert.equal(await who.page.locator('#play-preview img:not([data-table-hand] img)').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
-      assert.ok(admission.releaseSession);
       const continuity = await who.page
         .locator('#play-preview [data-live-ready="true"]')
         .evaluateHandle((region: Element) => {
@@ -488,9 +520,8 @@ export async function verifyHomepage({
             },
           };
         });
-      await capture(member, 'homepage-before-saved-signin-resolves');
-      admission.releaseSession();
-      await until(() => admission.refused, 'The first handling request was not refused.');
+      await until(() => admission.releaseRefusal, 'The first handling request did not reach its held refusal.');
+      required(admission.releaseRefusal, 'handling refusal release')();
       await who.page.getByText('Connecting the pieces…', { exact: true }).waitFor();
       await who.page.locator('[data-table-handling="false"]').waitFor();
       assert.equal(
@@ -509,17 +540,20 @@ export async function verifyHomepage({
       await until(() => {
         const view = who.view();
         return view && view.viewer.viewerSeat !== spectator;
-      }, 'Saved sign-in did not grant handling.');
+      }, 'The recovered handling ticket did not grant handling.');
       await who.page.locator('[data-table-handling="true"]').waitFor();
       await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
       assert.equal(
         await initialCanvas.evaluate((canvas: Element) => canvas === document.querySelector('#play-preview canvas')),
         true,
-        'Resolving the saved sign-in replaced the visible canvas.'
+        'Recovering handling replaced the visible canvas.'
       );
-      assert.equal(await continuity.evaluate((probe) => probe.finish()), false, 'Saved sign-in hid the painted board.');
+      assert.equal(
+        await continuity.evaluate((probe) => probe.finish()),
+        false,
+        'Handling recovery hid the painted board.'
+      );
       await continuity.dispose();
-      passed('Saved sign-in resolves after the board appears without replacing its canvas');
       passed('A refused handling request recovers on the visible canvas without an overlay or remount');
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();
