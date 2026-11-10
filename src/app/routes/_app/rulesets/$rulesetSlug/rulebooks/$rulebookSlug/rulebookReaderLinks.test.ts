@@ -38,7 +38,7 @@ const boards = {
   },
 };
 
-type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema.out>;
+type RulebookContentsDraft = z.input<typeof rulebookContentsV1Schema>;
 
 function resolveFinalPageSelection(page: RulebookContentsDraft['pagesById'][string], exact: string, pageNumber = 1) {
   const cover = {

@@ -2,7 +2,6 @@ import { zodToConvex } from 'convex-helpers/server/zod4';
 import { ConvexError, v } from 'convex/values';
 import type { ObjectType } from 'convex/values';
 
-import { renameLegacyEmblems } from '../src/shared/legacyEmblem';
 import {
   createRulebookLocalId,
   RULEBOOK_CATALOGUE_VERSION,
@@ -139,8 +138,7 @@ function parseContents(contents: unknown) {
 }
 
 function parseEditionContents(contents: unknown) {
-  /* An Edition the emblem rename has not reached yet names its old paths (see src/shared/legacyEmblem.ts). */
-  const parsed = rulebookEditionContentsV1Schema.safeParse(renameLegacyEmblems(contents));
+  const parsed = rulebookEditionContentsV1Schema.safeParse(contents);
   if (!parsed.success) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(' ') || 'Invalid Rulebook Edition Contents');
   }
