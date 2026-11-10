@@ -1059,19 +1059,12 @@ function BiddingScreen({
         </Group>
       </div>
       {canChangePhase && (
-        <Stack gap="xs">
-          <CountControl
-            label="Cards this phase"
-            title="Cards"
-            value={state.cards}
-            onChange={(value) => configureCount('cards', value)}
-          />
-          <Text size="xs" c="dimmed">
-            {manual
-              ? `Suggested: ${state.seats.length}, one per faction.`
-              : `Suggested: ${state.seats.filter((seat) => !seat.full).length}, one per non-full faction.`}
-          </Text>
-        </Stack>
+        <CountControl
+          label="Number of cards"
+          title="Number of cards"
+          value={state.cards}
+          onChange={(value) => configureCount('cards', value)}
+        />
       )}
       <div className={styles.tableBarActions}>
         {!manual && (

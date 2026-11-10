@@ -9,8 +9,11 @@ export const DISCORD_DAY = 24 * 60 * 60_000;
 export const DISCORD_BATCH = 32;
 export const DISCORD_CREATOR_LIMIT = 3;
 export const DISCORD_RETRY = 15 * 60_000;
-/* Longer than Convex's ten-minute action lifetime and the transport timeout, so a replacement never overlaps a live owner. */
-export const DISCORD_LEASE = 11 * 60_000;
+/*
+ * Longer than Convex's 30-minute default-runtime action limit plus the 15-second transport timeout.
+ * See https://docs.convex.dev/production/state/limits#execution-time-and-scheduling.
+ */
+export const DISCORD_LEASE = 31 * 60_000;
 
 export async function discordChannel(ctx: QueryCtx, gameId: Id<'play_games'>) {
   return await ctx.db

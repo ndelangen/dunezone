@@ -175,16 +175,16 @@ test('the tablet completes a phase with phones and listening unused', async ({ n
     await choose(page, 'Bid timer', 'Off');
     await expect(setup(page)).toContainText('Arrange the factions to match storm order around the board.');
     await expect(setup(page).getByRole('button', { name: 'Hand controls', exact: true })).toHaveCount(0);
-    await expect(setup(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveCount(0);
+    await expect(setup(page).getByRole('textbox', { name: 'Number of cards', exact: true })).toHaveCount(0);
     await expect(setup(page).getByRole('img', { name: 'Scan to join this table', exact: true })).toBeVisible();
     await expect(setup(page).getByRole('switch', { name: 'Show hand limits', exact: true })).not.toBeChecked();
     await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
     await expect(setup(page)).toBeHidden();
-    await fillNumber(near(page), 'Cards this phase', 1);
-    await far(page).getByRole('button', { name: 'More: Cards this phase', exact: true }).click();
-    await expect(near(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveValue('2');
-    await near(page).getByRole('button', { name: 'Fewer: Cards this phase', exact: true }).click();
-    await expect(far(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveValue('1');
+    await fillNumber(near(page), 'Number of cards', 1);
+    await far(page).getByRole('button', { name: 'More: Number of cards', exact: true }).click();
+    await expect(near(page).getByRole('textbox', { name: 'Number of cards', exact: true })).toHaveValue('2');
+    await near(page).getByRole('button', { name: 'Fewer: Number of cards', exact: true }).click();
+    await expect(far(page).getByRole('textbox', { name: 'Number of cards', exact: true })).toHaveValue('1');
     for (const width of [540, 500]) {
       await page.setViewportSize({ width, height: 900 });
       for (const bar of [near(page), far(page)]) {
@@ -238,7 +238,7 @@ test('the tablet completes a phase with phones and listening unused', async ({ n
     );
     await tablet(page).getByRole('button', { name: 'Atreides, 2 cards', exact: true }).click();
     await near(page).getByRole('button', { name: 'Start new bid', exact: true }).click();
-    await expect(tablet(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveCount(0);
+    await expect(tablet(page).getByRole('textbox', { name: 'Number of cards', exact: true })).toHaveCount(0);
     await near(page).getByRole('button', { name: 'Bid', exact: true }).click();
     await fillNumber(page.getByRole('dialog'), 'Tablet bid amount', 3);
     await page.getByRole('dialog').getByRole('button', { name: 'Bid 3', exact: true }).click();
@@ -362,7 +362,7 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
       await expect(setup(page)).toBeHidden();
       await expect(tablet(page)).toBeVisible();
-      await fillNumber(near(page), 'Cards this phase', 2);
+      await fillNumber(near(page), 'Number of cards', 2);
       await expect(phone(remote.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
       await expect(phone(remote.page).getByRole('textbox', { name: 'Atreides hand count', exact: true })).toBeVisible();
     });
@@ -480,7 +480,7 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await tableMenu(remote.page, 'Phase settings');
       await choose(remote.page, 'Bid timer', '5 seconds');
       await closeDialog(remote.page);
-      await fillNumber(near(remote.page), 'Cards this phase', 1);
+      await fillNumber(near(remote.page), 'Number of cards', 1);
       await phone(secondRemote.page)
         .getByRole('button', { name: 'Choose Harkonnen as first bidder', exact: true })
         .click();
@@ -620,7 +620,7 @@ test('a moderator controls every faction, transfers control and restores manual 
       await join(moderator.page, runtime.origin, code, true);
       await join(player.page, runtime.origin, code, true, 'Harkonnen');
       await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
-      await fillNumber(near(page), 'Cards this phase', 2);
+      await fillNumber(near(page), 'Number of cards', 2);
       await fillNumber(phone(moderator.page), 'Atreides hand count', 4);
       await expect(phone(moderator.page).getByRole('switch', { name: 'Atreides Full', exact: true })).toBeChecked();
       await setHandSwitch(moderator.page, 'Always pass', true);
