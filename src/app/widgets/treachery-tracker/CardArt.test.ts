@@ -21,6 +21,7 @@ test.each([1, 2, 3])('at a device pixel ratio of %i, everything drawn comes from
     expect(fetched).toContain(faceAt(face, width));
   }
   expect(fetched.length).toBeLessThanOrEqual(2);
+  expect(fetched).not.toContain(face);
 });
 
 test('a glyph draws from a resized copy, never the full capture', () => {

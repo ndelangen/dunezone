@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { MantineProvider } from '@mantine/core';
-import { render } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import { appContentTheme } from '@ui/theme';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test';
 
@@ -56,10 +56,14 @@ describe('AssetPicker', () => {
     expect(onPick.mock.calls[0]?.[0]).toMatchObject({ id: 'card-2', name: 'Crysknife' });
   });
 
-  it('highlights nothing before the reader types', () => {
+  it.each([[undefined], ['']])('highlights nothing before the reader types, or once they clear it (%j)', (cleared) => {
     const onPick = vi.fn();
     const view = renderPicker(onPick);
-    searchAndEnter(view.getByRole('searchbox', { name: 'Search cards' }));
+    const search = view.getByRole('searchbox', { name: 'Search cards' });
+    if (cleared !== undefined) {
+      fireEvent.change(search, { target: { value: 'crys' } });
+    }
+    searchAndEnter(search, cleared);
     expect(onPick).not.toHaveBeenCalled();
   });
 });

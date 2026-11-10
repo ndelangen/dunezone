@@ -99,14 +99,17 @@ export function AssetPicker({
   /*
    * Each search highlights its first row, so Enter after typing picks the best match.
    * After the filtered list renders, not in onChange: highlighting there marks a row of the list still on screen, which may be filtered out or sorted down.
-   * The method is taken off the store, which is a fresh object every render, so a live catalogue update does not move the reader's highlight.
+   * Clearing the search clears the highlight, as before the reader typed.
+   * The methods are taken off the store, which is a fresh object every render, so a live catalogue update does not move the reader's highlight.
    */
-  const { selectFirstOption } = combobox;
+  const { selectFirstOption, resetSelectedOption } = combobox;
   useEffect(() => {
-    if (typed !== null) {
+    if (typed) {
       selectFirstOption();
+    } else if (typed === '') {
+      resetSelectedOption();
     }
-  }, [selectFirstOption, typed]);
+  }, [selectFirstOption, resetSelectedOption, typed]);
 
   const availableRows = useMemo(() => {
     /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set alone never hits. */

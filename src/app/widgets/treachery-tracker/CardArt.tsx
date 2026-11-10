@@ -25,10 +25,14 @@ const SMALL_FACE_PX = 84;
 /** The widest whole card: the held peek. Anything wider than the small copy draws from this one. */
 const LARGE_FACE_PX = 240;
 
+/** The largest resized copy the publisher serves; denser screens draw from it rather than the full capture. */
+const LARGEST_COPY_PX = 640;
+
 /** A card's face as the copy a drawing `width` CSS pixels wide uses, so a 36 px glyph never downloads the full capture. */
 export function faceAt(face: string, width: number): string {
   const ratio = typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1;
-  return publishedThumbnailSrc(face, (width <= SMALL_FACE_PX ? SMALL_FACE_PX : LARGE_FACE_PX) * ratio);
+  const pixels = (width <= SMALL_FACE_PX ? SMALL_FACE_PX : LARGE_FACE_PX) * ratio;
+  return publishedThumbnailSrc(face, Math.min(pixels, LARGEST_COPY_PX));
 }
 
 /** Every copy of a face the tracker draws, which is what fetching its pictures ahead means. */

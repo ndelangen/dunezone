@@ -33,15 +33,18 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
    * Each search highlights its first row once that search's results are on screen, so Enter picks the best match.
    * Not in onChange: the results arrive from the server afterwards, and highlighting then marks a row of the previous search.
    * Keyed on the search rather than the rows, so loading more leaves the highlight where the reader moved it.
-   * The method is taken off the store, which is a fresh object every render.
+   * Clearing the search clears the highlight, as before the reader typed.
+   * The methods are taken off the store, which is a fresh object every render.
    */
   const listed = picker.status === 'LoadingFirstPage' ? null : search;
-  const { selectFirstOption } = combobox;
+  const { selectFirstOption, resetSelectedOption } = combobox;
   useEffect(() => {
     if (listed) {
       selectFirstOption();
+    } else if (listed === '') {
+      resetSelectedOption();
     }
-  }, [selectFirstOption, listed]);
+  }, [selectFirstOption, resetSelectedOption, listed]);
   const selected = selectedUserId ? rowsById.get(selectedUserId) : undefined;
   /* Only an unsearched list speaks for everyone; a search that matches nobody keeps its field so the reader can change it. */
   const unsearched = search.trim() === '';

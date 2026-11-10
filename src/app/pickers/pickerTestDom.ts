@@ -2,9 +2,9 @@ import { cleanup, fireEvent } from '@testing-library/react';
 import { vi } from 'vite-plus/test';
 
 class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
 }
 
 /** Gives jsdom the browser parts a Mantine combobox reaches for. Call it in beforeEach. */
