@@ -37,6 +37,7 @@ import {
   serverMessageSchema,
   serverClockSchema,
 } from '../../src/shared/play/protocol.ts';
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol.ts';
 import type { ServerMessage, ClientMessage, PieceAction, ServerClock } from '../../src/shared/play/protocol.ts';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
 import { PLAY_SEAT_PASS_TTL_MS, signSeatPass } from '../../src/shared/play/seatPass';
@@ -144,6 +145,8 @@ export interface NativeConnection {
   socket: NonNullable<Awaited<ReturnType<Miniflare['dispatchFetch']>>['webSocket']>;
   messages: NativeMessage[];
   unapplied: Extract<NativeMessage, { type: 'update' }>[];
+  /* Frames the room sends on purpose outside the protocol, which only a page from before them fails to read. */
+  outsideProtocol: unknown[];
   keepalives: number;
   closed: boolean;
   closeCode: number | null;
@@ -665,6 +668,7 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
     socket,
     messages: [],
     unapplied: [],
+    outsideProtocol: [],
     keepalives: 0,
     closed: false,
     closeCode: null,
@@ -696,6 +700,11 @@ export async function openGame(runtime: NativeRuntime, path = `/__play/games/${g
       return;
     }
     const raw: unknown = JSON.parse(event.data);
+    if ((raw as { type?: unknown }).type === 'outdated-page') {
+      connection.outsideProtocol.push(raw);
+      wake();
+      return;
+    }
     serverMessageSchema.parse(raw);
     optionalClockSchema.parse(raw);
     // Keep the original frame, including unexpected fields that privacy assertions must observe.
@@ -747,7 +756,7 @@ export function fixturePass(suffix: string, overrides: Partial<SeatPassPayload> 
 /** Admits the suffix's synthetic account with a seat pass and waits for the first view. */
 export async function admitPlayer(runtime: NativeRuntime, suffix: string, overrides: Partial<SeatPassPayload> = {}) {
   const connection = await openGame(runtime);
-  connection.send({ type: 'admit', pass: await fixturePass(suffix, overrides) });
+  connection.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass(suffix, overrides) });
   await connection.message('view');
   return connection;
 }

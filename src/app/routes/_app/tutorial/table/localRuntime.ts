@@ -4,8 +4,9 @@ import { clientMessageSchema, KEEPALIVE_PING, KEEPALIVE_PONG } from '@shared/pla
 import type { ServerMessage } from '@shared/play/protocol';
 import { GameRejection } from '@shared/play/rejection';
 
-import { browserGameRuntime } from '../../play/multiplayer/gameRuntime';
-import type { GameRuntime, GameSocket } from '../../play/multiplayer/gameRuntime';
+import { browserGameRuntime } from '@db/tabletop/gameRuntime';
+import type { GameRuntime, GameSocket } from '@db/tabletop/gameRuntime';
+
 import { LocalConversations } from './localConversations';
 import type { LocalTable, TableMessage } from './localTable';
 

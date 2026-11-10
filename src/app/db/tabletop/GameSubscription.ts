@@ -5,7 +5,9 @@ import {
   KEEPALIVE_INTERVAL_MS,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
+  OUTDATED_PAGE_CLOSE_CODE,
   PASS_EXPIRED_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
   RATE_LIMITED_CLOSE_CODE,
   serverClockSchema,
   serverMessageSchema,
@@ -24,6 +26,8 @@ import type { GameRuntime, GameSocket } from './gameRuntime';
 import { TableTelemetry, TELEMETRY_REPORT_MS } from './tableTelemetry';
 
 const UNREACHABLE = 'The table could not be reached. Reconnecting...';
+/* A page older than the game Worker: it was told so by the Worker, or found a message it cannot read. */
+const OUTDATED_PAGE = 'This table needs a newer version of the page. Refresh to continue.';
 /* Renewal retries after a refused or failed attempt, doubling from a second, about a minute in all. */
 const PASS_RENEWAL_ATTEMPTS = 6;
 /* How long an admission request still on the wire is waited on by the next attempt rather than asked again. */
@@ -400,6 +404,7 @@ export class GameSubscription {
       this.retryReason = null;
       const admit: ClientMessage = {
         type: 'admit',
+        protocol: PLAY_PROTOCOL_VERSION,
         pass,
         ...(this.connectionId ? { replaces: this.connectionId } : {}),
       };
@@ -424,6 +429,10 @@ export class GameSubscription {
       }
       if (event.code === ADMISSION_REFUSED_CLOSE_CODE) {
         this.changeStatus('denied', 'This login can no longer access the table.');
+        return;
+      }
+      if (event.code === OUTDATED_PAGE_CLOSE_CODE) {
+        this.changeStatus('denied', OUTDATED_PAGE);
         return;
       }
       const delay = event.code === RATE_LIMITED_CLOSE_CODE ? 5000 : 1000;
@@ -464,7 +473,7 @@ export class GameSubscription {
         }
       }
     } catch {
-      this.changeStatus('denied', 'This table needs a newer version of the page. Refresh to continue.');
+      this.changeStatus('denied', OUTDATED_PAGE);
       socket.close();
       return;
     }
