@@ -9,7 +9,6 @@ export const playRateLimiter = new RateLimiter(components.rateLimiter, {
   playPassPerAccount: { kind: 'token bucket', rate: 30, period: MINUTE, capacity: 10 },
   playPassGlobal: { kind: 'token bucket', rate: 600, period: MINUTE, capacity: 100 },
   playProvisionValidation: { kind: 'token bucket', rate: 60, period: MINUTE, capacity: 20 },
-  discordChannelCreateGlobal: { kind: 'token bucket', rate: 30, period: HOUR, capacity: 30 },
   playNudgePerSeat: { kind: 'token bucket', rate: 1, period: 5 * MINUTE, capacity: 1 },
   /* Creation is open to every signed-in player, so each game row and its provisioning are budgeted per account. */
   playCreatePerAccount: { kind: 'token bucket', rate: 10, period: HOUR, capacity: 3 },

@@ -3,7 +3,9 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { DISCORD_LEASE } from './lib/playDiscord';
+import { playPerson, playRuleset, playTest } from './play.test.fixture';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 beforeEach(() => {
@@ -162,4 +164,70 @@ test('an invite failure retries the invite without recreating its channel', asyn
     1
   );
   expect(await world.menu()).toMatchObject({ voice: { url: 'https://discord.gg/shared-room' } });
+});
+
+async function creatorWithThreeGames() {
+  const t = playTest();
+  const { user, gameIds, rulesetId } = await t.run(async (ctx) => {
+    const user = await playPerson(ctx, 'Creator');
+    const rulesetId = await playRuleset(ctx, user.userId);
+    const gameIds = [];
+    for (let i = 0; i < 3; i++) {
+      gameIds.push(
+        await ctx.db.insert('play_games', {
+          name: `Game ${i}`,
+          slug: `game-${i}`,
+          state: 'pending',
+          ruleset_id: rulesetId,
+          minimum_players: 4,
+          discord_voice: true,
+          creator_id: user.userId,
+          secret: 'a'.repeat(64),
+          attempt_id: 'b'.repeat(64),
+          created_at: Date.now(),
+          provision_expires_at: Date.now() + 60_000,
+        })
+      );
+    }
+    return { user, gameIds, rulesetId };
+  });
+  const confirm = (gameId: (typeof gameIds)[number]) =>
+    t.mutation(api.playProvisioning.confirmProvisioning, {
+      gameId,
+      secret: 'a'.repeat(64),
+      attemptId: 'b'.repeat(64),
+    });
+  return { t, gameIds, rulesetId, confirm, viewer: t.withIdentity({ subject: user.subject }) };
+}
+
+test('voice stays enabled for a new game when its creator already has three voice rooms', async () => {
+  vi.stubEnv('TYPESAFE_API_KEY', '');
+  const discord = discordStub(['300', '301', '302', '303']);
+  const { t, gameIds, rulesetId, confirm, viewer } = await creatorWithThreeGames();
+  for (const gameId of gameIds) {
+    expect(await confirm(gameId)).toEqual({ ok: true });
+  }
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  const result = await viewer.action(api.playGames.createGeneratedGame, {
+    rulesetId,
+    minimumPlayers: 4,
+    generatedName: 'Secret Caladan picnic',
+    discordVoice: true,
+  });
+  if (!result.ok) {
+    throw new Error('Game creation failed');
+  }
+  const game = (await t.run((ctx) => ctx.db.get(result.gameId as Id<'play_games'>)))!;
+  expect(game.discord_voice).toBe(true);
+  expect(
+    await t.mutation(api.playProvisioning.confirmProvisioning, {
+      gameId: game._id,
+      secret: game.secret,
+      attemptId: game.attempt_id,
+    })
+  ).toEqual({ ok: true });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(discord.calls.filter((call) => call.method === 'POST' && call.path === '/guilds/100/channels')).toHaveLength(
+    4
+  );
 });

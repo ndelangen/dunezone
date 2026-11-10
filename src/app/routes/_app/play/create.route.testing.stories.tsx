@@ -2,7 +2,7 @@ import { testingPreview } from '@sb/preview';
 import { useEffect } from 'react';
 import { expect, spyOn, userEvent, waitFor, within } from 'storybook/test';
 
-import { convexNeverAnswers, db, ref, STORYBOOK_NOW, storybookViewer, useStorybookDatabaseClient } from '@db/storybook';
+import { convexNeverAnswers, db, ref, storybookViewer, useStorybookDatabaseClient } from '@db/storybook';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { signedIn, creatable, creatableDatabase, chooseRuleset, typeCustomName } from './create.route.stories.fixture';
@@ -254,54 +254,5 @@ export const DiscordVoicePhone = meta.story({
     await expect(voice).not.toBeChecked();
     await userEvent.click(voice);
     await expect(voice).toBeChecked();
-  },
-});
-
-export const DiscordVoiceLimit = meta.story({
-  parameters: {
-    ...creatable,
-    database: db(
-      (baseline) => {
-        creatableDatabase(baseline);
-        for (let index = 0; index < 3; index += 1) {
-          const gameKey = `voice-limit-game-${index}`;
-          baseline.play_games.push({
-            $key: gameKey,
-            name: baseline.rulesets[0]!.name,
-            slug: `voice-limit-game-${index}`,
-            state: 'ready',
-            discord_voice: true,
-            ruleset_id: ref(baseline.rulesets[0]!.$key!),
-            minimum_players: 6,
-            creator_id: ref(storybookViewer.subjectKey),
-            secret: 'story-only-secret',
-            attempt_id: 'story-attempt',
-            created_at: STORYBOOK_NOW,
-            provision_expires_at: STORYBOOK_NOW,
-          });
-          baseline.play_game_discord_channels.push({
-            game_id: ref(gameKey),
-            guild_id: '100',
-            category_ids: ['200'],
-            state: 'pending',
-            created_at: STORYBOOK_NOW,
-            cleanup_at: STORYBOOK_NOW + 14 * 86_400_000,
-            next_attempt_at: STORYBOOK_NOW,
-          });
-        }
-      },
-      { discordVoice: true }
-    ),
-  },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await chooseRuleset(page);
-    const voice = page.getByRole('switch', { name: 'Discord voice chat' });
-    await expect(voice).toBeDisabled();
-    await expect(voice).not.toBeChecked();
-    await expect(voice).toHaveAccessibleDescription(
-      'Voice chat is unavailable if you already have three active channels or while your account is merging. You can still create this game without voice chat.'
-    );
-    await expect(page.getByRole('button', { name: 'Create game' })).not.toHaveAttribute('aria-disabled', 'true');
   },
 });
