@@ -63,6 +63,22 @@ async function observedChannel(ctx: QueryCtx, observed: Infer<typeof voiceCandid
   return (await eligible(ctx, row)) ? row : null;
 }
 
+async function retireObservedChannel(
+  ctx: MutationCtx,
+  observed: Infer<typeof voiceCandidateValidator>,
+  outcome: 'empty' | 'missing'
+) {
+  const row = await observedChannel(ctx, observed);
+  if (!row) {
+    return;
+  }
+  if (outcome === 'missing') {
+    await markDiscordDeleted(ctx, row);
+    return;
+  }
+  await requestDiscordDeletion(ctx, row);
+}
+
 /** Empty or paused deployments do not start a Node action. */
 export const checkDue = internalMutation({
   args: {},
@@ -99,16 +115,10 @@ export const reportEmpty = internalMutation({
       return null;
     }
     for (const channel of args.channels) {
-      const row = await observedChannel(ctx, channel);
-      if (row) {
-        await requestDiscordDeletion(ctx, row);
-      }
+      await retireObservedChannel(ctx, channel, 'empty');
     }
     for (const channel of args.missingChannels ?? []) {
-      const row = await observedChannel(ctx, channel);
-      if (row) {
-        await markDiscordDeleted(ctx, row);
-      }
+      await retireObservedChannel(ctx, channel, 'missing');
     }
     return null;
   },

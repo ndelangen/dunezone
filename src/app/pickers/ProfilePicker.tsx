@@ -12,9 +12,9 @@ import type { ReplacementProfile } from '@db/accountDeletion';
 import { ProfileOptionContent } from './ProfilePicker.parts';
 
 export interface ProfilePickerProps {
-  onPick: (profile: ReplacementProfile) => void;
-  onCancel: () => void;
-  adminSourceUserId?: string;
+  readonly onPick: (profile: ReplacementProfile) => void;
+  readonly onCancel: () => void;
+  readonly adminSourceUserId?: string;
 }
 
 /**
@@ -36,7 +36,7 @@ function OwnProfilePicker(props: ProfilePickerProps) {
   return <ProfilePickerView {...props} search={search} onSearch={setSearch} picker={picker} />;
 }
 
-function AdminProfilePicker(props: ProfilePickerProps & { adminSourceUserId: string }) {
+function AdminProfilePicker(props: ProfilePickerProps & { readonly adminSourceUserId: string }) {
   const [search, setSearch] = useState('');
   const picker = useAdminReplacementProfiles(search.trim(), props.adminSourceUserId);
   return <ProfilePickerView {...props} search={search} onSearch={setSearch} picker={picker} />;
@@ -50,16 +50,15 @@ function ProfilePickerView({
   onSearch,
   picker,
 }: ProfilePickerProps & {
-  search: string;
-  onSearch: (search: string) => void;
-  picker: ReturnType<typeof useReplacementProfiles>;
+  readonly search: string;
+  readonly onSearch: (search: string) => void;
+  readonly picker: ReturnType<typeof useReplacementProfiles>;
 }) {
   /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter choose the highlighted row, which Mantine gates on the dropdown state. */
   const combobox = useCombobox({ defaultOpened: true });
   const [selectedUserId, setSelectedUserId] = useState<ReplacementProfile['userId'] | ''>('');
 
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
-  const rows = picker.data;
   /*
    * Each search highlights its first row once that search's results are on screen, so Enter picks the best match.
    * Not in onChange: the results arrive from the server afterwards, and highlighting then marks a row of the previous search.
@@ -77,9 +76,6 @@ function ProfilePickerView({
     }
   }, [selectFirstOption, resetSelectedOption, listed]);
   const selected = selectedUserId ? rowsById.get(selectedUserId) : undefined;
-  /* Only an unsearched list speaks for everyone; a search that matches nobody keeps its field so the reader can change it. */
-  const unsearched = search.trim() === '';
-  const loading = picker.status === 'LoadingFirstPage';
 
   return (
     <Stack gap="md">
@@ -91,60 +87,15 @@ function ProfilePickerView({
             : 'Only people who share a group with you can receive your direct ownership.'}
         </Text>
       </div>
-      {unsearched && loading ? (
-        <Pending>Loading profiles</Pending>
-      ) : unsearched && rows.length === 0 && picker.status === 'Exhausted' ? (
-        <EmptyNote>
-          {adminSourceUserId
-            ? 'No active replacement profiles are available.'
-            : 'Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.'}
-        </EmptyNote>
-      ) : (
-        <Combobox
-          store={combobox}
-          onOptionSubmit={(userId) => setSelectedUserId(userId as ReplacementProfile['userId'])}
-        >
-          <ControlBlock
-            title="Search profiles"
-            input={(fieldProps) => (
-              <Combobox.EventsTarget>
-                <TextInput
-                  {...fieldProps}
-                  type="search"
-                  name="profile-search"
-                  autoComplete="off"
-                  value={search}
-                  onChange={(event) => onSearch(event.currentTarget.value)}
-                />
-              </Combobox.EventsTarget>
-            )}
-          />
-          <ScrollArea.Autosize mah={260} type="auto">
-            <Combobox.Options>
-              {loading ? (
-                <Combobox.Empty>Loading profiles…</Combobox.Empty>
-              ) : rows.length === 0 ? (
-                <Combobox.Empty>No matching profiles</Combobox.Empty>
-              ) : (
-                rows.map((profile) => (
-                  <Combobox.Option
-                    key={profile.userId}
-                    value={profile.userId}
-                    active={profile.userId === selectedUserId}
-                  >
-                    <ProfileOptionContent profile={profile} />
-                  </Combobox.Option>
-                ))
-              )}
-            </Combobox.Options>
-          </ScrollArea.Autosize>
-          {picker.status === 'CanLoadMore' ? (
-            <LabeledAction size="compact-sm" icon={<ChevronsDown size={14} />} onClick={picker.loadMore}>
-              Load more profiles
-            </LabeledAction>
-          ) : null}
-        </Combobox>
-      )}
+      <ProfilePickerResults
+        adminSourceUserId={adminSourceUserId}
+        search={search}
+        onSearch={onSearch}
+        picker={picker}
+        combobox={combobox}
+        selectedUserId={selectedUserId}
+        onSelect={setSelectedUserId}
+      />
       <Group justify="flex-end">
         <LabeledAction icon={<X size={16} />} onClick={onCancel}>
           Cancel
@@ -161,4 +112,89 @@ function ProfilePickerView({
       </Group>
     </Stack>
   );
+}
+
+function ProfilePickerResults({
+  adminSourceUserId,
+  search,
+  onSearch,
+  picker,
+  combobox,
+  selectedUserId,
+  onSelect,
+}: Readonly<{
+  adminSourceUserId?: string;
+  search: string;
+  onSearch: (search: string) => void;
+  picker: ReturnType<typeof useReplacementProfiles>;
+  combobox: ReturnType<typeof useCombobox>;
+  selectedUserId: string;
+  onSelect: (userId: ReplacementProfile['userId']) => void;
+}>) {
+  /* Only an unsearched list speaks for everyone; a search that matches nobody keeps its field so the reader can change it. */
+  const unsearched = search.trim() === '';
+  const loading = picker.status === 'LoadingFirstPage';
+  if (unsearched && loading) {
+    return <Pending>Loading profiles</Pending>;
+  }
+  if (unsearched && picker.data.length === 0 && picker.status === 'Exhausted') {
+    return (
+      <EmptyNote>
+        {adminSourceUserId
+          ? 'No active replacement profiles are available.'
+          : 'Nobody shares a group with you yet. Join a group, or invite someone to one of yours, to choose them here.'}
+      </EmptyNote>
+    );
+  }
+  return (
+    <Combobox store={combobox} onOptionSubmit={(userId) => onSelect(userId as ReplacementProfile['userId'])}>
+      <ControlBlock
+        title="Search profiles"
+        input={(fieldProps) => (
+          <Combobox.EventsTarget>
+            <TextInput
+              {...fieldProps}
+              type="search"
+              name="profile-search"
+              autoComplete="off"
+              value={search}
+              onChange={(event) => onSearch(event.currentTarget.value)}
+            />
+          </Combobox.EventsTarget>
+        )}
+      />
+      <ScrollArea.Autosize mah={260} type="auto">
+        <Combobox.Options>
+          <ProfilePickerOptions rows={picker.data} loading={loading} selectedUserId={selectedUserId} />
+        </Combobox.Options>
+      </ScrollArea.Autosize>
+      {picker.status === 'CanLoadMore' ? (
+        <LabeledAction size="compact-sm" icon={<ChevronsDown size={14} />} onClick={picker.loadMore}>
+          Load more profiles
+        </LabeledAction>
+      ) : null}
+    </Combobox>
+  );
+}
+
+function ProfilePickerOptions({
+  rows,
+  loading,
+  selectedUserId,
+}: Readonly<{
+  rows: ReplacementProfile[];
+  loading: boolean;
+  selectedUserId: string;
+}>) {
+  if (loading) {
+    return <Combobox.Empty>Loading profiles…</Combobox.Empty>;
+  }
+  if (rows.length === 0) {
+    return <Combobox.Empty>No matching profiles</Combobox.Empty>;
+  }
+  return rows.map((profile) => (
+    <Combobox.Option key={profile.userId} value={profile.userId} active={profile.userId === selectedUserId}>
+      <ProfileOptionContent profile={profile} />
+    </Combobox.Option>
+  ));
 }

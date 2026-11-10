@@ -424,12 +424,13 @@ function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
     for (const row of rows) {
       const { $key: key, $patch: patch, ...value } = row;
       documents.push({ key, table, value } as SeedInsertDocument);
-      if (patch) {
-        if (!key) {
-          throw new Error('A Storybook database $patch requires a row $key.');
-        }
-        patches.push({ operation: 'patch', key, table, value: patch } as SeedPatch);
+      if (!patch) {
+        continue;
       }
+      if (!key) {
+        throw new Error('A Storybook database $patch requires a row $key.');
+      }
+      patches.push({ operation: 'patch', key, table, value: patch } as SeedPatch);
     }
   }
   return [...orderSeedDocuments(documents), ...patches];

@@ -5,46 +5,52 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/tes
 
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { playPerson, playTest } from './play.test.fixture';
+
+async function banSetup(ctx: MutationCtx) {
+  const source = await playPerson(ctx, 'Source');
+  const other = await playPerson(ctx, 'Other');
+  const profile = await ctx.db
+    .query('profiles')
+    .withIndex('by_user_id', (q) => q.eq('user_id', source.userId))
+    .unique();
+  const stamp = new Date().toISOString();
+  const ruleset = await ctx.db.insert('rulesets', {
+    name: 'Classic',
+    slug: 'classic',
+    about: '',
+    owner_id: other.userId,
+    group_id: null,
+    is_deleted: false,
+    image_cover: null,
+    created_at: stamp,
+    updated_at: stamp,
+  });
+  const operationId = await ctx.db.insert('account_deletion_operations', {
+    kind: 'ban',
+    ban_games_queued: false,
+    ban_accounts_queued: false,
+    source_user_id: source.userId,
+    source_profile_id: profile!._id,
+    replacement_user_id: null,
+    state: 'running',
+    phase: 'finalizing',
+    snapshot_kind: null,
+    snapshot_cursor: null,
+    retry_count: 0,
+    error: null,
+    created_at: stamp,
+    updated_at: stamp,
+    completed_at: null,
+  });
+  return { source, other, profile: profile!, ruleset, operationId };
+}
 
 async function fixture({ hosted = 1, joined = 1 } = {}) {
   const t = playTest();
   const data = await t.run(async (ctx) => {
-    const source = await playPerson(ctx, 'Source');
-    const other = await playPerson(ctx, 'Other');
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', source.userId))
-      .unique();
-    const stamp = new Date().toISOString();
-    const ruleset = await ctx.db.insert('rulesets', {
-      name: 'Classic',
-      slug: 'classic',
-      about: '',
-      owner_id: other.userId,
-      group_id: null,
-      is_deleted: false,
-      image_cover: null,
-      created_at: stamp,
-      updated_at: stamp,
-    });
-    const operationId = await ctx.db.insert('account_deletion_operations', {
-      kind: 'ban',
-      ban_games_queued: false,
-      ban_accounts_queued: false,
-      source_user_id: source.userId,
-      source_profile_id: profile!._id,
-      replacement_user_id: null,
-      state: 'running',
-      phase: 'finalizing',
-      snapshot_kind: null,
-      snapshot_cursor: null,
-      retry_count: 0,
-      error: null,
-      created_at: stamp,
-      updated_at: stamp,
-      completed_at: null,
-    });
+    const { source, other, profile, ruleset, operationId } = await banSetup(ctx);
     const hostedIds: Id<'play_games'>[] = [],
       joinedIds: Id<'play_games'>[] = [];
     for (let index = 0; index < hosted + joined; index += 1) {
@@ -79,7 +85,7 @@ async function fixture({ hosted = 1, joined = 1 } = {}) {
         })
       : null;
     await ctx.db.patch(source.userId, { account_state: 'banned' });
-    await ctx.db.patch(profile!._id, { account_state: 'banned' });
+    await ctx.db.patch(profile._id, { account_state: 'banned' });
     return { source, other, operationId, hostedIds, joinedIds, channelId };
   });
   return { t, ...data };

@@ -25,14 +25,69 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+type RemoteDiscord = {
+  channels: ListedChannel[];
+  outcomes: CreateOutcome[];
+  calls: RequestRecord[];
+  onList?: () => Promise<void>;
+  onWrite?: (call: RequestRecord) => Promise<void>;
+  listingFails: boolean;
+  creates: number;
+};
+
+async function listRemoteChannels(remote: RemoteDiscord) {
+  await remote.onList?.();
+  return remote.listingFails ? Response.json({}, { status: 503 }) : Response.json(remote.channels);
+}
+
+function createRemoteChannel(remote: RemoteDiscord, body: unknown) {
+  remote.creates += 1;
+  const { name, parent_id } = body as { name: string; parent_id: string };
+  const channel = { id: String(299 + remote.creates), type: 2, name, parent_id, guild_id: '100' };
+  const outcome = remote.outcomes.shift() ?? { kind: 'ok', visible: true };
+  if (outcome.visible) {
+    remote.channels.push(channel);
+  }
+  if (outcome.kind === 'lost') {
+    throw new Error('The create response was lost.');
+  }
+  return outcome.kind === '500' ? Response.json({}, { status: 500 }) : Response.json(channel);
+}
+
+async function writeRemoteChannel(remote: RemoteDiscord, call: RequestRecord) {
+  await remote.onWrite?.(call);
+  if (call.method === 'DELETE') {
+    remote.channels = remote.channels.filter((channel) => `/channels/${channel.id}` !== call.path);
+    return new Response(null, { status: 204 });
+  }
+  if (call.method === 'PATCH') {
+    return Response.json({});
+  }
+  if (call.method === 'POST' && call.path.endsWith('/invites')) {
+    return Response.json({ code: 'recovered-room' });
+  }
+  throw new Error(`Unexpected Discord request: ${call.method} ${call.path}`);
+}
+
+async function remoteResponse(remote: RemoteDiscord, call: RequestRecord) {
+  if (call.method === 'GET' && call.path === '/guilds/100/channels') {
+    return await listRemoteChannels(remote);
+  }
+  if (call.method === 'POST' && call.path === '/guilds/100/channels') {
+    return createRemoteChannel(remote, call.body);
+  }
+  if (/^\/channels\/\d+(?:\/invites)?$/.test(call.path)) {
+    return await writeRemoteChannel(remote, call);
+  }
+  throw new Error(`Unexpected Discord request: ${call.method} ${call.path}`);
+}
+
 /** The remote list survives a lost response, independently of the application's saved channel row. */
 function remoteDiscord() {
-  const remote = {
-    channels: [{ id: '200', type: 4, name: 'Games', guild_id: '100' }] as ListedChannel[],
-    outcomes: [] as CreateOutcome[],
-    calls: [] as RequestRecord[],
-    onList: undefined as (() => Promise<void>) | undefined,
-    onWrite: undefined as ((call: RequestRecord) => Promise<void>) | undefined,
+  const remote: RemoteDiscord = {
+    channels: [{ id: '200', type: 4, name: 'Games', guild_id: '100' }],
+    outcomes: [],
+    calls: [],
     listingFails: false,
     creates: 0,
   };
@@ -44,40 +99,7 @@ function remoteDiscord() {
       const body: unknown = typeof options?.body === 'string' ? JSON.parse(options.body) : null;
       const call = { method, path, body };
       remote.calls.push(call);
-      if (method === 'GET' && path === '/guilds/100/channels') {
-        await remote.onList?.();
-        return remote.listingFails ? Response.json({}, { status: 503 }) : Response.json(remote.channels);
-      }
-      if (method === 'POST' && path === '/guilds/100/channels') {
-        remote.creates += 1;
-        const { name, parent_id } = body as { name: string; parent_id: string };
-        const channel = { id: String(299 + remote.creates), type: 2, name, parent_id, guild_id: '100' };
-        const outcome = remote.outcomes.shift() ?? { kind: 'ok', visible: true };
-        if (outcome.visible) {
-          remote.channels.push(channel);
-        }
-        if (outcome.kind === 'lost') {
-          throw new Error('The create response was lost.');
-        }
-        if (outcome.kind === '500') {
-          return Response.json({}, { status: 500 });
-        }
-        return Response.json(channel);
-      }
-      if (/^\/channels\/\d+(?:\/invites)?$/.test(path)) {
-        await remote.onWrite?.(call);
-        if (method === 'DELETE') {
-          remote.channels = remote.channels.filter((channel) => `/channels/${channel.id}` !== path);
-          return new Response(null, { status: 204 });
-        }
-        if (method === 'PATCH') {
-          return Response.json({});
-        }
-        if (method === 'POST' && path.endsWith('/invites')) {
-          return Response.json({ code: 'recovered-room' });
-        }
-      }
-      throw new Error(`Unexpected Discord request: ${method} ${path}`);
+      return await remoteResponse(remote, call);
     })
   );
   return remote;

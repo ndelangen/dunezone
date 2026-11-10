@@ -39,31 +39,41 @@ export type DiscordRequestGate = {
   observe: (observation: DiscordRateLimitObservation) => Promise<unknown>;
 };
 
+const requestRoutes: Record<
+  DiscordRoute,
+  { method: string; path: RegExp; major: 'guild' | 'channel' } | { method: string; path: string; major: 'none' }
+> = {
+  'guildChannels.read': { method: 'GET', path: /^\/guilds\/(\d+)\/channels$/, major: 'guild' },
+  'guildChannels.create': { method: 'POST', path: /^\/guilds\/(\d+)\/channels$/, major: 'guild' },
+  'channel.read': { method: 'GET', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channel.rename': { method: 'PATCH', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channel.delete': { method: 'DELETE', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channelInvite.create': { method: 'POST', path: /^\/channels\/(\d+)\/invites$/, major: 'channel' },
+  'channelMessage.create': { method: 'POST', path: /^\/channels\/(\d+)\/messages$/, major: 'channel' },
+  'gatewayBot.read': { method: 'GET', path: '/gateway/bot', major: 'none' },
+};
+
+function matchRequestScope(route: DiscordRoute, method: string, path: string): DiscordRequestScope | null {
+  const candidate = requestRoutes[route];
+  if (candidate.method !== method) {
+    return null;
+  }
+  if (typeof candidate.path === 'string') {
+    return candidate.path === path ? { route, major: candidate.major } : null;
+  }
+  const match = candidate.path.exec(path);
+  if (!match) {
+    return null;
+  }
+  return { route, major: `${candidate.major}:${match[1]}` };
+}
+
 /** Only the eight endpoints this integration uses can acquire persisted route aliases. */
 function requestScope(method: string, path: string): DiscordRequestScope {
-  if (method === 'GET' && path === '/gateway/bot') {
-    return { route: 'gatewayBot.read', major: 'none' };
-  }
-  const guild = /^\/guilds\/(\d+)\/channels$/.exec(path);
-  if (guild && (method === 'GET' || method === 'POST')) {
-    return { route: method === 'GET' ? 'guildChannels.read' : 'guildChannels.create', major: `guild:${guild[1]}` };
-  }
-  const target = /^\/channels\/(\d+)(?:\/(invites|messages))?$/.exec(path);
-  if (target) {
-    const major = `channel:${target[1]}`;
-    if (method === 'POST' && target[2]) {
-      return { route: target[2] === 'invites' ? 'channelInvite.create' : 'channelMessage.create', major };
-    }
-    if (!target[2]) {
-      if (method === 'GET') {
-        return { route: 'channel.read', major };
-      }
-      if (method === 'PATCH') {
-        return { route: 'channel.rename', major };
-      }
-      if (method === 'DELETE') {
-        return { route: 'channel.delete', major };
-      }
+  for (const route of DISCORD_ROUTES) {
+    const scope = matchRequestScope(route, method, path);
+    if (scope) {
+      return scope;
     }
   }
   throw new Error('Unsupported Discord request route.');

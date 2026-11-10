@@ -150,25 +150,33 @@ async function patchDocument<TableName extends TableNames>(
   await db.patch(document.table, id as Id<TableName>, value);
 }
 
+async function insertSeedRows(db: DatabaseWriter, documents: SeedDocument[], references: Map<string, string>) {
+  for (const document of documents) {
+    if (document.operation === 'patch') {
+      continue;
+    }
+    const id = await insertDocument(db, document, references);
+    if (document.key) {
+      references.set(document.key, id);
+    }
+  }
+}
+
+async function applySeedPatches(db: DatabaseWriter, documents: SeedDocument[], references: Map<string, string>) {
+  for (const document of documents) {
+    if (document.operation === 'patch') {
+      await patchDocument(db, document, references);
+    }
+  }
+}
+
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
     /* Seeds write through the application's triggers, so every read model a real write keeps is derived the same way here. */
     const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
-    for (const document of documents) {
-      if (document.operation === 'patch') {
-        continue;
-      }
-      const id = await insertDocument(wrapped.db, document, world.references);
-      if (document.key) {
-        world.references.set(document.key, id);
-      }
-    }
-    for (const document of documents) {
-      if (document.operation === 'patch') {
-        await patchDocument(wrapped.db, document, world.references);
-      }
-    }
+    await insertSeedRows(wrapped.db, documents, world.references);
+    await applySeedPatches(wrapped.db, documents, world.references);
   });
 }
 

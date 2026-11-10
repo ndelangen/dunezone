@@ -202,7 +202,7 @@ test('inventory reports cleanup deadlines', async () => {
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
   expect(page.channels.page[0]).toMatchObject({ state: 'creating', cleanup_at: 42 });
   /* The previous admin UI reads issues.length and maps the field without guarding its presence. */
-  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors).toHaveLength(0);
   expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
 });
 
@@ -230,7 +230,7 @@ test('old admin consumers receive an empty delivery list while legacy records aw
     });
   });
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
-  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors).toHaveLength(0);
   expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
   expect(await t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(2))).toHaveLength(1);
 });

@@ -29,7 +29,13 @@ export const discord_channel_creators_verify_v1 = migrations.define({
   batchSize: 50,
   migrateOne: async (ctx, row) => {
     const game = await ctx.db.get(row.game_id);
-    if (row.creator_id === undefined || (game?.creator_id && row.creator_id !== game.creator_id)) {
+    if (row.creator_id === undefined) {
+      throw new Error('Discord channel creator does not match its game.');
+    }
+    if (!game?.creator_id) {
+      return;
+    }
+    if (row.creator_id !== game.creator_id) {
       throw new Error('Discord channel creator does not match its game.');
     }
   },
@@ -49,7 +55,7 @@ export const discord_channel_end_marker_retire_v1 = migrations.define({
 export const discord_channel_end_marker_verify_v1 = migrations.define({
   table: 'play_game_discord_channels',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
+  migrateOne: (_ctx, row) => {
     if (row.ended_at !== undefined) {
       throw new Error('Discord channel still has an obsolete finish marker.');
     }

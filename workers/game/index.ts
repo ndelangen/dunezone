@@ -2288,6 +2288,24 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 }
 
+function isHomepageRequest(request: Request, path: string, origin: string) {
+  if (path === HOMEPAGE_ACCOUNT_CUTOFF_PATH && request.method === 'POST') {
+    return true;
+  }
+  return path === HOMEPAGE_SOCKET_PATH && request.method === 'GET' && isApplicationSocket(request, origin);
+}
+
+function gameRoomResponse(request: Request, env: GameEnv): Promise<Response> | Response {
+  const route = gameRequest(request, env.APPLICATION_ORIGIN);
+  if (!route) {
+    return refused();
+  }
+  if (route.operation === 'socket' && !isApplicationSocket(request, env.APPLICATION_ORIGIN)) {
+    return refused();
+  }
+  return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
+}
+
 export default {
   async email(message, env): Promise<void> {
     await forwardPrivacyRequest(message, env);
@@ -2307,27 +2325,13 @@ export default {
     if (service) {
       return service;
     }
-    if (url.pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH && request.method === 'POST') {
-      return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
-    }
-    if (
-      url.pathname === HOMEPAGE_SOCKET_PATH &&
-      request.method === 'GET' &&
-      isApplicationSocket(request, env.APPLICATION_ORIGIN)
-    ) {
+    if (isHomepageRequest(request, url.pathname, env.APPLICATION_ORIGIN)) {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
     }
     const bidding = await biddingTableResponse(request, env);
     if (bidding) {
       return bidding;
     }
-    const route = gameRequest(request, env.APPLICATION_ORIGIN);
-    if (!route) {
-      return refused();
-    }
-    if (route.operation === 'socket' && !isApplicationSocket(request, env.APPLICATION_ORIGIN)) {
-      return refused();
-    }
-    return env.GAME_ROOMS.getByName(route.gameId).fetch(request);
+    return gameRoomResponse(request, env);
   },
 } satisfies ExportedHandler<GameEnv & Pick<AlertEnv, 'ALERT_EMAIL_TO'>>;

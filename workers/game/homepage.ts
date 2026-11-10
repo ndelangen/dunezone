@@ -295,19 +295,24 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     return changed;
   }
 
-  private async refresh() {
-    const now = Date.now();
-    if (this.cutoffExpiry <= now) {
-      this.ctx.storage.sql.exec('DELETE FROM homepage_account_cutoffs WHERE expires_at <= ?', now);
-      this.cutoffExpiry = Infinity;
-      for (const [userKey, cutoff] of this.accountCutoffs) {
-        if (cutoff.expiresAt <= now) {
-          this.accountCutoffs.delete(userKey);
-        } else {
-          this.cutoffExpiry = Math.min(this.cutoffExpiry, cutoff.expiresAt);
-        }
+  private expireAccountCutoffs(now: number) {
+    if (!(this.cutoffExpiry <= now)) {
+      return;
+    }
+    this.ctx.storage.sql.exec('DELETE FROM homepage_account_cutoffs WHERE expires_at <= ?', now);
+    this.cutoffExpiry = Infinity;
+    for (const [userKey, cutoff] of this.accountCutoffs) {
+      if (cutoff.expiresAt <= now) {
+        this.accountCutoffs.delete(userKey);
+      } else {
+        this.cutoffExpiry = Math.min(this.cutoffExpiry, cutoff.expiresAt);
       }
     }
+  }
+
+  private async refresh() {
+    const now = Date.now();
+    this.expireAccountCutoffs(now);
     if (this.resetAt <= now) {
       const snapshot = storedSnapshotSchema.parse(homepageSnapshot(this.env.APPLICATION_ORIGIN));
       /*
@@ -327,6 +332,12 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       /* Each new table picks up edits to the saved board. */
       void this.loadBoard();
     }
+    this.expireConnections(now);
+    await this.scheduleAlarm();
+    this.diagnostics.recovered('refresh');
+  }
+
+  private expireConnections(now: number) {
     let changed = false;
     for (const [socket, connection] of this.connections) {
       if (
@@ -341,8 +352,6 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (changed) {
       this.broadcast();
     }
-    await this.scheduleAlarm();
-    this.diagnostics.recovered('refresh');
   }
 
   private async scheduleAlarm() {

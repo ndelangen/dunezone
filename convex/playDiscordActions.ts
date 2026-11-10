@@ -58,6 +58,26 @@ async function postCreation(
   }
 }
 
+async function categoriesAfterRejection(
+  error: unknown,
+  rest: DiscordRest,
+  row: Doc<'play_game_discord_channels'>,
+  categoryId: string,
+  retryCategory: string | undefined,
+  perform: Perform
+) {
+  /* A category may have filled since listing it; Discord rejected the create, so trying the next category is safe. */
+  if (!(error instanceof DiscordFailure && error.status === 400 && error.code === 50_035)) {
+    throw error;
+  }
+  if (retryCategory !== categoryId) {
+    return [];
+  }
+  return (await perform('categories', () => rest.categories(row.guild_id, row.category_ids))).filter(
+    (id) => id !== categoryId
+  );
+}
+
 async function createRoom(
   ctx: ActionCtx,
   rest: DiscordRest,
@@ -76,18 +96,8 @@ async function createRoom(
     try {
       await postCreation(ctx, rest, claim, row, categoryId, perform);
     } catch (error) {
-      /* A category may have filled since listing it; Discord rejected the create, so trying the next category is safe. */
-      if (error instanceof DiscordFailure && error.status === 400 && error.code === 50_035) {
-        if (retryCategory === categoryId) {
-          categories.push(
-            ...(await perform('categories', () => rest.categories(row.guild_id, row.category_ids))).filter(
-              (id) => id !== categoryId
-            )
-          );
-        }
-        continue;
-      }
-      throw error;
+      categories.push(...(await categoriesAfterRejection(error, rest, row, categoryId, retryCategory, perform)));
+      continue;
     }
     return 'continue';
   }
@@ -212,6 +222,42 @@ async function reconcileStep(ctx: ActionCtx, rest: DiscordRest, claim: Claim, pe
   return 'complete';
 }
 
+function unexpectedFailure(error: unknown) {
+  if (error instanceof NoDiscordChannelRoom) {
+    return { error: error.message, kind: 'no-room' };
+  }
+  if (error instanceof DiscordRecoveryUnavailable) {
+    return { error: error.message, kind: 'recovery-unavailable' };
+  }
+  if (error instanceof ZodError) {
+    return { error: 'Discord returned an invalid channel response. Retry is scheduled.', kind: 'invalid-response' };
+  }
+  return { error: 'Discord channel work failed before it could finish. Retry is scheduled.', kind: 'unexpected' };
+}
+
+function failureForRelease(
+  error: unknown,
+  retryOperation: Infer<typeof discordRetryOperation> | undefined,
+  retryCategoryId: string | undefined
+) {
+  if (error instanceof DiscordFailure) {
+    return {
+      error: error.message,
+      retryAfterMs: error.retryAfterMs,
+      retryAt: error.retryAt,
+      retryGlobal: error.global,
+      retryOperation,
+      retryCategoryId,
+    };
+  }
+  if (error instanceof DiscordPaused) {
+    return { error: error.message };
+  }
+  const diagnostic = unexpectedFailure(error);
+  console.error('Discord channel work failed.', { kind: diagnostic.kind });
+  return { error: diagnostic.error };
+}
+
 /** One owner provisions or removes the game room; a saved channel survives invitation retries. */
 export const reconcile = internalAction({
   args: { channelId: v.id('play_game_discord_channels') },
@@ -234,16 +280,7 @@ export const reconcile = internalAction({
       retryCategoryId = categoryId;
       return await request();
     };
-    let failure:
-      | {
-          error: string;
-          retryAfterMs?: number;
-          retryAt?: number;
-          retryGlobal?: boolean;
-          retryOperation?: Infer<typeof discordRetryOperation>;
-          retryCategoryId?: string;
-        }
-      | undefined;
+    let failure: ReturnType<typeof failureForRelease> | undefined;
     try {
       for (let step = 0; step < 5; step += 1) {
         if ((await reconcileStep(ctx, rest, claim, perform)) === 'complete') {
@@ -251,36 +288,7 @@ export const reconcile = internalAction({
         }
       }
     } catch (error) {
-      const diagnostic =
-        error instanceof NoDiscordChannelRoom || error instanceof DiscordRecoveryUnavailable
-          ? error.message
-          : error instanceof ZodError
-            ? 'Discord returned an invalid channel response. Retry is scheduled.'
-            : 'Discord channel work failed before it could finish. Retry is scheduled.';
-      if (!(error instanceof DiscordFailure) && !(error instanceof DiscordPaused)) {
-        console.error('Discord channel work failed.', {
-          kind:
-            error instanceof NoDiscordChannelRoom
-              ? 'no-room'
-              : error instanceof DiscordRecoveryUnavailable
-                ? 'recovery-unavailable'
-                : error instanceof ZodError
-                  ? 'invalid-response'
-                  : 'unexpected',
-        });
-      }
-      failure = {
-        error: error instanceof DiscordFailure || error instanceof DiscordPaused ? error.message : diagnostic,
-        ...(error instanceof DiscordFailure
-          ? {
-              retryAfterMs: error.retryAfterMs,
-              retryAt: error.retryAt,
-              retryGlobal: error.global,
-              retryOperation,
-              retryCategoryId,
-            }
-          : {}),
-      };
+      failure = failureForRelease(error, retryOperation, retryCategoryId);
     } finally {
       await ctx.runMutation(internal.playDiscord.release, { ...claim, ...failure });
     }

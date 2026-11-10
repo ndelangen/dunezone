@@ -56,24 +56,26 @@ export const MemberRefused = meta.story({
   play: async ({ canvasElement }) =>
     expectRefused(canvasElement, 'Admin access required', { role: 'button', name: 'Ban account' }),
 });
+async function expectBannedPage(canvasElement: HTMLElement) {
+  const page = within(canvasElement.ownerDocument.body);
+  await expect(page.findByRole('heading', { name: 'You have been banned' })).resolves.toBeVisible();
+  await expect(page.queryByRole('navigation')).toBeNull();
+}
+
 export const BannedSessionCannotOpenAdmin = meta.story({
   args: { path: '/admin/accounts' },
   parameters: { database: bannedViewer },
   play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'You have been banned' })).resolves.toBeVisible();
-    await expect(page.queryByRole('navigation')).toBeNull();
-    await expect(page.queryByRole('combobox', { name: 'Account status' })).toBeNull();
+    await expectBannedPage(canvasElement);
+    await expect(
+      within(canvasElement.ownerDocument.body).queryByRole('combobox', { name: 'Account status' })
+    ).toBeNull();
   },
 });
 export const BannedSessionCannotOpenTools = meta.story({
   args: { path: '/tools/spice-deck' },
   parameters: { database: bannedViewer },
-  play: async ({ canvasElement }) => {
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(page.findByRole('heading', { name: 'You have been banned' })).resolves.toBeVisible();
-    await expect(page.queryByRole('navigation')).toBeNull();
-  },
+  play: ({ canvasElement }) => expectBannedPage(canvasElement),
 });
 
 export const FailedContentBlocksUnban = meta.story({

@@ -179,6 +179,23 @@ function trackedDeleteReason(channel: DashboardResult['channels']['page'][number
   return undefined;
 }
 
+function retryDisabledReason(configured: boolean, enabled: boolean) {
+  if (!configured) {
+    return 'Discord is not configured for this deployment.';
+  }
+  if (!enabled) {
+    return 'Discord integration is disabled.';
+  }
+  return undefined;
+}
+
+function trackedStateLabel(channel: DashboardResult['channels']['page'][number], observedAt: number) {
+  if (channel.state !== 'creating') {
+    return channel.state;
+  }
+  return (channel.lease_until ?? 0) > observedAt ? 'Creating' : 'Retrying';
+}
+
 function RetryChannelAction({
   channel,
   enabled,
@@ -198,13 +215,7 @@ function RetryChannelAction({
       <LabeledAction
         icon={<RefreshCw size={16} />}
         accessibleName={`Retry now for ${channel.gameName ?? channel.gameSlug ?? channel.game_id}`}
-        disabledReason={
-          !configured
-            ? 'Discord is not configured for this deployment.'
-            : !enabled
-              ? 'Discord integration is disabled.'
-              : undefined
-        }
+        disabledReason={retryDisabledReason(configured, enabled)}
         busy={retry.isPending}
         onClick={() => retry.mutate({ channelId: channel._id })}
       >
@@ -286,13 +297,7 @@ function TrackedChannels({
                     </Text>
                   </Table.Td>
                   <Table.Td miw="7rem">
-                    <StatusBadge>
-                      {channel.state === 'creating'
-                        ? (channel.lease_until ?? 0) > observedAt
-                          ? 'Creating'
-                          : 'Retrying'
-                        : channel.state}
-                    </StatusBadge>
+                    <StatusBadge>{trackedStateLabel(channel, observedAt)}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
                   <Table.Td>{cleanupLabel(channel, configured && enabled)}</Table.Td>

@@ -137,7 +137,7 @@ export const applyBanGamesBatch = internalMutation({
   returns: v.union(v.object({ done: v.literal(true) }), v.object({ done: v.literal(false), retryAt: v.number() })),
   handler: async (ctx, args) => {
     const operation = await ctx.db.get(args.operationId);
-    if (!operation || operation.kind !== 'ban') {
+    if (operation?.kind !== 'ban') {
       return { done: true as const };
     }
     /* Convex permits one paginated query per execution, so recovery advances one fan-out at a time. */

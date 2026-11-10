@@ -382,7 +382,7 @@ export const adminBan = mutation({
     await requireUnlockedAccount(ctx, args.sourceUserId);
     const source = await ctx.db.get(args.sourceUserId);
     const profile = await profileForUser(ctx, args.sourceUserId);
-    if (!source || accountStateOf(source) !== 'active' || !profile || profile.account_state !== 'active') {
+    if (!source || accountStateOf(source) !== 'active' || profile?.account_state !== 'active') {
       throw new Error('Active account not found');
     }
     if (args.replacementUserId) {

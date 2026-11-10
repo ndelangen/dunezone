@@ -1,4 +1,5 @@
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
 import { internal } from './_generated/api';
 import type { Doc } from './_generated/dataModel';
@@ -337,16 +338,92 @@ export const removed = internalMutation({
   },
 });
 
+const releaseArgs = v.object({
+  ...claimArgs,
+  error: v.optional(v.string()),
+  retryAfterMs: v.optional(v.number()),
+  retryAt: v.optional(v.number()),
+  retryGlobal: v.optional(v.boolean()),
+  retryOperation: v.optional(discordRetryOperation),
+  retryCategoryId: v.optional(v.string()),
+});
+type ReleaseArgs = Infer<typeof releaseArgs>;
+
+function matchingShortRetryAttempts(row: Doc<'play_game_discord_channels'>, args: ReleaseArgs) {
+  const retry = row.retry?.kind === 'short' ? row.retry : undefined;
+  return retry?.revision === (row.work_revision ?? 0) &&
+    retry.operation === args.retryOperation &&
+    retry.categoryId === args.retryCategoryId
+    ? retry.attempts
+    : 0;
+}
+
+function releaseHistory(row: Doc<'play_game_discord_channels'>, args: ReleaseArgs) {
+  const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
+  const backoff =
+    row.retry?.kind === 'backoff' && row.retry.revision === (row.work_revision ?? 0) ? row.retry : undefined;
+  const attempts = matchingShortRetryAttempts(row, args);
+  const shortRetry =
+    !changed &&
+    row.state !== 'creating' &&
+    args.retryOperation !== undefined &&
+    (args.retryAfterMs ?? 0) > 0 &&
+    args.retryAfterMs! <= 5000 &&
+    attempts < 2;
+  return { changed, backoff, attempts, shortRetry };
+}
+
+function nextAttemptForRelease(
+  row: Doc<'play_game_discord_channels'>,
+  game: Doc<'play_games'> | null,
+  args: ReleaseArgs,
+  history: ReturnType<typeof releaseHistory>,
+  timing: { retryAt: number; retryAfter: number | undefined; hardUntil: number }
+) {
+  if (history.changed && row.state !== 'creating') {
+    /* A failed old invite or rename must not postpone a newly discarded game, except for Discord's rate limit. */
+    return Math.max(Date.now(), timing.hardUntil);
+  }
+  if (history.shortRetry) {
+    return Math.max(Date.now(), timing.retryAt);
+  }
+  if (args.error || row.state === 'creating') {
+    return Math.max(Date.now() + DISCORD_RETRY, timing.retryAt, timing.retryAfter ?? 0, history.backoff?.until ?? 0);
+  }
+  if (row.state === 'pending') {
+    return Math.max(Date.now(), timing.retryAfter ?? 0);
+  }
+  /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
+  return game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
+}
+
+function retryForRelease(
+  row: Doc<'play_game_discord_channels'>,
+  args: ReleaseArgs,
+  history: ReturnType<typeof releaseHistory>,
+  next: number
+): Doc<'play_game_discord_channels'>['retry'] {
+  if (history.shortRetry) {
+    return {
+      kind: 'short',
+      operation: args.retryOperation!,
+      attempts: history.attempts === 0 ? 1 : 2,
+      categoryId: args.retryCategoryId,
+      revision: row.work_revision ?? 0,
+      until: next,
+    };
+  }
+  if (!history.changed && history.attempts >= 2 && (args.retryAfterMs ?? 0) > 0 && args.retryAfterMs! <= 5000) {
+    return { kind: 'backoff', revision: row.work_revision ?? 0, until: next };
+  }
+  if (history.backoff && history.backoff.until > Date.now()) {
+    return history.backoff;
+  }
+  return undefined;
+}
+
 export const release = internalMutation({
-  args: {
-    ...claimArgs,
-    error: v.optional(v.string()),
-    retryAfterMs: v.optional(v.number()),
-    retryAt: v.optional(v.number()),
-    retryGlobal: v.optional(v.boolean()),
-    retryOperation: v.optional(discordRetryOperation),
-    retryCategoryId: v.optional(v.string()),
-  },
+  args: releaseArgs.fields,
   returns: v.null(),
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
@@ -366,63 +443,23 @@ export const release = internalMutation({
     }
     const game = await ctx.db.get(row.game_id);
     const retryAfter = retiresWithoutChannel(row, game) ? undefined : row.retry_after;
-    /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
-    let next = game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
-    const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
-    const backoff =
-      row.retry?.kind === 'backoff' && row.retry.revision === (row.work_revision ?? 0) ? row.retry : undefined;
+    const history = releaseHistory(row, args);
     const retryAt = args.retryAt ?? Date.now() + (args.retryAfterMs ?? 0);
     const globalUntil = args.retryGlobal
       ? ((await ctx.db.query('play_discord_cooldown').unique())?.blocked_until ?? 0)
       : 0;
     const hardUntil = Math.max(retryAfter ?? 0, globalUntil);
-    const retry = row.retry?.kind === 'short' ? row.retry : undefined;
-    const attempts =
-      retry?.revision === (row.work_revision ?? 0) &&
-      retry.operation === args.retryOperation &&
-      retry.categoryId === args.retryCategoryId
-        ? retry.attempts
-        : 0;
-    const shortRetry =
-      !changed &&
-      row.state !== 'creating' &&
-      args.retryOperation !== undefined &&
-      (args.retryAfterMs ?? 0) > 0 &&
-      args.retryAfterMs! <= 5000 &&
-      attempts < 2;
-    if (changed && row.state !== 'creating') {
-      /* A failed old invite or rename must not postpone a newly discarded game, except for Discord's rate limit. */
-      next = Math.max(Date.now(), hardUntil);
-    } else if (shortRetry) {
-      next = Math.max(Date.now(), retryAt);
-    } else if (args.error || row.state === 'creating') {
-      next = Math.max(Date.now() + DISCORD_RETRY, retryAt, retryAfter ?? 0, backoff?.until ?? 0);
-    } else if (row.state === 'pending') {
-      next = Math.max(Date.now(), retryAfter ?? 0);
-    }
+    const next = nextAttemptForRelease(row, game, args, history, { retryAt, retryAfter, hardUntil });
     await ctx.db.patch(row._id, {
       lease: undefined,
       lease_until: undefined,
       lease_revision: undefined,
       next_attempt_at: next,
       retry_after: hardUntil > Date.now() ? hardUntil : undefined,
-      retry: shortRetry
-        ? {
-            kind: 'short',
-            operation: args.retryOperation!,
-            attempts: attempts === 0 ? 1 : 2,
-            categoryId: args.retryCategoryId,
-            revision: row.work_revision ?? 0,
-            until: next,
-          }
-        : !changed && attempts >= 2 && (args.retryAfterMs ?? 0) > 0 && args.retryAfterMs! <= 5000
-          ? { kind: 'backoff', revision: row.work_revision ?? 0, until: next }
-          : backoff && backoff.until > Date.now()
-            ? backoff
-            : undefined,
+      retry: retryForRelease(row, args, history, next),
       error: args.error ?? (row.state === 'creating' ? row.error : undefined),
     });
-    if (changed || row.state === 'creating' || next <= Date.now() || (args.retryAfterMs ?? 0) > 0) {
+    if (history.changed || row.state === 'creating' || next <= Date.now() || (args.retryAfterMs ?? 0) > 0) {
       await ctx.scheduler.runAfter(Math.max(0, next - Date.now()), internal.playDiscordActions.reconcile, {
         channelId: row._id,
       });

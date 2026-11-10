@@ -4,6 +4,7 @@ import { internalQuery } from './_generated/server';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { DISCORD_ROUTES, discordBucketHoldKey, discordRouteHoldKey } from './lib/discordRest';
+import type { DiscordRateLimitObservation, DiscordRoute } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 
 const scopeArgs = {
@@ -14,6 +15,26 @@ const scopeArgs = {
 function validateMajor(major: string) {
   if (!/^(?:none|(?:guild|channel):\d+)$/.test(major)) {
     throw new Error('Invalid Discord rate-limit resource.');
+  }
+}
+
+function validateBucket(bucketId: string | undefined) {
+  if (bucketId === undefined) {
+    return;
+  }
+  const validLength = bucketId.length > 0 && bucketId.length <= 256;
+  const trimmed = bucketId === bucketId.trim();
+  if (!validLength || !trimmed) {
+    throw new Error('Invalid Discord rate-limit bucket.');
+  }
+}
+
+function validateLimit(limit: DiscordRateLimitObservation['limit']) {
+  if (limit === undefined) {
+    return;
+  }
+  if (!Number.isFinite(limit.until) || limit.until < 0) {
+    throw new Error('Invalid Discord rate-limit deadline.');
   }
 }
 
@@ -67,6 +88,58 @@ async function hold(ctx: MutationCtx, key: string, until: number) {
   }
 }
 
+async function rememberBucket(ctx: MutationCtx, route: DiscordRoute, bucketId: string | undefined) {
+  if (bucketId === undefined) {
+    return;
+  }
+  const alias = await ctx.db
+    .query('play_discord_route_buckets')
+    .withIndex('by_route', (q) => q.eq('route', route))
+    .unique();
+  if (alias?.bucket_id === bucketId) {
+    return;
+  }
+  if (!alias) {
+    await ctx.db.insert('play_discord_route_buckets', { route, bucket_id: bucketId });
+    return;
+  }
+  await ctx.db.patch(alias._id, { bucket_id: bucketId });
+}
+
+async function holdGlobal(ctx: MutationCtx, until: number) {
+  const global = await ctx.db.query('play_discord_cooldown').unique();
+  if (!global) {
+    await ctx.db.insert('play_discord_cooldown', { blocked_until: until });
+    return;
+  }
+  if (global.blocked_until < until) {
+    await ctx.db.patch(global._id, { blocked_until: until });
+  }
+}
+
+async function persistLimit(ctx: MutationCtx, observation: DiscordRateLimitObservation) {
+  const { limit, bucketId } = observation;
+  if (!limit || limit.until <= Date.now()) {
+    return;
+  }
+  if (limit.global) {
+    await holdGlobal(ctx, limit.until);
+    return;
+  }
+  await hold(ctx, discordRouteHoldKey(observation), limit.until);
+  if (bucketId) {
+    await hold(ctx, discordBucketHoldKey(bucketId, observation.major), limit.until);
+  }
+}
+
+async function pruneExpiredHolds(ctx: MutationCtx) {
+  const expired = await ctx.db
+    .query('play_discord_rate_limits')
+    .withIndex('by_blocked_until', (q) => q.lte('blocked_until', Date.now()))
+    .take(8);
+  await Promise.all(expired.map((row) => ctx.db.delete(row._id)));
+}
+
 /** Mapping changes and exceptional holds share one mutation; ordinary successful requests never call it. */
 export const observe = internalMutation({
   args: {
@@ -77,50 +150,15 @@ export const observe = internalMutation({
   returns: v.null(),
   handler: async (ctx, observation) => {
     validateMajor(observation.major);
-    const { bucketId, limit } = observation;
-    if (bucketId !== undefined && (bucketId.length === 0 || bucketId.length > 256 || bucketId !== bucketId.trim())) {
-      throw new Error('Invalid Discord rate-limit bucket.');
-    }
-    if (limit && (!Number.isFinite(limit.until) || limit.until < 0)) {
-      throw new Error('Invalid Discord rate-limit deadline.');
-    }
+    validateBucket(observation.bucketId);
+    validateLimit(observation.limit);
     /* A pause cannot discard a limit received by an already-running request. */
-    if (!limit && !(await discordEnabled(ctx))) {
+    if (!observation.limit && !(await discordEnabled(ctx))) {
       return null;
     }
-    if (bucketId !== undefined) {
-      const alias = await ctx.db
-        .query('play_discord_route_buckets')
-        .withIndex('by_route', (q) => q.eq('route', observation.route))
-        .unique();
-      if (!alias) {
-        await ctx.db.insert('play_discord_route_buckets', { route: observation.route, bucket_id: bucketId });
-      } else if (alias.bucket_id !== bucketId) {
-        await ctx.db.patch(alias._id, { bucket_id: bucketId });
-      }
-    }
-    if (limit && limit.until > Date.now()) {
-      if (limit.global) {
-        const global = await ctx.db.query('play_discord_cooldown').unique();
-        if (!global) {
-          await ctx.db.insert('play_discord_cooldown', { blocked_until: limit.until });
-        } else if (global.blocked_until < limit.until) {
-          await ctx.db.patch(global._id, { blocked_until: limit.until });
-        }
-      } else {
-        await hold(ctx, discordRouteHoldKey(observation), limit.until);
-        if (bucketId) {
-          await hold(ctx, discordBucketHoldKey(bucketId, observation.major), limit.until);
-        }
-      }
-    }
-    const expired = await ctx.db
-      .query('play_discord_rate_limits')
-      .withIndex('by_blocked_until', (q) => q.lte('blocked_until', Date.now()))
-      .take(8);
-    for (const row of expired) {
-      await ctx.db.delete(row._id);
-    }
+    await rememberBucket(ctx, observation.route, observation.bucketId);
+    await persistLimit(ctx, observation);
+    await pruneExpiredHolds(ctx);
     return null;
   },
 });

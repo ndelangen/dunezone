@@ -20,7 +20,13 @@ const CLOCK_MARGIN_MS = 60_000;
 
 async function pendingCutoff(ctx: QueryCtx, operationId: Id<'account_deletion_operations'>) {
   const operation = await ctx.db.get(operationId);
-  if (operation?.kind !== 'ban' || !operation.homepage_cutoff_token || operation.homepage_cutoff_at === undefined) {
+  if (operation?.kind !== 'ban') {
+    return null;
+  }
+  if (!operation.homepage_cutoff_token) {
+    return null;
+  }
+  if (operation.homepage_cutoff_at === undefined) {
     return null;
   }
   return {
