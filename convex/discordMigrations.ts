@@ -16,17 +16,20 @@ export const discord_channel_creators_v1 = migrations.define({
   table: 'play_game_discord_channels',
   batchSize: 50,
   migrateOne: async (ctx, row) => {
-    if (row.creator_id !== undefined) return;
     const game = await ctx.db.get(row.game_id);
-    await ctx.db.patch(row._id, { creator_id: game?.creator_id ?? null });
+    const creatorId = game?.creator_id ?? row.creator_id ?? null;
+    if (row.creator_id !== creatorId) await ctx.db.patch(row._id, { creator_id: creatorId });
   },
 });
 
 export const discord_channel_creators_verify_v1 = migrations.define({
   table: 'play_game_discord_channels',
   batchSize: 50,
-  migrateOne: async (_ctx, row) => {
-    if (row.creator_id === undefined) throw new Error('Discord channel creator has not been backfilled.');
+  migrateOne: async (ctx, row) => {
+    const game = await ctx.db.get(row.game_id);
+    if (row.creator_id === undefined || (game?.creator_id && row.creator_id !== game.creator_id)) {
+      throw new Error('Discord channel creator does not match its game.');
+    }
   },
 });
 

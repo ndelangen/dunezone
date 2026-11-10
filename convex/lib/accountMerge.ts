@@ -381,8 +381,23 @@ async function moveGameOwnership(ctx: MutationCtx, operation: Doc<'account_merge
     if (!routing) {
       await ctx.db.insert('play_game_accounts', { game_id: row._id, user_id: source });
     }
+    const channel = await ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_game_id', (q) => q.eq('game_id', row._id))
+      .unique();
+    if (channel) await ctx.db.patch(channel._id, { creator_id: target });
     await ctx.db.patch(row._id, { creator_id: target, creator_actor_id: row.creator_actor_id ?? source });
   }
+  return rows.length;
+}
+
+/* Orphaned channels no longer have a game ownership row to carry them across. */
+async function moveDiscordChannelOwnership(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const rows = await ctx.db
+    .query('play_game_discord_channels')
+    .withIndex('by_creator_id_state', (q) => q.eq('creator_id', operation.source_user_id))
+    .take(BATCH);
+  for (const row of rows) await ctx.db.patch(row._id, { creator_id: operation.target_user_id });
   return rows.length;
 }
 
@@ -508,6 +523,7 @@ const MERGE_BATCHES = [
   moveAuthAccounts,
   revokeSourceSessions,
   moveLinkedAccountProfiles,
+  moveDiscordChannelOwnership,
 ] as const;
 
 /** Every phase drains an indexed source range, so retries need no cursor and never repeat user-visible writes. */
