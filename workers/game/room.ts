@@ -79,6 +79,13 @@ import type { TerritoryNudge } from '../../src/shared/play/territoryPlacement';
 import { isTerritoryTintAction } from '../../src/shared/play/territoryTints';
 import type { TerritoryTintAction } from '../../src/shared/play/territoryTints';
 import { troopFactionOf, troopReserveKeys, troopReserveSpots } from '../../src/shared/play/troopReserves';
+import {
+  allowedDuringSetup,
+  allowedWhenFinished,
+  isReadiness,
+  leavesTableSettled,
+  revisionTolerant,
+} from './actionPolicy';
 import { allianceCommand } from './alliances';
 import { battleCommand } from './battle';
 import { biddingAfterTable, biddingCommand } from './bidding';
@@ -122,66 +129,6 @@ type Carry = Identity & {
 };
 type CarryInput<T extends 'begin' | 'pose' | 'take' | 'flip'> = Omit<Extract<ClientMessage, { type: T }>, 'type'>;
 
-/**
- * Actions that never rely on the table being exactly as their sender last saw it.
- * Each names what it changes and is checked against the live table, so another seat acting at the same moment must not turn it away (#1681, #1690).
- * A battle action names its battle and side, and a draft choice or removal ballot names the sender's own pick or vote.
- * A seat request names its seat, an approval its request and a withdrawal the sender's own request, each judged against the live seating.
- * An alliance offer or answer names the other faction and is judged against the live alliances.
- * Breaking an alliance stays strict, so a late break never leaves an alliance re-formed since the sender saw it.
- * A raise, lowering or pass names its bidding round and is judged against the live bidder's turn, so a quick second raise is not turned away by the first.
- * A spice reserve withdrawal stays strict, so two tabs of one player cannot both spend from a spice reserve they saw once.
- * A tech token draw picks from whatever the shared table inventory holds when it arrives.
- * A restore names its deletion and finds room among the pieces as they lie when it arrives.
- * A spice blow names its card and territory and finds room among the spice as it lies when it arrives, so the Spice blow command's placings, sent together, all land.
- * A hand order names the player's own pieces, which nobody else moves, and is judged against what they hold now.
- * Leaving stays strict too, since its confirmation said what it costs and a crossed departure may have left the sender the last player.
- */
-const REVISION_TOLERANT_ACTIONS = new Set<string>([
-  'spice-spawn',
-  'spice-blow',
-  'restore',
-  'tech-token-draw',
-  'hand-order',
-  'deck-draw',
-  'peek',
-  'peek-close',
-  'battle-claim',
-  'battle-plan',
-  'battle-ready',
-  'battle-disclose',
-  'battle-outcome',
-  'battle-cancel',
-  'draft-pick',
-  'draft-unpick',
-  'draft-ban',
-  'draft-unban',
-  'removal-ballot',
-  'review-propose',
-  'review-ballot',
-  'review-end',
-  'review-seek',
-  'seat-request',
-  'seat-withdraw',
-  'seat-approve',
-  'bid-raise',
-  'bid-pass',
-  'bid-lower',
-  'bid-seconds',
-  'alliance-offer',
-  'alliance-withdraw',
-  'alliance-accept',
-  'last-turn',
-  'movement-done',
-  'movement-undo',
-  'movement-order',
-  'tint-create',
-  'tint-paint',
-  'tint-set',
-  'tint-color',
-  'tint-remove',
-]);
-
 /*
  * The turns a carrier has made in hand only ever add up, so a late frame never turns the piece back.
  * A drop without a count keeps the carry's, as an older page sends none.
@@ -207,16 +154,13 @@ const CARRY_HISTORY_LIMIT = 1024;
 /** The refusal of a carry from a connection that used every carry ID the room remembers; only a new connection may start more. */
 export class CarryHistoryExhausted extends GameRejection {}
 
-/** Readiness confirms the table its sender saw, so it may cross other readiness but never a change it would have answered. */
-const READINESS_ACTIONS = new Set<string>(['ready', 'draft-ready', 'swap-ready']);
-
 /**
  * Withdrawing readiness confirms no table, so it never waits on the revision.
  * A swap withdrawal still names its trading round;
  * a draft or setup withdrawal is judged by the room's current stage and phase.
  */
 function withdrawsReadiness(action: { kind: string; ready?: boolean }) {
-  return READINESS_ACTIONS.has(action.kind) && action.ready === false;
+  return isReadiness(action.kind) && action.ready === false;
 }
 
 /** Whether a commit left the game at the same stage, phase, setup step and trading round. */
@@ -228,9 +172,6 @@ function samePlace(before: GameSnapshot, after: GameSnapshot) {
     before.swapping?.round === after.swapping?.round
   );
 }
-
-/** Commits that leave the table a player readied for as it was: readiness itself, and a spectator asking for a seat or withdrawing the request. */
-const SETTLED_ACTIONS = new Set<string>([...READINESS_ACTIONS, 'seat-request', 'seat-withdraw']);
 
 export class Room {
   private current!: StoredSnapshot;
@@ -280,9 +221,9 @@ export class Room {
     const current = this.snapshot.revision;
     const crossed =
       expectedRevision < current &&
-      (REVISION_TOLERANT_ACTIONS.has(kind) ||
+      (revisionTolerant(kind) ||
         withdrawsReadiness(action) ||
-        (READINESS_ACTIONS.has(kind) && expectedRevision >= this.settledRevision));
+        (isReadiness(kind) && expectedRevision >= this.settledRevision));
     if (expectedRevision !== current && !crossed) {
       throw new GameRejection(message);
     }
@@ -293,7 +234,7 @@ export class Room {
     const before = this.snapshot;
     const settled = this.settledRevision;
     apply();
-    if (kind && SETTLED_ACTIONS.has(kind) && samePlace(before, this.snapshot)) {
+    if (kind && leavesTableSettled(kind) && samePlace(before, this.snapshot)) {
       this.settledRevision = settled;
     }
   }
@@ -679,46 +620,11 @@ export class Room {
 
   private assertActionStage(action: PieceAction) {
     /* A finished game leaves the table as it was; a locked prediction can still be revealed, and a peek can still be closed. */
-    if (this.snapshot.stage === 'finished' && ['prediction-reveal', 'peek-close'].includes(action.kind)) {
+    if (this.snapshot.stage === 'finished' && allowedWhenFinished(action.kind)) {
       return;
     }
     this.assertTableAvailable();
-    if (
-      this.snapshot.stage === 'setup' &&
-      ![
-        'split',
-        'stack',
-        'flip',
-        'lock',
-        'rotate',
-        'delete',
-        'restore',
-        'tech-token-draw',
-        'deck-draw',
-        'deck-shuffle',
-        'peek',
-        'peek-close',
-        'peek-arrange',
-        'peek-pull',
-        'hand-take',
-        'hand-play',
-        'hand-zone',
-        'hand-order',
-        'tint-create',
-        'tint-paint',
-        'tint-set',
-        'tint-color',
-        'tint-remove',
-        'bank-withdraw',
-        'bank-collect',
-        'spice-spawn',
-        'phase',
-        'ready',
-        'prediction-lock',
-        'prediction-reveal',
-        'traitors-gather',
-      ].includes(action.kind)
-    ) {
+    if (this.snapshot.stage === 'setup' && !allowedDuringSetup(action.kind)) {
       throw new GameRejection('That control is not available during setup.');
     }
   }
