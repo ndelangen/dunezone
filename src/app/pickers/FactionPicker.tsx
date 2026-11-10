@@ -10,7 +10,7 @@ import type { ActionIntent } from '@ui/control/actionIntent';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useFactionLoadPicker } from '@db/factions';
 import type { Faction, FactionLoadPickerRow } from '@db/factions';
@@ -85,9 +85,22 @@ export type FactionPickerProps = {
 export function FactionPicker(props: FactionPickerProps) {
   const { excludeSlugs, copy, onPick } = props;
   const picker = useFactionLoadPicker();
-  const combobox = useCombobox();
-
-  const [search, setSearch] = useState('');
+  /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter submit the highlighted row, which Mantine gates on the dropdown state. */
+  const combobox = useCombobox({ defaultOpened: true });
+  /* Null until the reader types, so opening the picker highlights nothing and Enter picks nothing by itself. */
+  const [typed, setTyped] = useState<string | null>(null);
+  const search = typed ?? '';
+  /*
+   * Each search highlights its first row, so Enter after typing picks the best match.
+   * After the filtered list renders, not in onChange: highlighting there marks a row of the list still on screen, which may be filtered out.
+   * The method is taken off the store, which is a fresh object every render, so a live update does not move the reader's highlight.
+   */
+  const { selectFirstOption } = combobox;
+  useEffect(() => {
+    if (typed !== null) {
+      selectFirstOption();
+    }
+  }, [selectFirstOption, typed]);
   const [selectedId, setSelectedId] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -186,10 +199,7 @@ export function FactionPicker(props: FactionPickerProps) {
                   data-lpignore="true"
                   data-bwignore
                   data-form-type="other"
-                  onChange={(event) => {
-                    setSearch(event.currentTarget.value);
-                    combobox.selectFirstOption();
-                  }}
+                  onChange={(event) => setTyped(event.currentTarget.value)}
                 />
               </Combobox.EventsTarget>
             )}
