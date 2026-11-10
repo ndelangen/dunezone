@@ -41,6 +41,7 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
   const now = Date.now();
   const channelId = await ctx.db.insert('play_game_discord_channels', {
     game_id: game._id,
+    creator_id: game.creator_id ?? null,
     guild_id: config.guildId,
     category_ids: config.categoryIds,
     state: 'pending',

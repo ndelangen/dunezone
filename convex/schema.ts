@@ -146,6 +146,7 @@ export default defineSchema({
     .index('by_state_at', ['state', 'at'])
     .index('by_at', ['at']),
   play_game_discord_channels: defineTable({
+    creator_id: v.optional(v.union(v.id('users'), v.null())),
     game_id: v.id('play_games'),
     guild_id: v.string(),
     category_ids: v.array(v.string()),
@@ -174,6 +175,7 @@ export default defineSchema({
     error: v.optional(v.string()),
   })
     .index('by_game_id', ['game_id'])
+    .index('by_creator_id_state', ['creator_id', 'state'])
     .index('by_channel_id', ['channel_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
     .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at']),

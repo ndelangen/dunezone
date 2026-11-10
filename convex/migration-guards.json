@@ -1,5 +1,7 @@
 {
   "entries": [
+    { "id": "discord_channel_creators_v1", "phase": "widen", "requires": [] },
+    { "id": "discord_channel_creators_verify_v1", "phase": "widen", "requires": [] },
     {
       "id": "play_game_names_narrow",
       "phase": "narrow",
