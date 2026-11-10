@@ -46,7 +46,11 @@ export const publishSummary = mutation({
       directory_stage: args.summary.stage,
       directory: args.summary,
     });
-    await syncDiscordDirectory(ctx, { ...game, directory: args.summary, directory_stage: args.summary.stage });
+    await syncDiscordDirectory(
+      ctx,
+      { ...game, directory: args.summary, directory_stage: args.summary.stage },
+      game.directory?.stage === 'finished'
+    );
     return { ok: true as const, sequence: args.sequence };
   },
 });

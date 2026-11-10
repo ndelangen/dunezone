@@ -1,3 +1,6 @@
+import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
+
 import type { PlayDiscordMenu } from '../../src/shared/play/discord';
 import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
@@ -11,6 +14,33 @@ export const DISCORD_CREATOR_LIMIT = 3;
 export const DISCORD_RETRY = 15 * 60_000;
 /* Longer than Convex's ten-minute action lifetime and the transport timeout, so a replacement never overlaps a live owner. */
 export const DISCORD_LEASE = 11 * 60_000;
+
+export const discordRetryOperation = v.union(
+  v.literal('categories'),
+  v.literal('create'),
+  v.literal('invite'),
+  v.literal('rename-ended'),
+  v.literal('rename-active'),
+  v.literal('delete')
+);
+/** Scheduled arguments carry the short retry budget; the existing row deadline fences stale jobs. */
+export const discordRetry = v.object({
+  operation: discordRetryOperation,
+  attempts: v.number(),
+  categoryId: v.optional(v.string()),
+  revision: v.number(),
+  deadline: v.number(),
+});
+
+/** Only the same definitely rejected creation may reuse its existing creation reservation. */
+export function retryCreationCategory(channel: Doc<'play_game_discord_channels'>, retry?: Infer<typeof discordRetry>) {
+  return retry?.operation === 'create' &&
+    retry.revision === (channel.work_revision ?? 0) &&
+    channel.state === 'pending' &&
+    !channel.channel_id
+    ? retry.categoryId
+    : undefined;
+}
 
 export async function discordChannel(ctx: QueryCtx, gameId: Id<'play_games'>) {
   return await ctx.db
@@ -96,8 +126,18 @@ export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'pla
   await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });
 }
 
+/** A confirmed deletion or Unknown Channel response ends tracked work without another Discord request. */
+export async function markDiscordDeleted(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
+  await ctx.db.patch(channel._id, {
+    state: 'deleted',
+    deleted_at: Date.now(),
+    invite_url: undefined,
+    error: undefined,
+  });
+}
+
 /** Accepted stage changes wake cleanup immediately, even when an earlier action still owns the lease. */
-export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>) {
+export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>, previouslyFinished: boolean) {
   if (game.discord_voice !== true) {
     return;
   }
@@ -106,12 +146,10 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
     return;
   }
   const stage = game.directory?.stage;
-  const endedAt = stage === 'finished' ? (channel.ended_at ?? Date.now()) : undefined;
   const inactiveAt = (game.directory?.lastActivityAt ?? channel.created_at) + 14 * DISCORD_DAY;
   const cleanupAt = stage === 'discarded' ? Date.now() : inactiveAt;
-  const changed = stage === 'discarded' || (endedAt !== undefined) !== (channel.ended_at !== undefined);
+  const changed = stage === 'discarded' || (stage === 'finished') !== previouslyFinished;
   await ctx.db.patch(channel._id, {
-    ended_at: endedAt,
     cleanup_at: cleanupAt,
     ...(changed
       ? { next_attempt_at: Date.now(), work_revision: (channel.work_revision ?? 0) + 1 }

@@ -106,34 +106,28 @@ export class DiscordRest {
     }
   }
 
-  async request(method: string, path: string, body?: unknown, rateLimitRetries = 2): Promise<unknown> {
-    for (let attempt = 0; ; attempt += 1) {
-      if (!discordConfiguration()) {
-        throw new DiscordFailure(0, undefined);
-      }
-      const until = await this.cooldown.until();
-      if (until === null) {
-        throw new DiscordPaused();
-      }
-      const blocked = until - Date.now();
-      if (blocked > 0) {
-        throw new DiscordFailure(429, undefined, blocked);
-      }
-      const response = await this.fetchResponse(method, path, body);
-      const data = await responseData(response);
-      if (response.ok) {
-        return data;
-      }
-      const failure = responseFailure(response, data);
-      if (response.status === 429 && failure.global) {
-        await this.cooldown.hold(Date.now() + failure.retryAfterMs);
-      }
-      if (response.status === 429 && attempt < rateLimitRetries && failure.retryAfterMs <= 5000) {
-        await new Promise((resolve) => setTimeout(resolve, failure.retryAfterMs));
-        continue;
-      }
-      throw failure;
+  async request(method: string, path: string, body?: unknown): Promise<unknown> {
+    if (!discordConfiguration()) {
+      throw new DiscordFailure(0, undefined);
     }
+    const until = await this.cooldown.until();
+    if (until === null) {
+      throw new DiscordPaused();
+    }
+    const blocked = until - Date.now();
+    if (blocked > 0) {
+      throw new DiscordFailure(429, undefined, blocked);
+    }
+    const response = await this.fetchResponse(method, path, body);
+    const data = await responseData(response);
+    if (response.ok) {
+      return data;
+    }
+    const failure = responseFailure(response, data);
+    if (response.status === 429 && failure.global) {
+      await this.cooldown.hold(Date.now() + failure.retryAfterMs);
+    }
+    throw failure;
   }
 
   async categories(guildId: string, categoryIds: string[]) {
@@ -169,15 +163,10 @@ export class DiscordRest {
   /** One best-effort POST, with only the intended recipient allowed to be mentioned. */
   async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string) {
     const plain = (value: string) => value.replace(/\s+/g, ' ').replace(/[\\`*_~|<>[\]]/g, '\\$&');
-    const result = await this.request(
-      'POST',
-      `/channels/${channelId}/messages`,
-      {
-        content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
-        allowed_mentions: { parse: [], users: [userId], replied_user: false },
-      },
-      0
-    );
+    const result = await this.request('POST', `/channels/${channelId}/messages`, {
+      content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
+      allowed_mentions: { parse: [], users: [userId], replied_user: false },
+    });
     const parsed = z.object({ id: snowflake }).safeParse(result);
     if (!parsed.success) {
       throw new DiscordFailure(0, undefined);

@@ -35,7 +35,30 @@ export const discord_channel_creators_verify_v1 = migrations.define({
   },
 });
 
+/** The directory now owns finish transitions; remove only the obsolete channel marker. */
+export const discord_channel_end_marker_retire_v1 = migrations.define({
+  table: 'play_game_discord_channels',
+  batchSize: 50,
+  migrateOne: async (ctx, row) => {
+    if (row.ended_at !== undefined) {
+      await ctx.db.patch(row._id, { ended_at: undefined });
+    }
+  },
+});
+
+export const discord_channel_end_marker_verify_v1 = migrations.define({
+  table: 'play_game_discord_channels',
+  batchSize: 50,
+  migrateOne: async (_ctx, row) => {
+    if (row.ended_at !== undefined) {
+      throw new Error('Discord channel still has an obsolete finish marker.');
+    }
+  },
+});
+
 export const DISCORD_MIGRATION_IDS: Record<string, FunctionReference<'mutation', 'internal'>> = {
   discord_channel_creators_v1: internal.discordMigrations.discord_channel_creators_v1,
   discord_channel_creators_verify_v1: internal.discordMigrations.discord_channel_creators_verify_v1,
+  discord_channel_end_marker_retire_v1: internal.discordMigrations.discord_channel_end_marker_retire_v1,
+  discord_channel_end_marker_verify_v1: internal.discordMigrations.discord_channel_end_marker_verify_v1,
 };

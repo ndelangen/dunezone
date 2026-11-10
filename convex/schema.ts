@@ -164,6 +164,7 @@ export default defineSchema({
       v.literal('deleted')
     ),
     created_at: v.number(),
+    /* Retained until the approved finish-marker retirement has run; new writes use directory transitions. */
     ended_at: v.optional(v.number()),
     renamed_ended: v.optional(v.boolean()),
     voice_checked_at: v.optional(v.number()),

@@ -6,7 +6,7 @@ import type { Doc } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { discordEnabled } from './lib/discordStatus';
-import { requestDiscordDeletion } from './lib/playDiscord';
+import { markDiscordDeleted, requestDiscordDeletion } from './lib/playDiscord';
 import {
   VOICE_BATCH,
   VOICE_OBSERVATION_MAX_AGE,
@@ -78,11 +78,15 @@ export const checkDue = internalMutation({
 
 /** A stale snapshot cannot retire a continued game or a later finish of that game. */
 export const reportEmpty = internalMutation({
-  args: { channels: v.array(voiceCandidateValidator), observedAt: v.number() },
+  args: {
+    channels: v.array(voiceCandidateValidator),
+    missingChannels: v.optional(v.array(voiceCandidateValidator)),
+    observedAt: v.number(),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const age = Date.now() - args.observedAt;
-    if (args.channels.length > VOICE_BATCH) {
+    if (args.channels.length + (args.missingChannels?.length ?? 0) > VOICE_BATCH) {
       return null;
     }
     if (!Number.isFinite(age)) {
@@ -98,6 +102,12 @@ export const reportEmpty = internalMutation({
       const row = await observedChannel(ctx, channel);
       if (row) {
         await requestDiscordDeletion(ctx, row);
+      }
+    }
+    for (const channel of args.missingChannels ?? []) {
+      const row = await observedChannel(ctx, channel);
+      if (row) {
+        await markDiscordDeleted(ctx, row);
       }
     }
     return null;
