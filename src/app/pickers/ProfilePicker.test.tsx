@@ -71,6 +71,20 @@ describe('ProfilePicker', () => {
     expect(mocks.loadMore).toHaveBeenCalledTimes(1);
   });
 
+  it('highlights the first match of a search, so Enter chooses it', () => {
+    const onPick = vi.fn();
+    const view = render(
+      <MantineProvider theme={appContentTheme}>
+        <ProfilePicker onPick={onPick} onCancel={vi.fn()} />
+      </MantineProvider>
+    );
+    const search = view.getByRole('searchbox', { name: 'Search profiles' });
+    fireEvent.change(search, { target: { value: 'chani' } });
+    fireEvent.keyDown(search, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(view.getByRole('button', { name: 'Use this profile' }));
+    expect(onPick).toHaveBeenCalledWith(profiles[1]);
+  });
+
   it('supports cancellation and empty/loading states', () => {
     const onCancel = vi.fn();
     mocks.hook.mockReturnValue({ data: [], status: 'LoadingFirstPage', loadMore: mocks.loadMore });

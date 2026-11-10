@@ -16,6 +16,7 @@ import { useTreacheryDeckChoices } from '@app/db/treacheryTrackerTool';
 import type { TreacheryDeckChoice } from '@app/db/treacheryTrackerTool';
 import { toolPageHead } from '@app/routes/_app/tools/toolHead';
 import type { FactionToken } from '@app/widgets/faction-token/FactionTokenFace';
+import { faceCopies } from '@app/widgets/treachery-tracker/CardArt';
 import { cardDefs } from '@app/widgets/treachery-tracker/tracker';
 
 import { FactionSearchList } from './FactionSearchList';
@@ -80,7 +81,10 @@ function TreacheryTrackerPage() {
 
 /* A game being tracked, its card pictures fetched again where this browser no longer holds them, such as a saved game opened after the cache was cleared. */
 function Game({ game }: Readonly<{ game: StandaloneGame }>) {
-  usePreloadedImages(useMemo(() => game.state.copies.map((copy) => copy.def.face), [game.state.copies]));
+  usePreloadedImages(
+    useMemo(() => game.state.copies.map((copy) => copy.def.face), [game.state.copies]),
+    faceCopies
+  );
   return (
     <TrackerGame
       game={game}
@@ -172,7 +176,8 @@ function DeckSetup({
   /* While the deck list itself loads, the picked decks are not known yet, so they show as loading rather than as none picked. */
   const deck: SetupDeck = choices === undefined ? LOADING : config.decks.length ? setupDeck(read) : NO_DECK;
   const faces = useMemo(() => (deck.status === 'ready' ? deck.defs.map((def) => def.face) : []), [deck]);
-  const fetched = usePreloadedImages(faces);
+  /* The copies the tracker draws, not the full captures, which nothing draws. */
+  const fetched = usePreloadedImages(faces, faceCopies);
   return (
     <TrackerSetup
       decks={choices}

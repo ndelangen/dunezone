@@ -4,7 +4,7 @@ import { matchAsset, searchTerms } from '@ui/control/assetSearch';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { X } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAssetsByTypes } from '@app/db/assets';
 import type { AssetListEntry } from '@app/db/assets';
@@ -91,8 +91,22 @@ export function AssetPicker({
     [focusSearch]
   );
   const catalogue = useAssetsByTypes(types);
-  const combobox = useCombobox();
-  const [search, setSearch] = useState('');
+  /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter submit the highlighted row, which Mantine gates on the dropdown state. */
+  const combobox = useCombobox({ defaultOpened: true });
+  /* Null until the reader types, so opening the picker highlights nothing and Enter picks nothing by itself. */
+  const [typed, setTyped] = useState<string | null>(null);
+  const search = typed ?? '';
+  /*
+   * Each search highlights its first row, so Enter after typing picks the best match.
+   * After the filtered list renders, not in onChange: highlighting there marks a row of the list still on screen, which may be filtered out or sorted down.
+   * The method is taken off the store, which is a fresh object every render, so a live catalogue update does not move the reader's highlight.
+   */
+  const { selectFirstOption } = combobox;
+  useEffect(() => {
+    if (typed !== null) {
+      selectFirstOption();
+    }
+  }, [selectFirstOption, typed]);
 
   const availableRows = useMemo(() => {
     /* Built inside the memo that uses it: callers pass a fresh array each render, so memoizing the set alone never hits. */
@@ -154,10 +168,7 @@ export function AssetPicker({
                   data-lpignore="true"
                   data-bwignore
                   data-form-type="other"
-                  onChange={(event) => {
-                    setSearch(event.currentTarget.value);
-                    combobox.selectFirstOption();
-                  }}
+                  onChange={(event) => setTyped(event.currentTarget.value)}
                 />
               </Combobox.EventsTarget>
             )}

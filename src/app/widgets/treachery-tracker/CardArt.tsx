@@ -16,10 +16,24 @@ import type { CardCopy } from './tracker';
 const CORNER_SCALE = 6.43;
 const PICTO_SCALE = 1.714;
 
-/** A card's face as a copy no wider than it is drawn, so a 36 px glyph never downloads the full capture. */
+/*
+ * Every crop and card the tracker draws comes from one of two copies of the face, a small one and a large one,
+ * so the setup can fetch exactly those before a game starts and nothing drawn later waits on the network.
+ */
+/** The widest small drawing, in CSS pixels: the touch chooser's 48 px glyph crops a face drawn 48 × `PICTO_SCALE` wide. */
+const SMALL_FACE_PX = 84;
+/** The widest whole card: the held peek. Anything wider than the small copy draws from this one. */
+const LARGE_FACE_PX = 240;
+
+/** A card's face as the copy a drawing `width` CSS pixels wide uses, so a 36 px glyph never downloads the full capture. */
 export function faceAt(face: string, width: number): string {
   const ratio = typeof window === 'undefined' ? 2 : window.devicePixelRatio || 1;
-  return publishedThumbnailSrc(face, width * ratio);
+  return publishedThumbnailSrc(face, (width <= SMALL_FACE_PX ? SMALL_FACE_PX : LARGE_FACE_PX) * ratio);
+}
+
+/** Every copy of a face the tracker draws, which is what fetching its pictures ahead means. */
+export function faceCopies(face: string): string[] {
+  return [...new Set([faceAt(face, SMALL_FACE_PX), faceAt(face, LARGE_FACE_PX)])];
 }
 
 /**
