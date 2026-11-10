@@ -7,12 +7,9 @@ export function factionLoadOptionSearchText(row: FactionLoadPickerRow): string {
   return [row.id, row.data.name, row.slug, row.groupLabel, row.ownerUsername ?? ''].join(' ');
 }
 
-export function factionLoadOwnerLabel(row: Pick<FactionLoadPickerRow, 'ownerUsername' | 'ownerId'>): string {
-  const u = row.ownerUsername?.trim();
-  if (u) {
-    return u;
-  }
-  return row.ownerId || 'Unknown owner';
+/* Never the owner's raw account id, which means nothing to a reader; an owner without a public name is unknown, as in the other pickers. */
+export function factionLoadOwnerLabel(row: Pick<FactionLoadPickerRow, 'ownerUsername'>): string {
+  return row.ownerUsername?.trim() || 'Unknown owner';
 }
 
 export type FactionLoadOptionRowProps = {

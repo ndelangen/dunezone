@@ -345,7 +345,8 @@ export const listForLoadPicker = viewerQuery({
         .query('profiles')
         .withIndex('by_user_id', (q) => q.eq('user_id', oid))
         .unique();
-      ownerUsernameById.set(oid, profile?.username ?? null);
+      /* A deleted or departing account no longer answers to its name, as on every other list (catalogueEntries). */
+      ownerUsernameById.set(oid, profile && isActiveProfile(profile) ? (profile.username ?? null) : null);
     }
 
     const rows = factionRows.map((row) => {
