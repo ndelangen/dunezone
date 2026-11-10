@@ -243,12 +243,10 @@ type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
 type PageRead = Extract<
   ClientMessage,
-  { type: 'sync' | 'history' | 'metrics' | 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }
+  { type: 'history' | 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }
 >;
 const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
-  'sync',
   'history',
-  'metrics',
   'log-history',
   'spice-history',
   'faction',
@@ -1712,14 +1710,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
   private sendPage(socket: WebSocket, message: PageRead, connection: Connection) {
     switch (message.type) {
-      case 'sync':
-        this.sendView(socket, connection);
-        return;
       case 'history':
         this.sendHistory(socket, message.step, message.requestId);
-        return;
-      case 'metrics':
-        this.sendMetrics(socket);
         return;
       case 'log-history':
         this.send(socket, {
@@ -1762,6 +1754,12 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     switch (message.type) {
+      case 'sync':
+        this.sendView(socket, connection);
+        return;
+      case 'metrics':
+        this.sendMetrics(socket);
+        return;
       case 'nudge':
         publishNudge(
           {
