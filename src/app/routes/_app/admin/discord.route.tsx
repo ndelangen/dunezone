@@ -1,4 +1,4 @@
-import { Anchor, Code, Group, Stack, Switch, Table, Text } from '@mantine/core';
+import { Anchor, Code, Group, Stack, Switch, Table, Text, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -168,7 +168,7 @@ function TrackedChannels({
           Game invites are shared. Individual Discord access is not tracked.
         </Text>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="sm">
+          <Table striped verticalSpacing="sm">
             <Table.Thead>
               <Table.Tr>
                 <Table.Th>Game</Table.Th>
@@ -204,6 +204,7 @@ function TrackedChannels({
                         rel="noreferrer"
                       >
                         {channel.channel_id}
+                        <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     ) : channel.state === 'creating' ? (
                       'Creation unconfirmed'
@@ -249,7 +250,7 @@ function TrackedChannels({
           </Table>
         </Table.ScrollContainer>
         <ActionError subject="channel" verb="delete" error={error} />
-        <Group justify="center" aria-label="Channel pages">
+        <Group role="group" justify="center" aria-label="Channel pages">
           <LabeledAction
             icon={<ChevronLeft size={16} />}
             disabledReason={cursors.length === 1 ? 'This is the first page.' : undefined}
@@ -320,7 +321,7 @@ function UntrackedChannels({
         <ActionError subject="untracked channel" verb="delete" error={deleteError} />
         {channels && (
           <Table.ScrollContainer minWidth={600}>
-            <Table>
+            <Table striped>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>Name</Table.Th>
@@ -341,6 +342,7 @@ function UntrackedChannels({
                         rel="noreferrer"
                       >
                         {channel.id}
+                        <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     </Table.Td>
                     <Table.Td>

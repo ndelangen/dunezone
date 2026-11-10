@@ -270,17 +270,15 @@ function DiscordVoiceAction({ menu }: Readonly<{ menu: PlayDiscordMenu | null }>
     return null;
   }
   return (
-    <Stack gap="xs" p="xs" maw={300}>
-      <LabeledAction
-        icon={<SiDiscord size={16} aria-hidden />}
-        provider="discord"
-        emphasis="strong"
-        href={menu.url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Join voice chat
-      </LabeledAction>
-    </Stack>
+    <LabeledAction
+      icon={<SiDiscord size={16} aria-hidden />}
+      provider="discord"
+      emphasis="strong"
+      href={menu.url}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Join voice chat
+    </LabeledAction>
   );
 }
