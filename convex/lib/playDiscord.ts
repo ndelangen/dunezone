@@ -28,7 +28,9 @@ export async function discordVoiceAtLimit(ctx: QueryCtx, creatorId: Id<'users'>)
     return true;
   }
   let count = 0;
-  const games = ctx.db.query('play_games').withIndex('by_creator_id', (q) => q.eq('creator_id', creatorId));
+  const games = ctx.db
+    .query('play_games')
+    .withIndex('by_creator_id_discord_voice', (q) => q.eq('creator_id', creatorId).eq('discord_voice', true));
   for await (const game of games) {
     const channel = await discordChannel(ctx, game._id);
     if (channel && channel.state !== 'deleted' && channel.state !== 'deleting') {
@@ -45,17 +47,28 @@ function discordGameFinished(game: Doc<'play_games'>) {
   return game.directory?.stage === 'finished' || game.directory?.stage === 'discarded';
 }
 
+/** A game stops offering voice when its channel leaves the live set. */
+export async function clearDiscordVoice(ctx: MutationCtx, gameId: Id<'play_games'>) {
+  const game = await ctx.db.get(gameId);
+  if (game?.discord_voice === true) {
+    await ctx.db.patch(gameId, { discord_voice: false });
+  }
+}
+
 /** Reservation and game confirmation commit together; repeated confirmations cannot reserve a second room. */
 export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_games'>) {
+  if (await discordChannel(ctx, game._id)) {
+    return;
+  }
   const config = discordConfiguration();
   if (
     !config ||
     !(await discordEnabled(ctx)) ||
     game.discord_voice !== true ||
     game.fixture_key !== undefined ||
-    !game.ruleset_id ||
-    (await discordChannel(ctx, game._id))
+    !game.ruleset_id
   ) {
+    await clearDiscordVoice(ctx, game._id);
     return;
   }
   if (!game.creator_id || (await discordVoiceAtLimit(ctx, game.creator_id))) {
@@ -77,6 +90,9 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
 
 /** Manual retirement uses the same durable deletion path as an expired game channel. */
 export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
+  if (channel.state !== 'creating') {
+    await clearDiscordVoice(ctx, channel.game_id);
+  }
   await ctx.db.patch(channel._id, {
     /* Keep an in-flight create able to save its returned ID before the deletion request is applied. */
     state: channel.state === 'creating' ? 'creating' : 'deleting',

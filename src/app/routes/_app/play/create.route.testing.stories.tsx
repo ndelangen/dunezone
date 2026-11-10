@@ -270,6 +270,7 @@ export const DiscordVoiceLimit = meta.story({
             name: baseline.rulesets[0]!.name,
             slug: `voice-limit-game-${index}`,
             state: 'ready',
+            discord_voice: true,
             ruleset_id: ref(baseline.rulesets[0]!.$key!),
             minimum_players: 6,
             creator_id: ref(storybookViewer.subjectKey),
@@ -280,7 +281,6 @@ export const DiscordVoiceLimit = meta.story({
           });
           baseline.play_game_discord_channels.push({
             game_id: ref(gameKey),
-            creator_id: ref(storybookViewer.subjectKey),
             guild_id: '100',
             category_ids: ['200'],
             state: 'pending',

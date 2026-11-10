@@ -7,7 +7,7 @@ import { internalMutation } from './functions';
 import { docValidator } from './lib/collaborativeAccessValidators';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
-import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
+import { clearDiscordVoice, DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
 import { playRateLimiter } from './lib/playRateLimits';
 
 const channelValidator = docValidator('play_game_discord_channels');
@@ -211,6 +211,7 @@ export const beginDeletion = internalMutation({
     if (!retirementDue(row, await ctx.db.get(row.game_id))) {
       return false;
     }
+    await clearDiscordVoice(ctx, row.game_id);
     await ctx.db.patch(row._id, { state: 'deleting' });
     return true;
   },
@@ -222,6 +223,7 @@ export const removed = internalMutation({
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.channelId);
     if (row?.lease === args.lease) {
+      await clearDiscordVoice(ctx, row.game_id);
       await ctx.db.patch(row._id, {
         state: 'deleted',
         deleted_at: Date.now(),

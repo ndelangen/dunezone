@@ -414,7 +414,7 @@ test.each(['target', 'source'] as const)(
     const game = await t.mutation(internal.playTesting.createFixture, {});
     const creatorId = creator === 'source' ? source.userId : target.userId;
     await t.run(async (ctx) => {
-      await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId });
+      await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId, discord_voice: true });
       if (creator === 'target') {
         await ctx.db.insert('play_game_accounts', { game_id: game.gameId, user_id: source.userId });
       }
@@ -614,7 +614,7 @@ test('merged accounts retain the combined Discord voice channel limit', async ()
     const game = await t.mutation(internal.playTesting.createFixture, {});
     channelIds.push(
       await t.run(async (ctx) => {
-        await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId });
+        await ctx.db.patch(game.gameId, { state: 'ready', creator_id: creatorId, discord_voice: true });
         return await ctx.db.insert('play_game_discord_channels', {
           game_id: game.gameId,
           guild_id: '100',

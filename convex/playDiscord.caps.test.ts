@@ -6,7 +6,7 @@ import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { playRateLimiter } from './lib/playRateLimits';
 import { playPerson, playRuleset, playTest } from './play.test.fixture';
-import { configureDiscord, discordStub } from './playDiscord.test.fixture';
+import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -139,4 +139,23 @@ test('game creation remains available at the voice cap and voice returns after d
           .unique()
     )
   ).toMatchObject({ state: 'pending' });
+});
+
+test('discarding a channel removes its game from active voice candidates before DELETE completes', async () => {
+  const discord = discordStub();
+  const world = await voiceWorld();
+  await world.reconcile();
+  expect(await world.t.run((ctx) => ctx.db.get(world.gameId))).toMatchObject({ discord_voice: true });
+  const normal = discord.fetch.getMockImplementation()!;
+  discord.fetch.mockImplementation(async (input, options) => {
+    if (options?.method === 'DELETE') {
+      expect(await world.channel()).toMatchObject({ state: 'deleting' });
+      expect(await world.t.run((ctx) => ctx.db.get(world.gameId))).toMatchObject({ discord_voice: false });
+    }
+    return normal(input, options);
+  });
+  await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(await world.t.run((ctx) => ctx.db.get(world.gameId))).toMatchObject({ discord_voice: false });
 });
