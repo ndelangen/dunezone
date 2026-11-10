@@ -86,7 +86,7 @@
   padding-block: var(--space-md);
 }
 .arena {
-  --seat-token-size: 48px;
+  --seat-token-size: clamp(3.25rem, 18cqi, 8rem);
   position: relative;
   aspect-ratio: 1;
   width: 100%;
@@ -99,7 +99,7 @@
   width: 100%;
   height: 100%;
   stroke: var(--color-brand);
-  stroke-width: 2;
+  stroke-width: 1.6;
   fill: none;
 }
 .cardMiddle {
@@ -114,15 +114,28 @@
   text-align: center;
 }
 .currentBidder {
-  font-size: clamp(1rem, 3.5cqi, 2rem);
+  font-size: clamp(0.8rem, 2.8cqi, 1.25rem);
   line-height: 1.15;
 }
-.highAmount {
-  font-size: clamp(2.5rem, 9cqi, 5rem);
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+.bidDisc {
+  position: relative;
+  width: clamp(3rem, 13cqi, 5.5rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
 }
-.cardMiddle img {
+.highAmount {
+  position: absolute;
+  font-size: clamp(1.5rem, 8cqi, 3rem);
+  line-height: 1;
+  font-family: C_Advokat_Modern, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: white;
+  text-shadow:
+    0 0 4px black,
+    0 0 8px black;
+}
+.cardMiddle > img {
   width: 40%;
   object-fit: contain;
 }
@@ -134,8 +147,8 @@
   align-items: center;
   text-align: center;
   transform: translate(-50%, -50%);
-  width: 25%;
-  max-width: 12rem;
+  width: var(--seat-token-size);
+  height: var(--seat-token-size);
 }
 .seatName {
   font-size: clamp(0.8rem, 2.5cqi, 1.25rem);
@@ -144,12 +157,13 @@
 .seat[data-active] {
   color: var(--color-brand);
 }
-.seat[data-active] > div:first-child {
+.factionFace[data-active] {
   outline: 3px solid var(--color-brand);
   outline-offset: 3px;
   border-radius: 50%;
 }
 .handTotal {
+  font-family: C_Desdemona, Georgia, serif;
   display: flex;
   align-items: baseline;
   gap: var(--space-xs);
@@ -157,7 +171,7 @@
   line-height: 1;
 }
 .handTotal strong {
-  font-size: clamp(2rem, 8cqi, 4rem);
+  font-size: clamp(2.2rem, 9cqi, 5rem);
 }
 .handTotal span {
   font-size: clamp(0.875rem, 2.3cqi, 1.25rem);
@@ -172,15 +186,6 @@
   padding: 0;
   margin: 0;
   list-style: none;
-}
-.tabletFooter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  border-top: 1px solid var(--panel-border);
 }
 .phone {
   display: flex;
@@ -341,9 +346,7 @@
   .arena {
     aspect-ratio: 1;
   }
-  .seat > div:first-child {
-    --seat-token-size: 32px;
-  }
+
   .cardMiddle {
     width: 38%;
   }
@@ -395,7 +398,7 @@
   min-height: 100dvh;
 }
 .review[data-focus] .circleColumn {
-  max-width: min(100%, calc(100dvh - 10rem));
+  max-width: min(100%, calc(100dvh - 13rem));
 }
 
 .actionRecord {
@@ -415,8 +418,192 @@
   }
 }
 
-.seatWords {
+.starterTokens {
+  display: grid;
+  justify-items: center;
+  row-gap: var(--space-xs);
+  padding-block: var(--space-xs);
+}
+.phoneDock .handSection {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: var(--space-sm);
+}
+.touchToggle {
+  min-height: 2.75rem;
+  align-items: center;
+}
+
+.factionFace {
+  display: flex;
+  border-radius: 50%;
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+}
+.handTotal strong {
+  display: inline-block;
+}
+.arena[data-many] {
+  --seat-token-size: clamp(2.25rem, 13cqi, 6rem);
+}
+.tableBar {
+  padding: var(--space-sm) var(--space-md);
+  border-block: 1px solid var(--panel-border);
+}
+.tableBarContents {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.tableBarContents[data-side="far"] {
+  transform: rotate(180deg);
+}
+.tableBarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.tableNotice {
+  text-align: center;
+  padding: var(--space-xs) var(--space-md);
+}
+.farSheet {
+  height: auto;
+  max-height: 85dvh;
+  width: 30rem;
+  max-width: 100%;
+  margin: auto;
+}
+.farSheetHeader {
+  display: none;
+}
+.farSheetBody {
+  transform: rotate(180deg);
+}
+.bidderTurn {
+  transform-origin: 50px 50px;
+  transition: transform 650ms cubic-bezier(0.2, 0.8, 0.2, 1.12);
+}
+.bidDisc {
+  animation: bidArrives 440ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.flyingCard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9%;
+  aspect-ratio: 0.7;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes bidArrives {
+  0% {
+    scale: 0.72;
+    rotate: -9deg;
+  }
+  60% {
+    scale: 1.12;
+    rotate: 3deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+[data-motion="reduce"] .bidDisc {
+  animation: none;
+}
+[data-motion="reduce"] .bidderTurn {
+  transition: none;
+}
+@container tablet (width < 30rem) {
+  .tableBarActions {
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+  }
+  .tableBarContents {
+    flex-wrap: wrap;
+  }
+  .tableBarContents > .grow {
+    flex-basis: 100%;
+  }
+  .tabletBody {
+    padding: var(--space-xs);
+  }
+}
+
+.factionFace[data-active] {
+  animation: seatArrives 560ms ease-out;
+}
+@keyframes seatArrives {
+  0% {
+    scale: 0.92;
+  }
+  45% {
+    scale: 1.12;
+  }
+  75% {
+    scale: 0.98;
+  }
+  100% {
+    scale: 1;
+  }
+}
+[data-motion="reduce"] .factionFace {
+  animation: none;
+}
+
+.handInfo {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 12cqi);
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: max-content;
+  max-width: 25cqi;
+  pointer-events: none;
+  z-index: 2;
+}
+.handTotal,
+.seatName,
+.seatStatus {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 6px var(--ui-ground);
+  text-shadow: 0 1px 3px var(--ui-ground);
+}
+.handTotal span {
+  color: var(--color-text);
+}
+.seatToken {
+  position: relative;
+  display: block;
+  width: var(--token-size);
+  height: var(--token-size);
+  flex-shrink: 0;
+}
+.tokenArt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: filter 300ms ease-out;
+}
+.seatToken[data-full] .tokenArt {
+  filter: grayscale(1) brightness(0.38);
+}
+.fullMark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px var(--ui-ground));
+}
+[data-motion="reduce"] .tokenArt {
+  transition: none;
 }
