@@ -38,6 +38,107 @@ const publication = (snapshot = inProgress()): BiddingPublication => ({
 });
 
 describe('bidding recovery copy', () => {
+  it('reads legacy version 1 copies without claiming moderator support and upgrades only when becoming central', () => {
+    const legacy = structuredClone(inProgress());
+    delete legacy.auction.controlMode;
+    delete legacy.moderatorDeviceId;
+    const parsed = parseBiddingSnapshot(legacy);
+    expect(parsed).toEqual(legacy);
+    expect(parsed?.auction.controlMode).toBeUndefined();
+    expect(parsed?.moderatorDeviceId).toBeUndefined();
+    const received = acceptBiddingPublication(null, publication(legacy), legacy.tableId, 200);
+    expect(received.accepted).toBe(true);
+    expect(received.copy?.snapshot).toEqual(legacy);
+    const restored = restoreCentralSnapshot(legacy, 'updated-central');
+    expect(restored).toMatchObject({
+      version: 1,
+      moderatorDeviceId: null,
+      auction: {
+        controlMode: 'automatic',
+        stage: 'paused',
+        resumeStage: 'active',
+        high: legacy.auction.high,
+        turn: legacy.auction.turn,
+      },
+    });
+    const table = new BiddingSession({ identity: legacy, auction: legacy.auction });
+    expect(table.getSnapshot()).toMatchObject({ moderatorDeviceId: null, auction: { controlMode: 'automatic' } });
+    expect(table.dispatch({ type: 'pass' }).accepted).toBe(true);
+  });
+
+  it('rejects partially upgraded ownership records and a moderator also assigned to a faction', () => {
+    const saved = inProgress();
+    const noHolder = structuredClone(saved);
+    delete noHolder.moderatorDeviceId;
+    expect(parseBiddingSnapshot(noHolder)).toBeNull();
+    const noMode = structuredClone(saved);
+    delete noMode.auction.controlMode;
+    expect(parseBiddingSnapshot(noMode)).toBeNull();
+    expect(
+      parseBiddingSnapshot({
+        ...saved,
+        moderatorDeviceId: 'phone-a',
+        auction: { ...saved.auction, controlMode: 'manual' },
+      })
+    ).toBeNull();
+  });
+
+  it('restores manual ownership and a pointer on the highest bidder without applying automatic progression', () => {
+    const prior = inProgress();
+    const table = new BiddingSession({ identity: prior, auction: prior.auction, assignments: prior.assignments });
+    table.receive('moderator', createBiddingCommand(table.getSnapshot(), 'moderator', { type: 'claim-moderator' }));
+    table.receive('moderator', createBiddingCommand(table.getSnapshot(), 'moderator', { type: 'raise-one' }));
+    const saved = table.getSnapshot();
+    expect(saved.auction.turn).toBe(saved.auction.high?.id);
+    const restored = restoreCentralSnapshot(saved, 'manual-restored');
+    const resumed = new BiddingSession({
+      identity: restored,
+      auction: restored.auction,
+      assignments: restored.assignments,
+      moderatorDeviceId: restored.moderatorDeviceId,
+      revision: restored.revision,
+    });
+    expect(resumed.getSnapshot()).toMatchObject({
+      moderatorDeviceId: 'moderator',
+      auction: { controlMode: 'manual', stage: 'paused', turn: saved.auction.turn, high: saved.auction.high },
+    });
+    expect(resumed.dispatch({ type: 'resume' }).accepted).toBe(true);
+    expect(resumed.getSnapshot().auction).toMatchObject({
+      stage: 'active',
+      turn: saved.auction.turn,
+      high: saved.auction.high,
+      results: [],
+    });
+    expect(resumed.dispatch({ type: 'pass' }).accepted).toBe(false);
+    expect(resumed.dispatch({ type: 'confirm-winner' }).accepted).toBe(true);
+    expect(resumed.getSnapshot().auction.results).toHaveLength(1);
+  });
+
+  it('promotes a manual copy with no phone owner and leaves the central able to continue after Resume', () => {
+    const prior = inProgress();
+    const table = new BiddingSession({ identity: prior, auction: prior.auction });
+    table.receive('moderator', createBiddingCommand(table.getSnapshot(), 'moderator', { type: 'claim-moderator' }));
+    const promoted = promoteSnapshot(
+      table.getSnapshot(),
+      { tableId: 'new-manual-table', code: 'MANUAL' },
+      'new-central'
+    );
+    expect(promoted).toMatchObject({
+      moderatorDeviceId: null,
+      assignments: {},
+      auction: { controlMode: 'manual', stage: 'paused', high: prior.auction.high },
+    });
+    const central = new BiddingSession({
+      identity: promoted,
+      auction: promoted.auction,
+      moderatorDeviceId: promoted.moderatorDeviceId,
+    });
+    expect(central.dispatch({ type: 'resume' }).accepted).toBe(true);
+    expect(central.dispatch({ type: 'advance' }).accepted).toBe(true);
+    expect(central.dispatch({ type: 'confirm-winner' }).accepted).toBe(true);
+    expect(central.getSnapshot().auction.results[0].amount).toBe(3);
+  });
+
   it('restores a finished setup to ready only after Resume and still waits for Start', () => {
     const previous = inProgress();
     const auction = createAuction({ seats: previous.auction.seats, ruleset: previous.auction.ruleset });

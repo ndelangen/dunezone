@@ -340,8 +340,12 @@
 }
 .tableBarActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xs);
+}
+.moderatorStep {
+  min-height: 3.125rem;
 }
 .tableNotice {
   text-align: center;

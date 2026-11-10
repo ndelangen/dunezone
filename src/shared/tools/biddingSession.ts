@@ -30,6 +30,7 @@ export const auctionStateSchema = z
     ruleset: biddingRulesetSchema,
     deck: biddingDeckSchema.nullable(),
     stage: z.enum(['setup', 'ready', 'active', 'paused', 'over']),
+    controlMode: z.enum(['automatic', 'manual']).optional(),
     resumeStage: resumableStage.nullable(),
     turn: id.nullable(),
     opener: id.nullable(),
@@ -68,7 +69,7 @@ export const auctionStateSchema = z
         state.opener === null ||
         !state.cardsChosen ||
         state.card > state.cards ||
-        state.turn === state.high?.id ||
+        (state.controlMode !== 'manual' && state.turn === state.high?.id) ||
         state.passed.includes(state.turn))
     ) {
       ctx.addIssue({
@@ -78,6 +79,9 @@ export const auctionStateSchema = z
     }
     if (effectiveStage !== 'active' && (state.turn !== null || state.high !== null || state.passed.length > 0)) {
       ctx.addIssue({ code: 'custom', message: 'A waiting or finished auction cannot contain an active bid.' });
+    }
+    if (state.controlMode === 'manual' && state.passed.length > 0) {
+      ctx.addIssue({ code: 'custom', message: 'Manual bidding keeps no automatic pass history.' });
     }
     if (effectiveStage === 'ready' && (state.opener === null ? state.card !== 1 : state.card > state.cards)) {
       ctx.addIssue({
@@ -109,6 +113,14 @@ export const biddingActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('resume') }),
   z.strictObject({ type: z.literal('pause') }),
   z.strictObject({ type: z.literal('next-phase') }),
+  z.strictObject({ type: z.literal('claim-moderator') }),
+  z.strictObject({ type: z.literal('release-moderator') }),
+  z.strictObject({ type: z.literal('set-control-mode'), mode: z.literal('automatic') }),
+  z.strictObject({ type: z.literal('back') }),
+  z.strictObject({ type: z.literal('raise-one') }),
+  z.strictObject({ type: z.literal('advance') }),
+  z.strictObject({ type: z.literal('confirm-winner') }),
+  z.strictObject({ type: z.literal('end-phase') }),
   z.strictObject({ type: z.literal('select-starter'), id }),
   z.strictObject({ type: z.literal('edit-hand'), id, field: z.enum(['hand', 'limit']), value: count }),
   z.strictObject({ type: z.literal('edit-status'), id, field: z.enum(['full', 'pass']), value: z.boolean() }),
@@ -170,11 +182,19 @@ export const biddingSnapshotSchema = biddingIdentitySchema
     version: z.literal(1),
     revision: count,
     auction: auctionStateSchema,
+    moderatorDeviceId: id.nullable().optional(),
     assignments: z.record(id, id),
     commandSequences: z.record(id, count),
     revisions: biddingRevisionStampsSchema,
   })
   .superRefine((snapshot, ctx) => {
+    if (
+      (snapshot.auction.controlMode === undefined) !== (snapshot.moderatorDeviceId === undefined) ||
+      (snapshot.moderatorDeviceId != null &&
+        (snapshot.auction.controlMode !== 'manual' || snapshot.moderatorDeviceId in snapshot.assignments))
+    ) {
+      ctx.addIssue({ code: 'custom', message: 'Moderator ownership must match the table control mode.' });
+    }
     const assigned = Object.values(snapshot.assignments);
     if (
       assigned.length > 24 ||

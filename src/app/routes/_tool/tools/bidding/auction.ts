@@ -16,6 +16,7 @@ export function createAuction({ seats, ruleset, deck = null, seconds = 15 }: Auc
     ruleset,
     deck,
     stage: 'setup',
+    controlMode: 'automatic',
     resumeStage: null,
     turn: null,
     opener: null,
@@ -47,6 +48,19 @@ function nextNonFull(state: AuctionState, after: string | null): string {
 
 function factionName(state: AuctionState, id: string | null): string {
   return state.seats.find((seat) => seat.id === id)?.name ?? 'Player';
+}
+
+function adjacentFaction(state: AuctionState, after: string | null, direction = 1): string {
+  const index = state.seats.findIndex((seat) => seat.id === after);
+  return state.seats[(index + direction + state.seats.length) % state.seats.length].id;
+}
+
+function suggestedCards(state: AuctionState): number {
+  return state.controlMode === 'manual' ? state.seats.length : state.seats.filter((seat) => !seat.full).length;
+}
+
+function nextStarter(state: AuctionState): string {
+  return state.controlMode === 'manual' ? adjacentFaction(state, state.opener) : nextNonFull(state, state.opener);
 }
 
 function awaitingFirstAuction(state: AuctionState): boolean {
@@ -81,10 +95,13 @@ function award(state: AuctionState): AuctionState {
     passed: [],
     turn: null,
     note,
-    stage: state.card >= state.cards || seats.every((seat) => seat.full) ? 'over' : 'ready',
+    stage:
+      state.card >= state.cards || (state.controlMode !== 'manual' && seats.every((seat) => seat.full))
+        ? 'over'
+        : 'ready',
     resumeStage: null,
   };
-  return { ...next, starter: nextNonFull(next, state.opener) };
+  return { ...next, starter: nextStarter(next) };
 }
 
 /* A recorded high bid survives later hand edits, including its bidder marking Full. */
@@ -140,9 +157,9 @@ function editHand(
   }
   let next = { ...state, seats: state.seats.map((candidate) => (candidate.id === action.id ? edited : candidate)) };
   if ((next.stage === 'setup' || awaitingFirstAuction(next)) && !next.cardsChosen) {
-    next.cards = next.seats.filter((candidate) => !candidate.full).length;
+    next.cards = suggestedCards(next);
   }
-  if (next.stage === 'active') {
+  if (next.stage === 'active' && next.controlMode !== 'manual') {
     next = progress(next, next.turn, true);
   }
   return decided(
@@ -161,7 +178,71 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
   }
   const action = parsed.data;
   switch (action.type) {
+    case 'claim-moderator': {
+      const next: AuctionState = { ...state, controlMode: 'manual', passed: [] };
+      if (!next.cardsChosen) {
+        next.cards = suggestedCards(next);
+      }
+      return decided(state, next, 'Moderator controls are active.', true);
+    }
+    case 'release-moderator':
+      return decided(state, state, 'The phone left moderator mode. The table remains manual.', true);
+    case 'set-control-mode': {
+      const stage = state.stage === 'paused' ? state.resumeStage : state.stage;
+      if (state.controlMode !== 'manual' || stage === 'active') {
+        return refused(state, 'Return to automatic bidding between card auctions.');
+      }
+      const next: AuctionState = { ...state, controlMode: 'automatic' };
+      if (!next.cardsChosen) {
+        next.cards = suggestedCards(next);
+      }
+      return decided(state, next, 'Automatic bidding is active.', true);
+    }
+    case 'back':
+    case 'advance': {
+      if (state.controlMode !== 'manual' || state.stage !== 'active' || !state.turn) {
+        return refused(state, 'Start or resume a manual card auction first.');
+      }
+      const turn = adjacentFaction(state, state.turn, action.type === 'back' ? -1 : 1);
+      return decided(state, { ...state, turn }, `${factionName(state, turn)} is selected.`, true);
+    }
+    case 'raise-one': {
+      if (state.controlMode !== 'manual' || state.stage !== 'active' || !state.turn) {
+        return refused(state, 'Start or resume a manual card auction first.');
+      }
+      const amount = (state.high?.amount ?? 0) + 1;
+      return decided(
+        state,
+        { ...state, high: { id: state.turn, amount } },
+        `${factionName(state, state.turn)} bid ${amount}.`,
+        true
+      );
+    }
+    case 'confirm-winner': {
+      if (state.controlMode !== 'manual' || state.stage !== 'active' || !state.high) {
+        return refused(state, 'Record a bid in an active manual auction before confirming its winner.');
+      }
+      return decided(state, award(state), 'The winning bid was confirmed.', true);
+    }
+    case 'end-phase': {
+      if (
+        state.controlMode !== 'manual' ||
+        (state.stage !== 'active' && state.stage !== 'ready') ||
+        state.high !== null
+      ) {
+        return refused(state, 'End a manual phase only when no bid is recorded.');
+      }
+      return decided(
+        state,
+        finished(state, 'The moderator ended the phase. Return the unsold cards.'),
+        'The phase ended.',
+        true
+      );
+    }
     case 'bid': {
+      if (state.controlMode === 'manual') {
+        return refused(state, 'The moderator controls this auction.');
+      }
       if (state.stage !== 'active' || !state.turn) {
         return refused(state, 'Wait for the table to start or resume bidding.');
       }
@@ -173,6 +254,9 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
       return decided(state, next, `${name} bid ${action.amount}.`, true);
     }
     case 'pass': {
+      if (state.controlMode === 'manual') {
+        return refused(state, 'The moderator controls this auction.');
+      }
       if (state.stage !== 'active' || !state.turn) {
         return refused(state, 'Wait for the table to start or resume bidding.');
       }
@@ -194,21 +278,18 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
         return decided(state, finished(state, 'No cards were chosen for this phase.'), 'The phase is complete.', true);
       }
       const peeker = state.seats.find((seat) => seat.peeks);
-      const next = progress(
-        {
-          ...state,
-          stage: 'active',
-          resumeStage: null,
-          opener: state.starter,
-          turn: state.starter,
-          high: null,
-          passed: [],
-          cardsChosen: true,
-          note: peeker ? `${peeker.name} looks first.` : '',
-        },
-        state.starter,
-        true
-      );
+      const started: AuctionState = {
+        ...state,
+        stage: 'active',
+        resumeStage: null,
+        opener: state.starter,
+        turn: state.starter,
+        high: null,
+        passed: [],
+        cardsChosen: true,
+        note: peeker ? `${peeker.name} looks first.` : '',
+      };
+      const next = state.controlMode === 'manual' ? started : progress(started, state.starter, true);
       return decided(state, next, 'The card auction started.', true);
     }
     case 'reset': {
@@ -224,7 +305,7 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
           turn: null,
           high: null,
           passed: [],
-          starter: nextNonFull(state, state.opener),
+          starter: nextStarter(state),
           note: 'This card auction was reset. Choose the next starter.',
         },
         'The current card auction was reset.',
@@ -247,7 +328,7 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
         return refused(state, 'The table is not paused.');
       }
       let next: AuctionState = { ...state, stage: state.resumeStage, resumeStage: null, note: '' };
-      if (next.stage === 'active') {
+      if (next.stage === 'active' && next.controlMode !== 'manual') {
         next = progress(next, next.turn, true);
       }
       return decided(state, next, 'The table resumed.', true);
@@ -264,15 +345,15 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
           resumeStage: null,
           phase: state.phase + 1,
           card: 1,
-          cards: state.seats.filter((seat) => !seat.full).length,
+          cards: suggestedCards(state),
           cardsChosen: false,
           turn: null,
           opener: null,
           high: null,
           passed: [],
           starter:
-            state.seats.find((seat) => seat.id === state.starter && !seat.full)?.id ??
-            nextNonFull(state, state.starter),
+            state.seats.find((seat) => seat.id === state.starter && (state.controlMode === 'manual' || !seat.full))
+              ?.id ?? nextNonFull(state, state.starter),
           note: '',
         },
         'The next phase is ready to start.',
@@ -317,7 +398,7 @@ export function applyAuctionAction(state: AuctionState, input: AuctionAction): A
           ruleset: action.ruleset ?? state.ruleset,
           deck: action.deck === undefined ? state.deck : action.deck,
           seconds: action.seconds ?? state.seconds,
-          cards: action.cards ?? (cardsChosen ? state.cards : seats.filter((seat) => !seat.full).length),
+          cards: action.cards ?? (cardsChosen ? state.cards : suggestedCards({ ...state, seats })),
           cardsChosen,
           starter,
         },
