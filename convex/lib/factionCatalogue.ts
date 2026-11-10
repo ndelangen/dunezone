@@ -97,11 +97,6 @@ export async function catalogueFactionFromCard(
   };
 }
 
-const FACTION_LIMIT = 500;
-/* Bounded whole-index scan of ruleset_factions for the catalogue path; one read replaces one
- * indexed read per faction. The bound mirrors the pre-existing per-faction take(500) caps. */
-const FACTION_LINK_SCAN_LIMIT = 5000;
-
 async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRulesetSummary[]> {
   const rows = await ctx.db
     .query('rulesets')
@@ -109,51 +104,6 @@ async function listActiveRulesetSummaries(ctx: QueryCtx): Promise<FactionRuleset
     .take(500);
 
   return rows.map((row) => ({ id: row._id, slug: row.slug, name: row.name }));
-}
-
-/**
- * The unpaged faction catalogue read model, behind the superseded `factions.cataloguePage`: one call owns row selection, ruleset enrichment (active rulesets only, name-then-id order), and canonical faction parsing.
- * It batches the link table in one bounded scan.
- */
-export async function loadFactionCatalogue(
-  ctx: QueryCtx
-): Promise<{ factions: CatalogueFaction[]; rulesets: FactionRulesetSummary[] }> {
-  const cards = await ctx.db
-    .query('faction_cards')
-    .withIndex('by_deleted_created', (q) => q.eq('is_deleted', false))
-    .take(FACTION_LIMIT);
-  const rulesets = await listActiveRulesetSummaries(ctx);
-  const linksByFaction = await factionLinksByScan(ctx);
-  const activeRulesetById = new Map(rulesets.map((ruleset) => [ruleset.id, ruleset]));
-
-  const factions = await Promise.all(
-    cards.map((card) =>
-      catalogueFactionFromCard(
-        ctx,
-        card,
-        (linksByFaction.get(card.faction_id) ?? [])
-          .map((rulesetId) => activeRulesetById.get(rulesetId))
-          .filter((ruleset): ruleset is FactionRulesetSummary => ruleset != null)
-          .sort(compareRulesets)
-      )
-    )
-  );
-
-  return { factions, rulesets };
-}
-
-async function factionLinksByScan(ctx: QueryCtx) {
-  const links = await ctx.db.query('ruleset_factions').take(FACTION_LINK_SCAN_LIMIT);
-  const linksByFaction = new Map<Id<'factions'>, Id<'rulesets'>[]>();
-  for (const link of links) {
-    const existing = linksByFaction.get(link.faction_id);
-    if (existing) {
-      existing.push(link.ruleset_id);
-    } else {
-      linksByFaction.set(link.faction_id, [link.ruleset_id]);
-    }
-  }
-  return linksByFaction;
 }
 
 /** Homepage spotlights omit ruleset enrichment because they only render faction identity; they are the catalogue page's own two entries. */
@@ -183,60 +133,8 @@ export async function loadFactionCatalogueSpotlightPreviews(ctx: QueryCtx) {
   return { newArrival, freshlyUpdated };
 }
 
-export function selectFactionCatalogueSpotlights<T extends Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>>(
-  factions: T[]
-) {
-  const newArrival = [...factions]
-    .filter((faction) => parseTimestamp(faction.created_at) != null)
-    .sort((left, right) => compareByDate(left, right, 'created_at'))[0];
-
-  const freshlyUpdated = [...factions]
-    .filter((faction) => {
-      if (faction._id === newArrival?._id) {
-        return false;
-      }
-      const createdAt = parseTimestamp(faction.created_at);
-      const updatedAt = parseTimestamp(faction.updated_at);
-      return createdAt != null && updatedAt != null && updatedAt > createdAt;
-    })
-    .sort((left, right) => compareByDate(left, right, 'updated_at'))[0];
-
-  return {
-    newArrival: newArrival ?? null,
-    freshlyUpdated: freshlyUpdated ?? null,
-  };
-}
-
 function compareRulesets(left: FactionRulesetSummary, right: FactionRulesetSummary) {
   return left.name.localeCompare(right.name) || String(left.id).localeCompare(String(right.id));
-}
-
-function compareByDate(
-  left: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
-  right: Pick<Doc<'factions'>, '_id' | 'created_at' | 'updated_at'>,
-  field: 'created_at' | 'updated_at'
-) {
-  const leftTimestamp = parseTimestamp(left[field]);
-  const rightTimestamp = parseTimestamp(right[field]);
-  if (leftTimestamp == null && rightTimestamp == null) {
-    return compareFactionIdentity(left, right);
-  }
-  if (leftTimestamp == null) {
-    return 1;
-  }
-  if (rightTimestamp == null) {
-    return -1;
-  }
-  return rightTimestamp - leftTimestamp || compareFactionIdentity(left, right);
-}
-
-function compareFactionIdentity(left: Pick<Doc<'factions'>, '_id'>, right: Pick<Doc<'factions'>, '_id'>) {
-  return String(left._id).localeCompare(String(right._id));
-}
-
-function parseTimestamp(value: string) {
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? timestamp : null;
 }
 
 /* A faction's links are curated by hand; this bound is a ceiling on nonsense, the same one the detail page reads with. */
@@ -250,7 +148,7 @@ export function factionOwnerPartition(ownerId: Id<'users'>) {
 /**
  * What the catalogue searches and sorts on, read from the authored blob.
  * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
- * The catalogue page that shows such a row fails loudly, as the unpaged catalogue did.
+ * The catalogue page that shows such a row fails loudly.
  */
 function factionSearchFields(data: unknown) {
   try {
