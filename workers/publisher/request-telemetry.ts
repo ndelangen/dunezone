@@ -29,22 +29,14 @@ function requestPolicy(outcome: RequestOutcome, elapsedMs: number): RequestPolic
   return { reason: 'sample', level: 'log' };
 }
 
-function requestEvent(
-  request: Request,
-  env: RequestIdentity,
-  outcome: RequestOutcome,
-  elapsedMs: number,
-  reason: RequestReason
-) {
+function requestEvent(request: Request, env: RequestIdentity, outcome: RequestOutcome, elapsedMs: number) {
   const ray = request.headers.get('CF-Ray');
   return {
     event: 'publisher_request',
-    reason,
     method: request.method,
     route: ROUTE_FAMILY.exec(new URL(request.url).pathname)?.[1] ?? 'application',
     status: 'response' in outcome ? outcome.response.status : undefined,
     elapsedMs,
-    sampleRate: reason === 'sample' ? SUCCESS_SAMPLE_RATE : 1,
     rayId: ray && /^[a-f\d]{16}(?:-[A-Z]{3})?$/iu.test(ray) ? ray : undefined,
     gitSha: env.GIT_SHA,
     workerVersionId: env.CF_VERSION_METADATA.id,
@@ -59,7 +51,11 @@ function recordRequest(request: Request, env: RequestIdentity, startedAt: number
     if (policy.reason === 'sample' && Math.random() >= SUCCESS_SAMPLE_RATE) {
       return;
     }
-    const event = requestEvent(request, env, outcome, elapsedMs, policy.reason);
+    const event = {
+      ...requestEvent(request, env, outcome, elapsedMs),
+      reason: policy.reason,
+      sampleRate: policy.reason === 'sample' ? SUCCESS_SAMPLE_RATE : 1,
+    };
     let bounded = boundedPublisherTelemetryEvent(event);
     if (bounded.result === 'telemetry_truncated') {
       bounded = boundedPublisherTelemetryEvent({
