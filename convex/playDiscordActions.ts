@@ -7,10 +7,10 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
-import { discordRetry, retryCreationCategory } from './lib/playDiscord';
-import type { discordRetryOperation } from './lib/playDiscord';
+import { retryCreationCategory } from './lib/discordRetry';
+import type { discordRetryOperation } from './lib/discordRetry';
 
-type Claim = { channelId: Id<'play_game_discord_channels'>; lease: string; retry?: Infer<typeof discordRetry> };
+type Claim = { channelId: Id<'play_game_discord_channels'>; lease: string };
 type Work = NonNullable<FunctionReturnType<typeof internal.playDiscord.work>>;
 type Progress = 'continue' | 'complete';
 type Perform = <T>(
@@ -27,7 +27,7 @@ async function createRoom(
   name: string,
   perform: Perform
 ): Promise<Progress> {
-  const retryCategory = retryCreationCategory(row, claim.retry);
+  const retryCategory = retryCreationCategory(row);
   const categories = retryCategory
     ? [retryCategory]
     : await perform('categories', () => rest.categories(row.guild_id, row.category_ids));
@@ -131,7 +131,7 @@ async function reconcileStep(ctx: ActionCtx, rest: DiscordRest, claim: Claim, pe
 
 /** One owner provisions or removes the game room; a saved channel survives invitation retries. */
 export const reconcile = internalAction({
-  args: { channelId: v.id('play_game_discord_channels'), retry: v.optional(discordRetry) },
+  args: { channelId: v.id('play_game_discord_channels') },
   returns: v.null(),
   handler: async (ctx, args) => {
     const config = discordConfiguration();

@@ -122,10 +122,11 @@ test('definite creation retries reuse one creation reservation and the same cate
 });
 
 test.each(['discard', 'cron'] as const)(
-  'a scheduled creation retry cannot reuse its reservation after %s wins',
+  'a duplicate creation retry respects the work already accepted by %s',
   async (winner) => {
     const discord = discordStub();
     const world = await voiceWorld();
+    await world.t.run((ctx) => playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 29 }));
     const normal = discord.fetch.getMockImplementation()!;
     let posts = 0;
     discord.fetch.mockImplementation(async (input, options) => {
@@ -153,6 +154,13 @@ test.each(['discard', 'cron'] as const)(
     vi.setSystemTime(retry.scheduledTime);
     await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
     expect(discord.fetch).toHaveBeenCalledTimes(before);
+    if (winner === 'cron') {
+      const finalRetry = await nextRetry(world);
+      vi.setSystemTime(finalRetry.scheduledTime);
+      await world.reconcile();
+      expect(posts).toBe(3);
+      expect((await world.channel())!.next_attempt_at).toBe(Date.now() + DISCORD_RETRY);
+    }
   }
 );
 

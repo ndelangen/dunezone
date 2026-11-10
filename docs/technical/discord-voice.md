@@ -88,8 +88,8 @@ request when nothing is due. The admin page has bounded reads and manual orphan 
 
 Lifecycle REST calls make one attempt. A definite short rate limit schedules up to two retries at
 Discord's deadline, then uses the existing 15-minute backoff. Each scheduled retry acquires a fresh
-lease and rechecks current work. Its arguments carry the attempt budget; the row's existing retry
-deadline and revision reject stale jobs. A retry of the same definitely rejected creation reuses its
+lease and rechecks current work. The channel keeps the short retry budget so scheduled work and
+cron recovery use the same attempts. Its deadline and revision fence stale work. A retry of the same definitely rejected creation reuses its
 creation reservation. An ambiguous creation response still stops automatic creation. Interactive
 admin requests retain their two short retries; nudges and occupancy checks never retry inline.
 

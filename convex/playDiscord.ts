@@ -5,21 +5,14 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { docValidator } from './lib/collaborativeAccessValidators';
+import { discordRetryOperation, retryCreationCategory } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
-import {
-  DISCORD_BATCH,
-  DISCORD_LEASE,
-  DISCORD_RETRY,
-  discordRetry,
-  discordRetryOperation,
-  markDiscordDeleted,
-  retryCreationCategory,
-} from './lib/playDiscord';
+import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY, markDiscordDeleted } from './lib/playDiscord';
 import { playRateLimiter } from './lib/playRateLimits';
 
 const channelValidator = docValidator('play_game_discord_channels');
-const reconcileArgs = { channelId: v.id('play_game_discord_channels'), retry: v.optional(discordRetry) };
+const reconcileArgs = { channelId: v.id('play_game_discord_channels') };
 const claimArgs = { ...reconcileArgs, lease: v.string() };
 
 /** A shared deadline also stops requests from actions already working on other games. */
@@ -47,19 +40,9 @@ export const holdRequests = internalMutation({
 export const claim = internalMutation({
   args: reconcileArgs,
   returns: v.union(v.null(), channelValidator),
-  handler: async (ctx, { channelId, retry }) => {
+  handler: async (ctx, { channelId }) => {
     const row = await ctx.db.get(channelId);
     if (!(await discordEnabled(ctx)) || !row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
-      return null;
-    }
-    if (
-      retry &&
-      (retry.deadline !== row.retry_after ||
-        retry.revision !== (row.work_revision ?? 0) ||
-        !Number.isInteger(retry.attempts) ||
-        retry.attempts < 1 ||
-        retry.attempts > 2)
-    ) {
       return null;
     }
     /* A creation-budget delay cannot hold a discarded reservation that never acquired a channel. */
@@ -71,7 +54,6 @@ export const claim = internalMutation({
       await ctx.db.patch(row._id, { next_attempt_at: cooldown.blocked_until, retry_after: cooldown.blocked_until });
       await ctx.scheduler.runAt(cooldown.blocked_until, internal.playDiscordActions.reconcile, {
         channelId,
-        ...(retry ? { retry: { ...retry, deadline: cooldown.blocked_until } } : {}),
       });
       return null;
     }
@@ -82,7 +64,6 @@ export const claim = internalMutation({
       lease_until: until,
       lease_revision: row.work_revision ?? 0,
       next_attempt_at: until,
-      /* Consuming the deadline invalidates every older scheduled retry, including when cron wins the lease. */
       retry_after: undefined,
     });
     return { ...row, lease, lease_until: until, next_attempt_at: until, retry_after: undefined };
@@ -126,7 +107,7 @@ export const work = internalMutation({
     const name = game?.name ?? 'Dune Play';
     const remove = retirementDue(channel, game);
     /* Avoid category requests while creation is exhausted; startCreation still spends quota atomically before POST. */
-    if (!remove && channel.state === 'pending' && !channel.channel_id && !retryCreationCategory(channel, args.retry)) {
+    if (!remove && channel.state === 'pending' && !channel.channel_id && !retryCreationCategory(channel)) {
       const quota = await playRateLimiter.check(ctx, 'discordChannelCreateGlobal');
       if (!quota.ok) {
         await ctx.db.patch(channel._id, {
@@ -159,7 +140,7 @@ export const startCreation = internalMutation({
     ) {
       return false;
     }
-    const retryCategory = retryCreationCategory(row, args.retry);
+    const retryCategory = retryCreationCategory(row);
     if (!retryCategory || retryCategory !== args.categoryId) {
       const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
       if (!quota.ok) {
@@ -283,19 +264,31 @@ export const release = internalMutation({
     if (!row || row.lease !== args.lease) {
       return null;
     }
+    if (row.state === 'deleted') {
+      await ctx.db.patch(row._id, {
+        lease: undefined,
+        lease_until: undefined,
+        lease_revision: undefined,
+        retry_after: undefined,
+        short_retry: undefined,
+        error: undefined,
+      });
+      return null;
+    }
     const game = await ctx.db.get(row.game_id);
     const retryAfter = retiresWithoutChannel(row, game) ? undefined : row.retry_after;
     /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
     let next = game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
     const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
     const attempts =
-      args.retry && args.retry.operation === args.retryOperation && args.retry.categoryId === args.retryCategoryId
-        ? args.retry.attempts
+      row.short_retry?.revision === (row.work_revision ?? 0) &&
+      row.short_retry.operation === args.retryOperation &&
+      row.short_retry.categoryId === args.retryCategoryId
+        ? row.short_retry.attempts
         : 0;
     const shortRetry =
       !changed &&
       row.state !== 'creating' &&
-      row.state !== 'deleted' &&
       args.retryOperation !== undefined &&
       (args.retryAfterMs ?? 0) > 0 &&
       args.retryAfterMs! <= 5000 &&
@@ -316,26 +309,19 @@ export const release = internalMutation({
       lease_revision: undefined,
       next_attempt_at: next,
       retry_after: args.retryAfterMs ? Date.now() + args.retryAfterMs : retryAfter,
+      short_retry: shortRetry
+        ? {
+            operation: args.retryOperation!,
+            attempts: attempts === 0 ? 1 : 2,
+            categoryId: args.retryCategoryId,
+            revision: row.work_revision ?? 0,
+          }
+        : undefined,
       error: row.state === 'creating' ? row.error : args.error,
     });
-    if (
-      row.state !== 'deleted' &&
-      row.state !== 'creating' &&
-      (changed || next <= Date.now() || (args.retryAfterMs ?? 0) > 0)
-    ) {
+    if (row.state !== 'creating' && (changed || next <= Date.now() || (args.retryAfterMs ?? 0) > 0)) {
       await ctx.scheduler.runAfter(Math.max(0, next - Date.now()), internal.playDiscordActions.reconcile, {
         channelId: row._id,
-        ...(shortRetry
-          ? {
-              retry: {
-                operation: args.retryOperation!,
-                attempts: attempts + 1,
-                categoryId: args.retryCategoryId,
-                revision: row.work_revision ?? 0,
-                deadline: next,
-              },
-            }
-          : {}),
       });
     }
     return null;

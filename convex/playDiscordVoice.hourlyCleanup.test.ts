@@ -155,12 +155,18 @@ test('a held reconcile lease cannot revive a channel confirmed missing', async (
   });
   expect(await world.t.mutation(internal.playDiscord.work, claim)).toBeNull();
   await world.t.mutation(internal.playDiscord.renamed, { ...claim, ended: true });
-  await world.t.mutation(internal.playDiscord.release, claim);
+  await world.t.mutation(internal.playDiscord.release, {
+    ...claim,
+    error: 'Delayed rename failed',
+    retryAfterMs: 1000,
+    retryOperation: 'rename-ended',
+  });
   await world.reconcile();
   const retired = (await world.channel())!;
   expect(retired.state).toBe('deleted');
   expect(retired.invite_url).toBeUndefined();
   expect(retired.error).toBeUndefined();
+  expect(retired.retry_after).toBeUndefined();
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
 });
 

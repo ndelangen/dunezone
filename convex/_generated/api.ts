@@ -71,6 +71,7 @@ import type * as lib_customCardTokens from "../lib/customCardTokens.js";
 import type * as lib_defaultGroupPreference from "../lib/defaultGroupPreference.js";
 import type * as lib_directOwnership from "../lib/directOwnership.js";
 import type * as lib_discordRest from "../lib/discordRest.js";
+import type * as lib_discordRetry from "../lib/discordRetry.js";
 import type * as lib_discordStatus from "../lib/discordStatus.js";
 import type * as lib_discordVoiceSnapshot from "../lib/discordVoiceSnapshot.js";
 import type * as lib_factionCards from "../lib/factionCards.js";
@@ -270,6 +271,7 @@ const fullApi: ApiFromModules<{
   "lib/defaultGroupPreference": typeof lib_defaultGroupPreference;
   "lib/directOwnership": typeof lib_directOwnership;
   "lib/discordRest": typeof lib_discordRest;
+  "lib/discordRetry": typeof lib_discordRetry;
   "lib/discordStatus": typeof lib_discordStatus;
   "lib/discordVoiceSnapshot": typeof lib_discordVoiceSnapshot;
   "lib/factionCards": typeof lib_factionCards;
