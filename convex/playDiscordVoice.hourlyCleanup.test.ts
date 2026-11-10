@@ -43,6 +43,17 @@ const cleanup = async (world: Awaited<ReturnType<typeof voiceWorld>>) => {
   return await world.t.action(internal.playDiscordVoiceActions.cleanup, { channels });
 };
 
+/* The ended-name PATCH can finish before its reconciliation owner releases the lease. */
+async function holdCompletedRename(world: Awaited<ReturnType<typeof voiceWorld>>) {
+  const row = (await world.channel())!;
+  await world.t.run((ctx) => ctx.db.patch(row._id, { renamed_ended: false, next_attempt_at: Date.now() }));
+  const claimed = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  expect(claimed).not.toBeNull();
+  const claim = { channelId: row._id, lease: claimed.lease! };
+  await world.t.mutation(internal.playDiscord.renamed, { ...claim, ended: true });
+  return claim;
+}
+
 test('the hourly action uses one snapshot and deletes only an empty ended room', async () => {
   const { world, discord } = await endedWorld();
   await cleanup(world);
@@ -110,42 +121,72 @@ test.each(['no-candidates', 'disabled', 'unconfigured'] as const)(
   }
 );
 
-test.each(['continue', 'refinish', 'replacement', 'old', 'paused'] as const)(
-  '%s fences a stale empty observation',
-  async (mode) => {
-    const { world, discord } = await endedWorld();
-    const channels = await world.t.run(voiceCandidates);
-    const observedAt = Date.now();
-    if (mode === 'continue' || mode === 'refinish') {
-      await world.publish(3, world.summary(undefined, { stage: 'play' }));
-      await world.reconcile();
-      if (mode === 'refinish') {
-        await world.publish(4, world.summary(undefined, { stage: 'finished' }));
-        await world.reconcile();
-      }
-    } else if (mode === 'replacement') {
-      const row = (await world.channel())!;
-      await world.t.run((ctx) => ctx.db.patch(row._id, { channel_id: '301' }));
-    } else if (mode === 'old') {
-      vi.setSystemTime(Date.now() + 30_001);
-    } else {
-      await world.t.run((ctx) => ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() }));
-    }
-    await world.t.mutation(internal.playDiscordVoice.reportEmpty, { channels, observedAt });
-    expect(await world.channel()).toMatchObject({ state: 'ready' });
-    expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  }
-);
-
-test('empty deletion requested under a held provisioning lease is not lost on release', async () => {
+test.each(
+  (['continue', 'refinish', 'replacement', 'old', 'paused'] as const).flatMap((mode) =>
+    (['empty', 'missing'] as const).map((observation) => ({ mode, observation }))
+  )
+)('$mode fences a stale $observation observation', async ({ mode, observation }) => {
   const { world, discord } = await endedWorld();
   const channels = await world.t.run(voiceCandidates);
-  const row = (await world.channel())!;
-  const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  const observedAt = Date.now();
+  if (mode === 'continue' || mode === 'refinish') {
+    await world.publish(3, world.summary(undefined, { stage: 'play' }));
+    await world.reconcile();
+    if (mode === 'refinish') {
+      await world.publish(4, world.summary(undefined, { stage: 'finished' }));
+      await world.reconcile();
+    }
+  } else if (mode === 'replacement') {
+    const row = (await world.channel())!;
+    await world.t.run((ctx) => ctx.db.patch(row._id, { channel_id: '301' }));
+  } else if (mode === 'old') {
+    vi.setSystemTime(Date.now() + 30_001);
+  } else {
+    await world.t.run((ctx) => ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() }));
+  }
+  await world.t.mutation(internal.playDiscordVoice.reportEmpty, {
+    channels: observation === 'empty' ? channels : [],
+    missingChannels: observation === 'missing' ? channels : [],
+    observedAt,
+  });
+  expect(await world.channel()).toMatchObject({ state: 'ready' });
+  expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
+});
+
+test('a held reconcile lease cannot revive a channel confirmed missing', async () => {
+  const { world, discord } = await endedWorld();
+  const claim = await holdCompletedRename(world);
+  const channels = await world.t.run(voiceCandidates);
+  await world.t.mutation(internal.playDiscordVoice.reportEmpty, {
+    channels: [],
+    missingChannels: channels,
+    observedAt: Date.now(),
+  });
+  expect(await world.t.mutation(internal.playDiscord.work, claim)).toBeNull();
+  await world.t.mutation(internal.playDiscord.renamed, { ...claim, ended: true });
+  await world.t.mutation(internal.playDiscord.release, {
+    ...claim,
+    error: 'Delayed rename failed',
+    retryAfterMs: 1000,
+    retryOperation: 'rename-ended',
+  });
+  await world.reconcile();
+  const retired = (await world.channel())!;
+  expect(retired.state).toBe('deleted');
+  expect(retired.invite_url).toBeUndefined();
+  expect(retired.error).toBeUndefined();
+  expect(retired.retry_after).toBeUndefined();
+  expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
+});
+
+test('empty deletion requested under a held rename lease is not lost on release', async () => {
+  const { world, discord } = await endedWorld();
+  const claim = await holdCompletedRename(world);
+  const channels = await world.t.run(voiceCandidates);
   await world.t.mutation(internal.playDiscordVoice.reportEmpty, { channels, observedAt: Date.now() });
   await world.reconcile();
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  await world.t.mutation(internal.playDiscord.release, { channelId: row._id, lease: claim.lease! });
+  await world.t.mutation(internal.playDiscord.release, claim);
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
@@ -173,7 +214,10 @@ test('Gateway discovery honors and publishes the existing bot-wide cooldown with
   discord.fetch.mockResolvedValue(Response.json({ global: true, retry_after: 60 }, { status: 429 }));
   await cleanup(world);
   expect(discord.fetch).toHaveBeenCalledTimes(1);
-  expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(Date.now() + 60_000);
+  expect(
+    (await world.t.query(internal.playDiscordRateLimits.inspect, { route: 'gatewayBot.read', major: 'none' }))
+      ?.globalUntil
+  ).toBe(Date.now() + 60_000);
   expect(SnapshotSocket.sockets).toEqual([]);
   expect(await world.channel()).toMatchObject({ state: 'ready' });
 });
@@ -212,11 +256,12 @@ test.each([
         : normal(input, options)
     );
     await cleanup(world);
-    expect(await world.channel()).toMatchObject({ state: deleted ? 'deleting' : 'ready' });
+    expect(await world.channel()).toMatchObject({ state: deleted ? 'deleted' : 'ready' });
     if (deleted) {
       await world.reconcile();
       expect(await world.channel()).toMatchObject({ state: 'deleted' });
     }
+    expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
   }
 );
 

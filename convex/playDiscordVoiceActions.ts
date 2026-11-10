@@ -6,6 +6,7 @@ import type { Infer } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
+import { discordCooldown } from './lib/discordCooldown';
 import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordVoiceSnapshot } from './lib/discordVoiceSnapshot';
 import type { VoiceSnapshot } from './lib/discordVoiceSnapshot';
@@ -16,7 +17,7 @@ type VoiceCandidate = Infer<typeof voiceCandidateValidator>;
 /** Permission and transport failures leave occupancy unknown; only a definite missing channel can retire. */
 async function probeMissing(rest: DiscordRest, id: string): Promise<'missing' | 'unknown' | 'stop'> {
   try {
-    await rest.request('GET', `/channels/${id}`, undefined, 0);
+    await rest.request('GET', `/channels/${id}`);
     return 'unknown';
   } catch (error) {
     if (error instanceof DiscordPaused) {
@@ -67,12 +68,14 @@ async function retireSnapshotChannels(
   deadline: number
 ) {
   const observedAt = Date.now();
-  const retired = new Set([...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))]);
-  if (retired.size === 0) {
+  const empty = new Set(snapshot.empty);
+  const missing = new Set(await confirmedMissing(rest, snapshot.missing, deadline));
+  if (empty.size === 0 && missing.size === 0) {
     return;
   }
   await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
-    channels: channels.filter((channel) => retired.has(channel.discordChannelId)),
+    channels: channels.filter((channel) => empty.has(channel.discordChannelId)),
+    missingChannels: channels.filter((channel) => missing.has(channel.discordChannelId)),
     observedAt,
   });
 }
@@ -90,18 +93,13 @@ export const cleanup = internalAction({
       return null;
     }
     const deadline = Date.now() + 25_000;
-    const rest = new DiscordRest(
-      config.token,
-      'Dune Play hourly voice cleanup',
-      {
-        until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-        hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-      },
-      deadline
-    );
+    const rest = new DiscordRest(config.token, 'Dune Play hourly voice cleanup', discordCooldown(ctx), deadline);
     try {
-      const discovery = await rest.request('GET', '/gateway/bot', undefined, 0);
-      if ((await ctx.runQuery(internal.playDiscord.cooldownUntil, {})) === null) {
+      const discovery = await rest.request('GET', '/gateway/bot');
+      if (
+        (await ctx.runQuery(internal.playDiscordRateLimits.inspect, { route: 'gatewayBot.read', major: 'none' })) ===
+        null
+      ) {
         return null;
       }
       const snapshot = await discordVoiceSnapshot(config.token, discovery, channels, deadline, (reason) => {

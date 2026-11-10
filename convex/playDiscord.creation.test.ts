@@ -25,7 +25,7 @@ test('repeated confirmations and concurrent workers create one ordinary voice ch
   const creates = discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST');
   expect(creates).toHaveLength(1);
   expect(creates[0]?.body).toEqual({
-    name: 'Quiet Sietch',
+    name: `dune-play-${world.gameId}`,
     type: 2,
     parent_id: '200',
   });
@@ -61,7 +61,7 @@ test('fixtures never reserve a channel', async () => {
   const world = await voiceWorld({ fixture: true });
   await world.reconcile();
   expect(await world.channel()).toBeNull();
-  expect(discord.calls).toHaveLength(0);
+  expect(discord.calls.filter((call) => call.method !== 'GET')).toEqual([]);
 });
 
 test('an ambiguous creation result is retained without retrying POST', async () => {
@@ -96,7 +96,7 @@ test('a lease outlasts the default action runtime and fences its former owner af
   expect(replacement.lease).not.toBe(first.lease);
   const stale = { channelId: row._id, lease: first.lease! };
   expect(await world.t.mutation(internal.playDiscord.work, stale)).toBeNull();
-  expect(await world.t.mutation(internal.playDiscord.startCreation, stale)).toBe(false);
+  expect(await world.t.mutation(internal.playDiscord.startCreation, { ...stale, categoryId: '200' })).toBe(false);
   await world.t.mutation(internal.playDiscord.release, stale);
   expect((await world.channel())?.lease).toBe(replacement.lease);
 });
@@ -106,11 +106,15 @@ test('a crashed create attempt remains uncertain when its lease expires', async 
   const world = await voiceWorld();
   const row = (await world.channel())!;
   const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
-  await world.t.mutation(internal.playDiscord.startCreation, { channelId: row._id, lease: claim.lease! });
+  await world.t.mutation(internal.playDiscord.startCreation, {
+    channelId: row._id,
+    lease: claim.lease!,
+    categoryId: '200',
+  });
   vi.setSystemTime(claim.lease_until! + 1);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'creating' });
-  expect(discord.calls).toHaveLength(0);
+  expect(discord.calls.filter((call) => call.method !== 'GET')).toEqual([]);
 });
 
 test('a definitely full category advances to the next configured category', async () => {

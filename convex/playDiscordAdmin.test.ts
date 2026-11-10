@@ -9,8 +9,29 @@ import { configureDiscord } from './playDiscord.test.fixture';
 
 beforeEach(configureDiscord);
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+});
+
+test.each([false, true])('admin refresh retains bounded short retries when repeated=%s', async (repeated) => {
+  vi.useFakeTimers();
+  const { admin } = await setup();
+  const fetch = vi.fn(async () => (repeated ? Response.json({ retry_after: 1 }, { status: 429 }) : Response.json([])));
+  fetch.mockResolvedValueOnce(Response.json({ retry_after: 1 }, { status: 429 }));
+  vi.stubGlobal('fetch', fetch);
+  const result = admin.action(api.playDiscordAdmin.refreshOrphans, {}).then(
+    (value) => ({ value, failed: false }),
+    () => ({ value: undefined, failed: true })
+  );
+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+  await vi.advanceTimersByTimeAsync(1000);
+  if (repeated) {
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    await vi.advanceTimersByTimeAsync(1000);
+  }
+  expect((await result).failed).toBe(repeated);
+  expect(fetch).toHaveBeenCalledTimes(repeated ? 3 : 2);
 });
 
 async function setup() {

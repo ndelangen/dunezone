@@ -8,7 +8,9 @@ import type { Doc, Id } from './_generated/dataModel';
 import { action, internalQuery } from './_generated/server';
 import type { ActionCtx } from './_generated/server';
 import { adminQuery, mutation } from './functions';
-import { DiscordRest, discordConfiguration } from './lib/discordRest';
+import { discordCooldown } from './lib/discordCooldown';
+import { DiscordFailure, DiscordRest, discordConfiguration } from './lib/discordRest';
+import { discordNeedsAttention, retryDiscordChannel } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
 import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
@@ -28,6 +30,17 @@ const row = v.object({
   ),
   created_at: v.number(),
   cleanup_at: v.number(),
+  cleanup_status: v.union(
+    v.literal('scheduled'),
+    v.literal('awaiting_setup'),
+    v.literal('awaiting_rename'),
+    v.literal('waiting_for_empty'),
+    v.literal('deleting'),
+    v.literal('deleted')
+  ),
+  lease_until: v.optional(v.number()),
+  next_attempt_at: v.number(),
+  needs_attention: v.boolean(),
   waiting_for_empty: v.optional(v.boolean()),
   error: v.optional(v.string()),
   gameSlug: v.optional(v.string()),
@@ -44,9 +57,26 @@ const discordChannel = z.object({
 });
 const ORPHAN_AGE = DISCORD_LEASE + 4 * 60_000;
 
+function cleanupStatus(channel: Doc<'play_game_discord_channels'>, game: Doc<'play_games'> | null) {
+  if (channel.state === 'deleted') {
+    return 'deleted' as const;
+  }
+  if (channel.state === 'deleting' || channel.deletion_requested_at !== undefined) {
+    return 'deleting' as const;
+  }
+  if (game?.directory?.stage !== 'finished') {
+    return 'scheduled' as const;
+  }
+  if (canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel)) {
+    return 'waiting_for_empty' as const;
+  }
+  return channel.state === 'ready' ? ('awaiting_rename' as const) : ('awaiting_setup' as const);
+}
+
 export const dashboard = adminQuery({
   args: { paginationOpts: paginationOptsValidator },
   returns: v.object({
+    observed_at: v.number(),
     configured: v.boolean(),
     enabled: v.boolean(),
     channels: paginationResultValidator(row),
@@ -76,6 +106,10 @@ export const dashboard = adminQuery({
           state: channel.state,
           created_at: channel.created_at,
           cleanup_at: channel.cleanup_at,
+          cleanup_status: cleanupStatus(channel, game),
+          lease_until: channel.lease_until,
+          next_attempt_at: channel.next_attempt_at,
+          needs_attention: discordNeedsAttention(channel),
           waiting_for_empty: canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel),
           error: channel.error,
           gameSlug: game?.slug,
@@ -84,6 +118,7 @@ export const dashboard = adminQuery({
       })
     );
     return {
+      observed_at: Date.now(),
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),
       channels: { ...channels, page },
@@ -126,6 +161,24 @@ export const requestDelete = mutation({
   },
 });
 
+/** A manual retry queues the same guarded reconciliation as cron; it never changes creation state. */
+export const requestRetry = mutation({
+  args: { channelId: v.id('play_game_discord_channels') },
+  returns: v.null(),
+  handler: async (ctx, { channelId }) => {
+    await requireAdminUserId(ctx);
+    if (!(await discordEnabled(ctx))) {
+      throw new Error('Enable Discord before retrying channels.');
+    }
+    const channel = await ctx.db.get(channelId);
+    if (!channel || channel.state === 'deleted') {
+      throw new Error('Channel is no longer tracked.');
+    }
+    await retryDiscordChannel(ctx, channel);
+    return null;
+  },
+});
+
 export const enabledForAdmin = internalQuery({
   args: {},
   returns: v.boolean(),
@@ -157,10 +210,20 @@ export const untracked = internalQuery({
 });
 
 function rest(ctx: ActionCtx, token: string) {
-  return new DiscordRest(token, 'Dune Play admin orphan cleanup', {
-    until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-    hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
-  });
+  return new DiscordRest(token, 'Dune Play admin orphan cleanup', discordCooldown(ctx));
+}
+/** Interactive admin requests retain their two short retries; lifecycle retries belong to the scheduler. */
+async function retryAdminRequest<T>(request: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await request();
+    } catch (error) {
+      if (!(error instanceof DiscordFailure) || error.status !== 429 || attempt >= 2 || error.retryAfterMs > 5000) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, error.retryAfterMs));
+    }
+  }
 }
 function oldEnough(id: string) {
   return Number((BigInt(id) >> 22n) + 1_420_070_400_000n) <= Date.now() - ORPHAN_AGE;
@@ -178,7 +241,9 @@ export const refreshOrphans = action({
     const channels = z
       .array(discordChannel)
       .max(500)
-      .parse(await rest(ctx, config.token).request('GET', `/guilds/${config.guildId}/channels`));
+      .parse(
+        await retryAdminRequest(() => rest(ctx, config.token).request('GET', `/guilds/${config.guildId}/channels`))
+      );
     const eligible = channels.filter(
       (c) => c.type === 2 && c.parent_id && config.categoryIds.includes(c.parent_id) && oldEnough(c.id)
     );
@@ -208,7 +273,9 @@ export const deleteOrphan = action({
       throw new Error('Discord is not configured.');
     }
     const client = rest(ctx, config.token);
-    const channel = discordChannel.parse(await client.request('GET', `/channels/${channelId}`));
+    const channel = discordChannel.parse(
+      await retryAdminRequest(() => client.request('GET', `/channels/${channelId}`))
+    );
     if (
       channel.id !== channelId ||
       channel.guild_id !== config.guildId ||
@@ -222,7 +289,7 @@ export const deleteOrphan = action({
     if (untracked.length !== 1) {
       throw new Error('Channel is tracked by a game.');
     }
-    await client.remove(channelId);
+    await retryAdminRequest(() => client.remove(channelId));
     return null;
   },
 });

@@ -1,6 +1,7 @@
 import { Anchor, Code, Group, Stack, Switch, Table, Text, VisuallyHidden } from '@mantine/core';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ActionError } from '@ui/block/ActionError';
+import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { Breadcrumb } from '@ui/content/Breadcrumb';
@@ -20,6 +21,7 @@ import {
   useDeleteDiscordOrphan,
   useDiscordAdminPage,
   useRefreshDiscordOrphans,
+  useRetryDiscordChannel,
   useSetDiscordEnabled,
 } from '@db/discordAdmin';
 import { pageHead } from '@app/routes/pageTitle';
@@ -101,6 +103,8 @@ function DiscordDashboard() {
           <TrackedChannels
             channels={result.channels}
             enabled={result.enabled}
+            configured={result.configured}
+            observedAt={result.observed_at}
             cursors={cursors}
             dispatchCursor={dispatchCursor}
             pending={deleteChannel.isPending}
@@ -126,19 +130,35 @@ function DiscordDashboard() {
 
 type DashboardResult = NonNullable<ReturnType<typeof useDiscordAdminPage>>;
 
-function cleanupLabel(channel: DashboardResult['channels']['page'][number], enabled: boolean) {
-  if (!channel.waiting_for_empty) {
-    return utcDateTime.format(channel.cleanup_at);
+function cleanupLabel(channel: DashboardResult['channels']['page'][number], available: boolean) {
+  if (channel.cleanup_status === 'deleted') {
+    return 'Removed';
   }
-  if (!enabled) {
+  if (channel.needs_attention && channel.state === 'creating' && !channel.channel_id) {
+    return 'Manual Discord inspection';
+  }
+  if (!available) {
     return 'Paused';
   }
-  return 'Hourly, when voice is empty';
+  switch (channel.cleanup_status) {
+    case 'scheduled':
+      return utcDateTime.format(channel.cleanup_at);
+    case 'awaiting_setup':
+      return 'Awaiting channel setup';
+    case 'awaiting_rename':
+      return 'Awaiting channel rename';
+    case 'waiting_for_empty':
+      return 'Hourly, when voice is empty';
+    case 'deleting':
+      return 'Removal requested';
+  }
 }
 
 type TrackedChannelsProps = {
   channels: DashboardResult['channels'];
   enabled: boolean;
+  configured: boolean;
+  observedAt: number;
   cursors: (string | null)[];
   dispatchCursor: Dispatch<CursorEvent>;
   pending: boolean;
@@ -151,10 +171,22 @@ function trackedDeleteReason(channel: DashboardResult['channels']['page'][number
     return 'This channel has already been removed.';
   }
   if (channel.state === 'deleting') {
-    return 'Channel removal is in progress.';
+    return channel.needs_attention
+      ? 'Channel removal stopped. Use Retry to continue.'
+      : 'Channel removal is in progress.';
+  }
+  if (!enabled) {
+    return 'Discord integration is disabled.';
   }
   if (channel.state === 'creating' && !channel.channel_id) {
-    return 'Creation is unconfirmed. Check Discord first.';
+    return 'Channel creation is unconfirmed. Check Discord before removing it.';
+  }
+  return undefined;
+}
+
+function retryDisabledReason(configured: boolean, enabled: boolean) {
+  if (!configured) {
+    return 'Discord is not configured for this deployment.';
   }
   if (!enabled) {
     return 'Discord integration is disabled.';
@@ -162,9 +194,57 @@ function trackedDeleteReason(channel: DashboardResult['channels']['page'][number
   return undefined;
 }
 
+function trackedStateLabel(channel: DashboardResult['channels']['page'][number], observedAt: number) {
+  if (channel.needs_attention) {
+    return 'Needs attention';
+  }
+  if (channel.state !== 'creating') {
+    return channel.state;
+  }
+  return (channel.lease_until ?? 0) > observedAt ? 'Creating' : 'Retrying';
+}
+
+function RetryChannelAction({
+  channel,
+  enabled,
+  configured,
+  observedAt,
+}: Readonly<{
+  channel: DashboardResult['channels']['page'][number];
+  enabled: boolean;
+  configured: boolean;
+  observedAt: number;
+}>) {
+  const retry = useRetryDiscordChannel();
+  const scheduled = new Date(channel.next_attempt_at);
+  const scheduledRetry =
+    !channel.needs_attention && channel.next_attempt_at > observedAt && !Number.isNaN(scheduled.getTime());
+  return (
+    <>
+      <LabeledAction
+        icon={<RefreshCw size={16} />}
+        accessibleName={`Retry now for ${channel.gameName ?? channel.gameSlug ?? channel.game_id}`}
+        disabledReason={retryDisabledReason(configured, enabled)}
+        busy={retry.isPending}
+        onClick={() => retry.mutate({ channelId: channel._id })}
+      >
+        Retry now
+      </LabeledAction>
+      {scheduledRetry && (
+        <Text size="xs" c="dimmed">
+          Scheduled retry: {utcDateTime.format(scheduled)}
+        </Text>
+      )}
+      {retry.error && <FormError title="Channel retry failed">{retry.error.message}</FormError>}
+    </>
+  );
+}
+
 function TrackedChannels({
   channels,
   enabled,
+  configured,
+  observedAt,
   cursors,
   dispatchCursor,
   pending,
@@ -185,7 +265,7 @@ function TrackedChannels({
                 <Table.Th>Channel</Table.Th>
                 <Table.Th>State</Table.Th>
                 <Table.Th>Created</Table.Th>
-                <Table.Th>Cleanup due</Table.Th>
+                <Table.Th>Cleanup</Table.Th>
                 <Table.Th>Last error</Table.Th>
                 <Table.Th>Action</Table.Th>
               </Table.Tr>
@@ -217,7 +297,11 @@ function TrackedChannels({
                         <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
                       </Anchor>
                     ) : channel.state === 'creating' ? (
-                      'Creation unconfirmed'
+                      channel.needs_attention ? (
+                        'Channel creation is unconfirmed.'
+                      ) : (
+                        'Channel creation is being checked.'
+                      )
                     ) : (
                       'Not created'
                     )}
@@ -225,21 +309,41 @@ function TrackedChannels({
                       Guild {channel.guild_id}
                     </Text>
                   </Table.Td>
-                  <Table.Td>
-                    <StatusBadge>{channel.state}</StatusBadge>
+                  <Table.Td miw="11rem">
+                    <StatusBadge>{trackedStateLabel(channel, observedAt)}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
-                  <Table.Td>{cleanupLabel(channel, enabled)}</Table.Td>
+                  <Table.Td>{cleanupLabel(channel, configured && enabled)}</Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>
+                    {channel.needs_attention && channel.state === 'deleting' && (
+                      <Text size="xs" c="dimmed">
+                        Automatic retries stopped. Retry to continue removing this channel.
+                      </Text>
+                    )}
+                    {channel.needs_attention && channel.state === 'creating' && !channel.channel_id && (
+                      <Text size="xs" c="dimmed">
+                        Check Discord for the unconfirmed channel. Retry checks again without creating another.
+                      </Text>
+                    )}
                   </Table.Td>
                   <Table.Td>
-                    <HoldAction
-                      label={`Delete channel for ${channel.gameName ?? channel.gameSlug ?? channel.game_id}`}
-                      disabledReason={trackedDeleteReason(channel, enabled)}
-                      pending={pending}
-                      onConfirm={() => onDelete(channel._id)}
-                    />
+                    <Stack gap="xs">
+                      {(channel.needs_attention || channel.state === 'pending' || channel.state === 'creating') && (
+                        <RetryChannelAction
+                          channel={channel}
+                          enabled={enabled}
+                          configured={configured}
+                          observedAt={observedAt}
+                        />
+                      )}
+                      <HoldAction
+                        label={`Delete channel for ${channel.gameName ?? channel.gameSlug ?? channel.game_id}`}
+                        disabledReason={trackedDeleteReason(channel, enabled)}
+                        pending={pending}
+                        onConfirm={() => onDelete(channel._id)}
+                      />
+                    </Stack>
                   </Table.Td>
                 </Table.Tr>
               ))}
