@@ -157,6 +157,22 @@ invocation. Completed events report job and Browser-session counts; failures con
 bounded diagnostics. Capture and public-delivery failures emit separate sanitized
 events.
 
+HTTP telemetry emits compact `publisher_request` records for every HTTP status of 400 or above,
+every thrown handler exception, and every handler with at least 1,000 ms of runtime-clock elapsed time.
+Other responses, including WebSocket upgrades, are sampled at 1%. Each record names its `reason`
+and `sampleRate`, with the method, allowlisted route family, status, elapsed time, validated Ray ID
+and release identity. Raw paths, query strings, cookies and request headers are omitted.
+Timing ends when the handler returns; it does not measure streaming completion, WebSocket lifetime
+or background work. Existing background-operation diagnostics retain their own failure coverage.
+The deployed runtime clock advances only after I/O, so CPU-only delays can escape the threshold.
+Use Workers Metrics and CPU profiling to investigate them.
+
+Automatic invocation records are disabled. Cloudflare's log sampling stays at 100%, so it keeps
+every application diagnostic and publishing result that the Worker emits. Workers Issues is enabled
+for uncaught exceptions and failed invocations that application code cannot catch, such as platform
+resource exhaustion. Consult Issues and Workers Metrics for those failures; compact request logs
+do not replace the removed invocation records' full metadata.
+
 `/__asset-publisher/health` is the no-store release identity endpoint. It reports
 the twenty-job limit, Cron schedule, Renderer identity, Worker version metadata,
 and deployed Git SHA used by release smoke checks.
