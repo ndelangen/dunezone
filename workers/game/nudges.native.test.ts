@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { PLAY_DIRECTORY_ACTIVITY_MS } from '../../src/shared/play/directory';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import { dealt, draftingRuntime } from './native-drafting.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
@@ -82,17 +83,19 @@ describe('Committed conversation nudges', () => {
     /* A fresh isolate resets its module clock, while the stored deadlines stay a minute ahead. */
     await runtime.clock(ROOM_CLOCK_AHEAD_MS);
   }
-  it('saves chat and sends only seat references once across duplicate requests and restart', async () => {
+  it('saves chat and sends seat identities once across duplicate requests and restart', async () => {
     const text = `@${(await targetName()).toUpperCase()}`;
     const reply = await send(text, { requestId: 'same-id' });
     expect(reply).toMatchObject({ type: 'conversation-message', message: { text } });
     await eventually(() => peer.nudges.length === 1, 'nudge delivery');
     expect(peer.nudges[0]).toEqual({
-      directorySequence: expect.any(Number),
       gameId: 'fixture-game',
       secret: 'a'.repeat(64),
       fromSeat: 'seat-1',
+      fromUserId: 'user-a',
+      fromFactionId: expect.any(String),
       toSeat: 'seat-2',
+      toUserId: 'user-b',
     });
     await send(text, { requestId: 'same-id' });
     await restart();
@@ -114,6 +117,35 @@ describe('Committed conversation nudges', () => {
     await runtime.clock(ROOM_CLOCK_AHEAD_MS + 30_000);
     await runtime.alarm(true);
     expect(peer.nudges).toHaveLength(1);
+  });
+
+  it('drops an unavailable new action when the Worker deploys before Convex without breaking chat or retrying', async () => {
+    peer.nudgeMode = 'missing';
+    expect(await send('Synthetic B')).toMatchObject({ type: 'conversation-message', message: { text: 'Synthetic B' } });
+    await eventually(() => peer.nudges.length === 1, 'new action attempted against old backend');
+    expect(peer.requests.find((request) => request.function === 'playDiscordNudges:sendNudge')?.path).toBe(
+      '/api/action'
+    );
+    await restart();
+    await runtime.clock(ROOM_CLOCK_AHEAD_MS + 30_000);
+    await runtime.alarm(true);
+    expect(peer.nudges).toHaveLength(1);
+  });
+
+  it('nudges after an idle interval while its activity-only directory update is still pending', async () => {
+    const before = peer.summaries.at(-1)!;
+    peer.directoryMode = 'hold';
+    await runtime.clock(ROOM_CLOCK_AHEAD_MS + PLAY_DIRECTORY_ACTIVITY_MS + 1000);
+    expect(await send('Synthetic B')).toMatchObject({ type: 'conversation-message' });
+    await eventually(() => peer.nudges.length === 1, 'idle nudge');
+    await eventually(() => peer.summaries.at(-1)!.sequence > before.sequence, 'new activity summary');
+    const nudge = peer.nudges[0];
+    expect(before.summary.seats.find((seat) => seat.seat === nudge.fromSeat)).toMatchObject({
+      userId: nudge.fromUserId,
+      faction: { id: nudge.fromFactionId },
+    });
+    expect(before.summary.seats.find((seat) => seat.seat === nudge.toSeat)).toMatchObject({ userId: nudge.toUserId });
+    expect((await runtime.exec('SELECT pending FROM directory_outbox'))[0]?.pending).toBe(1);
   });
 
   it('retires old persisted delivery and cooldown tables when a room loads', async () => {

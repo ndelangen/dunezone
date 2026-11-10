@@ -1,7 +1,8 @@
 // @vitest-environment edge-runtime
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
-import { api } from './_generated/api';
+import { api, internal } from './_generated/api';
+import { DiscordRest } from './lib/discordRest';
 import { configureDiscord } from './playDiscord.test.fixture';
 import { nudgeWorld } from './playDiscordNudges.test.fixture';
 
@@ -36,7 +37,7 @@ test('posts once with only the target allowed to be mentioned, and stores no del
       ],
     })
   );
-  expect(await world.publishNudge({ directorySequence: 3 })).toEqual({ ok: true });
+  expect(await world.publishNudge()).toEqual({ ok: true });
   expect(world.fetch).toHaveBeenCalledTimes(1);
   const [url, options] = world.fetch.mock.calls[0];
   expect(url).toBe('https://discord.com/api/v10/channels/300/messages');
@@ -47,7 +48,7 @@ test('posts once with only the target allowed to be mentioned, and stores no del
   expect(await world.rows()).toEqual([]);
 });
 
-test('the single target-seat cooldown lasts five minutes across different senders', async () => {
+test('the single target-seat cooldown lasts five minutes', async () => {
   const world = await nudgeWorld();
   await world.publishNudge();
   await world.publishNudge();
@@ -95,7 +96,7 @@ test('authentication rejects a bad game credential and chat text never enters th
   const world = await nudgeWorld();
   expect(await world.publishNudge({ secret: '0'.repeat(64) })).toEqual({ ok: false });
   await expect(
-    world.t.action(api.playDiscordNudges.publishNudge, { ...world.request(), text: 'secret chat' } as never)
+    world.t.action(api.playDiscordNudges.sendNudge, { ...world.request(), text: 'secret chat' } as never)
   ).rejects.toThrow();
   expect(world.fetch).not.toHaveBeenCalled();
 });
@@ -114,11 +115,101 @@ test.each([429, 503])('Discord %s is logged and dropped after one POST without s
   expect(await world.t.run((ctx) => ctx.db.query('play_discord_cooldown').take(2))).toEqual([]);
 });
 
-test('a directory behind or ahead of the matched seats drops the nudge without spending cooldown', async () => {
+test.each(['fromUserId', 'fromFactionId', 'toUserId'] as const)(
+  'a mismatched %s drops a stale-seat nudge without spending cooldown',
+  async (field) => {
+    const world = await nudgeWorld();
+    await world.publishNudge({ [field]: 'different-occupant-or-faction' });
+    expect(world.fetch).not.toHaveBeenCalled();
+    await world.publishNudge();
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+  }
+);
+
+test('an activity-only directory update can be ahead or behind without dropping a valid nudge', async () => {
   const world = await nudgeWorld();
-  await world.publishNudge({ directorySequence: 3 });
-  await world.publishNudge({ directorySequence: 1 });
-  expect(world.fetch).not.toHaveBeenCalled();
+  const game = await world.t.run((ctx) => ctx.db.get(world.gameId));
+  await world.t.run((ctx) =>
+    ctx.db.patch(world.gameId, {
+      directory_sequence: 3,
+      directory: { ...game!.directory!, lastActivityAt: Date.now() + 600_000 },
+    })
+  );
   await world.publishNudge();
   expect(world.fetch).toHaveBeenCalledTimes(1);
 });
+
+test('an old Worker mutation remains valid after Convex deploys and drops queued legacy nudges', async () => {
+  const world = await nudgeWorld();
+  const args = {
+    gameId: world.gameId,
+    secret: world.credentials.secret,
+    nudgeId: 'legacy-event',
+    fromFactionId: 'atreides',
+    fromFactionName: 'Atreides',
+    toSeat: 'seat-1',
+    toUserId: world.identity.userId,
+    at: Date.now(),
+  };
+  const scheduled = () => world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
+  const before = await scheduled();
+  expect(await world.t.mutation(api.playDiscordNudges.publishNudge, args)).toEqual({ ok: true });
+  expect(await world.t.mutation(api.playDiscordNudges.publishNudge, { ...args, secret: '0'.repeat(64) })).toEqual({
+    ok: false,
+  });
+  expect(world.fetch).not.toHaveBeenCalled();
+  expect(await scheduled()).toEqual(before);
+  expect(await world.rows()).toEqual([]);
+});
+
+test.each(['body', 'global header', 'scope header'] as const)(
+  'a global 429 identified by %s holds other bot REST requests but never retries the nudge',
+  async (source) => {
+    const world = await nudgeWorld();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    world.fetch.mockResolvedValue(
+      Response.json(
+        { retry_after: 60, ...(source === 'body' ? { global: true } : {}) },
+        {
+          status: 429,
+          headers:
+            source === 'global header'
+              ? { 'X-RateLimit-Global': 'true' }
+              : source === 'scope header'
+                ? { 'X-RateLimit-Scope': 'global' }
+                : {},
+        }
+      )
+    );
+    await world.publishNudge();
+    const until = Date.now() + 60_000;
+    expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(until);
+    const rest = new DiscordRest('test-token', 'Another game', {
+      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
+      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+    });
+    await expect(rest.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+    expect(await world.rows()).toEqual([]);
+  }
+);
+
+test.each(['user', 'shared'] as const)(
+  'a %s 429 drops only the nudge and leaves other bot requests available',
+  async (scope) => {
+    const world = await nudgeWorld();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    world.fetch.mockResolvedValueOnce(
+      Response.json({ retry_after: 60, global: false }, { status: 429, headers: { 'X-RateLimit-Scope': scope } })
+    );
+    await world.publishNudge();
+    expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(0);
+    world.fetch.mockResolvedValueOnce(Response.json({ code: 'next-room' }));
+    const rest = new DiscordRest('test-token', 'Another game', {
+      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
+      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+    });
+    expect(await rest.invite('301')).toBe('https://discord.gg/next-room');
+    expect(world.fetch).toHaveBeenCalledTimes(2);
+  }
+);

@@ -2,7 +2,11 @@ import { z } from 'zod';
 
 const snowflake = z.string().regex(/^\d+$/);
 const channel = z.object({ id: snowflake, type: z.number(), parent_id: snowflake.nullish() });
-const errorBody = z.object({ code: z.number().optional(), retry_after: z.number().optional() });
+const errorBody = z.object({
+  code: z.number().optional(),
+  retry_after: z.number().optional(),
+  global: z.boolean().optional(),
+});
 const configuration = z.object({
   token: z.string().trim().min(1),
   guildId: z.string().trim().pipe(snowflake),
@@ -14,7 +18,8 @@ export class DiscordFailure extends Error {
   constructor(
     readonly status: number,
     readonly code: number | undefined,
-    readonly retryAfterMs = 0
+    readonly retryAfterMs = 0,
+    readonly global = false
   ) {
     super(status === 0 ? 'Discord did not return a confirmed response.' : `Discord request failed (${status}).`);
   }
@@ -63,7 +68,11 @@ function responseFailure(response: Response, data: unknown) {
   return new DiscordFailure(
     response.status,
     parsed.success ? parsed.data.code : undefined,
-    response.status === 429 ? delay : 0
+    response.status === 429 ? delay : 0,
+    response.status === 429 &&
+      (response.headers.get('X-RateLimit-Global') === 'true' ||
+        response.headers.get('X-RateLimit-Scope') === 'global' ||
+        (parsed.success && parsed.data.global === true))
   );
 }
 
@@ -116,7 +125,7 @@ export class DiscordRest {
         return data;
       }
       const failure = responseFailure(response, data);
-      if (response.status === 429) {
+      if (response.status === 429 && failure.global) {
         await this.cooldown.hold(Date.now() + failure.retryAfterMs);
       }
       if (response.status === 429 && attempt < rateLimitRetries && failure.retryAfterMs <= 5000) {

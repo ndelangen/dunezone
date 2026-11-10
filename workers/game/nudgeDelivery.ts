@@ -12,7 +12,7 @@ export function publishNudge(room: Omit<DirectoryRoom, 'scheduleAlarm'>, nudge: 
   room.waitUntil(
     room
       .convex()
-      .action(api.playDiscordNudges.publishNudge, {
+      .action(api.playDiscordNudges.sendNudge, {
         gameId: metadata.gameId,
         secret: metadata.secret,
         ...nudge,

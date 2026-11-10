@@ -1410,7 +1410,13 @@ export class GameSession {
       );
       const from = snapshot.roster.seats.find((seat) => seat.faction?.id === request.factionId);
       if (target && from) {
-        nudge = { fromSeat: from.id, toSeat: target.seat, directorySequence: this.directory.sequence };
+        nudge = {
+          fromSeat: from.id,
+          fromUserId: viewer.userId,
+          fromFactionId: request.factionId,
+          toSeat: target.seat,
+          toUserId: target.userId,
+        };
       }
     }
     return { ...saved, nudge };

@@ -1,6 +1,6 @@
 import { vi } from 'vite-plus/test';
 
-import type { PlayPublishNudgeRequest } from '../src/shared/play/nudges';
+import type { PlaySendNudgeRequest } from '../src/shared/play/nudges';
 import { api } from './_generated/api';
 import { discordStub, voiceWorld } from './playDiscord.test.fixture';
 
@@ -17,12 +17,14 @@ export async function nudgeWorld() {
   );
   const fetch = vi.fn(async (_url: string, _options?: RequestInit) => Response.json({ id: '987654321' }));
   vi.stubGlobal('fetch', fetch);
-  const request = (overrides: Partial<PlayPublishNudgeRequest> = {}): PlayPublishNudgeRequest => ({
+  const request = (overrides: Partial<PlaySendNudgeRequest> = {}): PlaySendNudgeRequest => ({
     gameId: world.gameId,
     secret: world.credentials.secret,
-    directorySequence: 2,
     fromSeat: 'seat-2',
+    fromUserId: world.spectator.userId,
+    fromFactionId: 'atreides',
     toSeat: 'seat-1',
+    toUserId: world.identity.userId,
     ...overrides,
   });
   await world.publish(
@@ -42,8 +44,8 @@ export async function nudgeWorld() {
       ],
     })
   );
-  const publishNudge = (overrides: Partial<PlayPublishNudgeRequest> = {}) =>
-    world.t.action(api.playDiscordNudges.publishNudge, request(overrides));
+  const publishNudge = (overrides: Partial<PlaySendNudgeRequest> = {}) =>
+    world.t.action(api.playDiscordNudges.sendNudge, request(overrides));
   const rows = () => world.t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(20));
   return { ...world, authAccountId, fetch, request, publishNudge, rows };
 }

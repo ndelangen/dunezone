@@ -2,13 +2,27 @@ import { z } from 'zod';
 
 import { gameCredentialFields } from './admission';
 
-/* Seat references only: Convex resolves public labels and linked accounts; chat stays in the Worker. */
+const identifier = z.string().min(1).max(160);
+/* Expected seat identities let Convex reject stale occupants without waiting for activity updates. */
 const playNudgeSchema = z.strictObject({
-  directorySequence: z.number().int().positive(),
-  fromSeat: z.string().min(1).max(160),
-  toSeat: z.string().min(1).max(160),
+  fromSeat: identifier,
+  fromUserId: identifier,
+  fromFactionId: identifier,
+  toSeat: identifier,
+  toUserId: identifier,
 });
-export const playPublishNudgeRequestSchema = playNudgeSchema.extend(gameCredentialFields);
+export const playSendNudgeRequestSchema = playNudgeSchema.extend(gameCredentialFields);
 export const playPublishNudgeResultSchema = z.object({ ok: z.boolean() });
 export type PlayNudge = z.infer<typeof playNudgeSchema>;
-export type PlayPublishNudgeRequest = z.infer<typeof playPublishNudgeRequestSchema>;
+export type PlaySendNudgeRequest = z.infer<typeof playSendNudgeRequestSchema>;
+
+/* The previous Worker calls this mutation until its rollout completes; those requests are acknowledged and dropped. */
+export const playPublishNudgeRequestSchema = z.strictObject({
+  ...gameCredentialFields,
+  nudgeId: identifier,
+  fromFactionId: identifier,
+  fromFactionName: z.string().min(1).max(160),
+  toSeat: identifier,
+  toUserId: identifier,
+  at: z.number().finite().nonnegative(),
+});

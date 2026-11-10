@@ -1,10 +1,14 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
-import { playPublishNudgeRequestSchema, playPublishNudgeResultSchema } from '../src/shared/play/nudges';
+import {
+  playPublishNudgeRequestSchema,
+  playSendNudgeRequestSchema,
+  playPublishNudgeResultSchema,
+} from '../src/shared/play/nudges';
 import { internal } from './_generated/api';
 import { action } from './_generated/server';
-import { internalMutation } from './functions';
+import { internalMutation, mutation } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { accountStateOf } from './lib/accountLifecycle';
 import { discordConfiguration, DiscordFailure, DiscordRest } from './lib/discordRest';
@@ -22,10 +26,10 @@ const delivery = v.object({
 
 /** Resolve current seats and spend the only nudge cooldown atomically; no delivery record is stored. */
 export const prepare = internalMutation({
-  args: zodToConvex(playPublishNudgeRequestSchema),
+  args: zodToConvex(playSendNudgeRequestSchema),
   returns: v.object({ ok: v.boolean(), delivery: v.union(v.null(), delivery) }),
   handler: async (ctx, input) => {
-    const request = await authenticatedPlayRequest(ctx, input, playPublishNudgeRequestSchema);
+    const request = await authenticatedPlayRequest(ctx, input, playSendNudgeRequestSchema);
     if (!request) {
       return { ok: false, delivery: null };
     }
@@ -37,7 +41,6 @@ export const prepare = internalMutation({
       game.fixture_key !== undefined ||
       game.ruleset_id === undefined ||
       (game.directory_stage !== 'setup' && game.directory_stage !== 'play') ||
-      game.directory_sequence !== args.directorySequence ||
       args.fromSeat === args.toSeat ||
       !(await discordEnabled(ctx))
     ) {
@@ -50,6 +53,9 @@ export const prepare = internalMutation({
     const channel = await discordChannel(ctx, game._id);
     if (
       !from?.faction ||
+      from.userId !== args.fromUserId ||
+      from.faction.id !== args.fromFactionId ||
+      target?.userId !== args.toUserId ||
       !account ||
       account.isAnonymous ||
       accountStateOf(account) !== 'active' ||
@@ -82,8 +88,8 @@ export const prepare = internalMutation({
 });
 
 /** A saved message earns one best-effort POST. Failures are logged and dropped. */
-export const publishNudge = action({
-  args: zodToConvex(playPublishNudgeRequestSchema),
+export const sendNudge = action({
+  args: zodToConvex(playSendNudgeRequestSchema),
   returns: zodToConvex(playPublishNudgeResultSchema),
   handler: async (ctx, args) => {
     try {
@@ -96,8 +102,7 @@ export const publishNudge = action({
       if (work) {
         const rest = new DiscordRest(configuration.token, 'Dune Play nudge', {
           until: () => ctx.runQuery(internal.playDiscord.cooldownUntil, {}),
-          /* Nudges drop 429 responses; they never pause unrelated Discord work. */
-          hold: async () => undefined,
+          hold: (until) => ctx.runMutation(internal.playDiscord.holdRequests, { until }),
         });
         await rest.nudge(work.channelId, work.discordUserId, work.fromFactionName, work.gameName);
       }
@@ -111,4 +116,13 @@ export const publishNudge = action({
       return { ok: true };
     }
   },
+});
+
+/** Older Workers keep their mutation endpoint during rollout; stale queued nudges are simply dropped. */
+export const publishNudge = mutation({
+  args: zodToConvex(playPublishNudgeRequestSchema),
+  returns: zodToConvex(playPublishNudgeResultSchema),
+  handler: async (ctx, input) => ({
+    ok: (await authenticatedPlayRequest(ctx, input, playPublishNudgeRequestSchema)) !== null,
+  }),
 });

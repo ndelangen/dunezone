@@ -51,11 +51,6 @@ export class DirectoryOutbox {
     return true;
   }
 
-  /** Identifies the exact public seats a best-effort nudge matched. */
-  get sequence() {
-    return this.row()?.sequence ?? 0;
-  }
-
   /** The summary owed to Convex, or nothing when the directory is current. */
   pending(): { sequence: number; summary: PlayDirectorySummary; attempts: number; retryAt: number } | null {
     const row = this.row();

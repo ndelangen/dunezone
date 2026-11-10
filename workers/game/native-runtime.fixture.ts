@@ -35,7 +35,7 @@ import { playPublishSummaryRequestSchema } from '../../src/shared/play/directory
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { arrakisBoardCapture } from '../../src/shared/play/fixtures/board';
 import type { loadRoomCeilingSchema, loadCellIdentitySchema } from '../../src/shared/play/loadTarget';
-import { playPublishNudgeRequestSchema } from '../../src/shared/play/nudges';
+import { playSendNudgeRequestSchema } from '../../src/shared/play/nudges';
 import {
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
@@ -67,7 +67,7 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playProvisioning:confirmProvisioning'), args: playProvisionRequestSchema }),
   z.object({ function: z.literal('playProvisioning:failProvisioning'), args: playProvisionFailureSchema }),
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
-  z.object({ function: z.literal('playDiscordNudges:publishNudge'), args: playPublishNudgeRequestSchema }),
+  z.object({ function: z.literal('playDiscordNudges:sendNudge'), args: playSendNudgeRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
   z.object({ function: z.literal('arrakis:board'), args: z.object({}) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
@@ -107,8 +107,8 @@ export interface NativePeer {
   testPhaseCooldownMs: number | undefined;
   testStartStage: z.infer<typeof playTestStartStageSchema> | undefined;
   directoryMode: 'ack' | 'hold' | 'error';
-  nudgeMode: 'ack' | 'hold' | 'error' | 'refuse';
-  nudges: z.infer<typeof playPublishNudgeRequestSchema>[];
+  nudgeMode: 'ack' | 'hold' | 'error' | 'refuse' | 'missing';
+  nudges: z.infer<typeof playSendNudgeRequestSchema>[];
   seatLimitReached: Set<string>;
   /* `hold` keeps a pass admission's seat-limit read open, `error` fails it. */
   seatLimitMode: 'answer' | 'hold' | 'error';
@@ -354,9 +354,18 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
         record.release({ ok: true, sequence: record.args.sequence });
       }
       break;
-    case 'playDiscordNudges:publishNudge':
+    case 'playDiscordNudges:sendNudge':
       peer.nudges.push(record.args);
-      if (peer.nudgeMode === 'error') {
+      if (peer.nudgeMode === 'missing') {
+        record.response.writeHead(560, { 'Content-Type': 'application/json' });
+        record.response.end(
+          JSON.stringify({
+            status: 'error',
+            errorMessage: 'Could not find public function playDiscordNudges:sendNudge',
+            logLines: [],
+          })
+        );
+      } else if (peer.nudgeMode === 'error') {
         record.response.writeHead(503);
         record.response.end('Nudge unavailable');
       } else if (peer.nudgeMode !== 'hold') {

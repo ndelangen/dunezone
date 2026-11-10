@@ -13,22 +13,29 @@ accepts an optional `@` or `/nudge` prefix. A faction conversation can nudge onl
 names, self names and recall chat do nothing. The message itself is saved and displayed normally.
 
 After saving a matching message, the Worker makes one authenticated Convex action call with the
-sender and target seat references and their directory sequence. It does not wait for the directory summary to publish. Conversation
-text stays in the Worker, and a failed call does not delay chat or schedule another attempt.
+sender and target seat identities and the sender faction reference. It does not wait for the directory
+summary to publish. Conversation text stays in the Worker, and a failed call does not delay chat or
+schedule another attempt.
 
 Convex checks the game's credential, live state, voice setting and channel, then resolves the current
 seat occupants and the target's linked Discord account. Its rate limiter is the only cooldown
 authority: one nudge per target seat every five minutes. Linking Discord identifies a mention target;
-it does not control voice access. Convex drops a nudge if its directory sequence differs, so a late seat update cannot mention the
-previous occupant.
+it does not control voice access. Convex compares those identities with its current directory seats
+and drops mismatches, so a late seat update cannot mention the previous occupant. Activity-only
+directory updates do not block pings.
 
 The message says `<@target> Faction is waiting on you in Game.` Its mention allowlist contains only
 that target, with automatic mention parsing disabled. Public names are escaped as Discord markdown.
 Discord applies channel access and notification settings; an accepted message does not prove a
 phone or desktop notification.
 
+New Workers call the `sendNudge` action. During rollout, the old `publishNudge` mutation stays
+authenticated and acknowledges legacy events without sending them. A new Worker whose action is
+not deployed yet logs and drops that attempt while its chat message remains saved.
+
 A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
-no outbox, retry, nonce or per-nudge delivery record.
+no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
+REST work until its deadline; a channel or route limit affects only that attempted nudge.
 
 ## Configuration and administration
 
