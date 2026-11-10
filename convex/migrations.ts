@@ -650,7 +650,11 @@ export const board_readiness_listing_v1 = migrations.define({
   migrateOne: async () => {},
 });
 
-/** Existing factions receive the card new faction writes already keep; rerunning it writes nothing. */
+/**
+ * Gives every faction the card faction writes keep, at the current `FACTION_CARD_PROJECTION`;
+ * rerunning it writes nothing.
+ * It is permanent: a snapshot replay rebuilds stale cards through it, which is what lets each later `faction_cards_v*` id be pruned.
+ */
 export const faction_cards_v1 = migrations.define({
   table: 'factions',
   /* Faction text has no length cap, and a rerun reads each faction and its card, so a batch stays small. */

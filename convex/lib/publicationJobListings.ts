@@ -57,7 +57,7 @@ export async function syncPublicationJobListing(ctx: MutationCtx, jobId: Id<'pub
   }
 }
 
-/* One order per status. */
+/* One order per status; the `'all'` member stays because stored aggregate keys hold it. */
 function item(row: Listing) {
   return {
     namespace: [row.status, 'all'] as Namespace,

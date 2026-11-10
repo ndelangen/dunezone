@@ -251,6 +251,7 @@ export function parsePublicationAssetData(assetType: PublicationAssetType, data:
  * A Spice capture without the classic highlight list its card no longer has.
  * The strip skipped jobs mid-capture on 5 November 2026, so one that later failed and waits for a retry may still carry it;
  * no card draws it.
+ * Remove this once a production check finds no `card-spice` job whose `asset_data.card` has `highlights`.
  */
 function withoutLegacyHighlights(data: unknown): unknown {
   const card = (data as { card?: unknown } | null)?.card;

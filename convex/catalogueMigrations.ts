@@ -7,7 +7,7 @@ import { assertCatalogueSourceExact, repairCatalogueEntry } from './lib/catalogu
 import schema from './schema';
 
 /*
- * The catalogue backfills from the ruleset kind on, kept out of `migrations.ts`, which is at its size limit.
+ * The catalogue backfills from the ruleset kind on, in their own module.
  * Each is listed in `MIGRATION_IDS` there under its id, so the deploy runs it like any other; the earlier catalogue backfills stay where they are, since moving a migration renames it and would run it again.
  */
 const migrations = new Migrations(components.migrations, {

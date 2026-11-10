@@ -82,7 +82,7 @@ describe('a snapshot load', () => {
           asset('token-disc', `token-${mode}`, { front: publishingTokenFace, back })
         ),
       ];
-      /* A Spice card in its moved shape: linked to a board, without the old highlight list. */
+      /* A Spice card as production stores it: linked to a board, without the old highlight list. */
       const spice = await ctx.db.insert('assets', {
         ...owned,
         type: 'card-spice',
