@@ -14,11 +14,12 @@ import { useRef } from 'react';
 
 import { useAuthoringAccountKey } from '@db/authoring';
 import { useDeleteFaction, useFaction, useFactionAccess, useSetFactionGroup, useUpdateFaction } from '@db/factions';
-import { loadFaction } from '@db/factions';
+import { isFactionNotFound, loadFaction } from '@db/factions';
 import { useViewerAssignableGroups } from '@db/viewerAccess';
+import { redirectFromFormerAddress } from '@app/routes/formerAddress';
 import { pageHead } from '@app/routes/pageTitle';
 import { resolveRouteNotice } from '@app/routes/routeNotices';
-import { RouteLoadError } from '@app/routes/routeStates';
+import { RouteLoadError, RouteNotFound } from '@app/routes/routeStates';
 import { AuthoringToolbar } from '@app/widgets/authoring/AuthoringToolbar';
 import { groupAccessStatus } from '@app/widgets/authoring/groupAccessStatus';
 import { useEditPageHeader } from '@app/widgets/authoring/useEditPageHeader';
@@ -44,7 +45,17 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
     }
     return {};
   },
-  loader: async ({ params }) => await loadFaction(params.factionId),
+  loader: async ({ params, location }) => {
+    try {
+      return await loadFaction(params.factionId);
+    } catch (error) {
+      /* A rename moves the faction, and an old edit link follows it there, as the faction page's own link does. */
+      if (isFactionNotFound(error)) {
+        await redirectFromFormerAddress({ kind: 'faction', slug: params.factionId }, location, '/edit');
+      }
+      throw error;
+    }
+  },
   errorComponent: FactionEditError,
   head: ({ loaderData }) => pageHead(loaderData ? `Edit ${loaderData.faction.data.name}` : 'Edit faction'),
   component: FactionEditPage,
@@ -55,14 +66,12 @@ export const Route = createFileRoute('/_app/factions/$factionId/edit')({
  * Without this the reader met the router's unstyled default and, in development, a stack trace.
  */
 function FactionEditError({ error }: ErrorComponentProps) {
+  const back = <PageMessage.Back to="/factions">Back to factions</PageMessage.Back>;
+  if (isFactionNotFound(error)) {
+    return <RouteNotFound title="Edit faction" back={back} noun="faction" renamed />;
+  }
   return (
-    <RouteLoadError
-      size="compact"
-      title="Edit faction"
-      back={<PageMessage.Back to="/factions">Back to factions</PageMessage.Back>}
-      what="Faction could not be loaded"
-      error={error}
-    />
+    <RouteLoadError size="compact" title="Edit faction" back={back} what="Faction could not be loaded" error={error} />
   );
 }
 
@@ -175,7 +184,7 @@ function FactionEditPage() {
               mode: 'replace',
               disabled: updateFaction.isPending,
               raw: rawFactionLoad(faction.data.name, viewerAccess.capabilities.rename),
-              source: factionLoadSource(faction.slug),
+              source: factionLoadSource({ slug: faction.slug, name: faction.data.name }),
               onLoaded: validationHeader.releasing(authoring.actions.loadDraft),
             }}
             status={{
@@ -200,32 +209,14 @@ function FactionEditPage() {
             review={{ label: 'Review faction sheet', onOpen: (trigger) => viewRef.current?.openReview(trigger) }}
             centerIndicator={<FactionComplexityIndicator form={authoring.form} />}
             accessActions={
-              <>
-                {canAssignGroup && !assignedGroup ? (
-                  <FactionGroupPopover
-                    disabled={setFactionGroup.isPending}
-                    assignableGroups={assignableGroups}
-                    onAssignGroup={async (nextGroupId) => {
-                      await setFactionGroup.mutateAsync({
-                        id: faction._id,
-                        groupId: nextGroupId,
-                      });
-                    }}
-                  />
-                ) : null}
-                {canAssignGroup && assignedGroup ? (
-                  <IconAction
-                    label="Remove group"
-                    tooltip={`Remove group access (${assignedGroup.name})`}
-                    emphasis="standard"
-                    intent="neutral"
-                    size="lg"
-                    disabled={setFactionGroup.isPending}
-                    onClick={() => void setFactionGroup.mutateAsync({ id: faction._id, groupId: null })}
-                    icon={<UserRoundMinus size={17} aria-hidden />}
-                  />
-                ) : null}
-              </>
+              canAssignGroup ? (
+                <FactionGroupActions
+                  factionId={faction._id}
+                  assignedGroup={assignedGroup}
+                  assignableGroups={assignableGroups}
+                  setGroup={setFactionGroup}
+                />
+              ) : null
             }
             statuses={[factionPublicationStatus(assetPublishing), groupAccessStatus(assignedGroup?.name ?? null)]}
             destructiveActions={
@@ -249,6 +240,7 @@ function FactionEditPage() {
               </Notice>
             ) : null}
             <ActionError subject="Faction" verb="delete" error={deleteFaction.error} />
+            <ActionError subject="Group access" verb="change" error={setFactionGroup.error} />
             <FactionEditor
               nameField={nameField}
               key={faction._id}
@@ -269,5 +261,42 @@ function FactionEditPage() {
         </PageLayout.Content>
       </PageLayout>
     </BackgroundLibrary>
+  );
+}
+
+/** Assigning the faction to a Group, or removing the one it has; a failure shows on the page through the mutation's own error. */
+function FactionGroupActions({
+  factionId,
+  assignedGroup,
+  assignableGroups,
+  setGroup,
+}: Readonly<{
+  factionId: string;
+  assignedGroup: { name: string } | null;
+  assignableGroups: Parameters<typeof FactionGroupPopover>[0]['assignableGroups'];
+  setGroup: ReturnType<typeof useSetFactionGroup>;
+}>) {
+  if (!assignedGroup) {
+    return (
+      <FactionGroupPopover
+        disabled={setGroup.isPending}
+        assignableGroups={assignableGroups}
+        onAssignGroup={async (groupId) => {
+          await setGroup.mutateAsync({ id: factionId, groupId });
+        }}
+      />
+    );
+  }
+  return (
+    <IconAction
+      label="Remove group"
+      tooltip={`Remove group access (${assignedGroup.name})`}
+      emphasis="standard"
+      intent="neutral"
+      size="lg"
+      disabled={setGroup.isPending}
+      onClick={() => void setGroup.mutateAsync({ id: factionId, groupId: null }).catch(() => undefined)}
+      icon={<UserRoundMinus size={17} aria-hidden />}
+    />
   );
 }
