@@ -331,3 +331,18 @@ export const LastPlayerLeavesTheEndedGame = meta.story({
     await expect(page.queryByRole('menuitem', { name: /end the game|discard the game/ })).toBeNull();
   },
 });
+
+/* Once the game has ended, the same open menu's item gives up the seat at once, without reopening the menu. */
+export const LastPlayerEndsThenLeaves = meta.story({
+  beforeEach: install(() => productTransport('seat-2', lastPlayerSnapshot('seat-2'))),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await page.findByRole('button', { name: 'Game menu' }, { timeout: 30_000 }));
+    await completeHold(await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to end the game' })));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'result-end' }), { timeout: 10_000 });
+    const ended = endedSnapshot('seat-2');
+    session.transport.deliver(session.transport.view({ ...ended, revision: ended.revision + 1 }));
+    await completeHold(await waitForFrame(() => page.getByRole('menuitem', { name: 'Hold to give up your seat' })));
+    await waitFor(() => expect(lastCommand()?.action).toEqual({ kind: 'seat-depart' }), { timeout: 10_000 });
+  },
+});

@@ -127,6 +127,41 @@ describe('Optional timed bidding through the native game boundary', { timeout: 2
     expect((await runtime.alarm()).scheduledAt).toBe(resumed);
   });
 
+  it('holds a timed bid while its last player has ended the game, then resumes it with the time it had left', async () => {
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [
+      JSON.stringify({ ...readSnapshot(rows[0].data), stage: 'play' }),
+    ]);
+    await runtime.restart();
+    const a = await admitPlayer(runtime, 'a');
+    const b = await admitPlayer(runtime, 'b');
+    const faction = required((await syncView(a)).snapshot.bank).factionId;
+    await accepted(a, { kind: 'bid-timing' as const, enabled: true });
+    const { round } = required(
+      (await accepted(a, { kind: 'bid-start' as const, factionId: faction })).snapshot.bidding
+    );
+    const raised = await accepted(a, { kind: 'bid-raise' as const, round });
+    const deadline = required(required(raised.snapshot.bidding).deadline);
+    await accepted(b, { kind: 'seat-depart' as const });
+    const ended = await accepted(a, { kind: 'result-end' as const });
+    expect(ended.snapshot.stage).toBe('finished');
+    const left = deadline - required(ended.serverNow);
+    expect((await runtime.alarm()).scheduledAt).toBeNull();
+
+    /* Long past the old deadline, the bid has not moved on. */
+    await runtime.clock(deadline - Date.now() + 30_000);
+    await runtime.alarm(true);
+    expect(required((await syncView(a)).snapshot.bidding)).toMatchObject({ turn: faction, deadline });
+
+    const continued = await accepted(a, { kind: 'result-continue' as const });
+    const resumed = required(required(continued.snapshot.bidding).deadline);
+    /* Each command reads the server clock a few milliseconds apart from the time it reports, so allow a little either way. */
+    expect(resumed - required(continued.serverNow)).toBeLessThanOrEqual(left + 50);
+    expect(resumed - required(continued.serverNow)).toBeGreaterThan(left - 1000);
+    expect(required(continued.snapshot.bidding).turn).toBe(faction);
+    expect((await runtime.alarm()).scheduledAt).toBe(resumed);
+  });
+
   it('re-arms the bid clock when the proposer of a running review deletes their account', async () => {
     const { b } = await timedBidUnderReview();
     const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {

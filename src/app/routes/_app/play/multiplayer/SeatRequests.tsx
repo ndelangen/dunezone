@@ -478,11 +478,14 @@ export function GameMenu({
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
-        {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
+        {/*
+         * Keyed by the seat and by what the hold does, so a hold started on one seat never departs the seat a trade moved the viewer to,
+         * a leave countdown never turns into ending the game when another player leaves, and the item is ready again once the game has ended.
+         */}
         {!isSpectator(table) && (
           <HoldAction
             shape="menu-item"
-            key={table.viewer.viewerSeat}
+            key={`${table.viewer.viewerSeat}:${endsTheGame(table) ? 'end' : 'leave'}`}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
             verb={endsTheGame(table) ? 'end' : 'leave'}
             closeMenuOnClick={false}

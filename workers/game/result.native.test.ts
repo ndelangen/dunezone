@@ -505,6 +505,33 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     expect((await syncView(observer)).snapshot.stage).toBe('finished');
   });
 
+  it('keeps the phase order the turn is playing when its last player ends the game mid-turn and continues', async () => {
+    const { owner, other } = await inPlay();
+    await next(owner);
+    await next(owner);
+    const suffix = async (connection: NativeConnection) =>
+      (await syncView(connection)).viewer.userId.slice('user-'.length);
+    const [stays, leaves] = [await suffix(owner), await suffix(other)];
+    /* The turn plays an order the composer would no longer give, as after a deferred reordering: its first two phases swapped. */
+    const rows = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const stored = JSON.parse(rows[0].data);
+    const [first, second, ...rest] = required(stored.phases as { id: string }[] | undefined);
+    const playing = [second!, first!, ...rest];
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify({ ...stored, phases: playing })]);
+    await runtime.restart();
+    const player = await admit(stays);
+    const leaving = await admit(leaves);
+    const ids = (phases: { id: string }[] | undefined) => required(phases).map((entry) => entry.id);
+    expect(ids((await syncView(player)).snapshot.phases)).toEqual(ids(playing));
+
+    await accepted(leaving, { kind: 'seat-depart' });
+    const ended = await accepted(player, { kind: 'result-end' });
+    expect(ids(ended.snapshot.phases)).toEqual(ids(playing));
+    const continued = await accepted(player, { kind: 'result-continue' });
+    expect(ids(continued.snapshot.phases)).toEqual(ids(playing));
+    expect(continued.snapshot.phase).toBe(ended.snapshot.phase);
+  });
+
   it('continues with nobody ready, so no single player can move the phase on alone', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);

@@ -251,8 +251,11 @@ export class GameSession {
     const settled = settleEnding(snapshot, () => new Set(this.actors.seated().map((occupant) => occupant.userId)));
     const roster = this.actors.roster(this.seatCount());
     const composed = this.composedTurn(roster, settled.table);
-    /* Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it. */
-    const playing = inPlay(settled.stage) && (!this.room || inPlay(this.room.snapshot.stage));
+    /*
+     * Before play no phase has been played, so the turn takes the order as it stands, and the first turn plays it.
+     * A finished game keeps the order it ended in, since it can end mid-turn and continue there.
+     */
+    const playing = keepsOrder(settled.stage) && (!this.room || keepsOrder(this.room.snapshot.stage));
     const phases = playing
       ? recomposedTurn(settled.phase, this.room?.snapshot.phase, settled.phases, composed)
       : composed;
@@ -1144,7 +1147,9 @@ export class GameSession {
     return this.room?.phaseCooldownEndsAt ?? 0;
   }
   get battleDeadline() {
-    return this.room?.snapshot.battleState?.deadline ?? 0;
+    /* A finished game holds its battle countdown, as it holds a bid's. */
+    const snapshot = this.room?.snapshot;
+    return snapshot?.stage === 'finished' ? 0 : (snapshot?.battleState?.deadline ?? 0);
   }
 
   confirm() {
@@ -1615,4 +1620,9 @@ const REVIEW_PAUSE = 'The table is paused for a review.';
 /* A fixture carries no stage and plays its phases from the start. */
 function inPlay(stage: StoredSnapshot['stage']) {
   return stage === undefined || stage === 'play';
+}
+
+/* Whether a turn's phase order is already being played: in play, or finished and able to continue. */
+function keepsOrder(stage: StoredSnapshot['stage']) {
+  return inPlay(stage) || stage === 'finished';
 }

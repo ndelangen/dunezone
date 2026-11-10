@@ -35,7 +35,7 @@ export function applyResult(
     case 'result-declare':
       return declare(snapshot, viewer, action, now);
     case 'result-continue':
-      return resume(snapshot);
+      return resume(snapshot, now);
     case 'result-end':
       return end(snapshot, by, seats(), now);
   }
@@ -83,12 +83,23 @@ function end(snapshot: StoredSnapshot, by: Actor, seats: readonly string[], now:
   });
 }
 
-function resume(snapshot: StoredSnapshot) {
+/*
+ * A game can end with a bid or a battle countdown running, and their clocks stand still while it is finished:
+ * continuing moves each deadline on by the time the game spent finished, so every clock resumes with the time it had left.
+ */
+function resume(snapshot: StoredSnapshot, now: number) {
   if (snapshot.stage !== 'finished') {
     throw new GameRejection('Only a finished game can continue.');
   }
+  const stood = Math.max(0, now - (snapshot.result?.declaredAt ?? now));
+  const later = (deadline: number | null) => (deadline === null ? null : deadline + stood);
   const controls = snapshot.controls && { ...snapshot.controls, ready: [] };
-  return revised({ ...snapshot, stage: 'play', result: null, controls });
+  const bidding = snapshot.bidding && { ...snapshot.bidding, deadline: later(snapshot.bidding.deadline) };
+  const battleState = snapshot.battleState && {
+    ...snapshot.battleState,
+    deadline: later(snapshot.battleState.deadline),
+  };
+  return revised({ ...snapshot, stage: 'play', result: null, controls, bidding, battleState });
 }
 
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */
