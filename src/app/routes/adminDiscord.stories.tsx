@@ -12,3 +12,8 @@ export const Dashboard = meta.story({
   args: { path: '/admin/discord' },
   parameters: voiceParameters(),
 });
+
+export const NudgeDeliveryIssue = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: voiceParameters(true, true),
+});
