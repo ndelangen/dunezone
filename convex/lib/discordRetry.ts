@@ -58,7 +58,7 @@ export async function retryDiscordChannel(ctx: MutationCtx, channel: Doc<'play_g
   await ctx.scheduler.runAt(at, internal.playDiscordActions.reconcile, { channelId: channel._id });
 }
 
-/** Only the same definitely rejected creation may reuse its existing creation reservation. */
+/** Reuse the saved category after Discord definitively rejects creation. */
 export function retryCreationCategory(channel: Doc<'play_game_discord_channels'>) {
   const retry = channel.retry;
   const knownRejection = retry?.operation === 'provision' && (channel.creation_attempt ?? 0) > 0;

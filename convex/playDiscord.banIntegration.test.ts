@@ -4,7 +4,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { playPerson, type playTest } from './play.test.fixture';
+import { playPerson } from './play.test.fixture';
+import type { playTest } from './play.test.fixture';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 type TestWorld = ReturnType<typeof playTest>;
