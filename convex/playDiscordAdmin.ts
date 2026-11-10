@@ -33,16 +33,6 @@ const row = v.object({
   gameSlug: v.optional(v.string()),
   gameName: v.optional(v.string()),
 });
-/* Older deployed admin pages still read this field during the Convex-first rollout. */
-const nudgeError = v.object({
-  game_id: v.id('play_games'),
-  gameSlug: v.optional(v.string()),
-  gameName: v.optional(v.string()),
-  toSeat: v.string(),
-  at: v.number(),
-  state: v.union(v.literal('failed'), v.literal('uncertain'), v.literal('sending')),
-  error: v.optional(v.string()),
-});
 const orphan = v.object({ id: v.string(), name: v.string(), parent_id: v.string(), guild_id: v.string() });
 const snowflake = z.string().regex(/^\d{1,20}$/);
 const discordChannel = z.object({
@@ -60,7 +50,6 @@ export const dashboard = adminQuery({
     configured: v.boolean(),
     enabled: v.boolean(),
     channels: paginationResultValidator(row),
-    nudgeErrors: v.array(nudgeError),
   }),
   handler: async (ctx, { paginationOpts }) => {
     if (paginationOpts.numItems < 1 || paginationOpts.numItems > 100) {
@@ -94,12 +83,10 @@ export const dashboard = adminQuery({
         };
       })
     );
-    const nudgeErrors: Infer<typeof nudgeError>[] = [];
     return {
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),
       channels: { ...channels, page },
-      nudgeErrors,
     };
   },
 });

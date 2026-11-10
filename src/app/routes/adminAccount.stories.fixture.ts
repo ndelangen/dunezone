@@ -85,6 +85,7 @@ export const pendingDiscordDeletion = db((baseline) => {
   });
   baseline.play_game_discord_channels.push({
     game_id: ref('removed-game'),
+    creator_id: ref('managed-account'),
     ban_operation_id: ref('ban-operation'),
     guild_id: '100',
     category_ids: ['200'],

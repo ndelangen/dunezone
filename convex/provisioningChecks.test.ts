@@ -96,41 +96,6 @@ describe('rebuild contract for the anonymised snapshot', () => {
     expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
   });
 
-  test('rejects a retained Discord nudge after its game has been removed', async () => {
-    const t = rebuiltDeployment();
-    await seedSnapshotLoad(t);
-    const nudgeId = await t.run(async (ctx) => {
-      const gameId = await ctx.db.insert('play_games', {
-        name: 'Removed game',
-        slug: 'removed-game',
-        state: 'expired',
-        secret: 'a'.repeat(64),
-        attempt_id: 'b'.repeat(64),
-        created_at: 1_700_000_000_000,
-        provision_expires_at: 1_700_000_060_000,
-      });
-      const id = await ctx.db.insert('play_game_discord_nudges', {
-        game_id: gameId,
-        to_seat: 'seat-1',
-        nudge_id: 'retained-nudge',
-        from_faction_name: 'Atreides',
-        at: 1_700_000_000_000,
-        state: 'uncertain',
-        attempts: 1,
-        error: 'The delivery result was not confirmed.',
-      });
-      /* Only the nudge remains, so another private table cannot cause this rejection. */
-      await ctx.db.delete(gameId);
-      return id;
-    });
-
-    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
-      'play_game_discord_nudges still holds rows'
-    );
-    await t.run(async (ctx) => await ctx.db.delete(nudgeId));
-    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
-  });
-
   test('rejects private rows and a second account beside the placeholder owner', async () => {
     const t = rebuiltDeployment();
     const placeholderId = await seedSnapshotLoad(t);

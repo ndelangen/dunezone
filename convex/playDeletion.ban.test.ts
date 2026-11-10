@@ -68,6 +68,7 @@ async function fixture({ hosted = 1, joined = 1 } = {}) {
     const channelId = hostedIds.length
       ? await ctx.db.insert('play_game_discord_channels', {
           game_id: hostedIds[0]!,
+          creator_id: source.userId,
           guild_id: 'guild',
           category_ids: ['category'],
           channel_id: 'channel',

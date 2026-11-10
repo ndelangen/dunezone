@@ -328,52 +328,15 @@ describe('anonymiseExport', () => {
     expect([...entries.keys()].filter((path) => path.startsWith('_components/') || path === 'README.md')).toEqual([]);
   });
 
-  test('drops the Discord switch and private nudge delivery records', () => {
-    const { world, author, ruleset } = authorWorld();
-    const gameId = world.add('play_games', {
-      name: 'Private game',
-      slug: 'private-game',
-      state: 'ready',
-      ruleset_id: ruleset,
-      creator_id: author,
-      secret: 'a'.repeat(64),
-      attempt_id: 'b'.repeat(64),
-      created_at: 1_700_000_000_000,
-      provision_expires_at: 1_700_000_060_000,
-    });
-    const authAccountId = world.add('authAccounts', {
-      userId: author,
-      provider: 'discord',
-      providerAccountId: '1234567890',
-    });
+  test('drops the deployment-local Discord switch', () => {
+    const { world } = authorWorld();
     world.add('play_discord_settings', { enabled: false, updated_at: 1_700_000_000_000 });
-    world.add('play_game_discord_nudges', {
-      game_id: gameId,
-      to_seat: 'seat-1',
-      nudge_id: 'private-discord-nudge',
-      from_faction_name: 'Private sender faction',
-      to_user_id: author,
-      auth_account_id: authAccountId,
-      at: 1_700_000_000_000,
-      state: 'sending',
-      attempts: 1,
-      error: 'Private delivery diagnostic',
-    });
-
     const { entries, report } = anonymiseExport(world.entries());
-    for (const table of ['play_discord_settings', 'play_game_discord_nudges']) {
-      expect(entries.has(`${table}/documents.jsonl`)).toBe(false);
-      expect(report.tables.find((entry) => entry.table === table)).toMatchObject({ rowsIn: 1, rowsOut: 0 });
-    }
-    const output = [...entries.values()].join('\n');
-    for (const value of [
-      'private-discord-nudge',
-      'Private sender faction',
-      'Private delivery diagnostic',
-      authAccountId,
-    ]) {
-      expect(output).not.toContain(value);
-    }
+    expect(entries.has('play_discord_settings/documents.jsonl')).toBe(false);
+    expect(report.tables.find((entry) => entry.table === 'play_discord_settings')).toMatchObject({
+      rowsIn: 1,
+      rowsOut: 0,
+    });
     expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
   });
 
@@ -688,7 +651,7 @@ describe('verifySnapshot', () => {
     ]);
   });
 
-  test.each(['play_discord_settings', 'play_game_discord_nudges'])(
+  test.each(['play_discord_settings'])(
     'refuses a retained %s table even when the snapshot manifest includes it',
     (table) => {
       const { world } = authorWorld();
