@@ -7,33 +7,33 @@ access.
 
 ## Manual nudges
 
-In the existing faction or table conversation, a message containing only another seated player's
-faction or display name requests a nudge. Matching ignores case and surrounding whitespace, and
-accepts an optional `@` or `/nudge` prefix. A faction conversation can nudge only its peer. Ambiguous
-names, self names and recall chat do nothing. The message itself is saved and displayed normally.
+During setup or play, a seated player can choose a Nudge command in the Compass for another
+occupied seat. The commands appear when the game has a ready Discord voice channel and can be
+found by the player's name, faction name or "nudge". Spectators, recall and playback cannot nudge.
+Chat messages never trigger nudges, including names, `@mentions` and `/nudge` text.
 
-The Worker commits a bounded nudge outbox entry with the saved message. It enforces a five-minute
-cooldown per target seat before any Convex call, so repeated names do not cause repeated network
-work. Only delivery identifiers and the waiting faction's public name leave the Worker;
-conversation text stays there. Delivery runs after the chat commits and does not delay the chat response.
+The browser sends one nudge request through its existing game connection. The Worker validates
+the current sender and target seats, then makes one authenticated Convex action call with their
+identities and the sender faction reference. It does not wait for the directory summary to publish.
+The request creates no chat message or saved game action and is not replayed on reconnect. A failed
+call is logged without scheduling another attempt.
 
-Convex checks the game's credential, opt-in and channel, then resolves the target's current linked
-Discord account. Its rate-limiter component enforces the same per-seat spacing. Before every POST,
-it checks current seat occupancy, account state, the original account link and the deployment
-switch. Linking Discord identifies a mention target; it does not control voice access.
+Convex checks the game's credential, live state, voice setting and channel, then resolves the current
+seat occupants and the target's linked Discord account. Both sender and recipient must resolve to
+active, nonanonymous accounts, including through merge aliases. Its rate limiter is the only cooldown
+authority: one nudge per target seat every five minutes. Linking Discord identifies a mention target;
+it does not control voice access. Convex compares those identities with its current directory seats
+and drops mismatches, so a late seat update cannot mention the previous occupant. Activity-only
+directory updates do not block pings.
 
 The message says `<@target> Faction is waiting on you in Game.` Its mention allowlist contains only
-that target, with automatic mention parsing disabled. Discord applies channel access and the
-recipient's notification settings. An accepted message does not prove a desktop or phone push.
+that target, with automatic mention parsing disabled. Public names are escaped as Discord markdown.
+Discord applies channel access and notification settings; an accepted message does not prove a
+phone or desktop notification.
 
-Undelivered nudges expire after two minutes. Transport retries and definite Discord 429 responses
-are bounded. A lost or ambiguous Discord response is never replayed, because the message might
-already exist. Discord's nonce deduplication is additional protection with a short, unspecified
-window, not a durable delivery guarantee.
-
-Successful and dropped delivery records expire after two minutes. Sanitized failures remain for
-one day, with recipient identity removed. An interrupted send becomes an unconfirmed outcome and
-is not replayed. Expiry jobs check the event ID before changing a reused seat record.
+A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
+no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
+REST work until its deadline; a channel or route limit affects only that attempted nudge.
 
 ## Configuration and administration
 
@@ -46,7 +46,7 @@ The Discord page under Admin tools can pause creation, pings and cleanup without
 Existing channels and invites remain available while paused. Its deployment-local setting is
 excluded from snapshots and cannot enable an unconfigured deployment.
 
-The page lists tracked channels, cleanup deadlines and sanitized delivery failures. It fetches a
+The page lists tracked channels and cleanup deadlines. It fetches a
 bounded page only while open. Untracked channels are discovered only on explicit refresh, only in
 configured Games categories, and only after the creation window has passed. They are never deleted
 automatically. A deliberate removal rechecks the target before deleting it. An unconfirmed creation
@@ -73,26 +73,24 @@ continued game.
 
 Hourly cleanup uses brief action time on the existing Convex deployment. It adds no Worker service
 or continuously active Durable Object. With no ended channels to check, it makes no Discord request.
-Ordinary chat does not call Convex for nudges. Explicitly disabled games skip nudge storage reads,
-and non-Discord directory summaries skip the channel lookup. The pending outbox and cooldown are
-bounded by the game's seats.
+Chat does not call Convex for nudges. Only an explicit Compass command requests a nudge, and
+non-Discord directory summaries skip the channel lookup.
 
-One successful nudge uses one Discord POST. The existing Convex scheduler runs delivery and expiry;
-the rate limiter, claim, pause check and result write add backend work. Idle channel reconciliation
-uses the existing 15-minute cron, with no Discord request when nothing is due.
-The admin page has bounded reads and manual orphan refresh. Do not add polling or aggregate tables
-without measured need.
+One attempted nudge uses one Worker-to-Convex action call and at most one Discord POST. The
+rate-limit mutation reads current eligibility and spends the per-seat quota. There are no delivery
+or expiry jobs. Idle channel reconciliation uses the existing 15-minute cron, with no Discord
+request when nothing is due. The admin page has bounded reads and manual orphan refresh.
 
 After a release, check both Worker health identities, create an opted-in game, and verify the invite
-and VC text message destination. Repeat a nudge inside its cooldown and check that no second
-message appears. Check unlinked recipients and paused integration with synthetic local data.
-Inspect the admin page for unconfirmed or failed sends, and Worker diagnostics for operation
-`nudge`. Use the existing [Convex usage report](./convex-usage.md) to compare execution and database
+and VC text message destination. Choose a Nudge command in the Compass, repeat it inside its
+cooldown and check that no second message appears. Send a player name, `@mention` and `/nudge`
+as chat messages and check that none sends a Discord message. Check unlinked recipients and
+paused integration with synthetic local data.
+Inspect Convex logs for dropped Discord nudges and Worker diagnostics for operation `nudge`. Use the existing [Convex usage report](./convex-usage.md) to compare execution and database
 usage; do not infer invoice savings from request counts alone.
 
-The automatic-waiting triggers, DMs, community-server move and voice-presence display remain later
-work. A few real multiplayer games and native notification checks are adoption evidence, separate
-from automated delivery tests.
+There are no automatic waiting or offline triggers, chat commands or DMs. A few real multiplayer
+games and native notification checks are adoption evidence, separate from automated delivery tests.
 
 ## Sources
 

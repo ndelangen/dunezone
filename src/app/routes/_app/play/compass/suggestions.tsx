@@ -1,12 +1,13 @@
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { Eraser } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { SiDiscord } from 'react-icons/si';
 
 import { setBoardSkin, setPlanetShading } from '../../../../widgets/tabletop/boardSkinPreference';
 import { BOARD_SKIN_LABELS, BOARD_SKINS } from '../../../../widgets/tabletop/boardSkins';
 import { setCameraFollowsPhase } from '../../../../widgets/tabletop/cameraFollowsPhase';
 import type { TableView } from '../../../../widgets/tabletop/playView';
-import type { CompassPlayer } from './compassTable';
+import type { CompassPlayer, CompassTable } from './compassTable';
 import { PlayerToken } from './PlayerToken';
 import { SHORTCUTS } from './shortcuts';
 import type { Command, TableCommand } from './shortcuts';
@@ -111,6 +112,8 @@ export type SuggestionActions = Readonly<{
   nextPhase: (() => void) | null | undefined;
   /** Clears every chat from the viewer's own view; null while there is nothing to clear. */
   clearChats?: (() => void) | null;
+  /** Sends one Discord mention to a chosen occupied seat. */
+  nudge?: CompassTable['nudge'];
   /** Places the spice of every face-up spice card on the table; null while there is none to place or the viewer cannot act. */
   spiceBlow?: (() => void) | null;
   /** Moves the camera, as the dial does. */
@@ -222,6 +225,26 @@ function clearChatsCandidate(clearChats: SuggestionActions['clearChats'], close:
       held: 'Clearing',
     },
   ];
+}
+
+/* Discord nudges are explicit commands, found by the recipient's player or faction name. */
+function nudgeCandidates(nudge: SuggestionActions['nudge'], close: () => void): Candidate[] {
+  if (!nudge) {
+    return [];
+  }
+  return nudge.targets.map((player) => ({
+    key: `cmd:nudge:${player.seat}`,
+    label: `Nudge ${player.factionName ?? player.name}`,
+    hint: `Mention ${player.name} in Discord voice chat`,
+    icon: <SiDiscord size={18} aria-hidden />,
+    run: () => {
+      close();
+      nudge.send(player.seat);
+    },
+    text: `nudge ping discord mention ${player.name} ${player.factionName ?? ''}`,
+    weight: -1,
+    typedOnly: true,
+  }));
 }
 
 /* Spice blow, only while a face-up spice card lies on the table for the viewer to place. */
@@ -365,6 +388,7 @@ export function candidatesOf(windows: readonly TableWindow[], actions: Suggestio
     ...spiceBlowCandidate(actions.spiceBlow, actions.close),
     ...commandCandidates(actions),
     ...clearChatsCandidate(actions.clearChats, actions.close),
+    ...nudgeCandidates(actions.nudge, actions.close),
     ...(Object.keys(CAMERA_VIEWS) as TableView[]).map((view): Candidate => ({
       key: `cmd:camera:${view}`,
       label: `Camera: ${CAMERA_VIEWS[view]}`,

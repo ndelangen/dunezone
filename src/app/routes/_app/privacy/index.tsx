@@ -117,11 +117,11 @@ function PrivacyPage() {
                 cleanup and do not save voice participants' identities.
               </Text>
               <Text>
-                In a game with Discord voice, a message containing only another player&apos;s faction or display name,
-                optionally preceded by @ or /nudge, can mention them in the voice channel&apos;s text chat. They need a
-                connected Discord account to receive the mention. We send the waiting faction&apos;s name and the game
-                name, never the conversation itself. Each seat can receive at most one ping every five minutes. Discord
-                controls notification delivery through each player&apos;s settings.
+                In a game with Discord voice, a seated player can choose a Nudge command in the Compass to mention
+                another player in the voice channel&apos;s text chat. The recipient needs a connected Discord account.
+                We send the waiting faction&apos;s name and the game name. Chat messages never trigger nudges or get
+                sent to Discord. Each seat can receive at most one nudge every five minutes. Discord controls
+                notification delivery through each player&apos;s settings.
               </Text>
             </Stack>
           </Section>

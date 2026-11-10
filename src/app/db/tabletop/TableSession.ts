@@ -1505,6 +1505,19 @@ export class TableSession {
   private canHandle() {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
+  /** Sends one best-effort request; a disconnected table never queues it. */
+  nudge = (toSeat: string): boolean => {
+    if (
+      !this.canAct() ||
+      (this.snapshot.stage !== 'setup' && this.snapshot.stage !== 'play') ||
+      toSeat === this.viewer?.viewerSeat ||
+      (this.snapshot.controls !== undefined && !this.snapshot.controls.seats.includes(toSeat)) ||
+      !this.snapshot.roster?.seats.some((seat) => seat.id === toSeat && seat.faction !== null)
+    ) {
+      return false;
+    }
+    return this.send({ type: 'nudge', requestId: crypto.randomUUID(), toSeat });
+  };
   requestHistory = (step: number) => {
     if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;

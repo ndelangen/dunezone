@@ -126,6 +126,83 @@ async function connected(identity = viewer) {
   return client;
 }
 
+test('a nudge is sent once and is not replayed on reconnect', async () => {
+  const client = await connected();
+  const snapshot: GameSnapshot = {
+    ...initialSnapshot(),
+    stage: 'play',
+    roster: {
+      seatCount: 2,
+      seats: [
+        { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#fff' } },
+        { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#fff' } },
+      ],
+    },
+  };
+  authorize(snapshot);
+  expect(client.nudge('atreides')).toBe(true);
+  expect(socket().sent.filter((message) => message.type === 'nudge')).toEqual([
+    { type: 'nudge', requestId: expect.any(String), toSeat: 'atreides' },
+  ]);
+  expect(client.nudge('harkonnen')).toBe(false);
+  expect(client.nudge('missing')).toBe(false);
+  authorize({ ...snapshot, stage: 'finished' });
+  expect(client.nudge('atreides')).toBe(false);
+  authorize({
+    ...snapshot,
+    controls: {
+      seats: ['harkonnen'],
+      ready: [],
+      phaseChangedAt: 0,
+      requests: [],
+      seatRequests: [],
+      players: [],
+      spectators: [],
+      guests: 0,
+    },
+  });
+  expect(client.nudge('atreides')).toBe(false);
+  socket().close();
+  expect(client.nudge('atreides')).toBe(false);
+  await vi.advanceTimersByTimeAsync(1000);
+  socket().open();
+  authorize(snapshot);
+  expect(socket().sent.filter((message) => message.type === 'nudge')).toEqual([]);
+});
+
+test('spectators and players in recall cannot nudge', async () => {
+  const client = await connected({ ...viewer, viewerSeat: 'neutral' });
+  const snapshot: GameSnapshot = {
+    ...initialSnapshot(),
+    stage: 'play',
+    roster: {
+      seatCount: 2,
+      seats: [
+        { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#fff' } },
+        { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#fff' } },
+      ],
+    },
+  };
+  authorize(snapshot, { ...viewer, viewerSeat: 'neutral' });
+  expect(client.nudge('atreides')).toBe(false);
+  authorize({
+    ...snapshot,
+    revision: 1,
+    review: {
+      id: 'recall',
+      step: 0,
+      context: 'First',
+      proposer: { name: 'One', seat: 'harkonnen' },
+      openedAt: 1,
+      threshold: 1,
+      ballots: [{ name: 'One', seat: 'harkonnen', choice: 'review' }],
+      startedAt: 1,
+    },
+  });
+  expect(client.nudge('atreides')).toBe(false);
+  expect(socket().sent.filter((message) => message.type === 'nudge')).toEqual([]);
+});
+
 test.each(['harkonnen', 'neutral'])(
   'delivers accepted draws once to %s, without replaying during recall',
   async (viewerSeat) => {

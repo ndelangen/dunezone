@@ -2,21 +2,34 @@ import { randomUUID } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
-import { PLAY_NUDGE_COOLDOWN_MS, PLAY_NUDGE_MAX_AGE_MS } from '../../src/shared/play/nudges';
 import { clientMessageSchema } from '../../src/shared/play/protocol';
 import { dealt, draftingRuntime } from './native-drafting.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
-import { accepted, admitPlayer, eventually, required, syncView } from './native-runtime.fixture.ts';
+import {
+  accepted,
+  admitPlayer,
+  eventually,
+  readHistoricalSnapshot,
+  required,
+  syncView,
+} from './native-runtime.fixture.ts';
 
-/* Keep retry alarms beyond the real clock; only tick() fires them during each test. */
+/* Keep directory retry alarms beyond the real clock during each test. */
 const ROOM_CLOCK_AHEAD_MS = 60_000;
 
 /* All HTTP calls end at the synthetic Convex peer; these tests never contact Discord. */
-describe('Committed conversation nudges', () => {
+describe('Explicit Discord nudges', () => {
   let runtime: NativeRuntime, peer: NativePeer, players: NativeConnection[];
+  let swappingSnapshot: string;
   beforeEach(async () => {
-    ({ runtime, peer } = await draftingRuntime());
+    ({ runtime, peer } = await draftingRuntime([], undefined, {
+      prepare: (peer) => {
+        peer.game!.discordVoice = true;
+      },
+    }));
     players = await dealt(runtime);
+    const [swapping] = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    swappingSnapshot = swapping.data;
     for (const player of players) {
       const view = await syncView(player);
       await accepted(player, {
@@ -70,7 +83,6 @@ describe('Committed conversation nudges', () => {
       'saved message'
     );
   }
-  const pending = () => runtime.exec('SELECT * FROM nudge_outbox');
   async function targetName() {
     const a = await syncView(players[0]);
     return required(required(a.snapshot.roster).seats.find((seat) => seat.id !== a.viewer.viewerSeat)?.faction).name;
@@ -80,162 +92,137 @@ describe('Committed conversation nudges', () => {
     /* A fresh isolate resets its module clock, while the stored deadlines stay a minute ahead. */
     await runtime.clock(ROOM_CLOCK_AHEAD_MS);
   }
-  async function tick(offset: number) {
-    await runtime.clock(ROOM_CLOCK_AHEAD_MS + offset);
-    await runtime.alarm(true);
+  async function nudge(sender = players[0], toSeat = 'seat-2', requestId = randomUUID()) {
+    sender.send({ type: 'nudge', requestId, toSeat });
+    await syncView(sender);
+    return requestId;
+  }
+  async function refusedNudge(sender = players[0], toSeat = 'seat-2') {
+    const requestId = await nudge(sender, toSeat);
+    const refusal = await eventually(
+      () => sender.messages.find((message) => message.type === 'rejected' && message.requestId === requestId),
+      'refused nudge'
+    );
+    expect(peer.nudges).toEqual([]);
+    return refusal;
   }
 
-  it('keeps exact chat text and sends only identifiers and the public sender faction once across duplicates and restart', async () => {
-    const name = await targetName();
-    const text = `@${name.toUpperCase()}`;
-    const reply = await send(text, { requestId: 'same-id' });
-    expect(reply).toMatchObject({ type: 'conversation-message', message: { text } });
-    await eventually(() => peer.nudges.length === 1, 'nudge delivery');
-    expect(peer.nudges[0]).toMatchObject({ gameId: 'fixture-game', toUserId: 'user-b', toSeat: 'seat-2' });
-    expect(Object.keys(peer.nudges[0]).sort()).toEqual([
-      'at',
-      'fromFactionId',
-      'fromFactionName',
-      'gameId',
-      'nudgeId',
-      'secret',
-      'toSeat',
-      'toUserId',
-    ]);
-    await send(text, { requestId: 'same-id' });
-    await send(`/nudge ${name}`, { table: true });
-    await restart();
-    players = [await admitPlayer(runtime, 'a'), await admitPlayer(runtime, 'b')];
-    await send(name);
-    expect(peer.nudges).toHaveLength(1);
-    expect(await pending()).toEqual([]);
-    await tick(PLAY_NUDGE_COOLDOWN_MS + 1000);
-    await send(name);
-    await eventually(() => peer.nudges.length === 2, 'new cooldown window');
-  });
-
-  it('waits for the current directory summary before publishing the nudge', async () => {
-    peer.directoryMode = 'error';
-    await runtime.exec('UPDATE directory_outbox SET pending=1, retry_at=0');
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'directory retry');
-    expect(peer.nudges).toEqual([]);
-    peer.directoryMode = 'ack';
-    await tick(2000);
-    await eventually(() => peer.nudges.length === 1, 'nudge after directory recovery');
-    await eventually(async () => (await pending()).length === 0, 'nudge acknowledged');
-  });
-
-  it('rolls chat, cooldown and outbox back together if staging fails', async () => {
-    await runtime.exec(
-      "CREATE TRIGGER refuse_nudge BEFORE INSERT ON nudge_outbox BEGIN SELECT RAISE(ABORT,'nudge failure'); END"
-    );
-    expect(await send(await targetName(), { requestId: 'retry' })).toMatchObject({ type: 'rejected' });
-    expect(await runtime.exec('SELECT * FROM conversation_messages')).toEqual([]);
-    expect(await runtime.exec('SELECT * FROM nudge_cooldowns')).toEqual([]);
-    expect(peer.nudges).toEqual([]);
-    await runtime.exec('DROP TRIGGER refuse_nudge');
-    await send(await targetName(), { requestId: 'retry' });
-    await eventually(() => peer.nudges.length === 1, 'retried saved nudge');
-  });
-
-  it('retries transport failures after restart with the same id and stops on refusal', async () => {
-    peer.nudgeMode = 'error';
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'deferred nudge');
-    const id = peer.nudges[0].nudgeId;
-    peer.nudgeMode = 'refuse';
-    await restart();
-    await tick(2000);
-    await eventually(async () => (await pending()).length === 0, 'terminal refusal');
-    expect(peer.nudges.map((entry) => entry.nudgeId)).toEqual([id, id]);
-    await tick(10_000);
-    expect(peer.nudges).toHaveLength(2);
-  });
-
-  it('drops expired events and events whose target left without pinging their replacement', async () => {
-    peer.nudgeMode = 'error';
-    await send(await targetName());
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'deferred nudge');
-    await runtime.exec("UPDATE actors SET user_id='replacement' WHERE user_id='user-b'");
-    await tick(2000);
-    await eventually(async () => (await pending()).length === 0, 'stale occupant removed');
-    expect(peer.nudges).toHaveLength(1);
-    await runtime.exec("UPDATE actors SET user_id='user-b' WHERE user_id='replacement'");
-    await runtime.exec('DELETE FROM nudge_cooldowns');
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'second deferred nudge');
-    await tick(PLAY_NUDGE_MAX_AGE_MS + 5000);
-    await eventually(async () => (await pending()).length === 0, 'expired nudge removed');
-    expect(peer.nudges).toHaveLength(2);
-  });
-
-  it('stops after bounded transport attempts without leaving a nudge alarm', async () => {
-    peer.nudgeMode = 'error';
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'first failure');
-    for (const [offset, attempts] of [
-      [2000, 2],
-      [5000, 3],
-      [10_000, 4],
-    ]) {
-      await tick(offset);
-      await eventually(() => peer.nudges.length === attempts, 'bounded retry');
-      if (attempts < 4) {
-        await eventually(async () => (await pending())[0]?.attempts === attempts, 'retry saved');
+  it('keeps names, mentions and slash commands as ordinary faction and table chat', async () => {
+    const faction = await targetName();
+    for (const table of [false, true]) {
+      for (const text of ['Synthetic B', faction, `@${faction.toUpperCase()}`, '/nudge Synthetic B']) {
+        expect(await send(text, { table })).toMatchObject({ type: 'conversation-message', message: { text } });
       }
     }
-    await eventually(async () => (await pending()).length === 0, 'attempt limit');
-    await tick(30_000);
-    expect(peer.nudges).toHaveLength(4);
+    expect(peer.nudges).toEqual([]);
+    await restart();
+    expect(peer.nudges).toEqual([]);
   });
 
-  it('drops queued nudges when the game ends and does not stage new ones', async () => {
-    peer.nudgeMode = 'error';
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'first failure');
-    await runtime.exec("UPDATE current_state SET data=json_set(data, '$.stage', 'finished') WHERE id=1");
+  it('derives seat identities server-side without saving chat or replaying the request after restart', async () => {
+    const before = await runtime.exec('SELECT * FROM conversation_messages');
+    await nudge();
+    await eventually(() => peer.nudges.length === 1, 'nudge delivery');
+    expect(peer.nudges[0]).toEqual({
+      gameId: 'fixture-game',
+      secret: 'a'.repeat(64),
+      fromSeat: 'seat-1',
+      fromUserId: 'user-a',
+      fromFactionId: expect.any(String),
+      toSeat: 'seat-2',
+      toUserId: 'user-b',
+    });
+    expect(await runtime.exec('SELECT * FROM conversation_messages')).toEqual(before);
     await restart();
     players = [await admitPlayer(runtime, 'a'), await admitPlayer(runtime, 'b')];
-    expect(await pending()).toEqual([]);
-    await send('Synthetic B');
-    expect(await pending()).toEqual([]);
+    await runtime.alarm(true);
+    expect(peer.nudges).toHaveLength(1);
+    /* New explicit requests reach Convex, which owns the recipient cooldown. */
+    await nudge();
+    await eventually(() => peer.nudges.length === 2, 'new explicit nudge');
+  });
+
+  it.each(['error', 'missing'] as const)('drops a %s delivery without queueing or retrying', async (mode) => {
+    peer.directoryMode = 'error';
+    peer.nudgeMode = mode;
+    await runtime.exec('UPDATE directory_outbox SET pending=1, retry_at=0');
+    await nudge();
+    await eventually(() => peer.nudges.length === 1, 'single nudge attempt');
+    expect(peer.requests.find((request) => request.function === 'playDiscordNudges:sendNudge')?.path).toBe(
+      '/api/action'
+    );
+    expect(await send('Synthetic B')).toMatchObject({ type: 'conversation-message', message: { text: 'Synthetic B' } });
+    await restart();
+    await runtime.clock(ROOM_CLOCK_AHEAD_MS + 30_000);
+    await runtime.alarm(true);
     expect(peer.nudges).toHaveLength(1);
   });
 
-  it('scrubs pending recipient identity during account deletion', async () => {
-    peer.nudgeMode = 'error';
-    await send('Synthetic B');
-    await eventually(async () => (await pending())[0]?.attempts === 1, 'deferred nudge');
-    const response = await runtime.fetch('/__play/games/fixture-game/account-deletion', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        gameId: 'fixture-game',
-        secret: 'a'.repeat(64),
-        userId: 'user-b',
-        eventId: 'delete-b',
-        deletionOperationId: 'operation-b',
-      }),
-    });
-    expect(response.status).toBe(200);
-    expect(await pending()).toEqual([]);
-    await tick(2000);
-    expect(peer.nudges).toHaveLength(1);
+  it('refuses spectators, self targets and unknown seats', async () => {
+    const spectator = await admitPlayer(runtime, 'c');
+    expect(await refusedNudge(spectator)).toMatchObject({ type: 'rejected' });
+    expect(await refusedNudge(players[0], 'seat-1')).toMatchObject({ type: 'rejected' });
+    expect(await refusedNudge(players[0], 'unknown-seat')).toMatchObject({ type: 'rejected' });
   });
 
-  it('ignores ordinary text, self names, ambiguous names and disabled games', async () => {
-    await send('Hello Synthetic B');
-    await send('Synthetic A');
-    await runtime.exec("UPDATE actors SET display_name='Synthetic A' WHERE user_id='user-b'");
-    await send('Synthetic A', { table: true });
-    expect(await pending()).toEqual([]);
-    expect(peer.nudges).toEqual([]);
+  it('refuses a target whose player has left and a sender who no longer holds a seat', async () => {
+    await accepted(players[1], { kind: 'seat-depart' });
+    expect(await refusedNudge(players[0])).toMatchObject({ type: 'rejected' });
+    expect(await refusedNudge(players[1], 'seat-1')).toMatchObject({ type: 'rejected' });
+  });
+
+  it('refuses a sender whose seat has no faction', async () => {
+    await runtime.exec("UPDATE seats SET faction_id=NULL, faction_name=NULL, faction_color=NULL WHERE seat='seat-1'");
+    await restart();
+    players = [await admitPlayer(runtime, 'a'), await admitPlayer(runtime, 'b')];
+    expect(await refusedNudge()).toMatchObject({ type: 'rejected' });
+  });
+
+  it('refuses games without Discord voice', async () => {
     await runtime.exec("UPDATE metadata SET data=json_set(data, '$.game.discordVoice', json('false')) WHERE id=1");
     await restart();
     players = [await admitPlayer(runtime, 'a'), await admitPlayer(runtime, 'b')];
-    await send(await targetName());
-    expect(await pending()).toEqual([]);
-    expect(peer.nudges).toEqual([]);
+    expect(await refusedNudge()).toMatchObject({ type: 'rejected' });
+  });
+
+  it.each(['drafting', 'swapping', 'finished', 'discarded'] as const)('refuses nudges during %s', async (stage) => {
+    const [row] = await runtime.exec<{ data: string }>('SELECT data FROM current_state WHERE id=1');
+    const snapshot = readHistoricalSnapshot(stage === 'swapping' ? swappingSnapshot : row.data);
+    snapshot.stage = stage;
+    await runtime.exec('UPDATE current_state SET data=? WHERE id=1', [JSON.stringify(snapshot)]);
+    await restart();
+    players = [await admitPlayer(runtime, 'a'), await admitPlayer(runtime, 'b')];
+    expect(await refusedNudge()).toMatchObject({ type: 'rejected' });
+  });
+
+  it('refuses nudges during Mentat recall', async () => {
+    await accepted(players[0], { kind: 'ready', ready: true });
+    const view = await syncView(players[0]);
+    const step = required(required(view.snapshot.reviewCheckpoints).at(-1)).step;
+    const review = required((await accepted(players[0], { kind: 'review-propose', step })).snapshot.review);
+    const recalled = await accepted(players[1], { kind: 'review-ballot', reviewId: review.id, choice: 'review' });
+    expect(required(recalled.snapshot.review).startedAt).not.toBeNull();
+    expect(await refusedNudge()).toMatchObject({ type: 'rejected' });
+  });
+
+  it('charges explicit nudges to the smaller command bucket and rejects their request IDs', async () => {
+    await runtime.clock(ROOM_CLOCK_AHEAD_MS + 10_000);
+    for (let index = 0; index < 40; index++) {
+      players[0].send({ type: 'nudge', requestId: `nudge-burst-${index}`, toSeat: 'seat-2' });
+    }
+    await syncView(players[0]);
+    const refused = players[0].messages.filter(
+      (message) => message.type === 'rejected' && message.requestId.startsWith('nudge-burst-')
+    );
+    expect(refused.length).toBeGreaterThanOrEqual(5);
+    expect(refused).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'rejected',
+          message: 'You are acting too fast. Wait a moment, then try again.',
+        }),
+      ])
+    );
+    expect(players[0].closed).toBe(false);
   });
 });

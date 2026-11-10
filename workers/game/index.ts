@@ -69,7 +69,7 @@ import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
-import { NudgeDelivery } from './nudgeDelivery';
+import { publishNudge } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
@@ -86,6 +86,7 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
+  protocol?: number;
   /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
   client?: string;
   admitting: boolean;
@@ -128,6 +129,7 @@ type RememberedConnection = Pick<
   Connection,
   | 'connectionId'
   | 'openedAt'
+  | 'protocol'
   | 'viewer'
   | 'seatLimitReached'
   | 'pass'
@@ -169,7 +171,7 @@ const COMMAND_TIMINGS = 1024;
 const RATE_BURST = 120;
 const RATE_PER_SECOND = 60;
 /*
- * Table commands draw on a smaller bucket of their own, since each one writes the table and sends every player a frame.
+ * Table commands and Discord nudges draw on a smaller bucket because they trigger writes or external requests.
  * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
  */
 const COMMAND_BURST = 30;
@@ -317,7 +319,6 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number):
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly directory: DirectoryDelivery;
-  private readonly nudges: NudgeDelivery;
   private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -419,14 +420,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       scheduleAlarm: () => this.scheduleAlarm(),
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
-    this.nudges = new NudgeDelivery({
-      ensureDirectory: () => this.directory.deliver(),
-      session: this.session,
-      diagnostics: this.diagnostics,
-      convex: () => this.convex(),
-      scheduleAlarm: () => this.scheduleAlarm(),
-      waitUntil: (work) => this.ctx.waitUntil(work),
-    });
     this.draft = new RoomDraft({
       session: this.session,
       diagnostics: this.diagnostics,
@@ -440,9 +433,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
     if (!this.closed && this.metadata) {
-      if (this.metadata.confirmed && this.session.pendingNudge()) {
-        this.nudges.soon();
-      }
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.directory.soon();
       }
@@ -484,6 +474,10 @@ export class GameRoom extends DurableObject<GameEnv> {
           : null;
       if (!remembered) {
         socket.close(1012, 'Reconnect to the table.');
+        continue;
+      }
+      if (remembered.protocol !== PLAY_PROTOCOL_VERSION) {
+        this.refuseProtocol(socket, remembered.protocol ?? 0);
         continue;
       }
       const { epoch, revision, ...connection } = remembered;
@@ -547,6 +541,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const remembered: RememberedConnection = {
         connectionId: connection.connectionId,
         openedAt: connection.openedAt,
+        protocol: connection.protocol,
         /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
         viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
         seatLimitReached: connection.seatLimitReached,
@@ -1063,7 +1058,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.remember();
       await this.directory.deliver();
-      await this.nudges.deliver();
       /* What the wake sent and called waits in the summary, which a running sweep writes; a quiet room saves it again. */
       if (!this.sweepTimer && this.summary.pending(this.counters())) {
         this.rest();
@@ -1176,6 +1170,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refuseProtocol(socket, request.protocol ?? 0);
       return;
     }
+    connection.protocol = request.protocol;
     connection.admitting = true;
     connection.replaces = request.replaces;
     await this.admitWithPass(socket, connection, request.pass);
@@ -1684,13 +1679,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.refuseRate(socket);
   }
 
-  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  /* Commands and nudges over budget are refused individually; the socket stays open. */
   private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
-    if (message.type !== 'command') {
+    if (message.type !== 'command' && message.type !== 'nudge') {
       return message;
     }
     if (connection.commandTokens < 1) {
-      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      this.send(socket, { type: 'rejected', requestId: messageId(message), message: COMMAND_RATE_REFUSAL });
       return;
     }
     connection.commandTokens--;
@@ -1755,6 +1750,17 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'metrics':
         this.sendMetrics(socket);
         return;
+      case 'nudge':
+        publishNudge(
+          {
+            session: this.session,
+            diagnostics: this.diagnostics,
+            convex: () => this.convex(),
+            waitUntil: (work) => this.ctx.waitUntil(work),
+          },
+          this.session.nudge(connection.viewer!, message.toSeat)
+        );
+        return;
       case 'command':
       case 'drop':
         this.commit(socket, connection, message);
@@ -1797,9 +1803,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (saved.inserted) {
       this.publishConversationMessage(request, saved.message);
       this.directory.soon();
-      if (this.session.pendingNudge()) {
-        this.nudges.soon();
-      }
       return;
     }
     /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
