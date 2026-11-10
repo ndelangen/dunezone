@@ -157,8 +157,8 @@ export class DiscordRest {
     await this.request('PATCH', `/channels/${channelId}`, { name });
   }
 
-  /** The scheduler owns nudge retries so expiry and account linkage are checked before each POST. */
-  async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string, nonce: string) {
+  /** One best-effort POST, with only the intended recipient allowed to be mentioned. */
+  async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string) {
     const plain = (value: string) => value.replace(/\s+/g, ' ').replace(/[\\`*_~|<>[\]]/g, '\\$&');
     const result = await this.request(
       'POST',
@@ -166,8 +166,6 @@ export class DiscordRest {
       {
         content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
         allowed_mentions: { parse: [], users: [userId], replied_user: false },
-        nonce,
-        enforce_nonce: true,
       },
       0
     );

@@ -122,6 +122,7 @@ export default defineSchema({
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   play_discord_cooldown: defineTable({ blocked_until: v.number() }),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
+  /** Retired: kept for the approved retirement migration, then removed in a separate narrowing release. */
   play_game_discord_nudges: defineTable({
     game_id: v.id('play_games'),
     to_seat: v.string(),

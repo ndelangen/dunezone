@@ -156,7 +156,7 @@ test('paused integration refuses manual channel deletion', async () => {
   expect(await t.run(async (ctx) => (await ctx.db.get(channelId))?.state)).toBe('ready');
 });
 
-test('inventory reports cleanup deadlines and unconfirmed nudge sends', async () => {
+test('inventory reports cleanup deadlines', async () => {
   const { t, admin } = await setup();
   await t.run(async (ctx) => {
     const game = await ctx.db.insert('play_games', {
@@ -177,23 +177,10 @@ test('inventory reports cleanup deadlines and unconfirmed nudge sends', async ()
       cleanup_at: 42,
       next_attempt_at: 0,
     });
-    await ctx.db.insert('play_game_discord_nudges', {
-      game_id: game,
-      to_seat: 'seat',
-      nudge_id: 'nudge',
-      from_faction_name: 'House',
-      at: 10,
-      state: 'sending',
-      attempts: 1,
-      error: 'Unconfirmed',
-    });
   });
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
   expect(page.channels.page[0]).toMatchObject({ state: 'creating', cleanup_at: 42 });
-  expect(page.nudgeErrors).toMatchObject([
-    { state: 'sending', at: 10, error: 'Unconfirmed', gameName: 'Game', gameSlug: 'game-delivery', toSeat: 'seat' },
-  ]);
-  expect(JSON.stringify(page.nudgeErrors)).not.toContain('secret');
+  expect(page).not.toHaveProperty('nudgeErrors');
 });
 
 test('inventory reports an empty-voice wait only for hourly-eligible channels', async () => {

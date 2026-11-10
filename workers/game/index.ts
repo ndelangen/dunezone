@@ -69,7 +69,7 @@ import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
-import { NudgeDelivery } from './nudgeDelivery';
+import { publishNudge } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
@@ -317,7 +317,6 @@ async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number):
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly directory: DirectoryDelivery;
-  private readonly nudges: NudgeDelivery;
   private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
@@ -419,14 +418,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       scheduleAlarm: () => this.scheduleAlarm(),
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
-    this.nudges = new NudgeDelivery({
-      ensureDirectory: () => this.directory.deliver(),
-      session: this.session,
-      diagnostics: this.diagnostics,
-      convex: () => this.convex(),
-      scheduleAlarm: () => this.scheduleAlarm(),
-      waitUntil: (work) => this.ctx.waitUntil(work),
-    });
     this.draft = new RoomDraft({
       session: this.session,
       diagnostics: this.diagnostics,
@@ -440,9 +431,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
     if (!this.closed && this.metadata) {
-      if (this.metadata.confirmed && this.session.pendingNudge()) {
-        this.nudges.soon();
-      }
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
         this.directory.soon();
       }
@@ -1063,7 +1051,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       this.remember();
       await this.directory.deliver();
-      await this.nudges.deliver();
       /* What the wake sent and called waits in the summary, which a running sweep writes; a quiet room saves it again. */
       if (!this.sweepTimer && this.summary.pending(this.counters())) {
         this.rest();
@@ -1797,8 +1784,16 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (saved.inserted) {
       this.publishConversationMessage(request, saved.message);
       this.directory.soon();
-      if (this.session.pendingNudge()) {
-        this.nudges.soon();
+      if (saved.nudge) {
+        publishNudge(
+          {
+            session: this.session,
+            diagnostics: this.diagnostics,
+            convex: () => this.convex(),
+            waitUntil: (work) => this.ctx.waitUntil(work),
+          },
+          saved.nudge
+        );
       }
       return;
     }
