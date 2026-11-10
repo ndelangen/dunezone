@@ -13,12 +13,10 @@ import {
   discordLifecycleOperation,
   discordNeedsAttention,
   discordRetryOperation,
-  retryCreationCategory,
 } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
-import { clearDiscordVoice, DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY, markDiscordDeleted } from './lib/playDiscord';
-import { playRateLimiter } from './lib/playRateLimits';
+import { DISCORD_BATCH, DISCORD_LEASE, DISCORD_RETRY, markDiscordDeleted } from './lib/playDiscord';
 
 const channelValidator = docValidator('play_game_discord_channels');
 const reconcileArgs = { channelId: v.id('play_game_discord_channels') };
@@ -241,16 +239,6 @@ export const work = internalMutation({
     const ended = game?.directory?.stage === 'finished';
     const name = game?.name ?? 'Dune Play';
     const remove = retirementDue(channel, game);
-    /* Avoid category requests while creation is exhausted; startCreation still spends quota atomically before POST. */
-    if (!remove && channel.state === 'pending' && !channel.channel_id && !retryCreationCategory(channel)) {
-      const quota = await playRateLimiter.check(ctx, 'discordChannelCreateGlobal');
-      if (!quota.ok) {
-        await ctx.db.patch(channel._id, {
-          retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY),
-        });
-        return null;
-      }
-    }
     return {
       channel,
       name: ended ? `${name.slice(0, 92)} (ended)` : name.slice(0, 100),
@@ -280,14 +268,6 @@ export const startCreation = internalMutation({
     if (!(await creationNeeded(ctx, row))) {
       await ctx.db.patch(row._id, { retry_after: Date.now() + DISCORD_RETRY });
       return false;
-    }
-    const retryCategory = retryCreationCategory(row);
-    if (!retryCategory || retryCategory !== args.categoryId) {
-      const quota = await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal');
-      if (!quota.ok) {
-        await ctx.db.patch(row._id, { retry_after: Date.now() + Math.max(1, quota.retryAfter ?? DISCORD_RETRY) });
-        return false;
-      }
     }
     await ctx.db.patch(row._id, {
       state: 'creating',
@@ -378,7 +358,6 @@ export const beginDeletion = internalMutation({
     if (!retirementDue(row, await ctx.db.get(row.game_id))) {
       return false;
     }
-    await clearDiscordVoice(ctx, row.game_id);
     await ctx.db.patch(row._id, { state: 'deleting' });
     return true;
   },

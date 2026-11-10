@@ -103,18 +103,14 @@ rate-limit mutation reads current eligibility and spends the per-seat quota. The
 or expiry jobs. Idle channel reconciliation uses the existing 15-minute cron, with no Discord
 request when nothing is due. The admin page has bounded reads and manual orphan refresh.
 
-The account cap counts its games that still have live Discord channels. Channels have no account
-owner. A game stops offering voice when its channel starts deleting; the active-candidate index
-keeps completed game history out of cap reads.
-
 Lifecycle REST calls make one attempt. The existing lease claim durably spends one of three
 reconciliation attempts, so a crashed action also uses its budget. Provisioning covers category
 selection, creation or inspection, initial naming and invitation; each completed step is saved.
 Renaming and deletion have their own bounded work. Scheduled retries and cron use the same budget
 and preserve Discord's deadlines. Ordinary activity, duplicate stage updates, pause/resume and
 repeated hourly observations cannot reset an exhausted operation. An explicit Retry or genuinely
-new lifecycle work starts a fresh budget. A retry of a definitely rejected creation keeps its
-reservation; an uncertain creation can only be inspected and adopted. Interactive admin requests
+new lifecycle work starts a fresh budget. A retry of a definitely rejected creation reuses the
+same category; an uncertain creation can only be inspected and adopted. Interactive admin requests
 retain their two short retries; nudges and occupancy checks never retry inline.
 
 Every request checks a persisted gate. Only explicit global limits block all bot work. Other limits,

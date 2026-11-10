@@ -241,8 +241,12 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
+type PageRead = Extract<
+  ClientMessage,
+  { type: 'history' | 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }
+>;
 const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
+  'history',
   'log-history',
   'spice-history',
   'faction',
@@ -460,6 +464,19 @@ export class GameRoom extends DurableObject<GameEnv> {
    * and its page reconnects into a new epoch, which drops what it was holding.
    * The delivery baselines are gone, so each connection's next frame is a full view.
    */
+  private rememberedConnection(socket: WebSocket, canRestore: boolean): RememberedConnection | null {
+    const remembered = canRestore ? (socket.deserializeAttachment() as RememberedConnection | null) : null;
+    if (!remembered) {
+      socket.close(1012, 'Reconnect to the table.');
+      return null;
+    }
+    if (remembered.protocol === PLAY_PROTOCOL_VERSION) {
+      return remembered;
+    }
+    this.refuseProtocol(socket, remembered.protocol ?? 0);
+    return null;
+  }
+
   private restoreConnections() {
     const quiet = this.ctx.storage.kv.get(QUIET_KEY) === true;
     const saved = this.ctx.storage.kv.get<SavedSummary>(SUMMARY_KEY);
@@ -467,17 +484,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.summary.restore(saved);
     }
     const behind = new Set<WebSocket>();
+    const canRestore = quiet && !this.closed && this.metadata?.confirmed === true;
     for (const socket of this.ctx.getWebSockets()) {
-      const remembered =
-        quiet && !this.closed && this.metadata?.confirmed
-          ? (socket.deserializeAttachment() as RememberedConnection | null)
-          : null;
+      const remembered = this.rememberedConnection(socket, canRestore);
       if (!remembered) {
-        socket.close(1012, 'Reconnect to the table.');
-        continue;
-      }
-      if (remembered.protocol !== PLAY_PROTOCOL_VERSION) {
-        this.refuseProtocol(socket, remembered.protocol ?? 0);
         continue;
       }
       const { epoch, revision, ...connection } = remembered;
@@ -1700,6 +1710,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
   private sendPage(socket: WebSocket, message: PageRead, connection: Connection) {
     switch (message.type) {
+      case 'history':
+        this.sendHistory(socket, message.step, message.requestId);
+        return;
       case 'log-history':
         this.send(socket, {
           type: 'log-history',
@@ -1743,9 +1756,6 @@ export class GameRoom extends DurableObject<GameEnv> {
     switch (message.type) {
       case 'sync':
         this.sendView(socket, connection);
-        return;
-      case 'history':
-        this.sendHistory(socket, message.step, message.requestId);
         return;
       case 'metrics':
         this.sendMetrics(socket);

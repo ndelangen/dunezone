@@ -649,6 +649,22 @@ function spiceBlowCommand(table: TableProjection): (() => void) | null {
   return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
 }
 
+function nudgeControls(
+  client: TableSession,
+  table: TableProjection,
+  players: CompassTable['players'],
+  available: boolean
+): CompassTable['nudge'] {
+  if (!available || !client.canNudge) {
+    return null;
+  }
+  const occupied = new Set(table.snapshot.controls?.players.map((player) => player.seat));
+  return {
+    targets: players.filter((player) => !player.own && occupied.has(player.seat)),
+    send: (seat) => client.nudge(seat),
+  };
+}
+
 function useHostedControls(
   client: TableSession,
   table: TableProjection,
@@ -662,21 +678,7 @@ function useHostedControls(
   const compassTable: CompassTable = {
     ...players,
     recall,
-    nudge:
-      discordNudgesAvailable &&
-      !recall &&
-      !table.playback &&
-      !table.historyPending &&
-      table.canHandleTable &&
-      (table.snapshot.stage === 'setup' || table.snapshot.stage === 'play')
-        ? {
-            targets: players.players.filter(
-              (player) =>
-                !player.own && table.snapshot.controls?.players.some((occupant) => occupant.seat === player.seat)
-            ),
-            send: (seat) => client.nudge(seat),
-          }
-        : null,
+    nudge: nudgeControls(client, table, players.players, discordNudgesAvailable),
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
     clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
@@ -713,6 +715,19 @@ function HostedGameMenu({
   );
 }
 
+type ConnectedTableProps = ConnectionControlsProps &
+  Readonly<{
+    voice?: ReactNode;
+    discordNudgesAvailable?: boolean;
+    exitControl: ReactNode;
+    connection: string;
+    identity: GameIdentity;
+    onReady?: (() => void) | undefined;
+    gameId: string;
+    diagnostics: BrowserDiagnostics;
+    reportsEnabled: boolean;
+  }>;
+
 function ConnectedTable({
   client,
   table,
@@ -726,20 +741,7 @@ function ConnectedTable({
   exitControl,
   voice,
   discordNudgesAvailable = false,
-}: Readonly<{
-  voice?: ReactNode;
-  discordNudgesAvailable?: boolean;
-  exitControl: ReactNode;
-  client: TableSession;
-  table: TableProjection;
-  error: string | null;
-  connection: string;
-  identity: GameIdentity;
-  onReady?: (() => void) | undefined;
-  gameId: string;
-  diagnostics: BrowserDiagnostics;
-  reportsEnabled: boolean;
-}>) {
+}: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));

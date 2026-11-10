@@ -6,7 +6,6 @@ import { internal } from './_generated/api';
 import { DiscordRest } from './lib/discordRest';
 import type { DiscordRequestGate } from './lib/discordRest';
 import { DISCORD_RETRY, requestDiscordDeletion } from './lib/playDiscord';
-import { playRateLimiter } from './lib/playRateLimits';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 beforeEach(() => {
@@ -214,10 +213,9 @@ test.each([false, true])(
   }
 );
 
-test('definite creation retries reuse one creation reservation and the same category', async () => {
+test('definite creation retries reuse the same category after Discord rejects a request', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
-  await world.t.run((ctx) => playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 29 }));
   const normal = discord.fetch.getMockImplementation()!;
   let posts = 0;
   discord.fetch.mockImplementation(async (input, options) => {
@@ -246,7 +244,6 @@ test.each(['discard', 'cron'] as const)(
   async (winner) => {
     const discord = discordStub();
     const world = await voiceWorld();
-    await world.t.run((ctx) => playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 29 }));
     const normal = discord.fetch.getMockImplementation()!;
     let posts = 0;
     discord.fetch.mockImplementation(async (input, options) => {

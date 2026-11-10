@@ -116,8 +116,7 @@ export default defineSchema({
   })
     .index('by_slug', ['slug'])
     .index('by_directory_stage', ['directory_stage'])
-    .index('by_creator_id', ['creator_id'])
-    .index('by_creator_id_discord_voice', ['creator_id', 'discord_voice']),
+    .index('by_creator_id', ['creator_id']),
   /** Permanent reservations survive a future hard deletion of a game. */
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */

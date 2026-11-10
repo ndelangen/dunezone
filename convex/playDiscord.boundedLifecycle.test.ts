@@ -314,7 +314,7 @@ test('three crashed owners exhaust work and their stale releases cannot restore 
   expect(discord.calls).toEqual([]);
 });
 
-test('a third old owner cannot exhaust the budget of a continued and refinished game', async () => {
+test('a stale lease cannot exhaust rename attempts after a game continues and finishes again', async () => {
   const world = await operationWorld('rename-ended');
   for (let attempt = 0; attempt < 2; attempt += 1) {
     await world.reconcile();
