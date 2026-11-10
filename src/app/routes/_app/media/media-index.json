@@ -14630,5 +14630,54 @@
     "subjects": ["symbols"],
     "credit": "gf9-design-flower-redraw",
     "sourceHash": "8262ee746bb8b5d0207b0658efbdce5aa5a31dc0d1543a5f96c3161d7f58973c"
+  },
+  "/web/blog/dune-board-editor/homepage-table.jpg": {
+    "description": "The homepage game table on dune.zone: the Arrakis board with troops, faction tokens and another player's hand.",
+    "tags": ["dune.zone", "game table", "Arrakis", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "f8bd914d45a30fdc7c08acf7b5e24344e44794d8245ada42ac556f948cea0e92"
+  },
+  "/web/blog/dune-board-editor/board-editor.jpg": {
+    "description": "The dune.zone board editor with Arrakis loaded: shared lines with their points, dashed storm sector guides, and Arrakeen selected in the territory panel.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "cbbaf02c612514162172b990793ae9e7e94be76445be93420bc6117f28d57174"
+  },
+  "/web/blog/dune-board-editor/cut-unfinished.jpg": {
+    "description": "The dune.zone board editor with Hagga basin selected and an unfinished cut that stops halfway across it.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "3d70e58cbee7539d37383e7943180cfde1243ae9957a846ad778f8b15018e5ad"
+  },
+  "/web/blog/dune-board-editor/cut-split.jpg": {
+    "description": "The dune.zone board editor after a cut splits Hagga basin: the lower half is selected and named Hagga basin 2.",
+    "tags": ["dune.zone", "board editor", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "809f033636cb4f7f6f76dd394330d103f9c37fd54f6d25426715a298c714f48e"
+  },
+  "/web/blog/dune-board-editor/glossary-board.jpg": {
+    "description": "The board section of the dune.zone glossary: territory, sector and stronghold entries beside the Arrakis map, with one stronghold lit.",
+    "tags": ["dune.zone", "glossary", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "7435ac2e39816ff43be6f23d6726787b15e8f2a6e5a8eee3eb24165e260b9284"
+  },
+  "/web/blog/dune-board-editor/tutorial-table.jpg": {
+    "description": "A dune.zone tutorial chapter with the practice table on the saved Arrakis board, faction tokens, troops and the storm.",
+    "tags": ["dune.zone", "tutorial", "game table", "Arrakis", "blog"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "fc555dbb81bdc093c1edcc8b7c4a7b1797b73d2fadb4ea8a6cbfd528328c8f38"
+  },
+  "/web/blog/dune-board-editor/rulebook-route.jpg": {
+    "description": "A page of the Dune core rules on dune.zone showing a blocked route through the storm and a detour through the Polar Sink on the saved Arrakis board.",
+    "tags": ["dune.zone", "rulebook", "Arrakis", "blog"],
+    "subjects": ["places"],
+    "credit": "blog-picture",
+    "sourceHash": "b3d83c4c3cc33c70b0da10c4c7614e4a67c2c7950c95531cfd693680aaf36d8a"
   }
 }
