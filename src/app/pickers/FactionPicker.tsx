@@ -177,7 +177,7 @@ export function FactionPicker(props: FactionPickerProps) {
               <Combobox.EventsTarget>
                 <TextInput
                   {...fieldProps}
-                  placeholder="Type name, owner, group, or token…"
+                  placeholder="Type name, owner, group, or slug…"
                   value={search}
                   type="search"
                   name="faction-search"
