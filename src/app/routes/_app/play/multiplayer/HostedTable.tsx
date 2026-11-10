@@ -29,7 +29,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -76,7 +77,6 @@ import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
-import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
