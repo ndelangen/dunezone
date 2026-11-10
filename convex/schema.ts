@@ -97,6 +97,7 @@ export default defineSchema({
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
     last_turn: v.optional(zodToConvex(lastTurnSchema)),
+    discord_voice: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),
@@ -119,6 +120,32 @@ export default defineSchema({
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
+  play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_game_discord_channels: defineTable({
+    game_id: v.id('play_games'),
+    guild_id: v.string(),
+    category_ids: v.array(v.string()),
+    channel_id: v.optional(v.string()),
+    invite_url: v.optional(v.string()),
+    state: v.union(
+      v.literal('pending'),
+      v.literal('creating'),
+      v.literal('ready'),
+      v.literal('deleting'),
+      v.literal('deleted')
+    ),
+    created_at: v.number(),
+    ended_at: v.optional(v.number()),
+    deleted_at: v.optional(v.number()),
+    cleanup_at: v.number(),
+    next_attempt_at: v.number(),
+    retry_after: v.optional(v.number()),
+    lease: v.optional(v.string()),
+    lease_until: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index('by_game_id', ['game_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),

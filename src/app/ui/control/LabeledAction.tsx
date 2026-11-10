@@ -1,5 +1,6 @@
 import { Button, Loader, Tooltip, VisuallyHidden } from '@mantine/core';
 import type { ButtonProps } from '@mantine/core';
+import { providerColors } from '@shared/uiPalette';
 import clsx from 'clsx';
 import { useId } from 'react';
 import type { MouseEventHandler, ReactNode, Ref } from 'react';
@@ -25,6 +26,8 @@ interface LabeledActionCommonProps extends Pick<ButtonProps, 'size' | 'justify'>
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
   intent?: ActionIntent;
+  /** The external provider this action opens; the kit owns its brand colour. */
+  provider?: keyof typeof providerColors;
   /** How loudly the action renders, in IconAction's words, framed only: without a tile a worded action is the text-only button the app does not use. Omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
   emphasis?: Extract<ActionEmphasis, 'standard' | 'strong'>;
   /** Why the action cannot run right now, as a sentence; the button stays hoverable and focusable and this is its hover text and description, as on `IconAction`. */
@@ -80,6 +83,7 @@ export function LabeledAction({
   children,
   icon,
   intent = 'neutral',
+  provider,
   emphasis = 'standard',
   disabledReason,
   busy = false,
@@ -107,9 +111,10 @@ export function LabeledAction({
             {props.children}
           </a>
         );
-  const color = INTENT_COLOR[intent];
+  const color = provider ? providerColors[provider] : INTENT_COLOR[intent];
   const variant = pressed ? 'light' : EMPHASIS_VARIANT[emphasis];
-  const vars = pressed || emphasis === 'standard' ? () => tileVars(intent, pressed === true, 'button') : undefined;
+  const vars =
+    pressed || (!provider && emphasis === 'standard') ? () => tileVars(intent, pressed === true, 'button') : undefined;
   const classes = clsx(className, pressed && styles.pressed);
   const leftSection = busy ? <Loader size="xs" /> : <span aria-hidden>{icon}</span>;
   const disabled = disabledReason != null;

@@ -677,11 +677,13 @@ function HostedGameMenu({
   identity,
   error,
   onClearConfetti,
-}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void }>) {
+  voice,
+}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void; voice?: ReactNode }>) {
   return (
     <>
       {table.snapshot.stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
       <GameMenu
+        voice={voice}
         sharing={<GameLink address={identity.address} page={identity.page} />}
         client={client}
         table={table}
@@ -702,7 +704,9 @@ function ConnectedTable({
   diagnostics,
   reportsEnabled,
   exitControl,
+  voice,
 }: Readonly<{
+  voice?: ReactNode;
   exitControl: ReactNode;
   client: TableSession;
   table: TableProjection;
@@ -769,6 +773,7 @@ function ConnectedTable({
               }
               gameMenu={
                 <HostedGameMenu
+                  voice={voice}
                   client={client}
                   table={table}
                   identity={identity}
@@ -815,7 +820,9 @@ export default function HostedTable({
   exitControl,
   identity,
   onReady,
+  voice,
 }: Readonly<{
+  voice?: ReactNode;
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
@@ -853,6 +860,7 @@ export default function HostedTable({
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
+        voice={voice}
         gameId={gameId}
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}

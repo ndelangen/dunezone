@@ -13,6 +13,15 @@ const meta = preview.meta({
   args: { path: '/play/create' },
 });
 
+export const DiscordVoice = meta.story({
+  parameters: { ...creatable, database: db(creatableDatabase, { discordVoice: true }) },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    await expect(page.getByRole('switch', { name: 'Discord voice chat' })).not.toBeChecked();
+  },
+});
+
 /** A reserved address is advice, never a validation error. */
 export const DuplicateName = meta.story({
   parameters: creatable,
