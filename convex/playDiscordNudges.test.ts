@@ -209,17 +209,24 @@ test.each(['user', 'shared'] as const)(
   }
 );
 
-async function expectCooldownUnspent(
+async function restoredEligibility(
   world: Awaited<ReturnType<typeof nudgeWorld>>,
   restore: () => Promise<unknown>,
   request: Partial<PlaySendNudgeRequest> = {}
 ) {
-  expect(await world.publishNudge(request)).toEqual({ ok: true });
-  expect(world.fetch).not.toHaveBeenCalled();
+  const blocked = await world.publishNudge(request);
+  const attemptsWhileBlocked = world.fetch.mock.calls.length;
   await restore();
-  await world.publishNudge(request);
-  expect(world.fetch).toHaveBeenCalledTimes(1);
+  const restored = await world.publishNudge(request);
+  return { blocked, attemptsWhileBlocked, restored, attemptsAfterRestore: world.fetch.mock.calls.length };
 }
+
+const expectedRestoredEligibility = {
+  blocked: { ok: true },
+  attemptsWhileBlocked: 0,
+  restored: { ok: true },
+  attemptsAfterRestore: 1,
+};
 
 /* This table also covers bans when the account-ban release adds its state. */
 test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
@@ -227,9 +234,10 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
   async (state) => {
     const world = await nudgeWorld();
     await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: state }));
-    await expectCooldownUnspent(world, () =>
+    const result = await restoredEligibility(world, () =>
       world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }))
     );
+    expect(result).toEqual(expectedRestoredEligibility);
   }
 );
 
@@ -253,18 +261,20 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
       await ctx.db.patch(world.spectator.userId, { account_state: state });
       return aliasId;
     });
-    await expectCooldownUnspent(
+    const result = await restoredEligibility(
       world,
       () => world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' })),
       { fromUserId: aliasId }
     );
+    expect(result).toEqual(expectedRestoredEligibility);
   }
 );
 
 test('an anonymous sender cannot nudge or consume quota', async () => {
   const world = await nudgeWorld();
   await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: true }));
-  await expectCooldownUnspent(world, () =>
+  const result = await restoredEligibility(world, () =>
     world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: false }))
   );
+  expect(result).toEqual(expectedRestoredEligibility);
 });
