@@ -483,8 +483,8 @@ test('faction catalogue cards, spotlights and sheet preview projections follow t
     revision: 1,
     value: { ...background.value, colors: ['#123456', '#654321'] },
   });
-  const catalogue = await t.query(api.factions.cataloguePage, {});
-  expect(catalogue.factions[0]?.data.background.colors).toEqual(['#123456', '#654321']);
+  const catalogue = await t.query(api.factions.catalogue, {});
+  expect(catalogue.cards[0]?.data.background.colors).toEqual(['#123456', '#654321']);
   expect(catalogue.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);
   const homepage = await t.query(api.homepage.get, {});
   expect(homepage.spotlights.newArrival?.data.background.colors).toEqual(['#123456', '#654321']);

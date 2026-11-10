@@ -378,7 +378,6 @@ export default defineSchema({
     data: v.any(),
   })
     .index('by_faction', ['faction_id'])
-    .index('by_deleted_created', ['is_deleted', 'faction_creation_time'])
     .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
     .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
   /**
