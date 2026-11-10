@@ -33,6 +33,7 @@ import {
   History,
   Layers,
   ArrowRight,
+  ArrowLeft,
   Gavel,
   Hand,
   Mic,
@@ -523,6 +524,11 @@ function BiddingScreen({
 }>) {
   const snapshot = view.snapshot!;
   const game = snapshot.auction;
+  const manual = game.controlMode === 'manual';
+  const moderator = manual && snapshot.moderatorDeviceId === view.deviceId;
+  const moderatorConnected = snapshot.moderatorDeviceId && view.connectedDeviceIds.includes(snapshot.moderatorDeviceId);
+  const supportsModerator = game.controlMode !== undefined;
+  const timed = !manual && game.seconds > 0;
   const [local, setLocal] = useReducer(localReducer, {
     amount: 1,
     draftOpportunity: -1,
@@ -675,8 +681,8 @@ function BiddingScreen({
             <IconAction
               key={seat.id}
               label={`Choose ${seat.name} as first bidder`}
-              tooltip={`${seat.name}${seat.full ? ' · Full' : ''}`}
-              icon={<SeatToken seat={seat} size={38} />}
+              tooltip={`${seat.name}${!manual && seat.full ? ' · Full' : ''}`}
+              icon={<SeatToken seat={seat} size={38} ignoreFull={manual} />}
               size="3rem"
               emphasis="quiet"
               pressed={state.starter === seat.id}
@@ -698,6 +704,44 @@ function BiddingScreen({
         Start new bid
       </LabeledAction>
     </Stack>
+  );
+  const manualSteps = [
+    <LabeledAction
+      key="back"
+      size="md"
+      className={styles.moderatorStep}
+      icon={<ArrowLeft size={16} />}
+      onClick={() => act({ type: 'back' })}
+    >
+      Back
+    </LabeledAction>,
+    <IconAction
+      key="raise"
+      size="3.125rem"
+      icon={
+        <Text size="lg" fw={600}>
+          +1
+        </Text>
+      }
+      label="+1"
+      intent="positive"
+      emphasis="strong"
+      onClick={() => act({ type: 'raise-one' })}
+    />,
+    <LabeledAction
+      key="pass"
+      size="md"
+      className={styles.moderatorStep}
+      icon={<Hand size={16} />}
+      onClick={() => act({ type: 'advance' })}
+    >
+      Pass
+    </LabeledAction>,
+  ];
+  const confirmWinner = state.stage === 'active' && state.high && (
+    <LabeledAction size="lg" icon={<Gavel size={20} />} onClick={() => act({ type: 'confirm-winner' })}>
+      Confirm winner
+    </LabeledAction>
   );
   const results = (
     <Stack gap="xs">
@@ -722,11 +766,18 @@ function BiddingScreen({
         dangerouslySetInnerHTML={{ __html: qrMarkup }}
       />
       <Stack gap="xs" align="center">
-        <Text fw={700} size="xl" aria-label="Table code">
-          {state.code}
-        </Text>
+        <Group justify="center" gap="sm">
+          <Text fw={700} size="xl" aria-label="Table code">
+            {state.code}
+          </Text>
+          {manual && view.role === 'central' && (
+            <StatusBadge tone={moderatorConnected ? 'positive' : 'neutral'} live>
+              {moderatorConnected ? 'Moderator connected' : 'Moderator not connected'}
+            </StatusBadge>
+          )}
+        </Group>
         <Text size="sm" ta="center">
-          Scan, then choose your faction.
+          Scan, then choose your faction or moderator mode.
         </Text>
         <Text size="xs" c="dimmed" ta="center">
           Or enter this code at dune.zone/tools/bidding.
@@ -766,7 +817,13 @@ function BiddingScreen({
                 <span className={styles.highAmount}>{state.high?.amount ?? '0'}</span>
               </div>
               <Text className={styles.bidCountdown}>
-                {state.stage === 'paused' ? 'Paused' : state.seconds ? <Countdown deadline={view.deadline} /> : ''}
+                {state.stage === 'paused' ? (
+                  'Paused'
+                ) : timed ? (
+                  <Countdown key={view.deadline} deadline={view.deadline} />
+                ) : (
+                  ''
+                )}
               </Text>
             </>
           ) : (
@@ -803,7 +860,7 @@ function BiddingScreen({
                 top: `${50 + Math.sin(seatAngle) * 40}%`,
                 transform: `translate(-50%, -50%) rotate(${(i * 360) / state.seats.length - 180}deg)`,
               }}
-              aria-label={`${seat.name}, ${seat.hand} cards${seat.full ? ', Full' : ''}`}
+              aria-label={`${seat.name}, ${seat.hand} cards${!manual && seat.full ? ', Full' : ''}`}
               onClick={() => {
                 if (state.stage === 'setup' || state.stage === 'ready') {
                   act({ type: 'select-starter', id: seat.id });
@@ -814,19 +871,19 @@ function BiddingScreen({
               }}
             >
               <div className={styles.factionFace} data-faction-face data-active={active || undefined}>
-                <SeatToken seat={seat} size="var(--seat-token-size)" />
+                <SeatToken seat={seat} size="var(--seat-token-size)" ignoreFull={manual} />
               </div>
               <div className={styles.handInfo}>
                 <div className={styles.handTotal}>
                   <strong data-animated-count={seat.hand}>{seat.hand}</strong>
-                  {state.showLimits && <span>/ {seat.limit}</span>}
+                  {!manual && state.showLimits && <span>/ {seat.limit}</span>}
                 </div>
                 {state.showNames && (
                   <Text className={styles.seatName} fw={700}>
                     {seat.name}
                   </Text>
                 )}
-                {seat.pass && (
+                {!manual && seat.pass && (
                   <Text className={styles.seatStatus} size="sm">
                     Always pass
                   </Text>
@@ -891,14 +948,16 @@ function BiddingScreen({
         removeDisabledReason={state.seats.length <= 2 ? 'Keep at least two factions.' : undefined}
         addDisabledReason={state.seats.length >= 24 ? 'This table already has 24 factions.' : undefined}
       />
-      {phaseSettings}
+      {!manual && phaseSettings}
       <Group gap="lg">
-        <Switch
-          size="md"
-          label="Show hand limits"
-          checked={state.showLimits}
-          onChange={(event) => setLocal({ type: 'show-limits', value: event.currentTarget.checked })}
-        />
+        {!manual && (
+          <Switch
+            size="md"
+            label="Show hand limits"
+            checked={state.showLimits}
+            onChange={(event) => setLocal({ type: 'show-limits', value: event.currentTarget.checked })}
+          />
+        )}
         <Switch
           size="md"
           label="Show faction names"
@@ -970,8 +1029,10 @@ function BiddingScreen({
                 'Ready for the next card'
               )
             ) : state.stage === 'paused' ? (
-              state.seconds ? (
+              timed ? (
                 `Fresh ${state.seconds}s timer on Resume`
+              ) : manual ? (
+                'Moderator mode · check before Resume'
               ) : (
                 'Timer off · check before Resume'
               )
@@ -980,15 +1041,17 @@ function BiddingScreen({
             ) : state.high ? (
               <>
                 {state.high.amount} spice
-                {state.seconds ? (
+                {timed ? (
                   <>
                     {' '}
-                    · <Countdown deadline={view.deadline} />
+                    · <Countdown key={view.deadline} deadline={view.deadline} />
                   </>
                 ) : (
                   ''
                 )}
               </>
+            ) : manual ? (
+              'Moderator mode'
             ) : (
               state.ruleset.name
             )}
@@ -1004,19 +1067,23 @@ function BiddingScreen({
             onChange={(value) => configureCount('cards', value)}
           />
           <Text size="xs" c="dimmed">
-            Suggested: {state.seats.filter((seat) => !seat.full).length}, one per non-full faction.
+            {manual
+              ? `Suggested: ${state.seats.length}, one per faction.`
+              : `Suggested: ${state.seats.filter((seat) => !seat.full).length}, one per non-full faction.`}
           </Text>
         </Stack>
       )}
       <div className={styles.tableBarActions}>
-        <IconAction
-          size="xl"
-          emphasis="quiet"
-          label="Toggle listening"
-          pressed={state.listen}
-          icon={state.listen ? <Mic size={21} /> : <MicOff size={21} />}
-          onClick={() => client.setListening(!state.listen)}
-        />
+        {!manual && (
+          <IconAction
+            size="xl"
+            emphasis="quiet"
+            label="Toggle listening"
+            pressed={state.listen}
+            icon={state.listen ? <Mic size={21} /> : <MicOff size={21} />}
+            onClick={() => client.setListening(!state.listen)}
+          />
+        )}
         <IconAction
           size="xl"
           emphasis="quiet"
@@ -1040,7 +1107,7 @@ function BiddingScreen({
             <Menu.Item leftSection={<Layers size={18} />} onClick={() => setPanel('hand', side)}>
               Hand controls
             </Menu.Item>
-            {canChangePhase && (
+            {canChangePhase && !manual && (
               <Menu.Item leftSection={<Settings2 size={18} />} onClick={() => setPanel('phase', side)}>
                 Phase settings
               </Menu.Item>
@@ -1055,13 +1122,26 @@ function BiddingScreen({
             >
               Show faction names
             </Menu.CheckboxItem>
-            <Menu.CheckboxItem
-              checked={state.showLimits}
-              closeMenuOnClick
-              onChange={(value) => setLocal({ type: 'show-limits', value })}
-            >
-              Show hand limits
-            </Menu.CheckboxItem>
+            {!manual && (
+              <Menu.CheckboxItem
+                checked={state.showLimits}
+                closeMenuOnClick
+                onChange={(value) => setLocal({ type: 'show-limits', value })}
+              >
+                Show hand limits
+              </Menu.CheckboxItem>
+            )}
+            {manual && ['setup', 'ready', 'over'].includes(state.stage) && (
+              <Menu.Item
+                leftSection={<Users size={18} />}
+                onClick={() => act({ type: 'set-control-mode', mode: 'automatic' })}
+              >
+                Use player remotes
+              </Menu.Item>
+            )}
+            {manual && !state.high && ['ready', 'active'].includes(state.stage) && (
+              <Menu.Item onClick={() => act({ type: 'end-phase' })}>End phase</Menu.Item>
+            )}
             <Menu.Item
               leftSection={<RotateCcw size={18} />}
               disabled={!['active', 'paused'].includes(state.stage)}
@@ -1075,7 +1155,12 @@ function BiddingScreen({
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
-        {state.stage === 'active' ? (
+        {state.stage === 'active' && manual ? (
+          <>
+            {confirmWinner}
+            {manualSteps}
+          </>
+        ) : state.stage === 'active' ? (
           <>
             <LabeledAction size="md" icon={<Gavel size={18} />} onClick={() => setPanel('bid', side)}>
               Bid
@@ -1139,7 +1224,9 @@ function BiddingScreen({
               <Stack gap="md">
                 <Section title="Check the recovered table">
                   <Text size="sm">
-                    Check this copy against the physical table, then Resume. The current bidder gets a fresh timer.
+                    {manual
+                      ? 'Check this copy against the physical table, then Resume. Moderator mode stays manual.'
+                      : 'Check this copy against the physical table, then Resume. The current bidder gets a fresh timer.'}
                   </Text>
                 </Section>
                 {view.receivedAt && <Text size="sm">Copy received at {state.received}.</Text>}
@@ -1185,13 +1272,65 @@ function BiddingScreen({
     </TouchSurface>
   );
   const remoteSeat = state.seats.find((s) => s.id === state.remote);
+  const moderatorEntryLabel = snapshot.moderatorDeviceId ? 'Take moderator control' : 'Moderator mode';
+  const remoteSettings = (
+    <Menu position="top-end" withinPortal>
+      <Menu.Target>
+        <IconAction label="Remote settings" size="xl" emphasis="quiet" icon={<MoreHorizontal size={21} />} />
+      </Menu.Target>
+      <Menu.Dropdown>
+        {moderator ? (
+          <>
+            <Menu.Item leftSection={<Users size={18} />} onClick={() => act({ type: 'release-moderator' })}>
+              Leave moderator controls
+            </Menu.Item>
+            {['setup', 'ready', 'over'].includes(state.stage) && (
+              <Menu.Item onClick={() => act({ type: 'set-control-mode', mode: 'automatic' })}>
+                Use player remotes
+              </Menu.Item>
+            )}
+            {!state.high && ['ready', 'active'].includes(state.stage) && (
+              <Menu.Item onClick={() => act({ type: 'end-phase' })}>End phase</Menu.Item>
+            )}
+          </>
+        ) : (
+          <>
+            <Menu.Item leftSection={<Users size={18} />} onClick={() => act({ type: 'assign', factionId: null })}>
+              Change faction
+            </Menu.Item>
+            {supportsModerator && (
+              <Menu.Item leftSection={<Gavel size={18} />} onClick={() => act({ type: 'claim-moderator' })}>
+                {moderatorEntryLabel}
+              </Menu.Item>
+            )}
+          </>
+        )}
+        <Menu.Item leftSection={<History size={18} />} onClick={() => client.showRecovery()}>
+          Recovery copy
+        </Menu.Item>
+        {!manual && (
+          <Menu.Item
+            leftSection={<RotateCcw size={18} />}
+            disabled={!['active', 'paused'].includes(state.stage)}
+            onClick={() => act({ type: 'reset' })}
+          >
+            Reset this card
+          </Menu.Item>
+        )}
+        <Menu.Divider />
+        <Menu.Item leftSection={<LogOut size={18} />} onClick={() => setPanel('leave')}>
+          Leave table
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
+  );
   const remote = (
     <TouchSurface>
       <div className={styles.phone} data-testid="phone-screen">
         <header className={styles.deviceHeader}>
           {remoteSeat && <FactionTokenFace token={remoteSeat} size={40} aria-hidden />}
           <div className={styles.grow}>
-            <Text fw={700}>{remoteSeat?.name ?? 'Join the table'}</Text>
+            <Text fw={700}>{moderator ? 'Moderator' : (remoteSeat?.name ?? 'Join the table')}</Text>
             <Text size="xs" c="dimmed">
               {state.lost ? 'Tablet unavailable' : `Table ${state.code}`}
             </Text>
@@ -1207,7 +1346,11 @@ function BiddingScreen({
                 Copy received at {state.received} · Turn {state.phase} · {state.ruleset.name}
               </Text>
               <Text size="sm">
-                {state.seconds ? `${state.seconds}s per bidder. Resume gives a fresh full timer.` : 'Timer off.'}
+                {manual
+                  ? 'Moderator mode. No automatic passes or wins.'
+                  : timed
+                    ? `${state.seconds}s per bidder. Resume gives a fresh full timer.`
+                    : 'Timer off.'}
               </Text>
               <Text size="sm" c="dimmed">
                 This is the latest copy this phone received. Check it against the physical table.
@@ -1246,12 +1389,121 @@ function BiddingScreen({
               </LabeledAction>
             </Stack>
           </div>
+        ) : moderator ? (
+          <>
+            <div className={styles.phoneScroll}>
+              <Stack gap="md" align="center" className={styles.phoneBid} aria-live="polite">
+                <Text size="sm" c="dimmed">
+                  {state.stage === 'over' ? 'Phase complete' : `Card ${state.card} of ${state.cards}`}
+                </Text>
+                <FactionTokenFace
+                  token={state.seats.find((seat) => seat.id === (state.turn ?? state.starter))!}
+                  size={80}
+                  aria-hidden
+                />
+                <Text className={styles.phoneTurn} fw={700}>
+                  {state.stage === 'setup'
+                    ? 'The table is being set up.'
+                    : state.stage === 'paused'
+                      ? 'Table paused'
+                      : state.stage === 'ready'
+                        ? 'Start new bid'
+                        : state.stage === 'over'
+                          ? 'Bidding is over'
+                          : nameOf(state, state.turn)}
+                </Text>
+                {state.high ? (
+                  <>
+                    <Text className={styles.phoneHigh} fw={700}>
+                      {state.high.amount}
+                    </Text>
+                    <Text size="sm">{nameOf(state, state.high.id)} · spice</Text>
+                  </>
+                ) : (
+                  <Text size="sm" c="dimmed">
+                    {state.note || 'You control bidding for every faction.'}
+                  </Text>
+                )}
+                <Text size="sm" c="dimmed">
+                  Full, Always pass and the timer do not skip anyone.
+                </Text>
+                {state.log[0] && (
+                  <Text size="xs" c="dimmed">
+                    {state.log[0]}
+                  </Text>
+                )}
+              </Stack>
+            </div>
+            <footer className={styles.phoneDock}>
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <LabeledAction
+                    size="lg"
+                    icon={<RotateCcw size={20} />}
+                    disabledReason={
+                      state.stage === 'active' || (state.stage === 'paused' && state.resumeStage === 'active')
+                        ? undefined
+                        : 'Start a card before resetting it.'
+                    }
+                    onClick={() => act({ type: 'reset' })}
+                  >
+                    Reset
+                  </LabeledAction>
+                  {remoteSettings}
+                </Group>
+                {state.stage === 'active' ? (
+                  <>
+                    {confirmWinner}
+                    <Group grow gap="xs" wrap="nowrap">
+                      {manualSteps}
+                    </Group>
+                  </>
+                ) : state.stage === 'ready' ? (
+                  starterControl
+                ) : state.stage === 'paused' ? (
+                  <LabeledAction
+                    size="lg"
+                    icon={<Play size={20} />}
+                    intent="positive"
+                    emphasis="strong"
+                    onClick={() => act({ type: 'resume' })}
+                  >
+                    Resume
+                  </LabeledAction>
+                ) : state.stage === 'over' ? (
+                  <LabeledAction
+                    size="lg"
+                    icon={<ArrowRight size={20} />}
+                    intent="positive"
+                    emphasis="strong"
+                    onClick={() => act({ type: 'next-phase' })}
+                  >
+                    Next phase
+                  </LabeledAction>
+                ) : (
+                  <Text size="sm" ta="center" c="dimmed">
+                    Waiting for setup to finish.
+                  </Text>
+                )}
+              </Stack>
+            </footer>
+          </>
         ) : !remoteSeat ? (
           <div className={styles.phoneScroll}>
             <Stack gap="sm">
               <Section title="Choose your faction">
                 <Text size="sm">Table {state.code}</Text>
               </Section>
+              {supportsModerator && (
+                <>
+                  <LabeledAction size="lg" icon={<Gavel size={20} />} onClick={() => act({ type: 'claim-moderator' })}>
+                    {moderatorEntryLabel}
+                  </LabeledAction>
+                  <Text size="sm" c="dimmed">
+                    Use one phone to control every bidder and confirm each winner.
+                  </Text>
+                </>
+              )}
               {state.seats.map((s) => (
                 <LabeledAction
                   key={s.id}
@@ -1283,7 +1535,13 @@ function BiddingScreen({
                     </Text>
                     <Text size="sm">{state.high ? `${nameOf(state, state.high.id)} · spice` : 'No bid yet'}</Text>
                     <Text size="sm" c="dimmed">
-                      {state.seconds ? <Countdown deadline={view.deadline} /> : 'Timer off'}
+                      {manual ? (
+                        'Moderator mode'
+                      ) : timed ? (
+                        <Countdown key={view.deadline} deadline={view.deadline} />
+                      ) : (
+                        'Timer off'
+                      )}
                     </Text>
                   </>
                 ) : (
@@ -1335,38 +1593,7 @@ function BiddingScreen({
                   </>
                 )}
                 <Group justify="space-between">
-                  <Menu position="top-end" withinPortal>
-                    <Menu.Target>
-                      <IconAction
-                        label="Remote settings"
-                        size="xl"
-                        emphasis="quiet"
-                        icon={<MoreHorizontal size={21} />}
-                      />
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item
-                        leftSection={<Users size={18} />}
-                        onClick={() => act({ type: 'assign', factionId: null })}
-                      >
-                        Change faction
-                      </Menu.Item>
-                      <Menu.Item leftSection={<History size={18} />} onClick={() => client.showRecovery()}>
-                        Recovery copy
-                      </Menu.Item>
-                      <Menu.Item
-                        leftSection={<RotateCcw size={18} />}
-                        disabled={!['active', 'paused'].includes(state.stage)}
-                        onClick={() => act({ type: 'reset' })}
-                      >
-                        Reset this card
-                      </Menu.Item>
-                      <Menu.Divider />
-                      <Menu.Item leftSection={<LogOut size={18} />} onClick={() => setPanel('leave')}>
-                        Leave table
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
+                  {remoteSettings}
                   {state.stage !== 'setup' && (
                     <>
                       <Text size="sm" c="dimmed">
@@ -1383,7 +1610,11 @@ function BiddingScreen({
                   )}
                 </Group>
               </div>
-              {state.stage === 'active' && state.remote === state.turn ? (
+              {manual ? (
+                <Text size="sm" ta="center" c="dimmed">
+                  The moderator controls bidding.
+                </Text>
+              ) : state.stage === 'active' && state.remote === state.turn ? (
                 pad('Phone', remoteSeat.id)
               ) : state.stage === 'ready' ? (
                 starterControl
@@ -1470,7 +1701,7 @@ function BiddingScreen({
           />
         );
       case 'bid':
-        if (state.stage !== 'active') {
+        if (manual || state.stage !== 'active') {
           return <Text>{state.note || 'The auction changed. Close this panel to continue.'}</Text>;
         }
         return (
@@ -1481,7 +1712,7 @@ function BiddingScreen({
                 {state.seconds ? (
                   <>
                     {' '}
-                    · <Countdown deadline={view.deadline} />
+                    · <Countdown key={view.deadline} deadline={view.deadline} />
                   </>
                 ) : (
                   ' · Timer off'
@@ -1795,17 +2026,21 @@ function useTableMotion(root: { current: HTMLDivElement | null }, state: State, 
 }
 
 /* Dune Play's SittingOutSign: a black ring from radius 33 to 43, crossed by a slash of equal weight. */
-function SeatToken({ seat, size }: Readonly<{ seat: Seat; size: number | string }>) {
+function SeatToken({
+  seat,
+  size,
+  ignoreFull = false,
+}: Readonly<{ seat: Seat; size: number | string; ignoreFull?: boolean }>) {
   return (
     <span
       className={styles.seatToken}
-      data-full={seat.full || undefined}
+      data-full={(!ignoreFull && seat.full) || undefined}
       style={{ '--token-size': typeof size === 'number' ? `${size}px` : size } as CSSProperties}
     >
       <span className={styles.tokenArt}>
         <FactionTokenFace token={seat} size="fill" aria-hidden />
       </span>
-      {seat.full && (
+      {!ignoreFull && seat.full && (
         <svg className={styles.fullMark} viewBox="0 0 100 100" aria-hidden>
           <circle cx="50" cy="50" r="38" fill="none" stroke="black" strokeWidth="10" />
           <path d="M26.67 73.33 L73.33 26.67" stroke="black" strokeWidth="10" />

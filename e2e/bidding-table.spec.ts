@@ -135,14 +135,14 @@ async function remoteMenu(page: Page, item: string) {
   await page.getByRole('menuitem', { name: item, exact: true }).click();
 }
 
-async function join(page: Page, origin: string, code: string, viaJoinLink = false) {
+async function join(page: Page, origin: string, code: string, viaJoinLink = false, faction = 'Atreides') {
   await page.goto(`${origin}/tools/bidding${viaJoinLink ? `?join=${code}` : ''}`);
   if (!viaJoinLink) {
     await page.getByRole('textbox', { name: 'Table code', exact: true }).fill(code);
     await page.getByRole('button', { name: 'Join table', exact: true }).click();
   }
-  await phone(page).getByRole('button', { name: 'Atreides', exact: true }).click();
-  await expect(phone(page).locator('header')).toContainText('Atreides');
+  await phone(page).getByRole('button', { name: faction, exact: true }).click();
+  await expect(phone(page).locator('header')).toContainText(faction);
 }
 
 test('the tablet completes a phase with phones and listening unused', async ({ newUserPage, baseURL }, info) => {
@@ -565,6 +565,151 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await central.close();
       await remote.close();
       await secondRemote.close();
+    } finally {
+      await runtime.close();
+    }
+  }
+});
+
+test('a moderator controls every faction, transfers control and restores manual bidding', async ({
+  newUserPage,
+  baseURL,
+}, info) => {
+  test.setTimeout(longSpecTimeoutMs);
+  if (!baseURL) {
+    throw new Error('The bidding journey needs the E2E application URL.');
+  }
+  const fixture = await seedBiddingCatalogue();
+  const runtime = await startBiddingBrowserRuntime(baseURL);
+  const central = await newUserPage({
+    storageState: { cookies: [], origins: [] },
+    viewport: { width: 1024, height: 768 },
+    reducedMotion: 'reduce',
+  });
+  const moderator = await newUserPage({
+    storageState: { cookies: [], origins: [] },
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce',
+  });
+  const player = await newUserPage({
+    storageState: { cookies: [], origins: [] },
+    viewport: { width: 390, height: 844 },
+    reducedMotion: 'reduce',
+  });
+  const page = central.page;
+  const errors: string[] = [];
+  for (const participant of [page, moderator.page, player.page]) {
+    participant.on('pageerror', (error) => errors.push(error.message));
+  }
+  const pointer = (target: Page, faction: string) =>
+    tablet(target).getByRole('img', { name: `Bidder pointer: ${faction}`, exact: true });
+  const high = (target: Page, faction: string, amount: number) =>
+    tablet(target).getByRole('img', { name: `${faction} has ${amount} spice`, exact: true });
+  try {
+    await test.step('prepare an ordinary player and a full faction that always passes', async () => {
+      await page.goto(`${runtime.origin}/tools/bidding`);
+      await choose(page, 'Ruleset', fixture.rulesetName);
+      await page.getByRole('button', { name: 'New table', exact: true }).click();
+      for (const name of fixture.names.slice(3)) {
+        await setup(page)
+          .getByRole('button', { name: `Remove ${name}`, exact: true })
+          .click();
+      }
+      await choose(page, 'Bid timer', '5 seconds');
+      const code = await tableCode(page);
+      await join(moderator.page, runtime.origin, code, true);
+      await join(player.page, runtime.origin, code, true, 'Harkonnen');
+      await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
+      await fillNumber(near(page), 'Cards this phase', 2);
+      await fillNumber(phone(moderator.page), 'Atreides hand count', 4);
+      await expect(phone(moderator.page).getByRole('switch', { name: 'Atreides Full', exact: true })).toBeChecked();
+      await setHandSwitch(moderator.page, 'Always pass', true);
+      await remoteMenu(moderator.page, 'Moderator mode');
+      await expect(phone(moderator.page).locator('header')).toContainText('Moderator');
+      await expect(
+        phone(moderator.page).getByRole('textbox', { name: 'Atreides hand count', exact: true })
+      ).toHaveCount(0);
+    });
+    await test.step('move across all factions without awarding until confirmation', async () => {
+      await phone(moderator.page).getByRole('button', { name: 'Choose Atreides as first bidder', exact: true }).click();
+      await phone(moderator.page).getByRole('button', { name: 'Start new bid', exact: true }).click();
+      await phone(moderator.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(page, 'Atreides', 1)).toBeVisible();
+      await expect(pointer(page, 'Atreides')).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: 'Pass', exact: true }).click();
+      await expect(pointer(page, 'Harkonnen')).toBeVisible();
+      await expect(phone(player.page).getByText('The moderator controls bidding.', { exact: true })).toBeVisible();
+      await expect(phone(player.page).getByRole('button', { name: '+1', exact: true })).toBeHidden();
+      await expect(phone(player.page).getByRole('button', { name: 'Pass', exact: true })).toBeHidden();
+      await phone(moderator.page).getByRole('button', { name: 'Back', exact: true }).click();
+      await expect(pointer(page, 'Atreides')).toBeVisible();
+      await near(page).getByRole('button', { name: 'Pass', exact: true }).click();
+      await expect(pointer(page, 'Harkonnen')).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(page, 'Harkonnen', 2)).toBeVisible();
+      await expect(pointer(page, 'Harkonnen')).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: 'Pass', exact: true }).click();
+      await expect(pointer(page, 'Emperor')).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: 'Pass', exact: true }).click();
+      await expect(pointer(page, 'Atreides')).toBeVisible();
+      await expect(tablet(page).getByRole('button', { name: 'Harkonnen, 1 cards', exact: true })).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: 'Confirm winner', exact: true }).click();
+      await expect(tablet(page).getByRole('button', { name: 'Harkonnen, 2 cards', exact: true })).toBeVisible();
+      await expect(phone(moderator.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
+    });
+    await test.step('transfer exclusive controls and reset only the current auction', async () => {
+      await remoteMenu(player.page, 'Take moderator control');
+      await expect(phone(player.page).locator('header')).toContainText('Moderator');
+      await expect(phone(moderator.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeHidden();
+      await phone(player.page).getByRole('button', { name: 'Choose Emperor as first bidder', exact: true }).click();
+      await phone(player.page).getByRole('button', { name: 'Start new bid', exact: true }).click();
+      await phone(player.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(page, 'Emperor', 1)).toBeVisible();
+      await expect(phone(moderator.page).getByRole('button', { name: '+1', exact: true })).toBeHidden();
+      await phone(player.page).getByRole('button', { name: 'Reset', exact: true }).click();
+      await expect(phone(player.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
+      await expect(high(page, 'Emperor', 1)).toBeHidden();
+      await expect(tablet(page).getByRole('button', { name: 'Harkonnen, 2 cards', exact: true })).toBeVisible();
+      await phone(player.page).getByRole('button', { name: 'Choose Atreides as first bidder', exact: true }).click();
+      await phone(player.page).getByRole('button', { name: 'Start new bid', exact: true }).click();
+      await phone(player.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(page, 'Atreides', 1)).toBeVisible();
+    });
+    await test.step('restore manual mode and promote without retaining the old moderator claim', async () => {
+      await page.reload();
+      await expect(near(page).getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
+      await near(page).getByRole('button', { name: 'Resume', exact: true }).click();
+      await phone(player.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(page, 'Atreides', 2)).toBeVisible();
+      await expect(pointer(page, 'Atreides')).toBeVisible();
+      await remoteMenu(player.page, 'Recovery copy');
+      await phone(player.page).getByRole('button', { name: 'Use this phone as central', exact: true }).click();
+      await expect(near(player.page).getByRole('button', { name: 'Resume', exact: true })).toBeVisible();
+      const recoveredCode = await tableCode(player.page);
+      await moderator.page.goto(`${runtime.origin}/tools/bidding?join=${recoveredCode}`);
+      await phone(moderator.page).getByRole('button', { name: 'Moderator mode', exact: true }).click();
+      await expect(phone(moderator.page).locator('header')).toContainText('Moderator');
+      await near(player.page).getByRole('button', { name: 'Resume', exact: true }).click();
+      await phone(moderator.page).getByRole('button', { name: '+1', exact: true }).click();
+      await expect(high(player.page, 'Atreides', 3)).toBeVisible();
+      await expect(pointer(player.page, 'Atreides')).toBeVisible();
+      await phone(moderator.page).getByRole('button', { name: 'Confirm winner', exact: true }).click();
+      await expect(near(player.page).getByRole('button', { name: 'Next phase', exact: true })).toBeVisible();
+      await expect(tablet(player.page).getByRole('button', { name: 'Atreides, 5 cards', exact: true })).toBeVisible();
+      await tableMenu(player.page, 'Completed wins');
+      await expect(player.page.getByRole('dialog')).toContainText('Card 1 · Harkonnen · 2 spice');
+      await expect(player.page.getByRole('dialog')).toContainText('Card 2 · Atreides · 3 spice');
+      await closeDialog(player.page);
+    });
+    expect(errors).toEqual([]);
+    const screenshot = info.outputPath('moderator-phase-complete.png');
+    await player.page.screenshot({ path: screenshot });
+    await info.attach('moderator-phase-complete', { path: screenshot, contentType: 'image/png' });
+  } finally {
+    try {
+      await central.close();
+      await moderator.close();
+      await player.close();
     } finally {
       await runtime.close();
     }
