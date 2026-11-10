@@ -38,6 +38,37 @@ blocks private reads, writes and token refresh before asynchronous cleanup finis
 with a remaining provider creates a usable session. The profile edit page clears its local tokens
 after disconnection.
 
+## Account bans
+
+Administrators manage a ban from `/admin/account/$profileSlug`, reached from the Accounts list.
+The list can show active or banned accounts. The administrator chooses an active replacement owner
+or removal, writes an optional reason visible only to administrators, and holds the Ban control.
+The account and profile become banned in that transaction. The operation records its administrator
+and reuses account deletion's bounded ownership snapshot and application batches.
+
+A ban preserves the account's linked providers. Signing in with one of them reaches the same banned
+account and shows only "You have been banned". Banned sessions cannot change or disconnect their
+providers, call viewer queries or application mutations, or receive Play admission. A minimal session
+query supplies the ban flag to the root page gate. Public queries remain viewer-independent and
+serve the same anonymous facts to everyone; a ban does not make public catalogue data private.
+Existing Play sessions receive a durable cutoff. The homepage table receives its own cutoff for
+edit leases that were issued before the ban. On a signed-in reload, the app waits for current account
+status before displaying any route. An offline reload therefore shows "Checking account access…"
+until Convex answers, including when a Play table was previously stored on the device. A page that
+was already open retains its last account-status answer during a connection loss.
+
+All directly owned Groups, factions, rulesets and assets follow the ownership choice, including
+already deleted records. Hosted games are always removed, even when other players are seated.
+Their addresses return the normal missing-game result, their rooms are retired, and their Discord
+channels enter the existing deletion queue. Participation in other games is scrubbed through the
+account-deletion delivery path. The admin page shows operation progress and offers Resume if a
+batch fails. Content cleanup waits for game retirement and participation acknowledgements; Discord
+retries continue independently through the existing channel queue.
+
+An administrator can lift the ban after the operation completes. This revokes old sessions, so the
+person signs in again with a linked provider. Transferred and removed content stays as it is;
+soft-deleted content can use its existing restore action. Hosted games stay removed.
+
 ## Convex Auth
 
 Production sign-in starts at `https://dune.zone/auth/signin/google` or

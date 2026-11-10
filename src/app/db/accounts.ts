@@ -40,10 +40,12 @@ export type { AuthProvider } from '../../../convex/lib/accountMethods';
 export function useAccountManagementPage(
   cursor: string | null,
   selectedUserIds: string[],
-  failedCursor: string | null = null
+  failedCursor: string | null = null,
+  accountState: 'active' | 'banned' = 'active'
 ) {
   const page = useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },
+    accountState,
     failedPaginationOpts: { cursor: failedCursor, numItems: 20 },
     selectedUserIds: selectedUserIds as Id<'users'>[],
   });

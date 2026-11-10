@@ -9,7 +9,7 @@ import { Buffer } from 'node:buffer';
 import { DurableObject } from 'cloudflare:workers';
 
 import { api } from '../../convex/_generated/api';
-import { HOMEPAGE_SOCKET_PATH } from '../../src/shared/homepage/protocol';
+import { HOMEPAGE_SOCKET_PATH, HOMEPAGE_ACCOUNT_CUTOFF_PATH } from '../../src/shared/homepage/protocol';
 import {
   PLAY_AUTH_RECOVERY_MS,
   PLAY_CONFIRMATION_RECOVERY_MS,
@@ -895,8 +895,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * Deletes everything the hosted fixture's room stores, so account deletion reaches the names it retained.
-   * Only the hosted fixture retires; a real game or a load fixture is refused.
+   * Deletes everything in a retired room and disconnects its players.
+   * A confirmed real game requires an explicit account-ban request authenticated with its stored secret.
    * An empty room has nothing left to retire, so a repeated request succeeds.
    */
   private async retire(request: Request, gameId: string): Promise<Response> {
@@ -914,7 +914,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!metadata) {
       return json({ ok: true });
     }
-    if (!this.retiresAs(metadata, gameId, args.secret)) {
+    if (!this.retiresAs(metadata, gameId, args.secret, args.banOperationId)) {
       return refused();
     }
     try {
@@ -939,14 +939,16 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /**
-   * Only the hosted fixture's own room, or a room Convex never confirmed, retires, and only for the secret it was provisioned with.
+   * A ban retires a real game regardless of players; ordinary requests retire only the hosted fixture or an unconfirmed room.
    * Convex asks an unconfirmed room only once its game expired, when no confirmation can succeed any more.
    */
-  private retiresAs(metadata: Metadata, gameId: string, secret: string) {
+  private retiresAs(metadata: Metadata, gameId: string, secret: string, banOperationId?: string) {
     return (
       metadata.gameId === gameId &&
       credentialsMatch(secret, metadata.secret) &&
-      (!metadata.confirmed || (!metadata.game && this.fixturePlan.hosted))
+      (!metadata.confirmed ||
+        (!metadata.game && this.fixturePlan.hosted) ||
+        (metadata.game && banOperationId !== undefined))
     );
   }
 
@@ -2303,6 +2305,11 @@ export default {
     const service = await gameServiceResponse(request, env);
     if (service) {
       return service;
+    }
+    if (
+      url.pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH && request.method === 'POST'
+    ) {
+      return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
     }
     if (
       url.pathname === HOMEPAGE_SOCKET_PATH &&

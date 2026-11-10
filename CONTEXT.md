@@ -243,6 +243,13 @@ _Avoid_: Worker rollback, Renderer rollback, rollback rollout
 **Administrator**:
 An authenticated user whose Convex Auth `users` document has `isAdmin: true`. The flag is assigned manually through the Convex dashboard. Administrative routes may use it for presentation, but every protected Convex query and mutation must independently require it. When an authenticated non-Administrator visits `/admin/jobs`, the route renders a visible refusal ("You cannot view publication jobs") instead of redirecting or exposing job data.
 
+**Account ban**:
+An Administrator's decision to block an account from Dune Zone. Linked sign-in methods stay attached,
+and every sign-in reaches the same banned account. The Administrator transfers or removes its direct
+ownership; its hosted games are always removed, including their Discord voice channels. Lifting a ban
+requires a fresh sign-in and restores no content automatically. This is separate from a Player's
+faction Ban list during drafting.
+
 **Publisher operational evidence**:
 The current proof that an asynchronous release is healthy: Worker health smoke confirms the deployed Git SHA and Renderer identity; Regeneration scans emit structured start and completion logs; and `/admin/jobs` shows no error jobs, no overdue in-progress jobs, and decreasing pending work while pickup is enabled. The queue need not reach absolute zero because ordinary saves can continuously add work. Automatic detection and notification integrations are deferred.
 

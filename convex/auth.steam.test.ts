@@ -161,6 +161,40 @@ describe('Steam sign-in', () => {
     expect((await steamAccount(t))!.userId).toBe(first!.userId);
   });
 
+  test('a banned Steam login keeps its account and opens only the ban page', async () => {
+    stubSteam();
+    const t = applicationTest();
+    await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    const first = (await steamAccount(t))!;
+    await t.run(async (raw) => {
+      const ctx = applicationTriggers.wrapDB(raw);
+      await ctx.db.patch(first.userId, { account_state: 'banned' });
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', first.userId))
+        .unique();
+      await ctx.db.patch(profile!._id, { account_state: 'banned' });
+    });
+    const signedIn = await t.action(api.auth.signIn, {
+      provider: 'steam',
+      params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
+    });
+    expect(signedIn.tokens?.token).toEqual(expect.any(String));
+    expect((await steamAccount(t))!.userId).toBe(first.userId);
+    const payload = signedIn.tokens!.token.split('.')[1]!.replaceAll('-', '+').replaceAll('_', '/');
+    const subject = JSON.parse(atob(payload)).sub as string;
+    expect(await t.withIdentity({ subject }).query(api.profiles.session, {})).toEqual({
+      userId: null,
+      profile: null,
+      isAdmin: false,
+      isBanned: true,
+    });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query('users').collect()).toHaveLength(1);
+      expect(await ctx.db.query('profiles').collect()).toHaveLength(1);
+    });
+  });
+
   test('a sign-in that finds the Steam profile names an account that started nameless', async () => {
     vi.stubEnv('STEAM_WEB_API_KEY', '');
     stubSteam();

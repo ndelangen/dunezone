@@ -10,7 +10,41 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction, internalQuery } from './_generated/server';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
+import { discordChannel, requestDiscordDeletion } from './lib/playDiscord';
 import { postPlayService } from './lib/playService';
+
+async function queueActorDeletion(
+  ctx: MutationCtx,
+  gameId: Id<'play_games'>,
+  actorId: Id<'users'>,
+  operation: Doc<'account_deletion_operations'>,
+  banRetirement = false
+) {
+  const previous = await ctx.db
+    .query('play_account_deletions')
+    .withIndex('by_game_operation_user', (q) =>
+      q.eq('game_id', gameId).eq('operation_id', operation._id).eq('user_id', actorId)
+    )
+    .unique();
+  if (previous) {
+    if (banRetirement && !previous.ban_retirement) {
+      await ctx.db.patch(previous._id, { ban_retirement: true, state: 'pending', next_attempt_at: Date.now() });
+      await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId: previous._id });
+    }
+    return;
+  }
+  const eventId = await ctx.db.insert('play_account_deletions', {
+    game_id: gameId,
+    user_id: actorId,
+    operation_id: operation._id,
+    ...(banRetirement ? { ban_retirement: true } : {}),
+    state: 'pending',
+    attempts: 0,
+    next_attempt_at: Date.now(),
+    created_at: Date.now(),
+  });
+  await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId });
+}
 
 async function queueGameDeletion(
   ctx: MutationCtx,
@@ -19,25 +53,7 @@ async function queueGameDeletion(
 ) {
   await ctx.db.patch(routing._id, { deletion_operation_id: operation._id });
   for (const actorId of routing.actor_user_ids ?? [routing.user_id]) {
-    const previous = await ctx.db
-      .query('play_account_deletions')
-      .withIndex('by_game_operation_user', (q) =>
-        q.eq('game_id', routing.game_id).eq('operation_id', operation._id).eq('user_id', actorId)
-      )
-      .unique();
-    if (previous) {
-      continue;
-    }
-    const eventId = await ctx.db.insert('play_account_deletions', {
-      game_id: routing.game_id,
-      user_id: actorId,
-      operation_id: operation._id,
-      state: 'pending',
-      attempts: 0,
-      next_attempt_at: Date.now(),
-      created_at: Date.now(),
-    });
-    await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId });
+    await queueActorDeletion(ctx, routing.game_id, actorId, operation);
   }
 }
 
@@ -46,15 +62,23 @@ async function queueDeletionPage(
   args: { operationId: Id<'account_deletion_operations'>; paginationOpts: PaginationOptions }
 ) {
   const operation = await ctx.db.get(args.operationId);
-  if (!operation) {
+  if (!operation || (operation.kind === 'ban' && operation.ban_accounts_queued)) {
     return;
   }
   const page = await ctx.db
     .query('play_game_accounts')
     .withIndex('by_user_id', (q) => q.eq('user_id', operation.source_user_id))
-    .paginate({ ...args.paginationOpts, numItems: 32 });
+    .paginate(
+      operation.kind === 'ban' ? { cursor: operation.ban_accounts_cursor ?? null, numItems: 32 } : args.paginationOpts
+    );
   for (const routing of page.page) {
     await queueGameDeletion(ctx, routing, operation);
+  }
+  if (operation.kind === 'ban') {
+    await ctx.db.patch(operation._id, {
+      ban_accounts_cursor: page.continueCursor,
+      ban_accounts_queued: page.isDone,
+    });
   }
   if (!page.isDone) {
     await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
@@ -62,6 +86,80 @@ async function queueDeletionPage(
       paginationOpts: { cursor: page.continueCursor, numItems: 32 },
     });
   }
+}
+
+/** Expiring each hosted game closes its page and admission before any external cleanup request. */
+async function queueBanGamesPage(ctx: MutationCtx, operation: Doc<'account_deletion_operations'>) {
+  if (operation.kind !== 'ban' || operation.ban_games_queued) {
+    return;
+  }
+  const page = await ctx.db
+    .query('play_games')
+    .withIndex('by_creator_id', (q) => q.eq('creator_id', operation.source_user_id))
+    .paginate({ cursor: operation.ban_games_cursor ?? null, numItems: 16 });
+  for (const game of page.page) {
+    await ctx.db.patch(game._id, { state: 'expired', ban_operation_id: operation._id });
+    const channel = await discordChannel(ctx, game._id);
+    if (channel && channel.state !== 'deleted' && channel.state !== 'deleting') {
+      await requestDiscordDeletion(ctx, channel);
+    }
+    /* A creator may never have opened the game, so retirement must not depend on an admission routing row. */
+    await queueActorDeletion(ctx, game._id, operation.source_user_id, operation, true);
+  }
+  await ctx.db.patch(operation._id, {
+    ban_games_cursor: page.continueCursor,
+    ban_games_queued: page.isDone,
+  });
+  if (!page.isDone) {
+    await ctx.scheduler.runAfter(0, internal.playDeletion.queueBanGames, { operationId: operation._id });
+  }
+}
+
+/** Runs beside content disposal so a large asset inventory does not delay closing hosted games. */
+export const queueBanGames = internalMutation({
+  args: { operationId: v.id('account_deletion_operations') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const operation = await ctx.db.get(args.operationId);
+    if (operation) {
+      await queueBanGamesPage(ctx, operation);
+    }
+    return null;
+  },
+});
+
+/** Both persisted cursors can resume here after a failed fan-out; delivery retries remain in their existing queue. */
+export const applyBanGamesBatch = internalMutation({
+  args: { operationId: v.id('account_deletion_operations') },
+  returns: v.object({ done: v.boolean() }),
+  handler: async (ctx, args) => {
+    const operation = await ctx.db.get(args.operationId);
+    if (!operation || operation.kind !== 'ban') {
+      return { done: true };
+    }
+    /* Convex permits one paginated query per execution, so recovery advances one fan-out at a time. */
+    if (!operation.ban_games_queued) {
+      await queueBanGamesPage(ctx, operation);
+    } else if (!operation.ban_accounts_queued) {
+      await queueDeletionPage(ctx, { operationId: operation._id, paginationOpts: { cursor: null, numItems: 32 } });
+    }
+    const updated = await ctx.db.get(operation._id);
+    const pending = await ctx.db
+      .query('play_account_deletions')
+      .withIndex('by_operation_id_state', (q) => q.eq('operation_id', operation._id).eq('state', 'pending'))
+      .first();
+    return { done: updated?.ban_games_queued === true && updated.ban_accounts_queued === true && !pending };
+  },
+});
+
+async function isBanRetirement(ctx: QueryCtx, game: Doc<'play_games'>, event: Doc<'play_account_deletions'>) {
+  const operation = await ctx.db.get(event.operation_id);
+  return (
+    event.ban_retirement === true &&
+    operation?.kind === 'ban' &&
+    game.ban_operation_id === operation._id &&
+    game.state === 'expired'
+  );
 }
 
 function isDueDeletion(event: Doc<'play_account_deletions'>) {
@@ -101,12 +199,20 @@ export const claimDelivery = internalMutation({
       return null;
     }
     /*
-     * A game that never opened can still have a room that stored the creator before its confirmation failed past the deadline.
-     * Such a room is never confirmed now, so it is asked to delete everything; the deletion is done once it answers, empty or emptied.
+     * An expired game cannot admit anyone.
+     * Ordinary expiry retires an unconfirmed room; an account-ban marker also retires a confirmed game.
+     * The deletion settles only after the room answers that it has emptied.
      */
     if (isUnopened(game)) {
       await ctx.scheduler.runAt(nextAttemptAt, internal.playDeletion.deliver, { eventId: event._id });
-      return { operation: 'retire' as const, request: { gameId: game._id, secret: game.secret } };
+      return {
+        operation: 'retire' as const,
+        request: {
+          gameId: game._id,
+          secret: game.secret,
+          ...((await isBanRetirement(ctx, game, event)) ? { banOperationId: event.operation_id } : {}),
+        },
+      };
     }
     if (game.state !== 'ready') {
       return null;
@@ -158,7 +264,7 @@ function isUnopened(game: Doc<'play_games'>) {
   return game.state === 'expired' && game.fixture_key !== PLAY_FIXTURE_KEY;
 }
 
-/** The room of a game that never opened answered its retirement, so it holds nothing of the account. */
+/** An expired room answered its retirement; a banned host's game also drops every player's routing before settlement. */
 export const settleUnopenedDeletion = internalMutation({
   args: { eventId: v.id('play_account_deletions') },
   returns: v.null(),
@@ -166,6 +272,19 @@ export const settleUnopenedDeletion = internalMutation({
     const event = await ctx.db.get(args.eventId);
     const game = event && (await ctx.db.get(event.game_id));
     if (event?.state === 'pending' && game && isUnopened(game)) {
+      if (await isBanRetirement(ctx, game, event)) {
+        const routings = await ctx.db
+          .query('play_game_accounts')
+          .withIndex('by_game_id_user_id', (q) => q.eq('game_id', game._id))
+          .take(64);
+        for (const routing of routings) {
+          await ctx.db.delete(routing._id);
+        }
+        if (routings.length === 64) {
+          await ctx.scheduler.runAfter(0, internal.playDeletion.settleUnopenedDeletion, args);
+          return null;
+        }
+      }
       await ctx.db.patch(event._id, { state: 'acknowledged' });
     }
     return null;

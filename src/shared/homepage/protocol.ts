@@ -4,6 +4,7 @@ import { clientMessageSchema } from '../play/protocol';
 import type { ClientMessage, PieceAction } from '../play/protocol';
 
 export const HOMEPAGE_SOCKET_PATH = '/__play/homepage/socket';
+export const HOMEPAGE_ACCOUNT_CUTOFF_PATH = '/__play/homepage/account-cutoff';
 export const HOMEPAGE_RESET_MS = 60 * 60 * 1000;
 /*
  * Every renewal is a ticket issued and redeemed in Convex, so the lease is minutes rather than seconds. Renewals come at
@@ -20,12 +21,24 @@ export const HOMEPAGE_CLIENT_CONNECTION_LIMIT = 16;
 export const HOMEPAGE_EDITOR_LIMIT = 24;
 export const HOMEPAGE_FRAME_LIMIT = 2048;
 export const homepageTicketSchema = z.string().regex(/^[a-f0-9]{64}$/);
+export const homepageAccountCutoffRequestSchema = z.strictObject({
+  operationId: z.string().min(1).max(128),
+  token: homepageTicketSchema,
+});
+export const homepageAccountCutoffSchema = z
+  .object({
+    userKey: z.string(),
+    through: z.number().finite(),
+    expiresAt: z.number().finite(),
+  })
+  .nullable();
 export const homepageAdmissionSchema = z.discriminatedUnion('allowed', [
   z.object({ allowed: z.literal(false) }),
   z.object({
     allowed: z.literal(true),
     userKey: z.string(),
     leaseUntil: z.number().finite(),
+    issuedAt: z.number().finite().optional(),
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 ]);

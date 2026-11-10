@@ -47,7 +47,7 @@ describe('ProfilePicker', () => {
     const onPick = vi.fn();
     const view = renderPicker({ onPick });
     fireEvent.change(view.getByRole('searchbox', { name: 'Search profiles' }), { target: { value: 'chani' } });
-    expect(mocks.hook).toHaveBeenLastCalledWith('chani');
+    expect(mocks.hook).toHaveBeenLastCalledWith('chani', undefined);
     expect(view.queryByText('Paul Atreides')).toBeNull();
     fireEvent.click(view.getByRole('option', { name: /Chani Kynes/ }));
     fireEvent.click(view.getByRole('button', { name: 'Use this profile' }));
@@ -72,4 +72,17 @@ describe('ProfilePicker', () => {
     fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+});
+
+it('keeps pagination available when the first admin page has no eligible replacements', () => {
+  mocks.hook.mockReturnValue({ data: [], status: 'CanLoadMore', loadMore: mocks.loadMore });
+  const view = render(
+    <MantineProvider theme={appContentTheme}>
+      <ProfilePicker adminSourceUserId="managed-account" onPick={vi.fn()} onCancel={vi.fn()} />
+    </MantineProvider>
+  );
+  expect(view.queryByText('No active replacement profiles are available.')).toBeNull();
+  fireEvent.click(view.getByRole('button', { name: 'Load more profiles' }));
+  expect(mocks.loadMore).toHaveBeenCalledTimes(1);
+  expect(mocks.hook).toHaveBeenLastCalledWith('', 'managed-account');
 });

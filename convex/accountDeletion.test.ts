@@ -466,3 +466,129 @@ describe('account deletion', () => {
     );
   });
 });
+
+describe('administrator account bans', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 200 }))
+    );
+    vi.stubEnv('PLAY_SERVICE_URL', 'https://play.example.test');
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+  test('only an admin can ban, and an admin cannot ban themselves', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'ban-source');
+    const admin = await seedAccount(t, 'ban-admin', { admin: true });
+    await expect(
+      t.withIdentity({ subject: source.subject }).mutation(api.accountDeletion.adminBan, {
+        sourceUserId: admin.userId,
+        replacementUserId: null,
+      })
+    ).rejects.toThrow();
+    await expect(
+      t.withIdentity({ subject: admin.subject }).mutation(api.accountDeletion.adminBan, {
+        sourceUserId: admin.userId,
+        replacementUserId: null,
+      })
+    ).rejects.toThrow('own account');
+    await expect(
+      t.withIdentity({ subject: source.subject }).query(api.accountDeletion.adminPage, {
+        profileSlug: 'ban-source',
+      })
+    ).rejects.toThrow();
+  });
+
+  test('removes owned content while preserving linked identity, then unbans without restoring content', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'ban-source');
+    const admin = await seedAccount(t, 'ban-admin', { admin: true });
+    const rows = await seedOwnedRows(t, source.userId, 'ban-remove');
+    const asAdmin = t.withIdentity({ subject: admin.subject });
+    const { operationId } = await asAdmin.mutation(api.accountDeletion.adminBan, {
+      sourceUserId: source.userId,
+      replacementUserId: null,
+      reason: 'Repeated abuse',
+    });
+    await expect(asAdmin.query(api.accountDeletion.adminPage, { profileSlug: 'ban-source' })).resolves.toMatchObject({
+      accountState: 'banned',
+      bannedReason: 'Repeated abuse',
+      operation: { id: operationId, state: 'running' },
+    });
+    await expect(asAdmin.mutation(api.accountDeletion.adminUnban, { sourceUserId: source.userId })).rejects.toThrow(
+      'Finish'
+    );
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(operationId)).toMatchObject({
+        kind: 'ban',
+        initiator_user_id: admin.userId,
+        state: 'completed',
+      });
+      expect(await ctx.db.get(source.userId)).toMatchObject({ account_state: 'banned', banned_by: admin.userId });
+      expect(await ctx.db.get(source.profileId)).toMatchObject({ account_state: 'banned' });
+      expect(await ctx.db.get(source.profileId)).not.toHaveProperty('banned_reason');
+      for (const id of [rows.groupId, rows.factionId, rows.rulesetId, rows.assetId]) {
+        expect(await ctx.db.get(id)).toMatchObject({ is_deleted: true });
+      }
+      expect(
+        await ctx.db
+          .query('authAccounts')
+          .withIndex('userIdAndProvider', (q) => q.eq('userId', source.userId))
+          .first()
+      ).not.toBeNull();
+    });
+    await asAdmin.mutation(api.accountDeletion.adminUnban, { sourceUserId: source.userId });
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(source.userId)).toMatchObject({ account_state: 'active' });
+      expect(await ctx.db.get(source.userId)).not.toHaveProperty('banned_reason');
+      expect(await ctx.db.get(rows.factionId)).toMatchObject({ is_deleted: true });
+      expect(await ctx.db.get(source.sessionId)).toBeNull();
+    });
+  });
+
+  test('transfers every ownership kind to an active replacement without a shared group', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'ban-source');
+    const admin = await seedAccount(t, 'ban-admin', { admin: true });
+    const target = await seedAccount(t, 'ban-target');
+    const rows = await seedOwnedRows(t, source.userId, 'ban-transfer');
+    const asAdmin = t.withIdentity({ subject: admin.subject });
+    const choice = { sourceUserId: source.userId, replacementUserId: target.userId };
+    const result = await asAdmin.mutation(api.accountDeletion.adminBan, choice);
+    expect(await asAdmin.mutation(api.accountDeletion.adminBan, choice)).toEqual(result);
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    await t.run(async (ctx) => {
+      expect(await ctx.db.get(rows.groupId)).toMatchObject({ created_by: target.userId, is_deleted: false });
+      for (const id of [rows.factionId, rows.rulesetId, rows.assetId, rows.deletedFactionId, rows.deletedAssetId]) {
+        expect(await ctx.db.get(id)).toMatchObject({ owner_id: target.userId });
+      }
+      expect(await ctx.db.get(rows.deletedAssetId)).toMatchObject({ is_deleted: true });
+      expect(await ctx.db.get(source.userId)).toMatchObject({ account_state: 'banned' });
+    });
+  });
+
+  test('a failed ban resumes the same operation without changing its ownership choice', async () => {
+    const t = setup();
+    const source = await seedAccount(t, 'ban-source');
+    const admin = await seedAccount(t, 'ban-admin', { admin: true });
+    const asAdmin = t.withIdentity({ subject: admin.subject });
+    const { operationId } = await asAdmin.mutation(api.accountDeletion.adminBan, {
+      sourceUserId: source.userId,
+      replacementUserId: null,
+    });
+    await t.mutation(internal.accountDeletion.markFailed, { operationId, error: 'Temporary failure' });
+    await expect(asAdmin.query(api.accountDeletion.adminPage, { profileSlug: 'ban-source' })).resolves.toMatchObject({
+      operation: { state: 'failed', error: 'Temporary failure' },
+    });
+    await asAdmin.mutation(api.accountDeletion.resume, { operationId });
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    expect(await t.run((ctx) => ctx.db.get(operationId))).toMatchObject({
+      state: 'completed',
+      replacement_user_id: null,
+    });
+  });
+});
