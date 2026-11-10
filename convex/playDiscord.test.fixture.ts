@@ -8,6 +8,8 @@ export function configureDiscord() {
   vi.stubEnv('DISCORD_BOT_TOKEN', 'test-token');
   vi.stubEnv('DISCORD_GUILD_ID', '100');
   vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '200,201');
+  vi.stubEnv('SITE_URL', 'https://dune.zone');
+  vi.stubEnv('PLAY_SERVICE_URL', 'https://dune.zone');
 }
 
 export function discordStub(channelIds = ['300']) {
@@ -30,9 +32,11 @@ export function discordStub(channelIds = ['300']) {
   for (const [index, id] of channelIds.entries()) {
     routes[`POST /channels/${id}/invites`] = () => Response.json({ code: index === 0 ? 'shared-room' : `room-${id}` });
     routes[`DELETE /channels/${id}`] = () => Response.json({ id });
+    routes[`PATCH /channels/${id}`] = () => Response.json({ id, type: 2, parent_id: '200' });
   }
   const fetch = vi.fn(async (input: string | URL | Request, options?: RequestInit): Promise<Response> => {
-    const path = (input instanceof Request ? input.url : String(input)).replace('https://discord.com/api/v10', '');
+    const url = input instanceof Request ? input.url : String(input);
+    const path = url.replace('https://discord.com/api/v10', '');
     const method = options?.method ?? 'GET';
     const body: unknown = typeof options?.body === 'string' ? JSON.parse(options.body) : null;
     calls.push({ method, path, body, headers: options?.headers });

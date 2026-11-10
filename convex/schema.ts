@@ -160,7 +160,12 @@ export default defineSchema({
     ),
     created_at: v.number(),
     ended_at: v.optional(v.number()),
+    renamed_ended: v.optional(v.boolean()),
+    voice_checked_at: v.optional(v.number()),
+    work_revision: v.optional(v.number()),
+    lease_revision: v.optional(v.number()),
     deleted_at: v.optional(v.number()),
+    deletion_requested_at: v.optional(v.number()),
     cleanup_at: v.number(),
     next_attempt_at: v.number(),
     retry_after: v.optional(v.number()),
@@ -170,7 +175,8 @@ export default defineSchema({
   })
     .index('by_game_id', ['game_id'])
     .index('by_channel_id', ['channel_id'])
-    .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
+    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
