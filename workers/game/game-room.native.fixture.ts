@@ -2,7 +2,6 @@ const realNow = Date.now;
 let clockOffset = 0;
 Date.now = () => realNow() + clockOffset;
 
-import type { BugReportBrowser } from '../../src/shared/play/bugReports';
 import worker, { GameRoom as ProductionGameRoom } from './index';
 
 /* Lets a runtime bind the real report coordinator beside the real room. */
@@ -54,24 +53,22 @@ export class GameRoom extends ProductionGameRoom {
         );
       }
     }
-    if (new URL(request.url).pathname === '/native-test/bug-report' && request.method === 'POST') {
-      /* Calls the report RPCs the way the report coordinator does, so a test can see what each one refuses. */
-      const body = (await request.json()) as {
-        step: 'capture' | 'finish';
-        requestId: string;
-        actorId: string;
-        displayName: string;
-        browser?: BugReportBrowser;
-        issueUrl?: string;
+    if (new URL(request.url).pathname === '/native-test/report-rpc' && request.method === 'POST') {
+      /* Calls a report RPC on the named room over a real Durable Object stub, as the report coordinator does, and reports what crossed back. */
+      const call = (await request.json()) as {
+        room: string;
+        method: 'captureBugReport' | 'finishBugReport';
+        args: [string, string, string, never];
       };
+      const room = this.env.GAME_ROOMS.getByName(call.room);
       try {
         const result =
-          body.step === 'capture'
-            ? this.captureBugReport(body.requestId, body.actorId, body.displayName, body.browser!)
-            : this.finishBugReport(body.requestId, body.actorId, body.displayName, body.issueUrl!);
+          call.method === 'captureBugReport'
+            ? await room.captureBugReport(...call.args)
+            : await room.finishBugReport(...call.args);
         return Response.json({ ok: true, result: result ?? null });
       } catch (error) {
-        return Response.json({ ok: false, message: error instanceof Error ? error.message : 'failed' });
+        return Response.json({ ok: false, message: error instanceof Error ? error.message : String(error) });
       }
     }
     if (new URL(request.url).pathname === '/native-test/captures') {

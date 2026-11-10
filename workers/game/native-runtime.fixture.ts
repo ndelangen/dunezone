@@ -131,6 +131,11 @@ export type NativeBindings = Record<string, string | number | boolean> & { APPLI
  * `github` answers every request the Worker sends to api.github.com;
  * anything else goes out unchanged, so the peer still answers Convex calls.
  */
+/** The report RPCs a GameRoom serves to the report coordinator. */
+export interface NativeReportRoom {
+  captureBugReport(requestId: string, actorId: string, displayName: string, browser: unknown): Promise<string>;
+  finishBugReport(requestId: string, actorId: string, displayName: string, issueUrl: string): Promise<void>;
+}
 export interface NativeReportServices {
   github(request: NativeRequest): Promise<NativeResponse> | NativeResponse;
 }
@@ -576,22 +581,31 @@ export async function createRuntime(
       const object = await bucket.get(`reports/${exportId}.json`);
       return object ? fixtureJson<Record<string, unknown>>(object) : null;
     },
-    /** Calls a report RPC on the room with any name, as the report coordinator does. */
-    async bugReportCall(
-      name: string,
-      call:
-        | { step: 'capture'; requestId: string; actorId: string; displayName: string; browser: unknown }
-        | { step: 'finish'; requestId: string; actorId: string; displayName: string; issueUrl: string }
-    ) {
-      const namespace = await instance.getDurableObjectNamespace('GAME_ROOMS');
-      const response = await namespace
-        .get(namespace.idFromName(name))
-        .fetch('https://native-test/native-test/bug-report', {
+    /**
+     * The report RPCs of the room with any name, called from inside the Worker over a real Durable Object stub as the report coordinator calls them.
+     * Each resolves to what crossed back, or rejects with the message the room threw.
+     */
+    reportRoom(name: string): NativeReportRoom {
+      const call = async (method: keyof NativeReportRoom, args: unknown[]) => {
+        const response = await this.object(gameId, '/native-test/report-rpc', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(call),
+          body: JSON.stringify({ room: name, method, args }),
         });
-      return fixtureJson<{ ok: true; result: string | null } | { ok: false; message: string }>(response);
+        const outcome = await fixtureJson<{ ok: true; result: string | null } | { ok: false; message: string }>(
+          response
+        );
+        if (!outcome.ok) {
+          throw new Error(outcome.message);
+        }
+        return outcome.result;
+      };
+      return {
+        captureBugReport: async (...args) => (await call('captureBugReport', args)) as string,
+        finishBugReport: async (...args) => {
+          await call('finishBugReport', args);
+        },
+      };
     },
     fetch(path: string, init?: RequestInit<Partial<IncomingRequestCfProperties>>) {
       return instance.dispatchFetch(`${origin}${path}`, init);

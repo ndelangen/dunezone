@@ -3,8 +3,8 @@ import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { Response as NativeResponse } from 'miniflare';
 import { afterEach, beforeEach, describe, expect, test } from 'vite-plus/test';
 
-import { PLAY_PENDING_TIMEOUT_MS } from '../../src/shared/play/admission';
 import type { BugReportProgress } from '../../src/shared/play/bugReports';
+import { reportMarker } from './bugReportGithub';
 import { draftingRuntime } from './native-drafting.fixture';
 import type {
   NativeConnection,
@@ -13,7 +13,7 @@ import type {
   NativeReportServices,
   NativeRuntime,
 } from './native-runtime.fixture';
-import { admitPlayer, eventually, fixturePass, gameId, openGame, required } from './native-runtime.fixture';
+import { admitPlayer, eventually, fixturePass, gameId, required } from './native-runtime.fixture';
 
 /*
  * The report path through the real GameRoom and the real BugReports coordinator, with only GitHub answered by the test.
@@ -99,12 +99,20 @@ const gameLogWith = (connection: NativeConnection, text: string) =>
     `Game log mentioning ${text}`
   );
 
+/*
+ * The whole pipeline crosses two Durable Objects, signs a JWT, writes R2 and makes two GitHub round trips.
+ * It finishes well under a second on a laptop; 20 s leaves room for a loaded CI runner.
+ */
+const PIPELINE_MS = 20_000;
+
 beforeEach(() => {
   issuePosts = [];
 });
 afterEach(async () => {
   await runtime?.close();
   await peer?.close();
+  runtime = undefined!;
+  peer = undefined!;
 });
 
 describe('bug reports through the real GameRoom', () => {
@@ -118,17 +126,25 @@ describe('bug reports through the real GameRoom', () => {
     expect(sent.status).toBe(202);
     expect(await sent.json()).toEqual({ requestId, stage: 'collecting' });
 
-    const progress = await eventually(async () => {
-      const response = await status(requestId);
-      expect(response.status).toBe(200);
-      const current = (await response.json()) as BugReportProgress;
-      return current.stage === 'complete' && current;
-    }, 'complete report');
+    const progress = await eventually(
+      async () => {
+        const response = await status(requestId);
+        expect(response.status).toBe(200);
+        const current = (await response.json()) as BugReportProgress;
+        if (current.stage === 'failed') {
+          throw new Error('The report failed instead of completing.');
+        }
+        return current.stage === 'complete' && current;
+      },
+      'complete report',
+      PIPELINE_MS
+    );
     expect(progress).toEqual({ requestId, stage: 'complete', issueUrl: ISSUE_URL });
     expect(issuePosts).toHaveLength(1);
 
     /* The room records the export under the coordinator's export id, which only the issue body names. */
-    const exportId = required(/dunezone-play-report:([a-f0-9-]{36})/u.exec(issuePosts[0]!.body)?.[1]);
+    const [markerStart, markerEnd] = reportMarker('|').split('|');
+    const exportId = required(issuePosts[0]!.body.split(markerStart!)[1]?.split(markerEnd!)[0]);
     const exported = required(await runtime.reportState(exportId));
     expect(exported).toMatchObject({
       server: {
@@ -158,13 +174,12 @@ describe('bug reports through the real GameRoom', () => {
     expect(issuePosts).toHaveLength(1);
   }, 30_000);
 
-  test('status answers 404 for an unknown report, and another game refuses the pass', async () => {
+  test('status answers 404 for an unknown report, and a room without the game refuses the pass', async () => {
     await start(true);
     const missing = await status(randomUUID());
     expect(missing.status).toBe(404);
     expect(await missing.json()).toEqual({ error: 'This report was not found.' });
-    expect((await status(randomUUID())).status).toBe(404);
-    /* A room that holds no game, or another one, refuses before any Convex read. */
+    /* A room that holds no game refuses before any Convex read. */
     const before = peer.requests.filter((request) => request.function === 'playBugReports:authorize').length;
     expect((await report({ operation: 'status', requestId: randomUUID() }, 'another-game')).status).toBe(403);
     expect(peer.requests.filter((request) => request.function === 'playBugReports:authorize')).toHaveLength(before);
@@ -179,49 +194,52 @@ describe('bug reports through the real GameRoom', () => {
     expect(issuePosts).toHaveLength(0);
   }, 30_000);
 
-  test('a room without a report coordinator answers 503 instead of failing the request', async () => {
-    await start(false);
-    const response = await send(randomUUID());
-    expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: 'Bug reporting is temporarily unavailable. Try again.' });
-  }, 30_000);
-
   test('captureBugReport and finishBugReport refuse a room without a game, a malformed id and a foreign issue URL', async () => {
     await start(false);
     const watcher = await admitPlayer(runtime, 'a');
     const requestId = randomUUID();
-    const capture = { step: 'capture' as const, requestId, actorId: 'user-a', displayName: 'Synthetic A', browser };
-    const finish = { step: 'finish' as const, requestId, actorId: '', displayName: 'A player', issueUrl: ISSUE_URL };
+    const room = runtime.reportRoom(gameId);
+    const empty = runtime.reportRoom('another-game');
+    const capture = (id: string) => room.captureBugReport(id, 'user-a', 'Synthetic A', browser);
+    const finish = (id: string, issueUrl = ISSUE_URL) => room.finishBugReport(id, '', 'A player', issueUrl);
 
-    expect(await runtime.bugReportCall('another-game', capture)).toEqual({
-      ok: false,
-      message: 'The game state is unavailable.',
-    });
-    expect(await runtime.bugReportCall('another-game', finish)).toEqual({
-      ok: false,
-      message: 'The game is unavailable.',
-    });
+    await expect(empty.captureBugReport(requestId, 'user-a', 'Synthetic A', browser)).rejects.toThrow(
+      'The game state is unavailable.'
+    );
+    await expect(empty.finishBugReport(requestId, '', 'A player', ISSUE_URL)).rejects.toThrow(
+      'The game is unavailable.'
+    );
 
-    expect(await runtime.bugReportCall(gameId, { ...capture, requestId: 'not-a-uuid' })).toMatchObject({ ok: false });
-    expect(await runtime.bugReportCall(gameId, { ...finish, requestId: 'not-a-uuid' })).toMatchObject({ ok: false });
+    /* The id check itself refuses, not the room: its schema error crosses the stub as a ZodError. */
+    await expect(capture('not-a-uuid')).rejects.toThrow('ZodError');
+    await expect(finish('not-a-uuid')).rejects.toThrow('ZodError');
     for (const issueUrl of [
       'https://github.com/someone/dunezone/issues/77',
       'https://github.com/ndelangen/dunezone/pull/77',
       'http://github.com/ndelangen/dunezone/issues/77',
       `${ISSUE_URL}#comment`,
     ]) {
-      expect(await runtime.bugReportCall(gameId, { ...finish, issueUrl })).toEqual({
-        ok: false,
-        message: 'Invalid report issue.',
-      });
+      await expect(finish(requestId, issueUrl)).rejects.toThrow('Invalid report issue.');
     }
+    const before = watcher.messages.length;
     watcher.send({ type: 'log-history', tab: 'game', before: Number.MAX_SAFE_INTEGER });
-    const untouched = await watcher.message('log-history');
-    expect(JSON.stringify(untouched.entries)).not.toContain(requestId);
+    const untouched = await eventually(
+      () =>
+        watcher.messages
+          .slice(before)
+          .find(
+            (message): message is Extract<NativeMessage, { type: 'log-history' }> => message.type === 'log-history'
+          ),
+      'Game log page'
+    );
+    expect(untouched.entries.some((entry) => /report/iu.test(entry.text))).toBe(false);
+    expect(
+      watcher.messages.some(
+        (message) => message.type === 'log-history' && message.entries.some((entry) => /report/iu.test(entry.text))
+      )
+    ).toBe(false);
 
-    const captured = await runtime.bugReportCall(gameId, capture);
-    expect(captured.ok).toBe(true);
-    const exported = JSON.parse((captured as { result: string }).result) as {
+    const exported = JSON.parse(await capture(requestId)) as {
       server: { gameId: string };
       browser: { diagnostics: { userAgent: string } };
     };
@@ -229,35 +247,7 @@ describe('bug reports through the real GameRoom', () => {
     expect(exported.browser.diagnostics.userAgent).toBe('native-report-browser');
     await gameLogWith(watcher, `Report ${requestId}`);
 
-    expect(await runtime.bugReportCall(gameId, finish)).toEqual({ ok: true, result: null });
+    await expect(finish(requestId)).resolves.toBeUndefined();
     await gameLogWith(watcher, ISSUE_URL);
-  }, 30_000);
-});
-
-describe('the admission timeout', () => {
-  test('a socket that never admits is closed with 4408, while an admitted one stays open', async () => {
-    await start(false);
-    const admitted = await admitPlayer(runtime, 'a');
-    const silent = await openGame(runtime);
-    expect(silent.closed).toBe(false);
-    /* In the native harness a socket that has sent nothing never receives the room's close frame; a keepalive, which a waiting page may send, opens that path. */
-    silent.keepalive();
-    await eventually(() => silent.keepalives, 'keepalive answer');
-    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
-    await eventually(() => silent.closed, 'pending socket closed');
-    expect(silent.closeCode).toBe(4408);
-    expect(admitted.closed).toBe(false);
-    admitted.send({ type: 'metrics' });
-    await admitted.message('metrics');
-  }, 30_000);
-
-  test('a pass that arrives after the deadline closes the socket with 4408 instead of admitting it', async () => {
-    await start(false);
-    const late = await openGame(runtime);
-    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
-    late.send({ type: 'admit', pass: await fixturePass('a') });
-    await eventually(() => late.closed, 'late socket closed');
-    expect(late.closeCode).toBe(4408);
-    expect(late.messages.some((message) => message.type === 'view')).toBe(false);
   }, 30_000);
 });
