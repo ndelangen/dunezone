@@ -112,6 +112,13 @@ function PrivacyPage() {
                 when you leave a seat. Channels are deleted 24 hours after the game ends or after 14 days without game
                 activity.
               </Text>
+              <Text>
+                In a game with Discord voice, a message containing only another player&apos;s faction or display name,
+                optionally preceded by @ or /nudge, can mention them in the voice channel&apos;s text chat. They need a
+                connected Discord account to receive the mention. We send the waiting faction&apos;s name and the game
+                name, never the conversation itself. Each seat can receive at most one ping every five minutes. Discord
+                controls notification delivery through each player&apos;s settings.
+              </Text>
             </Stack>
           </Section>
 

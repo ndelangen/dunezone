@@ -3,6 +3,7 @@ import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { discordConfiguration } from './discordRest';
+import { discordEnabled } from './discordStatus';
 
 export const DISCORD_DAY = 24 * 60 * 60_000;
 export const DISCORD_BATCH = 32;
@@ -26,6 +27,7 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
   const config = discordConfiguration();
   if (
     !config ||
+    !(await discordEnabled(ctx)) ||
     game.discord_voice !== true ||
     game.fixture_key !== undefined ||
     !game.ruleset_id ||
@@ -46,8 +48,23 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
   await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId });
 }
 
+/** Manual retirement uses the same durable deletion path as an expired game channel. */
+export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
+  await ctx.db.patch(channel._id, {
+    state: 'deleting',
+    cleanup_at: Date.now(),
+    next_attempt_at: Date.now(),
+    invite_url: undefined,
+    error: undefined,
+  });
+  await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });
+}
+
 /** Only accepted directory deliveries update the room's cleanup deadline. */
 export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>) {
+  if (game.discord_voice !== true) {
+    return;
+  }
   const channel = await discordChannel(ctx, game._id);
   if (!channel || channel.state === 'deleted' || channel.state === 'deleting') {
     return;

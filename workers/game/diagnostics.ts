@@ -8,6 +8,7 @@ type Operation =
   | 'confirmation'
   | 'battle-alarm'
   | 'directory'
+  | 'nudge'
   | 'fixture-deck'
   | 'account-deletion'
   | 'session-cutoff'
