@@ -117,7 +117,7 @@ component's states and the `migration_runs` rows for pruned ids as history, and 
 shows only the ids the code still lists.
 The migrations that rebuild tables the snapshot leaves out (statistics, catalogue entries, profile
 discovery and activity, faction cards, board readiness, the publication queue) stay, because every
-load needs them. The 4 November 2026 cleanup removed 38 such one-offs, and the 5 November one 12 more. `convex/migrations.snapshotReplay.test.ts` replays the manifest
+load needs them. The 4 November 2026 cleanup removed 38 such one-offs, and the 5 November one 12 more, and the 10 November one the emblem, Arrakis and queue-order families (29 ids and 3 narrow entries). `convex/migrations.snapshotReplay.test.ts` replays the manifest
 over rows in their migrated shape, with a row for every deck cardback mode and every token back
 mode. Those rows are keyed by mode, so a mode added to either union fails
 typecheck until the test has a row that wears it.
@@ -179,16 +179,9 @@ bun run migrations:static-check
 
 - Migrations live in [`convex/migrations.ts`](../convex/migrations.ts) and, since it reached its size limit,
   in [`convex/catalogueMigrations.ts`](../convex/catalogueMigrations.ts) for newer catalogue backfills and
-  [`convex/emblemMigrations.ts`](../convex/emblemMigrations.ts) for the November 2026 emblem rename, and
-  [`convex/arrakisMigrations.ts`](../convex/arrakisMigrations.ts) for the move off the built-in Arrakis map
-  and the removal of the Spice `highlights` list (#1971). That removal takes three releases: the field became
-  optional, then `arrakis_spice_highlights_strip_v1` and its two verifies clear it from cards and queued
-  captures, then `spice_highlights_narrow`, requiring all three, removed it from the schema. The Spice card
-  move read that list, so its body became a no-op; its verify checked that every live card links a board,
-  which no longer holds since a card may be saved without one, so it checks nothing. Both ids stay until a
-  weekly snapshot is cut after 5 November 2026, then they can be pruned. A snapshot cut before that still
-  holds cards whose highlight list names territories, which the strip keeps and its verify refuses; load
-  `--data=fixture` or a newer `--snapshot-file` instead.
+  [`convex/publicationMigrations.ts`](../convex/publicationMigrations.ts) for the publication queue listings.
+  A new module for a one-off family (the November 2026 emblem rename and Arrakis move each had one) is
+  deleted once all its ids are pruned.
   All share the one migrations component and `MIGRATION_IDS`, which spreads each module's own ID map, so the
   guard script runs them alike. The `migrations:run` runner only prefixes `migrations:`, so name a migration in
   another module in full by hand, e.g. `{"fn":"catalogueMigrations:catalogue_entries_rulesets_v1"}`.
@@ -236,7 +229,7 @@ Workers and open tabs one release behind, whose decoders are strict. The emblem 
    `src/app/db/core`, the game Worker's HTTP client, the publisher's executor client and the
    capture page) read answers under the next names back to the current ones, and the publisher
    Worker served `/vector/emblem/*` from `/vector/logo/`. No data changed.
-2. **Rename and migrate.** Code, UI and artwork move to the new names; `emblemMigrations.ts`
+2. **Rename and migrate.** Code, UI and artwork move to the new names; `emblemMigrations.ts` (since pruned)
    rewrites every stored row, `faction_cards_v2` rebuilds the cards under
    `FACTION_CARD_PROJECTION` 2, and the verify migrations fail the deploy while any row still holds
    an old name. The reader from step 1 is removed in the same release.
@@ -245,8 +238,7 @@ What stays after the rename, because some copies can never be rewritten (game ca
 Object storage, published rulebook HTML, rulebook Contents in content packages exported before it):
 
 - `renameLegacyEmblems` at the stored roots that can meet such a copy (`legacyEmblemKeyed` in
-  `src/shared/legacyEmblem.ts`): publication payloads, game captures, draft rulebook Contents and asset writes (raw JSON
-  and content packages). The artwork
+  `src/shared/legacyEmblem.ts`): game captures and rulebook Contents. The artwork
   enums take the new names only. Never wrap a schema a Convex validator is derived from: the
   derived validator becomes `v.any()`.
 - The publisher Worker's `/vector/logo/*` route, which answers with the renamed file and never
@@ -257,13 +249,15 @@ may become no-ops with their ids kept (snapshot replay), and the readers over ro
 rewrote can go back to the exact schemas. `CanonicalFactionStoredObject` (Convex reads) and the save schema
 (`FactionWriteSchema`) went exact on 4 November 2026, so a tab older than the rename can no longer
 save a faction. Faction imports (raw JSON and content packages) went exact on 5 November 2026, so a
-faction file exported before the renames no longer imports.
+faction file exported before the renames no longer imports. The emblem migrations were pruned after
+the 9 November 2026 snapshot; Convex readers of Editions and publication payloads, and asset writes and
+imports, went exact with them.
 The readers above, for copies outside Convex, and the `/vector/logo/*` route stay. The
 `discovery_presets` and `cardback_presets` validators, which list every stock artwork path, are
 widened to `v.any()` for the artwork fields in the rename release, because a strict validator
 refuses the deploy while rows still name `/vector/logo/`. They were narrowed back in the next
 release, after both verify migrations succeeded in production, behind the
-`emblem_rename_presets_narrow` guard entry. A snapshot cut before the rename (the weekly one before
+`emblem_rename_presets_narrow` guard entry (pruned with the rename on 10 November 2026). A snapshot cut before the rename (the weekly one before
 9 November 2026) can hold preset rows the narrowed validators refuse, because `--data=snapshot`
 imports before the deploy that would migrate them; load `--data=fixture` or a newer
 `--snapshot-file` instead.

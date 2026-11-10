@@ -3,11 +3,10 @@ import { z } from 'zod';
 /*
  * The glossary term is "Emblem" (see src/shared/glossary/terms.ts).
  * Until November 2026 the code called it a logo: factions stored it under a `logo` key, and the stock artwork lived under `/vector/logo/`.
- * The `emblem_rename_*` migrations (convex/emblemMigrations.ts) rewrite what Convex stores, but some copies cannot be rewritten:
- * game captures in Durable Object storage, published rulebook HTML, and rulebook Contents in content packages exported before the rename.
- * Faction files are not among them: a faction import takes the new names only.
+ * Migrations rewrote everything Convex stores (production finished them on 3 to 4 November 2026), so Convex rows, asset writes and faction or asset imports take the new names only.
+ * Some copies cannot be rewritten: game captures in Durable Object storage, published rulebook HTML, and rulebook Contents in content packages exported before the rename.
  * So every decoder of such a copy reads it through `renameLegacyEmblems`, at the root of what it stores (`legacyEmblemKeyed`), and `/vector/logo/` keeps being served.
- * The decoders inside stay exact: the rename is one walk at the root, the same one the migration runs, so the two cannot drift.
+ * The decoders inside stay exact: the rename is one walk at the root, so a nested decoder cannot drift from it.
  */
 
 /** Where the stock emblems lived before the rename. */

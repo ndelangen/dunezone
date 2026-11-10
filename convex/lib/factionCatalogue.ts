@@ -60,7 +60,7 @@ export function toCatalogueFaction(row: Doc<'factions'>, rulesets: FactionRulese
  * Production never reruns a finished migration, so a change to that output leaves every existing card stale until its faction is saved again.
  * Such a change bumps this number and ships a new `faction_cards_v*` migration id that rewrites every card; until then a reader falls back to the faction for a card of another version.
  */
-/* 2: the emblem rename (`faction_cards_v2`). */
+/* 2: the emblem rename, rebuilt in production by `faction_cards_v2`; `faction_cards_v1` rebuilds at the current version on a snapshot replay, so the next bump ships `faction_cards_v3`. */
 export const FACTION_CARD_PROJECTION = 2;
 
 /**

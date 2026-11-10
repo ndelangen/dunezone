@@ -71,10 +71,14 @@ describe('decoders of stored data', () => {
     expect(capture).not.toHaveProperty('logo');
   });
 
-  test('read a capture job queued before the rename as the payload it stands for', () => {
+  test('refuse the old names from capture jobs, which production rewrote', () => {
     const background = assetPublishingFaction.background;
-    expect(parsePublicationAssetData('faction-token', { logo: '/vector/logo/atreides.svg', background })).toEqual(
-      parsePublicationAssetData('faction-token', { emblem: '/vector/emblem/atreides.svg', background })
-    );
+    expect(() =>
+      parsePublicationAssetData('faction-token', { logo: '/vector/logo/atreides.svg', background })
+    ).toThrow();
+    expect(parsePublicationAssetData('faction-token', { emblem: '/vector/emblem/atreides.svg', background })).toEqual({
+      emblem: '/vector/emblem/atreides.svg',
+      background,
+    });
   });
 });
