@@ -48,6 +48,8 @@ export const prepare = internalMutation({
     }
     const from = game.directory?.seats.find((seat) => seat.seat === args.fromSeat);
     const target = game.directory?.seats.find((seat) => seat.seat === args.toSeat);
+    const senderId = from ? ctx.db.normalizeId('users', from.userId) : null;
+    const sender = senderId ? await canonicalAccount(ctx, senderId) : null;
     const userId = target ? ctx.db.normalizeId('users', target.userId) : null;
     const account = userId ? await canonicalAccount(ctx, userId) : null;
     const channel = await discordChannel(ctx, game._id);
@@ -56,6 +58,9 @@ export const prepare = internalMutation({
       from.userId !== args.fromUserId ||
       from.faction.id !== args.fromFactionId ||
       target?.userId !== args.toUserId ||
+      !sender ||
+      sender.isAnonymous ||
+      accountStateOf(sender) !== 'active' ||
       !account ||
       account.isAnonymous ||
       accountStateOf(account) !== 'active' ||

@@ -18,7 +18,8 @@ summary to publish. Conversation text stays in the Worker, and a failed call doe
 schedule another attempt.
 
 Convex checks the game's credential, live state, voice setting and channel, then resolves the current
-seat occupants and the target's linked Discord account. Its rate limiter is the only cooldown
+seat occupants and the target's linked Discord account. Both sender and recipient must resolve to
+active, nonanonymous accounts, including through merge aliases. Its rate limiter is the only cooldown
 authority: one nudge per target seat every five minutes. Linking Discord identifies a mention target;
 it does not control voice access. Convex compares those identities with its current directory seats
 and drops mismatches, so a late seat update cannot mention the previous occupant. Activity-only
@@ -108,9 +109,11 @@ The first release stops all nudge-table writes and leaves the legacy schema in p
 `discordNudgeMigrations:retire` migration deletes only rows in `play_game_discord_nudges`, in batches
 of 100. It runs only after approval of that production cleanup; it is deliberately absent from the
 automatic migration manifest until then. `discordNudgeMigrations:verifyRetired` proves the table is
-empty. Keep its snapshot-policy and provisioning-contract entries during this compatibility window.
+empty. The dashboard returns an empty legacy `nudgeErrors` array so older admin tabs keep working.
+Keep its snapshot-policy and provisioning-contract entries during this compatibility window.
 
 After the new Worker has deployed and the approved retirement has finished, a separate narrowing
-release removes the table, those entries and the temporary migration module. Deleting these delivery
-records does not affect games, seats, linked accounts or voice channels. The records are disposable;
+release removes the table, those entries, the dashboard compatibility field and the temporary
+migration module. Deleting these delivery records does not affect games, seats, linked accounts or
+voice channels. The records are disposable;
 recovery means fixing forward while nudges continue as best-effort requests, not replaying old pings.

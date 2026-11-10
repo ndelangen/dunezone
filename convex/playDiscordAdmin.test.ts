@@ -180,7 +180,38 @@ test('inventory reports cleanup deadlines', async () => {
   });
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
   expect(page.channels.page[0]).toMatchObject({ state: 'creating', cleanup_at: 42 });
-  expect(page).not.toHaveProperty('nudgeErrors');
+  /* The previous admin UI reads issues.length and maps the field without guarding its presence. */
+  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
+});
+
+test('old admin consumers receive an empty delivery list while legacy records await retirement', async () => {
+  const { t, admin } = await setup();
+  await t.run(async (ctx) => {
+    const gameId = await ctx.db.insert('play_games', {
+      name: 'Retired delivery',
+      slug: 'retired-delivery',
+      state: 'ready',
+      secret: 'secret',
+      attempt_id: 'attempt',
+      created_at: 0,
+      provision_expires_at: 0,
+    });
+    await ctx.db.insert('play_game_discord_nudges', {
+      game_id: gameId,
+      to_seat: 'seat-1',
+      nudge_id: 'legacy',
+      from_faction_name: 'Atreides',
+      at: Date.now(),
+      state: 'failed',
+      attempts: 1,
+      error: 'Legacy failure',
+    });
+  });
+  const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
+  expect(page.nudgeErrors.length).toBe(0);
+  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
+  expect(await t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(2))).toHaveLength(1);
 });
 
 test('inventory reports an empty-voice wait only for hourly-eligible channels', async () => {

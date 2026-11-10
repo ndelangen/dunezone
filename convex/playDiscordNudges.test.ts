@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { ACCOUNT_STATES } from './lib/accountLifecycle';
 import { DiscordRest } from './lib/discordRest';
 import { configureDiscord } from './playDiscord.test.fixture';
 import { nudgeWorld } from './playDiscordNudges.test.fixture';
@@ -213,3 +214,55 @@ test.each(['user', 'shared'] as const)(
     expect(world.fetch).toHaveBeenCalledTimes(2);
   }
 );
+
+/* This table also covers bans when the account-ban release adds its state. */
+test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
+  'a sender changed to %s after the directory snapshot cannot nudge or consume quota',
+  async (state) => {
+    const world = await nudgeWorld();
+    await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: state }));
+    expect(await world.publishNudge()).toEqual({ ok: true });
+    expect(world.fetch).not.toHaveBeenCalled();
+    await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }));
+    await world.publishNudge();
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+  }
+);
+
+test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
+  'an alias whose canonical sender is %s cannot nudge or consume quota',
+  async (state) => {
+    const world = await nudgeWorld();
+    const aliasId = await world.t.run(async (ctx) => {
+      const aliasId = await ctx.db.insert('users', {
+        name: 'Old sender',
+        account_state: 'merge_pending',
+        merged_into_user_id: world.spectator.userId,
+      });
+      const game = (await ctx.db.get(world.gameId))!;
+      await ctx.db.patch(world.gameId, {
+        directory: {
+          ...game.directory!,
+          seats: game.directory!.seats.map((seat) => (seat.seat === 'seat-2' ? { ...seat, userId: aliasId } : seat)),
+        },
+      });
+      await ctx.db.patch(world.spectator.userId, { account_state: state });
+      return aliasId;
+    });
+    expect(await world.publishNudge({ fromUserId: aliasId })).toEqual({ ok: true });
+    expect(world.fetch).not.toHaveBeenCalled();
+    await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }));
+    await world.publishNudge({ fromUserId: aliasId });
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+  }
+);
+
+test('an anonymous sender cannot nudge or consume quota', async () => {
+  const world = await nudgeWorld();
+  await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: true }));
+  await world.publishNudge();
+  expect(world.fetch).not.toHaveBeenCalled();
+  await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: false }));
+  await world.publishNudge();
+  expect(world.fetch).toHaveBeenCalledTimes(1);
+});
