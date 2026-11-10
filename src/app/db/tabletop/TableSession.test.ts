@@ -126,9 +126,8 @@ async function connected(identity = viewer) {
   return client;
 }
 
-test('a nudge is sent once and is not replayed on reconnect', async () => {
-  const client = await connected();
-  const snapshot: GameSnapshot = {
+function nudgeSnapshot(): GameSnapshot {
+  return {
     ...initialSnapshot(),
     stage: 'play',
     roster: {
@@ -138,7 +137,25 @@ test('a nudge is sent once and is not replayed on reconnect', async () => {
         { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#fff' } },
       ],
     },
+    controls: {
+      seats: ['harkonnen', 'atreides'],
+      ready: [],
+      phaseChangedAt: 0,
+      requests: [],
+      seatRequests: [],
+      players: [
+        { seat: 'harkonnen', name: 'One', avatar: null, slug: null },
+        { seat: 'atreides', name: 'Two', avatar: null, slug: null },
+      ],
+      spectators: [],
+      guests: 0,
+    },
   };
+}
+
+test('a nudge is sent once and is not replayed on reconnect', async () => {
+  const client = await connected();
+  const snapshot = nudgeSnapshot();
   authorize(snapshot);
   expect(client.nudge('atreides')).toBe(true);
   expect(socket().sent.filter((message) => message.type === 'nudge')).toEqual([
@@ -170,19 +187,26 @@ test('a nudge is sent once and is not replayed on reconnect', async () => {
   expect(socket().sent.filter((message) => message.type === 'nudge')).toEqual([]);
 });
 
+test.each(['sender', 'target', 'vacant target'] as const)(
+  'nudge eligibility with a %s missing a faction or seat',
+  async (missing) => {
+    const client = await connected();
+    const snapshot = nudgeSnapshot();
+    if (missing === 'vacant target') {
+      snapshot.controls!.players = snapshot.controls!.players.filter((player) => player.seat !== 'atreides');
+    } else {
+      const seat = missing === 'sender' ? 'harkonnen' : 'atreides';
+      snapshot.roster!.seats.find((candidate) => candidate.id === seat)!.faction = null;
+    }
+    authorize(snapshot);
+    expect(client.nudge('atreides')).toBe(missing === 'target');
+    expect(socket().sent.filter((message) => message.type === 'nudge')).toHaveLength(missing === 'target' ? 1 : 0);
+  }
+);
+
 test('spectators and players in recall cannot nudge', async () => {
   const client = await connected({ ...viewer, viewerSeat: 'neutral' });
-  const snapshot: GameSnapshot = {
-    ...initialSnapshot(),
-    stage: 'play',
-    roster: {
-      seatCount: 2,
-      seats: [
-        { id: 'harkonnen', position: 0, faction: { id: 'harkonnen', name: 'Harkonnen', color: '#fff' } },
-        { id: 'atreides', position: 1, faction: { id: 'atreides', name: 'Atreides', color: '#fff' } },
-      ],
-    },
-  };
+  const snapshot = nudgeSnapshot();
   authorize(snapshot, { ...viewer, viewerSeat: 'neutral' });
   expect(client.nudge('atreides')).toBe(false);
   authorize({

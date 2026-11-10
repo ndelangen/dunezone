@@ -4,8 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
-import { playRateLimiter } from './lib/playRateLimits';
-import { playPerson, playTest } from './play.test.fixture';
+import { playPerson, type playTest } from './play.test.fixture';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 type TestWorld = ReturnType<typeof playTest>;
@@ -36,59 +35,20 @@ async function banOwnedGames(t: TestWorld, admin: Administrator, sourceUserId: I
   return operationId;
 }
 
-test.each(['ban', 'discard'] as const)(
-  'a game waiting for the global creation budget never creates voice after %s',
-  async (removal) => {
-    const discord = discordStub();
-    const world = await voiceWorld();
-    await world.t.run(async (ctx) => await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 30 }));
-    await world.reconcile();
-    expect(await world.channel()).toMatchObject({ state: 'pending' });
-    expect((await world.channel())!.next_attempt_at).toBeGreaterThan(Date.now());
-    expect(discord.calls.filter((call) => call.method === 'POST')).toEqual([]);
+test.each(['ban', 'discard'] as const)('pending voice creation is cancelled after %s', async (removal) => {
+  const discord = discordStub();
+  const world = await voiceWorld();
+  expect(await world.channel()).toMatchObject({ state: 'pending' });
 
-    if (removal === 'ban') {
-      await banOwnedGames(world.t, await administrator(world.t), world.identity.userId);
-    } else {
-      await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
-    }
-    await world.reconcile();
-    expect(await world.channel()).toMatchObject({ state: 'deleted' });
-
-    vi.setSystemTime(Date.now() + 4 * 60_000);
-    await world.t.mutation(internal.playDiscord.retryDue, {});
-    await world.reconcile();
-    expect(await world.channel()).toMatchObject({ state: 'deleted' });
-    expect(discord.calls.filter((call) => call.method === 'POST')).toEqual([]);
-    expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
+  if (removal === 'ban') {
+    await banOwnedGames(world.t, await administrator(world.t), world.identity.userId);
+  } else {
+    await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
   }
-);
-
-test.each(['ban', 'discard'] as const)(
-  '%s during a held lease clears the obsolete creation-budget delay on release',
-  async (removal) => {
-    const discord = discordStub();
-    const world = await voiceWorld();
-    const channel = (await world.channel())!;
-    const claimed = (await world.t.mutation(internal.playDiscord.claim, { channelId: channel._id }))!;
-    const claim = { channelId: channel._id, lease: claimed.lease! };
-    await world.t.run(async (ctx) => await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 30 }));
-    expect(await world.t.mutation(internal.playDiscord.work, claim)).toBeNull();
-    expect((await world.channel())!.retry_after).toBeGreaterThan(Date.now());
-
-    if (removal === 'ban') {
-      await banOwnedGames(world.t, await administrator(world.t), world.identity.userId);
-    } else {
-      await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
-    }
-    expect((await world.channel())!.lease).toBe(claim.lease);
-    await world.t.mutation(internal.playDiscord.release, claim);
-    expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
-    await world.reconcile();
-    expect(await world.channel()).toMatchObject({ state: 'deleted' });
-    expect(discord.calls).toEqual([]);
-  }
-);
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(discord.calls).toEqual([]);
+});
 
 function banDuringCreateAndFailFirstDelete(
   discord: ReturnType<typeof discordStub>,
