@@ -21,7 +21,14 @@ import arrakisOfficialGeometry from '../../../shared/rulebooks/fixtures/arrakis-
 import { rulesetInputSchema } from '../../../shared/rulesets/validation';
 import { slugify } from '../../../shared/slugify';
 import { SEED_REF_TOKEN } from './protocol';
-import type { SeedDocument, SeedReference, WithSeedReferences, WorkerIdentity } from './protocol';
+import type {
+  SeedDocument,
+  SeedInsertDocument,
+  SeedPatch,
+  SeedReference,
+  WithSeedReferences,
+  WorkerIdentity,
+} from './protocol';
 
 const STORY_TIME = '2026-01-01T12:00:00.000Z';
 const VIEWER_KEY = 'storybook-viewer';
@@ -29,9 +36,15 @@ const GROUP_KEY = 'group:arrakeen-rules-council';
 const RULESET_KEY = 'ruleset:classicrules';
 const FACTION_KEY = 'faction:house-atreides';
 
-export type StorybookRow<TableName extends TableNames> = WithSeedReferences<WithoutSystemFields<Doc<TableName>>> & {
-  $key?: string;
-};
+export type StorybookRow<TableName extends TableNames> = WithSeedReferences<WithoutSystemFields<Doc<TableName>>> &
+  (
+    | { $key?: string; $patch?: undefined }
+    | {
+        $key: string;
+        /** Applied after all rows exist, for optional relationships that point back to their source. */
+        $patch: Partial<WithSeedReferences<WithoutSystemFields<Doc<TableName>>>>;
+      }
+  );
 
 export type StorybookDatabase = {
   [TableName in TableNames]: StorybookRow<TableName>[];
@@ -346,7 +359,7 @@ function validateReferences(database: StorybookDatabase, keys: Set<string>) {
   }
 }
 
-function validateDomainRows(database: StorybookDatabase) {
+function validateDomainRows(database: Pick<StorybookDatabase, 'factions' | 'rulesets' | 'assets'>) {
   for (const row of database.factions) {
     FactionInputSchema.parse(row.data);
     FactionRowSlugSchema.parse(row.slug);
@@ -364,15 +377,24 @@ function validateDomainRows(database: StorybookDatabase) {
   }
 }
 
+function patchedRows<Row extends { $patch?: object }>(rows: Row[]): Row[] {
+  return rows.filter((row) => row.$patch).map((row) => ({ ...row, ...row.$patch }));
+}
+
 function validateDatabase(database: StorybookDatabase) {
   const keys = collectKeys(database);
   validateReferences(database, keys);
   validateDomainRows(database);
+  validateDomainRows({
+    factions: patchedRows(database.factions),
+    rulesets: patchedRows(database.rulesets),
+    assets: patchedRows(database.assets),
+  });
 }
 
-function orderSeedDocuments(documents: SeedDocument[]) {
+function orderSeedDocuments(documents: SeedInsertDocument[]) {
   const pending = [...documents];
-  const ordered: SeedDocument[] = [];
+  const ordered: SeedInsertDocument[] = [];
   const resolved = new Set<string>();
   while (pending.length > 0) {
     const readyIndex = pending.findIndex((document) => {
@@ -396,14 +418,21 @@ function orderSeedDocuments(documents: SeedDocument[]) {
 
 function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
   validateDatabase(database);
-  const documents: SeedDocument[] = [];
+  const documents: SeedInsertDocument[] = [];
+  const patches: SeedPatch[] = [];
   for (const [table, rows] of Object.entries(database) as Array<[TableNames, Array<StorybookRow<TableNames>>]>) {
     for (const row of rows) {
-      const { $key: key, ...value } = row;
-      documents.push({ key, table, value } as SeedDocument);
+      const { $key: key, $patch: patch, ...value } = row;
+      documents.push({ key, table, value } as SeedInsertDocument);
+      if (patch) {
+        if (!key) {
+          throw new Error('A Storybook database $patch requires a row $key.');
+        }
+        patches.push({ operation: 'patch', key, table, value: patch } as SeedPatch);
+      }
     }
   }
-  return orderSeedDocuments(documents);
+  return [...orderSeedDocuments(documents), ...patches];
 }
 
 /*

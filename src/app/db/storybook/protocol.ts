@@ -22,14 +22,28 @@ export type WithSeedReferences<Value> =
           : Value;
 
 export type SeedDocumentFor<TableName extends TableNames> = {
+  operation?: 'insert';
   key?: string;
   table: TableName;
   value: WithSeedReferences<WithoutSystemFields<Doc<TableName>>>;
 };
 
-export type SeedDocument = {
+export type SeedInsertDocument = {
   [TableName in TableNames]: SeedDocumentFor<TableName>;
 }[TableNames];
+
+export type SeedPatchFor<TableName extends TableNames> = {
+  operation: 'patch';
+  key: string;
+  table: TableName;
+  value: Partial<WithSeedReferences<WithoutSystemFields<Doc<TableName>>>>;
+};
+
+export type SeedPatch = {
+  [TableName in TableNames]: SeedPatchFor<TableName>;
+}[TableNames];
+
+export type SeedDocument = SeedInsertDocument | SeedPatch;
 
 export type WorkerIdentity = {
   name?: string;

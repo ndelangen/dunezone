@@ -109,7 +109,7 @@ describe('Ban game cleanup', () => {
     }));
     expect(state.hosted).toMatchObject({ state: 'expired', ban_operation_id: operationId });
     expect(state.joined?.state).toBe('ready');
-    expect(state.channel).toMatchObject({ state: 'deleting' });
+    expect(state.channel).toMatchObject({ state: 'deleting', ban_operation_id: operationId });
     expect(state.channel?.invite_url).toBeUndefined();
     expect(state.events).toHaveLength(1);
     expect(state.events[0]).toMatchObject({ ban_retirement: true, state: 'pending' });
@@ -160,7 +160,10 @@ describe('Ban game cleanup', () => {
         await ctx.db.delete(row._id);
       }
     });
-    expect(await t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId })).toEqual({ done: false });
+    expect(await t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId })).toEqual({
+      done: false,
+      retryAt: Date.now(),
+    });
     const event = await t.run(async (ctx) => (await ctx.db.query('play_account_deletions').first())!);
     expect(event).toMatchObject({ game_id: hostedIds[0], ban_retirement: true, state: 'pending' });
   });
@@ -168,13 +171,13 @@ describe('Ban game cleanup', () => {
   test('requires both fanouts and acknowledgements before completion, across persisted cursors', async () => {
     const { t, operationId, hostedIds, joinedIds } = await fixture({ hosted: 35, joined: 35 });
     const batch = () => t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId });
-    expect(await batch()).toEqual({ done: false });
+    expect(await batch()).toEqual({ done: false, retryAt: Date.now() });
     const first = await t.run(async (ctx) => await ctx.db.get(operationId));
     expect(first).toMatchObject({ ban_games_queued: false, ban_accounts_queued: false });
     expect(first?.ban_games_cursor).toBeTruthy();
     expect(first?.ban_accounts_cursor).toBeUndefined();
     for (let page = 0; page < 5; page += 1) {
-      expect(await batch()).toEqual({ done: false });
+      expect(await batch()).toEqual({ done: false, retryAt: Date.now() });
     }
     expect(await t.run(async (ctx) => await ctx.db.get(operationId))).toMatchObject({
       ban_games_queued: true,
@@ -197,6 +200,63 @@ describe('Ban game cleanup', () => {
     expect(await batch()).toEqual({ done: true });
     expect(await t.run(async (ctx) => await ctx.db.query('play_account_deletions').collect())).toHaveLength(70);
   });
+
+  test('waits for the earliest pending delivery retry once both fanouts finish', async () => {
+    const { t, operationId } = await fixture({ hosted: 2, joined: 0 });
+    const batch = () => t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId });
+    await batch();
+    await batch();
+    const events = await t.run(async (ctx) => await ctx.db.query('play_account_deletions').take(10));
+    const retryAt = Date.now() + 300_000;
+    await t.run(async (ctx) => {
+      await ctx.db.patch(events[0]!._id, { next_attempt_at: retryAt + 60_000 });
+      await ctx.db.patch(events[1]!._id, { attempts: 9, next_attempt_at: Date.now() });
+    });
+    await t.mutation(internal.playDeletion.claimDelivery, { eventId: events[1]!._id });
+    expect(await batch()).toEqual({ done: false, retryAt });
+    expect(await batch()).toEqual({ done: false, retryAt });
+    await t.run(async (ctx) => await ctx.db.patch(events[1]!._id, { state: 'acknowledged' }));
+    expect(await batch()).toEqual({ done: false, retryAt: retryAt + 60_000 });
+  });
+
+  test('continues fanout recovery promptly even when existing deliveries have backed off', async () => {
+    const { t, operationId } = await fixture({ hosted: 35, joined: 0 });
+    const batch = () => t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId });
+    await batch();
+    await t.run(async (ctx) => {
+      for (const event of await ctx.db.query('play_account_deletions').take(40)) {
+        await ctx.db.patch(event._id, { next_attempt_at: Date.now() + 300_000 });
+      }
+    });
+    expect(await batch()).toEqual({ done: false, retryAt: Date.now() });
+    expect(await t.run(async (ctx) => await ctx.db.get(operationId))).toMatchObject({ ban_games_queued: false });
+  });
+
+  test('bounds finalization checks when a delivery action was lost before claiming', async () => {
+    const { t, operationId } = await fixture({ hosted: 1, joined: 0 });
+    const batch = () => t.mutation(internal.playDeletion.applyBanGamesBatch, { operationId });
+    await batch();
+    await batch();
+    const event = await t.run(async (ctx) => (await ctx.db.query('play_account_deletions').first())!);
+    expect(event).toMatchObject({ attempts: 0, next_attempt_at: Date.now() });
+    expect(await batch()).toEqual({ done: false, retryAt: Date.now() });
+    vi.setSystemTime(Date.now() + 6000);
+    expect(await batch()).toEqual({ done: false, retryAt: Date.now() + 300_000 });
+    expect(await t.run(async (ctx) => await ctx.db.get(event._id))).toMatchObject({ attempts: 0 });
+  });
+
+  test.each(['deleting', 'deleted'] as const)(
+    'links an already %s Discord channel to the ban operation',
+    async (state) => {
+      const { t, operationId, channelId } = await fixture({ joined: 0 });
+      await t.run(async (ctx) => await ctx.db.patch(channelId!, { state }));
+      await t.mutation(internal.playDeletion.queueBanGames, { operationId });
+      expect(await t.run(async (ctx) => await ctx.db.get(channelId!))).toMatchObject({
+        state,
+        ban_operation_id: operationId,
+      });
+    }
+  );
 
   test('keeps retirement pending while removing more than one batch of player routing', async () => {
     const { t, operationId, hostedIds } = await fixture({ joined: 0 });

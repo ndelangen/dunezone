@@ -8,7 +8,7 @@ import type { WithoutSystemFields } from 'convex/server';
 import { convexToJson } from 'convex/values';
 import type { Value } from 'convex/values';
 
-import type { Doc, TableNames } from '../../../../convex/_generated/dataModel';
+import type { Doc, Id, TableNames } from '../../../../convex/_generated/dataModel';
 import type { DatabaseWriter, MutationCtx } from '../../../../convex/_generated/server';
 import { applicationTriggers } from '../../../../convex/lib/applicationTriggers';
 import schema from '../../../../convex/schema';
@@ -22,6 +22,7 @@ import type {
   ContextTraceEntry,
   SeedDocument,
   SeedDocumentFor,
+  SeedPatchFor,
   RollbackProbeResult,
   SchedulerProbeResult,
   WorkerIdentity,
@@ -136,15 +137,36 @@ async function insertDocument<TableName extends TableNames>(
   return await db.insert(document.table, value);
 }
 
+async function patchDocument<TableName extends TableNames>(
+  db: DatabaseWriter,
+  document: SeedPatchFor<TableName>,
+  references: Map<string, string>
+) {
+  const id = references.get(document.key);
+  if (!id) {
+    throw new Error(`Storybook database patch ${document.key} has no matching row.`);
+  }
+  const value = resolveSeedValue(document.value, references) as Partial<Doc<TableName>>;
+  await db.patch(document.table, id as Id<TableName>, value);
+}
+
 async function insertDocuments(world: World, documents: SeedDocument[], delay = 0) {
   await new Promise((resolve) => setTimeout(resolve, delay));
   await world.test.run(async (ctx) => {
     /* Seeds write through the application's triggers, so every read model a real write keeps is derived the same way here. */
     const wrapped = applicationTriggers.wrapDB(ctx as unknown as MutationCtx);
     for (const document of documents) {
+      if (document.operation === 'patch') {
+        continue;
+      }
       const id = await insertDocument(wrapped.db, document, world.references);
       if (document.key) {
         world.references.set(document.key, id);
+      }
+    }
+    for (const document of documents) {
+      if (document.operation === 'patch') {
+        await patchDocument(wrapped.db, document, world.references);
       }
     }
   });

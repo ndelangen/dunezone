@@ -100,8 +100,11 @@ async function queueBanGamesPage(ctx: MutationCtx, operation: Doc<'account_delet
   for (const game of page.page) {
     await ctx.db.patch(game._id, { state: 'expired', ban_operation_id: operation._id });
     const channel = await discordChannel(ctx, game._id);
-    if (channel && channel.state !== 'deleted' && channel.state !== 'deleting') {
-      await requestDiscordDeletion(ctx, channel);
+    if (channel) {
+      await ctx.db.patch(channel._id, { ban_operation_id: operation._id });
+      if (channel.state !== 'deleted' && channel.state !== 'deleting') {
+        await requestDiscordDeletion(ctx, channel);
+      }
     }
     /* A creator may never have opened the game, so retirement must not depend on an admission routing row. */
     await queueActorDeletion(ctx, game._id, operation.source_user_id, operation, true);
@@ -131,11 +134,11 @@ export const queueBanGames = internalMutation({
 /** Both persisted cursors can resume here after a failed fan-out; delivery retries remain in their existing queue. */
 export const applyBanGamesBatch = internalMutation({
   args: { operationId: v.id('account_deletion_operations') },
-  returns: v.object({ done: v.boolean() }),
+  returns: v.union(v.object({ done: v.literal(true) }), v.object({ done: v.literal(false), retryAt: v.number() })),
   handler: async (ctx, args) => {
     const operation = await ctx.db.get(args.operationId);
     if (!operation || operation.kind !== 'ban') {
-      return { done: true };
+      return { done: true as const };
     }
     /* Convex permits one paginated query per execution, so recovery advances one fan-out at a time. */
     if (!operation.ban_games_queued) {
@@ -144,11 +147,21 @@ export const applyBanGamesBatch = internalMutation({
       await queueDeletionPage(ctx, { operationId: operation._id, paginationOpts: { cursor: null, numItems: 32 } });
     }
     const updated = await ctx.db.get(operation._id);
+    if (updated?.ban_games_queued !== true || updated.ban_accounts_queued !== true) {
+      return { done: false as const, retryAt: Date.now() };
+    }
     const pending = await ctx.db
       .query('play_account_deletions')
-      .withIndex('by_operation_id_state', (q) => q.eq('operation_id', operation._id).eq('state', 'pending'))
+      .withIndex('by_operation_id_state_next_attempt_at', (q) =>
+        q.eq('operation_id', operation._id).eq('state', 'pending')
+      )
       .first();
-    return { done: updated?.ban_games_queued === true && updated.ban_accounts_queued === true && !pending };
+    if (!pending) {
+      return { done: true as const };
+    }
+    /* An action lost before claiming is repaired by retryDueDeletions. Do not poll it every five seconds. */
+    const retryAt = pending.next_attempt_at < Date.now() - 5000 ? Date.now() + 300_000 : pending.next_attempt_at;
+    return { done: false as const, retryAt };
   },
 });
 

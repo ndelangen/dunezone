@@ -63,7 +63,11 @@ Their addresses return the normal missing-game result, their rooms are retired, 
 channels enter the existing deletion queue. Participation in other games is scrubbed through the
 account-deletion delivery path. The admin page shows operation progress and offers Resume if a
 batch fails. Content cleanup waits for game retirement and participation acknowledgements; Discord
-retries continue independently through the existing channel queue.
+retries continue independently through the existing channel queue. The admin page reports pending
+Discord deletion separately from content completion, including after the ban is lifted. Once ownership
+is verified, the finalizer checks only the indexed game-delivery queue and waits until its next retry;
+it does not repeat ownership scans while a room is unavailable. If a delivery stays overdue, finalization
+checks slow to five-minute intervals while the existing recovery job repairs the delivery.
 
 An administrator can lift the ban after the operation completes. This revokes old sessions, so the
 person signs in again with a linked provider. Transferred and removed content stays as it is;

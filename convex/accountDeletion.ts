@@ -257,6 +257,35 @@ export const listReplacementProfiles = viewerQuery({
   },
 });
 
+/** Channel cleanup is independent of content disposal and stays visible after lifting the ban. */
+async function banDiscordCleanup(ctx: QueryCtx, operation: Doc<'account_deletion_operations'> | null) {
+  if (operation?.kind !== 'ban') {
+    return 'none' as const;
+  }
+  if (!operation.ban_games_queued) {
+    return 'pending' as const;
+  }
+  /* Two index ranges cover every state except deleted without walking the deleted rows. */
+  const [beforeDeleted, afterDeleted] = await Promise.all([
+    ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id).lt('state', 'deleted'))
+      .first(),
+    ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id).gt('state', 'deleted'))
+      .first(),
+  ]);
+  if (beforeDeleted || afterDeleted) {
+    return 'pending' as const;
+  }
+  const channel = await ctx.db
+    .query('play_game_discord_channels')
+    .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id))
+    .first();
+  return channel ? ('complete' as const) : ('none' as const);
+}
+
 /** The admin sees the ownership decision and its durable progress in one subscription. */
 export const adminPage = adminQuery({
   args: { profileSlug: v.string() },
@@ -267,6 +296,7 @@ export const adminPage = adminQuery({
       accountState: docValidator('profiles').fields.account_state,
       bannedAt: v.optional(v.string()),
       bannedReason: v.optional(v.string()),
+      discordCleanup: v.union(v.literal('pending'), v.literal('complete'), v.literal('none')),
       operation: v.union(
         v.null(),
         v.object({
@@ -300,6 +330,7 @@ export const adminPage = adminQuery({
       accountState: accountStateOf(user),
       bannedAt: user.banned_at,
       bannedReason: user.banned_reason,
+      discordCleanup: await banDiscordCleanup(ctx, operation),
       operation: operationProjection(operation),
       summary: await Promise.all(DIRECT_OWNERSHIP_KINDS.map(({ kind }) => ownedPresence(ctx, user._id, kind))),
     };
@@ -424,7 +455,6 @@ export const adminUnban = mutation({
       banned_at: undefined,
       banned_by: undefined,
       banned_reason: undefined,
-      account_deletion_operation_id: undefined,
     };
     await revokeAccountSessions(ctx, source._id);
     await ctx.db.patch(source._id, active);
@@ -432,7 +462,6 @@ export const adminUnban = mutation({
       account_state: 'active',
       banned_at: undefined,
       banned_by: undefined,
-      account_deletion_operation_id: undefined,
       updated_at: nowIso(),
     });
     return null;
@@ -824,6 +853,19 @@ async function completeOperation(ctx: MutationCtx, operation: Doc<'account_delet
   });
 }
 
+/** Once ownership is verified, only the existing game delivery queue can hold a ban open. */
+async function finalizeBanOperation(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>
+): Promise<{ next: 'wait'; retryAt: number } | { next: 'done' }> {
+  const games = await ctx.runMutation(internal.playDeletion.applyBanGamesBatch, { operationId: operation._id });
+  if (!games.done) {
+    return { next: 'wait' as const, retryAt: games.retryAt };
+  }
+  await completeOperation(ctx, operation);
+  return { next: 'done' as const };
+}
+
 export const applyBatch = internalMutation({
   args: { operationId: v.id('account_deletion_operations') },
   handler: async (ctx, args) => {
@@ -834,6 +876,9 @@ export const applyBatch = internalMutation({
       !['applying', 'verifying', 'finalizing'].includes(operation.phase)
     ) {
       return { next: 'done' as const };
+    }
+    if (operation.kind === 'ban' && operation.phase === 'finalizing') {
+      return await finalizeBanOperation(ctx, operation);
     }
     if (operation.replacement_user_id) {
       await requireActiveReplacement(ctx, operation.source_user_id, operation.replacement_user_id);
@@ -862,10 +907,7 @@ export const applyBatch = internalMutation({
     }
     if (operation.kind === 'ban') {
       await ctx.db.patch(operation._id, { phase: 'finalizing' });
-      const games = await ctx.runMutation(internal.playDeletion.applyBanGamesBatch, { operationId: operation._id });
-      if (!games.done) {
-        return { next: 'wait' as const };
-      }
+      return await finalizeBanOperation(ctx, operation);
     }
     await completeOperation(ctx, operation);
     return { next: 'done' as const };
@@ -893,7 +935,9 @@ async function runWorker(ctx: ActionCtx, operationId: Id<'account_deletion_opera
       await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
     }
     if (result.next === 'wait') {
-      await ctx.scheduler.runAfter(10_000, internal.accountDeletion.applyWorker, { operationId });
+      await ctx.scheduler.runAt(Math.max(Date.now() + 5000, result.retryAt), internal.accountDeletion.applyWorker, {
+        operationId,
+      });
     }
     if (result.next === 'apply') {
       await ctx.scheduler.runAfter(0, internal.accountDeletion.applyWorker, { operationId });

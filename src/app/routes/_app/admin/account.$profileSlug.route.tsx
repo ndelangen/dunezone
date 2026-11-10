@@ -1,5 +1,5 @@
 import { Checkbox, Group, List, Popover, Stack, Text, Textarea } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { FormError } from '@ui/block/FormError';
 import { Notice } from '@ui/block/Notice';
 import { PageTitle } from '@ui/block/PageTitle';
@@ -139,12 +139,26 @@ function AccountModerationPage() {
                   <Stack>
                     <Text>
                       {operation.state === 'completed'
-                        ? 'Completed'
+                        ? 'Content operation completed'
                         : operation.state === 'failed'
                           ? 'Needs attention'
                           : 'In progress'}
                     </Text>
-                    <Text size="sm">{phaseLabels[operation.phase]}. This page updates automatically.</Text>
+                    {operation.state !== 'completed' ? (
+                      <Text size="sm">{phaseLabels[operation.phase]}. This page updates automatically.</Text>
+                    ) : null}
+                    {data.discordCleanup === 'pending' ? (
+                      <Notice tone="caution" title="Discord cleanup pending">
+                        Discord channel deletion is still pending. Follow its progress in{' '}
+                        <Link to="/admin/discord">Discord voice administration</Link>.
+                      </Notice>
+                    ) : operation.state === 'completed' ? (
+                      <Text size="sm">
+                        {data.discordCleanup === 'complete'
+                          ? 'Discord channels deleted.'
+                          : 'No Discord channels need deletion.'}
+                      </Text>
+                    ) : null}
                     {operation.error ? (
                       <FormError title="Content operation did not finish">{operation.error}</FormError>
                     ) : null}

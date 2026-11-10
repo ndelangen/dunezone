@@ -150,6 +150,7 @@ export default defineSchema({
     .index('by_at', ['at']),
   play_game_discord_channels: defineTable({
     creator_id: v.optional(v.union(v.id('users'), v.null())),
+    ban_operation_id: v.optional(v.id('account_deletion_operations')),
     game_id: v.id('play_games'),
     guild_id: v.string(),
     category_ids: v.array(v.string()),
@@ -181,7 +182,8 @@ export default defineSchema({
     .index('by_creator_id_state', ['creator_id', 'state'])
     .index('by_channel_id', ['channel_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
-    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at']),
+    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at'])
+    .index('by_ban_operation_id_state', ['ban_operation_id', 'state']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -208,7 +210,7 @@ export default defineSchema({
     created_at: v.number(),
   })
     .index('by_game_id_operation_id', ['game_id', 'operation_id'])
-    .index('by_operation_id_state', ['operation_id', 'state'])
+    .index('by_operation_id_state_next_attempt_at', ['operation_id', 'state', 'next_attempt_at'])
     .index('by_game_operation_user', ['game_id', 'operation_id', 'user_id'])
     .index('by_state_next_attempt_at', ['state', 'next_attempt_at']),
   /* One pending account-wide sign-out per account per game; a later one raises `through` instead of queueing another. */

@@ -37,10 +37,12 @@ export const bannedViewer = db((baseline) => {
   baseline.profiles[0]!.account_state = 'banned';
 });
 
-export const failedBanOperation = db((baseline) => {
+function seedBanOperation(baseline: StorybookDatabase, completed = false) {
   managedProfile(baseline, true);
   const operationId = ref('ban-operation');
-  baseline.users.find((user) => user.$key === 'managed-account')!.account_deletion_operation_id = operationId;
+  baseline.users.find((user) => user.$key === 'managed-account')!.$patch = {
+    account_deletion_operation_id: operationId,
+  };
   baseline.account_deletion_operations.push({
     $key: 'ban-operation',
     kind: 'ban',
@@ -48,14 +50,48 @@ export const failedBanOperation = db((baseline) => {
     source_user_id: ref('managed-account'),
     source_profile_id: ref('managed-profile'),
     replacement_user_id: null,
-    state: 'failed',
-    phase: 'snapshotting',
-    snapshot_kind: 'group',
+    ban_games_queued: completed,
+    ban_accounts_queued: completed,
+    state: completed ? 'completed' : 'failed',
+    phase: completed ? 'complete' : 'snapshotting',
+    snapshot_kind: completed ? null : 'group',
     snapshot_cursor: null,
     retry_count: 0,
-    error: 'The content operation was interrupted. Resume to continue from the last completed batch.',
+    error: completed
+      ? null
+      : 'The content operation was interrupted. Resume to continue from the last completed batch.',
     created_at: '2026-11-10T12:00:00Z',
     updated_at: '2026-11-10T12:00:00Z',
-    completed_at: null,
+    completed_at: completed ? '2026-11-10T12:05:00Z' : null,
+  });
+}
+
+export const failedBanOperation = db((baseline) => seedBanOperation(baseline));
+
+/** Content removal has finished; Discord still has the channel while deletion waits for a retry. */
+export const pendingDiscordDeletion = db((baseline) => {
+  seedBanOperation(baseline, true);
+  baseline.play_games.push({
+    $key: 'removed-game',
+    name: baseline.rulesets[0]!.name,
+    slug: 'removed-game',
+    creator_id: ref('managed-account'),
+    ban_operation_id: ref('ban-operation'),
+    state: 'expired',
+    secret: 'story-only-secret',
+    attempt_id: 'story-only-attempt',
+    provision_expires_at: 0,
+    created_at: 0,
+  });
+  baseline.play_game_discord_channels.push({
+    game_id: ref('removed-game'),
+    ban_operation_id: ref('ban-operation'),
+    guild_id: '100',
+    category_ids: ['200'],
+    channel_id: '300',
+    state: 'deleting',
+    created_at: 0,
+    cleanup_at: 0,
+    next_attempt_at: 4_102_444_800_000,
   });
 });
