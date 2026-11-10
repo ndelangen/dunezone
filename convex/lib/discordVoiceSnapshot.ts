@@ -208,9 +208,7 @@ export function discordVoiceSnapshot(
       }
     };
     const receivePacket = ({ op, d, t, s }: z.infer<typeof packetSchema>) => {
-      if (s !== undefined && s !== null) {
-        sequence = s;
-      }
+      sequence = s ?? sequence;
       switch (op) {
         case 10:
           receiveHello(d);

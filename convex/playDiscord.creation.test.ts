@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { api, internal } from './_generated/api';
+import { DISCORD_LEASE } from './lib/playDiscord';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 beforeEach(() => {
@@ -79,13 +80,34 @@ test('an ambiguous creation result is retained without retrying POST', async () 
   expect(discord.fetch.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);
 });
 
+test('a lease outlasts the default action runtime and fences its former owner after expiry', async () => {
+  const world = await voiceWorld();
+  const row = (await world.channel())!;
+  const startedAt = Date.now();
+  const first = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+
+  vi.setSystemTime(startedAt + 30 * 60_000);
+  expect(await world.t.mutation(internal.playDiscord.claim, { channelId: row._id })).toBeNull();
+  vi.setSystemTime(startedAt + DISCORD_LEASE - 1);
+  expect(await world.t.mutation(internal.playDiscord.claim, { channelId: row._id })).toBeNull();
+
+  vi.setSystemTime(startedAt + DISCORD_LEASE + 1);
+  const replacement = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  expect(replacement.lease).not.toBe(first.lease);
+  const stale = { channelId: row._id, lease: first.lease! };
+  expect(await world.t.mutation(internal.playDiscord.work, stale)).toBeNull();
+  expect(await world.t.mutation(internal.playDiscord.startCreation, stale)).toBe(false);
+  await world.t.mutation(internal.playDiscord.release, stale);
+  expect((await world.channel())?.lease).toBe(replacement.lease);
+});
+
 test('a crashed create attempt remains uncertain when its lease expires', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const row = (await world.channel())!;
   const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
   await world.t.mutation(internal.playDiscord.startCreation, { channelId: row._id, lease: claim.lease! });
-  vi.setSystemTime(Date.now() + 12 * 60_000);
+  vi.setSystemTime(claim.lease_until! + 1);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'creating' });
   expect(discord.calls).toHaveLength(0);
