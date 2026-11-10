@@ -84,7 +84,7 @@ test('the global create budget delays channels from different creators until ret
     expect(pending.state).toBe('pending');
     expect(pending.next_attempt_at).toBeGreaterThan(Date.now());
   }
-  expect(discord.calls.filter((call) => call.method === 'POST')).toHaveLength(0);
+  expect(discord.calls).toEqual([]);
   vi.advanceTimersByTime(4 * 60_000);
   await t.mutation(internal.playDiscord.retryDue, {});
   await t.finishAllScheduledFunctions(vi.runAllTimers);
@@ -94,6 +94,30 @@ test('the global create budget delays channels from different creators until ret
   expect(discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST')).toHaveLength(
     2
   );
+});
+
+test('a creation quota consumed during category lookup ends reconciliation without another lookup', async () => {
+  const discord = discordStub();
+  const { t, gameIds, confirm } = await world();
+  await confirm(gameIds[0]!);
+  const row = (await t.run(async (ctx) => await ctx.db.query('play_game_discord_channels').first()))!;
+  const normal = discord.fetch.getMockImplementation()!;
+  discord.fetch.mockImplementation(async (input, options) => {
+    const response = await normal(input, options);
+    if (options?.method === 'GET' && input === 'https://discord.com/api/v10/guilds/100/channels') {
+      await t.run(async (ctx) => await playRateLimiter.limit(ctx, 'discordChannelCreateGlobal', { count: 30 }));
+    }
+    return response;
+  });
+
+  await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
+  expect(discord.calls.map(({ method, path }) => ({ method, path }))).toEqual([
+    { method: 'GET', path: '/guilds/100/channels' },
+  ]);
+  const pending = await t.run(async (ctx) => await ctx.db.get(row._id));
+  expect(pending).toMatchObject({ state: 'pending' });
+  expect(pending!.next_attempt_at).toBe(pending!.retry_after);
+  expect(pending!.next_attempt_at).toBeGreaterThan(Date.now());
 });
 
 test('game creation remains available at the voice cap and voice returns after deletion', async () => {

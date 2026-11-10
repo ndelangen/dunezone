@@ -17,11 +17,11 @@ async function createRoom(
   claim: Claim,
   row: Doc<'play_game_discord_channels'>,
   name: string
-) {
+): Promise<Progress> {
   const categories = await rest.categories(row.guild_id, row.category_ids);
   for (const categoryId of categories) {
     if (!(await ctx.runMutation(internal.playDiscord.startCreation, claim))) {
-      return;
+      return 'complete';
     }
     let channelId: string;
     try {
@@ -43,7 +43,7 @@ async function createRoom(
     if (!(await ctx.runMutation(internal.playDiscord.created, { ...claim, discordChannelId: channelId }))) {
       await rest.remove(channelId);
     }
-    return;
+    return 'continue';
   }
   throw new Error('No configured Discord category has room for another voice channel.');
 }
@@ -92,7 +92,7 @@ async function reconcileStep(ctx: ActionCtx, rest: DiscordRest, claim: Claim): P
       const url = await rest.invite(work.channel.channel_id);
       await ctx.runMutation(internal.playDiscord.invited, { ...claim, url });
     } else {
-      await createRoom(ctx, rest, claim, work.channel, work.name);
+      return await createRoom(ctx, rest, claim, work.channel, work.name);
     }
     return 'continue';
   }
