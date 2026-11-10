@@ -483,7 +483,7 @@ export class LocalTable {
     }
     if (message.type === 'command' && isResultAction(message.action)) {
       room.assertRevision(message.action, message.expectedRevision);
-      room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now())));
+      room.accept(this.settled(applyResult(room.snapshot, viewer, message.action, Date.now(), () => this.seats())));
       return;
     }
     /* What the page's player holds as they let go, read before the drop ends the carry. */

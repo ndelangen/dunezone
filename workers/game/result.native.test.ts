@@ -472,6 +472,39 @@ describe('Determine winner and Continue playing', { timeout: 60_000 }, () => {
     ]);
   });
 
+  it('lets only the last player at the table end the game, in any phase, with no winner and its replay kept', async () => {
+    const { owner, other, observer } = await inPlay();
+    /* Two players: neither can end it, and a watcher never can. */
+    expect(await rejected(owner, { kind: 'result-end' })).toBe(true);
+    expect(await rejected(observer, { kind: 'result-end' })).toBe(true);
+    await accepted(other, { kind: 'seat-depart' });
+    expect(await rejected(observer, { kind: 'result-end' })).toBe(true);
+    const before = (await syncView(owner)).snapshot;
+    expect(before.phase % TABLE_PHASES.length).not.toBe(MENTAT);
+
+    const ended = await accepted(owner, { kind: 'result-end' });
+    expect(ended.snapshot.stage).toBe('finished');
+    expect(ended.snapshot.result).toMatchObject({
+      kind: 'none',
+      factionIds: [],
+      by: { seat: ended.viewer.viewerSeat, name: ended.viewer.displayName },
+    });
+    expect(ended.snapshot.phase).toBe(before.phase);
+    expect(ended.snapshot.table.pieces).toEqual(before.table.pieces);
+    expect(await rejected(owner, { kind: 'result-end' })).toBe(true);
+    expect((await page(observer))[0].text).toBe(
+      `${ended.viewer.displayName} ended the game as the last player at the table.`
+    );
+
+    /* Leaving the finished game keeps it, and continuing returns to the phase it ended in. */
+    const continued = await accepted(owner, { kind: 'result-continue' });
+    expect(continued.snapshot.stage).toBe('play');
+    expect(continued.snapshot.phase).toBe(before.phase);
+    await accepted(owner, { kind: 'result-end' });
+    await accepted(owner, { kind: 'seat-depart' });
+    expect((await syncView(observer)).snapshot.stage).toBe('finished');
+  });
+
   it('continues with nobody ready, so no single player can move the phase on alone', async () => {
     const { owner, other } = await inPlay();
     await toMentat(owner);

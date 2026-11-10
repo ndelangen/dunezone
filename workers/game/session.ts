@@ -935,7 +935,12 @@ export class GameSession {
     const action = message.action;
     const { next, history } = this.storage.transactionSync(() => {
       const now = Date.now();
-      const settled = this.withRoster(this.reconcileVotes(applyResult(room.snapshot, viewer, action, now), now));
+      const settled = this.withRoster(
+        this.reconcileVotes(
+          applyResult(room.snapshot, viewer, action, now, () => this.actors.seats()),
+          now
+        )
+      );
       const entry = this.history.entry(message, room.snapshot, settled);
       this.persistCommit({ key, viewer, message, next: settled, history: entry });
       return { next: settled, history: entry };

@@ -30,7 +30,13 @@ type Moment = ReviewCheckpoint['moment'];
 
 type RowInput = Pick<HistoryRow, 'kind' | 'data' | 'step' | 'base_revision'>;
 /* Declaring a result and continuing past it are playback steps, as phase changes are. */
-const boundaryActions = new Set<ActionKind>(['phase', 'result-declare', 'result-continue', 'movement-done']);
+const boundaryActions = new Set<ActionKind>([
+  'phase',
+  'result-declare',
+  'result-continue',
+  'result-end',
+  'movement-done',
+]);
 /* Ready is a playback step only while setup gates on it; phase is one everywhere. */
 const setupReady = 'ready';
 
@@ -61,7 +67,7 @@ function momentOf(action: PieceAction, before: StoredSnapshot, next: StoredSnaps
   if (action.kind === 'movement-done') {
     return 'turn';
   }
-  return action.kind === 'result-declare' || action.kind === 'result-continue' ? 'result' : 'entered';
+  return ['result-declare', 'result-continue', 'result-end'].includes(action.kind) ? 'result' : 'entered';
 }
 
 /* Where a stored state is: its turn and phase in play, or its setup step before it; drafting and swapping have no place a review offers. */

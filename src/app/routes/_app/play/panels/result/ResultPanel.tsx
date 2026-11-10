@@ -207,7 +207,7 @@ function FinishedBar({
     <ResultSection
       eyebrow="Finished"
       title={title}
-      context={`Declared by ${by}. ${player ? 'Continue playing, at the top right, resumes the game from Mentat Pause of this turn.' : 'The table stays as it was.'}`}
+      context={`Declared by ${by}. ${player ? 'Continue playing, at the top right, resumes the game where it stopped.' : 'The table stays as it was.'}`}
       action={player && prediction && <RevealButton disabled={disabled} onReveal={onReveal} />}
     />
   );

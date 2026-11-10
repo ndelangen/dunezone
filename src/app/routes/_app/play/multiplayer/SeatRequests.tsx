@@ -252,11 +252,21 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
   );
 }
 
-/** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
+/** Whether the viewer is the last player at a game in play, who ends it rather than leaving it empty. */
+function endsTheGame(table: TableProjection): boolean {
+  return table.snapshot.stage === 'play' && publicControlsOf(table).seats.length === 1;
+}
+
+/*
+ * The game menu's held seat item names what it costs: the game, a roster place, or a seat left open.
+ * The last player in play ends the game instead; a finished game keeps its result when its last player leaves.
+ */
 function leavingLabel(table: TableProjection): string {
   const controls = publicControlsOf(table);
   switch (true) {
-    case controls.seats.length === 1:
+    case endsTheGame(table):
+      return 'Hold to end the game';
+    case controls.seats.length === 1 && table.snapshot.stage !== 'finished':
       return 'Hold to leave and discard the game';
     case table.snapshot.stage === 'drafting':
       return 'Hold to give up your place';
@@ -474,10 +484,10 @@ export function GameMenu({
             shape="menu-item"
             key={table.viewer.viewerSeat}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
-            verb="leave"
+            verb={endsTheGame(table) ? 'end' : 'leave'}
             closeMenuOnClick={false}
             disabled={!seated || seatLocked(table)}
-            onConfirm={() => client.command({ kind: 'seat-depart' })}
+            onConfirm={() => client.command(endsTheGame(table) ? { kind: 'result-end' } : { kind: 'seat-depart' })}
           />
         )}
       </Menu.Dropdown>

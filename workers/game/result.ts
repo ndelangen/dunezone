@@ -15,7 +15,13 @@ import type { StoredSnapshot } from './state';
  * agree afresh before the phase moves on. The caller owns the transaction, the log rows and the
  * directory summary.
  */
-export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: ResultAction, now: number) {
+export function applyResult(
+  snapshot: StoredSnapshot,
+  viewer: Viewer,
+  action: ResultAction,
+  now: number,
+  seats: () => readonly string[]
+) {
   if (!snapshot.stage || viewer.viewerSeat === SPECTATOR_SEAT) {
     throw new GameRejection('Only current players in a real game can determine the winner.');
   }
@@ -30,6 +36,8 @@ export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: Re
       return declare(snapshot, viewer, action, now);
     case 'result-continue':
       return resume(snapshot);
+    case 'result-end':
+      return end(snapshot, by, seats(), now);
   }
 }
 
@@ -53,6 +61,25 @@ function declare(snapshot: StoredSnapshot, viewer: Viewer, action: Declaration, 
     stage: 'finished',
     ending: null,
     result: { kind: action.result, factionIds: action.factionIds, by: snapshot.ending!.by, declaredAt: now },
+  });
+}
+
+/*
+ * A player left alone at the table ends the game in any phase of play, with no winner and without Determine winner.
+ * Like a declaration it changes nothing on the table, so the game keeps its replay and can still continue.
+ */
+function end(snapshot: StoredSnapshot, by: Actor, seats: readonly string[], now: number) {
+  if (snapshot.stage !== 'play') {
+    throw new GameRejection('Only a game in play can be ended.');
+  }
+  if (seats.length !== 1 || seats[0] !== by.seat) {
+    throw new GameRejection('Only the last player at the table can end the game.');
+  }
+  return revised({
+    ...snapshot,
+    stage: 'finished',
+    ending: null,
+    result: { kind: 'none', factionIds: [], by, declaredAt: now },
   });
 }
 

@@ -88,6 +88,7 @@ export const ACTION_POLICY = {
   'result-cancel': { revision: 'strict' },
   'result-declare': { revision: 'strict' },
   'result-continue': { revision: 'strict' },
+  'result-end': { revision: 'strict' },
   /* A draft choice names the sender's own pick. */
   'draft-pick': { revision: 'tolerant' },
   'draft-unpick': { revision: 'tolerant' },
