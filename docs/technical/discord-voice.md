@@ -2,8 +2,8 @@
 
 The creator can choose Discord voice during game creation. Each opted-in game gets one ordinary
 voice channel and reusable invite. The game menu uses the same invite for players and spectators.
-Discord applies the server and category permissions. Dune Zone does not grant individual access,
-poll membership, or connect a gateway bot.
+Discord applies the server and category permissions. Dune Zone does not grant individual channel
+access.
 
 ## Manual nudges
 
@@ -52,20 +52,34 @@ configured Games categories, and only after the creation window has passed. They
 automatically. A deliberate removal rechecks the target before deleting it. An unconfirmed creation
 must be inspected in Discord; never blindly retry its POST.
 
-Normal cleanup deletes a channel 24 hours after the game first ends or is discarded, or after
-14 days without game activity. Activity cannot reverse an already committed deletion. Missing
-channels are treated as already removed only when Discord returns Unknown Channel.
+Discarding a game schedules its channel for immediate deletion. When a game finishes, the channel
+is renamed with an `(ended)` suffix. Hourly cleanup deletes ended channels that are empty. If play
+continues before deletion commits, the channel stays and its original name is restored. A committed
+deletion cannot be reversed. Active games still lose their channel after 14 days without game activity.
+Missing channels are treated as already removed only when Discord returns Unknown Channel.
+The empty observation commits deletion. Discord has no atomic delete-if-empty operation, so a
+join after that decision does not cancel it.
+
+Hourly cleanup runs as a short Node action in Convex. It opens a Discord Gateway connection with
+intents 129, reads current voice occupancy, then disconnects. There is no connection between checks.
+An unavailable or incomplete snapshot leaves the channel for a later check. The bot token stays in
+Convex, and voice participant identities are never saved. This uses the existing bot permissions.
+
+Pausing the integration blocks new channel work and hourly occupancy checks. Deletion rechecks the
+pause setting and the game's current stage before committing, so a stale snapshot cannot delete a
+continued game.
 
 ## Cost and monitoring
 
-There is no additional bot runtime. The feature still consumes usage on the existing services.
+Hourly cleanup uses brief action time on the existing Convex deployment. It adds no Worker service
+or continuously active Durable Object. With no ended channels to check, it makes no Discord request.
 Ordinary chat does not call Convex for nudges. Explicitly disabled games skip nudge storage reads,
 and non-Discord directory summaries skip the channel lookup. The pending outbox and cooldown are
-bounded by the game's seats. No polling or permanent connection is added.
+bounded by the game's seats.
 
 One successful nudge uses one Discord POST. The existing Convex scheduler runs delivery and expiry;
 the rate limiter, claim, pause check and result write add backend work. Idle channel reconciliation
-uses the existing 15-minute cron, 96 executions per day, with no Discord request when nothing is due.
+uses the existing 15-minute cron, with no Discord request when nothing is due.
 The admin page has bounded reads and manual orphan refresh. Do not add polling or aggregate tables
 without measured need.
 
@@ -86,3 +100,5 @@ from automated delivery tests.
 - [Discord rate limits](https://docs.discord.com/developers/topics/rate-limits)
 - [Discord server limits](https://support.discord.com/hc/en-us/articles/33694251638295-Discord-Account-Caps-Server-Caps-and-More)
 - [Durable Object alarms](https://developers.cloudflare.com/durable-objects/api/alarms/)
+- [Discord voice events and intents](https://docs.discord.com/developers/events/gateway)
+- [Convex Node actions](https://docs.convex.dev/functions/runtimes#nodejs-runtime)

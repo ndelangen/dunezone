@@ -43,3 +43,12 @@ export const NotAuthorized = meta.story({
     await expectRefused(canvasElement, 'Admin access required', { role: 'button', name: 'Refresh' });
   },
 });
+
+export const FinishedGameWaitingForEmptyVoice = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: voiceParameters(true, false, true),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Hourly, when voice is empty')).resolves.toBeVisible();
+  },
+});

@@ -219,7 +219,9 @@ function TrackedChannels({
                     <StatusBadge>{channel.state}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
-                  <Table.Td>{utcDateTime.format(channel.cleanup_at)}</Table.Td>
+                  <Table.Td>
+                    {channel.waiting_for_empty ? 'Hourly, when voice is empty' : utcDateTime.format(channel.cleanup_at)}
+                  </Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>
                   </Table.Td>

@@ -65,22 +65,43 @@ export const reconcile = internalAction({
     });
     let failure: { error: string; retryAfterMs?: number } | undefined;
     try {
-      let work = await ctx.runMutation(internal.playDiscord.work, claim);
-      if (work && !work.remove && work.channel.state === 'pending' && !work.channel.channel_id) {
-        await createRoom(ctx, rest, claim, work.channel, work.name);
-        work = await ctx.runMutation(internal.playDiscord.work, claim);
-      }
-      if (work?.channel.state === 'creating') {
-        throw new Error('Channel creation has no confirmed result. Check Discord before retrying it.');
-      }
-      if (work?.remove && (await ctx.runMutation(internal.playDiscord.beginDeletion, claim))) {
-        if (work.channel.channel_id) {
-          await rest.remove(work.channel.channel_id);
+      /* Re-read between requests: discard and continue can arrive during any Discord response. */
+      for (let step = 0; step < 5; step += 1) {
+        const work = await ctx.runMutation(internal.playDiscord.work, claim);
+        if (!work) {
+          break;
         }
-        await ctx.runMutation(internal.playDiscord.removed, claim);
-      } else if (work?.channel.state === 'pending' && work.channel.channel_id) {
-        const url = await rest.invite(work.channel.channel_id);
-        await ctx.runMutation(internal.playDiscord.invited, { ...claim, url });
+        if (work.channel.state === 'creating') {
+          throw new Error('Channel creation has no confirmed result. Check Discord before retrying it.');
+        }
+        if (work.remove) {
+          if (await ctx.runMutation(internal.playDiscord.beginDeletion, claim)) {
+            if (work.channel.channel_id) {
+              await rest.remove(work.channel.channel_id);
+            }
+            await ctx.runMutation(internal.playDiscord.removed, claim);
+          }
+          break;
+        }
+        if (work.channel.state === 'pending' && !work.channel.channel_id) {
+          await createRoom(ctx, rest, claim, work.channel, work.name);
+        } else if (work.channel.state === 'pending' && work.channel.channel_id) {
+          const url = await rest.invite(work.channel.channel_id);
+          await ctx.runMutation(internal.playDiscord.invited, { ...claim, url });
+        } else if (work.channel.channel_id && !!work.channel.renamed_ended !== work.ended) {
+          try {
+            await rest.rename(work.channel.channel_id, work.name);
+          } catch (error) {
+            if (!(error instanceof DiscordFailure && error.status === 404 && error.code === 10_003)) {
+              throw error;
+            }
+            await ctx.runMutation(internal.playDiscord.removed, claim);
+            break;
+          }
+          await ctx.runMutation(internal.playDiscord.renamed, { ...claim, ended: work.ended });
+        } else {
+          break;
+        }
       }
     } catch (error) {
       failure = {

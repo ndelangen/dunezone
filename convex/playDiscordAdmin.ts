@@ -27,6 +27,7 @@ const row = v.object({
   ),
   created_at: v.number(),
   cleanup_at: v.number(),
+  waiting_for_empty: v.optional(v.boolean()),
   error: v.optional(v.string()),
   gameSlug: v.optional(v.string()),
   gameName: v.optional(v.string()),
@@ -84,6 +85,10 @@ export const dashboard = adminQuery({
           state: channel.state,
           created_at: channel.created_at,
           cleanup_at: channel.cleanup_at,
+          waiting_for_empty:
+            game?.directory?.stage === 'finished' &&
+            !!channel.channel_id &&
+            (channel.state === 'pending' || channel.state === 'ready'),
           error: channel.error,
           gameSlug: game?.slug,
           gameName: game?.name,

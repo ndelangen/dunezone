@@ -51,16 +51,19 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
 /** Manual retirement uses the same durable deletion path as an expired game channel. */
 export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
   await ctx.db.patch(channel._id, {
-    state: 'deleting',
+    /* Keep an in-flight create able to save its returned ID before the deletion request is applied. */
+    state: channel.state === 'creating' ? 'creating' : 'deleting',
+    deletion_requested_at: Date.now(),
     cleanup_at: Date.now(),
     next_attempt_at: Date.now(),
     invite_url: undefined,
     error: undefined,
+    work_revision: (channel.work_revision ?? 0) + 1,
   });
   await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });
 }
 
-/** Only accepted directory deliveries update the room's cleanup deadline. */
+/** Accepted stage changes wake cleanup immediately, even when an earlier action still owns the lease. */
 export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>) {
   if (game.discord_voice !== true) {
     return;
@@ -69,12 +72,20 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
   if (!channel || channel.state === 'deleted' || channel.state === 'deleting') {
     return;
   }
-  const endedAt = channel.ended_at ?? (discordGameFinished(game) ? Date.now() : undefined);
+  const stage = game.directory?.stage;
+  const endedAt = stage === 'finished' ? (channel.ended_at ?? Date.now()) : undefined;
   const inactiveAt = (game.directory?.lastActivityAt ?? channel.created_at) + 14 * DISCORD_DAY;
-  const cleanupAt = endedAt === undefined ? inactiveAt : Math.min(inactiveAt, endedAt + DISCORD_DAY);
-  await ctx.db.patch(channel._id, { ended_at: endedAt, cleanup_at: cleanupAt });
-  if (cleanupAt < channel.next_attempt_at) {
-    await ctx.db.patch(channel._id, { next_attempt_at: cleanupAt });
+  const cleanupAt = stage === 'discarded' ? Date.now() : inactiveAt;
+  const changed = stage === 'discarded' || (endedAt !== undefined) !== (channel.ended_at !== undefined);
+  await ctx.db.patch(channel._id, {
+    ended_at: endedAt,
+    cleanup_at: cleanupAt,
+    ...(changed
+      ? { next_attempt_at: Date.now(), work_revision: (channel.work_revision ?? 0) + 1 }
+      : { next_attempt_at: Math.min(channel.next_attempt_at, cleanupAt) }),
+  });
+  if (changed) {
+    await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });
   }
 }
 

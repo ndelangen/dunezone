@@ -55,28 +55,53 @@ export const claim = internalMutation({
     }
     const lease = playCredential();
     const until = Date.now() + DISCORD_LEASE;
-    await ctx.db.patch(row._id, { lease, lease_until: until, next_attempt_at: until });
+    await ctx.db.patch(row._id, {
+      lease,
+      lease_until: until,
+      lease_revision: row.work_revision ?? 0,
+      next_attempt_at: until,
+    });
     return { ...row, lease, lease_until: until, next_attempt_at: until };
   },
 });
 
 function retirementDue(channel: Doc<'play_game_discord_channels'>, game: Doc<'play_games'> | null) {
-  if (channel.state === 'deleting' || channel.cleanup_at <= Date.now()) {
+  if (channel.state === 'deleting' || channel.deletion_requested_at !== undefined) {
     return true;
   }
-  return !game || game.state !== 'ready' || game.fixture_key !== undefined || game.ruleset_id === undefined;
+  if (!game || game.state !== 'ready' || game.fixture_key !== undefined || game.ruleset_id === undefined) {
+    return true;
+  }
+  if (game.directory?.stage === 'discarded') {
+    return true;
+  }
+  if (game.directory?.stage === 'finished') {
+    /* A game that ended before creation needs no channel. Existing channels wait for an empty voice observation. */
+    return channel.state === 'pending' && !channel.channel_id;
+  }
+  return channel.cleanup_at <= Date.now();
 }
 
 export const work = internalMutation({
   args: claimArgs,
-  returns: v.union(v.null(), v.object({ channel: channelValidator, name: v.string(), remove: v.boolean() })),
+  returns: v.union(
+    v.null(),
+    v.object({ channel: channelValidator, name: v.string(), ended: v.boolean(), remove: v.boolean() })
+  ),
   handler: async (ctx, args) => {
     const channel = await ctx.db.get(args.channelId);
     if (!(await discordEnabled(ctx)) || !channel || channel.lease !== args.lease || channel.state === 'deleted') {
       return null;
     }
     const game = await ctx.db.get(channel.game_id);
-    return { channel, name: game?.name ?? 'Dune Play', remove: retirementDue(channel, game) };
+    const ended = game?.directory?.stage === 'finished';
+    const name = game?.name ?? 'Dune Play';
+    return {
+      channel,
+      name: ended ? `${name.slice(0, 92)} (ended)` : name.slice(0, 100),
+      ended,
+      remove: retirementDue(channel, game),
+    };
   },
 });
 
@@ -91,7 +116,7 @@ export const startCreation = internalMutation({
       row?.lease !== args.lease ||
       row.state !== 'pending' ||
       row.channel_id !== undefined ||
-      row.cleanup_at <= Date.now()
+      retirementDue(row, await ctx.db.get(row.game_id))
     ) {
       return false;
     }
@@ -140,12 +165,25 @@ export const invited = internalMutation({
       row?.lease !== args.lease ||
       row.state !== 'pending' ||
       !row.channel_id ||
-      row.cleanup_at <= Date.now()
+      retirementDue(row, await ctx.db.get(row.game_id))
     ) {
       return false;
     }
     await ctx.db.patch(row._id, { invite_url: args.url, state: 'ready', error: undefined });
     return true;
+  },
+});
+
+/** Record the completed PATCH even if the game changed while Discord answered; release then schedules the new name. */
+export const renamed = internalMutation({
+  args: { ...claimArgs, ended: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.channelId);
+    if (row?.lease === args.lease) {
+      await ctx.db.patch(row._id, { renamed_ended: args.ended });
+    }
+    return null;
   },
 });
 
@@ -197,8 +235,14 @@ export const release = internalMutation({
     if (!row || row.lease !== args.lease) {
       return null;
     }
-    let next = row.cleanup_at;
-    if (args.error || row.state === 'creating') {
+    const game = await ctx.db.get(row.game_id);
+    /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
+    let next = game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
+    const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
+    if (changed && row.state !== 'creating') {
+      /* A failed old invite or rename must not postpone a newly discarded game, except for Discord's rate limit. */
+      next = Math.max(Date.now(), row.retry_after ?? 0, Date.now() + (args.retryAfterMs ?? 0));
+    } else if (args.error || row.state === 'creating') {
       next = Date.now() + Math.max(DISCORD_RETRY, args.retryAfterMs ?? 0);
     } else if (row.state === 'pending') {
       next = Date.now();
@@ -206,12 +250,15 @@ export const release = internalMutation({
     await ctx.db.patch(row._id, {
       lease: undefined,
       lease_until: undefined,
+      lease_revision: undefined,
       next_attempt_at: next,
       retry_after: args.retryAfterMs ? Date.now() + args.retryAfterMs : row.retry_after,
       error: row.state === 'creating' ? row.error : args.error,
     });
-    if (row.state !== 'deleted' && row.state !== 'creating' && next <= Date.now()) {
-      await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: row._id });
+    if (row.state !== 'deleted' && row.state !== 'creating' && (changed || next <= Date.now())) {
+      await ctx.scheduler.runAfter(Math.max(0, next - Date.now()), internal.playDiscordActions.reconcile, {
+        channelId: row._id,
+      });
     }
     return null;
   },
