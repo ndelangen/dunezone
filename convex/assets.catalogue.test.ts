@@ -185,6 +185,7 @@ describe('catalogue browse', () => {
     const cards = await t.query(api.assets.catalogue, { type: 'card-treachery' });
     /* Deck membership left this payload with the tile's meta line (Norbert, 2026-08-21): a browse entry is the listing shape plus member previews, nothing derived. */
     expect(cards.entries.map((entry) => entry.slug)).toEqual(['orphan', 'lasgun']);
+    expect(cards).toMatchObject({ total: 2, complete: true });
 
     const decks = await t.query(api.assets.catalogue, { type: 'deck' });
     expect(decks.entries.map((entry) => entry.slug)).toEqual(['house-treachery']);

@@ -6,7 +6,7 @@ import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-test('profile list includes activity counts', async () => {
+test('the profile directory includes activity counts', async () => {
   const t = applicationTest();
   const ids = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -182,7 +182,7 @@ test('profile detail returns the newest bounded FAQ activity', async () => {
   expect(profile.faqAnswers[199].answer).toBe('Answer 1');
 });
 
-test('the profile list and lookup by id skip deleted profiles, however many there are', async () => {
+test('the profile directory and lookup by id skip deleted profiles', async () => {
   const t = applicationTest();
   const { liveId, deletedId } = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);

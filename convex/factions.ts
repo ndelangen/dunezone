@@ -26,8 +26,7 @@ import {
   rulesetSummaryValidator,
 } from './lib/collaborativeAccessValidators';
 import { resolveGroupAssignmentForCreation } from './lib/defaultGroupPreference';
-import { listFactionRulesets } from './lib/factionCatalogue';
-import { loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
+import { listFactionRulesets, loadFactionCataloguePage, loadFactionCatalogueSearch } from './lib/factionCatalogue';
 import { factionDataValidator } from './lib/factionData';
 import {
   factionInputForWrite,

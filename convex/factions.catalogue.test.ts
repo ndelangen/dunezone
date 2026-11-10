@@ -6,7 +6,6 @@ import { describe, expect, test } from 'vite-plus/test';
 import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
-import { syncSeededFactionCards } from './factions.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
 describe('faction catalogue page', () => {
@@ -87,7 +86,6 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
     const catalogue = await t.query(api.factions.catalogue, {});
 
     expect(catalogue.cards.map((faction) => faction.data.name).sort()).toEqual(['New arrival', 'Recently updated']);
@@ -113,7 +111,6 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
     const catalogue = await t.query(api.factions.catalogue, {});
     const row = catalogue.cards[0];
 
@@ -146,7 +143,6 @@ describe('faction catalogue page', () => {
       });
     });
 
-    await t.run(syncSeededFactionCards);
     await expect(t.query(api.factions.catalogue, {})).rejects.toThrow();
   });
 });

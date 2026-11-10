@@ -148,7 +148,7 @@ export function factionOwnerPartition(ownerId: Id<'users'>) {
 /**
  * What the catalogue searches and sorts on, read from the authored blob.
  * A blob the full read refuses still lists under its raw name, so a legacy row never fails the save that touched it.
- * The catalogue page that shows such a row fails loudly, as the unpaged catalogue did.
+ * The catalogue page that shows such a row fails loudly.
  */
 function factionSearchFields(data: unknown) {
   try {

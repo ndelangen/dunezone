@@ -1104,7 +1104,7 @@ async function containersHolding(
 /**
  * Enough of a container's member to draw its face, and nothing more.
  *
- * Deliberately not `assetListEntryValidator`: that shape carries an owner, which costs a `profiles` read per member, and a browse page of two hundred bundles would pay six hundred of them for a name no tile shows.
+ * Deliberately not `assetListEntryValidator`: that shape carries an owner, which costs a `profiles` read per member, and a catalogue page of bundles would pay several per tile for a name no tile shows.
  */
 const memberPreviewValidator = v.object({
   id: v.id('assets'),
