@@ -67,18 +67,30 @@ function art(input: CardInput, width: number, height: number): ReactNode {
     </div>
   );
 }
+/*
+ * Portrait and round artwork (cards, tokens, portraits) sits in a tall slot beside a wide text column.
+ * Landscape artwork (screenshots of the table) gets a wide slot and the text column narrows to make room, so the picture reads at a glance.
+ */
+const LAYOUTS = {
+  tall: { textWidth: 610, artLeft: 745, artWidth: 370, artHeight: 420, titleSizes: [39, 48, 62] },
+  wide: { textWidth: 470, artLeft: 580, artWidth: 560, artHeight: 420, titleSizes: [34, 42, 54] },
+} as const;
+
 export function socialCard(input: CardInput) {
   const name = clipSocialCardText(input.name, 78);
+  const layout = LAYOUTS[input.shape === 'landscape' ? 'wide' : 'tall'];
+  const [smallTitle, mediumTitle, largeTitle] = layout.titleSizes;
+  const artHeight = input.shape === 'round' ? layout.artWidth : layout.artHeight;
   return (
     <div style={base}>
       <div style={{ ...at(24, 24), width: 1152, height: 582, border: '1px solid #d6c89155' }} />
       <div style={{ ...at(60, 48), ...title, color: gold, fontSize: 25, letterSpacing: 3 }}>Dune Zone</div>
-      <div style={{ ...at(60, 145), width: 610, flexDirection: 'column' }}>
+      <div style={{ ...at(60, 145), width: layout.textWidth, flexDirection: 'column' }}>
         <div style={{ color: '#b5c4bb', fontSize: 20, letterSpacing: 4 }}>{input.kind.toUpperCase()}</div>
         <div
           style={{
             ...title,
-            fontSize: name.length > 46 ? 39 : name.length > 24 ? 48 : 62,
+            fontSize: name.length > 46 ? smallTitle : name.length > 24 ? mediumTitle : largeTitle,
             marginTop: 22,
             maxHeight: 180,
             overflow: 'hidden',
@@ -101,8 +113,16 @@ export function socialCard(input: CardInput) {
           </div>
         )}
       </div>
-      <div style={{ ...at(745, 113), width: 370, height: 420, alignItems: 'center', justifyContent: 'center' }}>
-        {art(input, 370, input.shape === 'round' ? 370 : 420)}
+      <div
+        style={{
+          ...at(layout.artLeft, 113),
+          width: layout.artWidth,
+          height: 420,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {art(input, layout.artWidth, artHeight)}
       </div>
       <div style={{ ...at(60, 554), fontSize: 21, color: gold }}>dune.zone</div>
     </div>

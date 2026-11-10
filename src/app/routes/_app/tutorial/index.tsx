@@ -10,14 +10,18 @@ import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 /* The Playing Dune tutorials: every Play chapter as a tile, in rows by part. Public and indexed (Norbert, 2026-11-01). */
 export const Route = createFileRoute('/_app/tutorial/')({
   ssr: true,
-  head: () =>
+  loader: async () => ({
+    socialImage: (await import('./socialImage')).tutorialSocialImage('/tutorial/moving-pieces.webp'),
+  }),
+  head: ({ loaderData }) =>
     publicPageHead({
       name: 'Learn to play Dune online',
       kind: 'Tutorials',
       pathname: '/tutorial',
       description:
         'Short interactive chapters that teach Dune Zone Play: find or create a game, move pieces, deal cards, bid, battle and finish a game of the Dune board game online.',
-      social: { kind: 'Tutorials', shape: 'portrait' },
+      image: loaderData?.socialImage,
+      social: { kind: 'Tutorials · Playing Dune', shape: 'landscape' },
     }),
   component: PlayTutorials,
 });

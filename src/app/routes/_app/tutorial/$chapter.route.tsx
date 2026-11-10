@@ -15,7 +15,7 @@ import { publicPageHead } from '@app/routes/publicPage';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 
-import { chapterAt, TUTORIAL_CHAPTERS } from './chapters';
+import { chapterArt, chapterAt, TUTORIAL_CHAPTERS } from './chapters';
 import { CHAPTER_SCRIPTS } from './chapterScripts/scripts';
 
 /*
@@ -41,8 +41,12 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
     }
   },
   /* The saved Arrakis rides in the page's HTML, so the chapter's table sets up on it without waiting for a query. */
-  loader: async () => ({ arrakis: await loadArrakisBoard() }),
-  head: ({ params }) => {
+  loader: async ({ params }) => {
+    const chapter = chapterAt(params.chapter);
+    const [arrakis, { tutorialSocialImage }] = await Promise.all([loadArrakisBoard(), import('./socialImage')]);
+    return { arrakis, socialImage: chapter ? tutorialSocialImage(chapterArt(chapter)) : undefined };
+  },
+  head: ({ params, loaderData }) => {
     const chapter = chapterAt(params.chapter);
     /* TUTORIAL_PAGES is held to CHAPTER_SCRIPTS by a test; the head reads it so the eager route tree does not pull every chapter script. */
     if (!chapter || !TUTORIAL_PAGES.includes(`/tutorial/${chapter.slug}`)) {
@@ -53,7 +57,8 @@ export const Route = createFileRoute('/_app/tutorial/$chapter')({
       kind: 'Dune Zone Play tutorial',
       pathname: `/tutorial/${chapter.slug}`,
       description: `${chapter.goal}. An interactive ${chapter.minutes}-minute chapter of the Dune Zone Play tutorial, at a table you can play with.`,
-      social: { kind: 'Tutorial', shape: 'portrait' },
+      image: loaderData?.socialImage,
+      social: { kind: 'Tutorial · Playing Dune', shape: 'landscape' },
       trail: [{ name: 'Learn to play', pathname: '/tutorial' }],
     });
   },
