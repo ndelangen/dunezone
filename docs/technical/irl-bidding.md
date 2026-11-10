@@ -40,9 +40,9 @@ Always pass is a persistent choice; an ordinary Pass consumes only the current o
 
 | Flow | Required result |
 | --- | --- |
-| Set up | Choose a catalogue ruleset and factions, starting with the base six. Add, remove and reorder factions in a separate setup step on the central device. Finish setup opens the waiting table without starting an auction. Keep its circle fixed to the real seating arrangement. |
+| Set up | Choose a catalogue ruleset and factions, starting with the base six. Add, remove and reorder factions to match storm order in a separate setup step on the central device. Show the join QR and each faction's live phone connection beside the shared seating controls. Hand controls appear after setup. Finish setup opens the waiting table without starting an auction. Keep its circle fixed to the real seating arrangement. |
 | Join | Scan the central QR code or enter its short code, then choose a faction. A deliberate new claim replaces that faction's previous remote. |
-| Start a phase | Suggest one card for each non-full faction. Update that suggestion until the first auction starts, unless the table chooses another count. The central device can change the card count and timer before that first auction. An assigned remote or the tablet can select the first bidder by tapping a faction, then press Start new bid. Starting freezes the phase's card count. |
+| Start a phase | Suggest one card for each non-full faction. Update that suggestion until the first auction starts, unless the table chooses another count. The central device changes the card count with the minus/value/plus control in either mirrored table bar before that first auction. The phase count is not part of table setup. The timer remains configurable before the first auction. An assigned remote or the tablet can select the first bidder by tapping a faction, then press Start new bid. Starting freezes the phase's card count. |
 | Bid | Accept a higher positive whole-spice amount from the current bidder. Bid, Pass and green +1 are separate controls. A raise clears ordinary passes; Always pass stays enabled. |
 | Win | When the other eligible factions have passed since the latest raise, record the winner and amount, add exactly one card and recalculate Full. Preserve the physical payment and peek reminders. |
 | Next card | Wait for Start new bid. Suggest the next non-full faction after the previous starter, wrapping in configured order. Let a player choose another starter. |
@@ -86,7 +86,7 @@ centre. Hand information shares each token's orientation, sits between token and
 large Dune lettering with a thick outline in the background colour. The pointer aims at the
 token's centre. Its centre shows the highest bidding faction and amount, with the timer when
 enabled. Full darkens the token and adds the black prohibition mark used by Dune Play. Faction
-names are optional and off by default. Hand limits are optional and on by default; hiding them
+names are optional and off by default. Hand limits are optional and off by default; hiding them
 keeps the hand count visible and does not change the limit or Full behavior. Both display choices
 are available during setup and in the tablet menu.
 

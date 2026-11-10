@@ -423,6 +423,74 @@ describe('bidding browser orchestration', () => {
     expect(links.frames.filter((frame) => kind(frame) === 'sync')).toHaveLength(0);
   });
 
+  test('connected device IDs follow phone presence independently of faction assignments', async () => {
+    const { central, remote } = await tableAndPhone();
+    const deviceId = remote.getSnapshot().deviceId;
+    const ids = central.getSnapshot().connectedDeviceIds;
+    expect(ids).toEqual([deviceId]);
+    expect(remote.getSnapshot().connectedDeviceIds).toEqual([]);
+    expect(snapshot(central).assignments[deviceId]).toBeUndefined();
+    act(remote, { type: 'assign', factionId: 'seat-0' });
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-0');
+    act(remote, { type: 'assign', factionId: 'seat-1' });
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-1');
+    links.presence();
+    expect(central.getSnapshot().connectedDeviceIds).toBe(ids);
+    await remote.leaveTable();
+    links.presence();
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    expect(snapshot(central).assignments[deviceId]).toBe('seat-1');
+    remote.join(snapshot(central).code, snapshot(central).tableId);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([deviceId]);
+  });
+
+  test('relay loss retains only direct device IDs until relay presence reconnects', async () => {
+    const central = make();
+    await central.newTable(setup);
+    const directId = crypto.randomUUID();
+    const relayId = crypto.randomUUID();
+    links.state(central, { remotes: [relayId, directId], direct: [directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([directId, relayId].sort());
+    const both = central.getSnapshot().connectedDeviceIds;
+    links.state(central, { remotes: [directId, relayId], direct: [directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toBe(both);
+    links.state(central, {
+      status: 'disconnected',
+      relay: false,
+      remotes: [relayId, directId],
+      direct: [directId],
+    });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([directId]);
+    links.state(central, { status: 'disconnected', relay: false, remotes: [relayId, directId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    links.state(central, { remotes: [relayId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([relayId]);
+  });
+
+  test('terminal replacement and leaving clear live device IDs and ignore late presence', async () => {
+    const { central, remote } = await tableAndPhone();
+    const deviceId = remote.getSnapshot().deviceId;
+    const endpoint = links.endpoints.find((entry) => entry.options.role === 'central')!;
+    links.state(central, { status: 'replaced', relay: false, remotes: [deviceId], direct: [deviceId] });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    endpoint.options.onState({
+      status: 'connected',
+      relay: true,
+      central: true,
+      tableId: snapshot(central).tableId,
+      remotes: [deviceId],
+      direct: [deviceId],
+    });
+    expect(central.getSnapshot().connectedDeviceIds).toEqual([]);
+    const next = make();
+    await next.newTable(setup);
+    links.state(next, { direct: [deviceId] });
+    expect(next.getSnapshot().connectedDeviceIds).toEqual([deviceId]);
+    await next.leaveTable();
+    expect(next.getSnapshot().connectedDeviceIds).toEqual([]);
+  });
+
   test('leaving stops this central device and a new table survives reload', async () => {
     const storage = new MemoryStorage();
     const client = make(storage);

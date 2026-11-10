@@ -9,6 +9,7 @@ import {
   Menu,
   Drawer,
   TextInput,
+  SimpleGrid,
 } from '@mantine/core';
 import type { AuctionState, BiddingContext, BiddingAction, BiddingFaction } from '@shared/tools/biddingSession';
 import { ClientOnly, createFileRoute } from '@tanstack/react-router';
@@ -16,6 +17,7 @@ import { FormError } from '@ui/block/FormError';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { EmptyNote } from '@ui/content/EmptyNote';
+import { StatusBadge } from '@ui/content/StatusBadge';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { IconAction } from '@ui/control/IconAction';
 import { LabeledAction } from '@ui/control/LabeledAction';
@@ -433,13 +435,14 @@ function ConnectedBiddingApplication({
     />
   );
 }
-type Seat = BiddingFaction & { linked: boolean };
+type Seat = BiddingFaction & { linked: boolean; connected: boolean };
 type Local = {
   amount: number;
   draftOpportunity: number;
   selected: string;
   panel: 'bid' | 'hand' | 'limit' | 'join' | 'history' | 'add' | 'leave' | 'phase' | null;
   panelSide: 'near' | 'far';
+  panelOpen: boolean;
   showNames: boolean;
   showLimits: boolean;
 };
@@ -460,7 +463,9 @@ function localReducer(state: Local, event: LocalEvent): Local {
     case 'show-limits':
       return { ...state, showLimits: event.value };
     case 'open-panel':
-      return { ...state, panel: event.panel, panelSide: event.side };
+      return event.panel === null
+        ? { ...state, panelOpen: false }
+        : { ...state, panel: event.panel, panelSide: event.side, panelOpen: true };
   }
 }
 type State = Omit<AuctionState, 'seats'> &
@@ -524,8 +529,9 @@ function BiddingScreen({
     selected: game.seats[0].id,
     panel: null,
     panelSide: 'near',
+    panelOpen: false,
     showNames: false,
-    showLimits: true,
+    showLimits: false,
   });
   const amount =
     local.draftOpportunity === game.opportunity
@@ -537,7 +543,11 @@ function BiddingScreen({
     selected: game.seats.some((seat) => seat.id === local.selected) ? local.selected : game.seats[0].id,
     amount,
     phoneAmount: amount,
-    seats: game.seats.map((seat) => ({ ...seat, linked: Object.values(snapshot.assignments).includes(seat.id) })),
+    seats: game.seats.map((seat) => ({
+      ...seat,
+      linked: Object.values(snapshot.assignments).includes(seat.id),
+      connected: view.connectedDeviceIds.some((deviceId) => snapshot.assignments[deviceId] === seat.id),
+    })),
     remote: snapshot.assignments[view.deviceId] ?? null,
     code: snapshot.code,
     listen: view.listening,
@@ -749,14 +759,13 @@ function BiddingScreen({
                 {state.high && (
                   <FactionTokenFace
                     token={state.seats.find((seat) => seat.id === state.high!.id)!}
-                    size={80}
-                    style={{ width: '100%', height: '100%', minWidth: 0 }}
+                    size="fill"
                     aria-hidden
                   />
                 )}
                 <span className={styles.highAmount}>{state.high?.amount ?? '0'}</span>
               </div>
-              <Text size="sm" c="dimmed">
+              <Text className={styles.bidCountdown}>
                 {state.stage === 'paused' ? 'Paused' : state.seconds ? <Countdown deadline={view.deadline} /> : ''}
               </Text>
             </>
@@ -770,7 +779,9 @@ function BiddingScreen({
                   {nameOf(state, current)}
                 </Text>
               ) : (
-                <FactionTokenFace token={state.seats.find((seat) => seat.id === current)!} size={56} aria-hidden />
+                <div className={styles.bidDisc}>
+                  <FactionTokenFace token={state.seats.find((seat) => seat.id === current)!} size="fill" aria-hidden />
+                </div>
               )}
               <Text size="sm" c="dimmed">
                 Tap a faction to change
@@ -829,45 +840,24 @@ function BiddingScreen({
   }
   const canChangePhase = state.stage === 'ready' && state.card === 1 && state.opener === null;
   const phaseSettings = (
-    <Stack gap="md">
-      <Group grow align="start">
-        <ControlBlock
-          title="Cards this phase"
-          input={
-            <NumberInput
-              aria-label="Cards this phase"
-              size="lg"
-              value={state.cards}
-              min={0}
-              allowNegative={false}
-              allowDecimal={false}
-              onChange={(value) => configureCount('cards', Number(value))}
-            />
-          }
+    <ControlBlock
+      title="Bid timer"
+      input={
+        <Select
+          aria-label="Bid timer"
+          size="lg"
+          value={String(state.seconds)}
+          data={[
+            { value: '0', label: 'Off' },
+            ...Array.from({ length: 14 }, (_, i) => ({
+              value: String((i + 1) * 5),
+              label: `${(i + 1) * 5} seconds`,
+            })),
+          ]}
+          onChange={(value) => configureCount('seconds', Number(value))}
         />
-        <ControlBlock
-          title="Bid timer"
-          input={
-            <Select
-              aria-label="Bid timer"
-              size="lg"
-              value={String(state.seconds)}
-              data={[
-                { value: '0', label: 'Off' },
-                ...Array.from({ length: 14 }, (_, i) => ({
-                  value: String((i + 1) * 5),
-                  label: `${(i + 1) * 5} seconds`,
-                })),
-              ]}
-              onChange={(value) => configureCount('seconds', Number(value))}
-            />
-          }
-        />
-      </Group>
-      <Text size="sm" c="dimmed">
-        Suggested: {state.seats.filter((s) => !s.full).length} cards, one per non-full faction.
-      </Text>
-    </Stack>
+      }
+    />
   );
   const tableSetup = (
     <Stack gap="md">
@@ -885,6 +875,14 @@ function BiddingScreen({
       />
       <FactionSeating
         seats={state.seats}
+        renderStatus={(seat) => {
+          const connected = state.seats.find((candidate) => candidate.id === seat.id)?.connected;
+          return (
+            <StatusBadge tone={connected ? 'positive' : 'neutral'} live>
+              {connected ? 'Connected' : 'No phone'}
+            </StatusBadge>
+          );
+        }}
         onReorder={(ids) =>
           act({ type: 'configure', seats: ids.map((id) => game.seats.find((seat) => seat.id === id)!) })
         }
@@ -919,20 +917,6 @@ function BiddingScreen({
               <Section title="Set up the table">{null}</Section>
               <Group gap="xs" wrap="nowrap">
                 <IconAction
-                  label="Join code"
-                  size="xl"
-                  emphasis="quiet"
-                  icon={<QrCode size={21} />}
-                  onClick={() => setPanel('join')}
-                />
-                <IconAction
-                  label="Hand controls"
-                  size="xl"
-                  emphasis="quiet"
-                  icon={<Layers size={21} />}
-                  onClick={() => setPanel('hand')}
-                />
-                <IconAction
                   label="Leave table"
                   size="xl"
                   emphasis="quiet"
@@ -942,9 +926,15 @@ function BiddingScreen({
               </Group>
             </Group>
             <Text size="sm" c="dimmed">
-              Arrange the factions in seating order. Choose the first bidder after setup, on the table or a remote.
+              Arrange the factions to match storm order around the board. Choose the first bidder after setup, on the
+              table or a remote.
             </Text>
-            {tableSetup}
+            <SimpleGrid cols={{ base: 1, '48rem': 2 }} type="container" spacing="lg">
+              {tableSetup}
+              <div className={styles.setupJoin}>
+                <Section title="Join the table">{qr}</Section>
+              </div>
+            </SimpleGrid>
           </Stack>
         </div>
         <div className={styles.setupFooter}>
@@ -1005,6 +995,19 @@ function BiddingScreen({
           </Text>
         </Group>
       </div>
+      {canChangePhase && (
+        <Stack gap="xs">
+          <CountControl
+            label="Cards this phase"
+            title="Cards"
+            value={state.cards}
+            onChange={(value) => configureCount('cards', value)}
+          />
+          <Text size="xs" c="dimmed">
+            Suggested: {state.seats.filter((seat) => !seat.full).length}, one per non-full faction.
+          </Text>
+        </Stack>
+      )}
       <div className={styles.tableBarActions}>
         <IconAction
           size="xl"
@@ -1285,7 +1288,9 @@ function BiddingScreen({
                   </>
                 ) : (
                   <Text size="sm" c="dimmed">
-                    {state.note || 'Your hand controls are available.'}
+                    {state.stage === 'setup'
+                      ? 'Choose a faction and wait for setup to finish.'
+                      : state.note || 'Your hand controls are available.'}
                   </Text>
                 )}
                 {state.log[0] && (
@@ -1297,34 +1302,38 @@ function BiddingScreen({
             </div>
             <footer className={styles.phoneDock}>
               <div className={styles.handSection}>
-                <CountControl
-                  label={`${remoteSeat.name} hand count`}
-                  title="Your cards"
-                  value={remoteSeat.hand}
-                  onChange={(value) => act({ type: 'edit-hand', id: remoteSeat.id, field: 'hand', value })}
-                />
-                <Group justify="space-between" wrap="nowrap" className={styles.statusControls}>
-                  <Switch
-                    classNames={{ body: styles.touchToggle }}
-                    size="md"
-                    label="Full"
-                    aria-label={`${remoteSeat.name} Full`}
-                    checked={remoteSeat.full}
-                    onChange={(e) =>
-                      act({ type: 'edit-status', id: remoteSeat.id, field: 'full', value: e.currentTarget.checked })
-                    }
-                  />
-                  <Switch
-                    classNames={{ body: styles.touchToggle }}
-                    size="md"
-                    label="Always pass"
-                    aria-label={`${remoteSeat.name} Always pass`}
-                    checked={remoteSeat.pass}
-                    onChange={(e) =>
-                      act({ type: 'edit-status', id: remoteSeat.id, field: 'pass', value: e.currentTarget.checked })
-                    }
-                  />
-                </Group>
+                {state.stage !== 'setup' && (
+                  <>
+                    <CountControl
+                      label={`${remoteSeat.name} hand count`}
+                      title="Your cards"
+                      value={remoteSeat.hand}
+                      onChange={(value) => act({ type: 'edit-hand', id: remoteSeat.id, field: 'hand', value })}
+                    />
+                    <Group justify="space-between" wrap="nowrap" className={styles.statusControls}>
+                      <Switch
+                        classNames={{ body: styles.touchToggle }}
+                        size="md"
+                        label="Full"
+                        aria-label={`${remoteSeat.name} Full`}
+                        checked={remoteSeat.full}
+                        onChange={(e) =>
+                          act({ type: 'edit-status', id: remoteSeat.id, field: 'full', value: e.currentTarget.checked })
+                        }
+                      />
+                      <Switch
+                        classNames={{ body: styles.touchToggle }}
+                        size="md"
+                        label="Always pass"
+                        aria-label={`${remoteSeat.name} Always pass`}
+                        checked={remoteSeat.pass}
+                        onChange={(e) =>
+                          act({ type: 'edit-status', id: remoteSeat.id, field: 'pass', value: e.currentTarget.checked })
+                        }
+                      />
+                    </Group>
+                  </>
+                )}
                 <Group justify="space-between">
                   <Menu position="top-end" withinPortal>
                     <Menu.Target>
@@ -1358,16 +1367,20 @@ function BiddingScreen({
                       </Menu.Item>
                     </Menu.Dropdown>
                   </Menu>
-                  <Text size="sm" c="dimmed">
-                    Hand limit {remoteSeat.limit}
-                  </Text>
-                  <IconAction
-                    label="Adjust hand limit"
-                    icon={<Settings2 size={18} />}
-                    size="xl"
-                    emphasis="quiet"
-                    onClick={() => setPanel('limit')}
-                  />
+                  {state.stage !== 'setup' && (
+                    <>
+                      <Text size="sm" c="dimmed">
+                        Hand limit {remoteSeat.limit}
+                      </Text>
+                      <IconAction
+                        label="Adjust hand limit"
+                        icon={<Settings2 size={18} />}
+                        size="xl"
+                        emphasis="quiet"
+                        onClick={() => setPanel('limit')}
+                      />
+                    </>
+                  )}
                 </Group>
               </div>
               {state.stage === 'active' && state.remote === state.turn ? (
@@ -1413,7 +1426,7 @@ function BiddingScreen({
     leave: 'Leave table',
     phase: 'Phase settings',
   };
-  const panelLabel = panelLabels[state.panel ?? 'join'];
+  const panelLabel = state.panel ? panelLabels[state.panel] : '';
   function renderPanelBody() {
     switch (state.panel) {
       case 'leave':
@@ -1521,14 +1534,16 @@ function BiddingScreen({
             onChange={(value) => act({ type: 'edit-hand', id: remoteSeat.id, field: 'limit', value })}
           />
         ) : (
-          qr
+          <Text>Choose a faction to adjust its hand limit.</Text>
         );
       case 'phase':
         return canChangePhase ? phaseSettings : <Text>The phase has started. Close this panel to continue.</Text>;
       case 'history':
         return results;
-      default:
+      case 'join':
         return qr;
+      default:
+        return null;
     }
   }
   const panelContent = (
@@ -1549,14 +1564,14 @@ function BiddingScreen({
     <>
       <TouchSurface>
         <SheetPopover
-          opened={state.panel !== null && state.panelSide === 'near'}
+          opened={state.panelOpen && state.panelSide === 'near'}
           onChange={(open) => !open && setPanel(null)}
         >
           <SheetPopover.Dropdown label={panelLabel}>{panelContent}</SheetPopover.Dropdown>
         </SheetPopover>
       </TouchSurface>
       <Drawer
-        opened={state.panel !== null && state.panelSide === 'far'}
+        opened={state.panelOpen && state.panelSide === 'far'}
         onClose={() => setPanel(null)}
         position="top"
         size="auto"
@@ -1788,7 +1803,7 @@ function SeatToken({ seat, size }: Readonly<{ seat: Seat; size: number | string 
       style={{ '--token-size': typeof size === 'number' ? `${size}px` : size } as CSSProperties}
     >
       <span className={styles.tokenArt}>
-        <FactionTokenFace token={seat} size={96} style={{ width: '100%', height: '100%', minWidth: 0 }} aria-hidden />
+        <FactionTokenFace token={seat} size="fill" aria-hidden />
       </span>
       {seat.full && (
         <svg className={styles.fullMark} viewBox="0 0 100 100" aria-hidden>
