@@ -17,7 +17,7 @@ import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
-import { discordShortRetry } from './lib/discordRetry';
+import { discordRetryState } from './lib/discordRetry';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
@@ -176,7 +176,7 @@ export default defineSchema({
     cleanup_at: v.number(),
     next_attempt_at: v.number(),
     retry_after: v.optional(v.number()),
-    short_retry: v.optional(discordShortRetry),
+    retry: v.optional(discordRetryState),
     lease: v.optional(v.string()),
     lease_until: v.optional(v.number()),
     error: v.optional(v.string()),

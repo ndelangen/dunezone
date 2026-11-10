@@ -45,8 +45,10 @@ export const claim = internalMutation({
     if (!(await discordEnabled(ctx)) || !row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
       return null;
     }
-    /* A creation-budget delay cannot hold a discarded reservation that never acquired a channel. */
-    if ((row.retry_after ?? 0) > Date.now() && !retiresWithoutChannel(row, await ctx.db.get(row.game_id))) {
+    /* New lifecycle work can supersede application backoff, but never Discord's hard cooldown. */
+    const sameWork = row.retry?.revision === (row.work_revision ?? 0);
+    const notBefore = Math.max(row.retry_after ?? 0, sameWork && row.retry?.kind === 'backoff' ? row.retry.until : 0);
+    if (notBefore > Date.now() && !retiresWithoutChannel(row, await ctx.db.get(row.game_id))) {
       return null;
     }
     const cooldown = await ctx.db.query('play_discord_cooldown').unique();
@@ -59,14 +61,16 @@ export const claim = internalMutation({
     }
     const lease = playCredential();
     const until = Date.now() + DISCORD_LEASE;
+    const retry = sameWork && row.retry?.kind === 'short' ? row.retry : undefined;
     await ctx.db.patch(row._id, {
       lease,
       lease_until: until,
       lease_revision: row.work_revision ?? 0,
       next_attempt_at: until,
       retry_after: undefined,
+      retry,
     });
-    return { ...row, lease, lease_until: until, next_attempt_at: until, retry_after: undefined };
+    return { ...row, lease, lease_until: until, next_attempt_at: until, retry_after: undefined, retry };
   },
 });
 
@@ -270,7 +274,7 @@ export const release = internalMutation({
         lease_until: undefined,
         lease_revision: undefined,
         retry_after: undefined,
-        short_retry: undefined,
+        retry: undefined,
         error: undefined,
       });
       return null;
@@ -280,11 +284,12 @@ export const release = internalMutation({
     /* Finished rooms are checked by the hourly snapshot, not the provisioning retry cron. */
     let next = game?.directory?.stage === 'finished' ? Number.MAX_SAFE_INTEGER : row.cleanup_at;
     const changed = (row.work_revision ?? 0) !== (row.lease_revision ?? 0);
+    const retry = row.retry?.kind === 'short' ? row.retry : undefined;
     const attempts =
-      row.short_retry?.revision === (row.work_revision ?? 0) &&
-      row.short_retry.operation === args.retryOperation &&
-      row.short_retry.categoryId === args.retryCategoryId
-        ? row.short_retry.attempts
+      retry?.revision === (row.work_revision ?? 0) &&
+      retry.operation === args.retryOperation &&
+      retry.categoryId === args.retryCategoryId
+        ? retry.attempts
         : 0;
     const shortRetry =
       !changed &&
@@ -309,14 +314,17 @@ export const release = internalMutation({
       lease_revision: undefined,
       next_attempt_at: next,
       retry_after: args.retryAfterMs ? Date.now() + args.retryAfterMs : retryAfter,
-      short_retry: shortRetry
+      retry: shortRetry
         ? {
+            kind: 'short',
             operation: args.retryOperation!,
             attempts: attempts === 0 ? 1 : 2,
             categoryId: args.retryCategoryId,
             revision: row.work_revision ?? 0,
           }
-        : undefined,
+        : !changed && attempts >= 2 && (args.retryAfterMs ?? 0) > 0 && args.retryAfterMs! <= 5000
+          ? { kind: 'backoff', revision: row.work_revision ?? 0, until: next }
+          : undefined,
       error: row.state === 'creating' ? row.error : args.error,
     });
     if (row.state !== 'creating' && (changed || next <= Date.now() || (args.retryAfterMs ?? 0) > 0)) {

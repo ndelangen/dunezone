@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { internal } from './_generated/api';
 import { DiscordRest } from './lib/discordRest';
-import { DISCORD_RETRY } from './lib/playDiscord';
+import { DISCORD_RETRY, requestDiscordDeletion } from './lib/playDiscord';
 import { playRateLimiter } from './lib/playRateLimits';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
@@ -77,6 +77,26 @@ test('a queued room cannot bypass its retry-after deadline', async () => {
   expect(await world.channel()).toMatchObject({ retry_after: Date.now() + 60_000 });
 });
 
+test("retirement supersedes application backoff while retaining Discord's hard deadline", async () => {
+  const discord = discordStub();
+  const world = await voiceWorld();
+  await world.reconcile();
+  const row = (await world.channel())!;
+  await world.t.run(async (ctx) => {
+    await ctx.db.patch(row._id, {
+      retry_after: Date.now() + 60_000,
+      retry: { kind: 'backoff', until: Date.now() + DISCORD_RETRY, revision: row.work_revision ?? 0 },
+    });
+    await requestDiscordDeletion(ctx, (await ctx.db.get(row._id))!);
+  });
+  await world.reconcile();
+  expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
+  vi.setSystemTime(Date.now() + 60_000);
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
+});
+
 test('repeated short rate limits stop after three attempts and retain the long backoff', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
@@ -92,6 +112,12 @@ test('repeated short rate limits stop after three attempts and retain the long b
   expect((await world.channel())!.next_attempt_at).toBe(Date.now() + DISCORD_RETRY);
   const retry = await nextRetry(world);
   expect(retry.scheduledTime).toBe(Date.now() + DISCORD_RETRY);
+  vi.setSystemTime(Date.now() + 1000);
+  await world.reconcile();
+  expect(discord.fetch).toHaveBeenCalledTimes(3);
+  vi.setSystemTime(retry.scheduledTime);
+  await world.t.action(internal.playDiscordActions.reconcile, retry.args[0]);
+  expect(discord.fetch).toHaveBeenCalledTimes(4);
 });
 
 test('definite creation retries reuse one creation reservation and the same category', async () => {

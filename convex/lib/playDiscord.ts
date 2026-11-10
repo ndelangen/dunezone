@@ -90,8 +90,7 @@ export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'pla
     cleanup_at: Date.now(),
     next_attempt_at: Date.now(),
     invite_url: undefined,
-    retry_after: undefined,
-    short_retry: undefined,
+    retry: undefined,
     error: undefined,
     work_revision: (channel.work_revision ?? 0) + 1,
   });
@@ -104,6 +103,8 @@ export async function markDiscordDeleted(ctx: MutationCtx, channel: Doc<'play_ga
     state: 'deleted',
     deleted_at: Date.now(),
     invite_url: undefined,
+    retry_after: undefined,
+    retry: undefined,
     error: undefined,
   });
 }
