@@ -5,6 +5,27 @@ import { internalAction } from './_generated/server';
 import { discordConfiguration, DiscordFailure, DiscordPaused, DiscordRest } from './lib/discordRest';
 import { playCredentialDigest } from './lib/playAuthorization';
 
+function classifyDeliveryFailure(error: unknown) {
+  if (error instanceof DiscordPaused) {
+    return { outcome: 'dropped' as const, error: undefined };
+  }
+  const uncertain = {
+    outcome: 'uncertain' as const,
+    error: 'The Discord ping has no confirmed result. It will not be sent again.',
+  };
+  if (!(error instanceof DiscordFailure)) {
+    return uncertain;
+  }
+  const retryAfterMs = error.retryAfterMs;
+  if (error.status === 429) {
+    return { outcome: 'rate_limited' as const, error: error.message, retryAfterMs };
+  }
+  if (error.status >= 400 && error.status < 500) {
+    return { outcome: 'failed' as const, error: error.message, retryAfterMs };
+  }
+  return { ...uncertain, retryAfterMs };
+}
+
 /** A nudge is optional and short-lived; an ambiguous POST is never replayed. */
 export const deliver = internalAction({
   args: { id: v.id('play_game_discord_nudges'), nudgeId: v.string() },
@@ -33,24 +54,9 @@ export const deliver = internalAction({
       );
       await ctx.runMutation(internal.playDiscordNudges.settle, { ...args, outcome: 'sent', messageId });
     } catch (error) {
-      const definite = error instanceof DiscordFailure && error.status >= 400 && error.status < 500;
       await ctx.runMutation(internal.playDiscordNudges.settle, {
         ...args,
-        outcome:
-          error instanceof DiscordPaused
-            ? 'dropped'
-            : error instanceof DiscordFailure && error.status === 429
-              ? 'rate_limited'
-              : definite
-                ? 'failed'
-                : 'uncertain',
-        error:
-          error instanceof DiscordPaused
-            ? undefined
-            : definite
-              ? error.message
-              : 'The Discord ping has no confirmed result. It will not be sent again.',
-        ...(error instanceof DiscordFailure ? { retryAfterMs: error.retryAfterMs } : {}),
+        ...classifyDeliveryFailure(error),
       });
     }
     return null;

@@ -10,7 +10,7 @@ export const PLAY_NUDGE_RETRY_CEILING_MS = 10_000;
 
 const identifier = z.string().min(1).max(160);
 /* Only the public faction label and delivery identifiers leave the game; chat text stays there. */
-export const playNudgeSchema = z.strictObject({
+const playNudgeSchema = z.strictObject({
   nudgeId: identifier,
   fromFactionId: identifier,
   fromFactionName: z.string().min(1).max(160),
@@ -22,4 +22,3 @@ export const playPublishNudgeRequestSchema = playNudgeSchema.extend(gameCredenti
 export const playPublishNudgeResultSchema = z.object({ ok: z.boolean() });
 export type PlayNudge = z.infer<typeof playNudgeSchema>;
 export type PlayPublishNudgeRequest = z.infer<typeof playPublishNudgeRequestSchema>;
-export type PlayPublishNudgeResult = z.infer<typeof playPublishNudgeResultSchema>;

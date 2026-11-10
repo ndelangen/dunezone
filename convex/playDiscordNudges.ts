@@ -1,5 +1,6 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
+import type { Infer } from 'convex/values';
 
 import {
   PLAY_NUDGE_MAX_AGE_MS,
@@ -112,6 +113,41 @@ export const publishNudge = mutation({
   },
 });
 
+/** Read delivery eligibility within the claim transaction; this helper never changes the event. */
+async function resolveDelivery(
+  ctx: QueryCtx,
+  row: Doc<'play_game_discord_nudges'>
+): Promise<Infer<typeof deliveryValidator> | null> {
+  const game = await ctx.db.get(row.game_id);
+  const channel = await discordChannel(ctx, row.game_id);
+  const linked = row.to_user_id ? await linkedDiscord(ctx, row.to_user_id) : null;
+  const seatedActor = game?.directory?.seats.find((seat) => seat.seat === row.to_seat)?.userId;
+  const seatedId = seatedActor ? ctx.db.normalizeId('users', seatedActor) : null;
+  const sameOccupant =
+    seatedId !== null &&
+    (seatedId === row.to_user_id || (await canonicalAccount(ctx, seatedId))?._id === linked?.userId);
+  if (
+    !fresh(row.at) ||
+    row.attempts >= PLAY_NUDGE_MAX_ATTEMPTS ||
+    !liveGame(game) ||
+    !(await discordEnabled(ctx)) ||
+    channel?.state !== 'ready' ||
+    !channel.channel_id ||
+    channel.cleanup_at <= Date.now() ||
+    !linked ||
+    !sameOccupant ||
+    linked._id !== row.auth_account_id
+  ) {
+    return null;
+  }
+  return {
+    channelId: channel.channel_id,
+    discordUserId: linked.providerAccountId,
+    gameName: game!.name,
+    fromFactionName: row.from_faction_name,
+  };
+}
+
 /** Persist the uncertain outcome before POST; a crashed action cannot send the same event again. */
 export const start = internalMutation({
   args: deliveryArgs,
@@ -121,26 +157,8 @@ export const start = internalMutation({
     if (!row || row.nudge_id !== nudgeId || row.state !== 'pending') {
       return null;
     }
-    const game = await ctx.db.get(row.game_id);
-    const channel = await discordChannel(ctx, row.game_id);
-    const linked = row.to_user_id ? await linkedDiscord(ctx, row.to_user_id) : null;
-    const seatedActor = game?.directory?.seats.find((seat) => seat.seat === row.to_seat)?.userId;
-    const seatedId = seatedActor ? ctx.db.normalizeId('users', seatedActor) : null;
-    const sameOccupant =
-      seatedId !== null &&
-      (seatedId === row.to_user_id || (await canonicalAccount(ctx, seatedId))?._id === linked?.userId);
-    if (
-      !fresh(row.at) ||
-      row.attempts >= PLAY_NUDGE_MAX_ATTEMPTS ||
-      !liveGame(game) ||
-      !(await discordEnabled(ctx)) ||
-      channel?.state !== 'ready' ||
-      !channel.channel_id ||
-      channel.cleanup_at <= Date.now() ||
-      !linked ||
-      !sameOccupant ||
-      linked._id !== row.auth_account_id
-    ) {
+    const delivery = await resolveDelivery(ctx, row);
+    if (!delivery) {
       await ctx.db.patch(row._id, { state: 'dropped', to_user_id: undefined, auth_account_id: undefined });
       return null;
     }
@@ -149,12 +167,7 @@ export const start = internalMutation({
       attempts: row.attempts + 1,
       error: 'The Discord ping has no confirmed result. It will not be sent again.',
     });
-    return {
-      channelId: channel.channel_id,
-      discordUserId: linked.providerAccountId,
-      gameName: game!.name,
-      fromFactionName: row.from_faction_name,
-    };
+    return delivery;
   },
 });
 
