@@ -1,4 +1,5 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import {
   arrayMove,
   SortableContext,
@@ -61,11 +62,10 @@ export function FactionSeating({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragEnd={({ active, over }) => {
-          const from = ids.indexOf(String(active.id));
-          const to = over ? ids.indexOf(String(over.id)) : -1;
-          if (from >= 0 && to >= 0 && from !== to) {
-            onReorder(arrayMove(ids, from, to));
+        onDragEnd={(event) => {
+          const reordered = seatOrderAfterDrop(ids, event);
+          if (reordered) {
+            onReorder(reordered);
           }
         }}
       >
@@ -100,4 +100,22 @@ export function FactionSeating({
       <div>{renderAddTarget ? renderAddTarget(add) : add}</div>
     </div>
   );
+}
+
+function seatOrderAfterDrop(ids: readonly string[], { active, over }: DragEndEvent): string[] | null {
+  if (!over) {
+    return null;
+  }
+  const from = ids.indexOf(String(active.id));
+  if (from < 0) {
+    return null;
+  }
+  const to = ids.indexOf(String(over.id));
+  if (to < 0) {
+    return null;
+  }
+  if (from === to) {
+    return null;
+  }
+  return arrayMove([...ids], from, to);
 }
