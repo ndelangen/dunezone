@@ -5,12 +5,12 @@ import type { Decorator } from '@storybook/tanstack-react';
 import { expect, waitFor } from 'storybook/test';
 
 import { refText, SEED_REF_TOKEN, STORYBOOK_NOW } from '@db/storybook';
+import { browserGameRuntime, GameRuntimeContext } from '@db/tabletop/gameRuntime';
+import type { GameRuntime } from '@db/tabletop/gameRuntime';
 
 import { pageStoryMeta } from '../../storybookConfig';
 import { draftingSnapshot } from './drafting.stories.fixture';
 import { press } from './gameInteractions.stories.fixture';
-import { browserGameRuntime, GameRuntimeContext } from './multiplayer/gameRuntime';
-import type { GameRuntime } from './multiplayer/gameRuntime';
 import type { productTransport } from './product.stories.fixture';
 import { cardBack, GAME_KEY, parameters, playingSnapshot, setupSnapshot, SIX } from './product.stories.fixture';
 import { seatPopover } from './seats.stories.fixture';

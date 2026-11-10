@@ -8,6 +8,9 @@ What replaces them is one seam, [`src/app/db/core/live.ts`](../src/app/db/core/l
 convention: a route loads data once for first paint, then subscribes for the rest of the screen's
 life.
 
+Play tables are the exception: their state arrives over the game Worker's WebSocket, not Convex.
+See [Play data flow](./architecture.md#play-data-flow-websocket-not-convex).
+
 ## The two paths to the same data
 
 ```mermaid
