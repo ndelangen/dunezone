@@ -86,17 +86,23 @@ const send = (requestId: string) =>
   report({ operation: 'send', requestId, description: 'A troop cannot be moved.', browser });
 const status = (requestId: string) => report({ operation: 'status', requestId });
 
-/** The newest Game log page a connection was sent whose entries mention the text. */
-const gameLogWith = (connection: NativeConnection, text: string) =>
+type LogEntry = Extract<NativeMessage, { type: 'log-history' }>['entries'][number];
+/** An entry that names the report's export id. */
+const requestedEntry = (id: string) => (entry: LogEntry) => entry.text.includes(`Report ${id}`);
+/** An entry that links the published issue. */
+const publishedEntry = (entry: LogEntry) => entry.issueUrl === ISSUE_URL;
+
+/** The matching entry in the newest Game log page a connection was sent that holds one. */
+const gameLogEntry = (connection: NativeConnection, matches: (entry: LogEntry) => boolean, label: string) =>
   eventually(
     () =>
-      connection.messages.findLast(
-        (message): message is Extract<NativeMessage, { type: 'log-history' }> =>
-          message.type === 'log-history' &&
-          message.tab === 'game' &&
-          message.entries.some((entry) => entry.text.includes(text))
-      ),
-    `Game log mentioning ${text}`
+      connection.messages
+        .findLast(
+          (message): message is Extract<NativeMessage, { type: 'log-history' }> =>
+            message.type === 'log-history' && message.tab === 'game' && message.entries.some(matches)
+        )
+        ?.entries.find(matches),
+    `Game log entry: ${label}`
   );
 
 /*
@@ -159,12 +165,10 @@ describe('bug reports through the real GameRoom', () => {
     expect(exportedLog).toContain(`Report ${exportId}`);
 
     for (const connection of [reporter, watcher]) {
-      const requested = await gameLogWith(connection, `Report ${exportId}`);
-      expect(requested.entries.find((entry) => entry.text.includes(`Report ${exportId}`))?.text).toContain(
-        'Synthetic A'
-      );
-      const published = await gameLogWith(connection, ISSUE_URL);
-      expect(published.entries.find((entry) => entry.text.includes(ISSUE_URL))?.text).toContain(exportId);
+      const requested = await gameLogEntry(connection, requestedEntry(exportId), 'requested');
+      expect(requested.text).toContain('Synthetic A');
+      const published = await gameLogEntry(connection, publishedEntry, 'published');
+      expect(published.text).toContain(exportId);
     }
 
     /* Sending the same request again answers its receipt instead of filing another issue. */
@@ -245,9 +249,9 @@ describe('bug reports through the real GameRoom', () => {
     };
     expect(exported.server.gameId).toBe(gameId);
     expect(exported.browser.diagnostics.userAgent).toBe('native-report-browser');
-    await gameLogWith(watcher, `Report ${requestId}`);
+    await gameLogEntry(watcher, requestedEntry(requestId), 'requested');
 
     await expect(finish(requestId)).resolves.toBeUndefined();
-    await gameLogWith(watcher, ISSUE_URL);
+    await gameLogEntry(watcher, publishedEntry, 'published');
   }, 30_000);
 });
