@@ -496,7 +496,16 @@ export async function verifyHomepage({
       passed('Saved account access resolves before the signed-in homepage opens');
     }
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
-    await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
+    try {
+      await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
+    } catch (cause) {
+      const preview = await who.page.evaluate(() => ({
+        hash: window.location.hash,
+        invitation: document.querySelector('#play-preview [role="status"]')?.textContent ?? null,
+        link: document.querySelector('a[href="#play-preview"]')?.getAttribute('href') ?? null,
+      }));
+      throw new Error(`${who.label}'s preview invitation did not appear: ${JSON.stringify(preview)}`, { cause });
+    }
     if (who === member) {
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
