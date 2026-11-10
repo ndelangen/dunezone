@@ -323,8 +323,8 @@ export const WithoutGraphicsDevice = meta.story({
 });
 
 /*
- * A reload while neither the directory nor the table can be reached shows the table this tab kept, locked under the reconnecting bar, instead of the unreachable notice (#1746).
- * The story stands in for the signed-in tab: an auth token naming the transport's viewer, and the table stored under it.
+ * Once account access is established, an unreachable directory and table leave the saved table locked under the reconnecting bar instead of the unreachable notice (#1746).
+ * This story supplies account access, an auth token naming the transport's viewer and the table stored under it. A fresh signed-in reload without Convex replies waits at the root account-access gate instead.
  */
 export const ReloadedWhileUnreachable = meta.story({
   args: { path: `/play/${STORED_GAME}` },

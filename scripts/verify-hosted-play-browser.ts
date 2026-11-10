@@ -2257,18 +2257,30 @@ async function verifyRegular() {
     socket.connectToServer();
   });
   const sentBeforeOfflineReload = b.sent.length;
+  const socketsBeforeOfflineReload = b.sockets.length;
+  const addressBeforeOfflineReload = b.page.url();
+  const connectionBeforeOfflineReload = requireView(b).viewer.connectionId;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
-  await b.page.getByText('Reconnecting', { exact: true }).waitFor();
-  await b.page.getByRole('group', { name: 'Table view' }).waitFor();
-  assert.equal(new URL(b.page.url()).pathname, `/play/${gameSlug}`);
+  await b.page.getByRole('status').filter({ hasText: 'Checking account access…' }).waitFor();
+  assert.equal(b.page.url(), addressBeforeOfflineReload);
+  assert.equal(await b.page.getByRole('group', { name: 'Table view' }).count(), 0);
+  assert.equal(await b.page.getByRole('button', { name: /^Controls/ }).count(), 0);
   assert.equal(await b.page.locator('[data-connection="authorized"]').count(), 0);
+  assert.equal(b.sockets.length, socketsBeforeOfflineReload);
   assert.equal(b.sent.slice(sentBeforeOfflineReload).filter((message) => message.type === 'command').length, 0);
-  await capture(b, 'after-friendly-reload-directory-unreachable');
+  await capture(b, 'after-friendly-reload-account-access-pending');
   directoryOffline = false;
   await b.page.reload({ waitUntil: 'domcontentloaded' });
   await admitted(b);
+  await until(
+    () => requireView(b).viewer.connectionId !== connectionBeforeOfflineReload,
+    'Restored account access did not get a fresh admitted connection.'
+  );
+  assert.equal(b.page.url(), addressBeforeOfflineReload);
+  assert.equal(requireView(b).viewer.viewerSeat, seatB);
+  assert.equal(requireView(b).snapshot.revision, reviewed);
   passed(
-    'A friendly URL reload restores the locked ID table while the directory is unreachable and a fresh view unlocks it'
+    'A friendly URL reload waits for account access without opening a table or game socket, then restores the same seat and durable revision'
   );
 
   await visibleActivity(b, a, 'reloaded-player-b-to-player-a');
