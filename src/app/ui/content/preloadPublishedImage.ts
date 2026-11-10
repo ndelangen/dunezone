@@ -53,17 +53,25 @@ export function preloadPublishedImage(src: string): Promise<void> {
   return Promise.race([loading, waited]).finally(() => clearTimeout(timer));
 }
 
-/** Preloads every image, telling `onProgress` how many are done after each one; resolves once all are. */
+/** Each picture as the one URL it is drawn from. */
+const itself = (src: string): readonly string[] => [src];
+
+/**
+ * Preloads every picture, telling `onProgress` how many are done after each one;
+ * resolves once all are.
+ * `copies` names the URLs a picture is drawn from, such as resized copies, and a picture is done once all of them are.
+ */
 export async function preloadPublishedImages(
   srcs: readonly string[],
-  onProgress?: (done: number, total: number) => void
+  onProgress?: (done: number, total: number) => void,
+  copies: (src: string) => readonly string[] = itself
 ): Promise<void> {
   const unique = [...new Set(srcs)];
   let done = 0;
   onProgress?.(0, unique.length);
   await Promise.all(
     unique.map((src) =>
-      preloadPublishedImage(src).then(() => {
+      Promise.all(copies(src).map(preloadPublishedImage)).then(() => {
         done += 1;
         onProgress?.(done, unique.length);
       })
@@ -72,24 +80,29 @@ export async function preloadPublishedImages(
 }
 
 /**
- * Preloads every image while the caller is mounted, and counts them in: `done` of `total`, and `ready` once all are.
+ * Preloads every picture while the caller is mounted, and counts them in: `done` of `total`, and `ready` once all are.
  * A new list starts the count again;
- * images already in count at once.
+ * pictures already in count at once.
+ * `copies` is as `preloadPublishedImages` takes it, and should be a function defined once rather than on every render.
  */
-export function usePreloadedImages(srcs: readonly string[]) {
+export function usePreloadedImages(srcs: readonly string[], copies: (src: string) => readonly string[] = itself) {
   const key = [...new Set(srcs)].join('\n');
   const [progress, setProgress] = useState({ key, done: 0, total: new Set(srcs).size });
   useEffect(() => {
     let live = true;
-    void preloadPublishedImages(key ? key.split('\n') : [], (done, total) => {
-      if (live) {
-        setProgress({ key, done, total });
-      }
-    });
+    void preloadPublishedImages(
+      key ? key.split('\n') : [],
+      (done, total) => {
+        if (live) {
+          setProgress({ key, done, total });
+        }
+      },
+      copies
+    );
     return () => {
       live = false;
     };
-  }, [key]);
+  }, [copies, key]);
   const current = progress.key === key ? progress : { key, done: 0, total: key ? key.split('\n').length : 0 };
   return { done: current.done, total: current.total, ready: current.done >= current.total };
 }
