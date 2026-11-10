@@ -18,7 +18,8 @@ export interface ProfilePickerProps {
 }
 
 /**
- * Replacement-owner Picker: self-service offers co-members; administrators may choose any active profile.
+ * Replacement-owner Picker: self-service offers co-members;
+ * administrators may choose any active profile.
  * The caller mounts it while open and receives the chosen profile.
  */
 export function ProfilePicker({ onPick, onCancel, adminSourceUserId }: ProfilePickerProps) {

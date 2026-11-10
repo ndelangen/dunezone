@@ -939,7 +939,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /**
-   * A ban retires a real game regardless of players; ordinary requests retire only the hosted fixture or an unconfirmed room.
+   * A ban retires a real game regardless of players;
+   * ordinary requests retire only the hosted fixture or an unconfirmed room.
    * Convex asks an unconfirmed room only once its game expired, when no confirmation can succeed any more.
    */
   private retiresAs(metadata: Metadata, gameId: string, secret: string, banOperationId?: string) {
@@ -2306,9 +2307,7 @@ export default {
     if (service) {
       return service;
     }
-    if (
-      url.pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH && request.method === 'POST'
-    ) {
+    if (url.pathname === HOMEPAGE_ACCOUNT_CUTOFF_PATH && request.method === 'POST') {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
     }
     if (

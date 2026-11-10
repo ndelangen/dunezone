@@ -75,7 +75,7 @@ test('an acknowledged Worker cutoff ends retries without placing its capability 
   const { t, operationId, token } = await bannedAccount();
   vi.stubEnv('PLAY_SERVICE_URL', 'http://127.0.0.1:8787');
   const post = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toBe('http://127.0.0.1:8787/__play/homepage/account-cutoff');
+    expect(input).toBe('http://127.0.0.1:8787/__play/homepage/account-cutoff');
     expect(new Headers(init?.headers).get('Authorization')).toBe(`Bearer ${token}`);
     expect(new Headers(init?.headers).get('X-Account-Operation')).toBe(operationId);
     return new Response(null, { status: 204 });

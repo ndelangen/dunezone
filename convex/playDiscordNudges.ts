@@ -123,7 +123,7 @@ export const sendNudge = action({
   },
 });
 
-/** Older Workers keep their mutation endpoint during rollout; stale queued nudges are simply dropped. */
+/** Older Workers keep their mutation endpoint during rollout; stale queued nudges are dropped. */
 export const publishNudge = mutation({
   args: zodToConvex(playPublishNudgeRequestSchema),
   returns: zodToConvex(playPublishNudgeResultSchema),

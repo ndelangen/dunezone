@@ -15,7 +15,7 @@ import { internalMutation, publicQuery } from './functions';
 import { playCredentialDigest } from './lib/playAuthorization';
 import { playServiceOrigin } from './lib/playService';
 
-const RETRY_MS = 5_000;
+const RETRY_MS = 5000;
 const CLOCK_MARGIN_MS = 60_000;
 
 async function pendingCutoff(ctx: QueryCtx, operationId: Id<'account_deletion_operations'>) {

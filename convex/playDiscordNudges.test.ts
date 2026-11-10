@@ -42,7 +42,7 @@ test('posts once with only the target allowed to be mentioned, and stores no del
   expect(world.fetch).toHaveBeenCalledTimes(1);
   const [url, options] = world.fetch.mock.calls[0];
   expect(url).toBe('https://discord.com/api/v10/channels/300/messages');
-  expect(JSON.parse(String(options?.body))).toEqual({
+  expect(await new Response(options?.body).json()).toEqual({
     content: '<@123456789> Atreides \\<@&777\\> \\[go\\](url) @here is waiting on you in Quiet Sietch.',
     allowed_mentions: { parse: [], users: ['123456789'], replied_user: false },
   });
@@ -77,13 +77,27 @@ test.each([
   const world = await nudgeWorld();
   const channel = await world.channel();
   await world.t.run(async (ctx) => {
-    if (state === 'disabled') await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() });
-    if (state === 'voice off') await ctx.db.patch(world.gameId, { discord_voice: false });
-    if (state === 'finished' || state === 'discarded') await ctx.db.patch(world.gameId, { directory_stage: state });
-    if (state === 'unlinked') await ctx.db.delete(world.authAccountId);
-    if (state === 'deleted') await ctx.db.patch(world.identity.userId, { account_state: 'deleted' });
-    if (state === 'anonymous') await ctx.db.patch(world.identity.userId, { isAnonymous: true });
-    if (state === 'channel missing') await ctx.db.delete(channel!._id);
+    if (state === 'disabled') {
+      await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() });
+    }
+    if (state === 'voice off') {
+      await ctx.db.patch(world.gameId, { discord_voice: false });
+    }
+    if (state === 'finished' || state === 'discarded') {
+      await ctx.db.patch(world.gameId, { directory_stage: state });
+    }
+    if (state === 'unlinked') {
+      await ctx.db.delete(world.authAccountId);
+    }
+    if (state === 'deleted') {
+      await ctx.db.patch(world.identity.userId, { account_state: 'deleted' });
+    }
+    if (state === 'anonymous') {
+      await ctx.db.patch(world.identity.userId, { isAnonymous: true });
+    }
+    if (state === 'channel missing') {
+      await ctx.db.delete(channel!._id);
+    }
   });
   await world.publishNudge({
     ...(state === 'missing sender' ? { fromSeat: 'absent' } : {}),
