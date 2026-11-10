@@ -74,6 +74,7 @@
   width: 100%;
   min-width: 0;
   container-type: inline-size;
+  container-name: bidding-arena;
 }
 .arrow {
   position: absolute;
@@ -101,14 +102,14 @@
 }
 .bidDisc {
   position: relative;
-  width: clamp(3rem, 13cqi, 5.5rem);
+  width: clamp(4rem, 20cqi, 8rem);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
 }
 .highAmount {
   position: absolute;
-  font-size: clamp(1.5rem, 8cqi, 3rem);
+  font-size: clamp(2.5rem, 12cqi, 5rem);
   line-height: 1;
   font-family: C_Advokat_Modern, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -116,6 +117,14 @@
   text-shadow:
     0 0 4px black,
     0 0 8px black;
+}
+.bidCountdown {
+  font-family: C_Advokat_Modern, sans-serif;
+  font-size: clamp(1.25rem, 5cqi, 2.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px var(--ui-ground);
 }
 .cardMiddle > img {
   width: 40%;
@@ -255,7 +264,7 @@
   .cardMiddle {
     width: 38%;
   }
-  .cardMiddle > p:not(.currentBidder, .highAmount) {
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
     font-size: 0.7rem;
   }
   .seatStatus {
@@ -321,6 +330,7 @@
 }
 .tableBarContents {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-sm);
@@ -504,6 +514,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  container: bidding-setup / inline-size;
 }
 
 .setupContent {
@@ -516,4 +527,46 @@
 .setupFooter {
   display: flex;
   flex-direction: column;
+}
+
+.setupJoin {
+  min-width: 0;
+}
+
+.setupJoin .qr {
+  /* Setup also reserves space for its heading, storm-order guidance and fixed footer. */
+  width: min(100%, max(8rem, calc(100dvh - 25rem)));
+}
+
+@container bidding-setup (width < 48rem) {
+  .setupJoin {
+    order: -1;
+  }
+}
+
+@container bidding-arena (width < 30rem) {
+  .seat {
+    --seat-token-size: 18cqi;
+  }
+  .arena[data-many] .seat {
+    --seat-token-size: 13cqi;
+  }
+  .bidDisc {
+    width: 20cqi;
+  }
+  .highAmount {
+    font-size: 12cqi;
+  }
+  .bidCountdown {
+    font-size: 6cqi;
+  }
+  .handTotal strong {
+    font-size: 9cqi;
+  }
+  .handTotal span {
+    font-size: 3cqi;
+  }
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
+    display: none;
+  }
 }

@@ -8,6 +8,7 @@ test.use({ storageState: { cookies: [], origins: [] }, actionTimeout: 10_000 });
 const tablet = (page: Page) => page.getByTestId('tablet-screen');
 const setup = (page: Page) => page.getByTestId('setup-screen');
 const near = (page: Page) => tablet(page).locator('footer[aria-label="Near-side table controls"]');
+const far = (page: Page) => tablet(page).locator('header[aria-label="Far-side table controls"]');
 const phone = (page: Page) => page.getByTestId('phone-screen');
 
 /** Forward real relay traffic, with a controllable outage that leaves WebRTC online. */
@@ -49,6 +50,53 @@ async function closeDialog(page: Page) {
   await expect(page.getByRole('dialog')).toBeHidden();
 }
 
+/** Observe the real exit animation; waiting for hidden alone misses replaced drawer content. */
+async function closeHandWithoutQr(page: Page) {
+  const observed = page.evaluate(
+    () =>
+      new Promise<{ frames: number; qrSeen: boolean; handMissing: boolean }>((resolve, reject) => {
+        let frames = 0;
+        let qrSeen = false;
+        let handMissing = false;
+        const timeout = setTimeout(() => {
+          document.removeEventListener('click', clicked, true);
+          reject(new Error('Hand controls did not finish closing.'));
+        }, 10_000);
+        function clicked(event: MouseEvent) {
+          if (!(event.target instanceof Element) || !event.target.closest('[aria-label="Close"]')) {
+            return;
+          }
+          document.removeEventListener('click', clicked, true);
+          const observer = new MutationObserver(() => {
+            qrSeen ||= Boolean(document.querySelector('[role="dialog"] [aria-label="Scan to join this table"]'));
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          function frame() {
+            const dialog = document.querySelector('[role="dialog"]');
+            if (!dialog || !dialog.getClientRects().length || getComputedStyle(dialog).visibility === 'hidden') {
+              clearTimeout(timeout);
+              observer.disconnect();
+              resolve({ frames, qrSeen, handMissing });
+              return;
+            }
+            frames += 1;
+            qrSeen ||= Boolean(dialog.querySelector('[aria-label="Scan to join this table"]'));
+            handMissing ||= !dialog.querySelector('[aria-label="Edit Atreides hand"]');
+            requestAnimationFrame(frame);
+          }
+          requestAnimationFrame(frame);
+        }
+        document.addEventListener('click', clicked, true);
+      })
+  );
+  await closeDialog(page);
+  const result = await observed;
+  expect(result.frames).toBeGreaterThan(0);
+  expect(result.qrSeen).toBe(false);
+  expect(result.handMissing).toBe(false);
+  return result;
+}
+
 async function setHandSwitch(page: Page, label: 'Full' | 'Always pass', checked: boolean) {
   const input = phone(page).getByRole('switch', { name: `Atreides ${label}`, exact: true });
   if ((await input.isChecked()) !== checked) {
@@ -69,10 +117,16 @@ async function tableMenu(page: Page, item: string | RegExp) {
 }
 
 async function tableCode(page: Page) {
-  await tableMenu(page, /^Join code/);
-  const code = (await page.getByRole('dialog').getByLabel('Table code', { exact: true }).innerText()).trim();
+  const configuring = await setup(page).isVisible();
+  if (!configuring) {
+    await tableMenu(page, /^Join code/);
+  }
+  const scope = configuring ? setup(page) : page.getByRole('dialog');
+  const code = (await scope.getByLabel('Table code', { exact: true }).innerText()).trim();
   expect(code).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/);
-  await closeDialog(page);
+  if (!configuring) {
+    await closeDialog(page);
+  }
   return code;
 }
 
@@ -88,7 +142,7 @@ async function join(page: Page, origin: string, code: string, viaJoinLink = fals
     await page.getByRole('button', { name: 'Join table', exact: true }).click();
   }
   await phone(page).getByRole('button', { name: 'Atreides', exact: true }).click();
-  await expect(phone(page).getByRole('textbox', { name: 'Atreides hand count', exact: true })).toBeVisible();
+  await expect(phone(page).locator('header')).toContainText('Atreides');
 }
 
 test('the tablet completes a phase with phones and listening unused', async ({ newUserPage, baseURL }, info) => {
@@ -100,7 +154,7 @@ test('the tablet completes a phase with phones and listening unused', async ({ n
   const central = await newUserPage({
     storageState: { cookies: [], origins: [] },
     viewport: { width: 1024, height: 768 },
-    reducedMotion: 'reduce',
+    reducedMotion: 'no-preference',
   });
   const page = central.page;
   const errors: string[] = [];
@@ -119,18 +173,58 @@ test('the tablet completes a phase with phones and listening unused', async ({ n
         .click();
     }
     await choose(page, 'Bid timer', 'Off');
+    await expect(setup(page)).toContainText('Arrange the factions to match storm order around the board.');
+    await expect(setup(page).getByRole('button', { name: 'Hand controls', exact: true })).toHaveCount(0);
+    await expect(setup(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveCount(0);
+    await expect(setup(page).getByRole('img', { name: 'Scan to join this table', exact: true })).toBeVisible();
+    await expect(setup(page).getByRole('switch', { name: 'Show hand limits', exact: true })).not.toBeChecked();
+    await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
+    await expect(setup(page)).toBeHidden();
+    await fillNumber(near(page), 'Cards this phase', 1);
+    await far(page).getByRole('button', { name: 'More: Cards this phase', exact: true }).click();
+    await expect(near(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveValue('2');
+    await near(page).getByRole('button', { name: 'Fewer: Cards this phase', exact: true }).click();
+    await expect(far(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveValue('1');
+    for (const width of [540, 500]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const bar of [near(page), far(page)]) {
+        await expect(bar.getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
+        await expect
+          .poll(() =>
+            bar.evaluate((element) => {
+              const bounds = element.getBoundingClientRect();
+              return [...element.querySelectorAll('button, input')]
+                .filter(
+                  (control) => control.getClientRects().length && getComputedStyle(control).visibility !== 'hidden'
+                )
+                .flatMap((control) => {
+                  const rect = control.getBoundingClientRect();
+                  const inside =
+                    rect.left >= Math.max(0, bounds.left) - 1 &&
+                    rect.top >= Math.max(0, bounds.top) - 1 &&
+                    rect.right <= Math.min(innerWidth, bounds.right) + 1 &&
+                    rect.bottom <= Math.min(innerHeight, bounds.bottom) + 1;
+                  return inside ? [] : [{ label: control.getAttribute('aria-label') ?? control.textContent, rect }];
+                });
+            })
+          )
+          .toEqual([]);
+      }
+    }
+    await page.setViewportSize({ width: 1024, height: 768 });
     await tableMenu(page, 'Hand controls');
     await page.getByRole('dialog').getByRole('button', { name: 'Edit Atreides hand', exact: true }).click();
     await fillNumber(page.getByRole('dialog'), 'Atreides hand count', 2);
     await fillNumber(page.getByRole('dialog'), 'Atreides hand limit', 5);
-    await closeDialog(page);
-    await fillNumber(page, 'Cards this phase', 1);
-    const showHandLimits = setup(page).getByRole('switch', { name: 'Show hand limits', exact: true });
-    await expect(showHandLimits).toBeChecked();
-    await showHandLimits.press('Space');
-    await expect(showHandLimits).not.toBeChecked();
-    await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
-    await expect(setup(page)).toBeHidden();
+    const nearDismiss = await closeHandWithoutQr(page);
+    await far(page).getByRole('button', { name: 'Table controls', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Hand controls', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Hand controls', exact: true })).toBeVisible();
+    const farDismiss = await closeHandWithoutQr(page);
+    await info.attach('hand-controls-dismissal.json', {
+      body: JSON.stringify({ reducedMotion: 'no-preference', near: nearDismiss, far: farDismiss }),
+      contentType: 'application/json',
+    });
     const atreides = tablet(page).getByRole('button', { name: 'Atreides, 2 cards', exact: true });
     await expect(atreides.getByText('2', { exact: true })).toBeVisible();
     await expect(
@@ -144,6 +238,7 @@ test('the tablet completes a phase with phones and listening unused', async ({ n
     );
     await tablet(page).getByRole('button', { name: 'Atreides, 2 cards', exact: true }).click();
     await near(page).getByRole('button', { name: 'Start new bid', exact: true }).click();
+    await expect(tablet(page).getByRole('textbox', { name: 'Cards this phase', exact: true })).toHaveCount(0);
     await near(page).getByRole('button', { name: 'Bid', exact: true }).click();
     await fillNumber(page.getByRole('dialog'), 'Tablet bid amount', 3);
     await page.getByRole('dialog').getByRole('button', { name: 'Bid 3', exact: true }).click();
@@ -241,16 +336,35 @@ test('a physical table bids through a remote, restores and recovers into a new t
           .click();
       }
       await choose(page, 'Bid timer', 'Off');
-      await fillNumber(page, 'Cards this phase', 2);
+      const atreidesSeat = setup(page).getByRole('listitem').filter({ hasText: 'Atreides' });
+      await expect(atreidesSeat.getByText('No phone', { exact: true })).toBeVisible();
       originalCode = await tableCode(page);
       await join(remote.page, runtime.origin, originalCode, true);
       await expect(remote.page).toHaveURL(`${runtime.origin}/tools/bidding`);
       await expect(remote.page.getByRole('status', { name: 'Table connection' })).toHaveText('Direct to the table');
       await expect(phone(remote.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeHidden();
+      await expect(phone(remote.page).getByRole('textbox', { name: 'Atreides hand count', exact: true })).toHaveCount(
+        0
+      );
+      await expect(phone(remote.page).getByRole('switch', { name: 'Atreides Full', exact: true })).toHaveCount(0);
+      await expect(phone(remote.page).getByRole('switch', { name: 'Atreides Always pass', exact: true })).toHaveCount(
+        0
+      );
+      await expect(phone(remote.page).getByRole('button', { name: 'Adjust hand limit', exact: true })).toHaveCount(0);
+      await expect(phone(remote.page).getByText('The table is being set up.', { exact: true })).toBeVisible();
+      await expect(atreidesSeat.getByText('Connected', { exact: true })).toBeVisible();
+      await remote.page.goto('about:blank');
+      await expect(atreidesSeat.getByText('No phone', { exact: true })).toBeVisible();
+      await remote.page.goto(`${runtime.origin}/tools/bidding`);
+      await expect(phone(remote.page).locator('header')).toContainText('Atreides');
+      await expect(atreidesSeat.getByText('Connected', { exact: true })).toBeVisible();
+      await expect(remote.page.getByRole('status', { name: 'Table connection' })).toHaveText('Direct to the table');
       await setup(page).getByRole('button', { name: 'Finish setup', exact: true }).click();
       await expect(setup(page)).toBeHidden();
       await expect(tablet(page)).toBeVisible();
+      await fillNumber(near(page), 'Cards this phase', 2);
       await expect(phone(remote.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
+      await expect(phone(remote.page).getByRole('textbox', { name: 'Atreides hand count', exact: true })).toBeVisible();
     });
 
     await test.step('edit hands, override Full and let the phone choose and start the first auction', async () => {
@@ -365,8 +479,8 @@ test('a physical table bids through a remote, restores and recovers into a new t
       await expect(near(remote.page).getByRole('button', { name: 'Start new bid', exact: true })).toBeVisible();
       await tableMenu(remote.page, 'Phase settings');
       await choose(remote.page, 'Bid timer', '5 seconds');
-      await fillNumber(remote.page, 'Cards this phase', 1);
       await closeDialog(remote.page);
+      await fillNumber(near(remote.page), 'Cards this phase', 1);
       await phone(secondRemote.page)
         .getByRole('button', { name: 'Choose Harkonnen as first bidder', exact: true })
         .click();
