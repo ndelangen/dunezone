@@ -118,6 +118,21 @@ test('server-requested heartbeats answer immediately even with an ACK pending', 
   expect(await result).toEqual({ empty: ['300', '301'], missing: [] });
 });
 
+test('heartbeats retain the last sequence for null or absent updates and accept sequence zero', async () => {
+  const result = start();
+  hello();
+  socket().event('message', JSON.stringify({ op: 0, t: 'READY', s: 6, d: {} }));
+  socket().event('message', JSON.stringify({ op: 11, s: null, d: null }));
+  socket().packet(1, null);
+  expect(socket().sent.at(-1)).toEqual({ op: 1, d: 6 });
+  socket().event('message', JSON.stringify({ op: 0, t: 'READY', s: 0, d: {} }));
+  socket().packet(11, null);
+  socket().packet(1, null);
+  expect(socket().sent.at(-1)).toEqual({ op: 1, d: 0 });
+  socket().packet(0, snapshotGuild(), 'GUILD_CREATE');
+  expect(await result).toEqual({ empty: ['300', '301'], missing: [] });
+});
+
 test('a missing heartbeat ACK closes the one attempt', async () => {
   const result = start();
   hello();
