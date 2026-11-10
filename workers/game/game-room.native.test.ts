@@ -1,6 +1,7 @@
 import type { TestContext } from 'vite-plus/test';
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { PLAY_PENDING_TIMEOUT_MS } from '../../src/shared/play/admission.ts';
 import { PHASE_CHANGE_COOLDOWN_MS } from '../../src/shared/play/phases.ts';
 import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol';
 import type { ClientMessage } from '../../src/shared/play/protocol';
@@ -87,6 +88,32 @@ describe('GameRoom native SQLite and admission boundaries', () => {
         socket.close();
       }
     }
+  });
+
+  it('closes a socket that never admits with 4408 once its wait runs out, and leaves an admitted one open', async () => {
+    expect((await provision(runtime)).status).toBe(200);
+    const { connection: admitted } = await admit();
+    const silent = await openGame(runtime);
+    /* In the native harness a socket that has sent nothing never receives the room's close frame; a keepalive, which a waiting page may send, opens that path. */
+    silent.keepalive();
+    await eventually(() => silent.keepalives, 'keepalive answer');
+    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
+    /* Nothing else is sent, so only the one-second sweep can close it. */
+    await eventually(() => silent.closed, 'pending socket closed');
+    expect(silent.closeCode).toBe(4408);
+    expect(admitted.closed).toBe(false);
+    await metrics(admitted);
+  });
+
+  it('closes a socket whose pass arrives after the wait with 4408 and sends it no view', async () => {
+    /* The sweep and the admission check both close it; this pins the outcome, not which one saw it first. */
+    expect((await provision(runtime)).status).toBe(200);
+    const late = await openGame(runtime);
+    await runtime.clock(PLAY_PENDING_TIMEOUT_MS + 1);
+    late.send({ type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass: await fixturePass('a') });
+    await eventually(() => late.closed, 'late socket closed');
+    expect(late.closeCode).toBe(4408);
+    expect(late.messages.some((message) => message.type === 'view')).toBe(false);
   });
 
   it('answers a keepalive without treating it as a message', async () => {
