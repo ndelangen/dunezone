@@ -91,7 +91,7 @@ export const prepare = internalMutation({
 export const sendNudge = action({
   args: zodToConvex(playSendNudgeRequestSchema),
   returns: zodToConvex(playPublishNudgeResultSchema),
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ ok: boolean }> => {
     try {
       const configuration = discordConfiguration();
       if (!configuration) {
