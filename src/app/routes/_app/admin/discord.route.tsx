@@ -220,7 +220,11 @@ function TrackedChannels({
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
                   <Table.Td>
-                    {channel.waiting_for_empty ? 'Hourly, when voice is empty' : utcDateTime.format(channel.cleanup_at)}
+                    {channel.waiting_for_empty
+                      ? enabled
+                        ? 'Hourly, when voice is empty'
+                        : 'Paused'
+                      : utcDateTime.format(channel.cleanup_at)}
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>

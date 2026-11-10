@@ -109,10 +109,12 @@ function PrivacyPage() {
               </Text>
               <Text>
                 Joining the Discord server is your choice. We never add you automatically or change your channel access
-                when you leave a seat. When a game is discarded, its channel is deleted immediately. When a game
+                when you leave a seat. Discarding a game requests immediate deletion of its channel. While the
+                integration is enabled, we attempt deletion right away and retry if the request fails. When a game
                 finishes, its channel is marked as ended. An hourly check deletes ended channels that are empty.
-                Channels for active games are also deleted after 14 days without game activity. We briefly check whether
-                an ended channel is occupied for cleanup and do not save voice participants' identities.
+                Channels for active games are also deleted after 14 days without game activity. Pausing the integration
+                delays channel cleanup until it resumes. We briefly check whether an ended channel is occupied for
+                cleanup and do not save voice participants' identities.
               </Text>
               <Text>
                 In a game with Discord voice, a message containing only another player&apos;s faction or display name,

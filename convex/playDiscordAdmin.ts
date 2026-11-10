@@ -11,6 +11,7 @@ import { adminQuery, mutation } from './functions';
 import { DiscordRest, discordConfiguration } from './lib/discordRest';
 import { discordEnabled } from './lib/discordStatus';
 import { DISCORD_LEASE, requestDiscordDeletion } from './lib/playDiscord';
+import { canCheckDiscordVoiceChannel, canCheckDiscordVoiceGame } from './lib/playDiscordVoice';
 import { requireAdminUserId } from './lib/policy';
 
 const row = v.object({
@@ -85,10 +86,7 @@ export const dashboard = adminQuery({
           state: channel.state,
           created_at: channel.created_at,
           cleanup_at: channel.cleanup_at,
-          waiting_for_empty:
-            game?.directory?.stage === 'finished' &&
-            !!channel.channel_id &&
-            (channel.state === 'pending' || channel.state === 'ready'),
+          waiting_for_empty: canCheckDiscordVoiceGame(game) && canCheckDiscordVoiceChannel(channel),
           error: channel.error,
           gameSlug: game?.slug,
           gameName: game?.name,

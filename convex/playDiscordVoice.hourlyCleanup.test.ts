@@ -7,7 +7,7 @@ import { DiscordFailure, DiscordPaused, DiscordRest } from './lib/discordRest';
 import { SnapshotSocket, snapshotDiscovery, snapshotGuild } from './lib/discordVoiceSnapshot.test.fixture';
 import { VOICE_BATCH } from './lib/playDiscordVoice';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
-import { voiceCandidates } from './playDiscordVoice';
+import { reportEmpty, voiceCandidates } from './playDiscordVoice';
 
 vi.setConfig({ testTimeout: 30_000 });
 beforeEach(() => {
@@ -66,6 +66,29 @@ test('an occupied room survives, while each hourly run closes its connection', a
   await cleanup(world);
   expect(await world.channel()).toMatchObject({ state: 'deleting' });
   expect(SnapshotSocket.sockets).toHaveLength(2);
+});
+
+test('an occupied snapshot makes no retirement mutation call', async () => {
+  const { world } = await endedWorld();
+  /* convex-test invokes this registration hook, which Convex omits from its public declarations. */
+  const registered = reportEmpty as typeof reportEmpty & { _handler: (...args: unknown[]) => unknown };
+  const retirement = vi.spyOn(registered, '_handler');
+  SnapshotSocket.onIdentify = (socket) =>
+    queueMicrotask(() => socket.packet(0, snapshotGuild([{ user_id: '900', channel_id: '300' }]), 'GUILD_CREATE'));
+  await cleanup(world);
+  expect(SnapshotSocket.sockets).toHaveLength(1);
+  expect(SnapshotSocket.sockets[0]?.closed).toBe(true);
+  expect(retirement).not.toHaveBeenCalled();
+  expect(await world.channel()).toMatchObject({ state: 'ready' });
+});
+
+test('a small occupied set needs no fairness writes between hourly checks', async () => {
+  const { world } = await endedWorld();
+  const before = await world.channel();
+  const first = await world.t.run(voiceCandidates);
+  vi.setSystemTime(Date.now() + 3_600_000);
+  expect(await world.t.run(voiceCandidates)).toEqual(first);
+  expect(await world.channel()).toEqual(before);
 });
 
 test.each(['no-candidates', 'disabled', 'unconfigured'] as const)(

@@ -42,6 +42,7 @@ export function voiceParameters(enabled = true, withNudgeFailure = false, finish
           channel_id: '300',
           invite_url: VOICE_INVITE,
           state: 'ready',
+          ...(finished ? { renamed_ended: true } : {}),
           created_at: STORYBOOK_NOW,
           cleanup_at: STORYBOOK_NOW + 14 * 86_400_000,
           next_attempt_at: STORYBOOK_NOW + 14 * 86_400_000,

@@ -8,6 +8,25 @@ import { DiscordFailure, DiscordPaused, DiscordRest, discordConfiguration } from
 import { discordVoiceSnapshot } from './lib/discordVoiceSnapshot';
 import { VOICE_BATCH, voiceCandidateValidator } from './lib/playDiscordVoice';
 
+/** Permission and transport failures leave occupancy unknown; only a definite missing channel can retire. */
+async function probeMissing(rest: DiscordRest, id: string): Promise<'missing' | 'unknown' | 'stop'> {
+  try {
+    await rest.request('GET', `/channels/${id}`, undefined, 0);
+    return 'unknown';
+  } catch (error) {
+    if (error instanceof DiscordPaused) {
+      return 'stop';
+    }
+    if (!(error instanceof DiscordFailure)) {
+      return 'unknown';
+    }
+    if (error.status === 429) {
+      return 'stop';
+    }
+    return error.status === 404 && error.code === 10_003 ? 'missing' : 'unknown';
+  }
+}
+
 /** Missing from a snapshot can mean hidden by permissions. Only Discord's specific unknown-channel response is terminal. */
 async function confirmedMissing(rest: DiscordRest, missing: string[], deadline: number) {
   const confirmed: string[] = [];
@@ -15,17 +34,18 @@ async function confirmedMissing(rest: DiscordRest, missing: string[], deadline: 
   let stopped = false;
   await Promise.all(
     Array.from({ length: Math.min(4, missing.length) }, async () => {
-      while (!stopped && cursor < missing.length && Date.now() < deadline) {
+      while (cursor < missing.length) {
+        if (stopped || Date.now() >= deadline) {
+          return;
+        }
         const id = missing[cursor++];
-        try {
-          await rest.request('GET', `/channels/${id}`, undefined, 0);
-        } catch (error) {
-          if (error instanceof DiscordPaused || (error instanceof DiscordFailure && error.status === 429)) {
-            stopped = true;
-          }
-          if (error instanceof DiscordFailure && error.status === 404 && error.code === 10_003) {
-            confirmed.push(id);
-          }
+        const outcome = await probeMissing(rest, id);
+        if (outcome === 'stop') {
+          stopped = true;
+          return;
+        }
+        if (outcome === 'missing') {
+          confirmed.push(id);
         }
       }
     })
@@ -39,7 +59,10 @@ export const cleanup = internalAction({
   returns: v.null(),
   handler: async (ctx, { channels }) => {
     const config = discordConfiguration();
-    if (!config || channels.length === 0 || channels.length > VOICE_BATCH) {
+    if (!config) {
+      return null;
+    }
+    if (channels.length === 0 || channels.length > VOICE_BATCH) {
       return null;
     }
     const deadline = Date.now() + 25_000;
@@ -60,14 +83,18 @@ export const cleanup = internalAction({
       const snapshot = await discordVoiceSnapshot(config.token, discovery, channels, deadline, (reason) => {
         console.warn('Discord voice cleanup snapshot was unavailable.', { operation: 'voice-cleanup', reason });
       });
-      if (snapshot !== null) {
-        const observedAt = Date.now();
-        const retired = [...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))];
-        await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
-          channels: channels.filter((channel) => retired.includes(channel.discordChannelId)),
-          observedAt,
-        });
+      if (snapshot === null) {
+        return null;
       }
+      const observedAt = Date.now();
+      const retired = new Set([...snapshot.empty, ...(await confirmedMissing(rest, snapshot.missing, deadline))]);
+      if (retired.size === 0) {
+        return null;
+      }
+      await ctx.runMutation(internal.playDiscordVoice.reportEmpty, {
+        channels: channels.filter((channel) => retired.has(channel.discordChannelId)),
+        observedAt,
+      });
     } catch (error) {
       console.error('Discord voice cleanup could not finish.', {
         operation: 'voice-cleanup',

@@ -3,7 +3,7 @@ export class SnapshotSocket {
   static onIdentify: ((socket: SnapshotSocket) => void) | undefined;
   readonly sent: { op: number; d: unknown }[] = [];
   closed = false;
-  private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
+  private readonly listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
   constructor(readonly url: string) {
     SnapshotSocket.sockets.push(this);
     if (SnapshotSocket.onIdentify) {

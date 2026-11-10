@@ -69,7 +69,7 @@ function retirementDue(channel: Doc<'play_game_discord_channels'>, game: Doc<'pl
   if (channel.state === 'deleting' || channel.deletion_requested_at !== undefined) {
     return true;
   }
-  if (!game || game.state !== 'ready' || game.fixture_key !== undefined || game.ruleset_id === undefined) {
+  if (game?.state !== 'ready' || game.fixture_key !== undefined || game.ruleset_id === undefined) {
     return true;
   }
   if (game.directory?.stage === 'discarded') {

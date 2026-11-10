@@ -5,7 +5,13 @@ import { SnapshotSocket, snapshotDiscovery, snapshotGuild } from './discordVoice
 
 beforeEach(() => {
   vi.useFakeTimers();
-  vi.spyOn(Math, 'random').mockReturnValue(0.5);
+  vi.spyOn(crypto, 'getRandomValues').mockImplementation((array) => {
+    if (!(array instanceof Uint32Array)) {
+      throw new Error('Heartbeat jitter must use an unsigned 32-bit sample.');
+    }
+    array.fill(2 ** 31);
+    return array;
+  });
   SnapshotSocket.sockets = [];
   SnapshotSocket.onIdentify = undefined;
   vi.stubGlobal('WebSocket', SnapshotSocket);
@@ -120,8 +126,25 @@ test('a missing heartbeat ACK closes the one attempt', async () => {
   expect(socket().closed).toBe(true);
 });
 
+test('a failed IDENTIFY send leaves no heartbeat timer behind', async () => {
+  const result = start();
+  vi.spyOn(socket(), 'send').mockImplementation(() => {
+    throw new Error('The socket closed before IDENTIFY.');
+  });
+  hello();
+  expect(await result).toBeNull();
+  expect(socket().closed).toBe(true);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
 test.each([
   { ...snapshotDiscovery, url: 'wss://attacker.example' },
+  { ...snapshotDiscovery, url: 'ws://gateway.discord.gg' },
+  { ...snapshotDiscovery, url: 'wss://user:password@gateway.discord.gg' },
+  { ...snapshotDiscovery, url: 'wss://gateway.discord.gg:444/' },
+  { ...snapshotDiscovery, url: 'wss://gateway.discord.gg/other' },
+  { ...snapshotDiscovery, url: 'wss://gateway.discord.gg/?' },
+  { ...snapshotDiscovery, url: 'wss://gateway.discord.gg/#' },
   { ...snapshotDiscovery, session_start_limit: { remaining: 0, reset_after: 60_000 } },
   { ...snapshotDiscovery, shards: 2 },
 ])('invalid discovery or exhausted identify budget never opens a socket', async (data) => {
