@@ -32,7 +32,7 @@ export const getGameByAddress = viewerQuery({
           /* Stored addresses are lowercase, so a hand-typed or auto-capitalised link still finds its game; the page then moves to the stored spelling. */
           .withIndex('by_slug', (q) => q.eq('slug', address.toLowerCase()))
           .unique();
-    if (!game || !admitsPlayers(game)) {
+    if (!game || game.ban_operation_id || !admitsPlayers(game)) {
       return { status: 'not_found' as const };
     }
     return await gameAccess(ctx, game, session);

@@ -15,7 +15,7 @@ export const Navigation = meta.story({
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { level: 1, name: 'Dune Play is coming soon' })).resolves.toBeVisible();
-    await expect(page.getByRole('link', { name: 'Take a sneak peek' })).toHaveAttribute('href', '#play-preview');
+    await expect(page.getByRole('link', { name: 'Take a sneak peek' })).toHaveAttribute('href', '/#play-preview');
     await expect(page.getByRole('link', { name: 'Write your own' })).toHaveAttribute('href', '/rulesets/create');
     await expect(page.getByRole('link', { name: 'Form an alliance' })).toHaveAttribute('href', '/groups/create');
     await expect(page.getByRole('link', { name: 'Meet the dreamers' })).toHaveAttribute('href', '/groups/dreamers');
@@ -25,13 +25,8 @@ export const Navigation = meta.story({
 
 export const SneakPeekLink = meta.story({
   globals: { motion: 'on' },
+  args: { path: '/#play-preview' },
   parameters: { identity: null },
-  beforeEach: () => {
-    window.location.hash = '#play-preview';
-    return () => {
-      window.location.hash = '';
-    };
-  },
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('link', { name: 'Log in' })).resolves.toBeInTheDocument();

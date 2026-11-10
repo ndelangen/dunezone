@@ -60,6 +60,7 @@ import { Route as ToolToolsBiddingRouteRouteImport } from './routes/_tool/tools/
 import { Route as ToolToolsPredictionLocketRouteRouteImport } from './routes/_tool/tools/prediction-locket/route'
 import { Route as ToolToolsSpiceDeckRouteRouteImport } from './routes/_tool/tools/spice-deck/route'
 import { Route as PreviewSheetFactionSlugRouteRouteImport } from './routes/preview/sheet/$factionSlug.route'
+import { Route as AppAdminAccountProfileSlugRouteRouteImport } from './routes/_app/admin/account.$profileSlug.route'
 import { Route as AppAssetsTypeIndexRouteImport } from './routes/_app/assets/$type/index'
 import { Route as AppBlogPostSlugIndexRouteImport } from './routes/_app/blog/$postSlug/index'
 import { Route as AppContributingCodeIndexRouteImport } from './routes/_app/contributing/code/index'
@@ -352,6 +353,12 @@ const PreviewSheetFactionSlugRouteRoute =
     path: '/preview/sheet/$factionSlug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppAdminAccountProfileSlugRouteRoute =
+  AppAdminAccountProfileSlugRouteRouteImport.update({
+    id: '/account/$profileSlug',
+    path: '/account/$profileSlug',
+    getParentRoute: () => AppAdminRouteRoute,
+  } as any)
 const AppAssetsTypeIndexRoute = AppAssetsTypeIndexRouteImport.update({
   id: '/assets/$type/',
   path: '/assets/$type/',
@@ -596,6 +603,7 @@ export interface FileRoutesByFullPath {
   '/rulesets/': typeof AppRulesetsIndexRoute
   '/tools/': typeof AppToolsIndexRoute
   '/tutorial/': typeof AppTutorialIndexRoute
+  '/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -676,6 +684,7 @@ export interface FileRoutesByTo {
   '/rulesets': typeof AppRulesetsIndexRoute
   '/tools': typeof AppToolsIndexRoute
   '/tutorial': typeof AppTutorialIndexRoute
+  '/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -763,6 +772,7 @@ export interface FileRoutesById {
   '/_app/rulesets/': typeof AppRulesetsIndexRoute
   '/_app/tools/': typeof AppToolsIndexRoute
   '/_app/tutorial/': typeof AppTutorialIndexRoute
+  '/_app/admin/account/$profileSlug': typeof AppAdminAccountProfileSlugRouteRoute
   '/_app/contributing/code/$lesson': typeof AppContributingCodeLessonRouteRoute
   '/_app/contributing/deployment/$lesson': typeof AppContributingDeploymentLessonRouteRoute
   '/_app/contributing/design-decisions/$group': typeof AppContributingDesignDecisionsGroupRouteRoute
@@ -849,6 +859,7 @@ export interface FileRouteTypes {
     | '/rulesets/'
     | '/tools/'
     | '/tutorial/'
+    | '/admin/account/$profileSlug'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/rulesets'
     | '/tools'
     | '/tutorial'
+    | '/admin/account/$profileSlug'
     | '/contributing/code/$lesson'
     | '/contributing/deployment/$lesson'
     | '/contributing/design-decisions/$group'
@@ -1015,6 +1027,7 @@ export interface FileRouteTypes {
     | '/_app/rulesets/'
     | '/_app/tools/'
     | '/_app/tutorial/'
+    | '/_app/admin/account/$profileSlug'
     | '/_app/contributing/code/$lesson'
     | '/_app/contributing/deployment/$lesson'
     | '/_app/contributing/design-decisions/$group'
@@ -1416,6 +1429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewSheetFactionSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/admin/account/$profileSlug': {
+      id: '/_app/admin/account/$profileSlug'
+      path: '/account/$profileSlug'
+      fullPath: '/admin/account/$profileSlug'
+      preLoaderRoute: typeof AppAdminAccountProfileSlugRouteRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
     '/_app/assets/$type/': {
       id: '/_app/assets/$type/'
       path: '/assets/$type'
@@ -1658,6 +1678,7 @@ interface AppAdminRouteRouteChildren {
   AppAdminMigrationsRouteRoute: typeof AppAdminMigrationsRouteRoute
   AppAdminPresetsRouteRoute: typeof AppAdminPresetsRouteRoute
   AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppAdminAccountProfileSlugRouteRoute: typeof AppAdminAccountProfileSlugRouteRoute
 }
 
 const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
@@ -1668,6 +1689,7 @@ const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
   AppAdminMigrationsRouteRoute: AppAdminMigrationsRouteRoute,
   AppAdminPresetsRouteRoute: AppAdminPresetsRouteRoute,
   AppAdminIndexRoute: AppAdminIndexRoute,
+  AppAdminAccountProfileSlugRouteRoute: AppAdminAccountProfileSlugRouteRoute,
 }
 
 const AppAdminRouteRouteWithChildren = AppAdminRouteRoute._addFileChildren(

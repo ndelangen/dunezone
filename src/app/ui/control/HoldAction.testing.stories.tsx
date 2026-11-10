@@ -197,3 +197,15 @@ export const MenuItemStaysOpenOnClick = meta.story({
     await expect(args.onConfirm).not.toHaveBeenCalled();
   },
 });
+
+export const Ban = meta.story({
+  args: { label: 'Ban account', verb: 'ban', shape: 'button' },
+  play: async ({ args, canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const trigger = page.getByRole('button', { name: 'Ban account' });
+    await userEvent.pointer([{ keys: '[MouseLeft>]', target: trigger }]);
+    await expect(trigger).toHaveTextContent('ban in 5..');
+    await userEvent.pointer([{ keys: '[/MouseLeft]', target: trigger }]);
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+  },
+});

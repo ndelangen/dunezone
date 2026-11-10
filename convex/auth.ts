@@ -113,9 +113,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   jwt: {
     async customClaims(ctx, { userId, sessionId }) {
       const [user, session] = await Promise.all([ctx.db.get(userId), ctx.db.get(sessionId)]);
+      /* Banned sessions can refresh so the app keeps showing the ban page; application authorization still refuses them. */
       if (
         !user ||
-        accountStateOf(user) !== 'active' ||
+        !['active', 'banned'].includes(accountStateOf(user)) ||
         !session ||
         session.userId !== userId ||
         session._creationTime <= (user.auth_sessions_revoked_through ?? -1)
@@ -128,7 +129,8 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   callbacks: {
     async beforeSessionCreation(ctx, { userId }) {
       const user = await ctx.db.get(userId);
-      if (!user || accountStateOf(user) !== 'active') {
+      /* Keep linked providers on their banned identity and let its session reach the ban page. */
+      if (!user || !['active', 'banned'].includes(accountStateOf(user))) {
         /* A ConvexError keeps its words in production, so the browser can tell the reader why sign-in stopped. */
         throw new ConvexError(INACTIVE_ACCOUNT_SIGN_IN);
       }

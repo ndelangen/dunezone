@@ -47,6 +47,9 @@ export async function requireUnlockedAccount(
   checkReplacement = true
 ) {
   const user = await ctx.db.get(userId);
+  if (user?.account_state === 'banned') {
+    throw new Error('You have been banned');
+  }
   if (!user || user.account_merge_operation_id) {
     throw new Error(
       'This account has a merge in progress. Finish it before changing sign-in methods or deleting the account.'

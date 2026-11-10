@@ -210,6 +210,17 @@ function retiresWithoutChannel(channel: Doc<'play_game_discord_channels'>, game:
   return !channel.channel_id && channel.state !== 'creating' && retirementDue(channel, game);
 }
 
+async function retirementRequired(
+  ctx: QueryCtx,
+  row: Doc<'play_game_discord_channels'>,
+  game: Doc<'play_games'> | null
+) {
+  if (retirementDue(row, game)) {
+    return true;
+  }
+  return game?.creator_id ? (await ctx.db.get(game.creator_id))?.account_state === 'banned' : false;
+}
+
 async function creationNeeded(ctx: QueryCtx, row: Doc<'play_game_discord_channels'>) {
   const game = await ctx.db.get(row.game_id);
   if (retirementDue(row, game) || game?.directory?.stage === 'finished' || game?.discord_voice !== true) {
@@ -240,7 +251,7 @@ export const work = internalMutation({
     const game = await ctx.db.get(channel.game_id);
     const ended = game?.directory?.stage === 'finished';
     const name = game?.name ?? 'Dune Play';
-    const remove = retirementDue(channel, game);
+    const remove = await retirementRequired(ctx, channel, game);
     /* Avoid category requests while creation is exhausted; startCreation still spends quota atomically before POST. */
     if (!remove && channel.state === 'pending' && !channel.channel_id && !retryCreationCategory(channel)) {
       const quota = await playRateLimiter.check(ctx, 'discordChannelCreateGlobal');

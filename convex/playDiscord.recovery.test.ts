@@ -2,9 +2,10 @@
 
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
-import { internal } from './_generated/api';
+import { api, internal } from './_generated/api';
 import { DISCORD_PARKED, retryDiscordChannel } from './lib/discordRetry';
 import { DISCORD_LEASE, DISCORD_RETRY } from './lib/playDiscord';
+import { playPerson } from './play.test.fixture';
 import { configureDiscord, voiceWorld } from './playDiscord.test.fixture';
 
 type World = Awaited<ReturnType<typeof voiceWorld>>;
@@ -127,8 +128,19 @@ async function retry(world: World) {
   await world.reconcile();
 }
 
-async function removeDuringRecovery(world: World) {
-  await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
+async function removeDuringRecovery(world: World, removal: 'ban' | 'discard') {
+  if (removal === 'discard') {
+    await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
+    return;
+  }
+  const moderator = await world.t.run(async (ctx) => await playPerson(ctx, 'Moderator', { isAdmin: true }));
+  const { operationId } = await world.t
+    .withIdentity({ subject: moderator.subject })
+    .mutation(api.accountDeletion.adminBan, {
+      sourceUserId: world.identity.userId,
+      replacementUserId: null,
+    });
+  await world.t.mutation(internal.playDeletion.queueBanGames, { operationId });
 }
 
 test.each(['lost', '500'] as const)(
@@ -239,11 +251,11 @@ test('deployment guild and category switches cannot move adoption out of its sav
   ).toEqual([{ name: `dune-play-${world.gameId}`, type: 2, parent_id: '200' }]);
 });
 
-test.each(['discard'] as const)('%s during a negative listing prevents replacement', async () => {
+test.each(['ban', 'discard'] as const)('%s during a negative listing prevents replacement', async (removal) => {
   const { world, remote } = await uncertainCreation();
   remote.onList = async () => {
     remote.onList = undefined;
-    await removeDuringRecovery(world);
+    await removeDuringRecovery(world, removal);
   };
   await retry(world);
   await world.reconcile();
@@ -252,23 +264,26 @@ test.each(['discard'] as const)('%s during a negative listing prevents replaceme
   expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
 });
 
-test.each(['discard'] as const)('%s during a matching listing removes the adopted ID before inviting', async () => {
-  const { world, remote } = await uncertainCreation({ kind: 'lost', visible: true });
-  remote.onList = async () => {
-    remote.onList = undefined;
-    await removeDuringRecovery(world);
-  };
-  remote.onWrite = async (call) => {
-    expect(call).toMatchObject({ method: 'DELETE', path: '/channels/300' });
-    expect(await world.channel()).toMatchObject({ state: 'deleting', channel_id: '300' });
-  };
-  await retry(world);
-  await world.reconcile();
-  expect(remote.creates).toBe(1);
-  expect(await world.channel()).toMatchObject({ state: 'deleted', channel_id: '300' });
-  expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
-  expect(remote.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
-});
+test.each(['ban', 'discard'] as const)(
+  '%s during a matching listing removes the adopted ID before inviting',
+  async (removal) => {
+    const { world, remote } = await uncertainCreation({ kind: 'lost', visible: true });
+    remote.onList = async () => {
+      remote.onList = undefined;
+      await removeDuringRecovery(world, removal);
+    };
+    remote.onWrite = async (call) => {
+      expect(call).toMatchObject({ method: 'DELETE', path: '/channels/300' });
+      expect(await world.channel()).toMatchObject({ state: 'deleting', channel_id: '300' });
+    };
+    await retry(world);
+    await world.reconcile();
+    expect(remote.creates).toBe(1);
+    expect(await world.channel()).toMatchObject({ state: 'deleted', channel_id: '300' });
+    expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
+    expect(remote.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
+  }
+);
 
 test('live and superseded leases cannot claim or adopt a competing creation', async () => {
   const remote = remoteDiscord();

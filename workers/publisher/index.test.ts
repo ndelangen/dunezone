@@ -174,6 +174,19 @@ describe('publisher Worker Publication flow', () => {
     }
   );
 
+  test('homepage account cutoffs use the service callback quota', async () => {
+    const currentEnv = publisherEnv();
+    await publisherWorker.fetch(
+      new Request('https://dune.zone/__play/homepage/account-cutoff', {
+        method: 'POST',
+        headers: { 'CF-Connecting-IP': '192.0.2.18' },
+      }),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'callback:192.0.2.18' });
+  });
+
   test.each([
     { pathname: '/__play/games/any-id/retire', method: 'GET' },
     { pathname: '/__play/games/any-id/socket', method: 'POST' },

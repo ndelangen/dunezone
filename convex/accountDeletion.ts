@@ -5,17 +5,18 @@ import { internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
-import { internalMutation, mutation, viewerQuery } from './functions';
+import { adminQuery, internalMutation, mutation, viewerQuery } from './functions';
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
-import { revokeAccountSessions } from './lib/authSessionLifecycle';
-import { pickableProfileValidator } from './lib/collaborativeAccessValidators';
+import { revokeAccountSessions, suspendAccountSessions } from './lib/authSessionLifecycle';
+import { docValidator, pickableProfileValidator } from './lib/collaborativeAccessValidators';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
-import { DIRECT_OWNERSHIP_KINDS } from './lib/directOwnership';
+import { DIRECT_OWNERSHIP_KINDS, directOwnershipKindValidator } from './lib/directOwnership';
 import type { DirectOwnershipKind } from './lib/directOwnership';
 import { pickableProfileForUser } from './lib/groupInvitations';
 import type { PickableProfile } from './lib/groupInvitations';
+import { queueHomepageBanCutoff } from './lib/homepageBanCutoff';
 import { requireAdminUserId, requireAuthUserId, requireRecentSignIn } from './lib/policy';
 import { SPICE_CARD_BOARD_RELATION, SPICE_CARD_TOKEN_RELATION, spiceCardBoardLink } from './lib/spiceCardBoard';
 import { nowIso, slugify } from './lib/utils';
@@ -253,6 +254,217 @@ export const listReplacementProfiles = viewerQuery({
     const page = profiles.slice(offset, offset + size);
     const end = offset + page.length;
     return { page, isDone: end >= profiles.length, continueCursor: String(end) };
+  },
+});
+
+/** Channel cleanup is independent of content disposal and stays visible after lifting the ban. */
+async function banDiscordCleanup(ctx: QueryCtx, operation: Doc<'account_deletion_operations'> | null) {
+  if (operation?.kind !== 'ban') {
+    return 'none' as const;
+  }
+  if (!operation.ban_games_queued) {
+    return 'pending' as const;
+  }
+  /* Two index ranges cover every state except deleted without walking the deleted rows. */
+  const [beforeDeleted, afterDeleted] = await Promise.all([
+    ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id).lt('state', 'deleted'))
+      .first(),
+    ctx.db
+      .query('play_game_discord_channels')
+      .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id).gt('state', 'deleted'))
+      .first(),
+  ]);
+  if (beforeDeleted || afterDeleted) {
+    return 'pending' as const;
+  }
+  const channel = await ctx.db
+    .query('play_game_discord_channels')
+    .withIndex('by_ban_operation_id_state', (q) => q.eq('ban_operation_id', operation._id))
+    .first();
+  return channel ? ('complete' as const) : ('none' as const);
+}
+
+/** The admin sees the ownership decision and its durable progress in one subscription. */
+export const adminPage = adminQuery({
+  args: { profileSlug: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      profile: v.object({ userId: v.id('users'), slug: v.string(), username: v.union(v.string(), v.null()) }),
+      accountState: docValidator('profiles').fields.account_state,
+      bannedAt: v.optional(v.string()),
+      bannedReason: v.optional(v.string()),
+      discordCleanup: v.union(v.literal('pending'), v.literal('complete'), v.literal('none')),
+      operation: v.union(
+        v.null(),
+        v.object({
+          id: v.id('account_deletion_operations'),
+          state: docValidator('account_deletion_operations').fields.state,
+          phase: docValidator('account_deletion_operations').fields.phase,
+          error: v.union(v.string(), v.null()),
+          replacementUserId: v.union(v.id('users'), v.null()),
+        })
+      ),
+      summary: v.array(
+        v.object({ kind: directOwnershipKindValidator, hasActive: v.boolean(), hasDeleted: v.boolean() })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query('profiles')
+      .withIndex('by_slug', (q) => q.eq('slug', args.profileSlug))
+      .unique();
+    if (!profile) {
+      return null;
+    }
+    const user = await ctx.db.get(profile.user_id);
+    if (!user) {
+      return null;
+    }
+    const operation = user.account_deletion_operation_id ? await ctx.db.get(user.account_deletion_operation_id) : null;
+    return {
+      profile: { userId: user._id, slug: profile.slug, username: profile.username },
+      accountState: accountStateOf(user),
+      bannedAt: user.banned_at,
+      bannedReason: user.banned_reason,
+      discordCleanup: await banDiscordCleanup(ctx, operation),
+      operation: operationProjection(operation),
+      summary: await Promise.all(DIRECT_OWNERSHIP_KINDS.map(({ kind }) => ownedPresence(ctx, user._id, kind))),
+    };
+  },
+});
+
+/** An administrator may choose any active replacement; the co-member rule protects self-service transfers. */
+export const adminListReplacementProfiles = adminQuery({
+  args: { sourceUserId: v.id('users'), search: v.string(), paginationOpts: paginationOptsValidator },
+  returns: paginationResultValidator(pickableProfileValidator),
+  handler: async (ctx, args) => {
+    const search = slugify(args.search);
+    const page = await ctx.db
+      .query('profiles')
+      .withIndex('by_account_state_slug', (q) =>
+        search
+          ? q.eq('account_state', 'active').gte('slug', search).lt('slug', `${search}\uffff`)
+          : q.eq('account_state', 'active')
+      )
+      .paginate(args.paginationOpts);
+    const picks = await Promise.all(
+      page.page
+        .filter((profile) => profile.user_id !== args.sourceUserId)
+        .map((profile) => pickableProfileForUser(ctx, profile.user_id))
+    );
+    return { ...page, page: picks.filter((profile) => profile !== null) };
+  },
+});
+
+export const adminBan = mutation({
+  args: {
+    sourceUserId: v.id('users'),
+    replacementUserId: v.union(v.id('users'), v.null()),
+    reason: v.optional(v.string()),
+  },
+  returns: v.object({ operationId: v.id('account_deletion_operations') }),
+  handler: async (ctx, args) => {
+    const adminId = await requireAdminUserId(ctx);
+    if (adminId === args.sourceUserId) {
+      throw new Error('You cannot ban your own account');
+    }
+    const existing = await findNonterminalSourceOperation(ctx, args.sourceUserId);
+    if (existing) {
+      if (existing.kind === 'ban' && existing.replacement_user_id === args.replacementUserId) {
+        return { operationId: existing._id };
+      }
+      throw new Error("Finish this account's existing operation before banning it");
+    }
+    await requireUnlockedAccount(ctx, args.sourceUserId);
+    const source = await ctx.db.get(args.sourceUserId);
+    const profile = await profileForUser(ctx, args.sourceUserId);
+    if (!source || accountStateOf(source) !== 'active' || profile?.account_state !== 'active') {
+      throw new Error('Active account not found');
+    }
+    if (args.replacementUserId) {
+      await requireActiveReplacement(ctx, args.sourceUserId, args.replacementUserId);
+    }
+    const reason = args.reason?.trim();
+    if (reason && reason.length > 1000) {
+      throw new Error('Keep the ban reason under 1,000 characters');
+    }
+    const now = nowIso();
+    const operationId = await ctx.db.insert('account_deletion_operations', {
+      kind: 'ban',
+      initiator_user_id: adminId,
+      source_user_id: source._id,
+      source_profile_id: profile._id,
+      replacement_user_id: args.replacementUserId,
+      state: 'running',
+      phase: 'snapshotting',
+      snapshot_kind: DIRECT_OWNERSHIP_KINDS[0].kind,
+      snapshot_cursor: null,
+      retry_count: 0,
+      error: null,
+      created_at: now,
+      updated_at: now,
+      completed_at: null,
+    });
+    const ban = {
+      account_state: 'banned' as const,
+      banned_at: now,
+      banned_by: adminId,
+      banned_reason: reason || undefined,
+      account_deletion_operation_id: operationId,
+    };
+    await ctx.db.patch(source._id, ban);
+    await ctx.db.patch(profile._id, {
+      account_state: 'banned',
+      banned_at: now,
+      banned_by: adminId,
+      account_deletion_operation_id: operationId,
+      updated_at: now,
+    });
+    await suspendAccountSessions(ctx, source._id);
+    await queueHomepageBanCutoff(ctx, operationId);
+    await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
+    await ctx.scheduler.runAfter(0, internal.playDeletion.queueBanGames, { operationId });
+    await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
+      operationId,
+      paginationOpts: { cursor: null, numItems: 32 },
+    });
+    return { operationId };
+  },
+});
+
+/** Lifting the ban restores access; content stays in the state chosen by the banning administrator. */
+export const adminUnban = mutation({
+  args: { sourceUserId: v.id('users') },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdminUserId(ctx);
+    const source = await ctx.db.get(args.sourceUserId);
+    const profile = await profileForUser(ctx, args.sourceUserId);
+    if (!source || accountStateOf(source) !== 'banned' || !profile) {
+      throw new Error('Banned account not found');
+    }
+    if (await findNonterminalSourceOperation(ctx, source._id)) {
+      throw new Error("Finish the account's content operation before lifting the ban");
+    }
+    const active = {
+      account_state: 'active' as const,
+      banned_at: undefined,
+      banned_by: undefined,
+      banned_reason: undefined,
+    };
+    await revokeAccountSessions(ctx, source._id);
+    await ctx.db.patch(source._id, active);
+    await ctx.db.patch(profile._id, {
+      account_state: 'active',
+      banned_at: undefined,
+      banned_by: undefined,
+      updated_at: nowIso(),
+    });
+    return null;
   },
 });
 
@@ -630,12 +842,28 @@ async function completeOperation(ctx: MutationCtx, operation: Doc<'account_delet
     updated_at: now,
     completed_at: now,
   });
+  if (operation.kind === 'ban') {
+    return;
+  }
   await ctx.db.patch(operation.source_user_id, { account_state: 'deleted', deleted_at: now });
   await ctx.db.patch(operation.source_profile_id, {
     account_state: 'deleted',
     deleted_at: now,
     updated_at: now,
   });
+}
+
+/** Once ownership is verified, only the existing game delivery queue can hold a ban open. */
+async function finalizeBanOperation(
+  ctx: MutationCtx,
+  operation: Doc<'account_deletion_operations'>
+): Promise<{ next: 'wait'; retryAt: number } | { next: 'done' }> {
+  const games = await ctx.runMutation(internal.playDeletion.applyBanGamesBatch, { operationId: operation._id });
+  if (!games.done) {
+    return { next: 'wait' as const, retryAt: games.retryAt };
+  }
+  await completeOperation(ctx, operation);
+  return { next: 'done' as const };
 }
 
 export const applyBatch = internalMutation({
@@ -648,6 +876,9 @@ export const applyBatch = internalMutation({
       !['applying', 'verifying', 'finalizing'].includes(operation.phase)
     ) {
       return { next: 'done' as const };
+    }
+    if (operation.kind === 'ban' && operation.phase === 'finalizing') {
+      return await finalizeBanOperation(ctx, operation);
     }
     if (operation.replacement_user_id) {
       await requireActiveReplacement(ctx, operation.source_user_id, operation.replacement_user_id);
@@ -674,6 +905,10 @@ export const applyBatch = internalMutation({
     if (await needsResnapshot(ctx, operation)) {
       return { next: 'snapshot' as const };
     }
+    if (operation.kind === 'ban') {
+      await ctx.db.patch(operation._id, { phase: 'finalizing' });
+      return await finalizeBanOperation(ctx, operation);
+    }
     await completeOperation(ctx, operation);
     return { next: 'done' as const };
   },
@@ -698,6 +933,11 @@ async function runWorker(ctx: ActionCtx, operationId: Id<'account_deletion_opera
         : await ctx.runMutation(internal.accountDeletion.applyBatch, { operationId });
     if (result.next === 'snapshot') {
       await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
+    }
+    if (result.next === 'wait') {
+      await ctx.scheduler.runAt(Math.max(Date.now() + 5000, result.retryAt), internal.accountDeletion.applyWorker, {
+        operationId,
+      });
     }
     if (result.next === 'apply') {
       await ctx.scheduler.runAfter(0, internal.accountDeletion.applyWorker, { operationId });

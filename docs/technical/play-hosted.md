@@ -36,8 +36,12 @@ Database IDs still name
 the table session, admission request and game socket; replacing the browser address keeps that
 session mounted. The tab's existing saved-table record keeps its known slug under the ID key.
 A friendly-link reload can find that record only through the same account, sign-in session, age
-and payload checks. It shows a locked table until a fresh authorized socket view arrives. A refusal
-clears it, and a conflicting live resolution discards the stored hint.
+and payload checks. After the root establishes current account access, that record can show a
+locked table until a fresh authorized socket view arrives. A fresh signed-in reload with Convex
+unreachable instead waits at "Checking account access…" before displaying any route, even when
+the tab has a saved table. An already-open page retains its last account-status answer during a
+connection loss. See [account access](../authentication.md). A refusal clears the saved table, and
+a conflicting live resolution discards the stored hint.
 The [routing ticket](https://github.com/ndelangen/dunezone/issues/1937) records delivery evidence.
 
 Convex stores the fixture directory record, provisioning status, server-only game secrets, the
