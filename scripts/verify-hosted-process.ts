@@ -5,7 +5,6 @@ import path from 'node:path';
 export type VerificationResult = {
   status: 'passed' | 'failed' | 'timed_out';
   timeoutMs: number;
-  elapsedMs: number;
   exitCode: number | null;
   signal: NodeJS.Signals | null;
 };
@@ -16,7 +15,6 @@ export async function verifyProcess(
   logPath: string,
   timeoutMs: number
 ): Promise<VerificationResult> {
-  const started = performance.now();
   let timedOut = false;
   await new Promise<void>((resolve) => {
     const finished = () => {
@@ -35,7 +33,6 @@ export async function verifyProcess(
   const result: VerificationResult = {
     status: timedOut ? 'timed_out' : child.exitCode === 0 ? 'passed' : 'failed',
     timeoutMs,
-    elapsedMs: Math.round(performance.now() - started),
     exitCode: child.exitCode,
     signal: child.signalCode,
   };

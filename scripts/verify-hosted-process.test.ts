@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 function evidence() {
-  const directory = mkdtempSync(path.join(tmpdir(), 'dunezone-verifier-result-'));
+  const directory = mkdtempSync(path.join(tmpdir(), 'dunezone verifier result-'));
   directories.push(directory);
   const output = path.join(directory, 'test-results/hosted-play');
   const report = path.join(output, 'browser/battles-1/report.json');
@@ -47,10 +47,10 @@ async function runChild(mode: '0' | '23' | 'wait', failure?: object) {
   const descriptor = openSync(files.log, 'w');
   const report = {
     flow: 'battles',
-    startedAt: '2026-11-09T08:15:26.875Z',
-    finishedAt: '2026-11-09T08:23:26.153Z',
-    checks: [{ name: 'Battle assertions passed', elapsedSeconds: 476.4 }],
-    milestones: { play: 83.1 },
+    startedAt: '2026-01-01T00:00:00.000Z',
+    finishedAt: '2026-01-01T00:00:10.000Z',
+    checks: [{ name: 'Battle assertions passed', elapsedSeconds: 8 }],
+    milestones: { play: 2 },
     renderer: { kind: 'webgl2-swiftshader' },
     chromium: { build: 'full' },
     ...(failure ? { failure } : {}),
