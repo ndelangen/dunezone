@@ -70,6 +70,36 @@ function reduceDraft(state: Draft, event: Event): Draft {
 function AccountModerationPage() {
   const { profileSlug } = Route.useParams();
   const page = useAccountModerationPage(profileSlug);
+  if (page.isPending) {
+    return <AdminPageLoading title="Manage account">Loading the account and its ownership.</AdminPageLoading>;
+  }
+  const data = page.data;
+  return (
+    <PageLayout>
+      <PageLayout.Header size="compact" align="start">
+        <PageTitle
+          title={data ? `Manage ${accountName(data)}` : 'Account not found'}
+          breadcrumb={<Breadcrumb to="/admin/accounts">Accounts</Breadcrumb>}
+        />
+      </PageLayout.Header>
+      <PageLayout.Content>
+        {data ? (
+          <ModerationSections data={data} profileSlug={profileSlug} />
+        ) : (
+          <Text>This account does not exist.</Text>
+        )}
+      </PageLayout.Content>
+    </PageLayout>
+  );
+}
+
+type ModerationData = NonNullable<ReturnType<typeof useAccountModerationPage>['data']>;
+
+function accountName(data: ModerationData) {
+  return data.profile.username ?? data.profile.slug;
+}
+
+function ModerationSections({ data, profileSlug }: Readonly<{ data: ModerationData; profileSlug: string }>) {
   const viewer = useCurrentProfile();
   const ban = useBanAccount();
   const unban = useUnbanAccount();
@@ -84,71 +114,44 @@ function AccountModerationPage() {
   if (draft.profileSlug !== profileSlug) {
     dispatch({ type: 'account', profileSlug });
   }
-  if (page.isPending) {
-    return <AdminPageLoading title="Manage account">Loading the account and its ownership.</AdminPageLoading>;
-  }
-  const data = page.data;
-  const profileName = data?.profile.username ?? data?.profile.slug ?? 'this account';
   const error = ban.error ?? unban.error ?? resume.error;
-  function banAccount() {
-    if (!data) {
-      return;
-    }
-    ban.mutate(
-      {
-        sourceUserId: data.profile.userId,
-        replacementUserId: draft.replacement?.userId ?? null,
-        ...(draft.reason.trim() ? { reason: draft.reason.trim() } : {}),
-      },
-      { onSuccess: () => dispatch({ type: 'account', profileSlug }) }
-    );
-  }
+  const reset = () => dispatch({ type: 'account', profileSlug });
+  const sourceUserId = data.profile.userId;
   return (
-    <PageLayout>
-      <PageLayout.Header size="compact" align="start">
-        <PageTitle
-          title={data ? `Manage ${profileName}` : 'Account not found'}
-          breadcrumb={<Breadcrumb to="/admin/accounts">Accounts</Breadcrumb>}
-        />
-      </PageLayout.Header>
-      <PageLayout.Content>
-        {data ? (
-          <Stack gap="lg">
-            <BannedAccountSection
-              data={data}
-              pending={unban.isPending}
-              onUnban={() =>
-                unban.mutate(
-                  { sourceUserId: data.profile.userId },
-                  { onSuccess: () => dispatch({ type: 'account', profileSlug }) }
-                )
-              }
-            />
-            <ContentOperationSection
-              data={data}
-              pending={resume.isPending}
-              onResume={(operationId) => resume.mutate({ operationId })}
-            />
-            <BanAccountSection
-              data={data}
-              profileName={profileName}
-              isOwnAccount={viewer.data?.user_id === data.profile.userId}
-              draft={draft}
-              onDraft={dispatch}
-              pending={ban.isPending}
-              onBan={banAccount}
-            />
-            {error ? <FormError title="Account action failed">{error.message}</FormError> : null}
-          </Stack>
-        ) : (
-          <Text>This account does not exist.</Text>
-        )}
-      </PageLayout.Content>
-    </PageLayout>
+    <Stack gap="lg">
+      <BannedAccountSection
+        data={data}
+        pending={unban.isPending}
+        onUnban={() => unban.mutate({ sourceUserId }, { onSuccess: reset })}
+      />
+      <ContentOperationSection
+        data={data}
+        pending={resume.isPending}
+        onResume={(operationId) => resume.mutate({ operationId })}
+      />
+      <BanAccountSection
+        data={data}
+        profileName={accountName(data)}
+        isOwnAccount={viewer.data?.user_id === sourceUserId}
+        draft={draft}
+        onDraft={dispatch}
+        pending={ban.isPending}
+        onBan={() => ban.mutate(banRequest(sourceUserId, draft), { onSuccess: reset })}
+      />
+      <ModerationError error={error} />
+    </Stack>
   );
 }
 
-type ModerationData = NonNullable<ReturnType<typeof useAccountModerationPage>['data']>;
+function banRequest(sourceUserId: ModerationData['profile']['userId'], draft: Draft) {
+  const reason = draft.reason.trim();
+  return { sourceUserId, replacementUserId: draft.replacement?.userId ?? null, ...(reason ? { reason } : {}) };
+}
+
+function ModerationError({ error }: Readonly<{ error: Error | null }>) {
+  return error ? <FormError title="Account action failed">{error.message}</FormError> : null;
+}
+
 type DraftControls = Readonly<{ draft: Draft; onDraft: (event: Event) => void; pending: boolean }>;
 
 function BannedAccountSection({
@@ -168,7 +171,9 @@ function BannedAccountSection({
     <Section title="Account banned">
       <Surface padding="lg">
         <Stack>
-          <Text>This account can only see the banned page. Its linked sign-in methods remain attached.</Text>
+          <Text>
+            This account was signed out and cannot sign in while banned. Its linked sign-in methods remain attached.
+          </Text>
           {data.bannedAt ? <Text size="sm">Banned at {data.bannedAt}</Text> : null}
           {data.bannedReason ? <Text>Admin reason: {data.bannedReason}</Text> : null}
           <Text size="sm">
@@ -303,28 +308,43 @@ function BanAccountSection({
               />
             )}
           />
-          <Checkbox
-            disabled={pending}
-            checked={draft.acknowledged}
-            onChange={(event) => onDraft({ type: 'acknowledge', value: event.currentTarget.checked })}
-            label={
-              draft.replacement
-                ? `Ban ${profileName}, transfer content to ${draft.replacement.username}, and remove all hosted games.`
-                : `Ban ${profileName}, soft-delete its content, and remove all hosted games.`
-            }
-          />
-          <HoldAction
-            shape="button"
-            verb="ban"
-            label="Ban account"
-            disabled={!draft.acknowledged}
-            disabledReason={isOwnAccount ? 'You cannot ban your own account.' : undefined}
-            pending={pending}
-            onConfirm={onBan}
-          />
+          <BanConfirmation {...{ profileName, isOwnAccount, draft, onDraft, pending, onBan }} />
         </Stack>
       </Surface>
     </Section>
+  );
+}
+
+function BanConfirmation({
+  profileName,
+  isOwnAccount,
+  draft,
+  onDraft,
+  pending,
+  onBan,
+}: DraftControls & Readonly<{ profileName: string; isOwnAccount: boolean; onBan: () => void }>) {
+  return (
+    <>
+      <Checkbox
+        disabled={pending}
+        checked={draft.acknowledged}
+        onChange={(event) => onDraft({ type: 'acknowledge', value: event.currentTarget.checked })}
+        label={
+          draft.replacement
+            ? `Ban ${profileName}, transfer content to ${draft.replacement.username}, and remove all hosted games.`
+            : `Ban ${profileName}, soft-delete its content, and remove all hosted games.`
+        }
+      />
+      <HoldAction
+        shape="button"
+        verb="ban"
+        label="Ban account"
+        disabled={!draft.acknowledged}
+        disabledReason={isOwnAccount ? 'You cannot ban your own account.' : undefined}
+        pending={pending}
+        onConfirm={onBan}
+      />
+    </>
   );
 }
 

@@ -8,7 +8,6 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { api, internal } from './_generated/api';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
-import { suspendAccountSessions } from './lib/authSessionLifecycle';
 import { currentPlaySession, playSessionAuthorization } from './lib/playAuthorization';
 
 beforeEach(stubAuthEnvironment);
@@ -85,27 +84,39 @@ test('a banned account cannot enter games, renew passes, or receive a homepage t
   );
 });
 
-test('banning queues durable game cutoffs and expires provider connections while preserving the ban-page session', async () => {
+test('banning revokes sessions, queues game cutoffs and expires provider connections', async () => {
   const t = setup();
   const owner = await account(t, 'suspended-player', 'google');
   const viewer = t.withIdentity({ subject: `${owner.userId}|${owner.sessionId}` });
   await viewer.mutation(api.accounts.beginConnection, { provider: 'discord' });
   const game = await t.mutation(internal.playTesting.createFixture, {});
-  await t.run(async (ctx) => {
+  const admin = await account(t, 'admin', 'google', true);
+  const session = await t.run(async (ctx) => {
     await ctx.db.insert('play_game_accounts', { game_id: game.gameId, user_id: owner.userId });
-    await ctx.db.patch(owner.userId, { account_state: 'banned' });
-    await suspendAccountSessions(ctx, owner.userId);
-    expect(await ctx.db.get(owner.sessionId)).not.toBeNull();
+    return (await ctx.db.get(owner.sessionId))!;
+  });
+  await t.withIdentity({ subject: `${admin.userId}|${admin.sessionId}` }).mutation(api.accountDeletion.adminBan, {
+    sourceUserId: owner.userId,
+    replacementUserId: null,
+  });
+  await t.run(async (ctx) => {
+    expect(await ctx.db.get(owner.sessionId)).toBeNull();
+    expect(
+      await ctx.db
+        .query('authRefreshTokens')
+        .withIndex('sessionId', (q) => q.eq('sessionId', owner.sessionId))
+        .first()
+    ).toBeNull();
     expect(await ctx.db.get(owner.authId)).not.toBeNull();
     expect(await ctx.db.query('account_connections').collect()).toMatchObject([{ state: 'expired' }]);
     const cutoff = await ctx.db.query('play_session_cutoffs').unique();
     expect(cutoff).toMatchObject({ game_id: game.gameId, principal_id: owner.userId, state: 'pending' });
-    expect(cutoff!.through).toBeGreaterThanOrEqual((await ctx.db.get(owner.sessionId))!._creationTime);
+    expect(cutoff!.through).toBeGreaterThanOrEqual(session._creationTime);
   });
 });
 
 test.each(['google', 'discord'] as const)(
-  'a banned %s sign-in keeps its provider and returns to the ban page',
+  'a banned %s sign-in keeps its provider and refuses a new session',
   async (provider) => {
     signingKey();
     const t = setup();
@@ -121,19 +132,12 @@ test.each(['google', 'discord'] as const)(
         signature,
       },
     });
-    const signedIn = await t.action(api.auth.signIn, { params: { code }, verifier });
-    expect(signedIn.tokens?.token).toEqual(expect.any(String));
-    const token = signedIn.tokens!.token;
-    const subject = JSON.parse(atob(token.split('.')[1]!.replaceAll('-', '+').replaceAll('_', '/'))).sub as string;
-    expect(subject.split('|')[0]).toBe(owner.userId);
-    expect(await t.withIdentity({ subject }).query(api.profiles.session, {})).toMatchObject({ isBanned: true });
+    await expect(t.action(api.auth.signIn, { params: { code }, verifier })).rejects.toThrow();
     await t.run(async (ctx) => {
       expect(await ctx.db.query('users').collect()).toHaveLength(1);
       expect(await ctx.db.query('profiles').collect()).toHaveLength(1);
       expect(await ctx.db.get(owner.authId)).toMatchObject({ userId: owner.userId });
       expect(await ctx.db.get(owner.profileId)).toMatchObject({ account_state: 'banned' });
     });
-    const refreshed = await t.action(api.auth.signIn, { refreshToken: signedIn.tokens!.refreshToken });
-    expect(refreshed.tokens?.token).toEqual(expect.any(String));
   }
 );

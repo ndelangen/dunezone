@@ -38,7 +38,7 @@ export const homepageAdmissionSchema = z.discriminatedUnion('allowed', [
     allowed: z.literal(true),
     userKey: z.string(),
     leaseUntil: z.number().finite(),
-    issuedAt: z.number().finite().optional(),
+    issuedAt: z.number().finite(),
     avatarUrl: z.string().max(2048).nullable().optional(),
   }),
 ]);

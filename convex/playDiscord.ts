@@ -137,11 +137,12 @@ export const claim = internalMutation({
       await ctx.db.patch(row._id, freshWork);
       row = { ...row, ...freshWork };
     }
-    if (retiresWithoutChannel(row, game)) {
+    const retire = await retirementRequired(ctx, row, game);
+    if (retire && !row.channel_id && row.state !== 'creating') {
       await markDiscordDeleted(ctx, row);
       return null;
     }
-    const operation = operationForWork(row, game, retirementDue(row, game));
+    const operation = operationForWork(row, game, retire);
     if (!operation) {
       await ctx.db.patch(row._id, {
         retry: undefined,
@@ -202,10 +203,6 @@ function retirementDue(channel: Doc<'play_game_discord_channels'>, game: Doc<'pl
     return channel.state === 'pending' && !channel.channel_id;
   }
   return channel.cleanup_at <= Date.now();
-}
-
-function retiresWithoutChannel(channel: Doc<'play_game_discord_channels'>, game: Doc<'play_games'> | null) {
-  return !channel.channel_id && channel.state !== 'creating' && retirementDue(channel, game);
 }
 
 async function retirementRequired(
@@ -329,7 +326,7 @@ export const invited = internalMutation({
       row?.lease !== args.lease ||
       row.state !== 'pending' ||
       !row.channel_id ||
-      retirementDue(row, await ctx.db.get(row.game_id))
+      (await retirementRequired(ctx, row, await ctx.db.get(row.game_id)))
     ) {
       return false;
     }
@@ -366,7 +363,7 @@ export const beginDeletion = internalMutation({
     ) {
       return false;
     }
-    if (!retirementDue(row, await ctx.db.get(row.game_id))) {
+    if (!(await retirementRequired(ctx, row, await ctx.db.get(row.game_id)))) {
       return false;
     }
     await ctx.db.patch(row._id, { state: 'deleting' });
@@ -458,7 +455,8 @@ export const release = internalMutation({
       ? ((await ctx.db.query('play_discord_cooldown').unique())?.blocked_until ?? 0)
       : 0;
     const providerUntil = (args.retryAfterMs ?? 0) > 0 ? (args.retryAt ?? Date.now() + args.retryAfterMs!) : 0;
-    const remaining = operationForWork(row, game, retirementDue(row, game));
+    const retire = await retirementRequired(ctx, row, game);
+    const remaining = operationForWork(row, game, retire);
     const previousOperation = releasedOperation(args.operation, args.retryOperation);
     const sameOperation = previousOperation === undefined || previousOperation === remaining;
     const heldUntil = Math.max(row.retry_after ?? 0, globalUntil, changed && sameOperation ? providerUntil : 0);

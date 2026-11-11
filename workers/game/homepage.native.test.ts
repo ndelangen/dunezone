@@ -38,6 +38,7 @@ async function visitor(member = false, now?: number) {
     peer.homepageAdmission = {
       allowed: true,
       userKey: crypto.randomUUID(),
+      issuedAt: now ?? Date.now(),
       leaseUntil: (now ?? Date.now()) + 30_000,
       avatarUrl: 'https://dune.zone/avatar/test.webp',
     };

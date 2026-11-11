@@ -113,7 +113,7 @@ describe('account access at the root', () => {
     expect(result.current).toEqual({ pending: true, banned: false });
   });
 
-  test('a live ban replaces access without losing the authenticated session', () => {
+  test('a live ban tells the root to replace access', () => {
     mocks.useQuery.mockReturnValue({ userId: 'user-1', profile, isAdmin: false, isBanned: false });
     const { result, rerender } = renderHook(() => useAccountBanState());
     expect(result.current).toEqual({ pending: false, banned: false });

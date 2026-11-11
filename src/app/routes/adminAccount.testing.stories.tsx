@@ -1,8 +1,9 @@
+import { useAuthActions } from '@convex-dev/auth/react';
 import { testingPreview } from '@sb/preview';
 import { finishTransitions, waitForFrame } from '@sb/storyWaits';
 import { createMemoryHistory } from '@tanstack/react-router';
 import type { RouterHistory } from '@tanstack/react-router';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, fn, mocked, userEvent, within } from 'storybook/test';
 
 import {
   activeAccount,
@@ -76,6 +77,23 @@ export const BannedSessionCannotOpenTools = meta.story({
   args: { path: '/tools/spice-deck' },
   parameters: { database: bannedViewer },
   play: ({ canvasElement }) => expectBannedPage(canvasElement),
+});
+
+export const BannedSessionIsSignedOut = meta.story({
+  args: { path: '/admin/accounts' },
+  parameters: { database: bannedViewer },
+  beforeEach: () => {
+    const auth = mocked(useAuthActions);
+    auth.mockReturnValue({ signIn: fn(), signOut: fn(async () => {}) });
+    return () => {
+      auth.mockRestore();
+    };
+  },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('heading', { name: 'You have been banned' })).resolves.toBeVisible();
+    await waitForFrame(() => expect(mocked(useAuthActions).mock.results.at(-1)?.value.signOut).toHaveBeenCalledOnce());
+  },
 });
 
 export const FailedContentBlocksUnban = meta.story({

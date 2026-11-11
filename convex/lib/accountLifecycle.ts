@@ -17,7 +17,7 @@ function assertNotBanned(user: Doc<'users'> | null) {
   }
 }
 
-/** Banned sessions remain signed in only to read their own ban status. */
+/** A banned identity is refused even if its client still has a signed token. */
 export async function requireNotBanned(ctx: AnyCtx) {
   const rawUserId = await getAuthUserId(ctx);
   const userId = rawUserId ? ctx.db.normalizeId('users', rawUserId) : null;

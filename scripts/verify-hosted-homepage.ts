@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
-import type { BrowserContext, Page } from 'playwright';
+import type { BrowserContext, Page, WebSocketRoute } from 'playwright';
 import sharp from 'sharp';
 
 import type { Vector3Tuple } from '../src/shared/play/model.ts';
@@ -343,88 +343,105 @@ export async function installHomepageArtwork(context: BrowserContext) {
   }
 }
 
+type RecoveryControls = {
+  sessionReleased: boolean;
+  refusalReleased: boolean;
+  handlingReleased: boolean;
+  releaseSession: (() => void) | null;
+  releaseRefusal: (() => void) | null;
+  releaseHandling: (() => void) | null;
+};
+
+function socketReplyBuffer(send: (message: string | Buffer) => void, initiallyHolding = true) {
+  const messages: (string | Buffer)[] = [];
+  let holding = initiallyHolding;
+  return {
+    accept(message: string | Buffer) {
+      if (holding) {
+        messages.push(message);
+      } else {
+        send(message);
+      }
+    },
+    release() {
+      holding = false;
+      for (const message of messages) {
+        send(message);
+      }
+      messages.length = 0;
+    },
+  };
+}
+
 /* Hold saved sign-in, the first refusal and its recovery reply without reordering Convex messages. */
+function connectHandlingRecovery(socket: WebSocketRoute, controls: RecoveryControls) {
+  const server = socket.connectToServer();
+  const send = (message: string | Buffer) => socket.send(message);
+  const session = socketReplyBuffer(send, !controls.sessionReleased);
+  const refusal = socketReplyBuffer(send);
+  const handling = socketReplyBuffer(send);
+  const ticketRequests = new Set<number>();
+  controls.releaseSession = () => {
+    controls.sessionReleased = true;
+    session.release();
+  };
+  socket.onMessage((message) => {
+    const request = JSON.parse(String(message));
+    if (request.type === 'Mutation' && request.udfPath === 'homepageAdmission:issueTicket') {
+      ticketRequests.add(request.requestId);
+    }
+    server.send(message);
+  });
+
+  function receive(message: string | Buffer) {
+    if (controls.releaseRefusal && !controls.refusalReleased) {
+      refusal.accept(message);
+      return;
+    }
+    if (controls.releaseHandling && !controls.handlingReleased) {
+      handling.accept(message);
+      return;
+    }
+    const reply = JSON.parse(String(message));
+    const issuedTicket =
+      reply.type === 'MutationResponse' && ticketRequests.delete(reply.requestId) && reply.success && reply.result;
+    if (!issuedTicket || controls.releaseHandling) {
+      session.accept(message);
+      return;
+    }
+    if (!controls.releaseRefusal) {
+      refusal.accept(JSON.stringify({ ...reply, result: null }));
+      controls.releaseRefusal = () => {
+        controls.refusalReleased = true;
+        refusal.release();
+      };
+      return;
+    }
+    /* Keep the mutation reply ahead of the transitions that acknowledge its writes. */
+    handling.accept(message);
+    controls.releaseHandling = () => {
+      controls.handlingReleased = true;
+      handling.release();
+    };
+  }
+
+  server.onMessage(receive);
+}
+
 async function prepareHandlingRecovery(context: BrowserContext, backendSocketOrigin: string) {
-  let sessionReleased = false;
-  const admission: {
-    refused: boolean;
-    releaseSession: (() => void) | null;
-    releaseRefusal: (() => void) | null;
-    releaseHandling: (() => void) | null;
-  } = {
-    refused: false,
+  const controls: RecoveryControls = {
+    sessionReleased: false,
+    refusalReleased: false,
+    handlingReleased: false,
     releaseSession: null,
     releaseRefusal: null,
     releaseHandling: null,
   };
-  let handlingReleased = false;
-  /* Keep account access pending until the driver releases the saved sign-in replies. */
   await context.routeWebSocket(
     (url) => url.origin === backendSocketOrigin,
-    (socket) => {
-      const server = socket.connectToServer();
-      const waiting: (string | Buffer)[] = [];
-      const refusalWaiting: (string | Buffer)[] = [];
-      const handlingWaiting: (string | Buffer)[] = [];
-      const ticketRequests = new Set<number>();
-      socket.onMessage((message) => {
-        const request = JSON.parse(String(message));
-        if (request.type === 'Mutation' && request.udfPath === 'homepageAdmission:issueTicket') {
-          ticketRequests.add(request.requestId);
-        }
-        server.send(message);
-      });
-      server.onMessage((message) => {
-        if (admission.releaseRefusal && !admission.refused) {
-          refusalWaiting.push(message);
-          return;
-        }
-        if (admission.releaseHandling && !handlingReleased) {
-          handlingWaiting.push(message);
-          return;
-        }
-        const reply = JSON.parse(String(message));
-        const issuedTicket =
-          reply.type === 'MutationResponse' && ticketRequests.delete(reply.requestId) && reply.success && reply.result;
-        if (issuedTicket && admission.refused && !admission.releaseHandling) {
-          /* Keep Convex's mutation reply ahead of the transitions that acknowledge its writes. */
-          handlingWaiting.push(message);
-          admission.releaseHandling = () => {
-            handlingReleased = true;
-            for (const held of handlingWaiting) {
-              socket.send(held);
-            }
-            handlingWaiting.length = 0;
-          };
-          return;
-        }
-        if (issuedTicket && !admission.refused) {
-          refusalWaiting.push(JSON.stringify({ ...reply, result: null }));
-          admission.releaseRefusal = () => {
-            admission.refused = true;
-            for (const held of refusalWaiting) {
-              socket.send(held);
-            }
-            refusalWaiting.length = 0;
-          };
-          return;
-        }
-        if (sessionReleased) {
-          socket.send(message);
-        } else {
-          waiting.push(message);
-        }
-      });
-      admission.releaseSession = () => {
-        sessionReleased = true;
-        for (const message of waiting) {
-          socket.send(message);
-        }
-        waiting.length = 0;
-      };
-    }
+    (socket) => connectHandlingRecovery(socket, controls)
   );
-  return admission;
+  return controls;
 }
 
 /** A real signed-in visitor moves the public table while a separate unsigned visitor watches. */

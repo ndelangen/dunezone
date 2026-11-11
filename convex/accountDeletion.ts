@@ -9,7 +9,7 @@ import { adminQuery, internalMutation, mutation, viewerQuery } from './functions
 import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
-import { revokeAccountSessions, suspendAccountSessions } from './lib/authSessionLifecycle';
+import { revokeAccountSessions } from './lib/authSessionLifecycle';
 import { docValidator, pickableProfileValidator } from './lib/collaborativeAccessValidators';
 import { CUSTOM_CARD_TOKEN_RELATION } from './lib/customCardTokens';
 import { DIRECT_OWNERSHIP_KINDS, directOwnershipKindValidator } from './lib/directOwnership';
@@ -424,7 +424,7 @@ export const adminBan = mutation({
       account_deletion_operation_id: operationId,
       updated_at: now,
     });
-    await suspendAccountSessions(ctx, source._id);
+    await revokeAccountSessions(ctx, source._id);
     await queueHomepageBanCutoff(ctx, operationId);
     await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
     await ctx.scheduler.runAfter(0, internal.playDeletion.queueBanGames, { operationId });

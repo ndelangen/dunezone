@@ -51,6 +51,23 @@ test.each(['ban', 'discard'] as const)('pending voice creation is cancelled afte
   expect(discord.calls).toEqual([]);
 });
 
+test('a ready channel is deleted after a ban before the game cleanup runs', async () => {
+  const discord = discordStub();
+  const world = await voiceWorld();
+  await world.reconcile();
+  const admin = await administrator(world.t);
+  await admin.mutation(api.accountDeletion.adminBan, {
+    sourceUserId: world.identity.userId,
+    replacementUserId: null,
+  });
+  expect(await world.t.run((ctx) => ctx.db.get(world.gameId))).toMatchObject({ state: 'ready' });
+
+  await world.reconcile();
+
+  expect(await world.channel()).toMatchObject({ state: 'deleted' });
+  expect(discord.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1);
+});
+
 function banDuringCreateAndFailFirstDelete(
   discord: ReturnType<typeof discordStub>,
   world: Awaited<ReturnType<typeof voiceWorld>>,

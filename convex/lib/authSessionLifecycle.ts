@@ -69,17 +69,6 @@ export async function revokeAccountSessions(ctx: MutationCtx, userId: Id<'users'
   await removeRevokedSessions(ctx, userId, through);
 }
 
-/** Keeps the signed-in ban page available while closing every game session and unfinished provider connection. */
-export async function suspendAccountSessions(ctx: MutationCtx, userId: Id<'users'>) {
-  const newest = await ctx.db
-    .query('authSessions')
-    .withIndex('userId', (q) => q.eq('userId', userId))
-    .order('desc')
-    .first();
-  await queueAccountCutoffs(ctx, userId, Math.max(Date.now(), newest?._creationTime ?? 0));
-  await expirePendingConnections(ctx, userId);
-}
-
 /**
  * Ends the account's pending connections: a connection started from a session that is now revoked must not finish later from that tab, and a new connection replaces any earlier one, so an account holds at most one.
  */

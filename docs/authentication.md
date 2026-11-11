@@ -46,10 +46,9 @@ or removal, writes an optional reason visible only to administrators, and holds 
 The account and profile become banned in that transaction. The operation records its administrator
 and reuses account deletion's bounded ownership snapshot and application batches.
 
-A ban preserves the account's linked providers. Signing in with one of them reaches the same banned
-account and shows only "You have been banned". Banned sessions cannot change or disconnect their
-providers, call viewer queries or application mutations, or receive Play admission. A minimal session
-query supplies the ban flag to the root page gate. Public queries remain viewer-independent and
+A ban preserves the account's linked providers and revokes all existing sessions. Open tabs that
+receive the ban status clear their sign-in, and new sign-in attempts through linked providers are
+refused while the ban is active. A minimal session query supplies the ban flag to the root page gate. Public queries remain viewer-independent and
 serve the same anonymous facts to everyone; a ban does not make public catalogue data private.
 Existing Play sessions receive a durable cutoff. The homepage table receives its own cutoff for
 edit leases that were issued before the ban. On a signed-in reload, the app waits for current account
@@ -69,8 +68,8 @@ is verified, the finalizer checks only the indexed game-delivery queue and waits
 it does not repeat ownership scans while a room is unavailable. If a delivery stays overdue, finalization
 checks slow to five-minute intervals while the existing recovery job repairs the delivery.
 
-An administrator can lift the ban after the operation completes. This revokes old sessions, so the
-person signs in again with a linked provider. Transferred and removed content stays as it is;
+An administrator can lift the ban after the operation completes. The person can then sign in again
+with a linked provider. Transferred and removed content stays as it is;
 soft-deleted content can use its existing restore action. Hosted games stay removed.
 
 ## Convex Auth

@@ -9,7 +9,6 @@ import {
   HOMEPAGE_EDITOR_LIMIT,
   HOMEPAGE_FRAME_LIMIT,
   HOMEPAGE_RESET_MS,
-  HOMEPAGE_LEASE_MS,
   homepageAccountCutoffRequestSchema,
   homepageAccountCutoffSchema,
   homepageAdmissionSchema,
@@ -409,7 +408,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     if (!admission.allowed) {
       return this.makeAnonymous(socket, connection);
     }
-    const issuedAt = admission.issuedAt ?? admission.leaseUntil - HOMEPAGE_LEASE_MS;
+    const { issuedAt } = admission;
     if (this.cutoffCovers(admission.userKey, issuedAt)) {
       return this.makeAnonymous(socket, connection);
     }
