@@ -33,7 +33,8 @@ phone or desktop notification.
 
 A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
 no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
-REST work until its deadline; a channel or route limit affects only that attempted nudge.
+REST work until its deadline; a channel or route limit holds requests in that scoped bucket. The
+failed nudge itself is not retried.
 
 ## Configuration and administration
 
@@ -47,16 +48,37 @@ Existing channels and invites remain available while paused. Its deployment-loca
 excluded from snapshots and cannot enable an unconfigured deployment.
 
 The page lists tracked channels and cleanup deadlines. It fetches a
-bounded page only while open. Untracked channels are discovered only on explicit refresh, only in
+bounded page only while open. Cleanup distinguishes active inactivity deadlines, finished setup or
+rename work, hourly occupancy checks and completed removal. Paused rows show that cleanup is paused.
+Unfinished work stops after three reconciliation attempts and shows Needs attention. Retry now
+starts a fresh attempt budget and records its scheduled time. It cannot bypass a live lease or a
+Discord request's rate limit. Rename and deletion failures use the same control as provisioning.
+Untracked channels are discovered only on explicit refresh, only in
 configured Games categories, and only after the creation window has passed. They are never deleted
-automatically. A deliberate removal rechecks the target before deleting it. An unconfirmed creation
-must be inspected in Discord; never blindly retry its POST.
+automatically. A deliberate removal rechecks the target before deleting it.
+
+Before creating a channel, Convex saves an exact temporary name, `dune-play-{gameId}`, and the selected
+category. The temporary name is briefly visible. A successful response saves the channel ID before
+renaming it to the game name or requesting an invite. A lost response leaves that attempt marked as
+creating. Recovery lists the saved guild after the previous reconciliation has released or lost its 31-minute lease.
+One exact matching voice channel in the saved category is adopted. A negative listing never
+authorizes a replacement POST. Negative or conflicting results and inaccessible categories stop for administrator inspection. Retry can inspect again and
+adopt a later visible match; it cannot create a replacement for an uncertain result.
+
+Administrator renames, moves or permission changes, and late Discord commits, can defeat correlation.
+Configuration changes affect new reservations only; existing
+creation, recovery and cleanup stay pinned to their saved guild and category, using the current token.
 
 Discarding a game schedules its channel for immediate deletion. When a game finishes, the channel
 is renamed with an `(ended)` suffix. Hourly cleanup deletes ended channels that are empty. If play
 continues before deletion commits, the channel stays and its original name is restored. A committed
-deletion cannot be reversed. Active games still lose their channel after 14 days without game activity.
+deletion cannot be reversed. Active games request channel deletion after 14 days without game activity.
+This deadline can start new deletion work after provisioning or renaming has stopped. It never
+restarts the failed provisioning or rename operation. Deletion itself stops after three failed
+attempts and needs an explicit Retry.
 Missing channels are treated as already removed only when Discord returns Unknown Channel.
+An hourly check that confirms Unknown Channel retires the tracked record directly after rechecking
+the game, channel identity, revision and pause setting. It sends no redundant DELETE.
 The empty observation commits deletion. Discord has no atomic delete-if-empty operation, so a
 join after that decision does not cancel it.
 
@@ -80,6 +102,25 @@ One attempted nudge uses one Worker-to-Convex action call and at most one Discor
 rate-limit mutation reads current eligibility and spends the per-seat quota. There are no delivery
 or expiry jobs. Idle channel reconciliation uses the existing 15-minute cron, with no Discord
 request when nothing is due. The admin page has bounded reads and manual orphan refresh.
+
+Lifecycle REST calls make one attempt. The existing lease claim durably spends one of three
+reconciliation attempts, so a crashed action also uses its budget. Provisioning covers category
+selection, creation or inspection, initial naming and invitation; each completed step is saved.
+Renaming and deletion have their own bounded work. Scheduled retries and cron use the same budget
+and preserve Discord's deadlines. Ordinary activity, duplicate stage updates, pause/resume and
+repeated hourly observations cannot reset an exhausted operation. An explicit Retry or genuinely
+new lifecycle work starts a fresh budget. A retry of a definitely rejected creation reuses the
+same category; an uncertain creation can only be inspected and adopted. Interactive admin requests
+retain their two short retries; nudges and occupancy checks never retry inline.
+
+Every request checks a persisted gate. Only explicit global limits block all bot work. Other limits,
+including shared limits, use the observed bucket plus major guild or channel ID. Without a bucket
+header, the exact method/route template and major resource identify the hold. A new lifecycle operation
+does not inherit an old operation's scoped delay. Route aliases are written only when changed; a 429
+combines its alias and hold update. A rate limit received by an in-flight request survives pause and
+resume; pausing still blocks new requests. Rare observation mutations prune at most eight expired scoped
+holds through an expiry index. No cleanup cron is added. The admin page does not read these holds
+for every displayed row.
 
 After a release, check both Worker health identities, create an opted-in game, and verify the invite
 and VC text message destination. Choose a Nudge command in the Compass, repeat it inside its

@@ -8,8 +8,8 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   navigate: vi.fn(),
   replace: vi.fn(),
-  inactive: new Error('inactive'),
   settleStartedSignIn: vi.fn(),
+  signInFailureReason: vi.fn(),
 }));
 
 vi.mock('@convex-dev/auth/react', () => ({ useAuthActions: () => ({ signIn: mocks.signIn }) }));
@@ -17,8 +17,8 @@ vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({ navigate: mocks.navigate, history: { replace: mocks.replace } }),
 }));
 vi.mock('@db/accounts', () => ({
-  refusedAsInactiveAccount: (error: unknown) => error === mocks.inactive,
   settleStartedSignIn: mocks.settleStartedSignIn,
+  signInFailureReason: mocks.signInFailureReason,
 }));
 
 const VERIFIER = '__convexAuthOAuthVerifier_test';
@@ -43,6 +43,7 @@ beforeEach(() => {
   mocks.navigate.mockReset();
   mocks.replace.mockReset();
   mocks.settleStartedSignIn.mockReset();
+  mocks.signInFailureReason.mockReset();
   localStorage.clear();
 });
 
@@ -61,16 +62,22 @@ describe('SignInCallback', () => {
     expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(true);
   });
 
-  it('sends a refused sign-in to the sign-in page with the reason and the page to return to', async () => {
-    mocks.signIn.mockRejectedValue(mocks.inactive);
-    await land('/factions/create?code=one-time');
-    expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(false);
-    expect(mocks.navigate).toHaveBeenCalledWith({
-      to: '/auth/login',
-      search: { redirect: '/factions/create', failed: 'inactive' },
-      replace: true,
-    });
-  });
+  it.each(['inactive', 'banned'])(
+    'returns to sign-in after a %s refusal and preserves the original page',
+    async (failed) => {
+      const refusal = new Error('Sign-in refused');
+      mocks.signIn.mockRejectedValue(refusal);
+      mocks.signInFailureReason.mockReturnValue(failed);
+      await land('/factions/create?code=one-time');
+      expect(mocks.signInFailureReason).toHaveBeenCalledWith(refusal);
+      expect(mocks.settleStartedSignIn).toHaveBeenCalledWith(false);
+      expect(mocks.navigate).toHaveBeenCalledWith({
+        to: '/auth/login',
+        search: { redirect: '/factions/create', failed },
+        replace: true,
+      });
+    }
+  );
 
   it('reports a code that no longer signs anyone in', async () => {
     mocks.signIn.mockResolvedValue({ signingIn: false });

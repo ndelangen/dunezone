@@ -1,5 +1,5 @@
 import { useAuthActions } from '@convex-dev/auth/react';
-import { INACTIVE_ACCOUNT_SIGN_IN, RECENT_SIGN_IN_REQUIRED } from '@shared/authDestination';
+import { BANNED_ACCOUNT_SIGN_IN, INACTIVE_ACCOUNT_SIGN_IN, RECENT_SIGN_IN_REQUIRED } from '@shared/authDestination';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import type { FunctionReturnType } from 'convex/server';
 import { ConvexError } from 'convex/values';
@@ -40,10 +40,12 @@ export type { AuthProvider } from '../../../convex/lib/accountMethods';
 export function useAccountManagementPage(
   cursor: string | null,
   selectedUserIds: string[],
-  failedCursor: string | null = null
+  failedCursor: string | null = null,
+  accountState: 'active' | 'banned' = 'active'
 ) {
   const page = useQuery(api.accounts.adminPage, {
     paginationOpts: { cursor, numItems: 40 },
+    accountState,
     failedPaginationOpts: { cursor: failedCursor, numItems: 20 },
     selectedUserIds: selectedUserIds as Id<'users'>[],
   });
@@ -161,9 +163,12 @@ export function useConfirmAuthConnection() {
   return useMutation(api.accounts.confirmConnection);
 }
 
-/** Whether a sign-in was refused because its account is being deleted or merged. */
-export function refusedAsInactiveAccount(error: unknown): boolean {
-  return error instanceof ConvexError && error.data === INACTIVE_ACCOUNT_SIGN_IN;
+export function signInFailureReason(error: unknown) {
+  const reason = error instanceof ConvexError ? error.data : null;
+  if (reason === BANNED_ACCOUNT_SIGN_IN) {
+    return 'banned';
+  }
+  return reason === INACTIVE_ACCOUNT_SIGN_IN ? 'inactive' : 'failed';
 }
 
 /** Whether a sign-in method change or an account deletion was refused because this session's sign-in is too old, so signing in again is the way through. */

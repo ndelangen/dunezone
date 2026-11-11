@@ -61,56 +61,61 @@ test('the single target-seat cooldown lasts five minutes', async () => {
   expect(world.fetch).toHaveBeenCalledTimes(2);
 });
 
-test.each(['disabled', 'voice off', 'finished', 'discarded', 'channel missing'] as const)(
-  '%s drops a nudge before Discord',
-  async (state) => {
-    const world = await nudgeWorld();
-    const channel = await world.channel();
-    await world.t.run(async (ctx) => {
-      if (state === 'disabled') {
-        await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() });
-      }
-      if (state === 'voice off') {
-        await ctx.db.patch(world.gameId, { discord_voice: false });
-      }
-      if (state === 'finished' || state === 'discarded') {
-        await ctx.db.patch(world.gameId, { directory_stage: state });
-      }
-      if (state === 'channel missing') {
-        await ctx.db.delete(channel!._id);
-      }
-    });
-    await world.publishNudge();
-    expect(world.fetch).not.toHaveBeenCalled();
-  }
-);
+type NudgeWorld = Awaited<ReturnType<typeof nudgeWorld>>;
+type RejectedNudge = {
+  setup?: (world: NudgeWorld) => Promise<unknown>;
+  request?: Partial<PlaySendNudgeRequest>;
+};
 
-test.each(['unlinked', 'deleted', 'anonymous'] as const)('%s drops a nudge before Discord', async (state) => {
+const rejectedNudges: Record<string, RejectedNudge> = {
+  disabled: {
+    setup: (world) =>
+      world.t.run((ctx) => ctx.db.insert('play_discord_settings', { enabled: false, updated_at: Date.now() })),
+  },
+  'voice off': { setup: (world) => world.t.run((ctx) => ctx.db.patch(world.gameId, { discord_voice: false })) },
+  finished: { setup: (world) => world.t.run((ctx) => ctx.db.patch(world.gameId, { directory_stage: 'finished' })) },
+  discarded: { setup: (world) => world.t.run((ctx) => ctx.db.patch(world.gameId, { directory_stage: 'discarded' })) },
+  'missing sender': { request: { fromSeat: 'absent' } },
+  'missing target': { request: { toSeat: 'absent' } },
+  unlinked: { setup: (world) => world.t.run((ctx) => ctx.db.delete(world.authAccountId)) },
+  deleted: {
+    setup: (world) => world.t.run((ctx) => ctx.db.patch(world.identity.userId, { account_state: 'deleted' })),
+  },
+  anonymous: { setup: (world) => world.t.run((ctx) => ctx.db.patch(world.identity.userId, { isAnonymous: true })) },
+  'channel missing': {
+    setup: async (world) => {
+      const channel = (await world.channel())!;
+      await world.t.run((ctx) => ctx.db.delete(channel._id));
+    },
+  },
+  self: { request: { fromSeat: 'seat-1' } },
+};
+
+test.each(Object.entries(rejectedNudges))('%s drops a nudge before Discord', async (_state, fixture) => {
   const world = await nudgeWorld();
-  await world.t.run(async (ctx) => {
-    if (state === 'unlinked') {
-      await ctx.db.delete(world.authAccountId);
-    }
-    if (state === 'deleted') {
-      await ctx.db.patch(world.identity.userId, { account_state: 'deleted' });
-    }
-    if (state === 'anonymous') {
-      await ctx.db.patch(world.identity.userId, { isAnonymous: true });
-    }
-  });
-  await world.publishNudge();
+  await fixture.setup?.(world);
+  await world.publishNudge(fixture.request);
   expect(world.fetch).not.toHaveBeenCalled();
 });
 
-test.each([
-  { state: 'missing sender', request: { fromSeat: 'absent' } },
-  { state: 'missing target', request: { toSeat: 'absent' } },
-  { state: 'self', request: { fromSeat: 'seat-1' } },
-])('$state drops a nudge before Discord', async ({ request }) => {
-  const world = await nudgeWorld();
+/** Restoring eligibility must permit the first POST immediately, proving rejection spent no cooldown. */
+async function restoreNudgeEligibility(
+  world: NudgeWorld,
+  restore: () => Promise<unknown>,
+  request: Partial<PlaySendNudgeRequest> = {}
+) {
+  const response = await world.publishNudge(request);
+  const callsBeforeRestoring = world.fetch.mock.calls.length;
+  await restore();
   await world.publishNudge(request);
-  expect(world.fetch).not.toHaveBeenCalled();
-});
+  return { response, callsBeforeRestoring, callsAfterRestoring: world.fetch.mock.calls.length };
+}
+
+const expectedRestoredEligibility = {
+  response: { ok: true },
+  callsBeforeRestoring: 0,
+  callsAfterRestoring: 1,
+};
 
 test('authentication rejects a bad game credential and chat text never enters the action', async () => {
   const world = await nudgeWorld();
@@ -179,10 +184,13 @@ test.each(['body', 'global header', 'scope header'] as const)(
     );
     await world.publishNudge();
     const until = Date.now() + 60_000;
-    expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(until);
+    expect(
+      (await world.t.query(internal.playDiscordRateLimits.inspect, { route: 'gatewayBot.read', major: 'none' }))
+        ?.globalUntil
+    ).toBe(until);
     const rest = new DiscordRest('test-token', 'Another game', {
-      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
-      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+      inspect: (scope) => world.t.query(internal.playDiscordRateLimits.inspect, scope),
+      observe: (observation) => world.t.mutation(internal.playDiscordRateLimits.observe, observation),
     });
     await expect(rest.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
     expect(world.fetch).toHaveBeenCalledTimes(1);
@@ -198,43 +206,27 @@ test.each(['user', 'shared'] as const)(
       Response.json({ retry_after: 60, global: false }, { status: 429, headers: { 'X-RateLimit-Scope': scope } })
     );
     await world.publishNudge();
-    expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBe(0);
+    expect(
+      (await world.t.query(internal.playDiscordRateLimits.inspect, { route: 'gatewayBot.read', major: 'none' }))
+        ?.globalUntil
+    ).toBe(0);
     world.fetch.mockResolvedValueOnce(Response.json({ code: 'next-room' }));
     const rest = new DiscordRest('test-token', 'Another game', {
-      until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
-      hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
+      inspect: (scope) => world.t.query(internal.playDiscordRateLimits.inspect, scope),
+      observe: (observation) => world.t.mutation(internal.playDiscordRateLimits.observe, observation),
     });
     expect(await rest.invite('301')).toBe('https://discord.gg/next-room');
     expect(world.fetch).toHaveBeenCalledTimes(2);
   }
 );
 
-async function restoredEligibility(
-  world: Awaited<ReturnType<typeof nudgeWorld>>,
-  restore: () => Promise<unknown>,
-  request: Partial<PlaySendNudgeRequest> = {}
-) {
-  const blocked = await world.publishNudge(request);
-  const attemptsWhileBlocked = world.fetch.mock.calls.length;
-  await restore();
-  const restored = await world.publishNudge(request);
-  return { blocked, attemptsWhileBlocked, restored, attemptsAfterRestore: world.fetch.mock.calls.length };
-}
-
-const expectedRestoredEligibility = {
-  blocked: { ok: true },
-  attemptsWhileBlocked: 0,
-  restored: { ok: true },
-  attemptsAfterRestore: 1,
-};
-
-/* This table also covers bans when the account-ban release adds its state. */
+/* Every inactive sender state is covered, including banned accounts. */
 test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
   'a sender changed to %s after the directory snapshot cannot nudge or consume quota',
   async (state) => {
     const world = await nudgeWorld();
     await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: state }));
-    const result = await restoredEligibility(world, () =>
+    const result = await restoreNudgeEligibility(world, () =>
       world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' }))
     );
     expect(result).toEqual(expectedRestoredEligibility);
@@ -261,7 +253,7 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
       await ctx.db.patch(world.spectator.userId, { account_state: state });
       return aliasId;
     });
-    const result = await restoredEligibility(
+    const result = await restoreNudgeEligibility(
       world,
       () => world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { account_state: 'active' })),
       { fromUserId: aliasId }
@@ -270,10 +262,57 @@ test.each(ACCOUNT_STATES.filter((state) => state !== 'active'))(
   }
 );
 
+test.each(['banned', 'unlinked'] as const)(
+  'an alias whose canonical recipient is %s cannot be pinged or consume cooldown',
+  async (state) => {
+    const world = await nudgeWorld();
+    const aliasId = await world.t.run(async (ctx) => {
+      const aliasId = await ctx.db.insert('users', {
+        name: 'Old recipient',
+        account_state: 'merge_pending',
+        merged_into_user_id: world.identity.userId,
+      });
+      const game = (await ctx.db.get(world.gameId))!;
+      await ctx.db.patch(world.gameId, {
+        directory: {
+          ...game.directory!,
+          seats: game.directory!.seats.map((seat) => (seat.seat === 'seat-1' ? { ...seat, userId: aliasId } : seat)),
+        },
+      });
+      if (state === 'banned') {
+        await ctx.db.patch(world.identity.userId, { account_state: 'banned' });
+      } else {
+        await ctx.db.delete(world.authAccountId);
+      }
+      return aliasId;
+    });
+
+    expect(await world.publishNudge({ toUserId: aliasId })).toEqual({ ok: true });
+    expect(world.fetch).not.toHaveBeenCalled();
+
+    await world.t.run(async (ctx) => {
+      if (state === 'banned') {
+        await ctx.db.patch(world.identity.userId, { account_state: 'active' });
+      } else {
+        await ctx.db.insert('authAccounts', {
+          userId: world.identity.userId,
+          provider: 'discord',
+          providerAccountId: '123456789',
+        });
+      }
+    });
+    await world.publishNudge({ toUserId: aliasId });
+    expect(world.fetch).toHaveBeenCalledTimes(1);
+    expect(await new Response(world.fetch.mock.calls[0][1]?.body).json()).toMatchObject({
+      allowed_mentions: { users: ['123456789'] },
+    });
+  }
+);
+
 test('an anonymous sender cannot nudge or consume quota', async () => {
   const world = await nudgeWorld();
   await world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: true }));
-  const result = await restoredEligibility(world, () =>
+  const result = await restoreNudgeEligibility(world, () =>
     world.t.run((ctx) => ctx.db.patch(world.spectator.userId, { isAnonymous: false }))
   );
   expect(result).toEqual(expectedRestoredEligibility);

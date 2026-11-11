@@ -96,6 +96,21 @@ describe('rebuild contract for the anonymised snapshot', () => {
     expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
   });
 
+  test.each([
+    { table: 'play_discord_route_buckets', value: { route: 'POST /channels/:channel/messages', bucket_id: 'bucket' } },
+    { table: 'play_discord_rate_limits', value: { key: 'route:channel:123', blocked_until: 1_700_000_060_000 } },
+  ] as const)('rejects retained Discord request state in $table', async ({ table, value }) => {
+    const t = rebuiltDeployment();
+    await seedSnapshotLoad(t);
+    const rowId = await t.run((ctx) => ctx.db.insert(table, value));
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
+      `${table} still holds rows`
+    );
+    await t.run((ctx) => ctx.db.delete(rowId));
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
+  });
+
   test('rejects private rows and a second account beside the placeholder owner', async () => {
     const t = rebuiltDeployment();
     const placeholderId = await seedSnapshotLoad(t);

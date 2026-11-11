@@ -29,7 +29,8 @@ export const SteamReturn = meta.story({
   beforeEach: backFromSteamAwaitingTheBackend,
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
-    const status = await page.findByRole('status', {}, { timeout: 30_000 });
+    await page.findByRole('heading', { name: 'Signing you in with Steam' }, { timeout: 30_000 });
+    const status = page.getByRole('status');
     await expect(within(status).getByRole('heading', { name: 'Signing you in with Steam' })).toBeVisible();
     await expect(status).toHaveTextContent('Steam sent you back. Checking your sign-in with Steam.');
   },

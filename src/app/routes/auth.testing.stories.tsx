@@ -38,8 +38,9 @@ export const BandGrowsAndShrinks = meta.story({
   play: async ({ canvasElement }) => {
     const document = canvasElement.ownerDocument;
     const page = within(document.body);
-    const frame = document.querySelector('[data-app-frame]')!;
     await page.findByRole('heading', { name: 'Create a game', level: 1 }, { timeout: 30_000 });
+    const frame = document.querySelector('[data-app-frame]')!;
+    await expect(frame).not.toBeNull();
     history.push('/auth/login');
     await page.findByRole('button', { name: 'Continue with Google' }, { timeout: 30_000 });
     /* The grow holds its end state, so the shrink starts from the window-sized band. */
@@ -68,5 +69,15 @@ export const LoginLastUsedMobile = meta.story({
     await expect(discord).toHaveAccessibleName('Continue with Discord Last used');
     await expect(discord.scrollWidth).toBeLessThanOrEqual(discord.clientWidth);
     await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
+  },
+});
+
+export const LoginAfterBan = meta.story({
+  args: { path: '/auth/login?failed=banned' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const alert = await page.findByRole('alert', {}, { timeout: 30_000 });
+    await expect(alert).toHaveTextContent('You have been banned');
   },
 });

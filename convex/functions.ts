@@ -7,14 +7,21 @@ import {
   query as rawQuery,
 } from './_generated/server';
 import type { QueryCtx } from './_generated/server';
+import { requireNotBanned } from './lib/accountLifecycle';
 import { applicationTriggers } from './lib/applicationTriggers';
 import { requireAdminUserId } from './lib/policy';
 import { withAudience } from './queryAudience';
 
-export const mutation = customMutation(rawMutation, customCtx(applicationTriggers.wrapDB));
+export const mutation = customMutation(
+  rawMutation,
+  customCtx(async (ctx) => {
+    await requireNotBanned(ctx);
+    return applicationTriggers.wrapDB(ctx);
+  })
+);
 export const internalMutation = customMutation(rawInternalMutation, customCtx(applicationTriggers.wrapDB));
 
-export { QUERY_AUDIENCE, viewerQuery } from './queryAudience';
+export { QUERY_AUDIENCE, viewerQuery, lifecycleQuery } from './queryAudience';
 export type { QueryAudience } from './queryAudience';
 
 const VIEWER_INDEPENDENCE =

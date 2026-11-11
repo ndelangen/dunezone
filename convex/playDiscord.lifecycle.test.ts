@@ -51,7 +51,17 @@ test('a deletion request during creation saves its returned ID even when the fir
     return response;
   });
   await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'pending', channel_id: '300', next_attempt_at: Date.now() });
+  expect(deletions).toBe(0);
+  /* The changed revision starts deletion under a fresh claim, after saving the late create result. */
+  await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleting', channel_id: '300' });
+  expect(deletions).toBe(1);
+  const retryAt = (await world.channel())!.next_attempt_at;
+  expect(retryAt).toBeGreaterThan(Date.now());
+  await world.reconcile();
+  expect(deletions).toBe(1);
+  vi.setSystemTime(retryAt);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted', channel_id: '300' });
   expect(deletions).toBe(2);
@@ -60,7 +70,7 @@ test('a deletion request during creation saves its returned ID even when the fir
   );
 });
 
-test('finished games rename once and retain an occupied room', async () => {
+test('a finished game renames its room once and keeps it until Discord reports it empty', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   await world.reconcile();
@@ -69,21 +79,19 @@ test('finished games rename once and retain an occupied room', async () => {
   await world.reconcile();
 
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toEqual([
+    expect.objectContaining({ path: '/channels/300', body: { name: 'Quiet Sietch' } }),
     expect.objectContaining({ path: '/channels/300', body: { name: 'Quiet Sietch (ended)' } }),
   ]);
   expect(await world.menu()).toMatchObject({ voice: null });
 
   /* The observer has not reported empty; neither age nor another finished summary may delete the room. */
-  for (const elapsed of [DISCORD_DAY, 15 * DISCORD_DAY]) {
-    vi.setSystemTime(ended + elapsed);
-    await world.reconcile();
-  }
+  vi.setSystemTime(ended + 15 * DISCORD_DAY);
+  await world.reconcile();
   await world.publish(3, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true });
-  expect(await world.channel()).not.toHaveProperty('ended_at');
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
 });
 
 test.each(['finished', 'discarded'] as const)('%s before creation does not allocate a Discord room', async (stage) => {
@@ -110,6 +118,10 @@ test.each(['creation', 'invite'] as const)(
       }
       return response;
     });
+    await world.reconcile();
+    expect(await world.channel()).toMatchObject({ channel_id: '300', next_attempt_at: Date.now() });
+    expect((await world.channel())?.invite_url).toBeUndefined();
+    expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
     await world.reconcile();
 
     expect(discord.calls.filter((call) => call.path === '/guilds/100/channels' && call.method === 'POST')).toHaveLength(
@@ -140,33 +152,39 @@ test('continue during the ended-name PATCH restores the name before the hourly c
     return response;
   });
   await world.reconcile();
+  expect(await world.channel()).toMatchObject({ renamed_ended: true, next_attempt_at: Date.now() });
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
+  await world.reconcile();
 
   expect(discord.calls.filter((call) => call.method === 'PATCH').map((call) => call.body)).toEqual([
+    { name: 'Quiet Sietch' },
     { name: 'Quiet Sietch (ended)' },
     { name: 'Quiet Sietch' },
   ]);
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: false });
+  expect((await world.channel())?.work_revision).toBe(2);
   expect(await world.menu()).toMatchObject({ voice: { url: 'https://discord.gg/shared-room' } });
 });
 
 test.each([
-  { status: 403, delay: 0 },
-  { status: 429, delay: 60_000 },
-])('discard during invite refusal $status waits only for a required Discord rate limit', async ({ status, delay }) => {
+  { status: 403, delay: 0, global: false },
+  { status: 429, delay: 60_000, global: false },
+  { status: 429, delay: 60_000, global: true },
+])('discard during invite refusal $status honors only global=$global', async ({ status, delay, global }) => {
   const discord = discordStub();
   const world = await voiceWorld();
   const normal = discord.fetch.getMockImplementation()!;
   discord.fetch.mockImplementation(async (input, options) => {
     if (input === 'https://discord.com/api/v10/channels/300/invites') {
       await world.publish(2, world.summary(undefined, { stage: 'discarded' }));
-      return Response.json({ code: 50_013, retry_after: delay / 1000 }, { status });
+      return Response.json({ code: 50_013, retry_after: delay / 1000, global }, { status });
     }
     return await normal(input, options);
   });
   await world.reconcile();
-  expect((await world.channel())!.next_attempt_at).toBe(Date.now() + delay);
-  if (delay > 0) {
+  expect((await world.channel())!.next_attempt_at).toBe(Date.now() + (global ? delay : 0));
+  if (global && delay > 0) {
     await world.reconcile();
     expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
     vi.setSystemTime(Date.now() + delay);
@@ -181,14 +199,22 @@ test('a finish arriving under a held lease remains due when that owner releases 
   const world = await voiceWorld();
   await world.reconcile();
   const row = (await world.channel())!;
+  /* Persist a completed active-name PATCH while its real rename lease is still held. */
+  await world.t.run((ctx) => ctx.db.patch(row._id, { renamed_ended: true, next_attempt_at: Date.now() }));
   const claim = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
+  expect(claim).not.toBeNull();
+  await world.t.mutation(internal.playDiscord.renamed, { channelId: row._id, lease: claim.lease!, ended: false });
   await world.publish(2, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
-  await world.t.mutation(internal.playDiscord.release, { channelId: row._id, lease: claim.lease! });
+  await world.t.mutation(internal.playDiscord.release, {
+    channelId: row._id,
+    lease: claim.lease,
+    operation: claim.retry.operation,
+  });
 
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
-  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
+  expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
 });
 
 test.each([10_003, 10_004])(
@@ -246,13 +272,13 @@ test('new activity before retirement preserves the room; committed retirement ca
   expect(await world.t.mutation(internal.playDiscord.work, args)).toMatchObject({ remove: true });
   await world.publish(2, world.summary());
   expect(await world.t.mutation(internal.playDiscord.beginDeletion, args)).toBe(false);
-  await world.t.mutation(internal.playDiscord.release, args);
+  await world.t.mutation(internal.playDiscord.release, { ...args, operation: claim.retry.operation });
   vi.setSystemTime(Date.now() + 14 * DISCORD_DAY);
   const next = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
   const second = { channelId: row._id, lease: next.lease! };
   expect(await world.t.mutation(internal.playDiscord.beginDeletion, second)).toBe(true);
   await world.publish(3, world.summary());
-  await world.t.mutation(internal.playDiscord.release, second);
+  await world.t.mutation(internal.playDiscord.release, { ...second, operation: next.retry.operation });
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
 });
@@ -272,7 +298,12 @@ test('a missing Discord channel counts as deleted, but a different 404 remains r
   vi.setSystemTime(Date.now() + 14 * DISCORD_DAY);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleting' });
+  const retryAt = (await world.channel())!.next_attempt_at;
+  expect(retryAt).toBeGreaterThan(Date.now());
   code = 10_003;
+  await world.reconcile();
+  expect(await world.channel()).toMatchObject({ state: 'deleting' });
+  vi.setSystemTime(retryAt);
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
 });

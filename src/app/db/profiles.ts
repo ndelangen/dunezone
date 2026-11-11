@@ -2,9 +2,9 @@ import { GROUP_STANDINGS_STEP } from '@shared/profiles/catalogueSearch';
 import type { ProfileFaqPages } from '@shared/profiles/faqActivity';
 import type { ProfileUserEditInput } from '@shared/profiles/validation';
 import { profileUserEditFormSchema } from '@shared/profiles/validation';
-import { useMutation } from 'convex/react';
+import { useConvexAuth, useMutation } from 'convex/react';
 import type { FunctionArgs, FunctionReturnType } from 'convex/server';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { db } from '@db/core';
 import { factionCatalogueRowsToEntries } from '@db/factions';
@@ -233,3 +233,18 @@ export function useUpdateCurrentProfile() {
 }
 
 export type { ProfileUserEditInput };
+
+const noHydrationEvents = () => () => {};
+const hydratedSnapshot = () => true;
+const serverSnapshot = () => false;
+
+/** Blocks signed-in pages until the account's access state is known. Anonymous server rendering remains public. */
+export function useAccountBanState() {
+  const hydrated = useSyncExternalStore(noHydrationEvents, hydratedSnapshot, serverSnapshot);
+  const auth = useConvexAuth();
+  const session = useLiveQuery(api.profiles.session, {});
+  return {
+    pending: hydrated && (auth.isLoading || (auth.isAuthenticated && session === undefined)),
+    banned: session?.isBanned ?? false,
+  };
+}

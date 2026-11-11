@@ -5,6 +5,7 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { BANNED_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
 import { steamAssertionFrom, steamSignInUrl } from '../src/shared/steamOpenId';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
@@ -163,6 +164,33 @@ describe('Steam sign-in', () => {
     });
     expect(signedIn.tokens?.token).toEqual(expect.any(String));
     expect((await steamAccount(t))!.userId).toBe(first!.userId);
+  });
+
+  test('a banned Steam login keeps its account and refuses a new session', async () => {
+    stubSteam();
+    const t = applicationTest();
+    await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
+    const first = (await steamAccount(t))!;
+    await t.run(async (raw) => {
+      const ctx = applicationTriggers.wrapDB(raw);
+      await ctx.db.patch(first.userId, { account_state: 'banned' });
+      const profile = await ctx.db
+        .query('profiles')
+        .withIndex('by_user_id', (q) => q.eq('user_id', first.userId))
+        .unique();
+      await ctx.db.patch(profile!._id, { account_state: 'banned' });
+    });
+    await expect(
+      t.action(api.auth.signIn, {
+        provider: 'steam',
+        params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
+      })
+    ).rejects.toMatchObject({ data: BANNED_ACCOUNT_SIGN_IN });
+    expect((await steamAccount(t))!.userId).toBe(first.userId);
+    await t.run(async (ctx) => {
+      expect(await ctx.db.query('users').collect()).toHaveLength(1);
+      expect(await ctx.db.query('profiles').collect()).toHaveLength(1);
+    });
   });
 
   test('the next sign-in replaces a failed lookup outcome with its latest result', async () => {

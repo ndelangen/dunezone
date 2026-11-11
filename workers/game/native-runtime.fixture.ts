@@ -19,7 +19,7 @@ import type {
 import { z } from 'zod';
 
 import type { HistoricalFactionPublicationObject } from '../../src/shared/factions/schema';
-import type { homepageAdmissionSchema } from '../../src/shared/homepage/protocol';
+import type { homepageAdmissionSchema, homepageAccountCutoffSchema } from '../../src/shared/homepage/protocol';
 import type { homepageMessageSchema } from '../../src/shared/homepage/protocol';
 import type { playGameProvisionSchema, playTestStartStageSchema } from '../../src/shared/play/admission';
 import {
@@ -69,6 +69,10 @@ const peerRequestSchema = z.discriminatedUnion('function', [
   z.object({ function: z.literal('playDirectory:publishSummary'), args: playPublishSummaryRequestSchema }),
   z.object({ function: z.literal('playDiscordNudges:sendNudge'), args: playSendNudgeRequestSchema }),
   z.object({ function: z.literal('homepageAdmission:redeemTicket'), args: z.object({ ticket: z.string() }) }),
+  z.object({
+    function: z.literal('homepageBanCutoff:authorize'),
+    args: z.object({ operationId: z.string(), token: z.string() }),
+  }),
   z.object({ function: z.literal('arrakis:board'), args: z.object({}) }),
   z.object({ function: z.literal('playAdmission:ackAccountDeletion'), args: playAckAccountDeletionRequestSchema }),
   z.object({ function: z.literal('playAdmission:seatLimitReached'), args: playSeatLimitRequestSchema }),
@@ -126,6 +130,8 @@ export interface NativePeer {
   confirmationRequests: number;
   homepageAdmission?: z.infer<typeof homepageAdmissionSchema>;
   homepageAdmissionInvalid?: unknown;
+  holdHomepageAdmission?: boolean;
+  homepageCutoff?: z.infer<typeof homepageAccountCutoffSchema>;
   url: string;
   close(): Promise<void>;
 }
@@ -395,11 +401,17 @@ function answerPeerRequest(peer: NativePeer, record: PeerRequest) {
       });
       break;
     case 'homepageAdmission:redeemTicket':
+      if (peer.holdHomepageAdmission) {
+        break;
+      }
       record.release(
         'homepageAdmissionInvalid' in peer
           ? peer.homepageAdmissionInvalid
           : (peer.homepageAdmission ?? { allowed: false })
       );
+      break;
+    case 'homepageBanCutoff:authorize':
+      record.release(peer.homepageCutoff ?? null);
       break;
     case 'playAdmission:ackAccountDeletion':
     case 'playSessionCutoffs:ackSessionCutoff':

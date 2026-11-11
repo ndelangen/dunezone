@@ -5,7 +5,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { PageState } from '@ui/block/PageState';
 import { useEffect, useRef } from 'react';
 
-import { refusedAsInactiveAccount, settleStartedSignIn } from '@db/accounts';
+import { settleStartedSignIn, signInFailureReason } from '@db/accounts';
 import { takeSteamSignIn } from '@db/steamSignIn';
 import { pageHead } from '@app/routes/pageTitle';
 import { PageMessage } from '@app/widgets/page-message/PageMessage';
@@ -69,7 +69,7 @@ function SteamReturnPage() {
         settleStartedSignIn(!explainsItsOwnResult(new URL(destination, window.location.origin).pathname));
         void router.navigate({ href: destination, replace: true });
       },
-      (error: unknown) => fail(refusedAsInactiveAccount(error) ? 'inactive' : 'failed')
+      (error: unknown) => fail(signInFailureReason(error))
     );
   }, [signIn, router]);
   return (

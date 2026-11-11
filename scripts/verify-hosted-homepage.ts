@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
-import type { BrowserContext, Page } from 'playwright';
+import type { BrowserContext, Page, WebSocketRoute } from 'playwright';
 import sharp from 'sharp';
 
 import type { Vector3Tuple } from '../src/shared/play/model.ts';
@@ -343,70 +343,105 @@ export async function installHomepageArtwork(context: BrowserContext) {
   }
 }
 
-/* Hold saved sign-in and the first recovery reply without reordering Convex messages. */
+type RecoveryControls = {
+  sessionReleased: boolean;
+  refusalReleased: boolean;
+  handlingReleased: boolean;
+  releaseSession: (() => void) | null;
+  releaseRefusal: (() => void) | null;
+  releaseHandling: (() => void) | null;
+};
+
+function socketReplyBuffer(send: (message: string | Buffer) => void, initiallyHolding = true) {
+  const messages: (string | Buffer)[] = [];
+  let holding = initiallyHolding;
+  return {
+    accept(message: string | Buffer) {
+      if (holding) {
+        messages.push(message);
+      } else {
+        send(message);
+      }
+    },
+    release() {
+      holding = false;
+      for (const message of messages) {
+        send(message);
+      }
+      messages.length = 0;
+    },
+  };
+}
+
+/* Hold saved sign-in, the first refusal and its recovery reply without reordering Convex messages. */
+function connectHandlingRecovery(socket: WebSocketRoute, controls: RecoveryControls) {
+  const server = socket.connectToServer();
+  const send = (message: string | Buffer) => socket.send(message);
+  const session = socketReplyBuffer(send, !controls.sessionReleased);
+  const refusal = socketReplyBuffer(send);
+  const handling = socketReplyBuffer(send);
+  const ticketRequests = new Set<number>();
+  controls.releaseSession = () => {
+    controls.sessionReleased = true;
+    session.release();
+  };
+  socket.onMessage((message) => {
+    const request = JSON.parse(String(message));
+    if (request.type === 'Mutation' && request.udfPath === 'homepageAdmission:issueTicket') {
+      ticketRequests.add(request.requestId);
+    }
+    server.send(message);
+  });
+
+  function receive(message: string | Buffer) {
+    if (controls.releaseRefusal && !controls.refusalReleased) {
+      refusal.accept(message);
+      return;
+    }
+    if (controls.releaseHandling && !controls.handlingReleased) {
+      handling.accept(message);
+      return;
+    }
+    const reply = JSON.parse(String(message));
+    const issuedTicket =
+      reply.type === 'MutationResponse' && ticketRequests.delete(reply.requestId) && reply.success && reply.result;
+    if (!issuedTicket || controls.releaseHandling) {
+      session.accept(message);
+      return;
+    }
+    if (!controls.releaseRefusal) {
+      refusal.accept(JSON.stringify({ ...reply, result: null }));
+      controls.releaseRefusal = () => {
+        controls.refusalReleased = true;
+        refusal.release();
+      };
+      return;
+    }
+    /* Keep the mutation reply ahead of the transitions that acknowledge its writes. */
+    handling.accept(message);
+    controls.releaseHandling = () => {
+      controls.handlingReleased = true;
+      handling.release();
+    };
+  }
+
+  server.onMessage(receive);
+}
+
 async function prepareHandlingRecovery(context: BrowserContext, backendSocketOrigin: string) {
-  let sessionReleased = false;
-  const admission: { refused: boolean; releaseSession: (() => void) | null; releaseHandling: (() => void) | null } = {
-    refused: false,
+  const controls: RecoveryControls = {
+    sessionReleased: false,
+    refusalReleased: false,
+    handlingReleased: false,
     releaseSession: null,
+    releaseRefusal: null,
     releaseHandling: null,
   };
-  let handlingReleased = false;
-  /* Let the board paint while the saved sign-in is still resolving. */
   await context.routeWebSocket(
     (url) => url.origin === backendSocketOrigin,
-    (socket) => {
-      const server = socket.connectToServer();
-      const waiting: (string | Buffer)[] = [];
-      const handlingWaiting: (string | Buffer)[] = [];
-      const ticketRequests = new Set<number>();
-      socket.onMessage((message) => {
-        const request = JSON.parse(String(message));
-        if (request.type === 'Mutation' && request.udfPath === 'homepageAdmission:issueTicket') {
-          ticketRequests.add(request.requestId);
-        }
-        server.send(message);
-      });
-      server.onMessage((message) => {
-        if (admission.releaseHandling && !handlingReleased) {
-          handlingWaiting.push(message);
-          return;
-        }
-        const reply = JSON.parse(String(message));
-        const issuedTicket =
-          reply.type === 'MutationResponse' && ticketRequests.delete(reply.requestId) && reply.success && reply.result;
-        if (issuedTicket && admission.refused && !admission.releaseHandling) {
-          /* Keep Convex's mutation reply ahead of the transitions that acknowledge its writes. */
-          handlingWaiting.push(message);
-          admission.releaseHandling = () => {
-            handlingReleased = true;
-            for (const held of handlingWaiting) {
-              socket.send(held);
-            }
-            handlingWaiting.length = 0;
-          };
-          return;
-        }
-        if (issuedTicket && !admission.refused) {
-          admission.refused = true;
-          message = JSON.stringify({ ...reply, result: null });
-        }
-        if (sessionReleased) {
-          socket.send(message);
-        } else {
-          waiting.push(message);
-        }
-      });
-      admission.releaseSession = () => {
-        sessionReleased = true;
-        for (const message of waiting) {
-          socket.send(message);
-        }
-        waiting.length = 0;
-      };
-    }
+    (socket) => connectHandlingRecovery(socket, controls)
   );
-  return admission;
+  return controls;
 }
 
 /** A real signed-in visitor moves the public table while a separate unsigned visitor watches. */
@@ -462,8 +497,32 @@ export async function verifyHomepage({
   let initialCanvas;
   for (const who of [member, guest]) {
     await who.page.goto(origin, { waitUntil: 'domcontentloaded' });
+    if (who === member) {
+      const access = who.page.getByText('Checking account access…', { exact: true });
+      await access.waitFor();
+      const releaseSession = await until(
+        () => admission.releaseSession,
+        'Saved sign-in did not open its held Convex connection.'
+      );
+      assert.equal(await who.page.locator('#play-preview canvas').count(), 0);
+      assert.equal(who.sockets.length, 0, 'The homepage opened a socket before account access resolved.');
+      assert.equal(who.admission.tickets.length, 0, 'The homepage requested handling before account access resolved.');
+      await capture(member, 'homepage-account-access-pending');
+      releaseSession();
+      await access.waitFor({ state: 'hidden' });
+      passed('Saved account access resolves before the signed-in homepage opens');
+    }
     await who.page.getByRole('link', { name: 'Take a sneak peek', exact: true }).click();
-    await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
+    try {
+      await who.page.getByText(/^(Try moving one of the pieces!|Connecting the pieces…)$/).waitFor();
+    } catch (cause) {
+      const preview = await who.page.evaluate(() => ({
+        hash: window.location.hash,
+        invitation: document.querySelector('#play-preview [role="status"]')?.textContent ?? null,
+        link: document.querySelector('a[href$="#play-preview"]')?.getAttribute('href') ?? null,
+      }));
+      throw new Error(`${who.label}'s preview invitation did not appear: ${JSON.stringify(preview)}`, { cause });
+    }
     if (who === member) {
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
@@ -472,7 +531,6 @@ export async function verifyHomepage({
       assert.equal(await who.page.locator('#play-preview img:not([data-table-hand] img)').count(), 0);
       initialCanvas = await who.page.locator('#play-preview canvas').elementHandle();
       assert.ok(initialCanvas);
-      assert.ok(admission.releaseSession);
       const continuity = await who.page
         .locator('#play-preview [data-live-ready="true"]')
         .evaluateHandle((region: Element) => {
@@ -488,9 +546,8 @@ export async function verifyHomepage({
             },
           };
         });
-      await capture(member, 'homepage-before-saved-signin-resolves');
-      admission.releaseSession();
-      await until(() => admission.refused, 'The first handling request was not refused.');
+      await until(() => admission.releaseRefusal, 'The first handling request did not reach its held refusal.');
+      required(admission.releaseRefusal, 'handling refusal release')();
       await who.page.getByText('Connecting the pieces…', { exact: true }).waitFor();
       await who.page.locator('[data-table-handling="false"]').waitFor();
       assert.equal(
@@ -509,17 +566,20 @@ export async function verifyHomepage({
       await until(() => {
         const view = who.view();
         return view && view.viewer.viewerSeat !== spectator;
-      }, 'Saved sign-in did not grant handling.');
+      }, 'The recovered handling ticket did not grant handling.');
       await who.page.locator('[data-table-handling="true"]').waitFor();
       await who.page.getByText('Try moving one of the pieces!', { exact: true }).waitFor();
       assert.equal(
         await initialCanvas.evaluate((canvas: Element) => canvas === document.querySelector('#play-preview canvas')),
         true,
-        'Resolving the saved sign-in replaced the visible canvas.'
+        'Recovering handling replaced the visible canvas.'
       );
-      assert.equal(await continuity.evaluate((probe) => probe.finish()), false, 'Saved sign-in hid the painted board.');
+      assert.equal(
+        await continuity.evaluate((probe) => probe.finish()),
+        false,
+        'Handling recovery hid the painted board.'
+      );
       await continuity.dispose();
-      passed('Saved sign-in resolves after the board appears without replacing its canvas');
       passed('A refused handling request recovers on the visible canvas without an overlay or remount');
       await capture(member, 'homepage-board-before-slow-artwork');
       releaseArtwork.resolve();

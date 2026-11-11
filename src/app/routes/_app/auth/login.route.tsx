@@ -179,7 +179,11 @@ function SignInPanel({
       {state.error ? (
         <FormError title="Sign-in could not start">{state.error}</FormError>
       ) : (
-        failed && <FormError title="You are not signed in">{`${signInFailures[failed]} Try again below.`}</FormError>
+        failed && (
+          <FormError title={failed === 'banned' ? 'You have been banned' : 'You are not signed in'}>
+            {signInFailures[failed]}
+          </FormError>
+        )
       )}
       {localAuthEnabled ? (
         <Stack component="form" gap="sm" onSubmit={(event) => void localLogin(event)}>

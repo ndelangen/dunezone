@@ -9,8 +9,8 @@ import type { ProfileCatalogueSort } from '../src/shared/profiles/catalogueSearc
 import { profileUserEditFormSchema } from '../src/shared/profiles/validation';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
-import { mutation, publicQuery, viewerQuery } from './functions';
-import { isActiveProfile, isPublicProfile, optionalActiveUserId } from './lib/accountLifecycle';
+import { mutation, publicQuery, viewerQuery, lifecycleQuery } from './functions';
+import { isActiveProfile, isPublicProfile, optionalActiveUserId, lifecycleUserId } from './lib/accountLifecycle';
 import { accountMethods, authMethodValidator } from './lib/accountMethods';
 import {
   ALL_PARTITION,
@@ -73,17 +73,23 @@ async function createProfileIfMissing(ctx: MutationCtx, userId: Id<'users'>) {
  * One query rather than two because every `_app` page holds this through the shell, and the pair cost two subscriptions to answer one question.
  * The envelope is never null: a signed-out viewer and a signed-in viewer with no profile row yet must stay distinguishable, or the client's bootstrap never fires for a new account.
  */
-export const session = viewerQuery({
+export const session = lifecycleQuery({
   args: {},
   returns: v.object({
     userId: v.union(v.id('users'), v.null()),
     isAdmin: v.boolean(),
+    isBanned: v.boolean(),
     profile: v.union(profileValidator, v.null()),
   }),
   handler: async (ctx) => {
+    const identityId = await lifecycleUserId(ctx);
+    const identity = identityId ? await ctx.db.get(identityId) : null;
+    if (identity?.account_state === 'banned') {
+      return { userId: null, profile: null, isAdmin: false, isBanned: true };
+    }
     const userId = await optionalActiveUserId(ctx);
     if (!userId) {
-      return { userId: null, profile: null, isAdmin: false };
+      return { userId: null, profile: null, isAdmin: false, isBanned: false };
     }
     const profile = await ctx.db
       .query('profiles')
@@ -91,6 +97,7 @@ export const session = viewerQuery({
       .unique();
     return {
       userId,
+      isBanned: false,
       profile: profile && isActiveProfile(profile) ? profile : null,
       isAdmin: Boolean((await ctx.db.get('users', userId))?.isAdmin),
     };
