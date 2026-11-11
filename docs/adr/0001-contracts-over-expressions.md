@@ -25,6 +25,15 @@ in for interface tests. The test suite's churn (the architecture test changed
    formatting. Structural guarantees ("field X never reaches the client")
    belong in `returns` validators and the type system, not in greps.
 
+   Before writing a test, identify the unit, its real caller, and the behavior
+   the unit promises that caller. Drive the unit through that caller's
+   interface and assert what the caller or a real dependency can observe.
+   Use fakes at dependency boundaries to supply inputs or record effects.
+   For example, counting POSTs can verify that one submission sends one
+   request. Counting calls to a private helper ties the test to how the
+   unit does its work. A refactor that preserves the contract should leave
+   the test green.
+
    **Narrow exception, a rule about the tree rather than about a
    module.** A source scan is allowed only where the guarantee is a
    property of the *file tree* that no type or lint rule can express,
