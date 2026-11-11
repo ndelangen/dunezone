@@ -67,7 +67,11 @@ export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'pla
 }
 
 /** Accepted stage changes wake cleanup immediately, even when an earlier action still owns the lease. */
-export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>) {
+export async function syncDiscordDirectory(
+  ctx: MutationCtx,
+  game: Doc<'play_games'>,
+  previousStage: Doc<'play_games'>['directory_stage']
+) {
   if (game.discord_voice !== true) {
     return;
   }
@@ -76,12 +80,10 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
     return;
   }
   const stage = game.directory?.stage;
-  const endedAt = stage === 'finished' ? (channel.ended_at ?? Date.now()) : undefined;
   const inactiveAt = (game.directory?.lastActivityAt ?? channel.created_at) + 14 * DISCORD_DAY;
   const cleanupAt = stage === 'discarded' ? Date.now() : inactiveAt;
-  const changed = stage === 'discarded' || (endedAt !== undefined) !== (channel.ended_at !== undefined);
+  const changed = stage === 'discarded' || (stage === 'finished') !== (previousStage === 'finished');
   await ctx.db.patch(channel._id, {
-    ended_at: endedAt,
     cleanup_at: cleanupAt,
     ...(changed
       ? { next_attempt_at: Date.now(), work_revision: (channel.work_revision ?? 0) + 1 }

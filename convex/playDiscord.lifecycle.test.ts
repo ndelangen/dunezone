@@ -60,7 +60,7 @@ test('a deletion request during creation saves its returned ID even when the fir
   );
 });
 
-test('finished games rename once and retain an occupied room beyond both former deletion deadlines', async () => {
+test('finished games rename once and retain an occupied room', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   await world.reconcile();
@@ -80,7 +80,8 @@ test('finished games rename once and retain an occupied room beyond both former 
   }
   await world.publish(3, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
-  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true, ended_at: ended });
+  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true });
+  expect(await world.channel()).not.toHaveProperty('ended_at');
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
 });
@@ -146,7 +147,6 @@ test('continue during the ended-name PATCH restores the name before the hourly c
   ]);
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: false });
-  expect((await world.channel())?.ended_at).toBeUndefined();
   expect(await world.menu()).toMatchObject({ voice: { url: 'https://discord.gg/shared-room' } });
 });
 
