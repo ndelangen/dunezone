@@ -81,6 +81,7 @@ test('finished games rename once and retain an occupied room', async () => {
   await world.publish(3, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true });
+  expect(await world.channel()).not.toHaveProperty('ended_at');
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(1);
 });

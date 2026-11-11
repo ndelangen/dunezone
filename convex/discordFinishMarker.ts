@@ -1,6 +1,6 @@
 import { v } from 'convex/values';
 
-import { internalMutation } from './_generated/server';
+import { internalMutation } from './functions';
 
 export const retire = internalMutation({
   args: { rows: v.array(v.object({ id: v.id('play_game_discord_channels'), endedAt: v.number() })) },

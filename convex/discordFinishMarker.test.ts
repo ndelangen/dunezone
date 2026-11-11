@@ -53,8 +53,10 @@ test('retire removes the approved markers atomically and preserves the channel r
   await t.mutation(internal.discordFinishMarker.retire, { rows });
   expect(await read()).toEqual(
     before.map((row) => {
-      if (!row) throw new Error('Expected a channel record');
-      const { ended_at, ...channel } = row;
+      if (!row) {
+        throw new Error('Expected a channel record');
+      }
+      const { ended_at: _endedAt, ...channel } = row;
       return channel;
     })
   );
