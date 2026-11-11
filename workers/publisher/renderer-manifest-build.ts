@@ -202,7 +202,9 @@ export function isRendererManifestAsset(relativePath: string): boolean {
     // OBJ pieces live outside the renderer identity (#309): committed bytes, CI-diff guarded.
     !normalizedPath.startsWith('obj/') &&
     // The band video is app chrome; capture never sees it, so it must not reprice sheets.
-    !normalizedPath.startsWith('video/')
+    !normalizedPath.startsWith('video/') &&
+    // The standalone tools: their tile pictures and their prerendered pages, which name hashed chunks and so change with every build.
+    !normalizedPath.startsWith('tools/')
   );
 }
 

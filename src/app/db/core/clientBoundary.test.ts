@@ -23,6 +23,15 @@ describe('stale client data', () => {
     expect(isStaleClientData(error)).toBe(true);
   });
 
+  test.each([
+    'Failed to fetch dynamically imported module: https://dune.zone/public/route-AbC123.js',
+    'error loading dynamically imported module: https://dune.zone/public/route-AbC123.js',
+    'Importing a module script failed.',
+    'Unable to preload CSS for /public/route-AbC123.css',
+  ])('a chunk a later deploy removed is stale: %s', (message) => {
+    expect(isStaleClientData(new TypeError(message))).toBe(true);
+  });
+
   test('any other failure is not', () => {
     expect(isStaleClientData(new Error('[CONVEX Q(rulesets:page)] [Request ID: 0123456789abcdef] Server Error'))).toBe(
       false

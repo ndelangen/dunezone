@@ -18,7 +18,8 @@ const treacheryDeckCardSchema = z.object({
 export type TreacheryDeckCard = z.infer<typeof treacheryDeckCardSchema>;
 export const treacheryDeckSchema = z.array(treacheryDeckCardSchema);
 
-type DeckContents = NonNullable<NonNullable<RulesetCapture['decks']['treachery']>['contents']>;
+type TreacheryDeckCapture = RulesetCapture['decks']['treachery'];
+type DeckContents = NonNullable<NonNullable<TreacheryDeckCapture>['contents']>;
 
 type Definition = DeckContents['definitions'][number];
 
@@ -50,7 +51,12 @@ function deckFaces(contents: DeckContents): { id: string; face: string; name: st
 
 /** The captured Treachery deck's cards, one entry per distinct card with its copies; nothing when the game captured no deck. */
 export function treacheryDeckCards(capture: RulesetCapture | undefined): TreacheryDeckCard[] | null {
-  const contents = capture?.decks.treachery?.contents;
+  return treacheryCardsOf(capture?.decks.treachery);
+}
+
+/** The cards of a captured Treachery deck on its own, as `treacheryDeckCards` reads a whole ruleset's. */
+export function treacheryCardsOf(deck: TreacheryDeckCapture | undefined): TreacheryDeckCard[] | null {
+  const contents = deck?.contents;
   if (!contents) {
     return null;
   }

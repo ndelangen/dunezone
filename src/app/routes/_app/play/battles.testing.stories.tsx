@@ -735,8 +735,15 @@ function replayBattle() {
 
 function BattleReplay() {
   useEffect(() => {
-    /* Long enough for the table's own arrival to finish. */
-    replay.timers.push(setTimeout(replayBattle, 4000));
+    /* Long enough for the table's own arrival to finish; a table still connecting is checked again until it is up. */
+    const start = () => {
+      if (session.transport.connected()) {
+        replayBattle();
+      } else {
+        replay.timers.push(setTimeout(start, 500));
+      }
+    };
+    replay.timers.push(setTimeout(start, 4000));
     return stopReplay;
   }, []);
   return <ReplayButton onClick={replayBattle}>⚔ Start battle</ReplayButton>;

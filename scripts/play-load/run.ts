@@ -20,7 +20,12 @@ import type {
   PieceAction,
   ServerMessage,
 } from '../../src/shared/play/protocol.ts';
-import { KEEPALIVE_INTERVAL_MS, KEEPALIVE_PING, KEEPALIVE_PONG } from '../../src/shared/play/protocol.ts';
+import {
+  KEEPALIVE_INTERVAL_MS,
+  KEEPALIVE_PING,
+  KEEPALIVE_PONG,
+  PLAY_PROTOCOL_VERSION,
+} from '../../src/shared/play/protocol.ts';
 import { applyRoomUpdate } from '../../src/shared/play/updates.ts';
 import { setAdminAuth, adminMutationReference } from '../lib/convex-admin.ts';
 import { loopbackOrigin } from '../lib/isolated-stack.ts';
@@ -637,7 +642,7 @@ async function openSocket(peer: Peer, pass: string) {
   if (values.compression === 'off' && socket.extensions) {
     throw new Error('The compression-off connection negotiated a WebSocket extension.');
   }
-  send(peer, { type: 'admit', pass });
+  send(peer, { type: 'admit', protocol: PLAY_PROTOCOL_VERSION, pass });
   await until(() => peer.view || socket.readyState !== WebSocket.OPEN, 'Admission did not settle.', 7000).catch(
     () => {}
   );

@@ -19,6 +19,45 @@ hooks, and Convex pushes updates for the life of the screen. There is no client 
 Management](./state-management.md). The runtime is browser-first SPA, with TanStack Start prerender
 used for static output during builds.
 
+## Play data flow (WebSocket, not Convex)
+
+A Play table does not live in Convex. Convex holds the lobby, game addresses, provisioning and seat
+passes; every move, seat and private hand lives in the game Worker, one SQLite Durable Object per
+game, and reaches the page over a WebSocket.
+
+```mermaid
+flowchart LR
+    subgraph Convex
+        Admission[playAdmission: seat pass]
+        Directory[playDirectory: lobby summary]
+    end
+    subgraph Worker [Game Worker: one room per game]
+        Room[GameRoom: sockets, admission]
+        Session[GameSession + Room: rules, history]
+    end
+    subgraph Browser
+        Sub[GameSubscription: socket, patches, reconnect]
+        Table[TableSession: carries, pending moves, replay]
+        Panels[Panels and 3D table]
+    end
+    Sub -->|requestPlayAdmission| Admission
+    Sub <-->|admit + commands / views + patches| Room
+    Room --> Session
+    Session -->|summary| Directory
+    Sub --> Table
+    Table -->|useSyncExternalStore| Panels
+```
+
+- The Worker is the only authority. It projects each viewer's visible state, hiding other seats'
+  private information, before it computes patches. The browser never applies its own moves to the
+  shared state and retries nothing after a reconnect.
+- The messages both sides exchange are Zod schemas in `src/shared/play/protocol.ts`, versioned by
+  `PLAY_PROTOCOL_VERSION`; the rules the browser previews with (carries, drops) are the same shared
+  functions the Worker runs.
+- Details: [Hosted table](./technical/play-hosted.md) for admission, seat passes, history and the
+  protocol version; [Hosted table subscription](./technical/play-subscription.md) for what the
+  browser owns and how it reconnects.
+
 ## Validation flow
 
 For mutation inputs, validation happens in three stages:

@@ -67,12 +67,13 @@ addressed to `SITE_URL`'s `/auth/steam` page, under five minutes old and signed 
 return address and nonce. It then asks Steam to confirm it with `check_authentication` and spends the
 nonce once (`steam_openid_nonces`). Steam is offered whenever `SITE_URL` is set. With the optional
 `STEAM_WEB_API_KEY`, new accounts take the player's public Steam name and avatar; without it they start
-unnamed. The key is a Convex environment variable and is never committed.
+unnamed. The key is a Convex environment variable and is never committed. Returning sign-ins keep the
+profile’s chosen name. Use Resync in profile settings to refresh it from a linked provider.
 
 `steam_profile_lookups` keeps the latest lookup outcome and check time for each Steam identity.
 It distinguishes failed requests, missing profile fields, and complete results without storing request
 addresses or exception messages. A failed profile lookup does not prevent sign-in, and snapshots omit
-these diagnostic rows. A sign-in after account deletion creates a fresh profile from the provider defaults.
+these diagnostic rows.
 
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old
@@ -137,6 +138,18 @@ A `profiles` document is created in Convex when an auth user is created or updat
 
 If a legacy user has no profile, the client's `useCurrentProfile()` calls `profiles.bootstrapCurrent` once when `profiles.session` returns a `userId` whose `profile` is still `null`. For bulk repair, missing profiles are backfilled by the **`profiles_from_users_v1`** Convex migration (see [`convex/migrations.ts`](../convex/migrations.ts)), which runs with the rest of the widen migrations via `bun run migrations:deploy` / `bun run migrations:dev-strict` and appears on [`/admin/migrations`](../src/app/routes/_app/admin/migrations.route.tsx).
 
+Each sign-in also records what the provider reported, by provider, in `linked_account_profiles`
+(`convex/lib/linkedAccountProfiles.ts`): the OAuth callback keeps Google's and Discord's name and picture,
+and the Steam sign-in keeps the player summary. The settings page's toolbar **Resync** action
+(`convex/accountResync.ts`) pulls from those records: Steam is asked live through the Web API, since
+its public profile needs no token from the reader, while Google and Discord offer what they sent at the
+last sign-in with them, because no OAuth token is kept. One method with something to offer is applied
+at once; several are offered on their rows and the reader takes one, which ends the offer. A method whose
+last sign-in came before these records existed has nothing to offer; its row offers a sign-in with it, which
+makes it report and returns to the tab, and nothing is applied on its own while such a method is connected. A provider name is reduced to a display name
+(letters and digits, five to thirty, not all capitals) or left out when it cannot be; a new picture goes
+through the avatar rehost, and a rename records the former address like a save from the form.
+
 **Hooks**: `useCurrentProfile()`, `useDefaultGroupPreference()`, `useProfileBySlug(slug)`,
 `useProfileDirectoryPage(args)`, `useUpdateCurrentProfile()`. Profile lookups are slug-based, never by id.
 
@@ -147,7 +160,8 @@ If a legacy user has no profile, the client's `useCurrentProfile()` calls `profi
 A profile may also have a public BoardGameGeek profile link, edited in the Profile tab and saved
 with the rest of the draft. Its ownership is unverified. It cannot sign anyone in, satisfy the
 last-method guard or authorize a profile merge. Clearing the URL and saving removes the link.
-Only HTTPS BoardGameGeek user-profile URLs are accepted; saves remove query strings and fragments.
+Only HTTPS BoardGameGeek profile URLs (`/user/<name>` or `/profile/<name>`) are accepted; saves store them
+as `https://boardgamegeek.com/profile/<name>` without query strings or fragments.
 The kept profile retains its own link during a merge.
 
 The profile owner manages Google and Discord in the Sign-in methods tab on the profile edit page.

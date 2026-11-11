@@ -3,6 +3,7 @@ import { v } from 'convex/values';
 import { componentGeometrySchema } from '../src/shared/asset-publishing/componentGeometry';
 import { ARRAKIS_BOARD_SLUG } from '../src/shared/boards/arrakisOfficial';
 import { arrakisBoardCapture } from '../src/shared/boards/arrakisPreset';
+import { assetPublishingFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures';
 import arrakisOfficialGeometry from '../src/shared/rulebooks/fixtures/arrakis-official-geometry.json';
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
@@ -269,6 +270,50 @@ export const seedBaseline = mutation({
       groupId,
       rulesetId,
     };
+  },
+});
+
+/** Six catalogue factions for a real central-and-remote bidding journey on the isolated backend. */
+export const seedBiddingTable = mutation({
+  args: { ownerEmail: v.string(), slug: v.string() },
+  returns: v.object({ rulesetId: v.id('rulesets'), rulesetName: v.string(), names: v.array(v.string()) }),
+  handler: async (ctx, args) => {
+    assertTestMode();
+    const owner = await ctx.db
+      .query('users')
+      .withIndex('email', (q) => q.eq('email', args.ownerEmail))
+      .unique();
+    if (!owner) {
+      throw new Error('The bidding fixture needs its seeded account.');
+    }
+    const now = nowIso();
+    const rulesetName = `Bidding ${args.slug}`;
+    const rulesetId = await ctx.db.insert('rulesets', {
+      name: rulesetName,
+      about: '',
+      slug: args.slug,
+      created_at: now,
+      updated_at: now,
+      owner_id: owner._id,
+      group_id: null,
+      is_deleted: false,
+      image_cover: null,
+      cover: null,
+    });
+    const names = ['Atreides', 'Harkonnen', 'Emperor', 'Spacing Guild', 'Fremen', 'Bene Gesserit'];
+    for (const [position, name] of names.entries()) {
+      const factionId = await ctx.db.insert('factions', {
+        slug: `${args.slug}-${slugify(name)}`,
+        data: { ...assetPublishingFaction, name },
+        created_at: now,
+        updated_at: now,
+        owner_id: owner._id,
+        group_id: null,
+        is_deleted: false,
+      });
+      await ctx.db.insert('ruleset_factions', { ruleset_id: rulesetId, faction_id: factionId, position });
+    }
+    return { rulesetId, rulesetName, names };
   },
 });
 

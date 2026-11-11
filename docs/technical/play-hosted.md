@@ -90,12 +90,15 @@ rows in the new shape.
 
 Each command names the revision its sender last saw, and `Room.assertRevision` in
 `workers/game/room.ts` refuses one sent against a table that has changed since with "The table
-changed. Try the action again." The actions in `REVISION_TOLERANT_ACTIONS` (spice spawns, deck
-draws, battle actions, draft picks and bans, and removal ballots) name what they change and are
-checked against the live table instead, so seats acting at the same moment do not turn each other
-away. Readiness (`ready`, `draft-ready`, `swap-ready`) may cross other readiness, but not a commit
-that changed more than who is ready. A spice reserve withdrawal stays strict, so two tabs of one player
-cannot both spend from a spice reserve they saw once.
+changed. Try the action again." Every move declares how it is judged in one place, `ACTION_POLICY`
+in `workers/game/actionPolicy.ts`, and a new move does not compile until it has an entry there.
+Moves marked `tolerant` (battle actions, bids, draft picks, seat requests, alliance offers, hand
+arrangement and more) name what they change and are checked against the live table instead, so
+seats acting at the same moment do not turn each other away. Moves marked `readiness` (`ready`,
+`draft-ready`, `swap-ready`) may cross other readiness, but not a commit that changed more than who
+is ready. Everything else is `strict`; the entry's comment says why where it matters, as for a
+spice reserve withdrawal, which stays strict so two tabs of one player cannot both spend from a
+spice reserve they saw once.
 
 Each socket can start at most 1,024 carries before it must reconnect. Replay history stays
 bounded per connection and is released on disconnect. Ended carry IDs are never evicted while
@@ -196,6 +199,24 @@ pointers expire on the Worker alone, which broadcasts each removal.
 
 Account deletion has a durable Convex notification with acknowledgment after the SQLite change, so
 a disconnected account can lose its seat without reconnecting first.
+
+### Protocol version
+
+The page and the game Worker deploy separately, and the Worker deploys first, so a tab opened
+before a deploy can meet a newer Worker. Every `admit` message names the page's
+`PLAY_PROTOCOL_VERSION` (`src/shared/play/protocol.ts`), and the room admits only its own version,
+before it checks the pass or sends anything about the table. An older page is closed with
+`OUTDATED_PAGE_CLOSE_CODE` (4426) and stops with "This table needs a newer version of the page.
+Refresh to continue.", the same line it shows when a frame from the Worker does not parse. A page
+built before versioning sends no version and is treated as older; since it does not know 4426, the
+room first sends it an `outdated-page` frame outside the protocol, which such a page cannot parse and
+answers with that same line. A newer
+page, which meets a Worker that is not updated yet, is closed with 1012 like a restart and tries
+again.
+
+Bump the version in any change after which an older page could misread a message or send one the
+Worker now reads differently, even when every message still parses. A change that only adds an
+optional field both sides ignore when absent does not need it.
 
 ## Provisioning and transport
 

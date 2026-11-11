@@ -1,4 +1,11 @@
 /published/boards/:id/board.jpg /play-fixtures/boards/arrakis-official.jpg 200
 /published/round-tokens/:id/token.jpg /play-fixtures/tokens/karama.jpg 200
 /published/pointer-tokens/:id/token.jpg /play-fixtures/tokens/hms.jpg 200
+/published/faction-tokens/000000000000000000010006factions/token.jpg /play-fixtures/product/house-atreides-token.jpg 200
+/published/faction-tokens/000000000000000000010011factions/token.jpg /play-fixtures/product/house-harkonnen-token.jpg 200
+/published/faction-tokens/000000000000000000010015factions/token.jpg /play-fixtures/product/emperor-token.jpg 200
+/published/faction-tokens/000000000000000000010019factions/token.jpg /play-fixtures/product/spacing-guild-token.jpg 200
+/published/faction-tokens/000000000000000000010023factions/token.jpg /play-fixtures/product/fremen-token.jpg 200
+/published/faction-tokens/000000000000000000010027factions/token.jpg /play-fixtures/product/bene-gesserit-token.jpg 200
+/published/faction-tokens/:id/token.jpg /play-fixtures/product/house-atreides-token.jpg 200
 / /index.html 200

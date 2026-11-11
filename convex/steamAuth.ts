@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 import { STEAM_ASSERTION_MAX_AGE_MS } from '../src/shared/steamOpenId';
 import { components, internal } from './_generated/api';
 import { internalMutation } from './functions';
+import { recordLinkedAccountProfile } from './lib/linkedAccountProfiles';
 import { upsertLoginUser } from './lib/loginUser';
 
 /* Real sign-ins are a handful a minute; the budget only stops a flood of forged assertions from tying up actions waiting on Steam. */
@@ -56,6 +57,10 @@ export const signInSteamAccount = internalMutation({
 
     const userData = { ...(args.name ? { name: args.name } : {}), ...(args.image ? { image: args.image } : {}) };
     const userId = await upsertLoginUser(ctx, account?.userId ?? null, userData);
+    if (args.name || args.image) {
+      /* A lookup that found nothing keeps the last good report, so one failed lookup does not blank the resync option. */
+      await recordLinkedAccountProfile(ctx, userId, 'steam', { name: args.name, image: args.image });
+    }
     if (!account) {
       await ctx.db.insert('authAccounts', { userId, provider: 'steam', providerAccountId: args.steamId });
     } else if (account.userId !== userId) {

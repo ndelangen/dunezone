@@ -46,7 +46,7 @@ function playerProfile(player: Record<string, unknown> | undefined): { name?: st
 }
 
 /** Reads optional Steam profile defaults without making an unavailable Web API block sign-in. */
-async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
+export async function steamProfile(steamId: string): Promise<{ name?: string; image?: string; lookup: string }> {
   const key = process.env.STEAM_WEB_API_KEY?.trim();
   if (!key) {
     return blank('skipped: STEAM_WEB_API_KEY is not set');
@@ -64,7 +64,7 @@ async function steamProfile(steamId: string): Promise<{ name?: string; image?: s
       return blank('returned no player');
     }
     const profile = playerProfile(player);
-    const missing = [!profile.name && 'a name', !profile.image && 'a usable avatar'].filter(Boolean);
+    const missing = [!profile.name && 'a name', !profile.image && 'an HTTPS avatar'].filter(Boolean);
     return { ...profile, lookup: missing.length ? `returned a player without ${missing.join(' or ')}` : 'ok' };
   } catch (error) {
     /* Request error messages can contain credentials, so only fixed error categories leave this function. */

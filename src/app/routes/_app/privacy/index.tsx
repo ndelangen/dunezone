@@ -100,6 +100,32 @@ function PrivacyPage() {
             </Section>
           </SimpleGrid>
 
+          <Section title="Discord voice chat">
+            <Stack gap="md">
+              <Text>
+                Choosing Discord voice chat when creating a game gives that game its own channel. Anyone with its invite
+                can join, including spectators. You do not need to connect Discord to your Dune Zone account to use the
+                invite. Discord receives the game name and can see which Discord accounts join and use the channel.
+              </Text>
+              <Text>
+                Joining the Discord server is your choice. We never add you automatically or change your channel access
+                when you leave a seat. Discarding a game requests immediate deletion of its channel. While the
+                integration is enabled, we attempt deletion right away and retry if the request fails. When a game
+                finishes, its channel is marked as ended. An hourly check deletes ended channels that are empty.
+                Channels for active games are also deleted after 14 days without game activity. Pausing the integration
+                delays channel cleanup until it resumes. We briefly check whether an ended channel is occupied for
+                cleanup and do not save voice participants' identities.
+              </Text>
+              <Text>
+                In a game with Discord voice, a seated player can choose a Nudge command in the Compass to mention
+                another player in the voice channel&apos;s text chat. The recipient needs a connected Discord account.
+                We send the waiting faction&apos;s name and the game name. Chat messages never trigger nudges or get
+                sent to Discord. Each seat can receive at most one nudge every five minutes. Discord controls
+                notification delivery through each player&apos;s settings.
+              </Text>
+            </Stack>
+          </Section>
+
           <Section title="Your choices">
             <Stack gap="md">
               <List spacing="sm">
@@ -278,7 +304,7 @@ function PrivacyPage() {
           </Section>
 
           <Text c="dimmed" size="sm">
-            Last updated 13 October 2026. If anything changes, we will update this page.
+            Last updated 10 November 2026. If anything changes, we will update this page.
           </Text>
         </Stack>
       </PageLayout.Content>

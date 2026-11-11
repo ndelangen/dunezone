@@ -2,13 +2,14 @@ import { DarkSchemeIsland, darkSchemeIslandAttributes } from '@ui/surface/DarkSc
 import { useReducer } from 'react';
 import type { CSSProperties } from 'react';
 
+import { AuctionTracker } from '@app/widgets/treachery-tracker/AuctionTracker';
+import { trackerReducer } from '@app/widgets/treachery-tracker/tracker';
+import type { TrackerState } from '@app/widgets/treachery-tracker/tracker';
+import { FACTIONS } from '@app/widgets/treachery-tracker/tracker.stories.fixture';
+
 import compassStyles from '../../compass/CompassControls.module.css';
 import { WindowFrame } from '../../compass/WindowFrame';
 import type { TableWindow } from '../../compass/windows';
-import { AuctionTracker } from './AuctionTracker';
-import { trackerReducer } from './tracker';
-import type { TrackerState } from './tracker';
-import { FACTIONS } from './tracker.stories.fixture';
 import '../../dune-play.css';
 
 const TRACKER_WINDOW: Omit<TableWindow, 'content'> = {

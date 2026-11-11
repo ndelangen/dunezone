@@ -12,10 +12,12 @@ import type { ConvexStorybookWorker } from './runtime';
 import {
   ConvexStorybookWorkerClient,
   ConvexStorybookWorkerContext,
+  convexUseAction,
   convexUseMutation,
   convexUsePaginatedQuery,
   convexUseQuery,
   convexUseQueries,
+  useConvexStorybookAction,
   useConvexStorybookMutation,
   useConvexStorybookPaginatedQuery,
   useConvexStorybookQuery,
@@ -44,7 +46,7 @@ async function startWorker(database: DatabaseDefinition, signal?: AbortSignal) {
   signal?.addEventListener('abort', abandoned, { once: true });
   try {
     signal?.throwIfAborted();
-    await client.reset(database.create(), database.elapsedMs);
+    await client.reset(database.create(), database.elapsedMs, database.discordVoice);
     signal?.throwIfAborted();
     return client;
   } catch (error) {
@@ -157,6 +159,7 @@ export function StorybookDatabaseProvider({
   mocked(convexUseQuery).mockImplementation(useConvexStorybookQuery as typeof convexUseQuery);
   mocked(convexUseQueries).mockImplementation(useConvexStorybookQueries as typeof convexUseQueries);
   mocked(convexUseMutation).mockImplementation(useConvexStorybookMutation as typeof convexUseMutation);
+  mocked(convexUseAction).mockImplementation(useConvexStorybookAction as typeof convexUseAction);
   mocked(convexUsePaginatedQuery).mockImplementation(
     useConvexStorybookPaginatedQuery as typeof convexUsePaginatedQuery
   );

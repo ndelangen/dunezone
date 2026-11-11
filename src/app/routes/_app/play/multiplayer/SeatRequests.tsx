@@ -252,11 +252,21 @@ function SeatNoticePopover({ notice, error }: Readonly<{ notice: SeatNotice; err
   );
 }
 
-/** The game menu's hold-to-leave item names what leaving costs: the game, a roster place, or a seat left open. */
+/** Whether the viewer is the last player at a game in play, who ends it rather than leaving it empty. */
+function endsTheGame(table: TableProjection): boolean {
+  return table.snapshot.stage === 'play' && publicControlsOf(table).seats.length === 1;
+}
+
+/*
+ * The game menu's held seat item names what it costs: the game, a roster place, or a seat left open.
+ * The last player in play ends the game instead; a finished game keeps its result when its last player leaves.
+ */
 function leavingLabel(table: TableProjection): string {
   const controls = publicControlsOf(table);
   switch (true) {
-    case controls.seats.length === 1:
+    case endsTheGame(table):
+      return 'Hold to end the game';
+    case controls.seats.length === 1 && table.snapshot.stage !== 'finished':
       return 'Hold to leave and discard the game';
     case table.snapshot.stage === 'drafting':
       return 'Hold to give up your place';
@@ -408,7 +418,14 @@ export function GameMenu({
   table,
   onClearConfetti,
   sharing,
-}: Readonly<{ client: TableSession; table: TableProjection; onClearConfetti?: () => void; sharing: ReactNode }>) {
+  voice,
+}: Readonly<{
+  client: TableSession;
+  table: TableProjection;
+  onClearConfetti?: () => void;
+  sharing: ReactNode;
+  voice?: ReactNode;
+}>) {
   /* The fixture has no lifecycle, so a seat there is not one to give up; the table would refuse the departure. */
   const seated = !isSpectator(table) && table.snapshot.stage !== undefined && table.snapshot.stage !== 'discarded';
   return (
@@ -425,6 +442,7 @@ export function GameMenu({
       </Menu.Target>
       <Menu.Dropdown style={{ overflowY: 'auto' }}>
         {sharing}
+        {table.snapshot.stage !== 'finished' && table.snapshot.stage !== 'discarded' && !table.playback && voice}
         <Menu.Divider />
         <TableLightingSlider />
         <TablePanSpeedSlider />
@@ -460,16 +478,19 @@ export function GameMenu({
         </Menu.Item>
         {onClearConfetti && <Menu.Item onClick={onClearConfetti}>Clear confetti</Menu.Item>}
         {/* Leaving is for good, so it is held rather than asked twice; a spectator has no seat to give up, so none is offered. */}
-        {/* Keyed by the seat, so a hold started on one seat never departs the seat a trade moved the viewer to. */}
+        {/*
+         * Keyed by the seat and by what the hold does, so a hold started on one seat never departs the seat a trade moved the viewer to,
+         * a leave countdown never turns into ending the game when another player leaves, and the item is ready again once the game has ended.
+         */}
         {!isSpectator(table) && (
           <HoldAction
             shape="menu-item"
-            key={table.viewer.viewerSeat}
+            key={`${table.viewer.viewerSeat}:${endsTheGame(table) ? 'end' : 'leave'}`}
             label={seated ? leavingLabel(table) : 'Give up your seat'}
-            verb="leave"
+            verb={endsTheGame(table) ? 'end' : 'leave'}
             closeMenuOnClick={false}
             disabled={!seated || seatLocked(table)}
-            onConfirm={() => client.command({ kind: 'seat-depart' })}
+            onConfirm={() => client.command(endsTheGame(table) ? { kind: 'result-end' } : { kind: 'seat-depart' })}
           />
         )}
       </Menu.Dropdown>

@@ -43,6 +43,24 @@ describe('GameRoom hibernation', () => {
   const summaries = () =>
     runtime.logs.filter((log) => log.message.includes('game-room-summary')).map((log) => log.message);
 
+  it.each([undefined, 1])(
+    'requires a refresh when a hibernated socket remembers protocol %s',
+    async (protocol) => {
+      const player = await admitPlayer(runtime, 'a');
+      await syncView(player);
+      await quiet(runtime, 0);
+      const query = protocol === undefined ? '' : `?version=${protocol}`;
+      const response = await runtime.object('fixture-game', `/native-test/socket-protocol${query}`, { method: 'POST' });
+      expect(response.status).toBe(204);
+      await runtime.hibernateRoom();
+      await runtime.sweeping();
+      await eventually(() => player.closed, 'outdated socket closing after hibernation');
+      expect(player.closeCode).toBe(4426);
+      expect(player.outsideProtocol).toEqual([{ type: 'outdated-page' }]);
+    },
+    15_000
+  );
+
   it('stops its sweep once nothing can expire, and starts it again for a pointer', async () => {
     const a = await admitPlayer(runtime, 'a');
     await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');

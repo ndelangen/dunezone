@@ -1,5 +1,6 @@
 import preview from '@sb/preview';
-import { expect } from 'storybook/test';
+import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
+import { expect, waitFor } from 'storybook/test';
 
 import { playingSnapshot, swappingSnapshot } from '../../product.stories.fixture';
 import {
@@ -7,6 +8,7 @@ import {
   factionInfoPanelMeta,
   observerArgs,
   removalSnapshot,
+  treacheryTrackerArgs,
   vacantSnapshot,
 } from './FactionInfoPanel.stories.fixture';
 
@@ -78,5 +80,16 @@ export const WhileTrading = meta.story({
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('toolbar', { name: 'Seat actions' })).toBeVisible();
     await expect(canvas.queryByText(/^(Not ready|Ready)$/)).toBeNull();
+  },
+});
+
+/** A faction whose rules keep the Treachery tracker says so under Setup, so every player sees why that seat has one. */
+export const KeepsATreacheryTracker = meta.story({
+  args: treacheryTrackerArgs(),
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Setup' }));
+    /* The Setup section opens with a transition, so its text is in the document a moment before it shows. */
+    const rule = await canvas.findByText(TREACHERY_TRACKER_RULE);
+    await waitFor(() => expect(rule).toBeVisible());
   },
 });

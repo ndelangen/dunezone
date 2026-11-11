@@ -1,0 +1,576 @@
+.tool,
+.welcome {
+  background: var(--ui-ground);
+  color: var(--ui-text);
+}
+.tool {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.devices {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+}
+.tabletFrame,
+.phoneFrame {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  height: 100%;
+}
+.tabletFrame > div,
+.phoneFrame > div {
+  height: 100%;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.tablet {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  container: tablet / inline-size;
+}
+.deviceHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--ui-edge);
+}
+.tabletBody {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  padding: var(--space-xs) var(--space-md);
+}
+.tabletBody[data-recovery] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 21rem;
+  gap: var(--space-md);
+}
+.tabletBody:not([data-recovery]) {
+  container-type: size;
+}
+.circleColumn {
+  flex: 1;
+  min-width: 0;
+  align-self: center;
+}
+.controlColumn {
+  min-width: 0;
+  padding-block: var(--space-md);
+}
+.arena {
+  --seat-token-size: clamp(3.25rem, 18cqi, 8rem);
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: bidding-arena;
+}
+.arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  stroke: var(--color-brand);
+  stroke-width: 1.6;
+  fill: none;
+}
+.cardMiddle {
+  position: absolute;
+  width: 34%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.currentBidder {
+  font-size: clamp(0.8rem, 2.8cqi, 1.25rem);
+  line-height: 1.15;
+}
+.bidDisc {
+  position: relative;
+  width: clamp(4rem, 20cqi, 8rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.highAmount {
+  position: absolute;
+  font-size: clamp(2.5rem, 12cqi, 5rem);
+  line-height: 1;
+  font-family: C_Advokat_Modern, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: white;
+  text-shadow:
+    0 0 4px black,
+    0 0 8px black;
+}
+.bidCountdown {
+  font-family: C_Advokat_Modern, sans-serif;
+  font-size: clamp(1.25rem, 5cqi, 2.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 4px var(--ui-ground);
+}
+.cardMiddle > img {
+  width: 40%;
+  object-fit: contain;
+}
+.seat {
+  gap: var(--space-xs);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  width: var(--seat-token-size);
+  height: var(--seat-token-size);
+}
+.seatName {
+  font-size: clamp(0.8rem, 2.5cqi, 1.25rem);
+  line-height: 1.2;
+}
+.seat[data-active] {
+  color: var(--color-brand);
+}
+.factionFace[data-active] {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+.handTotal {
+  color: var(--color-text);
+  font-family: C_Desdemona, Georgia, serif;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.handTotal strong {
+  font-size: clamp(2.2rem, 9cqi, 5rem);
+}
+.handTotal span {
+  font-size: clamp(0.875rem, 2.3cqi, 1.25rem);
+  color: var(--color-muted);
+}
+.seatStatus {
+  min-height: 1.25em;
+}
+.phone {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  container: phone / inline-size;
+}
+.phoneScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-md);
+}
+.phoneBid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-block: var(--space-sm) var(--space-lg);
+}
+.phoneTurn {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+.phoneHigh {
+  font-size: 3.5rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.handSection {
+  border-top: 1px solid var(--ui-edge);
+  padding-top: var(--space-md);
+}
+.statusControls {
+  padding-block: var(--space-md) var(--space-xs);
+  min-height: 3.5rem;
+}
+.setupFooter,
+.phoneDock {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: var(--space-md);
+  padding-bottom: max(var(--space-md), env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--ui-edge);
+  background: var(--ui-ground);
+}
+.countControl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.countInput {
+  width: 4.5rem;
+  flex: 0 0 4.5rem;
+}
+.countInput input {
+  padding-inline: var(--space-xs);
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  height: 2.75rem;
+}
+.sheetContent {
+  max-width: 32rem;
+  margin: auto;
+}
+.qr {
+  /* Reserve room for the close control and join instructions in the 85dvh sheet. */
+  width: min(100%, max(8rem, calc(85dvh - 11rem)));
+  flex-shrink: 0;
+}
+.qr svg {
+  width: 100%;
+  display: block;
+}
+.compactHands {
+  display: grid;
+  gap: var(--space-xs);
+}
+@container tablet (width < 48rem) {
+  .tabletBody[data-recovery] {
+    grid-template-columns: 1fr;
+  }
+}
+@container tablet (width < 30rem) {
+  .arena {
+    aspect-ratio: 1;
+  }
+  .cardMiddle {
+    width: 38%;
+  }
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
+    font-size: 0.7rem;
+  }
+  .seatStatus {
+    font-size: 0.65rem;
+  }
+}
+.tool .tablet:not(:has(.tabletBody[data-recovery])) {
+  height: 100%;
+}
+.tool .circleColumn {
+  max-width: min(100%, calc(100dvh - 14rem));
+}
+.tool .tabletBody:not([data-recovery]) .circleColumn {
+  width: 100%;
+  max-width: min(100%, 100cqh);
+}
+.actionRecord {
+  margin-top: var(--space-md);
+  display: grid;
+  gap: var(--space-xs);
+}
+@container phone (width < 30rem) {
+  .phoneScroll {
+    padding: var(--space-sm);
+  }
+  .phoneBid {
+    padding-block: 0 var(--space-xs);
+  }
+  .phoneHigh {
+    font-size: 2.5rem;
+  }
+}
+.starterTokens {
+  display: grid;
+  justify-items: center;
+  row-gap: var(--space-xs);
+  padding-block: var(--space-xs);
+}
+.phoneDock .handSection {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: var(--space-sm);
+}
+.touchToggle {
+  min-height: 2.75rem;
+  align-items: center;
+}
+.factionFace {
+  display: flex;
+  border-radius: 50%;
+  outline: 3px solid transparent;
+  outline-offset: 3px;
+}
+.handTotal strong {
+  display: inline-block;
+}
+.arena[data-many] {
+  --seat-token-size: clamp(2.25rem, 13cqi, 6rem);
+}
+.tableBar {
+  padding: var(--space-sm) var(--space-md);
+  border-block: 1px solid var(--ui-edge);
+}
+.tableBarContents {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.tableBarContents[data-side="far"] {
+  transform: rotate(180deg);
+}
+.tableBarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.moderatorStep {
+  min-height: 3.125rem;
+}
+.tableNotice {
+  text-align: center;
+  padding: var(--space-xs) var(--space-md);
+}
+.farSheetInner {
+  left: 0;
+  right: 0;
+  justify-content: center;
+  align-items: flex-start;
+}
+.farSheet.farSheet {
+  height: auto;
+  max-height: 85dvh;
+  max-width: 480px;
+  border-bottom-left-radius: var(--mantine-radius-lg);
+  border-bottom-right-radius: var(--mantine-radius-lg);
+  background: var(--ui-raised);
+  color: var(--ui-text);
+}
+.farSheetHeader {
+  display: none;
+}
+.farDrawerBody {
+  padding-block: var(--space-md);
+}
+.farSheetBody {
+  transform: rotate(180deg);
+}
+.bidderTurn {
+  transform-origin: 50px 50px;
+  transition: transform 650ms cubic-bezier(0.2, 0.8, 0.2, 1.12);
+}
+.bidDisc {
+  animation: bidArrives 440ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.flyingCard {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 9%;
+  aspect-ratio: 0.7;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+@keyframes bidArrives {
+  0% {
+    scale: 0.72;
+    rotate: -9deg;
+  }
+  60% {
+    scale: 1.12;
+    rotate: 3deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+[data-motion="reduce"] .bidDisc {
+  animation: none;
+}
+[data-motion="reduce"] .bidderTurn {
+  transition: none;
+}
+@container tablet (width < 30rem) {
+  .tableBarActions {
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+  }
+  .tableBarContents {
+    flex-wrap: wrap;
+  }
+  .tableBarContents > .grow {
+    flex-basis: 100%;
+  }
+  .tabletBody {
+    padding: var(--space-xs);
+  }
+}
+.factionFace[data-active] {
+  animation: seatArrives 560ms ease-out;
+}
+@keyframes seatArrives {
+  0% {
+    scale: 0.92;
+  }
+  45% {
+    scale: 1.12;
+  }
+  75% {
+    scale: 0.98;
+  }
+  100% {
+    scale: 1;
+  }
+}
+[data-motion="reduce"] .factionFace {
+  animation: none;
+}
+.handInfo {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 12cqi);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: max-content;
+  max-width: 25cqi;
+  pointer-events: none;
+  z-index: 2;
+}
+.handTotal,
+.seatName,
+.seatStatus {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 6px var(--ui-ground);
+  text-shadow: 0 1px 3px var(--ui-ground);
+}
+.handTotal span {
+  color: var(--color-text);
+}
+.seatToken {
+  position: relative;
+  display: block;
+  width: var(--token-size);
+  height: var(--token-size);
+  flex-shrink: 0;
+}
+.tokenArt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transition: filter 300ms ease-out;
+}
+.seatToken[data-full] .tokenArt {
+  filter: grayscale(1) brightness(0.38);
+}
+.fullMark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 3px var(--ui-ground));
+}
+[data-motion="reduce"] .tokenArt {
+  transition: none;
+}
+.welcome {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-lg) var(--space-md);
+  padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom, 0px));
+}
+.connectionBar {
+  padding: var(--space-xs) var(--space-md);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  container: bidding-setup / inline-size;
+}
+
+.setupContent {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-md);
+}
+
+.setupFooter {
+  display: flex;
+  flex-direction: column;
+}
+
+.setupJoin {
+  min-width: 0;
+}
+
+.setupJoin .qr {
+  /* Setup also reserves space for its heading, storm-order guidance and fixed footer. */
+  width: min(100%, max(8rem, calc(100dvh - 25rem)));
+}
+
+@container bidding-setup (width < 48rem) {
+  .setupJoin {
+    order: -1;
+  }
+}
+
+@container bidding-arena (width < 30rem) {
+  .seat {
+    --seat-token-size: 18cqi;
+  }
+  .arena[data-many] .seat {
+    --seat-token-size: 13cqi;
+  }
+  .bidDisc {
+    width: 20cqi;
+  }
+  .highAmount {
+    font-size: 12cqi;
+  }
+  .bidCountdown {
+    font-size: 6cqi;
+  }
+  .handTotal strong {
+    font-size: 9cqi;
+  }
+  .handTotal span {
+    font-size: 3cqi;
+  }
+  .cardMiddle > p:not(.currentBidder, .highAmount, .bidCountdown) {
+    display: none;
+  }
+}

@@ -6,7 +6,7 @@ import type { MouseEventHandler, ReactNode, Ref } from 'react';
 
 import { useHeaderActionSize } from '../layout/PageLayout';
 import type { RenderRoot } from '../renderRoot';
-import { EMPHASIS_VARIANT, INTENT_COLOR, tileVars } from './actionIntent';
+import { EMPHASIS_VARIANT, INTENT_COLOR, PROVIDER_COLOR, tileVars } from './actionIntent';
 import type { ActionEmphasis, ActionIntent } from './actionIntent';
 import styles from './LabeledAction.module.css';
 
@@ -25,6 +25,8 @@ interface LabeledActionCommonProps extends Pick<ButtonProps, 'size' | 'justify'>
   icon: ReactNode;
   /** The reader-facing meaning, in IconAction's words; the colour follows from it. */
   intent?: ActionIntent;
+  /** The external provider this action opens; the kit owns its brand colour. */
+  provider?: keyof typeof PROVIDER_COLOR;
   /** How loudly the action renders, in IconAction's words, framed only: without a tile a worded action is the text-only button the app does not use. Omitted is `standard`, the tinted tile, where IconAction's is `strong`: a worded action is wide, and a filled one would compete with the page's `CallToAction`. */
   emphasis?: Extract<ActionEmphasis, 'standard' | 'strong'>;
   /** Why the action cannot run right now, as a sentence; the button stays hoverable and focusable and this is its hover text and description, as on `IconAction`. */
@@ -80,6 +82,7 @@ export function LabeledAction({
   children,
   icon,
   intent = 'neutral',
+  provider,
   emphasis = 'standard',
   disabledReason,
   busy = false,
@@ -105,11 +108,13 @@ export function LabeledAction({
       : (props) => (
           <a {...props} href={href} target={target} rel={rel}>
             {props.children}
+            {target === '_blank' ? <VisuallyHidden> (opens in a new tab)</VisuallyHidden> : null}
           </a>
         );
-  const color = INTENT_COLOR[intent];
+  const color = provider ? PROVIDER_COLOR[provider] : INTENT_COLOR[intent];
   const variant = pressed ? 'light' : EMPHASIS_VARIANT[emphasis];
-  const vars = pressed || emphasis === 'standard' ? () => tileVars(intent, pressed === true, 'button') : undefined;
+  const vars =
+    pressed || (!provider && emphasis === 'standard') ? () => tileVars(intent, pressed === true, 'button') : undefined;
   const classes = clsx(className, pressed && styles.pressed);
   const leftSection = busy ? <Loader size="xs" /> : <span aria-hidden>{icon}</span>;
   const disabled = disabledReason != null;
@@ -145,7 +150,11 @@ export function LabeledAction({
           }}
           renderRoot={disabled ? undefined : renderRoot}
           aria-pressed={pressed}
-          aria-label={accessibleName}
+          aria-label={
+            accessibleName && !disabled && target === '_blank'
+              ? `${accessibleName} (opens in a new tab)`
+              : accessibleName
+          }
           className={classes}
         >
           {children}

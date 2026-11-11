@@ -44,6 +44,7 @@ function publisherEnv(): Env {
       fetch: vi.fn(async () => Response.json({ service: 'game' }, { headers: { 'Cache-Control': 'no-store' } })),
     },
     PLAY_INGRESS_RATE_LIMIT: { limit: vi.fn(async () => ({ success: true })) },
+    BIDDING_CREATION_RATE_LIMIT: { limit: vi.fn(async () => ({ success: true })) },
     BROWSER: {},
     ASSET_BUCKET: {},
   } as unknown as Env;
@@ -91,11 +92,16 @@ describe('publisher Worker Publication flow', () => {
     expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).not.toHaveBeenCalled();
   });
 
-  test('limits unknown game IDs before calling the game Worker or creating a Durable Object', async () => {
+  test.each([
+    { pathname: '/__play/games/unknown/socket', method: 'GET' },
+    { pathname: '/__play/bidding/DUNE42/create', method: 'POST' },
+    { pathname: '/__play/bidding/DUNE42/socket', method: 'GET' },
+  ])('limits $pathname before calling the game Worker or creating a Durable Object', async ({ pathname, method }) => {
     const currentEnv = publisherEnv();
     vi.mocked(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).mockResolvedValueOnce({ success: false });
     const response = await publisherWorker.fetch(
-      new Request('https://dune.zone/__play/games/unknown/socket', {
+      new Request(`https://dune.zone${pathname}`, {
+        method,
         headers: { 'CF-Connecting-IP': '192.0.2.17', 'X-Forwarded-For': 'attacker-controlled' },
       }),
       currentEnv,
@@ -103,9 +109,35 @@ describe('publisher Worker Publication flow', () => {
     );
     expect(response.status).toBe(429);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
-    expect(response.headers.get('Retry-After')).toBe('10');
+    expect(response.headers.get('Retry-After')).toBe(method === 'POST' ? '60' : '10');
     expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledWith({ key: 'connect:192.0.2.17' });
     expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+  });
+
+  test('limits new bidding tables without consuming the remote reconnection allowance', async () => {
+    const currentEnv = publisherEnv();
+    vi.mocked(currentEnv.BIDDING_CREATION_RATE_LIMIT.limit).mockResolvedValue({ success: false });
+    const headers = { 'CF-Connecting-IP': '192.0.2.17', 'Content-Type': 'application/json' };
+    const response = await publisherWorker.fetch(
+      new Request('https://dune.zone/__play/bidding/DUNE42/create', { method: 'POST', headers, body: '{}' }),
+      currentEnv,
+      { waitUntil: vi.fn() } as unknown as ExecutionContext
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Retry-After')).toBe('60');
+    expect(currentEnv.GAME_SERVICE.fetch).not.toHaveBeenCalled();
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).not.toHaveBeenCalled();
+    for (let i = 0; i < 6; i++) {
+      const rejoin = await publisherWorker.fetch(
+        new Request('https://dune.zone/__play/bidding/DUNE42/socket', { headers }),
+        currentEnv,
+        { waitUntil: vi.fn() } as unknown as ExecutionContext
+      );
+      expect(rejoin.status).toBe(200);
+    }
+    expect(currentEnv.BIDDING_CREATION_RATE_LIMIT.limit).toHaveBeenCalledExactlyOnceWith({ key: '192.0.2.17' });
+    expect(currentEnv.PLAY_INGRESS_RATE_LIMIT.limit).toHaveBeenCalledTimes(6);
+    expect(currentEnv.GAME_SERVICE.fetch).toHaveBeenCalledTimes(6);
   });
 
   test.each([

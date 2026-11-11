@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 
 import { publicPageHead } from '@app/routes/publicPage';
 
-import { CREATOR_TUTORIALS } from './creatorTutorials';
+import { CREATOR_TUTORIALS, creatorArt } from './creatorTutorials';
 import { SAVE_TASK } from './factionTutorialSteps';
 
 /* The editor and its rail load only in the browser: the draft lives in the page's memory and is never saved. */
@@ -21,14 +21,22 @@ const TUTORIAL = CREATOR_TUTORIALS.find((tutorial) => tutorial.slug === 'create-
  */
 export const Route = createFileRoute('/_app/create/faction')({
   ssr: true,
-  head: () =>
+  loader: async () => ({
+    socialImage: (await import('../tutorial/socialImage')).tutorialSocialImage(creatorArt(TUTORIAL)),
+  }),
+  head: ({ loaderData }) =>
     publicPageHead({
       name: 'How to create a custom faction for the Dune board game',
       kind: 'Tutorial',
       pathname: '/create/faction',
       description:
         'An interactive tutorial for making your own homebrew Dune faction in the Dune Zone faction creator: name, emblem, background, leaders, troops, alliance and rules, then its faction sheet. Nothing is saved, so try anything.',
-      social: { kind: 'Tutorial', shape: 'portrait' },
+      image: loaderData?.socialImage,
+      social: {
+        kind: 'Tutorial · Creating content',
+        shape: 'landscape',
+        text: `${TUTORIAL.goal}, in a ${TUTORIAL.minutes}-minute tutorial.`,
+      },
       trail: [{ name: 'Learn to create', pathname: '/create' }],
     }),
   /* `?step=4` opens the tutorial at its fourth task, up to Save: the task after it needs the faction Save makes. */

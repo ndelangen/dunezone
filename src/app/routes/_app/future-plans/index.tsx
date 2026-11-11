@@ -18,12 +18,10 @@ import {
   ChartNoAxesColumnIncreasing,
   CircleCheck,
   CircleHelp,
-  ClipboardCheck,
   Code2,
   Gamepad2,
   Gavel,
   Globe,
-  Hourglass,
   Languages,
   Layers,
   Lightbulb,
@@ -35,7 +33,6 @@ import {
   Scissors,
   Search,
   Shuffle,
-  Swords,
   Trophy,
   Wrench,
 } from 'lucide-react';
@@ -206,24 +203,9 @@ const FUTURE_PLANS: FuturePlan[] = [
         detail: 'Know which Spice cards are left to blow.',
       },
       {
-        icon: <Swords />,
-        title: 'Battle calculator',
-        detail: 'See who wins before the plans are revealed.',
-      },
-      {
         icon: <Shuffle />,
         title: 'Faction draft',
         detail: 'Deal or draft factions fairly on one phone.',
-      },
-      {
-        icon: <ClipboardCheck />,
-        title: 'Setup checklist',
-        detail: 'Every step and starting position for your factions.',
-      },
-      {
-        icon: <Hourglass />,
-        title: 'Round tracker',
-        detail: 'Turn, phase and what each faction can do now.',
       },
       {
         icon: <Lock />,

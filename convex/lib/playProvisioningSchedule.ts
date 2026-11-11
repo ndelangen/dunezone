@@ -7,7 +7,7 @@ import { allocatePlayGameName } from './playGameAddresses';
 
 type PendingGameFields = Pick<
   Doc<'play_games'>,
-  'fixture_key' | 'ruleset_id' | 'minimum_players' | 'last_turn' | 'creator_id'
+  'fixture_key' | 'ruleset_id' | 'minimum_players' | 'last_turn' | 'discord_voice' | 'creator_id'
 > & {
   name?: string;
 };

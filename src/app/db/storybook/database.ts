@@ -41,6 +41,8 @@ export type DatabaseDefinition = {
   create: () => SeedDocument[];
   /** How long after the seeding the story opens, for a story about data that has aged, such as a session that signed in too long ago; the seeds are created at the story clock and every request runs this much later. */
   elapsedMs?: number;
+  /** Enables the voice feature with inert credentials in this story's network-disabled worker. */
+  discordVoice?: boolean;
 };
 
 type DatabaseChange = (baseline: StorybookDatabase) => StorybookDatabase | void;
@@ -408,7 +410,10 @@ function toSeedDocuments(database: StorybookDatabase): SeedDocument[] {
  * Declares a fresh page-story database. The callback may mutate the canonical baseline or return
  * a replacement, including `emptyDatabase()`.
  */
-export function db(change: DatabaseChange, options: Pick<DatabaseDefinition, 'elapsedMs'> = {}): DatabaseDefinition {
+export function db(
+  change: DatabaseChange,
+  options: Pick<DatabaseDefinition, 'elapsedMs' | 'discordVoice'> = {}
+): DatabaseDefinition {
   return {
     create: () => {
       const baseline = baselineDatabase();

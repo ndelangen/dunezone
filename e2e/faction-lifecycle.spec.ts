@@ -66,11 +66,15 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     expect(factionBEditUrl).not.toBe(factionAEditUrl);
   });
 
-  await test.step('loading B into A stays local and Reset restores A', async () => {
+  await test.step('loading B into A stays local under the name of A, and Reset restores A', async () => {
     await page.goto(factionAEditUrl);
     await loadFactionDraft(page, factionBName);
 
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    /* Loading never renames the edited faction, as in every asset editor; only Paste JSON offers to. */
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
+    await page.getByRole('tab', { name: /^Faction leader/ }).click();
+    await expect(page.getByRole('textbox', { name: 'Faction leader name' })).toHaveValue('');
+    await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
     await expect(page.getByRole('button', { name: 'Save faction' })).toHaveAccessibleDescription(/Unsaved changes/);
 
     await page.getByRole('button', { name: 'Reset unsaved edits' }).click();
@@ -83,7 +87,7 @@ test('owner can author a faction through its complete lifecycle', async ({ page 
     await loadFactionDraft(page, factionBName);
 
     await page.getByRole('tab', { name: /^Identity & Appearance/ }).click();
-    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionBName);
+    await expect(page.getByRole('textbox', { name: 'Faction name' })).toHaveValue(factionAName);
     await expect(page.getByRole('button', { name: /^Faction identity:/ })).toHaveCount(0);
     /* The validation header is open whenever a warning exists, so there is no toolbar count to click through;
        the header's per-source chip is what jumps to and focuses the field. */

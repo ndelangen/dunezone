@@ -1,0 +1,13 @@
+/* The tool on its own page fills the screen's width, inside the phone's 16 px gutter. */
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  padding-inline: var(--mantine-spacing-md);
+}
+
+.setup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-lg);
+  padding-block: var(--mantine-spacing-lg);
+}

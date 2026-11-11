@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { GENERIC, ICON, EMBLEM } from '../assetIds';
 import { normalizeFormattedText, parseFormattedText } from '../formattedText';
 import type { NormalizedFormattedText } from '../formattedText';
-import { legacyEmblemKeyed } from '../legacyEmblem';
 import { userImageSourceUrlSchema } from '../user-images/contract';
 import { rulebookBattleStepFields } from './battleStep';
 import { rulebookCoverImageSchema } from './coverImage';
@@ -837,13 +836,8 @@ const refineRulebookContentsV1: RulebookContentsV1Refinement = (contents, contex
   }
 };
 
-/**
- * The runtime and type authority for Rulebook Contents written under the current V1 contract.
- * Contents stored or exported before the emblem rename name a stock emblem at its old path, so the root reads the old names as the new ones (see src/shared/legacyEmblem.ts).
- */
-export const rulebookContentsV1Schema = legacyEmblemKeyed(
-  rulebookContentsV1BaseSchema.superRefine(refineRulebookContentsV1)
-);
+/** The runtime and type authority for Rulebook Contents written under the current V1 contract. */
+export const rulebookContentsV1Schema = rulebookContentsV1BaseSchema.superRefine(refineRulebookContentsV1);
 
 /**
  * Contents version 1 over Pages a caller has already proven with `rulebookPageV1Schema`, so a caller that keeps a proof per Page proves the whole without proving every Page again.

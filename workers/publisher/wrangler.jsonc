@@ -16,7 +16,8 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-    "logs": { "enabled": true, "invocation_logs": true }
+    "logs": { "enabled": true, "invocation_logs": false },
+    "issues": { "enabled": true }
   },
   "assets": {
     "directory": "./dist",
@@ -95,6 +96,11 @@
       "name": "PLAY_INGRESS_RATE_LIMIT",
       "namespace_id": "10960001",
       "simple": { "limit": 120, "period": 10 }
+    },
+    {
+      "name": "BIDDING_CREATION_RATE_LIMIT",
+      "namespace_id": "28350001",
+      "simple": { "limit": 6, "period": 60 }
     },
     {
       "name": "SOCIAL_RENDER_RATE_LIMIT",

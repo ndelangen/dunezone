@@ -80,6 +80,30 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
     });
     return ids;
   });
+  /* Each side's sign-in method last reported a name; Discord's report must follow its method, Google's stays as the kept account's own. */
+  await t.run(async (ctx) => {
+    await ctx.db.insert('linked_account_profiles', {
+      user_id: source.userId,
+      provider: 'discord',
+      name: 'Other Name',
+      image: null,
+      synced_at: 1000,
+    });
+    await ctx.db.insert('linked_account_profiles', {
+      user_id: source.userId,
+      provider: 'google',
+      name: 'Stale Google',
+      image: null,
+      synced_at: 1000,
+    });
+    await ctx.db.insert('linked_account_profiles', {
+      user_id: target.userId,
+      provider: 'google',
+      name: 'Kept Google',
+      image: null,
+      synced_at: 2000,
+    });
+  });
   const admin = t.withIdentity({ subject: `${target.userId}|${target.sessionId}` });
   const operationId = await admin.mutation(api.accounts.merge, {
     sourceUserId: source.userId,
@@ -92,6 +116,15 @@ test('admin merges drain multiple batches, preserve overlapping memberships, cre
   await t.run(async (ctx) => {
     expect((await ctx.db.get(operationId))?.state).toBe('completed');
     expect((await ctx.db.get(source.authId))?.userId).toBe(target.userId);
+    const reports = await ctx.db.query('linked_account_profiles').collect();
+    expect(
+      reports
+        .map((row) => ({ user: row.user_id, provider: row.provider, name: row.name }))
+        .sort((a, b) => a.provider.localeCompare(b.provider))
+    ).toEqual([
+      { user: target.userId, provider: 'discord', name: 'Other Name' },
+      { user: target.userId, provider: 'google', name: 'Kept Google' },
+    ]);
     expect(await ctx.db.get(source.sessionId)).toBeNull();
     expect((await ctx.db.get(source.profileId))?.merged_into_profile_id).toBe(target.profileId);
     for (const id of groups) {

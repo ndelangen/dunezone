@@ -12,7 +12,6 @@ type Listing = Doc<'publication_job_listings'>;
 type Fields = Omit<Listing, '_id' | '_creationTime'>;
 type Status = Job['status'];
 type Namespace = [Status, 'all'];
-type RetiredNamespace = [Status, 'type', string];
 type Key = [number, number, Id<'publication_jobs'>];
 
 const STATUS_ORDER = ['error', 'in_progress', 'pending'] as const;
@@ -58,7 +57,7 @@ export async function syncPublicationJobListing(ctx: MutationCtx, jobId: Id<'pub
   }
 }
 
-/* One order per status. Until November 2026 each job also had an entry per status and asset type, which nothing read. */
+/* One order per status; the `'all'` member stays because stored aggregate keys hold it. */
 function item(row: Listing) {
   return {
     namespace: [row.status, 'all'] as Namespace,
@@ -68,18 +67,6 @@ function item(row: Listing) {
 }
 
 type OrderItem = ReturnType<typeof item>;
-
-const retiredOrder = new DirectAggregate<{ Namespace: RetiredNamespace; Key: Key; Id: Id<'publication_job_listings'> }>(
-  components.publicationQueue
-);
-
-/** Drops a listing's retired per-type entries, under whichever status it held when they were written. */
-export async function dropRetiredOrderItems(ctx: MutationCtx, row: Listing) {
-  const { key, id } = item(row);
-  for (const status of STATUS_ORDER) {
-    await retiredOrder.deleteIfExists(ctx, { namespace: [status, 'type', row.asset_type], key, id });
-  }
-}
 
 async function syncOrderItem(ctx: MutationCtx, before: OrderItem | null, after: OrderItem | null) {
   if (canonicalJson(before) === canonicalJson(after)) {

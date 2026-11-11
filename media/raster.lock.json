@@ -8287,5 +8287,185 @@
     "format": "jpeg",
     "isOpaque": true,
     "color": "#e8d8b8"
+  },
+  "/web/tutorial/alliances-and-talking.jpg": {
+    "sha256": "f245d9db4715f0cf9ca3daba8d6a32b1bf0ae920f509424bd48296b8be4b229a",
+    "bytes": 69786,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/battle.jpg": {
+    "sha256": "9a978b226f311ff63c8cbc587e58806539a04ea0b842c4123d41224459778e34",
+    "bytes": 64220,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#483818"
+  },
+  "/web/tutorial/bidding.jpg": {
+    "sha256": "8b61547dbc16dc7ae7066d72b463ec56ea23971c1494927153bbcb601c872fc2",
+    "bytes": 65007,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/bring-your-own-pieces.jpg": {
+    "sha256": "a72a4ae6ec1ec25f9b4a2bfed1f37ddea6b5c02a280eaf6d368f6dc3b53b6fef",
+    "bytes": 56547,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/create/create-a-faction.jpg": {
+    "sha256": "afacfe44c79ad585de03807dd3a78ded923ac9577c603f4c68fed1c316d0d00d",
+    "bytes": 73903,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181818"
+  },
+  "/web/tutorial/decks-and-dealing.jpg": {
+    "sha256": "3d2c65cfbe4f2c09a705e33a9cdfde8813437b4c68d66d48fda33646cc43a104",
+    "bytes": 76979,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/draft-and-trade.jpg": {
+    "sha256": "c54ca08303b44e553787b4683801ef47ace032ace1642eb24915d119b1ce588e",
+    "bytes": 34690,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/ending-a-game.jpg": {
+    "sha256": "a64857e7ed8309adfffd8f338ed544a5a8fbe435d86365b4001e29ee80715b48",
+    "bytes": 67246,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/find-or-create.jpg": {
+    "sha256": "bc008c8500c6d58e1e66c91b6a06ae3d4c93f6686469beea8b0a04ec4c3d75bd",
+    "bytes": 34311,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181818"
+  },
+  "/web/tutorial/looking-around.jpg": {
+    "sha256": "82eba98785288af5b4be329e12e679982e5ca4b640ebc6488251bddbed89e233",
+    "bytes": 50097,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/moderation.jpg": {
+    "sha256": "1b4dc0a66b307cd3112f3420a794cb0476a5e0890c044e3d810a452fd27143b5",
+    "bytes": 73182,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181808"
+  },
+  "/web/tutorial/moving-pieces.jpg": {
+    "sha256": "3f94f1b110b861125e4dd433a62bf678405dfb481f70adf301383f61f54736f4",
+    "bytes": 67157,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/phases-and-turns.jpg": {
+    "sha256": "3d0b351c39436798fd5d24888257f56b9b666229850d3be9f85578a5e36bf07e",
+    "bytes": 55878,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/setup.jpg": {
+    "sha256": "a0b2224165c334e32cedcf9de36b1d649143ead8fe9aaa5e7ad19ba7b1ffd8fe",
+    "bytes": 65063,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/take-a-seat.jpg": {
+    "sha256": "edc47243ef8a00ad79ab59286a308b4b9ee3b4305dbc02f6ccb7457f5b1ea907",
+    "bytes": 55406,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/the-private-side-table.jpg": {
+    "sha256": "949ff3adf29700958af132ddb9784a1428bde9899c6c7aeb1e2760d03cd2379f",
+    "bytes": 67943,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/welcome.jpg": {
+    "sha256": "6f89544b988d8c34800f7b0d12c892fc74b6ad2b9b56e3b9276e4515581576a3",
+    "bytes": 50035,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/what-goes-where.jpg": {
+    "sha256": "a0761f1f3713bdf4aef933f0b0b38cbc5328f6f590a2518cadf3326199409ea3",
+    "bytes": 57900,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
+  },
+  "/web/tutorial/windows.jpg": {
+    "sha256": "f3cff5135de15fabbb2386b9bd874c39f4efa9db2267e024fce015ed8bb2a961",
+    "bytes": 59780,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#181808"
+  },
+  "/web/tutorial/your-hand-and-spice.jpg": {
+    "sha256": "8ba1865e94ef307796cf1c5b303ee78cd34f6a830b9c3bc39dbe41d7663922ad",
+    "bytes": 64305,
+    "width": 640,
+    "height": 400,
+    "format": "jpeg",
+    "isOpaque": true,
+    "color": "#080808"
   }
 }

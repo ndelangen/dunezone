@@ -80,14 +80,16 @@ export function profileLink(
 const absoluteUrl = (pathname: string) => new URL(pathname, PUBLIC_SITE_ORIGIN).href;
 
 /**
- * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, the member, or a blog post with its author and date.
- * Catalogues and other pages name no entity.
+ * What a page shows, for its structured data: the site itself on the homepage, a member's work with its creator, the member, a blog post with its author and date, a free web app such as a tool, or a collection page listing the pages it links to.
+ * Other catalogues and pages name no entity.
  */
 export type PublicPageEntity =
   | { type: 'site' }
   | { type: 'work'; author: PublicPageLink | null }
   | { type: 'person' }
-  | { type: 'article'; author: { name: string; pathname?: string }; published: string };
+  | { type: 'article'; author: { name: string; pathname?: string }; published: string }
+  | { type: 'app' }
+  | { type: 'collection'; items: readonly PublicPageLink[] };
 
 /**
  * The schema.org graph search engines read beside the visible page: the trail back to the homepage and what the page shows.
@@ -158,6 +160,43 @@ function structuredData({
         },
       });
       break;
+    case 'app':
+      /* A free tool in the browser: no account, no install, works on any device. */
+      graph.push({
+        '@type': 'WebApplication',
+        name,
+        url,
+        ...imageField,
+        ...(description ? { description } : {}),
+        applicationCategory: 'GameApplication',
+        operatingSystem: 'Any',
+        browserRequirements: 'Requires JavaScript',
+        isAccessibleForFree: true,
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+        publisher: { '@type': 'Organization', name: APP_TITLE, url: absoluteUrl('/') },
+      });
+      break;
+    case 'collection':
+      graph.push({
+        '@type': 'CollectionPage',
+        name,
+        url,
+        ...(description ? { description } : {}),
+        ...(entity.items.length
+          ? {
+              mainEntity: {
+                '@type': 'ItemList',
+                itemListElement: entity.items.map((item, index) => ({
+                  '@type': 'ListItem',
+                  position: index + 1,
+                  name: item.name,
+                  url: absoluteUrl(item.pathname),
+                })),
+              },
+            }
+          : {}),
+      });
+      break;
   }
   return graph.length ? { '@context': 'https://schema.org', '@graph': graph } : null;
 }
@@ -182,7 +221,8 @@ export function publicPageHead({
   description: string;
   image?: string | null;
   imageDetails?: { alt: string; type: string; width: number; height: number };
-  social?: { kind?: string; shape: SocialCardInput['shape'] };
+  /** The social card's kind line and art shape, and its own shorter text when the description reads too long beside a picture. */
+  social?: { kind?: string; shape: SocialCardInput['shape']; text?: string };
   /** The catalogue pages between the homepage and this one, for the breadcrumb trail. */
   trail?: readonly PublicPageLink[];
   entity?: PublicPageEntity;
@@ -198,7 +238,13 @@ export function publicPageHead({
     ? [lead, clipExcerpt(description, EXCERPT_LIMIT - Array.from(lead).length - 1)].filter(Boolean).join(' ')
     : description;
   const imagePath = social
-    ? socialCardHref({ name, description, image, kind: social.kind ?? kind ?? '', shape: social.shape })
+    ? socialCardHref({
+        name,
+        description: social.text ?? description,
+        image,
+        kind: social.kind ?? kind ?? '',
+        shape: social.shape,
+      })
     : image || bandPoster;
   const imageUrl = absoluteUrl(imagePath);
   const details = social

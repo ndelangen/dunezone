@@ -9,14 +9,22 @@ import { CREATOR_PARTS, CREATOR_TUTORIALS, creatorArt } from './creatorTutorials
 /* The Creating content tutorials, beside the Play chapters with the same tiles; each written tutorial lives below /create. */
 export const Route = createFileRoute('/_app/create/')({
   ssr: true,
-  head: () =>
+  loader: async () => ({
+    socialImage: (await import('../tutorial/socialImage')).tutorialSocialImage(creatorArt(CREATOR_TUTORIALS[0]!)),
+  }),
+  head: ({ loaderData }) =>
     publicPageHead({
       name: 'Learn to create custom Dune content',
       kind: 'Tutorials',
       pathname: '/create',
       description:
         'Tutorials for making your own homebrew content for the Dune board game: factions, cards, tokens, boards, Rulesets and Rulebooks.',
-      social: { kind: 'Tutorials', shape: 'portrait' },
+      image: loaderData?.socialImage,
+      social: {
+        kind: 'Tutorials · Creating content',
+        shape: 'landscape',
+        text: 'Interactive tutorials for making your own factions, cards, tokens, boards and Rulebooks.',
+      },
     }),
   component: CreatorTutorials,
 });
