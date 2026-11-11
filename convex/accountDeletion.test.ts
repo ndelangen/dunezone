@@ -604,7 +604,6 @@ describe('administrator account bans', () => {
       await ctx.db.patch(operationId, {
         phase: 'finalizing',
         ban_games_queued: true,
-        ban_accounts_queued: true,
         updated_at: verifiedAt,
       });
     });

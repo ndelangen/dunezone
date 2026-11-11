@@ -428,10 +428,6 @@ export const adminBan = mutation({
     await queueHomepageBanCutoff(ctx, operationId);
     await ctx.scheduler.runAfter(0, internal.accountDeletion.snapshotWorker, { operationId });
     await ctx.scheduler.runAfter(0, internal.playDeletion.queueBanGames, { operationId });
-    await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
-      operationId,
-      paginationOpts: { cursor: null, numItems: 32 },
-    });
     return { operationId };
   },
 });

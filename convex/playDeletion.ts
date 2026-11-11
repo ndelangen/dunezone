@@ -27,10 +27,6 @@ async function queueActorDeletion(
     )
     .unique();
   if (previous) {
-    if (banRetirement && !previous.ban_retirement) {
-      await ctx.db.patch(previous._id, { ban_retirement: true, state: 'pending', next_attempt_at: Date.now() });
-      await ctx.scheduler.runAfter(0, internal.playDeletion.deliver, { eventId: previous._id });
-    }
     return;
   }
   const eventId = await ctx.db.insert('play_account_deletions', {
@@ -62,23 +58,15 @@ async function queueDeletionPage(
   args: { operationId: Id<'account_deletion_operations'>; paginationOpts: PaginationOptions }
 ) {
   const operation = await ctx.db.get(args.operationId);
-  if (!operation || (operation.kind === 'ban' && operation.ban_accounts_queued)) {
+  if (!operation || operation.kind === 'ban') {
     return;
   }
   const page = await ctx.db
     .query('play_game_accounts')
     .withIndex('by_user_id', (q) => q.eq('user_id', operation.source_user_id))
-    .paginate(
-      operation.kind === 'ban' ? { cursor: operation.ban_accounts_cursor ?? null, numItems: 32 } : args.paginationOpts
-    );
+    .paginate(args.paginationOpts);
   for (const routing of page.page) {
     await queueGameDeletion(ctx, routing, operation);
-  }
-  if (operation.kind === 'ban') {
-    await ctx.db.patch(operation._id, {
-      ban_accounts_cursor: page.continueCursor,
-      ban_accounts_queued: page.isDone,
-    });
   }
   if (!page.isDone) {
     await ctx.scheduler.runAfter(0, internal.playDeletion.queueAccountDeletion, {
@@ -131,7 +119,7 @@ export const queueBanGames = internalMutation({
   },
 });
 
-/** Both persisted cursors can resume here after a failed fan-out; delivery retries remain in their existing queue. */
+/** Resume hosted-game retirement and wait for its delivery queue. */
 export const applyBanGamesBatch = internalMutation({
   args: { operationId: v.id('account_deletion_operations') },
   returns: v.union(v.object({ done: v.literal(true) }), v.object({ done: v.literal(false), retryAt: v.number() })),
@@ -140,14 +128,11 @@ export const applyBanGamesBatch = internalMutation({
     if (operation?.kind !== 'ban') {
       return { done: true as const };
     }
-    /* Convex permits one paginated query per execution, so recovery advances one fan-out at a time. */
     if (!operation.ban_games_queued) {
       await queueBanGamesPage(ctx, operation);
-    } else if (!operation.ban_accounts_queued) {
-      await queueDeletionPage(ctx, { operationId: operation._id, paginationOpts: { cursor: null, numItems: 32 } });
     }
     const updated = await ctx.db.get(operation._id);
-    if (updated?.ban_games_queued !== true || updated.ban_accounts_queued !== true) {
+    if (updated?.ban_games_queued !== true) {
       return { done: false as const, retryAt: Date.now() };
     }
     const pending = await ctx.db

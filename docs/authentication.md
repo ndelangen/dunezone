@@ -59,9 +59,9 @@ was already open retains its last account-status answer during a connection loss
 All directly owned Groups, factions, rulesets and assets follow the ownership choice, including
 already deleted records. Hosted games are always removed, even when other players are seated.
 Their addresses return the normal missing-game result, their rooms are retired, and their Discord
-channels enter the existing deletion queue. Participation in other games is scrubbed through the
-account-deletion delivery path. The admin page shows operation progress and offers Resume if a
-batch fails. Content cleanup waits for game retirement and participation acknowledgements; Discord
+channels enter the existing deletion queue. In games hosted by others, the account loses access
+while banned and can return after the ban is lifted. The admin page shows operation progress and offers Resume if a
+batch fails. Content cleanup waits for game retirement acknowledgements; Discord
 retries continue independently through the existing channel queue. The admin page reports pending
 Discord deletion separately from content completion, including after the ban is lifted. Once ownership
 is verified, the finalizer checks only the indexed game-delivery queue and waits until its next retry;

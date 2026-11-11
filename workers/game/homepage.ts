@@ -37,7 +37,7 @@ type Connection = {
   client?: string;
   userKey?: string;
   leaseUntil: number;
-  leaseIssuedAt?: number;
+  leaseIssuedAt: number;
   generation: number;
   messages: number;
   windowAt: number;
@@ -112,6 +112,10 @@ export class HomepageRoom extends DurableObject<GameEnv> {
         this.room = this.tableRoom(snapshot);
         for (const socket of ctx.getWebSockets()) {
           const connection: Connection = socket.deserializeAttachment();
+          if (!Number.isFinite(connection?.leaseIssuedAt)) {
+            socket.close(1012, 'Reconnect to the table.');
+            continue;
+          }
           connection.authenticating = false;
           connection.controlTokens ??= 8;
           connection.controlUpdatedAt ??= Date.now();
@@ -154,6 +158,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       },
       ...(visitor ? { client: visitor } : {}),
       leaseUntil: 0,
+      leaseIssuedAt: 0,
       generation: 0,
       messages: 0,
       windowAt: Date.now(),
@@ -287,7 +292,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     connection.generation++;
     connection.userKey = undefined;
     connection.leaseUntil = 0;
-    connection.leaseIssuedAt = undefined;
+    connection.leaseIssuedAt = 0;
     connection.viewer = { ...connection.viewer, viewerSeat: SPECTATOR_SEAT, avatarUrl: undefined };
     this.room.clearActivity(connection.viewer.connectionId);
     this.saveConnection(socket, connection);
@@ -342,7 +347,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
       if (
         connection.leaseUntil &&
         (connection.leaseUntil <= now ||
-          (connection.userKey && this.cutoffCovers(connection.userKey, connection.leaseIssuedAt ?? 0)))
+          (connection.userKey && this.cutoffCovers(connection.userKey, connection.leaseIssuedAt)))
       ) {
         this.makeAnonymous(socket, connection);
         changed = true;
@@ -469,7 +474,7 @@ export class HomepageRoom extends DurableObject<GameEnv> {
     this.cutoffExpiry = Math.min(this.cutoffExpiry, held.expiresAt);
     let changed = false;
     for (const [socket, connection] of this.connections) {
-      if (connection.userKey === cutoff.userKey && (connection.leaseIssuedAt ?? 0) <= cutoff.through) {
+      if (connection.userKey === cutoff.userKey && connection.leaseIssuedAt <= cutoff.through) {
         changed = this.makeAnonymous(socket, connection) || changed;
       }
     }

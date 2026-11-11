@@ -43,7 +43,11 @@ test('a banned session reads only its ban status and cannot change or unlink the
   await expect(owner.viewer.query(api.profiles.settings, {})).rejects.toThrow('You have been banned');
   await expect(owner.viewer.query(api.accounts.connectedMethods, {})).rejects.toThrow('You have been banned');
   await expect(
-    owner.viewer.query(api.accounts.adminPage, { paginationOpts: { cursor: null, numItems: 10 }, selectedUserIds: [] })
+    owner.viewer.query(api.accounts.adminPage, {
+      accountState: 'active',
+      paginationOpts: { cursor: null, numItems: 10 },
+      selectedUserIds: [],
+    })
   ).rejects.toThrow('You have been banned');
   await expect(owner.viewer.query(api.accountDeletion.page, { profileSlug: 'banned-account' })).rejects.toThrow(
     'You have been banned'

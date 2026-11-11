@@ -55,7 +55,7 @@ const operationValidator = docValidator('account_merge_operations');
 
 export const adminPage = adminQuery({
   args: {
-    accountState: v.optional(v.union(v.literal('active'), v.literal('banned'))),
+    accountState: v.union(v.literal('active'), v.literal('banned')),
     paginationOpts: paginationOptsValidator,
     failedPaginationOpts: v.optional(paginationOptsValidator),
     selectedUserIds: v.array(v.id('users')),
@@ -73,7 +73,7 @@ export const adminPage = adminQuery({
     const selected = await Promise.all(args.selectedUserIds.map((userId) => profileForAccount(ctx, userId)));
     const page = await ctx.db
       .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', args.accountState ?? 'active'))
+      .withIndex('by_account_state_username', (q) => q.eq('account_state', args.accountState))
       .paginate(args.paginationOpts);
     return {
       selected: await Promise.all(

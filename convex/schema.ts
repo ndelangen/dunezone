@@ -728,8 +728,6 @@ export default defineSchema({
     homepage_cutoff_at: v.optional(v.number()),
     ban_games_cursor: v.optional(v.union(v.string(), v.null())),
     ban_games_queued: v.optional(v.boolean()),
-    ban_accounts_queued: v.optional(v.boolean()),
-    ban_accounts_cursor: v.optional(v.union(v.string(), v.null())),
     source_user_id: v.id('users'),
     source_profile_id: v.id('profiles'),
     replacement_user_id: v.union(v.id('users'), v.null()),
