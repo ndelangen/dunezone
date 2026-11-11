@@ -162,7 +162,7 @@ describe('faction cards and board listings', () => {
       await ctx.db.patch(card!._id, { data: { ...card!.data, name: 'From the card' } });
       return card!._id;
     });
-    const names = async () => (await t.query(api.factions.cataloguePage, {})).factions.map((row) => row.data.name);
+    const names = async () => (await t.query(api.factions.catalogue, {})).cards.map((row) => row.data.name);
 
     expect(await names()).toEqual(['From the card']);
     await t.run(async (ctx) => {

@@ -20,6 +20,7 @@ type SavedTable = {
   centralHash: string;
   centralGeneration: number;
   centralInstanceId: string | null;
+  centralProtocol?: number;
   devices: Record<string, string>;
 };
 type Connection = {
@@ -28,11 +29,13 @@ type Connection = {
   deviceId?: string;
   role?: BiddingRole;
   pendingRole?: BiddingRole;
+  protocol?: number;
   tokens: number;
   updatedAt: number;
   openedAt: number;
 };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+const refreshPhone = 'Refresh this phone to use the updated bidding table.';
 const sameHash = (a: string, b: string) => timingSafeEqual(new TextEncoder().encode(a), new TextEncoder().encode(b));
 const hash = async (secret: string) =>
   [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret)))]
@@ -164,6 +167,8 @@ export class BiddingTable extends DurableObject<GameEnv> {
     }
     connection.pendingRole = frame.role;
     connection.deviceId = frame.device.id;
+    const protocol = frame.protocol ?? 1;
+    connection.protocol = protocol;
     socket.serializeAttachment(connection);
     const digest = await hash(frame.role === 'central' ? (frame.centralSecret ?? '') : frame.device.secret);
     if (this.connection(socket).closed) {
@@ -186,19 +191,30 @@ export class BiddingTable extends DurableObject<GameEnv> {
         if (
           !current ||
           generation < current.centralGeneration ||
-          (generation === current.centralGeneration && instance !== current.centralInstanceId)
+          (generation === current.centralGeneration &&
+            (instance !== current.centralInstanceId || protocol < (current.centralProtocol ?? 1)))
         ) {
           return false;
         }
-        if (generation > current.centralGeneration) {
-          const next = { ...current, centralGeneration: generation, centralInstanceId: instance };
+        if (generation > current.centralGeneration || protocol > (current.centralProtocol ?? 1)) {
+          const next = {
+            ...current,
+            centralGeneration: generation,
+            centralInstanceId: instance,
+            centralProtocol: protocol,
+          };
           await storage.put('table', next);
           this.saved = next;
         }
         return true;
       });
       const current = await this.ctx.storage.get<SavedTable>('table');
-      if (!accepted || current?.centralGeneration !== generation || current.centralInstanceId !== instance) {
+      if (
+        !accepted ||
+        current?.centralGeneration !== generation ||
+        current.centralInstanceId !== instance ||
+        (current.centralProtocol ?? 1) !== protocol
+      ) {
         this.close(socket, BIDDING_REPLACED, 'A newer central device already connected.');
         return;
       }
@@ -207,6 +223,9 @@ export class BiddingTable extends DurableObject<GameEnv> {
         const current = await storage.get<SavedTable>('table');
         if (!current) {
           return false;
+        }
+        if (protocol < (current.centralProtocol ?? 1)) {
+          return 'outdated';
         }
         const previous = current.devices[frame.device.id];
         if (previous && !sameHash(previous, digest)) {
@@ -225,6 +244,10 @@ export class BiddingTable extends DurableObject<GameEnv> {
         }
         return true;
       });
+      if (allowed === 'outdated') {
+        this.close(socket, BIDDING_REFUSED, refreshPhone);
+        return;
+      }
       if (!allowed) {
         this.close(socket, BIDDING_REFUSED, 'Remote access refused or table full.');
         return;
@@ -235,6 +258,14 @@ export class BiddingTable extends DurableObject<GameEnv> {
     }
     for (const other of this.sockets()) {
       const member = this.connection(other);
+      if (
+        frame.role === 'central' &&
+        (member.role ?? member.pendingRole) === 'remote' &&
+        (member.protocol ?? 1) < protocol
+      ) {
+        this.close(other, BIDDING_REFUSED, refreshPhone);
+        continue;
+      }
       if (
         other !== socket &&
         member.role === frame.role &&

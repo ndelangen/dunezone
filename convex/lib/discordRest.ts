@@ -72,11 +72,16 @@ export class DiscordRest {
   constructor(
     private readonly token: string,
     private readonly reason: string,
-    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> }
+    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> },
+    private readonly deadline?: number
   ) {}
 
   private async fetchResponse(method: string, path: string, body: unknown) {
     try {
+      const timeout = Math.min(15_000, this.deadline === undefined ? 15_000 : this.deadline - Date.now());
+      if (timeout <= 0) {
+        throw new DiscordFailure(0, undefined);
+      }
       return await fetch(`https://discord.com/api/v10${path}`, {
         method,
         headers: {
@@ -85,7 +90,7 @@ export class DiscordRest {
           ...(method === 'GET' ? {} : { 'X-Audit-Log-Reason': encodeURIComponent(this.reason) }),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(Math.ceil(timeout)),
       });
     } catch {
       throw new DiscordFailure(0, undefined);
@@ -146,6 +151,10 @@ export class DiscordRest {
       .object({ code: z.string().regex(/^[A-Za-z0-9-]+$/) })
       .parse(await this.request('POST', `/channels/${channelId}/invites`, { max_uses: 0, max_age: 0, unique: false }));
     return `https://discord.gg/${result.code}`;
+  }
+
+  async rename(channelId: string, name: string) {
+    await this.request('PATCH', `/channels/${channelId}`, { name });
   }
 
   /** The scheduler owns nudge retries so expiry and account linkage are checked before each POST. */

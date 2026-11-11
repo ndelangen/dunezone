@@ -10,6 +10,15 @@ const config = JSON.parse(
 ) as Record<string, unknown>;
 
 describe('scheduled production deployment shape', () => {
+  test('retains application diagnostics and platform issue detection without automatic request logs', () => {
+    expect(config.observability).toEqual({
+      enabled: true,
+      head_sampling_rate: 1,
+      logs: { enabled: true, invocation_logs: false },
+      issues: { enabled: true },
+    });
+  });
+
   test('keeps exactly one five-minute cron and no Renderer choice in Worker vars', () => {
     expect(config.triggers).toEqual({ crons: ['*/5 * * * *'] });
     expect(config.vars).toMatchObject({

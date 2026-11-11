@@ -6,7 +6,7 @@ import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
 
-test('profile list includes activity counts', async () => {
+test('the profile directory includes activity counts', async () => {
   const t = applicationTest();
   const ids = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -111,10 +111,10 @@ test('profile list includes activity counts', async () => {
     return { profileId, quietProfileId };
   });
 
-  const profiles = await t.query(api.profiles.list, {});
+  const profiles = (await t.query(api.profiles.catalogue, {})).entries;
 
   expect(profiles).toHaveLength(2);
-  expect(profiles.find((profile) => profile._id === ids.profileId)).toMatchObject({
+  expect(profiles.find((profile) => profile.id === ids.profileId)).toMatchObject({
     activity: {
       groupCount: 1,
       factionCount: 1,
@@ -122,7 +122,7 @@ test('profile list includes activity counts', async () => {
       answerCount: 1,
     },
   });
-  expect(profiles.find((profile) => profile._id === ids.quietProfileId)).toMatchObject({
+  expect(profiles.find((profile) => profile.id === ids.quietProfileId)).toMatchObject({
     activity: { groupCount: 0, factionCount: 0, questionCount: 0, answerCount: 0 },
   });
 });
@@ -182,7 +182,7 @@ test('profile detail returns the newest bounded FAQ activity', async () => {
   expect(profile.faqAnswers[199].answer).toBe('Answer 1');
 });
 
-test('the profile list and lookup by id skip deleted profiles, however many there are', async () => {
+test('the profile directory and lookup by id skip deleted profiles', async () => {
   const t = applicationTest();
   const { liveId, deletedId } = await t.run(async (rawCtx) => {
     const ctx = applicationTriggers.wrapDB(rawCtx);
@@ -203,7 +203,7 @@ test('the profile list and lookup by id skip deleted profiles, however many ther
     return { liveId: await profile(500, 'active'), deletedId: deletedId! };
   });
 
-  expect((await t.query(api.profiles.list, {})).map((entry) => entry._id)).toEqual([liveId]);
+  expect((await t.query(api.profiles.catalogue, {})).entries.map((entry) => entry.id)).toEqual([liveId]);
   await expect(t.query(api.profiles.getById, { id: deletedId })).rejects.toThrow('not found');
   await expect(t.query(api.profiles.getById, { id: liveId })).resolves.toMatchObject({ _id: liveId });
 });

@@ -16,7 +16,7 @@ export function FactionTokenFace({
   ...rest
 }: Readonly<{
   token: FactionToken;
-  size: number;
+  size: number | 'fill';
   style?: CSSProperties;
   ref?: Ref<HTMLDivElement>;
   /** A token whose faction no text beside it names is an image named after it, so a reader hears who it is. */

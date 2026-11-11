@@ -22,6 +22,7 @@ its acceptance evidence.
 | Auction, hands, corrections and phase progression | [Bidding tool: decide auction rules, hand counts and corrections](https://github.com/ndelangen/dunezone/issues/2838#issuecomment-6752912315) |
 | Authority, local restoration and phone promotion | [Bidding tool: decide table authority, access and recovery](https://github.com/ndelangen/dunezone/issues/2836#issuecomment-6753348442) |
 | Voice, phone, tablet and timer competition | [Bidding tool: agree mixed-input behavior](https://github.com/ndelangen/dunezone/issues/2840#issuecomment-6753627037) |
+| Manual moderator controller and explicit winners | [Bidding tool: deliver moderator phone controls](https://github.com/ndelangen/dunezone/issues/2886) |
 | Approved visual reference | [Bidding flow review at the approved revision](https://github.com/ndelangen/dunezone/tree/3a2d970c579/src/app/routes/_tool/tools/bidding-prototype) |
 | Browser and connection limits | [Bidding tool: establish browser and network capabilities](https://github.com/ndelangen/dunezone/issues/2837#issuecomment-6751836174) |
 | Local speech engine and device questions | [Bidding tool: establish offline voice capabilities](https://github.com/ndelangen/dunezone/issues/2844#issuecomment-6751854891) |
@@ -40,14 +41,14 @@ Always pass is a persistent choice; an ordinary Pass consumes only the current o
 
 | Flow | Required result |
 | --- | --- |
-| Set up | Choose a catalogue ruleset and factions, starting with the base six. Add, remove and reorder factions before bidding. Keep their circle fixed to the real seating arrangement. |
+| Set up | Choose a catalogue ruleset and factions, starting with the base six. Add, remove and reorder factions to match storm order in a separate setup step on the central device. Show the join QR and each faction's live phone connection beside the shared seating controls. Hand controls appear after setup. Finish setup opens the waiting table without starting an auction. Keep its circle fixed to the real seating arrangement. |
 | Join | Scan the central QR code or enter its short code, then choose a faction. A deliberate new claim replaces that faction's previous remote. |
-| Start a phase | Suggest one card for each non-full faction at that moment. Allow another count and freeze the chosen count for that phase. Select the first bidder by tapping a faction. |
+| Start a phase | Suggest one card for each non-full faction. Update that suggestion until the first auction starts, unless the table chooses another count. The central device changes the card count with the minus/value/plus control in either mirrored table bar before that first auction. The phase count is not part of table setup. The timer remains configurable before the first auction. An assigned remote or the tablet can select the first bidder by tapping a faction, then press Start new bid. Starting freezes the phase's card count. |
 | Bid | Accept a higher positive whole-spice amount from the current bidder. Bid, Pass and green +1 are separate controls. A raise clears ordinary passes; Always pass stays enabled. |
 | Win | When the other eligible factions have passed since the latest raise, record the winner and amount, add exactly one card and recalculate Full. Preserve the physical payment and peek reminders. |
 | Next card | Wait for Start new bid. Suggest the next non-full faction after the previous starter, wrapping in configured order. Let a player choose another starter. |
 | Reset | Abandon only the current card's auction. Keep setup, hands, Full, Always pass, completed wins and the chosen phase count. Wait for a new explicit start. |
-| Finish | End after the chosen cards, when all pass on an unbid card, or when nobody remains eligible. Show results. A later phase gets a fresh card-count suggestion. |
+| Finish | End after the chosen cards, when all pass on an unbid card, or when nobody remains eligible. Show results. Next phase is available on assigned remotes and the tablet. It keeps the table setup, hands and completed wins, refreshes the card-count suggestion and waits for another explicit Start new bid. |
 | Leave | Confirm leaving this device's table and removing its local recovery copy. Return to New table / Join table and clear the join URL. Other devices keep their copies. A stale tab must not erase a newer tab's recovery record. |
 
 Every faction starts with a hand limit of 4. Counts and limits accept manual corrections. Changing
@@ -74,6 +75,37 @@ Useful acceptance examples:
   payment, with the bank as the fallback when Emperor is absent. These inherited reminders do
   not implement arbitrary faction powers.
 
+## Moderator mode
+
+One phone can control every faction while players announce their bids to its holder. A phone
+chooses Moderator mode instead of a faction, or switches through Remote settings. Taking control
+replaces the previous moderator and releases that phone's faction assignment. The central tablet
+can always operate the same manual controls.
+
+| Control | Result |
+| --- | --- |
+| Back | Move the pointer back one faction in the configured order, wrapping at the beginning. Keep the bid. |
+| +1 | Raise the highest amount by one for the pointed faction. Keep the pointer in place. |
+| Pass | Move the pointer forward one faction. Keep the bid. |
+| Confirm winner | Award the card to the highest bidder exactly once, add one to their hand count, then wait for the next card. Returning to the highest bidder never awards automatically. |
+| Reset | Clear only this card's auction. Keep completed wins, hand counts and setup, then choose any faction with the existing starter tokens. |
+| End phase | End an unbid auction or waiting phase without recording a winner. A high bid must be confirmed or reset first. |
+
+Full, hand limits and Always pass do not restrict manual bidding or end the phase. The card-count
+suggestion uses every seated faction. Hand counts remain available for the table, and a confirmed
+win still adds one card. The moderator phone focuses on auction controls rather than hand editing.
+Timer passes and voice commands stop in this mode; other faction remotes cannot move the auction.
+
+Leaving or losing the moderator phone keeps the table manual. Another phone can take control,
+or the tablet can continue. Use player remotes switches back to automatic bidding only between
+auctions. Reload retains the moderator claim and pauses the table; recovery to a new central
+device retains manual mode, clears old phone claims, and waits for Resume and a fresh join code.
+
+Existing saved tables remain readable. New central devices use protocol 3 so older phones receive
+the existing refresh instruction instead of silently ignoring the extended snapshot. A new phone
+can still join an older central device for ordinary bidding; moderator entry appears only when
+the central snapshot supports it. No new service or subscription is required.
+
 ## Approved UI
 
 The standalone route has no application chrome. It reuses the existing kit and tool controls.
@@ -86,7 +118,9 @@ centre. Hand information shares each token's orientation, sits between token and
 large Dune lettering with a thick outline in the background colour. The pointer aims at the
 token's centre. Its centre shows the highest bidding faction and amount, with the timer when
 enabled. Full darkens the token and adds the black prohibition mark used by Dune Play. Faction
-names are optional and off by default.
+names are optional and off by default. Hand limits are optional and off by default; hiding them
+keeps the hand count visible and does not change the limit or Full behavior. Both display choices
+are available during setup and in the tablet menu.
 
 The top and bottom bars contain the same controls, with the top bar upside down. Sheets opened
 from either bar face that side of the table and attach to its edge. Phone actions and hand
@@ -98,7 +132,9 @@ Page composition stays in the route. Reuse `IconAction`, `LabeledAction`, `Contr
 `SortableItem`, `SortableReorderHandle`, `TouchSurface`, `SheetPopover` and the existing faction
 token rendering where their contracts fit. Follow the [UI design decisions](ui-design-decisions.md)
 and [component ownership](ui-component-hierarchy.md). A novel visual is not permission to add a
-second kit or export a one-page assembly as a widget.
+second kit or export a one-page assembly as a widget. Bidding and the Treachery tracker share
+`FactionSeating` for the setup list, reordering, removal and add control. Each route keeps its
+full faction data and owns its add chooser.
 
 ## Build ownership
 
@@ -128,6 +164,11 @@ Keep the central capability out of phone snapshots, QR links, URLs and logs. A c
 creation retries with another code. A replaced connection stops reconnecting and closes its direct
 channels. A displaced remote may choose its faction again deliberately, but does not reclaim it
 automatically.
+
+Join frames advertise a protocol version. An older phone connected to an updated central device
+receives a refresh message and closes its direct channel. The relay retains the central's required
+version while it is disconnected and across hibernation. Legacy tables keep working together, and
+updated phones can still join a legacy central device. Deploy the game Worker before the app.
 
 Parse and bound both relay and direct messages. Bound UTF-8 frame size, SDP, text, arrays and
 completed state before acceptance. A rejected size limit must not silently discard completed wins.

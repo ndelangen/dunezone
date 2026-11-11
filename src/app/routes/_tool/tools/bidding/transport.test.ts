@@ -1,4 +1,9 @@
-import { BIDDING_CODE_ALPHABET, BIDDING_REFUSED, BIDDING_REPLACED } from '@shared/tools/biddingTransport';
+import {
+  BIDDING_CODE_ALPHABET,
+  BIDDING_PROTOCOL_VERSION,
+  BIDDING_REFUSED,
+  BIDDING_REPLACED,
+} from '@shared/tools/biddingTransport';
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
 import { BiddingLink, createBiddingDevice, createBiddingTable } from './transport';
@@ -28,9 +33,9 @@ class Socket {
   close() {
     this.remoteClose(1000);
   }
-  remoteClose(code: number) {
+  remoteClose(code: number, reason = 'connection closed') {
     this.readyState = 3;
-    this.onclose?.({ code, reason: 'connection closed' });
+    this.onclose?.({ code, reason });
   }
 }
 class Channel {
@@ -126,6 +131,7 @@ test('keeps the direct path when the relay drops and never places credentials in
   const held = await linked();
   expect(held.socket.url.href).toBe('wss://dune.zone/__play/bidding/DUNE42/socket');
   expect(JSON.parse(held.socket.sent[0]!).device).toEqual(held.device);
+  expect(JSON.parse(held.socket.sent[0]!).protocol).toBe(BIDDING_PROTOCOL_VERSION);
   held.socket.remoteClose(1006);
   expect(held.link.state).toMatchObject({ relay: false, central: true, direct: ['central'] });
   expect(held.link.send('central', { commandId: 'bid-on-direct' })).toBe(true);
@@ -159,6 +165,16 @@ test.each([BIDDING_REPLACED, BIDDING_REFUSED])(
     expect(held.message).not.toHaveBeenCalled();
   }
 );
+
+test('reports a protocol refresh refusal and closes a previously healthy direct connection', async () => {
+  const held = await linked();
+  const reason = 'Refresh this phone to use the updated bidding table.';
+  held.socket.remoteClose(BIDDING_REFUSED, reason);
+  expect(held.link.state).toMatchObject({ status: 'refused', reason, direct: [] });
+  expect(held.channel.readyState).toBe('closed');
+  await vi.advanceTimersByTimeAsync(600_000);
+  expect(Socket.all).toHaveLength(1);
+});
 
 test('delivers a large copy only after every ordered chunk arrives and drops an incomplete copy', async () => {
   const held = await linked();

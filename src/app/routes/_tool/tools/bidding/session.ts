@@ -25,6 +25,7 @@ export type SessionOptions = Readonly<{
   identity: BiddingIdentity;
   auction: AuctionState;
   assignments?: Readonly<Record<string, string>>;
+  moderatorDeviceId?: string | null;
   revision?: number;
 }>;
 
@@ -98,7 +99,7 @@ export class BiddingSession {
   private readonly highWater = new Map<string, number>();
   private closed = false;
 
-  constructor({ identity, auction, assignments = {}, revision = 0 }: SessionOptions) {
+  constructor({ identity, auction, assignments = {}, moderatorDeviceId = null, revision = 0 }: SessionOptions) {
     const parsed = parseBiddingSnapshot({
       ...biddingIdentitySchema.parse({
         tableId: identity.tableId,
@@ -108,7 +109,8 @@ export class BiddingSession {
       }),
       version: 1,
       revision,
-      auction,
+      auction: { ...auction, controlMode: auction.controlMode ?? 'automatic' },
+      moderatorDeviceId,
       assignments: { ...assignments },
       commandSequences: {},
       revisions: initialBiddingRevisionStamps(auction, revision, assignments),
@@ -215,6 +217,7 @@ export class BiddingSession {
     let reason = '';
     let auction = this.snapshot.auction;
     let assignments = this.snapshot.assignments;
+    let moderatorDeviceId = this.snapshot.moderatorDeviceId ?? null;
     const action = command.action;
     const factionId = sender === CENTRAL_SENDER ? auction.turn : assignments[sender];
     if (command.opportunity !== auction.opportunity) {
@@ -234,17 +237,41 @@ export class BiddingSession {
     ) {
       reason = 'That faction assignment changed. Choose a faction again.';
     } else if (
-      action.type === 'configure' &&
+      (action.type === 'configure' || action.type === 'finish-setup') &&
       (this.snapshot.revisions.setup > command.revision ||
-        (action.seats !== undefined &&
+        (action.type === 'configure' &&
+          action.seats !== undefined &&
           Object.values(this.snapshot.revisions.hands).some((fields) =>
             Object.values(fields).some((revision) => revision > command.revision)
           )))
     ) {
       reason = 'Table setup or hand information changed. Check it before trying again.';
-    } else if (sender !== CENTRAL_SENDER && action.type !== 'assign' && !factionId) {
+    } else if (action.type === 'claim-moderator' && sender === CENTRAL_SENDER) {
+      reason = 'Use a phone to claim moderator controls.';
+    } else if (
+      action.type === 'release-moderator' &&
+      (moderatorDeviceId === null || (sender !== CENTRAL_SENDER && sender !== moderatorDeviceId))
+    ) {
+      reason = 'This phone does not hold moderator controls.';
+    } else if (
+      sender !== CENTRAL_SENDER &&
+      action.type !== 'assign' &&
+      action.type !== 'claim-moderator' &&
+      sender !== moderatorDeviceId &&
+      !factionId
+    ) {
       reason = 'Choose a faction before using this remote.';
-    } else if (sender !== CENTRAL_SENDER && (action.type === 'configure' || action.type === 'pause')) {
+    } else if (
+      auction.controlMode === 'manual' &&
+      sender !== CENTRAL_SENDER &&
+      sender !== moderatorDeviceId &&
+      !['assign', 'claim-moderator', 'edit-hand', 'edit-status'].includes(action.type)
+    ) {
+      reason = 'The moderator controls this auction.';
+    } else if (
+      sender !== CENTRAL_SENDER &&
+      (action.type === 'configure' || action.type === 'finish-setup' || action.type === 'pause')
+    ) {
       reason = 'Use the central device for this table setting.';
     } else if (
       sender !== CENTRAL_SENDER &&
@@ -272,12 +299,22 @@ export class BiddingSession {
         }
         accepted = true;
         reason = action.factionId === null ? 'The remote left its faction.' : 'The remote joined its faction.';
+        if (sender === moderatorDeviceId) {
+          moderatorDeviceId = null;
+          auction = applyAuctionAction(auction, { type: 'release-moderator' }).state;
+        }
       }
     } else {
       const decision = applyAuctionAction(auction, action);
       accepted = decision.accepted;
       reason = decision.reason;
       auction = decision.state;
+      if (accepted && action.type === 'claim-moderator') {
+        moderatorDeviceId = sender;
+        assignments = Object.fromEntries(Object.entries(assignments).filter(([device]) => device !== sender));
+      } else if (accepted && (action.type === 'release-moderator' || action.type === 'set-control-mode')) {
+        moderatorDeviceId = null;
+      }
       if (accepted && action.type === 'configure') {
         assignments = Object.fromEntries(
           Object.entries(assignments).filter(([, seat]) => auction.seats.some((candidate) => candidate.id === seat))
@@ -289,6 +326,7 @@ export class BiddingSession {
       ...this.snapshot,
       revision: this.snapshot.revision + 1,
       auction,
+      moderatorDeviceId,
       assignments,
       commandSequences: sequences,
       revisions: changedRevisions(this.snapshot, auction, assignments, accepted && action.type === 'configure'),

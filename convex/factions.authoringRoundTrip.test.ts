@@ -343,8 +343,8 @@ describe('faction authoring full-field round trip', () => {
         },
       ],
     });
-    await expect(t.query(api.factions.cataloguePage, {})).resolves.toMatchObject({
-      factions: [
+    await expect(t.query(api.factions.catalogue, {})).resolves.toMatchObject({
+      cards: [
         {
           data: {
             background: {

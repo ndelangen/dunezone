@@ -43,3 +43,26 @@ export const NotAuthorized = meta.story({
     await expectRefused(canvasElement, 'Admin access required', { role: 'button', name: 'Refresh' });
   },
 });
+
+export const FinishedGameWaitingForEmptyVoice = meta.story({
+  args: { path: '/admin/discord' },
+  parameters: voiceParameters(true, false, true),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByText('Hourly, when voice is empty')).resolves.toBeVisible();
+    const toggle = page.getByRole('switch', { name: 'Discord integration' });
+    await userEvent.click(toggle);
+    await waitFor(async () => {
+      await expect(toggle).not.toBeChecked();
+      await expect(page.getByRole('cell', { name: 'Paused' })).toBeVisible();
+      await expect(page.queryByText('Hourly, when voice is empty')).toBeNull();
+    });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    await userEvent.click(toggle);
+    await waitFor(async () => {
+      await expect(toggle).toBeChecked();
+      await expect(page.getByRole('cell', { name: 'Hourly, when voice is empty' })).toBeVisible();
+      await expect(page.queryByRole('cell', { name: 'Paused' })).toBeNull();
+    });
+  },
+});

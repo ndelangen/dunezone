@@ -67,7 +67,7 @@ The helper short-circuits when `CONVEX_SELF_HOSTED_ADMIN_KEY` is set to anything
 previous container, sails through provisioning and fails later as `BadAdminKey`, far from its cause.
 If you see that error and your key is set, suspect the key's provenance rather than the flow.
 
-## Manual compose ports need the site loopback profile
+## Manual compose ports need the loopback profile
 
 `app:dev --local` assigns each launch its own Compose project and host ports. Compose derives
 `CONVEX_CLOUD_ORIGIN` and `CONVEX_SITE_ORIGIN` from the mapped host ports unless explicit origin
@@ -84,11 +84,14 @@ CONVEX_SITE_PORT=3311
 CONVEX_DASHBOARD_PORT=6792
 ```
 
-The `worktree-local` profile starts a loopback proxy in the backend network namespace. OIDC
-discovery can then reach the mapped site origin on port 3311 and forward it to the internal listener
-on port 3211. The mapped site port cannot be 3210 because the proxy shares that namespace with the
-backend listener. A separate `COMPOSE_PROJECT_NAME` keeps the second stack's network and volume
-independent. The application launcher sets these values automatically. If you set explicit origins,
+The `worktree-local` profile starts loopback proxies in the backend network namespace. OIDC
+discovery reaches the mapped site origin on port 3311 and forwards it to the internal listener on
+3211. Node actions reach the mapped cloud origin on port 3310 and forward queries and mutations to
+3210. Without that cloud route, a Node action can start successfully but its first `ctx.runQuery`
+or `ctx.runMutation` fails with connection refused. Default ports 3210 and 3211 need no proxy.
+The mapped site port cannot be 3210, and the mapped cloud port cannot be 3211, because those listeners
+already belong to the backend. A separate `COMPOSE_PROJECT_NAME` keeps the second stack's network
+and volume independent. The application launcher sets these values automatically. If you set explicit origins,
 keep them aligned with the host ports too.
 
 ## `convex codegen` deploys

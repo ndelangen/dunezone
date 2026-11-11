@@ -127,6 +127,16 @@ function DiscordDashboard() {
 
 type DashboardResult = NonNullable<ReturnType<typeof useDiscordAdminPage>>;
 
+function cleanupLabel(channel: DashboardResult['channels']['page'][number], enabled: boolean) {
+  if (!channel.waiting_for_empty) {
+    return utcDateTime.format(channel.cleanup_at);
+  }
+  if (!enabled) {
+    return 'Paused';
+  }
+  return 'Hourly, when voice is empty';
+}
+
 type TrackedChannelsProps = {
   channels: DashboardResult['channels'];
   enabled: boolean;
@@ -219,7 +229,7 @@ function TrackedChannels({
                     <StatusBadge>{channel.state}</StatusBadge>
                   </Table.Td>
                   <Table.Td>{utcDateTime.format(channel.created_at)}</Table.Td>
-                  <Table.Td>{utcDateTime.format(channel.cleanup_at)}</Table.Td>
+                  <Table.Td>{cleanupLabel(channel, enabled)}</Table.Td>
                   <Table.Td>
                     <Text size="sm">{channel.error ?? 'None'}</Text>
                   </Table.Td>

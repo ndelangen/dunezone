@@ -2339,7 +2339,29 @@
         "tts-table.jpg"
       ],
       "/web/": ["homepage-social-play.jpg"],
-      "/web/homepage/": ["board.png", "cover.jpg", "factions.jpg", "map.jpg"]
+      "/web/homepage/": ["board.png", "cover.jpg", "factions.jpg", "map.jpg"],
+      "/web/tutorial/": [
+        "alliances-and-talking.jpg",
+        "battle.jpg",
+        "bidding.jpg",
+        "bring-your-own-pieces.jpg",
+        "decks-and-dealing.jpg",
+        "draft-and-trade.jpg",
+        "ending-a-game.jpg",
+        "find-or-create.jpg",
+        "looking-around.jpg",
+        "moderation.jpg",
+        "moving-pieces.jpg",
+        "phases-and-turns.jpg",
+        "setup.jpg",
+        "take-a-seat.jpg",
+        "the-private-side-table.jpg",
+        "welcome.jpg",
+        "what-goes-where.jpg",
+        "windows.jpg",
+        "your-hand-and-spice.jpg"
+      ],
+      "/web/tutorial/create/": ["create-a-faction.jpg"]
     },
     "mcdm-thumbnail": { "/web/blog/why-dune/": ["mcdm-plays-dune.jpg"] },
     "gf9-logo": { "/web/rulesets/": ["gf9-logo.png"] }
