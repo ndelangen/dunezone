@@ -12,7 +12,9 @@ export { BugReports } from './index';
 /** Counts the public vote projections and the roster reads they request. */
 function observeRemovalVotes() {
   const counts = { projections: 0, rosterReads: 0 };
+  // oxlint-disable-next-line typescript/unbound-method -- The probe forwards the original receiver and restores the method.
   const current = RemovalVotes.prototype.current;
+  // oxlint-disable-next-line typescript/unbound-method -- The probe forwards the original receiver and restores the method.
   const occupants = ActorDirectory.prototype.occupants;
   RemovalVotes.prototype.current = function () {
     counts.projections++;
