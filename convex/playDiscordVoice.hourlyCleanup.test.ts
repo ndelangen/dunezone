@@ -51,7 +51,7 @@ async function holdCompletedRename(world: Awaited<ReturnType<typeof voiceWorld>>
   expect(claimed).not.toBeNull();
   const claim = { channelId: row._id, lease: claimed.lease! };
   await world.t.mutation(internal.playDiscord.renamed, { ...claim, ended: true });
-  return claim;
+  return { claim, operation: claimed.retry.operation };
 }
 
 test('the hourly action uses one snapshot and deletes only an empty ended room', async () => {
@@ -155,7 +155,7 @@ test.each(
 
 test('a held reconcile lease cannot revive a channel confirmed missing', async () => {
   const { world, discord } = await endedWorld();
-  const claim = await holdCompletedRename(world);
+  const { claim, operation } = await holdCompletedRename(world);
   const channels = await world.t.run(voiceCandidates);
   await world.t.mutation(internal.playDiscordVoice.reportEmpty, {
     channels: [],
@@ -168,7 +168,7 @@ test('a held reconcile lease cannot revive a channel confirmed missing', async (
     ...claim,
     error: 'Delayed rename failed',
     retryAfterMs: 1000,
-    retryOperation: 'rename-ended',
+    operation,
   });
   await world.reconcile();
   const retired = (await world.channel())!;
@@ -181,12 +181,12 @@ test('a held reconcile lease cannot revive a channel confirmed missing', async (
 
 test('empty deletion requested under a held rename lease is not lost on release', async () => {
   const { world, discord } = await endedWorld();
-  const claim = await holdCompletedRename(world);
+  const { claim, operation } = await holdCompletedRename(world);
   const channels = await world.t.run(voiceCandidates);
   await world.t.mutation(internal.playDiscordVoice.reportEmpty, { channels, observedAt: Date.now() });
   await world.reconcile();
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
-  await world.t.mutation(internal.playDiscord.release, claim);
+  await world.t.mutation(internal.playDiscord.release, { ...claim, operation });
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });

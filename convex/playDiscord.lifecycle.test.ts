@@ -206,7 +206,11 @@ test('a finish arriving under a held lease remains due when that owner releases 
   await world.t.mutation(internal.playDiscord.renamed, { channelId: row._id, lease: claim.lease!, ended: false });
   await world.publish(2, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
-  await world.t.mutation(internal.playDiscord.release, { channelId: row._id, lease: claim.lease! });
+  await world.t.mutation(internal.playDiscord.release, {
+    channelId: row._id,
+    lease: claim.lease,
+    operation: claim.retry.operation,
+  });
 
   expect((await world.channel())!.next_attempt_at).toBeLessThanOrEqual(Date.now());
   await world.reconcile();
@@ -268,13 +272,13 @@ test('new activity before retirement preserves the room; committed retirement ca
   expect(await world.t.mutation(internal.playDiscord.work, args)).toMatchObject({ remove: true });
   await world.publish(2, world.summary());
   expect(await world.t.mutation(internal.playDiscord.beginDeletion, args)).toBe(false);
-  await world.t.mutation(internal.playDiscord.release, args);
+  await world.t.mutation(internal.playDiscord.release, { ...args, operation: claim.retry.operation });
   vi.setSystemTime(Date.now() + 14 * DISCORD_DAY);
   const next = (await world.t.mutation(internal.playDiscord.claim, { channelId: row._id }))!;
   const second = { channelId: row._id, lease: next.lease! };
   expect(await world.t.mutation(internal.playDiscord.beginDeletion, second)).toBe(true);
   await world.publish(3, world.summary());
-  await world.t.mutation(internal.playDiscord.release, second);
+  await world.t.mutation(internal.playDiscord.release, { ...second, operation: next.retry.operation });
   await world.reconcile();
   expect(await world.channel()).toMatchObject({ state: 'deleted' });
 });

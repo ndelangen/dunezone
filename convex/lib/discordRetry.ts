@@ -14,16 +14,6 @@ export const discordLifecycleOperation = v.union(
   v.literal('delete')
 );
 
-export const discordRetryOperation = v.union(
-  v.literal('categories'),
-  v.literal('recover'),
-  v.literal('create'),
-  v.literal('invite'),
-  v.literal('rename-ended'),
-  v.literal('rename-active'),
-  v.literal('delete')
-);
-
 export const discordRetryState = v.object({
   kind: v.literal('bounded'),
   operation: discordLifecycleOperation,

@@ -12,7 +12,7 @@ import {
   DISCORD_PARKED,
   discordLifecycleOperation,
   discordNeedsAttention,
-  discordRetryOperation,
+  discordRetryState,
 } from './lib/discordRetry';
 import { discordEnabled } from './lib/discordStatus';
 import { playCredential } from './lib/playAuthorization';
@@ -109,7 +109,7 @@ function inactivityRetiresParked(row: Doc<'play_game_discord_channels'>, game: D
 
 export const claim = internalMutation({
   args: reconcileArgs,
-  returns: v.union(v.null(), channelValidator),
+  returns: v.union(v.null(), v.object({ ...channelValidator.fields, lease: v.string(), retry: discordRetryState })),
   handler: async (ctx, { channelId }) => {
     let row = await ctx.db.get(channelId);
     if (!row || row.state === 'deleted' || (row.lease_until ?? 0) > Date.now()) {
@@ -389,10 +389,9 @@ const releaseArgs = v.object({
   retryAfterMs: v.optional(v.number()),
   retryAt: v.optional(v.number()),
   retryGlobal: v.optional(v.boolean()),
-  retryOperation: v.optional(discordRetryOperation),
   attempted: v.optional(v.boolean()),
   needsAttention: v.optional(v.boolean()),
-  operation: v.optional(discordLifecycleOperation),
+  operation: discordLifecycleOperation,
   paused: v.optional(v.boolean()),
 });
 
@@ -404,19 +403,6 @@ function retryBudget(row: Doc<'play_game_discord_channels'>, operation: Lifecycl
     return row.retry;
   }
   return { kind: 'bounded', operation, revision: row.work_revision ?? 0, attempts: 1, needsAttention: false };
-}
-
-function releasedOperation(
-  operation: LifecycleOperation | undefined,
-  request: Infer<typeof discordRetryOperation> | undefined
-) {
-  if (operation || !request) {
-    return operation;
-  }
-  if (request === 'rename-ended' || request === 'rename-active' || request === 'delete') {
-    return request;
-  }
-  return 'provision';
 }
 
 async function queueReleasedWork(
@@ -457,8 +443,7 @@ export const release = internalMutation({
     const providerUntil = (args.retryAfterMs ?? 0) > 0 ? (args.retryAt ?? Date.now() + args.retryAfterMs!) : 0;
     const retire = await retirementRequired(ctx, row, game);
     const remaining = operationForWork(row, game, retire);
-    const previousOperation = releasedOperation(args.operation, args.retryOperation);
-    const sameOperation = previousOperation === undefined || previousOperation === remaining;
+    const sameOperation = args.operation === remaining;
     const heldUntil = Math.max(row.retry_after ?? 0, globalUntil, changed && sameOperation ? providerUntil : 0);
     if (changed) {
       if (discordNeedsAttention(row)) {

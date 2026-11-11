@@ -292,12 +292,12 @@ test('three crashed owners exhaust work and their stale releases cannot restore 
   const discord = discordStub();
   const world = await voiceWorld();
   const channelId = (await world.channel())!._id;
-  const claims: Array<{ channelId: typeof channelId; lease: string }> = [];
+  const claims: Array<{ channelId: typeof channelId; lease: string; operation: 'provision' }> = [];
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const row = (await world.t.mutation(internal.playDiscord.claim, { channelId }))!;
     expect(row.lease).toEqual(expect.any(String));
     expect(row.retry).toMatchObject({ kind: 'bounded', operation: 'provision', attempts: attempt });
-    claims.push({ channelId, lease: row.lease! });
+    claims.push({ channelId, lease: row.lease, operation: 'provision' });
     vi.setSystemTime(row.lease_until! + 1);
   }
   expect(await world.t.mutation(internal.playDiscord.claim, { channelId })).toBeNull();
@@ -310,7 +310,6 @@ test('three crashed owners exhaust work and their stale releases cannot restore 
       ...claim,
       error: 'An expired worker failed after its successor.',
       retryAfterMs: 1000,
-      retryOperation: 'categories',
     });
   }
   expect(await world.channel()).toEqual(exhausted);
@@ -335,7 +334,7 @@ test('a stale lease cannot exhaust rename attempts after a game continues and fi
     channelId: row._id,
     lease: owner.lease!,
     error: 'The previous finish rename failed.',
-    retryOperation: 'rename-ended',
+    operation: owner.retry.operation,
   });
   await spendAutomaticAttempts(world);
   expect(world.attempts).toHaveLength(5);

@@ -97,7 +97,7 @@ test('a lease outlasts the default action runtime and fences its former owner af
   const stale = { channelId: row._id, lease: first.lease! };
   expect(await world.t.mutation(internal.playDiscord.work, stale)).toBeNull();
   expect(await world.t.mutation(internal.playDiscord.startCreation, { ...stale, categoryId: '200' })).toBe(false);
-  await world.t.mutation(internal.playDiscord.release, stale);
+  await world.t.mutation(internal.playDiscord.release, { ...stale, operation: first.retry.operation });
   expect((await world.channel())?.lease).toBe(replacement.lease);
 });
 
