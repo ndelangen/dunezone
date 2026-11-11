@@ -11,6 +11,7 @@ import {
   accepted,
   admitPlayer,
   eventually,
+  gameId,
   seat,
   sendCommand,
   storedEventMessages,
@@ -72,6 +73,35 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     vote: RemovalVote,
     choice: Extract<RemovalAction, { kind: 'removal-ballot' }>['choice']
   ) => accepted(player, { kind: 'removal-ballot', voteId: vote.id, choice });
+
+  it('builds public vote data once per broadcast and reads the roster only for open votes', async () => {
+    const [a, b, c] = await players(3);
+    const observer = await admit('observer');
+    const path = '/native-test/removal-vote-reads';
+    async function moveAndCount(seq: number) {
+      expect((await runtime.object(gameId, path, { method: 'POST' })).status).toBe(204);
+      a.send({ type: 'pointer', seq, position: [seq, 0, 0] });
+      await Promise.all(
+        [a, b, c, observer].map((player) =>
+          player.message('update', ({ activity }) =>
+            [...activity.pointers, ...activity.pointerMoves].some((pointer) => pointer.sourceSeq === seq)
+          )
+        )
+      );
+      return (await runtime.object(gameId, path)).json();
+    }
+
+    expect(await moveAndCount(1)).toEqual({ projections: 1, rosterReads: 0 });
+    const vote = await start(a, c);
+    expect(await moveAndCount(2)).toEqual({ projections: 1, rosterReads: 1 });
+    expect((await runtime.object(gameId, path, { method: 'POST' })).status).toBe(204);
+    const newcomer = await admit('newcomer');
+    expect((await newcomer.message('view')).snapshot.removalVotes).toEqual([vote]);
+    expect(await (await runtime.object(gameId, path)).json()).toEqual({ projections: 1, rosterReads: 1 });
+    expect(await moveAndCount(3)).toEqual({ projections: 1, rosterReads: 1 });
+    await ballot(b, vote, 'remove');
+    expect(await moveAndCount(4)).toEqual({ projections: 1, rosterReads: 0 });
+  });
 
   /* The smallest table, an even count that rounds the majority up, and a full table. */
   it.each([

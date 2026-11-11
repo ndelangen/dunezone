@@ -775,6 +775,7 @@ export class GameSession {
     const pointers = [...room.pointers.values()];
     const snapshots = new Map<string, RoomFrame['snapshot']>();
     let people: ReturnType<GameSession['people']> | undefined;
+    let removalVotes: ReturnType<RemovalVotes['current']> | undefined;
     const review = reviewableStage(room.snapshot.stage)
       ? {
           review: this.reviews.current(),
@@ -791,7 +792,7 @@ export class GameSession {
       if (!snapshot) {
         snapshot = {
           ...this.forViewer(this.projection.snapshot(room.snapshot, factionId), viewer, (people ??= this.people())),
-          ...(room.snapshot.stage ? { removalVotes: this.removal.current() } : {}),
+          ...(room.snapshot.stage ? { removalVotes: (removalVotes ??= this.removal.current()) } : {}),
           ...review,
         };
         snapshots.set(audience, snapshot);

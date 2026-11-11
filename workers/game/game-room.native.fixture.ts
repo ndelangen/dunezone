@@ -2,13 +2,47 @@ const realNow = Date.now;
 let clockOffset = 0;
 Date.now = () => realNow() + clockOffset;
 
+import { ActorDirectory } from './actors';
 import worker, { GameRoom as ProductionGameRoom } from './index';
+import { RemovalVotes } from './removal';
 
 /* Lets a runtime bind the real report coordinator beside the real room. */
 export { BugReports } from './index';
 
+/** Counts the public vote projections and the roster reads they request. */
+function observeRemovalVotes() {
+  const counts = { projections: 0, rosterReads: 0 };
+  // oxlint-disable-next-line typescript/unbound-method -- The probe forwards the original receiver and restores the method.
+  const current = RemovalVotes.prototype.current;
+  // oxlint-disable-next-line typescript/unbound-method -- The probe forwards the original receiver and restores the method.
+  const occupants = ActorDirectory.prototype.occupants;
+  RemovalVotes.prototype.current = function () {
+    counts.projections++;
+    ActorDirectory.prototype.occupants = function () {
+      counts.rosterReads++;
+      return occupants.call(this);
+    };
+    try {
+      return current.call(this);
+    } finally {
+      ActorDirectory.prototype.occupants = occupants;
+    }
+  };
+  return () => {
+    RemovalVotes.prototype.current = current;
+    return counts;
+  };
+}
+
 export class GameRoom extends ProductionGameRoom {
+  private finishRemovalVoteObservation?: ReturnType<typeof observeRemovalVotes>;
+
   override async fetch(request: Request): Promise<Response> {
+    if (new URL(request.url).pathname === '/native-test/removal-vote-reads') {
+      const counts = this.finishRemovalVoteObservation?.();
+      this.finishRemovalVoteObservation = request.method === 'POST' ? observeRemovalVotes() : undefined;
+      return counts ? Response.json(counts) : new Response(null, { status: 204 });
+    }
     if (new URL(request.url).pathname === '/native-test/audit') {
       return Response.json(this.ctx.storage.sql.exec('SELECT * FROM public_action_history').toArray());
     }
