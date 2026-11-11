@@ -4,4 +4,4 @@
  * Bump it in any change after which an older page could misread a message or send one the Worker now reads differently, even when every message still parses.
  * It lives in a module of its own, with no imports, so plain Node scripts such as scripts/verify-hosted-play.ts can read it.
  */
-export const PLAY_PROTOCOL_VERSION = 1;
+export const PLAY_PROTOCOL_VERSION = 2;

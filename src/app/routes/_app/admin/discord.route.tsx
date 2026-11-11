@@ -107,7 +107,6 @@ function DiscordDashboard() {
             error={deleteChannel.error}
             onDelete={(channelId) => deleteChannel.mutate({ channelId })}
           />
-          <NudgeDeliveryIssues issues={result.nudgeErrors} />
           <UntrackedChannels
             configured={result.configured}
             enabled={result.enabled}
@@ -272,55 +271,6 @@ function TrackedChannels({
             Next
           </LabeledAction>
         </Group>
-      </Section>
-    </Surface>
-  );
-}
-
-function NudgeDeliveryIssues({ issues }: { issues: DashboardResult['nudgeErrors'] }) {
-  return (
-    <Surface padding="lg">
-      <Section title="Recent nudge delivery issues">
-        {issues.length === 0 ? (
-          <EmptyNote>No recent delivery issues.</EmptyNote>
-        ) : (
-          <Table.ScrollContainer minWidth={700}>
-            <Table>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Time</Table.Th>
-                  <Table.Th>Game</Table.Th>
-                  <Table.Th>Seat</Table.Th>
-                  <Table.Th>State</Table.Th>
-                  <Table.Th>Error</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {issues.map((failure, index) => (
-                  <Table.Tr key={`${failure.at}-${index}`}>
-                    <Table.Td>{utcDateTime.format(failure.at)}</Table.Td>
-                    <Table.Td>
-                      {failure.gameSlug ? (
-                        <Anchor
-                          renderRoot={(props) => (
-                            <Link {...props} to="/play/$gameId" params={{ gameId: failure.gameSlug! }} />
-                          )}
-                        >
-                          {failure.gameName ?? failure.gameSlug}
-                        </Anchor>
-                      ) : (
-                        <Code>{failure.game_id}</Code>
-                      )}
-                    </Table.Td>
-                    <Table.Td>{failure.toSeat}</Table.Td>
-                    <Table.Td>{failure.state === 'sending' ? 'Sending (unconfirmed)' : failure.state}</Table.Td>
-                    <Table.Td>{failure.error ?? 'None'}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
       </Section>
     </Surface>
   );

@@ -1,7 +1,7 @@
 import { vi } from 'vite-plus/test';
 
-import type { PlayPublishNudgeRequest } from '../src/shared/play/nudges';
-import { api, internal } from './_generated/api';
+import type { PlaySendNudgeRequest } from '../src/shared/play/nudges';
+import { api } from './_generated/api';
 import { discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 export async function nudgeWorld() {
@@ -17,27 +17,34 @@ export async function nudgeWorld() {
   );
   const fetch = vi.fn(async (_url: string, _options?: RequestInit) => Response.json({ id: '987654321' }));
   vi.stubGlobal('fetch', fetch);
-  const request = (overrides: Partial<PlayPublishNudgeRequest> = {}): PlayPublishNudgeRequest => ({
+  const request = (overrides: Partial<PlaySendNudgeRequest> = {}): PlaySendNudgeRequest => ({
     gameId: world.gameId,
     secret: world.credentials.secret,
-    nudgeId: 'first-nudge',
+    fromSeat: 'seat-2',
+    fromUserId: world.spectator.userId,
     fromFactionId: 'atreides',
-    fromFactionName: 'Atreides',
     toSeat: 'seat-1',
     toUserId: world.identity.userId,
-    at: Date.now(),
     ...overrides,
   });
-  const publishNudge = (overrides: Partial<PlayPublishNudgeRequest> = {}) =>
-    world.t.mutation(api.playDiscordNudges.publishNudge, request(overrides));
-  const rows = () => world.t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(20));
-  const delivery = async () => {
-    const row = (await rows())[0];
-    if (!row) {
-      throw new Error('Expected an admitted nudge');
-    }
-    return { id: row._id, nudgeId: row.nudge_id };
-  };
-  const deliver = async () => world.t.action(internal.playDiscordNudgeActions.deliver, await delivery());
-  return { ...world, authAccountId, fetch, request, publishNudge, rows, delivery, deliver };
+  await world.publish(
+    2,
+    world.summary([world.identity.userId, world.spectator.userId], {
+      seats: [
+        {
+          seat: 'seat-1',
+          userId: world.identity.userId,
+          faction: { id: 'harkonnen', name: 'Harkonnen', color: 'red' },
+        },
+        {
+          seat: 'seat-2',
+          userId: world.spectator.userId,
+          faction: { id: 'atreides', name: 'Atreides', color: 'green' },
+        },
+      ],
+    })
+  );
+  const publishNudge = (overrides: Partial<PlaySendNudgeRequest> = {}) =>
+    world.t.action(api.playDiscordNudges.sendNudge, request(overrides));
+  return { ...world, authAccountId, fetch, request, publishNudge };
 }

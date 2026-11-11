@@ -18,6 +18,7 @@ export const DashboardWiring = meta.story({
     await expect(page.findByRole('heading', { name: 'Tracked channels' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.getByText('Game invites are shared. Individual Discord access is not tracked.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    await expect(page.queryByRole('heading', { name: 'Recent nudge delivery issues' })).not.toBeInTheDocument();
     await expect(page.getByRole('link', { name: '300 (opens in a new tab)' })).toHaveAttribute(
       'href',
       'https://discord.com/channels/100/300'
@@ -47,7 +48,7 @@ export const NotAuthorized = meta.story({
 
 export const FinishedGameWaitingForEmptyVoice = meta.story({
   args: { path: '/admin/discord' },
-  parameters: voiceParameters(true, false, true),
+  parameters: voiceParameters(true, true),
   play: async ({ canvasElement }) => {
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByText('Hourly, when voice is empty')).resolves.toBeVisible();

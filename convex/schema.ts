@@ -122,29 +122,6 @@ export default defineSchema({
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   play_discord_cooldown: defineTable({ blocked_until: v.number() }),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
-  play_game_discord_nudges: defineTable({
-    game_id: v.id('play_games'),
-    to_seat: v.string(),
-    nudge_id: v.string(),
-    from_faction_name: v.string(),
-    to_user_id: v.optional(v.id('users')),
-    auth_account_id: v.optional(v.id('authAccounts')),
-    at: v.number(),
-    state: v.union(
-      v.literal('pending'),
-      v.literal('sending'),
-      v.literal('sent'),
-      v.literal('failed'),
-      v.literal('uncertain'),
-      v.literal('dropped')
-    ),
-    attempts: v.number(),
-    error: v.optional(v.string()),
-    message_id: v.optional(v.string()),
-  })
-    .index('by_game_id_to_seat', ['game_id', 'to_seat'])
-    .index('by_state_at', ['state', 'at'])
-    .index('by_at', ['at']),
   play_game_discord_channels: defineTable({
     game_id: v.id('play_games'),
     guild_id: v.string(),

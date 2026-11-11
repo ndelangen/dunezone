@@ -19,6 +19,20 @@ export class GameRoom extends ProductionGameRoom {
     if (new URL(request.url).pathname === '/native-test/sweeping') {
       return Response.json({ sweeping: this.sweeping });
     }
+    if (new URL(request.url).pathname === '/native-test/socket-protocol' && request.method === 'POST') {
+      /* Models attachments saved by a different Worker release before hibernation. */
+      const protocol = new URL(request.url).searchParams.get('version');
+      for (const socket of this.ctx.getWebSockets()) {
+        const attachment = socket.deserializeAttachment() as Record<string, unknown>;
+        if (protocol === null) {
+          delete attachment.protocol;
+        } else {
+          attachment.protocol = Number(protocol);
+        }
+        socket.serializeAttachment(attachment);
+      }
+      return new Response(null, { status: 204 });
+    }
     if (new URL(request.url).pathname === '/native-test/forget-quiet' && request.method === 'POST') {
       /* Stands in for a restart while the sweep ran, which a forced eviction with a live timer cannot model. */
       this.ctx.storage.kv.delete('quiet');

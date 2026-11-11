@@ -33,15 +33,6 @@ const row = v.object({
   gameSlug: v.optional(v.string()),
   gameName: v.optional(v.string()),
 });
-const nudgeError = v.object({
-  game_id: v.id('play_games'),
-  gameSlug: v.optional(v.string()),
-  gameName: v.optional(v.string()),
-  toSeat: v.string(),
-  at: v.number(),
-  state: v.union(v.literal('failed'), v.literal('uncertain'), v.literal('sending')),
-  error: v.optional(v.string()),
-});
 const orphan = v.object({ id: v.string(), name: v.string(), parent_id: v.string(), guild_id: v.string() });
 const snowflake = z.string().regex(/^\d{1,20}$/);
 const discordChannel = z.object({
@@ -59,7 +50,6 @@ export const dashboard = adminQuery({
     configured: v.boolean(),
     enabled: v.boolean(),
     channels: paginationResultValidator(row),
-    nudgeErrors: v.array(nudgeError),
   }),
   handler: async (ctx, { paginationOpts }) => {
     if (paginationOpts.numItems < 1 || paginationOpts.numItems > 100) {
@@ -93,41 +83,10 @@ export const dashboard = adminQuery({
         };
       })
     );
-    const failed = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'failed'))
-      .order('desc')
-      .take(10);
-    const uncertain = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'uncertain'))
-      .order('desc')
-      .take(10);
-    const sending = await ctx.db
-      .query('play_game_discord_nudges')
-      .withIndex('by_state_at', (q) => q.eq('state', 'sending'))
-      .order('desc')
-      .take(10);
-    const latest = [...failed, ...uncertain, ...sending].sort((a, b) => b.at - a.at).slice(0, 10);
-    const nudgeErrors = await Promise.all(
-      latest.map(async ({ game_id, to_seat, at, state, error }) => {
-        const game = await getGame(game_id);
-        return {
-          game_id,
-          gameSlug: game?.slug,
-          gameName: game?.name,
-          toSeat: to_seat,
-          at,
-          state: state as 'failed' | 'uncertain' | 'sending',
-          error,
-        };
-      })
-    );
     return {
       configured: !!discordConfiguration(),
       enabled: await discordEnabled(ctx),
       channels: { ...channels, page },
-      nudgeErrors,
     };
   },
 });

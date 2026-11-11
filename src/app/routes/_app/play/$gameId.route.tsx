@@ -254,6 +254,7 @@ function TablePage({
         <Suspense fallback={loading}>
           <HostedTable
             voice={<DiscordVoiceAction menu={game.voice ?? null} />}
+            discordNudgesAvailable={Boolean(game.voice)}
             key={game.gameId}
             gameId={game.gameId}
             exitControl={exit}
