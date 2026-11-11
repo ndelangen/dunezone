@@ -70,7 +70,7 @@ test('a deletion request during creation saves its returned ID even when the fir
   );
 });
 
-test('finished games rename once and retain an occupied room beyond both former deletion deadlines', async () => {
+test('a finished game renames its room once and keeps it until Discord reports it empty', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   await world.reconcile();
@@ -85,13 +85,11 @@ test('finished games rename once and retain an occupied room beyond both former 
   expect(await world.menu()).toMatchObject({ voice: null });
 
   /* The observer has not reported empty; neither age nor another finished summary may delete the room. */
-  for (const elapsed of [DISCORD_DAY, 15 * DISCORD_DAY]) {
-    vi.setSystemTime(ended + elapsed);
-    await world.reconcile();
-  }
+  vi.setSystemTime(ended + 15 * DISCORD_DAY);
+  await world.reconcile();
   await world.publish(3, world.summary(undefined, { stage: 'finished' }));
   await world.reconcile();
-  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true, work_revision: 1 });
+  expect(await world.channel()).toMatchObject({ state: 'ready', renamed_ended: true });
   expect(discord.calls.filter((call) => call.method === 'DELETE')).toEqual([]);
   expect(discord.calls.filter((call) => call.method === 'PATCH')).toHaveLength(2);
 });

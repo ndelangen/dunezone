@@ -104,16 +104,23 @@ afterEach(() => {
 
 describe('Ban game cleanup', () => {
   test('closes hosted games for other players, requests Discord deletion, and retains games owned by others', async () => {
-    const { t, operationId, hostedIds, joinedIds, other, channelId } = await fixture();
+    const { t, operationId, hostedIds, joinedIds, source, other, channelId } = await fixture();
     await t.mutation(internal.playDeletion.queueBanGames, { operationId });
     const state = await t.run(async (ctx) => ({
       hosted: await ctx.db.get(hostedIds[0]!),
       joined: await ctx.db.get(joinedIds[0]!),
+      joinedPlayers: await ctx.db
+        .query('play_game_accounts')
+        .withIndex('by_game_id_user_id', (q) => q.eq('game_id', joinedIds[0]!))
+        .take(3),
       channel: await ctx.db.get(channelId!),
       events: await ctx.db.query('play_account_deletions').take(10),
     }));
     expect(state.hosted).toMatchObject({ state: 'expired', ban_operation_id: operationId });
     expect(state.joined?.state).toBe('ready');
+    expect(state.joinedPlayers.map(({ user_id }) => user_id)).toEqual(
+      expect.arrayContaining([source.userId, other.userId])
+    );
     expect(state.channel).toMatchObject({ state: 'deleting', ban_operation_id: operationId });
     expect(state.channel?.invite_url).toBeUndefined();
     expect(state.events).toHaveLength(1);
