@@ -34,6 +34,7 @@ import type {
   ClientMessage,
   CommitMessage,
   PingSound,
+  PublicPointer,
   ServerClock,
   ServerMessage,
   Viewer,
@@ -112,6 +113,7 @@ type Connection = {
   suspensions: number;
   everAuthorized: boolean;
   pointerSeq: number;
+  deferredPointer?: Extract<ClientMessage, { type: 'pointer' }>;
   /* When this connection last pinged, by the room's clock. */
   pingedAt: number;
   /* When this connection's last ping carried the rumble. */
@@ -141,11 +143,13 @@ type RememberedConnection = Pick<
   /* The room's activity epoch and revision when this socket last heard from it, so a woken room keeps the epoch and resends a state it moved on from. */
   epoch?: string;
   revision?: number;
+  pointerSeq?: number;
+  pointer?: Pick<PublicPointer, 'position' | 'updatedAt'>;
 };
 function openConnection(
   state: Pick<Connection, 'connectionId' | 'openedAt'> &
     Partial<Pick<Connection, 'client'>> &
-    Partial<Pick<Connection, Exclude<keyof RememberedConnection, 'epoch' | 'revision'> | 'everAuthorized'>>
+    Partial<Pick<Connection, Extract<keyof RememberedConnection, keyof Connection> | 'everAuthorized'>>
 ): Connection {
   return {
     admitting: false,
@@ -165,6 +169,11 @@ function openConnection(
 }
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+function isMovingPointer(
+  message: ClientMessage
+): message is Extract<ClientMessage, { type: 'pointer' }> & { position: PublicPointer['position'] } {
+  return message.type === 'pointer' && message.position !== null;
+}
 /* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
 const COMMAND_TIMINGS = 1024;
 /** Each connection's message buckets hold this many messages and refill at this rate. */
@@ -490,8 +499,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (!remembered) {
         continue;
       }
-      const { epoch, revision, ...connection } = remembered;
-      this.connections.set(socket, openConnection({ ...connection, everAuthorized: true }));
+      const { epoch, revision, pointer, ...rememberedConnection } = remembered;
+      const connection = openConnection({ ...rememberedConnection, everAuthorized: true });
+      this.connections.set(socket, connection);
+      this.restorePointer(socket, connection, pointer);
       if (this.session.ready && epoch) {
         this.session.resumeEpoch(epoch);
       }
@@ -508,6 +519,20 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Waking can move the game on by itself, as a trading deadline that passed while the room slept does. */
     for (const socket of behind) {
       this.sendView(socket, this.connections.get(socket)!);
+    }
+  }
+
+  /** Restores the hand only while its socket still holds the player's seat. */
+  private restorePointer(socket: WebSocket, connection: Connection, pointer: RememberedConnection['pointer']) {
+    if (!pointer || !this.session.ready) {
+      return;
+    }
+    if (connection.announced !== 'authorized' || !this.authorized(socket)) {
+      return;
+    }
+    const viewer = connection.viewer!;
+    if (viewer.viewerSeat !== SPECTATOR_SEAT) {
+      this.session.pointer(viewer, pointer.position, pointer.updatedAt, connection.pointerSeq);
     }
   }
 
@@ -542,26 +567,34 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Samples the pointer when the room can sleep. Admission updates can reuse the attachment during motion. */
+  private connectionAttachment(connection: Connection, includePointers: boolean): RememberedConnection {
+    const pointer = includePointers ? this.session.pointerFor(connection.connectionId) : undefined;
+    return {
+      connectionId: connection.connectionId,
+      openedAt: connection.openedAt,
+      protocol: connection.protocol,
+      /* A long avatar address would outgrow the attachment. The actor directory keeps it. */
+      viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
+      seatLimitReached: connection.seatLimitReached,
+      pass: connection.pass,
+      expiryAnnounced: connection.expiryAnnounced,
+      sessionId: connection.sessionId,
+      announced: connection.announced,
+      suspensions: connection.suspensions,
+      ...(includePointers && { pointerSeq: connection.pointerSeq }),
+      pointer: pointer && { position: pointer.position, updatedAt: pointer.updatedAt },
+      ...(this.session.ready ? { epoch: this.session.epoch, revision: this.session.revision } : {}),
+    };
+  }
+
   /* Writes each admitted connection's attachment when what it remembers changed. */
-  private remember() {
+  private remember(includePointers = !this.sweepTimer) {
     for (const [socket, connection] of this.connections) {
       if (!connection.everAuthorized) {
         continue;
       }
-      const remembered: RememberedConnection = {
-        connectionId: connection.connectionId,
-        openedAt: connection.openedAt,
-        protocol: connection.protocol,
-        /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
-        viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
-        seatLimitReached: connection.seatLimitReached,
-        pass: connection.pass,
-        expiryAnnounced: connection.expiryAnnounced,
-        sessionId: connection.sessionId,
-        announced: connection.announced,
-        suspensions: connection.suspensions,
-        ...(this.session.ready ? { epoch: this.session.epoch, revision: this.session.revision } : {}),
-      };
+      const remembered = this.connectionAttachment(connection, includePointers);
       const written = JSON.stringify(remembered);
       if (this.remembered.get(socket) === written) {
         continue;
@@ -1334,6 +1367,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     );
     const viewers = this.session.refreshViewers(connections.map((connection) => connection.viewer));
     connections.forEach((connection, index) => {
+      if (viewers[index]?.viewerSeat !== connection.viewer.viewerSeat) {
+        connection.deferredPointer = undefined;
+      }
       connection.viewer = viewers[index] ?? connection.viewer;
     });
     return this.session.revision !== revision;
@@ -1404,6 +1440,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (connection.announced !== 'suspended') {
       connection.announced = 'suspended';
       connection.suspensions++;
+      connection.deferredPointer = undefined;
       this.session.clearActivity(connection.connectionId);
       this.sendAdmission(socket, status);
       return connection.everAuthorized ? 'activity' : undefined;
@@ -1427,7 +1464,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * A network that died without a close frame leaves the page's old connection here, still holding its carry for up to 8 s and its pointer for up to 3 s.
+   * A network that died without a close frame can leave the old pointer visible until the socket closes or is replaced.
    * The reconnected page would see its own piece held by another player, so the old connection of the same user closes as soon as the new one is admitted.
    * Only the connection the page names is closed, so another live tab of the same player keeps its carry.
    * The admission that calls this sends every other viewer a frame, which carries the removed activity.
@@ -1520,7 +1557,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       return true;
     }
     if (message.type === 'pointer' || message.type === 'pose') {
-      this.receiveMotion(socket, connection, message);
+      if (this.receiveMotion(socket, connection, message)) {
+        this.motionReceived++;
+      }
       return true;
     }
     return false;
@@ -1543,13 +1582,14 @@ export class GameRoom extends DurableObject<GameEnv> {
     message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>
   ) {
     if (!this.session.ready || !this.authorized(socket)) {
-      return;
+      return false;
     }
     try {
       this.moveActivity(connection, message);
     } catch (error) {
       this.rejectMessage(socket, connection, message, error);
     }
+    return true;
   }
 
   /*
@@ -1672,24 +1712,41 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.commandTokens + (elapsed * COMMANDS_PER_SECOND) / 1000
     );
     connection.refilledAt = now;
-    /*
-     * The refill follows the room's clock, which stands still while the room runs code, so a busy room can see a steady mover's frames as a burst.
-     * Pointer and pose frames draw on their own bucket. When it runs dry they are dropped, since the next frame supersedes them, and only a second bucket's worth of dropped motion closes the socket.
-     */
-    if (message.type === 'pointer' || message.type === 'pose') {
-      connection.motionTokens--;
-      if (connection.motionTokens >= 0) {
-        return message;
-      }
-      if (connection.motionTokens > -RATE_BURST) {
-        this.motionDropped++;
-        return;
-      }
-    } else if (connection.tokens >= 1) {
+    if (isMovingPointer(message) || message.type === 'pose') {
+      return this.withinMotionBudget(socket, connection, message);
+    }
+    if (connection.tokens >= 1) {
       connection.tokens--;
       return this.withinCommandBudget(socket, connection, message);
     }
     this.refuseRate(socket);
+  }
+
+  /*
+   * The room's clock can bunch steady motion into a burst.
+   * Only a second bucket's worth of rate-limited motion closes the socket.
+   */
+  private withinMotionBudget(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>
+  ) {
+    connection.motionTokens--;
+    if (connection.motionTokens >= 0) {
+      return message;
+    }
+    if (connection.motionTokens <= -RATE_BURST) {
+      this.refuseRate(socket);
+      return;
+    }
+    this.motionDropped++;
+    if (connection.announced !== 'authorized' || !this.authorized(socket)) {
+      return;
+    }
+    /* Keep the latest deferred cursor so a hand that stops still parks at its final position. */
+    if (message.type === 'pointer' && message.seq > (connection.deferredPointer?.seq ?? connection.pointerSeq)) {
+      connection.deferredPointer = message;
+    }
   }
 
   /* Commands and nudges over budget are refused individually; the socket stays open. */
@@ -1927,14 +1984,12 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private moveActivity(connection: Connection, message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>) {
-    this.motionReceived++;
     const viewer = connection.viewer!;
     if (message.type === 'pointer') {
       if (message.seq <= connection.pointerSeq) {
         return;
       }
       connection.pointerSeq = message.seq;
-      /* A resend at the same position moves only updatedAt, which no page acts on, so no frame goes out for it. */
       if (!this.session.pointer(viewer, message.position, Date.now(), message.seq)) {
         return;
       }
@@ -2185,7 +2240,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * The sweep runs only while something here expires on its own: an admission, a carry or a pointer.
+   * The sweep runs only while an admission or a carry can expire.
    * A quiet room stops it, and the alarm covers the deadlines, so the room can hibernate while its
    * players think. Every message starts it again.
    */
@@ -2200,7 +2255,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       if (this.summary.due(Date.now())) {
         this.flushSummary('interval');
       }
-      if (this.needsSweep()) {
+      if (this.activityTimer !== undefined || this.needsSweep()) {
         return;
       }
       this.rest();
@@ -2210,6 +2265,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Saves what a hibernation would lose, then stops the sweep so the room may sleep. */
   private rest() {
     this.saveCarryHistory();
+    this.remember(true);
     if (this.summary.pending(this.counters())) {
       this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.counters()));
     }
@@ -2228,7 +2284,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private needsSweep() {
-    return this.session.hasActivity || [...this.connections.values()].some((connection) => !connection.everAuthorized);
+    return this.session.hasCarries || [...this.connections.values()].some((connection) => !connection.everAuthorized);
   }
 
   private counters() {
@@ -2289,6 +2345,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.expirePendingConnections();
     this.authorizationChanged();
     this.sweepActivity();
+    for (const [socket, connection] of this.connections) {
+      const pointer = connection.deferredPointer;
+      if (pointer) {
+        connection.deferredPointer = undefined;
+        this.receiveMotion(socket, connection, pointer);
+      }
+    }
   }
 
   override webSocketClose(socket: WebSocket) {

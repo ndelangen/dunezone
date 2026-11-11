@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test';
 
+import { PLAY_PROTOCOL_VERSION } from '../../src/shared/play/protocol';
 import { dealt, draftingRuntime } from './native-drafting.fixture.ts';
 import type { NativeConnection, NativePeer, NativeRuntime } from './native-runtime.fixture.ts';
 import {
@@ -7,13 +8,15 @@ import {
   createPeer,
   createRuntime,
   eventually,
+  fixturePass,
   isFullView,
+  openGame,
   provision,
   required,
   syncView,
 } from './native-runtime.fixture.ts';
 
-/* Moves the room's clock a minute on, past any pointer, and waits for its sweep to stop. Returns the new clock offset. */
+/* Moves the room's clock a minute on and waits for its sweep to stop. Returns the new clock offset. */
 async function quiet(runtime: NativeRuntime, offset: number) {
   const next = offset + 61_000;
   await runtime.clock(next);
@@ -61,17 +64,59 @@ describe('GameRoom hibernation', () => {
     15_000
   );
 
-  it('stops its sweep once nothing can expire, and starts it again for a pointer', async () => {
+  it('hibernates with a parked hand and gives its position to a rejoining player', async () => {
     const a = await admitPlayer(runtime, 'a');
+    const b = await admitPlayer(runtime, 'b');
     await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping');
     /* A quiet room sleeps at once: its unwritten summary waits in storage rather than keeping it awake. */
     expect(summaries()).toEqual([]);
-    a.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
-    await eventually(() => runtime.sweeping(), 'the sweep starting for the pointer');
-    await runtime.clock(3001);
-    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping once the pointer lapses');
+    const before = await syncView(a);
+    const previousConnection = (await syncView(b)).viewer.connectionId;
+    a.send({ type: 'pointer', seq: 1, position: [1, 0.38, 0] });
+    await b.message('update', (message) => message.activity.pointers.some((pointer) => pointer.position[0] === 1));
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping with a visible hand');
+    await runtime.clock(11_000);
+    await runtime.hibernateRoom();
+
+    const rejoined = await openGame(runtime);
+    rejoined.send({
+      type: 'admit',
+      protocol: PLAY_PROTOCOL_VERSION,
+      pass: await fixturePass('b'),
+      replaces: previousConnection,
+    });
+    const view = await rejoined.message('view');
+    expect(view.epoch).toBe(before.epoch);
+    expect(view.pointers).toEqual([
+      expect.objectContaining({ connectionId: before.viewer.connectionId, position: [1, 0.38, 0], sourceSeq: 1 }),
+    ]);
     expect(a.closed).toBe(false);
-  }, 15_000);
+
+    a.send({ type: 'pointer', seq: 0, position: null });
+    await syncView(a);
+    expect((await syncView(rejoined)).pointers).toHaveLength(1);
+    a.send({ type: 'pointer', seq: 2, position: [2, 0.38, 0] });
+    await rejoined.message('update', (message) =>
+      message.activity.pointerMoves.some((pointer) => pointer.position[0] === 2)
+    );
+    a.send({ type: 'pointer', seq: 3, position: null });
+    await rejoined.message('update', (message) =>
+      message.activity.removedPointers.includes(before.viewer.connectionId)
+    );
+
+    a.send({ type: 'pointer', seq: 4, position: [3, 0.38, 0] });
+    await rejoined.message('update', (message) =>
+      message.activity.pointers.some((pointer) => pointer.position[0] === 3)
+    );
+    await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping before disconnect');
+    await runtime.hibernateRoom();
+    const beforeClose = rejoined.messages.length;
+    a.socket.close(1000);
+    await eventually(
+      () => rejoined.messages.slice(beforeClose).find((message) => isFullView(message) && !message.pointers.length),
+      'the restored hand disappearing after its socket closes'
+    );
+  }, 20_000);
 
   it('writes the summary interval a hibernation interrupted, counting what came before it', async () => {
     const a = await admitPlayer(runtime, 'a');

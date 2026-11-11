@@ -181,11 +181,15 @@ export class GameSubscription {
       return false;
     }
     /* Putting a held piece back depends on no table state, so it is not held for a resync: the Worker would keep the piece in hand meanwhile. */
-    if (!this.ready && !isReadRequest(message) && message.type !== 'cancel') {
+    const clearsPointer = message.type === 'pointer' && message.position === null;
+    if (!this.ready && !isReadRequest(message) && message.type !== 'cancel' && !clearsPointer) {
       return false;
     }
     /* Motion can be replaced by a later sample; commands keep their ordering. */
-    if (['pose', 'pointer'].includes(message.type) && this.socket.bufferedAmount > 64 * 1024) {
+    if (
+      (message.type === 'pose' || (message.type === 'pointer' && !clearsPointer)) &&
+      this.socket.bufferedAmount > 64 * 1024
+    ) {
       return false;
     }
     this.socket.send(JSON.stringify(message));

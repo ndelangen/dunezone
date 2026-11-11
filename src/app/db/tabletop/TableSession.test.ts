@@ -555,6 +555,24 @@ function dropThroughResync(client: TableSession, sourceId: string) {
 }
 
 describe('hosted table admission', () => {
+  test('sends hand positions only on movement or leave', async () => {
+    const client = await connected();
+    const pointers = () => socket().sent.filter((message) => message.type === 'pointer');
+    client.publishPointer(null);
+    client.publishPointer([1, 0.38, 1]);
+    await vi.advanceTimersByTimeAsync(50);
+    client.publishPointer([1, 0.38, 1]);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(pointers().map((message) => message.position)).toEqual([[1, 0.38, 1]]);
+
+    client.publishPointer([2, 0.38, 1]);
+    await vi.advanceTimersByTimeAsync(50);
+    client.publishPointer(null);
+    client.publishPointer(null);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(pointers().map((message) => message.position)).toEqual([[1, 0.38, 1], [2, 0.38, 1], null]);
+  });
+
   test('clears cursor positions outside the table bounds before sending them', async () => {
     const client = await connected();
     client.publishPointer([1, 0.38, 1]);
@@ -1543,6 +1561,7 @@ describe('hosted table interaction', () => {
   test('hiding the page clears its pointer and cancels an unfinished carry', async () => {
     const client = await connected();
     client.publishPointer([0, 0.38, 0]);
+    await vi.advanceTimersByTimeAsync(50);
     client.beginGesture('harkonnen-force-stack', 'whole');
     for (const listener of hidden) {
       listener();
