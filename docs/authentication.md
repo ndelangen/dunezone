@@ -101,7 +101,13 @@ addressed to `SITE_URL`'s `/auth/steam` page, under five minutes old and signed 
 return address and nonce. It then asks Steam to confirm it with `check_authentication` and spends the
 nonce once (`steam_openid_nonces`). Steam is offered whenever `SITE_URL` is set. With the optional
 `STEAM_WEB_API_KEY`, new accounts take the player's public Steam name and avatar; without it they start
-unnamed. The key is a Convex environment variable and is never committed.
+unnamed. The key is a Convex environment variable and is never committed. Returning sign-ins keep the
+profile's chosen name. Use Resync in profile settings to refresh it from a linked provider.
+
+`steam_profile_lookups` keeps the latest sign-in lookup outcome and check time for each Steam identity.
+It distinguishes failed requests, missing profile fields, and complete results without storing request
+addresses or exception messages. A failed profile lookup does not prevent sign-in, and snapshots omit
+these diagnostic rows.
 
 The token issuer, signing keys, auth tables and Convex client URL remain unchanged.
 Existing sessions can refresh through the same backend. Keep each provider's old

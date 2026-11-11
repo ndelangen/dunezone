@@ -4,7 +4,8 @@
 #
 # One row for each of the shard's flows, and one for the protocol verifier where it runs, even
 # when the run stopped before reaching them. A flow the launcher stops at its budget still
-# writes a report, failed after its last check. Renderer and Chromium come from the report:
+# writes a report; the launcher adds a process failure if the child left it clean.
+# Renderer and Chromium come from the report:
 # the renderer kind its first table drew with, and the Chromium build that ran it. Play at is the
 # flow's seconds to Turn 1 from the report's milestones, blank for a flow that never reached it.
 # A failed flow's report names only the checks that passed, so its failing step is the source line
@@ -41,13 +42,8 @@ read -r -a flows <<< "$flow_list"
       echo "| $flow | did not run | | | | | | see the run step |"
       continue
     fi
-    report=''
-    for candidate in "$out/browser/$flow"-*/report.json; do
-      if [ -f "$candidate" ]; then
-        report="$candidate"
-      fi
-    done
-    if [ -z "$report" ]; then
+    report="$(sed -n 's/^REPORT //p' "$out/$flow.log" | tail -n 1)"
+    if [ -z "$report" ] || [ ! -f "$report" ]; then
       echo "| $flow | no report | | | | | | see $flow.log |"
       continue
     fi

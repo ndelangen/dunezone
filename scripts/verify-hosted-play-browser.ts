@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs, parseEnv } from 'node:util';
 
 import { ConvexHttpClient } from 'convex/browser';
@@ -2582,7 +2582,7 @@ try {
   }
   report.finishedAt = new Date().toISOString();
   await writeFile(new URL('report.json', directory), JSON.stringify(report, null, 2));
-  console.log(`REPORT ${new URL('report.json', directory).pathname}`);
+  console.log(`REPORT ${fileURLToPath(new URL('report.json', directory))}`);
 }
 
 export type HostedToolkit = {
