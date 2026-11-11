@@ -78,6 +78,13 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     const [a, b, c] = await players(3);
     const observer = await admit('observer');
     const vote = await start(a, c);
+    const opened = await observer.message(
+      'view',
+      ({ snapshot }) => snapshot.removalVotes?.some(({ id }) => id === vote.id) ?? false
+    );
+    expect(isFullView(opened)).toBe(false);
+    expect(opened.snapshot.removalVotes).toEqual([vote]);
+
     const newcomer = await admit('newcomer');
     const joined = await newcomer.message('view');
     expect(isFullView(joined)).toBe(true);
@@ -89,9 +96,10 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     expect(isFullView(existing)).toBe(false);
     expect(existing.snapshot.removalVotes).toEqual([vote]);
 
-    const resolved = await ballot(b, vote, 'remove');
-    for (const viewer of [a, observer, newcomer]) {
-      const view = await viewer.message('view', ({ snapshot }) => snapshot.revision === resolved.snapshot.revision);
+    const { reply } = await sendCommand(b, { kind: 'removal-ballot', voteId: vote.id, choice: 'remove' });
+    const revision = required(reply.type !== 'rejected' ? reply.snapshot : undefined).revision;
+    for (const viewer of [a, b, c, observer, newcomer]) {
+      const view = await viewer.message('view', ({ snapshot }) => snapshot.revision === revision);
       expect(view.snapshot.removalVotes).toEqual([]);
     }
   });
