@@ -6,7 +6,12 @@ import type { Doc, Id } from './_generated/dataModel';
 import { internalAction } from './_generated/server';
 import type { ActionCtx, MutationCtx, QueryCtx } from './_generated/server';
 import { adminQuery, internalMutation, mutation, viewerQuery } from './functions';
-import { accountStateOf, authenticatedLifecycleUser, lifecycleUserId } from './lib/accountLifecycle';
+import {
+  accountStateOf,
+  authenticatedLifecycleUser,
+  lifecycleUserId,
+  optionalActiveUserId,
+} from './lib/accountLifecycle';
 import { requireUnlockedAccount } from './lib/accountMethods';
 import { TOKEN_ASSET_TYPES } from './lib/assetBacks';
 import { revokeAccountSessions } from './lib/authSessionLifecycle';
@@ -222,6 +227,9 @@ export const page = viewerQuery({
         profile: { slug: profile.slug, username: profile.username },
         operation: operationProjection(operation),
       };
+    }
+    if (!(await optionalActiveUserId(ctx))) {
+      return { kind: 'denied' as const, reason: 'signed_out' as const };
     }
     const summary = await Promise.all(DIRECT_OWNERSHIP_KINDS.map(({ kind }) => ownedPresence(ctx, userId, kind)));
     return {

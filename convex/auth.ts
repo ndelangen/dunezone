@@ -5,7 +5,7 @@ import { Password } from '@convex-dev/auth/providers/Password';
 import { convexAuth } from '@convex-dev/auth/server';
 import { ConvexError } from 'convex/values';
 
-import { INACTIVE_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
+import { BANNED_ACCOUNT_SIGN_IN, INACTIVE_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
@@ -128,6 +128,9 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   callbacks: {
     async beforeSessionCreation(ctx, { userId }) {
       const user = await ctx.db.get(userId);
+      if (user?.account_state === 'banned') {
+        throw new ConvexError(BANNED_ACCOUNT_SIGN_IN);
+      }
       if (!user || accountStateOf(user) !== 'active') {
         /* A ConvexError keeps its words in production, so the browser can tell the reader why sign-in stopped. */
         throw new ConvexError(INACTIVE_ACCOUNT_SIGN_IN);

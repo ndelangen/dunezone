@@ -5,6 +5,7 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vite-plus/test';
 
+import { BANNED_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
 import { steamAssertionFrom, steamSignInUrl } from '../src/shared/steamOpenId';
 import { api } from './_generated/api';
 import { applicationTest } from './application.test.fixture';
@@ -184,7 +185,7 @@ describe('Steam sign-in', () => {
         provider: 'steam',
         params: steamAssertion({ 'openid.response_nonce': '2026-11-08T18:29:50Zdef456' }),
       })
-    ).rejects.toThrow();
+    ).rejects.toMatchObject({ data: BANNED_ACCOUNT_SIGN_IN });
     expect((await steamAccount(t))!.userId).toBe(first.userId);
     await t.run(async (ctx) => {
       expect(await ctx.db.query('users').collect()).toHaveLength(1);

@@ -71,3 +71,13 @@ export const LoginLastUsedMobile = meta.story({
     await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(window.innerWidth);
   },
 });
+
+export const LoginAfterBan = meta.story({
+  args: { path: '/auth/login?failed=banned' },
+  parameters: { identity: null },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    const alert = await page.findByRole('alert', {}, { timeout: 30_000 });
+    await expect(alert).toHaveTextContent('You have been banned');
+  },
+});

@@ -3,7 +3,7 @@ import { signInReturnFrom } from '@shared/authDestination';
 import { useRouter } from '@tanstack/react-router';
 import { useEffect } from 'react';
 
-import { refusedAsInactiveAccount, settleStartedSignIn } from '@db/accounts';
+import { settleStartedSignIn, signInFailureReason } from '@db/accounts';
 import { storedOAuthVerifierKey } from '@db/playTables';
 import type { SignInFailure } from '@app/routes/_app/auth/signInFailure';
 
@@ -18,10 +18,6 @@ function takePendingSignIn(): boolean {
   } catch {
     return false;
   }
-}
-
-function failureOf(error: unknown): SignInFailure {
-  return refusedAsInactiveAccount(error) ? 'inactive' : 'failed';
 }
 
 /** A connect page explains its own unfinished sign-in, so it keeps the reader instead of sending them to sign in. */
@@ -63,7 +59,7 @@ export function SignInCallback() {
       code,
     }).then(
       ({ signingIn }) => (signingIn ? settleStartedSignIn(!explainsItsOwnResult(url.pathname)) : fail('failed')),
-      (error: unknown) => fail(failureOf(error))
+      (error: unknown) => fail(signInFailureReason(error))
     );
   }, [signIn, router]);
   return null;

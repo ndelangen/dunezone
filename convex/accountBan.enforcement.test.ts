@@ -5,6 +5,7 @@ import { generateKeyPairSync } from 'node:crypto';
 
 import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 
+import { BANNED_ACCOUNT_SIGN_IN } from '../src/shared/authDestination';
 import { api, internal } from './_generated/api';
 import { account, setup, stubAuthEnvironment, restoreAuthEnvironment } from './authAccount.test.fixture';
 import { applicationTriggers } from './lib/applicationTriggers';
@@ -136,7 +137,9 @@ test.each(['google', 'discord'] as const)(
         signature,
       },
     });
-    await expect(t.action(api.auth.signIn, { params: { code }, verifier })).rejects.toThrow();
+    await expect(t.action(api.auth.signIn, { params: { code }, verifier })).rejects.toMatchObject({
+      data: BANNED_ACCOUNT_SIGN_IN,
+    });
     await t.run(async (ctx) => {
       expect(await ctx.db.query('users').collect()).toHaveLength(1);
       expect(await ctx.db.query('profiles').collect()).toHaveLength(1);

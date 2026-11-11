@@ -542,6 +542,9 @@ describe('administrator account bans', () => {
       ).not.toBeNull();
     });
     await asAdmin.mutation(api.accountDeletion.adminUnban, { sourceUserId: source.userId });
+    await expect(
+      t.withIdentity({ subject: source.subject }).query(api.accountDeletion.page, { profileSlug: 'ban-source' })
+    ).resolves.toEqual({ kind: 'denied', reason: 'signed_out' });
     await t.run(async (ctx) => {
       expect(await ctx.db.get(source.userId)).toMatchObject({ account_state: 'active' });
       expect(await ctx.db.get(source.userId)).not.toHaveProperty('banned_reason');
