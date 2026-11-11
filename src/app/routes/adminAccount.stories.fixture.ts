@@ -51,7 +51,6 @@ function seedBanOperation(baseline: StorybookDatabase, completed = false) {
     source_profile_id: ref('managed-profile'),
     replacement_user_id: null,
     ban_games_queued: completed,
-    ban_accounts_queued: completed,
     state: completed ? 'completed' : 'failed',
     phase: completed ? 'complete' : 'snapshotting',
     snapshot_kind: completed ? null : 'group',
