@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export type VerificationResult = {
@@ -49,8 +49,8 @@ function currentBrowserReport(logPath: string): string | undefined {
   if (!reportLine) {
     return undefined;
   }
-  const reportPath = path.resolve(reportLine.slice('REPORT '.length));
-  const reports = path.resolve(path.dirname(logPath), 'browser') + path.sep;
+  const reportPath = realpathSync(reportLine.slice('REPORT '.length));
+  const reports = realpathSync(path.resolve(path.dirname(logPath), 'browser')) + path.sep;
   if (!reportPath.startsWith(reports) || path.basename(reportPath) !== 'report.json') {
     throw new Error('The verifier reported a file outside its browser evidence.');
   }
