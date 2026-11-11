@@ -1,0 +1,48 @@
+/*
+ * Pinned to both screen edges: a fixed pane with no left of its own lands wherever its portal sits in the page.
+ * On a screen wider than a phone the sheet keeps the page's phone width, centred under it.
+ */
+.sheetInner {
+  left: 0;
+  right: 0;
+  justify-content: center;
+}
+
+/* A chooser on a phone: a sheet from the bottom, as wide as the screen, clear of the home indicator. */
+.sheet {
+  /* As tall as its chooser, up to most of the screen; Mantine has no size for "auto", so the height is set here. */
+  height: auto;
+  max-height: 85dvh;
+  max-width: 480px;
+  border-top-left-radius: var(--mantine-radius-lg);
+  border-top-right-radius: var(--mantine-radius-lg);
+  background: var(--ui-raised);
+  color: var(--ui-text);
+}
+
+.sheetBody {
+  padding-bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Held in one hand: a tap acts at once, without the browser's double-tap zoom or its grey flash. */
+.handHeld {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The close button's row, on the sheet's own colour, with the chooser right under it. */
+.sheetHeader {
+  justify-content: flex-end;
+  padding-block: var(--mantine-spacing-xs) 0;
+  background: transparent;
+}
+
+/* The sheet's name, for a screen reader only: the chooser under it already shows what the sheet is for. */
+.sheetTitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

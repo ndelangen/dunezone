@@ -36,6 +36,10 @@
       {
         "name": "BUG_REPORTS",
         "class_name": "BugReports"
+      },
+      {
+        "name": "BIDDING_TABLES",
+        "class_name": "BiddingTable"
       }
     ]
   },
@@ -51,6 +55,10 @@
     {
       "tag": "v3",
       "new_sqlite_classes": ["BugReports"]
+    },
+    {
+      "tag": "v4",
+      "new_sqlite_classes": ["BiddingTable"]
     }
   ],
   "r2_buckets": [{ "binding": "BUG_REPORT_STATES", "bucket_name": "dunezone-bug-report-states" }],

@@ -204,41 +204,6 @@ export const linkBySlug = publicQuery({
   },
 });
 
-const profileListEntryValidator = profileValidator.extend({
-  activity: v.object({
-    groupCount: v.number(),
-    factionCount: v.number(),
-    questionCount: v.number(),
-    answerCount: v.number(),
-  }),
-});
-
-/** The directory before `catalogue`; kept one release for bundles that still ask for it. */
-export const list = publicQuery({
-  args: {},
-  returns: v.array(profileListEntryValidator),
-  handler: async (ctx) => {
-    /* Read through the active range, so deleted and merged rows cannot use up the window and hide live profiles. */
-    const profiles = await ctx.db
-      .query('profiles')
-      .withIndex('by_account_state_username', (q) => q.eq('account_state', 'active'))
-      .take(500);
-    const activity = await loadProfileActivityCounts(
-      ctx,
-      profiles.map((profile) => profile.user_id)
-    );
-    return profiles.map((profile, index) => ({
-      ...profile,
-      activity: activity[index] ?? {
-        groupCount: 0,
-        factionCount: 0,
-        questionCount: 0,
-        answerCount: 0,
-      },
-    }));
-  },
-});
-
 const profileDirectoryEntryValidator = v.object({
   id: v.id('profiles'),
   slug: v.string(),
@@ -413,7 +378,6 @@ async function loadDirectorySearch(ctx: QueryCtx, args: CatalogueArgs, text: str
  * Only the page's own profiles and their activity counts are read, so a page costs the same however many profiles there are.
  * A search is the load-more search, best matches first up to `limit`;
  * without one the directory is browsed, in pages.
- * Replaces `list`, which stays for one release so a bundle still asking for it keeps working while this one deploys.
  */
 export const catalogue = publicQuery({
   args: {

@@ -438,6 +438,24 @@ async function moveAuthAccounts(ctx: MutationCtx, operation: Doc<'account_merge_
   return rows.length;
 }
 
+/** A sign-in method's last report follows the method: the kept account can resync from it without another sign-in. A report the kept account already holds for that provider wins. */
+async function moveLinkedAccountProfiles(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
+  const source = operation.source_user_id;
+  const target = operation.target_user_id;
+  const rows = await ctx.db
+    .query('linked_account_profiles')
+    .withIndex('by_user_id_and_provider', (q) => q.eq('user_id', source))
+    .take(BATCH);
+  for (const row of rows) {
+    const kept = await ctx.db
+      .query('linked_account_profiles')
+      .withIndex('by_user_id_and_provider', (q) => q.eq('user_id', target).eq('provider', row.provider))
+      .unique();
+    await (kept ? ctx.db.delete(row._id) : ctx.db.patch(row._id, { user_id: target }));
+  }
+  return rows.length;
+}
+
 async function revokeSourceSessions(ctx: MutationCtx, operation: Doc<'account_merge_operations'>) {
   const source = operation.source_user_id;
   const session = await ctx.db
@@ -489,6 +507,7 @@ const MERGE_BATCHES = [
   flattenProfileAliases,
   moveAuthAccounts,
   revokeSourceSessions,
+  moveLinkedAccountProfiles,
 ] as const;
 
 /** Every phase drains an indexed source range, so retries need no cursor and never repeat user-visible writes. */

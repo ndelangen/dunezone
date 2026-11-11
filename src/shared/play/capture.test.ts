@@ -45,7 +45,8 @@ describe('a faction sheet any viewer may read', () => {
     expect(Object.keys(sheet).sort()).toEqual(['background', 'emblem', 'leaders', 'rules']);
   });
 
-  it('leaves out the Treachery tracker rule, which only the room reads', () => {
+  /* Every player may see why one seat keeps a Treachery tracker, so the rule is part of the sheet. */
+  it('keeps the Treachery tracker rule', () => {
     const definition = factionCaptureSchema.shape.definition.parse({
       ...assetPublishingFaction,
       rules: { ...assetPublishingFaction.rules, treacheryTracker: true },
@@ -53,6 +54,6 @@ describe('a faction sheet any viewer may read', () => {
     const sheet = publicFaction({ definition } as FactionCapture);
 
     expect(definition.rules.treacheryTracker).toBe(true);
-    expect(sheet.rules).not.toHaveProperty('treacheryTracker');
+    expect(sheet.rules.treacheryTracker).toBe(true);
   });
 });

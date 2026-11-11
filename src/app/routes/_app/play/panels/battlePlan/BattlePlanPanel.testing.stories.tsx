@@ -10,7 +10,8 @@ import { battlePlanPanelMeta, PLAN_WINDOW, planArgs } from './BattlePlanPanel.st
 const meta = testingPreview.meta({
   ...battlePlanPanelMeta,
   title: 'Play/Panels/Battle plan',
-  parameters: { panelWindow: PLAN_WINDOW },
+  /* Keeps the frame's full-screen layout: centred, the frame collapses to no width and its clipping hides the adjustment popover. */
+  parameters: { ...battlePlanPanelMeta.parameters, panelWindow: PLAN_WINDOW },
 });
 
 /** A finished plan locks in with Ready. */
@@ -83,7 +84,9 @@ export const RollingStrength = meta.story({
     const stood = wheels();
     await expect(Number.isFinite(before)).toBe(true);
     await userEvent.click(canvas.getByRole('button', { name: /^Adjust the strength by hand/ }));
-    const more = await within(canvasElement.ownerDocument.body).findByRole('button', { name: 'More: Adjustment' });
+    const more = await waitForFrame(() =>
+      within(canvasElement.ownerDocument.body).getByRole('button', { name: 'More: Adjustment' })
+    );
     await userEvent.click(more);
     await userEvent.click(more);
     /* Two half steps up: the total reads one more at once, and the wheels roll away from where they stood. */

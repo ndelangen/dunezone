@@ -4,7 +4,7 @@ import { Pending } from '@ui/content/Pending';
 import { ControlBlock } from '@ui/control/ControlBlock';
 import { LabeledAction } from '@ui/control/LabeledAction';
 import { Check, ChevronsDown, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { useReplacementProfiles } from '@db/accountDeletion';
 import type { ReplacementProfile } from '@db/accountDeletion';
@@ -21,13 +21,30 @@ export interface ProfilePickerProps {
  * Only a co-member may take over the viewer's content (Norbert, 2026-11-07), so the copy says who is on offer rather than letting an empty list read as "nobody exists".
  */
 export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
-  const combobox = useCombobox();
+  /* No Dropdown is mounted, so "opened" changes nothing visually; it is what lets Enter choose the highlighted row, which Mantine gates on the dropdown state. */
+  const combobox = useCombobox({ defaultOpened: true });
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<ReplacementProfile['userId'] | ''>('');
   const picker = useReplacementProfiles(search.trim());
 
   const rowsById = useMemo(() => new Map(picker.data.map((profile) => [profile.userId, profile])), [picker.data]);
   const rows = picker.data;
+  /*
+   * Each search highlights its first row once that search's results are on screen, so Enter picks the best match.
+   * Not in onChange: the results arrive from the server afterwards, and highlighting then marks a row of the previous search.
+   * Keyed on the search rather than the rows, so loading more leaves the highlight where the reader moved it.
+   * Clearing the search clears the highlight, as before the reader typed.
+   * The methods are taken off the store, which is a fresh object every render.
+   */
+  const listed = picker.status === 'LoadingFirstPage' ? null : search;
+  const { selectFirstOption, resetSelectedOption } = combobox;
+  useEffect(() => {
+    if (listed) {
+      selectFirstOption();
+    } else if (listed === '') {
+      resetSelectedOption();
+    }
+  }, [selectFirstOption, resetSelectedOption, listed]);
   const selected = selectedUserId ? rowsById.get(selectedUserId) : undefined;
   /* Only an unsearched list speaks for everyone; a search that matches nobody keeps its field so the reader can change it. */
   const unsearched = search.trim() === '';
@@ -62,10 +79,7 @@ export function ProfilePicker({ onPick, onCancel }: ProfilePickerProps) {
                   name="profile-search"
                   autoComplete="off"
                   value={search}
-                  onChange={(event) => {
-                    setSearch(event.currentTarget.value);
-                    combobox.selectFirstOption();
-                  }}
+                  onChange={(event) => setSearch(event.currentTarget.value)}
                 />
               </Combobox.EventsTarget>
             )}

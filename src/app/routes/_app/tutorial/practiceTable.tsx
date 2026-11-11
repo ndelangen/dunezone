@@ -9,10 +9,10 @@ import type { ReactNode } from 'react';
 import { useArrakisBoard } from '@db/arrakis';
 import { readAssetSupply } from '@db/play';
 import { useCurrentProfile } from '@db/profiles';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
 
 import { CompassEpochContext } from '../play/compass/compassEpoch';
 import { RememberedContext } from '../play/compass/useRemembered';
-import { GameRuntimeContext } from '../play/multiplayer/gameRuntime';
 import HostedTable from '../play/multiplayer/HostedTable';
 import type { GameIdentity } from '../play/multiplayer/StageHeader';
 import type { TablePlayers } from './chapterScripts/chapterScript';

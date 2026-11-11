@@ -1,22 +1,18 @@
 import {
-  ClipboardList,
+  CircleGauge,
   Eye,
   Download,
   Gamepad2,
-  Hourglass,
+  Gavel,
   Image,
   Layers,
-  ListChecks,
   Lock,
-  MapPin,
   Percent,
   Printer,
   Scissors,
   ScrollText,
   Shuffle,
   Smartphone,
-  Sparkles,
-  Swords,
   Timer,
   Users,
 } from 'lucide-react';
@@ -26,7 +22,7 @@ import type { LucideIcon } from 'lucide-react';
  * The standalone tools at /tools: small helpers for a game of Dune at a real table.
  * Every tool is public, works signed out, is made for a phone first and follows the Ruleset the table plays.
  * Tools ship one at a time, like the tutorials: a tool not built shows as coming soon, and its address renders a placeholder that says what it will do.
- * The Treachery tracker is the first (#2795); its route adds itself here by setting `built`.
+ * The spice deck was the first built; each tool's route adds itself here by setting `built`.
  */
 
 export type ToolGroup = 'Before the game' | 'During the game' | 'Make and export';
@@ -45,6 +41,8 @@ export type Tool = Readonly<{
   icon: LucideIcon;
   /** The tile's picture, once the tool is built; until then the tile shows the tool's mark as a placeholder. */
   art?: string;
+  /** The same picture at twice the size, 1280 by 800, where a tool has one: the picture its links share, and the homepage's when it features the tool. */
+  largeArt?: string;
   group: ToolGroup;
   /** Three things the tool will do, shown on its placeholder page. */
   capabilities: readonly [ToolCapability, ToolCapability, ToolCapability];
@@ -57,7 +55,7 @@ export type Tool = Readonly<{
   built?: true;
 }>;
 
-export const TOOLS: readonly Tool[] = [
+const TOOL_ENTRIES = [
   {
     slug: 'faction-draft',
     title: 'Faction draft',
@@ -73,32 +71,21 @@ export const TOOLS: readonly Tool[] = [
     ],
   },
   {
-    slug: 'setup-checklist',
-    title: 'Setup checklist',
-    goal: 'Lay out the board for the factions in play, step by step',
+    slug: 'prediction-locket',
+    title: 'Prediction locket',
+    goal: 'Lock a secret prediction on a phone, with a time the table can trust',
     statement:
-      'Every starting force, spice pile, card and traitor for the factions at your table, in the order the Ruleset sets them up.',
-    icon: ClipboardList,
-    group: 'Before the game',
-    capabilities: [
-      { icon: ListChecks, title: 'Step by step', detail: 'Tick each step as the table does it.' },
-      { icon: MapPin, title: 'Where it goes', detail: 'Starting territories and forces.' },
-      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Custom factions set up too.' },
-    ],
-  },
-  {
-    slug: 'prediction-keeper',
-    title: 'Prediction keeper',
-    goal: 'Seal a secret prediction on a phone and reveal it at the end',
-    statement:
-      'The Bene Gesserit write their prediction at setup, seal it on the phone, and reveal it when the game ends: no slip of paper to lose.',
+      'Pick the faction and the turn, and lock it on your phone. At the reveal the table sees the prediction and when it was locked, by Dune Zone’s clock, not the phone’s.',
     icon: Lock,
+    art: '/tools/prediction-locket.webp',
+    largeArt: '/tools/prediction-locket-large.webp',
     group: 'Before the game',
     capabilities: [
-      { icon: Lock, title: 'Sealed', detail: 'Hidden until you reveal it.' },
-      { icon: Users, title: 'Faction and turn', detail: 'Pick the winner and the turn.' },
-      { icon: Eye, title: 'The reveal', detail: 'Shown to the table at the end.' },
+      { icon: Users, title: 'Faction and turn', detail: 'Any faction on Dune Zone, any turn.' },
+      { icon: Lock, title: 'Locked', detail: 'Hidden on your phone until you reveal it.' },
+      { icon: Timer, title: 'Trusted time', detail: 'Dune Zone’s clock, in your city’s time.' },
     ],
+    built: true,
   },
   {
     slug: 'atreides-treachery-tracker',
@@ -107,8 +94,10 @@ export const TOOLS: readonly Tool[] = [
     statement:
       'Track every Treachery card through bidding, hands and discards, so the Atreides, or anyone, knows what is left in the deck.',
     icon: Eye,
+    art: '/tools/atreides-treachery-tracker.webp',
     group: 'During the game',
     issue: 2795,
+    built: true,
     capabilities: [
       { icon: Eye, title: 'Every card', detail: 'Bought, played and discarded.' },
       { icon: Users, title: 'Every hand', detail: 'What each faction could be holding.' },
@@ -116,45 +105,55 @@ export const TOOLS: readonly Tool[] = [
     ],
   },
   {
-    slug: 'spice-deck-tracker',
-    title: 'Spice deck tracker',
-    goal: 'See which spice blows remain and the chance of Shai-Hulud',
+    slug: 'spice-deck',
+    title: 'Spice deck',
+    goal: 'Run the spice deck on a phone, instead of shuffling the cards',
     statement:
-      'Mark each spice card as it is drawn and see what is left, where spice can still blow, and how likely the worm is next.',
+      'Pick your ruleset’s spice deck and tap a spice pile to turn over its card. The phone shuffles, keeps the discard piles and says what Shai-Hulud devours.',
     icon: Layers,
+    art: '/tools/spice-deck.webp',
+    largeArt: '/tools/spice-deck-large.webp',
     group: 'During the game',
     capabilities: [
-      { icon: Layers, title: 'What is left', detail: 'Every card drawn and remaining.' },
+      { icon: Layers, title: 'Your deck', detail: 'The spice deck of any ruleset.' },
       { icon: Percent, title: 'The odds', detail: 'The chance of Shai-Hulud next.' },
-      { icon: MapPin, title: 'Where it blows', detail: 'Territories still to come.' },
+      { icon: Smartphone, title: 'At the table', detail: 'One phone, no cards to shuffle.' },
     ],
+    built: true,
   },
   {
-    slug: 'round-tracker',
-    title: 'Round tracker',
-    goal: 'Follow the turn and phase, with every faction ability that happens in it',
+    slug: 'battle-wheel',
+    title: 'Battle wheel',
+    goal: 'Dial a leader and troops, and see your dial and total strength',
     statement:
-      'Keep the turn and phase for the whole table, with a reminder of each faction ability that happens in the phase, so nothing is forgotten.',
-    icon: Hourglass,
+      'Pick your leader and dial your troops on a phone, and see the dial and your total strength, counted the way your Ruleset dials, for any faction on Dune Zone.',
+    icon: CircleGauge,
+    art: '/tools/battle-wheel.webp',
+    largeArt: '/tools/battle-wheel-large.webp',
     group: 'During the game',
     capabilities: [
-      { icon: Hourglass, title: 'Turn and phase', detail: 'Where the game is, at a glance.' },
-      { icon: Sparkles, title: 'Abilities', detail: 'What each faction can do now.' },
-      { icon: Timer, title: 'Bid timer', detail: 'Keep bidding moving.' },
+      { icon: Users, title: 'Any faction', detail: 'Its own leaders and troops.' },
+      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Spice and dialing as your Ruleset counts.' },
+      { icon: Smartphone, title: 'At the table', detail: 'One phone per player, no wheel to turn.' },
     ],
+    built: true,
   },
   {
-    slug: 'battle-calculator',
-    title: 'Battle calculator',
-    goal: 'Dial both battle plans and see who wins and what each side loses',
+    slug: 'bidding',
+    title: 'Bidding',
+    goal: 'Run Treachery auctions around the table and keep every hand count visible',
     statement:
-      'Set both battle plans, with leaders, dialled forces, spice and cards, and see who wins and what each side loses before you commit.',
-    icon: Swords,
+      "Place a tablet beside the board to show the bidder and each faction's hand count. Players can bid through phone remotes, voice or the tablet while cards and spice stay on the table.",
+    icon: Gavel,
+    art: '/tools/bidding.webp',
+    largeArt: '/tools/bidding-large.webp',
     group: 'During the game',
+    issue: 2835,
+    built: true,
     capabilities: [
-      { icon: Swords, title: 'Both plans', detail: 'Leaders, forces, spice and cards.' },
-      { icon: ListChecks, title: 'The outcome', detail: 'Who wins and every loss.' },
-      { icon: ScrollText, title: 'Ruleset-aware', detail: 'Faction combat rules included.' },
+      { icon: Users, title: 'Around the table', detail: 'Arrange faction tokens to match the seats.' },
+      { icon: Smartphone, title: 'Mixed controls', detail: 'Phone remotes, voice and tablet controls together.' },
+      { icon: Layers, title: 'Every hand', detail: 'Editable card counts, limits and Full status.' },
     ],
   },
   {
@@ -199,7 +198,18 @@ export const TOOLS: readonly Tool[] = [
       { icon: Printer, title: 'Home printer', detail: 'A4 or Letter, as a PDF.' },
     ],
   },
-];
+] as const satisfies readonly Tool[];
+
+/** A slug the registry knows, so a route naming a renamed or misspelt tool fails to compile. */
+export type ToolSlug = (typeof TOOL_ENTRIES)[number]['slug'];
+
+export const TOOLS: readonly Tool[] = TOOL_ENTRIES;
+
+/** Slugs a tool was renamed from, to the slug it has now: links and bookmarks to the old address keep working. */
+export const FORMER_TOOL_SLUGS: Readonly<Record<string, ToolSlug>> = {
+  'spice-deck-tracker': 'spice-deck',
+  'prediction-keeper': 'prediction-locket',
+};
 
 export function toolAt(slug: string): Tool | undefined {
   return TOOLS.find((tool) => tool.slug === slug);

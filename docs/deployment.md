@@ -184,9 +184,10 @@ Edition HTML/PDF delivery or its latest-ready resolver.
 The public `Asset Temporarily Unavailable` response stays generic. In Workers Logs, filter
 `event = asset_delivery_failure` and the faction's `assetId`, then narrow the incident time.
 Each event records `operation`, `reason`, `result`, the request method and `elapsedMs` for
-the failed operation. A valid `rayId` links the event to the request; Cloudflare's invocation
-metadata supplies the Worker version and request ID. Every emitted delivery-failure event uses
-a sampling rate of one.
+the failed operation. A valid `rayId` links the event to the request; Cloudflare enriches custom
+logs with Worker version and request ID metadata. Every emitted delivery-failure event uses
+a sampling rate of one. A failed HTTP response also emits a compact `publisher_request` event
+with the release identity and Ray ID.
 
 `r2_head` identifies a failed metadata read. `r2_get` identifies a failed object read or
 distinguishes `missing_object`, `missing_body` and `etag_mismatch` after metadata was found.
@@ -200,6 +201,31 @@ Cache failures use `cache_match`, `cache_range_match` or `cache_put`. Their `res
 failure that returns 503 has `result = unavailable`. Ordinary 404 responses for absent
 publications and successful requests emit no delivery-failure event. If the provider supplies
 no detailed cause, the operation and request correlation remain available for investigation.
+
+### Request log collection
+
+The publisher keeps every HTTP error and thrown handler exception. It also keeps responses whose
+runtime-clock elapsed time reaches one second. It samples other responses at 1%, including WebSocket upgrades. The
+`publisher_request` event records `reason`, `sampleRate`, `method`, `route`, `status`, `elapsedMs`,
+`rayId`, `gitSha` and `workerVersionId`. The route is an allowlisted family, never a raw path.
+An exception has no HTTP status because the handler did not return a response.
+Streams, WebSocket lifetimes and background work are not part of this duration.
+Cloudflare advances the deployed runtime clock only after I/O, so this threshold can miss CPU-only
+delays. Use Workers Metrics and CPU profiling for those delays. Local workerd clocks behave
+differently; see [Cloudflare's timing documentation](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+
+`observability.logs.invocation_logs` is false, while `head_sampling_rate` remains one. This removes
+verbose automatic request records without sampling away application diagnostics or publishing
+results. `observability.issues.enabled` keeps native failure detection enabled across deployments.
+Use [Workers Issues](https://developers.cloudflare.com/workers/observability/issues/investigate/)
+and Metrics for failed invocations that application code cannot catch, including resource limits.
+The compact request event does not preserve the automatic record's full metadata.
+
+To verify a rollout, compare equal observation windows on either side of the deployment. Count
+stored events and their bytes for this Worker, and divide both by Worker request counts to avoid
+confusing a traffic change with a logging reduction. Check that `publisher_request` samples and
+unsampled errors, slow requests and `asset_publisher_cron` results arrive. Record the observation
+window and sample size with the result; a short window is not a monthly billing forecast.
 
 ### Hosted gameplay
 
@@ -585,8 +611,11 @@ else who calls it directly.
 ## Pull-request Cloudflare drift guard
 
 `.github/workflows/cloudflare-live-drift.yml` compares production Cloudflare state
-with trusted `main` on every pull request. It uses `pull_request_target`, checks out
-only the base SHA, and never executes pull-request-authored code.
+with trusted `main` on every pull request. It runs on `pull_request`, because GitHub
+blocks `pull_request_target` in public repositories from 2 December 2026. It checks out
+the base branch, not the pull request head, so the audit script is always main's. A fork
+pull request gets no secrets, so its audit fails; open such a change from a branch in this
+repository instead.
 
 Configure `CLOUDFLARE_READ_API_TOKEN` with only:
 

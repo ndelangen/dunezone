@@ -15,7 +15,13 @@ import type { StoredSnapshot } from './state';
  * agree afresh before the phase moves on. The caller owns the transaction, the log rows and the
  * directory summary.
  */
-export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: ResultAction, now: number) {
+export function applyResult(
+  snapshot: StoredSnapshot,
+  viewer: Viewer,
+  action: ResultAction,
+  now: number,
+  seats: () => readonly string[]
+) {
   if (!snapshot.stage || viewer.viewerSeat === SPECTATOR_SEAT) {
     throw new GameRejection('Only current players in a real game can determine the winner.');
   }
@@ -29,7 +35,9 @@ export function applyResult(snapshot: StoredSnapshot, viewer: Viewer, action: Re
     case 'result-declare':
       return declare(snapshot, viewer, action, now);
     case 'result-continue':
-      return resume(snapshot);
+      return resume(snapshot, now);
+    case 'result-end':
+      return end(snapshot, by, seats(), now);
   }
 }
 
@@ -56,12 +64,42 @@ function declare(snapshot: StoredSnapshot, viewer: Viewer, action: Declaration, 
   });
 }
 
-function resume(snapshot: StoredSnapshot) {
+/*
+ * A player left alone at the table ends the game in any phase of play, with no winner and without Determine winner.
+ * Like a declaration it changes nothing on the table, so the game keeps its replay and can still continue.
+ */
+function end(snapshot: StoredSnapshot, by: Actor, seats: readonly string[], now: number) {
+  if (snapshot.stage !== 'play') {
+    throw new GameRejection('Only a game in play can be ended.');
+  }
+  if (seats.length !== 1 || seats[0] !== by.seat) {
+    throw new GameRejection('Only the last player at the table can end the game.');
+  }
+  return revised({
+    ...snapshot,
+    stage: 'finished',
+    ending: null,
+    result: { kind: 'none', factionIds: [], by, declaredAt: now },
+  });
+}
+
+/*
+ * A game can end with a bid or a battle countdown running, and their clocks stand still while it is finished:
+ * continuing moves each deadline on by the time the game spent finished, so every clock resumes with the time it had left.
+ */
+function resume(snapshot: StoredSnapshot, now: number) {
   if (snapshot.stage !== 'finished') {
     throw new GameRejection('Only a finished game can continue.');
   }
+  const stood = Math.max(0, now - (snapshot.result?.declaredAt ?? now));
+  const later = (deadline: number | null) => (deadline === null ? null : deadline + stood);
   const controls = snapshot.controls && { ...snapshot.controls, ready: [] };
-  return revised({ ...snapshot, stage: 'play', result: null, controls });
+  const bidding = snapshot.bidding && { ...snapshot.bidding, deadline: later(snapshot.bidding.deadline) };
+  const battleState = snapshot.battleState && {
+    ...snapshot.battleState,
+    deadline: later(snapshot.battleState.deadline),
+  };
+  return revised({ ...snapshot, stage: 'play', result: null, controls, bidding, battleState });
 }
 
 /** One winner, an alliance of two or more, or none; each named once and each seated at this table. */
@@ -104,4 +142,22 @@ function requireOpener(snapshot: StoredSnapshot, viewer: Viewer) {
   if (!snapshot.ending || snapshot.ending.by.userId !== viewer.userId) {
     throw new GameRejection('Only the player determining the winner can do that.');
   }
+}
+
+/*
+ * A recall pauses the table's clocks with it, so a timed bid or battle countdown resumes with the time it had left.
+ * A finished game's clocks already stand still until it continues, which moves them on by the whole time it stood finished,
+ * so a recall closing then moves nothing: shifting both would count the recall twice.
+ */
+export function clocksAfterRecall<Snapshot extends StoredSnapshot>(next: Snapshot, paused: number): Snapshot {
+  if (next.stage === 'finished') {
+    return next;
+  }
+  const battle = next.battleState;
+  const bidding = next.bidding;
+  return {
+    ...next,
+    ...(battle?.deadline ? { battleState: { ...battle, deadline: battle.deadline + paused } } : {}),
+    ...(bidding?.deadline ? { bidding: { ...bidding, deadline: bidding.deadline + paused } } : {}),
+  };
 }

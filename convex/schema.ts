@@ -97,6 +97,7 @@ export default defineSchema({
     minimum_players: v.optional(zodToConvex(tableSeatCountSchema)),
     /* The last turn the creator chose; absent on games created before the create page offered it. */
     last_turn: v.optional(zodToConvex(lastTurnSchema)),
+    discord_voice: v.optional(v.boolean()),
     creator_id: v.optional(v.id('users')),
     /* Merging ownership keeps the actor the Worker originally seated as creator. */
     creator_actor_id: v.optional(v.id('users')),
@@ -119,6 +120,40 @@ export default defineSchema({
   play_game_slug_reservations: defineTable({ slug: v.string() }).index('by_slug', ['slug']),
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
+  play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
+  play_game_discord_channels: defineTable({
+    game_id: v.id('play_games'),
+    guild_id: v.string(),
+    category_ids: v.array(v.string()),
+    channel_id: v.optional(v.string()),
+    invite_url: v.optional(v.string()),
+    state: v.union(
+      v.literal('pending'),
+      v.literal('creating'),
+      v.literal('ready'),
+      v.literal('deleting'),
+      v.literal('deleted')
+    ),
+    created_at: v.number(),
+    ended_at: v.optional(v.number()),
+    renamed_ended: v.optional(v.boolean()),
+    voice_checked_at: v.optional(v.number()),
+    work_revision: v.optional(v.number()),
+    lease_revision: v.optional(v.number()),
+    deleted_at: v.optional(v.number()),
+    deletion_requested_at: v.optional(v.number()),
+    cleanup_at: v.number(),
+    next_attempt_at: v.number(),
+    retry_after: v.optional(v.number()),
+    lease: v.optional(v.string()),
+    lease_until: v.optional(v.number()),
+    error: v.optional(v.string()),
+  })
+    .index('by_game_id', ['game_id'])
+    .index('by_channel_id', ['channel_id'])
+    .index('by_state_next_attempt_at', ['state', 'next_attempt_at'])
+    .index('by_state_renamed_ended_voice_checked_at', ['state', 'renamed_ended', 'voice_checked_at']),
   homepage_tickets: defineTable({
     digest: v.string(),
     user_id: v.id('users'),
@@ -320,7 +355,6 @@ export default defineSchema({
     data: v.any(),
   })
     .index('by_faction', ['faction_id'])
-    .index('by_deleted_created', ['is_deleted', 'faction_creation_time'])
     .index('by_owner_deleted_created', ['owner_id', 'is_deleted', 'faction_creation_time'])
     .index('by_group_deleted_created', ['group_id', 'is_deleted', 'faction_creation_time']),
   /**
@@ -631,6 +665,14 @@ export default defineSchema({
     'by_steam_id',
     ['steam_id']
   ),
+  /* The name and picture each connected sign-in method last reported, so a profile can take them again later without the provider's token. */
+  linked_account_profiles: defineTable({
+    user_id: v.id('users'),
+    provider: authProviderValidator,
+    name: v.union(v.string(), v.null()),
+    image: v.union(v.string(), v.null()),
+    synced_at: v.number(),
+  }).index('by_user_id_and_provider', ['user_id', 'provider']),
   account_connections: defineTable({
     digest: v.string(),
     user_id: v.id('users'),

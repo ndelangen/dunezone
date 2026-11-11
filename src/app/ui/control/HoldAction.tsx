@@ -7,7 +7,7 @@ import { IconAction } from './IconAction';
 import { useHoldToConfirm } from './useHoldToConfirm';
 
 /** What the hold does for good. Each verb only changes the words (and, for convert and publish, the glyph and colour); the five-second hold is the same. */
-type HoldVerb = 'delete' | 'remove' | 'sign out' | 'clear' | 'convert' | 'publish' | 'leave';
+type HoldVerb = 'delete' | 'remove' | 'sign out' | 'clear' | 'convert' | 'publish' | 'leave' | 'end';
 
 /** How the hold is drawn: a toolbar glyph, a full-width labelled button, or an item in a menu. */
 type HoldShape = 'icon' | 'button' | 'menu-item';
@@ -21,6 +21,7 @@ const WORDS: Record<HoldVerb, { noun: string; doing: string }> = {
   convert: { noun: 'conversion', doing: 'Converting' },
   publish: { noun: 'publishing', doing: 'Publishing' },
   leave: { noun: 'leaving', doing: 'Leaving' },
+  end: { noun: 'ending', doing: 'Ending' },
 };
 
 function defaultGlyph(verb: HoldVerb) {

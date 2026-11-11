@@ -328,6 +328,38 @@ describe('anonymiseExport', () => {
     expect([...entries.keys()].filter((path) => path.startsWith('_components/') || path === 'README.md')).toEqual([]);
   });
 
+  test('drops the Discord switch and private nudge delivery records', () => {
+    const { world, author, ruleset } = authorWorld();
+    world.add('play_games', {
+      name: 'Private game',
+      slug: 'private-game',
+      state: 'ready',
+      ruleset_id: ruleset,
+      creator_id: author,
+      secret: 'a'.repeat(64),
+      attempt_id: 'b'.repeat(64),
+      created_at: 1_700_000_000_000,
+      provision_expires_at: 1_700_000_060_000,
+    });
+    const authAccountId = world.add('authAccounts', {
+      userId: author,
+      provider: 'discord',
+      providerAccountId: '1234567890',
+    });
+    world.add('play_discord_settings', { enabled: false, updated_at: 1_700_000_000_000 });
+
+    const { entries, report } = anonymiseExport(world.entries());
+    for (const table of ['play_discord_settings']) {
+      expect(entries.has(`${table}/documents.jsonl`)).toBe(false);
+      expect(report.tables.find((entry) => entry.table === table)).toMatchObject({ rowsIn: 1, rowsOut: 0 });
+    }
+    const output = [...entries.values()].join('\n');
+    for (const value of [authAccountId]) {
+      expect(output).not.toContain(value);
+    }
+    expect(verifySnapshot(entries)).toEqual(manifestOf(entries));
+  });
+
   test('points user references at the placeholder owner and nulls references to dropped rows', () => {
     const { world, group } = authorWorld();
     const { entries } = anonymiseExport(world.entries());
@@ -638,6 +670,19 @@ describe('verifySnapshot', () => {
       'tables the snapshot policy does not classify:\n  - mystery',
     ]);
   });
+
+  test.each(['play_discord_settings'])(
+    'refuses a retained %s table even when the snapshot manifest includes it',
+    (table) => {
+      const { world } = authorWorld();
+      const { entries } = anonymiseExport(world.entries());
+      const tampered = withRows(entries, table, [{ _id: 'retained-discord-row' }]);
+
+      expect(refusal(() => verifySnapshot(tampered)).problems).toEqual([
+        `tables the snapshot policy drops:\n  - ${table}`,
+      ]);
+    }
+  );
 
   test('refuses a file whose rows differ from the counts in its manifest', () => {
     const { world } = authorWorld();

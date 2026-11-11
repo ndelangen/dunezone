@@ -22,6 +22,7 @@ import type { MutationCtx, QueryCtx } from './_generated/server';
 import { containerSummary } from './assets';
 import { internalMutation, mutation, viewerQuery } from './functions';
 import { assetDisplayName } from './lib/assetInput';
+import { discordEnabled } from './lib/discordStatus';
 import { currentPlaySession, livePlaySession } from './lib/playAuthorization';
 import { hasLocalPlayGameProfanity } from './lib/playGameNameChecks';
 import { checkPlayGameName, PLAY_NAME_CHECK_MODEL, playNameCheckSchema } from './lib/playGameNameProvider';
@@ -30,6 +31,7 @@ import { playCreateQuota, playNameCheckCapacity, playRateLimiter } from './lib/p
 import { atPlaySeatLimit } from './lib/playSeats';
 import { rulesetBoard, rulesetHasBoard } from './lib/rulesetBoard';
 import { rulesetFactionLinksByCreation } from './lib/rulesetFactionLinks';
+import { rulesetDeck } from './lib/rulesetSlots';
 
 /*
  * Real games: any active signed-in player may create and enter one. The lobby is unlisted rather
@@ -62,25 +64,15 @@ async function rulesetObjection(ctx: QueryCtx, rulesetId: Id<'rulesets'>, boardA
     ['treachery', 'treachery deck'],
     ['spice', 'spice deck'],
   ] as const) {
-    const deck = await requiredDeck(ctx, rulesetId, slot);
+    const deck = await rulesetDeck(ctx, rulesetId, slot);
     if (!deck) {
       return `No ${label} is linked.`;
     }
-    if (!(await deckHasMembers(ctx, deck))) {
+    if (!(await deckHasMembers(ctx, deck._id))) {
       return `The ${label} is empty.`;
     }
   }
   return null;
-}
-
-/* One slot row and one asset row per required deck, so a listing of two hundred rulesets stays within a query's reads. */
-async function requiredDeck(ctx: QueryCtx, rulesetId: Id<'rulesets'>, slot: 'treachery' | 'spice') {
-  const row = await ctx.db
-    .query('ruleset_asset_slots')
-    .withIndex('by_ruleset_slot', (q) => q.eq('ruleset_id', rulesetId).eq('slot', slot))
-    .first();
-  const asset = row ? await ctx.db.get(row.asset_id) : null;
-  return asset && !asset.is_deleted ? asset._id : null;
 }
 
 const RULESET_CHOICE_LIMIT = 200;
@@ -197,6 +189,7 @@ export const creatable = viewerQuery({
     v.object({ access: v.literal('unauthenticated') }),
     v.object({
       access: v.literal('allowed'),
+      discordVoiceAvailable: v.boolean(),
       rulesets: v.array(
         v.object({
           id: v.id('rulesets'),
@@ -229,7 +222,12 @@ export const creatable = viewerQuery({
       });
     }
     const chosen = rulesetId === undefined ? undefined : rows.find((row) => row._id === rulesetId);
-    return { access: 'allowed' as const, rulesets, preview: chosen ? await rulesetPreview(ctx, chosen._id) : null };
+    return {
+      access: 'allowed' as const,
+      discordVoiceAvailable: await discordEnabled(ctx),
+      rulesets,
+      preview: chosen ? await rulesetPreview(ctx, chosen._id) : null,
+    };
   },
 });
 
@@ -316,6 +314,7 @@ export const createGameWithName = action({
         rulesetId: args.rulesetId,
         minimumPlayers: args.minimumPlayers,
         lastTurn: args.lastTurn,
+        discordVoice: args.discordVoice,
         name: prepared.name,
         base: prepared.base,
         check,
@@ -431,6 +430,7 @@ export async function createAuthorizedGame(
       ruleset_id: eligible.rulesetId,
       minimum_players: args.minimumPlayers,
       last_turn: args.lastTurn,
+      discord_voice: args.discordVoice === true,
       creator_id: eligible.userId,
       name,
     },

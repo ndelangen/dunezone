@@ -58,6 +58,13 @@ describe('the omission note', () => {
     expect(note).toContain('Only the first 500 distinct cards are loaded');
   });
 
+  test('a single left-out copy or member reads in the singular', () => {
+    const one = { omittedCopies: 1, omittedMembers: 1, loadedMembers: 3 };
+    expect(omissionNote({ duplicated: true, cap: 200, serverTruncated: false, noun: 'cards', ...one })).toBe(
+      'Showing the first 200 copies; another 1 is not drawn, including 1 card not drawn at all. The each-once view shows every loaded card with its count.'
+    );
+  });
+
   test('the collapsed view never speaks of copies, only of the server page', () => {
     const note = omissionNote({
       duplicated: false,

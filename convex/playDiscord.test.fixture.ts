@@ -1,0 +1,125 @@
+import { vi } from 'vite-plus/test';
+
+import type { PlayDirectorySummary } from '../src/shared/play/directory';
+import { api, internal } from './_generated/api';
+import { playPerson, playRuleset, playTest } from './play.test.fixture';
+
+export function configureDiscord() {
+  vi.stubEnv('DISCORD_BOT_TOKEN', 'test-token');
+  vi.stubEnv('DISCORD_GUILD_ID', '100');
+  vi.stubEnv('DISCORD_GAMES_CATEGORY_IDS', '200,201');
+  vi.stubEnv('SITE_URL', 'https://dune.zone');
+  vi.stubEnv('PLAY_SERVICE_URL', 'https://dune.zone');
+}
+
+export function discordStub(channelIds = ['300']) {
+  let created = 0;
+  const calls: { method: string; path: string; body: unknown; headers: HeadersInit | undefined }[] = [];
+  const routes: Record<string, () => Response> = {
+    'GET /guilds/100/channels': () =>
+      Response.json([
+        { id: '200', type: 4 },
+        { id: '201', type: 4 },
+      ]),
+    'POST /guilds/100/channels': () => {
+      const id = channelIds[created++];
+      if (!id) {
+        throw new Error('The test created more Discord channels than expected.');
+      }
+      return Response.json({ id, type: 2, parent_id: '200' });
+    },
+  };
+  for (const [index, id] of channelIds.entries()) {
+    routes[`POST /channels/${id}/invites`] = () => Response.json({ code: index === 0 ? 'shared-room' : `room-${id}` });
+    routes[`DELETE /channels/${id}`] = () => Response.json({ id });
+    routes[`PATCH /channels/${id}`] = () => Response.json({ id, type: 2, parent_id: '200' });
+  }
+  const fetch = vi.fn(async (input: string | URL | Request, options?: RequestInit): Promise<Response> => {
+    const url = input instanceof Request ? input.url : String(input);
+    const path = url.replace('https://discord.com/api/v10', '');
+    const method = options?.method ?? 'GET';
+    const body: unknown = typeof options?.body === 'string' ? JSON.parse(options.body) : null;
+    calls.push({ method, path, body, headers: options?.headers });
+    const route = routes[`${method} ${path}`];
+    if (!route) {
+      throw new Error(`Unexpected Discord request: ${method} ${path}`);
+    }
+    return route();
+  });
+  vi.stubGlobal('fetch', fetch);
+  return { fetch, calls };
+}
+
+export async function voiceWorld({ fixture = false, discordVoice = true } = {}) {
+  const t = playTest();
+  const seeded = await t.run(async (ctx) => {
+    const player = await playPerson(ctx, 'Player');
+    const spectator = await playPerson(ctx, 'Spectator');
+    const rulesetId = await playRuleset(ctx, player.userId);
+    const gameId = await ctx.db.insert('play_games', {
+      name: 'Quiet Sietch',
+      slug: 'quiet-sietch',
+      state: 'pending',
+      ruleset_id: rulesetId,
+      minimum_players: 4,
+      discord_voice: discordVoice,
+      creator_id: player.userId,
+      secret: 'a'.repeat(64),
+      attempt_id: 'b'.repeat(64),
+      created_at: Date.now(),
+      provision_expires_at: Date.now() + 60_000,
+      ...(fixture ? { fixture_key: 'fixture' } : {}),
+    });
+    return { player, spectator, gameId };
+  });
+  const credentials = { gameId: seeded.gameId, secret: 'a'.repeat(64), attemptId: 'b'.repeat(64) };
+  await t.mutation(api.playProvisioning.confirmProvisioning, credentials);
+  const summary = (
+    seats = [seeded.player.userId],
+    extra: Partial<PlayDirectorySummary> = {}
+  ): PlayDirectorySummary => ({
+    stage: 'play',
+    seatCount: 4,
+    seats: seats.map((userId, index) => ({ seat: `seat-${index + 1}`, userId, faction: null })),
+    phase: 0,
+    result: null,
+    lastActivityAt: Date.now(),
+    ...extra,
+  });
+  const publish = (sequence: number, value: PlayDirectorySummary) =>
+    t.mutation(api.playDirectory.publishSummary, {
+      gameId: seeded.gameId,
+      secret: credentials.secret,
+      sequence,
+      summary: value,
+    });
+  await publish(1, summary());
+  const channel = async () =>
+    await t.run(
+      async (ctx) =>
+        await ctx.db
+          .query('play_game_discord_channels')
+          .withIndex('by_game_id', (q) => q.eq('game_id', seeded.gameId))
+          .unique()
+    );
+  const reconcile = async () => {
+    const row = await channel();
+    if (row) {
+      await t.action(internal.playDiscordActions.reconcile, { channelId: row._id });
+    }
+  };
+  const player = t.withIdentity({ subject: seeded.player.subject });
+  const menu = () => player.query(api.playGameDirectory.getGameByAddress, { address: 'quiet-sietch' });
+  return {
+    t,
+    ...seeded,
+    player,
+    identity: seeded.player,
+    credentials,
+    summary,
+    publish,
+    channel,
+    reconcile,
+    menu,
+  };
+}

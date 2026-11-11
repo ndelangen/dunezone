@@ -82,6 +82,20 @@ describe('rebuild contract for the anonymised snapshot', () => {
     );
   });
 
+  test('rejects a retained Discord switch even when Discord was disabled', async () => {
+    const t = rebuiltDeployment();
+    await seedSnapshotLoad(t);
+    const settingsId = await t.run(
+      async (ctx) => await ctx.db.insert('play_discord_settings', { enabled: false, updated_at: 1_700_000_000_000 })
+    );
+
+    await expect(t.query(internal.provisioningChecks.assertRebuildContract, {})).rejects.toThrow(
+      'play_discord_settings still holds rows'
+    );
+    await t.run(async (ctx) => await ctx.db.delete(settingsId));
+    expect(await t.query(internal.provisioningChecks.assertRebuildContract, {})).toEqual({ ok: true });
+  });
+
   test('rejects private rows and a second account beside the placeholder owner', async () => {
     const t = rebuiltDeployment();
     const placeholderId = await seedSnapshotLoad(t);

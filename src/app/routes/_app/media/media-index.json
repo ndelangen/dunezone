@@ -14630,5 +14630,145 @@
     "subjects": ["symbols"],
     "credit": "gf9-design-flower-redraw",
     "sourceHash": "8262ee746bb8b5d0207b0658efbdce5aa5a31dc0d1543a5f96c3161d7f58973c"
+  },
+  "/web/tutorial/alliances-and-talking.jpg": {
+    "description": "The dune.zone game table with the Faction info window open beside a chat window where two players message each other.",
+    "tags": ["dune.zone", "tutorial", "alliances", "chat"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "f245d9db4715f0cf9ca3daba8d6a32b1bf0ae920f509424bd48296b8be4b229a"
+  },
+  "/web/tutorial/battle.jpg": {
+    "description": "The dune.zone game table with the Battle plan window and two battle wheels open over the Dune board.",
+    "tags": ["dune.zone", "tutorial", "battle", "battle wheel"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "9a978b226f311ff63c8cbc587e58806539a04ea0b842c4123d41224459778e34"
+  },
+  "/web/tutorial/bidding.jpg": {
+    "description": "The dune.zone game table seen from above, with the storm sector darkened across the Dune board.",
+    "tags": ["dune.zone", "tutorial", "bidding", "storm"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "8b61547dbc16dc7ae7066d72b463ec56ea23971c1494927153bbcb601c872fc2"
+  },
+  "/web/tutorial/bring-your-own-pieces.jpg": {
+    "description": "The shared table inventory window on the dune.zone game table, offering tokens from the catalogue to add to the game.",
+    "tags": ["dune.zone", "tutorial", "inventory", "tokens"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "a72a4ae6ec1ec25f9b4a2bfed1f37ddea6b5c02a280eaf6d368f6dc3b53b6fef"
+  },
+  "/web/tutorial/create/create-a-faction.jpg": {
+    "description": "The Dune Zone faction creator with five leader portraits, troops, advantages and setup for a homebrew faction.",
+    "tags": ["dune.zone", "tutorial", "faction creator", "leaders"],
+    "subjects": ["people", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "afacfe44c79ad585de03807dd3a78ded923ac9577c603f4c68fed1c316d0d00d"
+  },
+  "/web/tutorial/decks-and-dealing.jpg": {
+    "description": "Faction shields and a deck on the dune.zone game table, with a prompt to deal one card.",
+    "tags": ["dune.zone", "tutorial", "decks", "dealing"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "3d2c65cfbe4f2c09a705e33a9cdfde8813437b4c68d66d48fda33646cc43a104"
+  },
+  "/web/tutorial/draft-and-trade.jpg": {
+    "description": "Faction tokens drafted onto a dark Dune board on the dune.zone game table, with players marking themselves ready.",
+    "tags": ["dune.zone", "tutorial", "faction draft", "faction tokens"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "c54ca08303b44e553787b4683801ef47ace032ace1642eb24915d119b1ce588e"
+  },
+  "/web/tutorial/ending-a-game.jpg": {
+    "description": "The dune.zone game table after a finished game, with the result window declaring House Harkonnen the winner.",
+    "tags": ["dune.zone", "tutorial", "result", "winner"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "a64857e7ed8309adfffd8f338ed544a5a8fbe435d86365b4001e29ee80715b48"
+  },
+  "/web/tutorial/find-or-create.jpg": {
+    "description": "The seats-at-the-table slider of the dune.zone game creator, choosing how many players sit at the table.",
+    "tags": ["dune.zone", "tutorial", "create a game", "seats"],
+    "subjects": ["people", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "bc008c8500c6d58e1e66c91b6a06ae3d4c93f6686469beea8b0a04ec4c3d75bd"
+  },
+  "/web/tutorial/looking-around.jpg": {
+    "description": "A close view of the edge of the Dune board on the dune.zone game table, with cards and camera controls.",
+    "tags": ["dune.zone", "tutorial", "camera", "board"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "82eba98785288af5b4be329e12e679982e5ca4b640ebc6488251bddbed89e233"
+  },
+  "/web/tutorial/moderation.jpg": {
+    "description": "The dune.zone game table with the Faction info window open on a vote to remove an absent player.",
+    "tags": ["dune.zone", "tutorial", "moderation", "vote"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "1b4dc0a66b307cd3112f3420a794cb0476a5e0890c044e3d810a452fd27143b5"
+  },
+  "/web/tutorial/moving-pieces.jpg": {
+    "description": "The Dune board on the dune.zone game table with troops, faction tokens, the storm marker and the turn track.",
+    "tags": ["dune.zone", "tutorial", "troops", "board"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "3f94f1b110b861125e4dd433a62bf678405dfb481f70adf301383f61f54736f4"
+  },
+  "/web/tutorial/phases-and-turns.jpg": {
+    "description": "The dune.zone game table during the turn, with the phase controls and the Tleilaxu Tanks beside the board.",
+    "tags": ["dune.zone", "tutorial", "phases", "turns"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "3d0b351c39436798fd5d24888257f56b9b666229850d3be9f85578a5e36bf07e"
+  },
+  "/web/tutorial/setup.jpg": {
+    "description": "The Setup window on the dune.zone game table, listing where each faction places its troops at the start.",
+    "tags": ["dune.zone", "tutorial", "setup", "troops"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "a0b2224165c334e32cedcf9de36b1d649143ead8fe9aaa5e7ad19ba7b1ffd8fe"
+  },
+  "/web/tutorial/take-a-seat.jpg": {
+    "description": "A spectator's view of the dune.zone game table, with a notice that all six seats are taken.",
+    "tags": ["dune.zone", "tutorial", "seats", "spectator"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "edc47243ef8a00ad79ab59286a308b4b9ee3b4305dbc02f6ccb7457f5b1ea907"
+  },
+  "/web/tutorial/the-private-side-table.jpg": {
+    "description": "The Hand and spice window and the private side-table on the dune.zone game table.",
+    "tags": ["dune.zone", "tutorial", "private side-table", "hand"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "949ff3adf29700958af132ddb9784a1428bde9899c6c7aeb1e2760d03cd2379f"
+  },
+  "/web/tutorial/welcome.jpg": {
+    "description": "The dune.zone game table with the command search open, suggesting phases, windows and table chat.",
+    "tags": ["dune.zone", "tutorial", "search", "windows"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "6f89544b988d8c34800f7b0d12c892fc74b6ad2b9b56e3b9276e4515581576a3"
+  },
+  "/web/tutorial/what-goes-where.jpg": {
+    "description": "The dune.zone game table with the Hand and spice window open and a new bidding round being started.",
+    "tags": ["dune.zone", "tutorial", "hand", "bidding"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "a0761f1f3713bdf4aef933f0b0b38cbc5328f6f590a2518cadf3326199409ea3"
+  },
+  "/web/tutorial/windows.jpg": {
+    "description": "The Hand and spice window open over the Dune board on the dune.zone game table, with leaders, cards and spice.",
+    "tags": ["dune.zone", "tutorial", "windows", "hand"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "f3cff5135de15fabbb2386b9bd874c39f4efa9db2267e024fce015ed8bb2a961"
+  },
+  "/web/tutorial/your-hand-and-spice.jpg": {
+    "description": "The Hand and spice window on the dune.zone game table, showing spice, leaders, alliance cards and the traitor card slot.",
+    "tags": ["dune.zone", "tutorial", "hand", "spice"],
+    "subjects": ["places", "symbols"],
+    "credit": "blog-picture",
+    "sourceHash": "8ba1865e94ef307796cf1c5b303ee78cd34f6a830b9c3bc39dbe41d7663922ad"
   }
 }

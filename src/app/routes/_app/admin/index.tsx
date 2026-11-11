@@ -44,6 +44,15 @@ function AdminIndex() {
             </Section>
             <Divider />
             <Section
+              title="Discord channels"
+              action={
+                <Anchor renderRoot={(props) => <Link {...props} to="/admin/discord" />}>Open Discord channels</Anchor>
+              }
+            >
+              <Text>Pause the Discord integration, inspect game voice channels and find untracked channels.</Text>
+            </Section>
+            <Divider />
+            <Section
               title="Game debugger"
               action={
                 <Anchor renderRoot={(props) => <Link {...props} to="/admin/game-debugger" />}>

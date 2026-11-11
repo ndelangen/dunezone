@@ -2,6 +2,7 @@ import { publisherFailureFields } from '../../src/shared/asset-publishing/publis
 import { playGamePathPattern } from '../../src/shared/play/callbacks';
 import { matchRulebookHtmlPath } from '../../src/shared/rulebooks/editionArtifacts';
 import type { RulebookReaderRequestContext } from '../../src/shared/rulebooks/readerDelivery';
+import { biddingPathPattern } from '../../src/shared/tools/biddingTransport';
 import { applicationReleaseIdentity, handleApplicationRequest } from './application';
 import { handleAuthRequest } from './auth';
 import { openPublisherBrowser } from './browser';
@@ -20,6 +21,7 @@ import { handleMediaSourceRequest } from './media-source';
 import { handlePublicDiscovery } from './public-discovery';
 import { handlePublishedThumbnailRequest } from './published-thumbnail';
 import { RENDERER_IDENTITY } from './renderer-identity';
+import { observePublisherRequest } from './request-telemetry';
 import { handleRulebookHtmlRequest } from './rulebook-html-delivery';
 import { executeRulebookHtmlWork } from './rulebook-html-executor';
 import { executeRulebookPdfWork } from './rulebook-pdf-executor';
@@ -63,6 +65,10 @@ function reservedNotFound(): Response {
   );
 }
 
+function createsBiddingTable(request: Request, url: URL): boolean {
+  return request.method === 'POST' && !url.search && biddingPathPattern.exec(url.pathname)?.[2] === 'create';
+}
+
 async function allowGameIngress(request: Request, url: URL, env: Env): Promise<boolean> {
   if (request.method === 'GET' && url.pathname === '/__play/health' && !url.search) {
     return true;
@@ -72,6 +78,9 @@ async function allowGameIngress(request: Request, url: URL, env: Env): Promise<b
   const operation = request.method === 'POST' && !url.search ? playGamePathPattern.exec(url.pathname)?.[2] : undefined;
   const callback = operation !== undefined && operation !== 'socket';
   const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (createsBiddingTable(request, url) && !(await env.BIDDING_CREATION_RATE_LIMIT.limit({ key: clientIp })).success) {
+    return false;
+  }
   const result = await env.PLAY_INGRESS_RATE_LIMIT.limit({ key: `${callback ? 'callback' : 'connect'}:${clientIp}` });
   return result.success;
 }
@@ -88,7 +97,7 @@ async function handleGameIngress(request: Request, url: URL, env: Env): Promise<
       { error: 'Too many game requests.' },
       {
         status: 429,
-        headers: { 'Cache-Control': 'no-store', 'Retry-After': '10' },
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': createsBiddingTable(request, url) ? '60' : '10' },
       }
     );
   }
@@ -119,117 +128,121 @@ async function handleMediaNamespaceRequest(
   );
 }
 
-const publisherWorker = {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    const bundleAsset = await handleBundleAssetRequest(request, url, env.ASSETS);
-    if (bundleAsset) {
-      return bundleAsset;
-    }
-    const auth = await handleAuthRequest(request, env);
-    if (auth) {
-      return auth;
-    }
-    const game = await handleGameIngress(request, url, env);
-    if (game) {
-      return game;
-    }
-    const discovery = await handlePublicDiscovery(request, env, {
-      storage: caches.default,
-      release: applicationReleaseIdentity(env),
+async function handleRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  const bundleAsset = await handleBundleAssetRequest(request, url, env.ASSETS);
+  if (bundleAsset) {
+    return bundleAsset;
+  }
+  const auth = await handleAuthRequest(request, env);
+  if (auth) {
+    return auth;
+  }
+  const game = await handleGameIngress(request, url, env);
+  if (game) {
+    return game;
+  }
+  const discovery = await handlePublicDiscovery(request, env, {
+    storage: caches.default,
+    release: applicationReleaseIdentity(env),
+  });
+  if (discovery) {
+    return discovery;
+  }
+  const socialImage = await handleSocialImageRequest(request, env, undefined, {
+    storage: caches.default,
+    release: applicationReleaseIdentity(env),
+  });
+  if (socialImage) {
+    return socialImage;
+  }
+  const publicAssetRequest = (assetRequest: Request) =>
+    handlePublicAssetRequest(assetRequest, env, ctx, {
+      publicBaseUrl: env.PUBLIC_BASE_URL,
+      rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      illustrationAssets: mediaFetcher(env, { ctx }),
+      rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+      componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
     });
-    if (discovery) {
-      return discovery;
-    }
-    const socialImage = await handleSocialImageRequest(request, env, undefined, {
-      storage: caches.default,
-      release: applicationReleaseIdentity(env),
-    });
-    if (socialImage) {
-      return socialImage;
-    }
-    const publicAssetRequest = (assetRequest: Request) =>
-      handlePublicAssetRequest(assetRequest, env, ctx, {
-        publicBaseUrl: env.PUBLIC_BASE_URL,
-        rulebookHtmlClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-        rulebookIllustrationClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-        illustrationAssets: mediaFetcher(env, { ctx }),
-        rulebookPdfClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-        componentClient: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-      });
-    const thumbnail = await handlePublishedThumbnailRequest(request, ctx, publicAssetRequest, { images: env.IMAGES });
-    if (thumbnail) {
-      return thumbnail;
-    }
-    const publicAsset = await publicAssetRequest(request);
-    if (publicAsset) {
-      return publicAsset;
-    }
-    const mediaVariant = await handleMediaVariantRequest(request, env, { ctx });
-    if (mediaVariant) {
-      return mediaVariant;
-    }
-    const legacyMedia = await handleLegacyMediaRequest(request, env, { ctx });
-    if (legacyMedia) {
-      return legacyMedia;
-    }
-    const mediaNamespace = await handleMediaNamespaceRequest(request, env, ctx);
-    if (mediaNamespace) {
-      return mediaNamespace;
-    }
-    const userImage = await handleUserImageRequest(request, env, ctx);
-    if (userImage) {
-      return userImage;
-    }
-    const ingest = await handleUserImageIngest(request, env);
-    if (ingest) {
-      return ingest;
-    }
-    const capture = await handleCaptureRoute(request, env);
-    if (capture) {
-      return capture;
-    }
-    const pathname = url.pathname;
-    if (pathname === '/__asset-publisher/health') {
-      const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);
-      return Response.json(
-        {
-          ok: true,
-          maxItems: MAX_ASSIGNED_ITEMS,
-          schedule: '*/5 * * * *',
-          application: { release: applicationReleaseIdentity(env), serverRendering: true },
-          rendererIdentity: RENDERER_IDENTITY,
-          identity,
-        },
-        { headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } }
-      );
-    }
-    if (isReservedWorkerPath(pathname)) {
-      return reservedNotFound();
-    }
-    const application = await handleApplicationRequest(
-      request,
-      env,
-      async (anonymousRequest) => {
-        const { default: server } = await import('application-ssr-runtime');
-        const context: RulebookReaderRequestContext = {
-          publishedRulebookFetch: async (href) => {
-            const route = matchRulebookHtmlPath(href);
-            if (route?.kind !== 'edition') {
-              return reservedNotFound();
-            }
-            return handleRulebookHtmlRequest(new Request(new URL(href, env.PUBLIC_BASE_URL)), route, {
-              bucket: env.ASSET_BUCKET,
-              client: client(env, env.CONVEX_EXECUTOR_BASE_URL),
-              publicBaseUrl: env.PUBLIC_BASE_URL,
-            });
-          },
-        };
-        return await server.fetch(anonymousRequest, { context });
+  const thumbnail = await handlePublishedThumbnailRequest(request, ctx, publicAssetRequest, { images: env.IMAGES });
+  if (thumbnail) {
+    return thumbnail;
+  }
+  const publicAsset = await publicAssetRequest(request);
+  if (publicAsset) {
+    return publicAsset;
+  }
+  const mediaVariant = await handleMediaVariantRequest(request, env, { ctx });
+  if (mediaVariant) {
+    return mediaVariant;
+  }
+  const legacyMedia = await handleLegacyMediaRequest(request, env, { ctx });
+  if (legacyMedia) {
+    return legacyMedia;
+  }
+  const mediaNamespace = await handleMediaNamespaceRequest(request, env, ctx);
+  if (mediaNamespace) {
+    return mediaNamespace;
+  }
+  const userImage = await handleUserImageRequest(request, env, ctx);
+  if (userImage) {
+    return userImage;
+  }
+  const ingest = await handleUserImageIngest(request, env);
+  if (ingest) {
+    return ingest;
+  }
+  const capture = await handleCaptureRoute(request, env);
+  if (capture) {
+    return capture;
+  }
+  const pathname = url.pathname;
+  if (pathname === '/__asset-publisher/health') {
+    const identity = publisherBuildIdentity(env.CF_VERSION_METADATA, env.GIT_SHA);
+    return Response.json(
+      {
+        ok: true,
+        maxItems: MAX_ASSIGNED_ITEMS,
+        schedule: '*/5 * * * *',
+        application: { release: applicationReleaseIdentity(env), serverRendering: true },
+        rendererIdentity: RENDERER_IDENTITY,
+        identity,
       },
-      { storage: caches.default, release: applicationReleaseIdentity(env) }
+      { headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } }
     );
-    return application ?? env.ASSETS.fetch(request);
+  }
+  if (isReservedWorkerPath(pathname)) {
+    return reservedNotFound();
+  }
+  const application = await handleApplicationRequest(
+    request,
+    env,
+    async (anonymousRequest) => {
+      const { default: server } = await import('application-ssr-runtime');
+      const context: RulebookReaderRequestContext = {
+        publishedRulebookFetch: async (href) => {
+          const route = matchRulebookHtmlPath(href);
+          if (route?.kind !== 'edition') {
+            return reservedNotFound();
+          }
+          return handleRulebookHtmlRequest(new Request(new URL(href, env.PUBLIC_BASE_URL)), route, {
+            bucket: env.ASSET_BUCKET,
+            client: client(env, env.CONVEX_EXECUTOR_BASE_URL),
+            publicBaseUrl: env.PUBLIC_BASE_URL,
+          });
+        },
+      };
+      return await server.fetch(anonymousRequest, { context });
+    },
+    { storage: caches.default, release: applicationReleaseIdentity(env) }
+  );
+  return application ?? env.ASSETS.fetch(request);
+}
+
+const publisherWorker = {
+  fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    return observePublisherRequest(request, env, () => handleRequest(request, env, ctx));
   },
 
   async scheduled(controller: ScheduledController, env: Env): Promise<void> {

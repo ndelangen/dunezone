@@ -12,6 +12,7 @@ import type { MutationCtx } from './_generated/server';
 import { accountStateOf } from './lib/accountLifecycle';
 import { steamSignInAvailable } from './lib/accountMethods';
 import { applicationTriggers } from './lib/applicationTriggers';
+import { recordLinkedAccountProfile } from './lib/linkedAccountProfiles';
 import { upsertLoginUser } from './lib/loginUser';
 import { isSyntheticBackend, syntheticIdentity } from './lib/playSynthetic';
 import { verifySteamLogin } from './lib/steamSignIn';
@@ -169,14 +170,19 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
      * A sign-in whose login belongs to a deleted account starts a new account, and the library then moves the login onto it.
      * No provider here returns a verified email or phone, so, as before, nothing links by email or phone.
      */
-    async createOrUpdateUser(ctx, { existingUserId, type, profile }) {
+    async createOrUpdateUser(ctx, { existingUserId, type, provider, profile }) {
       const { emailVerified: _emailVerified, phoneVerified: _phoneVerified, ...details } = profile;
       const userData = { ...(type === 'oauth' ? { emailVerificationTime: Date.now() } : null), ...details };
-      return await upsertLoginUser(
-        applicationTriggers.wrapDB(ctx as MutationCtx),
-        existingUserId as Id<'users'> | null,
-        userData
-      );
+      const mutationCtx = applicationTriggers.wrapDB(ctx as MutationCtx);
+      const userId = await upsertLoginUser(mutationCtx, existingUserId as Id<'users'> | null, userData);
+      if (provider.id === 'google' || provider.id === 'discord') {
+        /* What this provider reported, kept by provider: a later resync offers it even after another method signed in. */
+        await recordLinkedAccountProfile(mutationCtx, userId, provider.id, {
+          name: typeof profile.name === 'string' ? profile.name : null,
+          image: typeof profile.image === 'string' ? profile.image : null,
+        });
+      }
+      return userId;
     },
   },
 });

@@ -1,7 +1,7 @@
 import type { z } from 'zod';
 
 import { phaseDeclarationSchema } from '../factions/extraPhases';
-import { IdentifiedFactionStoredSchema, readLegacyFactionKeys, toStoredHeroKey } from '../factions/schema';
+import { IdentifiedFactionStoredSchema, readFactionLeaderKey, toStoredHeroKey } from '../factions/schema';
 import { lacksBattleValues, troopBattleFaces } from '../factions/troopBattle';
 import type { RulesetAssetSlot } from '../rulesets/assetSlots';
 import { RULESET_ASSET_SLOTS } from '../rulesets/assetSlots';
@@ -90,6 +90,20 @@ export class CatalogueCapture {
       bundles: { techToken: techToken[0] ?? null, custom: customTokens },
       readiness: readiness(problems),
     });
+  }
+
+  /**
+   * One deck of Treachery cards on its own, captured as a game keeps a Ruleset's, for the standalone Treachery tracker, which lets a player pick any such deck, several at once, Ruleset or not.
+   * A deck that cannot be captured is refused with its first problem.
+   */
+  async captureTreacheryDeck(deck: Readonly<{ id: string; slug: string; name: string }>): Promise<SlotCapture> {
+    const problems: CaptureProblem[] = [];
+    const captured = await this.captureSlot('treachery', { ...deck, type: 'deck' }, problems);
+    const [problem] = problems;
+    if (problem) {
+      throw new GameRejection(`${deck.name} cannot be used. ${problem.reason}`);
+    }
+    return captured;
   }
 
   /** Every asset a slot holds, captured in turn; a required deck that is absent is named as a problem. */
@@ -220,7 +234,7 @@ export class CatalogueCapture {
     }
     const { declarations, data } = splitPhaseDeclarations(source.data);
     /* The glossary term is "Faction leader"; the catalogue answer keeps the `hero` literal. */
-    const parsed = IdentifiedFactionStoredSchema.safeParse(readLegacyFactionKeys(data));
+    const parsed = IdentifiedFactionStoredSchema.safeParse(readFactionLeaderKey(data));
     if (!parsed.success) {
       throw new GameRejection('This faction has an incomplete definition.');
     }

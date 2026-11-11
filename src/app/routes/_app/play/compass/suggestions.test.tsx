@@ -197,6 +197,30 @@ const player = (seat: string, name: string, factionName: string | null, own = fa
   ally: false,
 });
 
+test('Discord nudges are found by command, faction and player, and run only when selected', () => {
+  const calls: string[] = [];
+  const targets = [player('seat-2', 'Paul', 'Atreides'), player('seat-3', 'Ada', 'Fremen')];
+  const all = candidatesOf([], {
+    ...actions(null, () => calls.push('close')),
+    nudge: { targets, send: (seat) => calls.push(seat) },
+  });
+  expect(rankSuggestions(all, 'nudge').map((entry) => entry.label)).toEqual(['Nudge Fremen', 'Nudge Atreides']);
+  for (const query of ['nudge atreides', 'Paul', 'discord Paul', 'ping Paul']) {
+    expect(rankSuggestions(all, query)[0]).toMatchObject({
+      key: 'cmd:nudge:seat-2',
+      label: 'Nudge Atreides',
+      hint: 'Mention Paul in Discord voice chat',
+    });
+  }
+  expect(calls).toEqual([]);
+  expect(rankSuggestions(all, '').some((entry) => entry.key.startsWith('cmd:nudge:'))).toBe(false);
+  rankSuggestions(all, 'nudge atreides')[0]!.run();
+  expect(calls).toEqual(['close', 'seat-2']);
+  expect(candidatesOf([], { ...actions(null), nudge: null }).some((entry) => entry.key.startsWith('cmd:nudge:'))).toBe(
+    false
+  );
+});
+
 test('"atreides" finds the Atreides faction information ahead of the chat with its player, and opens it on their seat', () => {
   const players = [
     player('seat-1', 'Dana', 'Harkonnen', true),

@@ -29,7 +29,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { requestPlayAdmission, watchSeatPass } from '@db/play';
-import { GameSubscription } from '@app/routes/_app/play/multiplayer/GameSubscription';
+import { GameRuntimeContext } from '@db/tabletop/gameRuntime';
+import { GameSubscription } from '@db/tabletop/GameSubscription';
 import { TableWait } from '@app/widgets/tabletop/TableWait';
 import { riseRemaining } from '@app/widgets/voyage/voyage';
 
@@ -76,7 +77,6 @@ import { BidderScene, biddingPhase } from './Bidder';
 import { useBugReport } from './BugReport';
 import { DraftingOverlay, DraftingPanel } from './Drafting';
 import { DetermineWinner } from './GameResult';
-import { GameRuntimeContext } from './gameRuntime';
 import { HandCountsScene } from './HandCounts';
 import { mentatRecall } from './MentatRecall';
 import { battleHelp, LOG_GUIDANCE, phaseGuidance, PHASE_PREVIOUS, phaseHelp } from './panelGuidance';
@@ -97,6 +97,12 @@ import '../dune-play.css';
 const ConnectedTreacheryTrackerPanel = lazy(() =>
   import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
     default: module.ConnectedTreacheryTrackerPanel,
+  }))
+);
+/* The tracker follows the table even while its panel is closed, from the same chunk. */
+const TreacheryTrackerFollower = lazy(() =>
+  import('../panels/treacheryTracker/TreacheryTrackerPanel').then((module) => ({
+    default: module.TreacheryTrackerFollower,
   }))
 );
 
@@ -643,7 +649,28 @@ function spiceBlowCommand(table: TableProjection): (() => void) | null {
   return controls && revealedSpiceBlows(table.state.pieces).length ? () => controls.placeAll() : null;
 }
 
-function useHostedControls(client: TableSession, table: TableProjection, error: string | null) {
+function nudgeControls(
+  client: TableSession,
+  table: TableProjection,
+  players: CompassTable['players'],
+  available: boolean
+): CompassTable['nudge'] {
+  if (!available || !client.canNudge) {
+    return null;
+  }
+  const occupied = new Set(table.snapshot.controls?.players.map((player) => player.seat));
+  return {
+    targets: players.filter((player) => !player.own && occupied.has(player.seat)),
+    send: (seat) => client.nudge(seat),
+  };
+}
+
+function useHostedControls(
+  client: TableSession,
+  table: TableProjection,
+  error: string | null,
+  discordNudgesAvailable: boolean
+) {
   useAutoClearChatsAtNewTurn(client, table);
   const recall = mentatRecall(client, table);
   const normal = recall ? (client.getLastLiveTable() ?? table) : table;
@@ -651,6 +678,7 @@ function useHostedControls(client: TableSession, table: TableProjection, error: 
   const compassTable: CompassTable = {
     ...players,
     recall,
+    nudge: nudgeControls(client, table, players.players, discordNudgesAvailable),
     chat: (seat) => <ConnectedPlayerChat client={client} table={table} seat={seat} />,
     clearChat: (seat) => <ConnectedClearChat client={client} table={table} seat={seat} />,
     factionInfo: (seat) => <ConnectedFactionInfoPanel client={client} table={table} seat={seat} error={error} />,
@@ -671,11 +699,13 @@ function HostedGameMenu({
   identity,
   error,
   onClearConfetti,
-}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void }>) {
+  voice,
+}: ConnectionControlsProps & Readonly<{ identity: GameIdentity; onClearConfetti?: () => void; voice?: ReactNode }>) {
   return (
     <>
       {table.snapshot.stage !== 'drafting' && <SeatPopover client={client} table={table} error={error} />}
       <GameMenu
+        voice={voice}
         sharing={<GameLink address={identity.address} page={identity.page} />}
         client={client}
         table={table}
@@ -684,6 +714,19 @@ function HostedGameMenu({
     </>
   );
 }
+
+type ConnectedTableProps = ConnectionControlsProps &
+  Readonly<{
+    voice?: ReactNode;
+    discordNudgesAvailable?: boolean;
+    exitControl: ReactNode;
+    connection: string;
+    identity: GameIdentity;
+    onReady?: (() => void) | undefined;
+    gameId: string;
+    diagnostics: BrowserDiagnostics;
+    reportsEnabled: boolean;
+  }>;
 
 function ConnectedTable({
   client,
@@ -696,18 +739,9 @@ function ConnectedTable({
   diagnostics,
   reportsEnabled,
   exitControl,
-}: Readonly<{
-  exitControl: ReactNode;
-  client: TableSession;
-  table: TableProjection;
-  error: string | null;
-  connection: string;
-  identity: GameIdentity;
-  onReady?: (() => void) | undefined;
-  gameId: string;
-  diagnostics: BrowserDiagnostics;
-  reportsEnabled: boolean;
-}>) {
+  voice,
+  discordNudgesAvailable = false,
+}: ConnectedTableProps) {
   const bugReport = useBugReport({ gameId, client, table, connection, diagnostics });
   const progress = gameProgress(table.snapshot);
   const [focus, openWindow] = useAskedWindow(useWindowFocus(table, progress));
@@ -718,7 +752,7 @@ function ConnectedTable({
   const [bidderFaded, setBidderFaded] = useState(false);
   /* The territory under the battle marker while it is carried, which the board lights. */
   const [markerTerritory, setMarkerTerritory] = useState<string | null>(null);
-  const { readOnly, normal, compassTable } = useHostedControls(client, table, error);
+  const { readOnly, normal, compassTable } = useHostedControls(client, table, error, discordNudgesAvailable);
   const stage = table.snapshot.stage;
   const factionArtwork = table.snapshot.factionArtwork;
   const predictionEmblems = useMemo(
@@ -763,6 +797,7 @@ function ConnectedTable({
               }
               gameMenu={
                 <HostedGameMenu
+                  voice={voice}
                   client={client}
                   table={table}
                   identity={identity}
@@ -793,6 +828,11 @@ function ConnectedTable({
               tableControls={phaseTabControls({ client, table, error, progress })}
             />
           </CompassTableContext>
+          {tracker ? (
+            <Suspense fallback={null}>
+              <TreacheryTrackerFollower client={client} table={table} tracker={tracker} />
+            </Suspense>
+          ) : null}
         </div>
       </TabletopSessionProvider>
     </PredictionEmblemsContext>
@@ -804,7 +844,11 @@ export default function HostedTable({
   exitControl,
   identity,
   onReady,
+  voice,
+  discordNudgesAvailable = false,
 }: Readonly<{
+  voice?: ReactNode;
+  discordNudgesAvailable?: boolean;
   gameId: string;
   exitControl: ReactNode;
   identity: GameIdentity;
@@ -842,6 +886,8 @@ export default function HostedTable({
   return (
     <ServerClockContext.Provider value={view.table.serverNow}>
       <ConnectedTable
+        voice={voice}
+        discordNudgesAvailable={discordNudgesAvailable}
         gameId={gameId}
         diagnostics={diagnostics}
         reportsEnabled={runtime.admission === undefined}

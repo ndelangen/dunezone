@@ -1,6 +1,8 @@
 import { describeCardDraw } from '../../src/shared/play/cardDraw';
 import type { CardDraw } from '../../src/shared/play/cardDraw';
 export { HomepageRoom } from './homepage';
+export { BiddingTable } from './biddingTable';
+import { biddingTableResponse } from './biddingTable';
 export { BugReports } from './bugReports';
 import { Buffer } from 'node:buffer';
 
@@ -38,6 +40,8 @@ import type {
 } from '../../src/shared/play/protocol';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
+  OUTDATED_PAGE_CLOSE_CODE,
+  PLAY_PROTOCOL_VERSION,
   KEEPALIVE_PING,
   KEEPALIVE_PONG,
   PASS_EXPIRED_CLOSE_CODE,
@@ -56,6 +60,7 @@ import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
 import { bugReportGamePathPattern, isBugReportRequest } from './bugReportHttp';
 import { GameCatalogue } from './catalogue';
+import { clientAddress } from './clientAddress';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
@@ -64,6 +69,7 @@ import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
 import { isLocalIsolatedRuntime } from './localRuntime';
+import { publishNudge } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
@@ -80,6 +86,9 @@ import { GameSession } from './session';
 type Connection = {
   connectionId: string;
   openedAt: number;
+  protocol?: number;
+  /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
+  client?: string;
   admitting: boolean;
   /* One catalogue capture per connection at a time; each capture is a Convex query. */
   capturing: boolean;
@@ -120,6 +129,7 @@ type RememberedConnection = Pick<
   Connection,
   | 'connectionId'
   | 'openedAt'
+  | 'protocol'
   | 'viewer'
   | 'seatLimitReached'
   | 'pass'
@@ -134,6 +144,7 @@ type RememberedConnection = Pick<
 };
 function openConnection(
   state: Pick<Connection, 'connectionId' | 'openedAt'> &
+    Partial<Pick<Connection, 'client'>> &
     Partial<Pick<Connection, Exclude<keyof RememberedConnection, 'epoch' | 'revision'> | 'everAuthorized'>>
 ): Connection {
   return {
@@ -160,7 +171,7 @@ const COMMAND_TIMINGS = 1024;
 const RATE_BURST = 120;
 const RATE_PER_SECOND = 60;
 /*
- * Table commands draw on a smaller bucket of their own, since each one writes the table and sends every player a frame.
+ * Table commands and Discord nudges draw on a smaller bucket because they trigger writes or external requests.
  * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
  */
 const COMMAND_BURST = 30;
@@ -176,6 +187,12 @@ function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: Ping
   connection.rumbledAt = now;
   return sound;
 }
+/*
+ * A room holds this many connections that have not been admitted yet, each for at most PLAY_PENDING_TIMEOUT_MS.
+ * One address may hold only a quarter of them, so a visitor who knows a game's address needs four addresses to keep its players from reconnecting.
+ */
+const PENDING_CONNECTION_LIMIT = 16;
+const CLIENT_PENDING_LIMIT = 4;
 const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
@@ -224,8 +241,12 @@ function gameRequest(request: Request, applicationOrigin: string) {
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<ClientMessage, { type: 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }>;
+type PageRead = Extract<
+  ClientMessage,
+  { type: 'history' | 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }
+>;
 const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
+  'history',
   'log-history',
   'spice-history',
   'faction',
@@ -443,6 +464,19 @@ export class GameRoom extends DurableObject<GameEnv> {
    * and its page reconnects into a new epoch, which drops what it was holding.
    * The delivery baselines are gone, so each connection's next frame is a full view.
    */
+  private rememberedConnection(socket: WebSocket, canRestore: boolean): RememberedConnection | null {
+    const remembered = canRestore ? (socket.deserializeAttachment() as RememberedConnection | null) : null;
+    if (!remembered) {
+      socket.close(1012, 'Reconnect to the table.');
+      return null;
+    }
+    if (remembered.protocol === PLAY_PROTOCOL_VERSION) {
+      return remembered;
+    }
+    this.refuseProtocol(socket, remembered.protocol ?? 0);
+    return null;
+  }
+
   private restoreConnections() {
     const quiet = this.ctx.storage.kv.get(QUIET_KEY) === true;
     const saved = this.ctx.storage.kv.get<SavedSummary>(SUMMARY_KEY);
@@ -450,13 +484,10 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.summary.restore(saved);
     }
     const behind = new Set<WebSocket>();
+    const canRestore = quiet && !this.closed && this.metadata?.confirmed === true;
     for (const socket of this.ctx.getWebSockets()) {
-      const remembered =
-        quiet && !this.closed && this.metadata?.confirmed
-          ? (socket.deserializeAttachment() as RememberedConnection | null)
-          : null;
+      const remembered = this.rememberedConnection(socket, canRestore);
       if (!remembered) {
-        socket.close(1012, 'Reconnect to the table.');
         continue;
       }
       const { epoch, revision, ...connection } = remembered;
@@ -520,6 +551,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const remembered: RememberedConnection = {
         connectionId: connection.connectionId,
         openedAt: connection.openedAt,
+        protocol: connection.protocol,
         /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
         viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
         seatLimitReached: connection.seatLimitReached,
@@ -987,19 +1019,33 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Whether a new connection may wait for admission: the room has a waiting place left, and the visitor has not taken their share. */
+  private hasWaitingPlace(address: string | undefined) {
+    const waiting = [...this.connections.values()].filter((connection) => !connection.viewer);
+    if (waiting.length >= PENDING_CONNECTION_LIMIT) {
+      return false;
+    }
+    return !address || waiting.filter((connection) => connection.client === address).length < CLIENT_PENDING_LIMIT;
+  }
+
   private openSocket(request: Request): Response {
     if (!this.metadata!.confirmed || !isApplicationSocket(request, this.env.APPLICATION_ORIGIN)) {
       return refused();
     }
-    if (
-      this.connections.size >= 128 ||
-      [...this.connections.values()].filter((connection) => !connection.viewer).length >= 16
-    ) {
+    const address = clientAddress(request, this.env);
+    if (this.connections.size >= 128 || !this.hasWaitingPlace(address)) {
       return refused();
     }
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
-    this.connections.set(server, openConnection({ connectionId: crypto.randomUUID(), openedAt: Date.now() }));
+    this.connections.set(
+      server,
+      openConnection({
+        connectionId: crypto.randomUUID(),
+        openedAt: Date.now(),
+        ...(address ? { client: address } : {}),
+      })
+    );
     this.summary.connections(this.connections.size);
     this.ensureSweep();
     return new Response(null, { status: 101, webSocket: client });
@@ -1032,7 +1078,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * One alarm serves the battle deadline, the directory retry and, while the sweep is stopped, the next
+   * One alarm serves the battle deadline, delivery retries and, while the sweep is stopped, the next
    * seat pass to expire: whichever is due first. A pass whose session ended cannot be renewed, so the
    * alarm wakes a sleeping room to pause that table, as the sweep does in a busy one.
    * Only a change reaches storage, so a command that leaves the deadlines alone writes no alarm.
@@ -1130,9 +1176,29 @@ export class GameRoom extends DurableObject<GameEnv> {
     if (!this.canAdmit(socket, connection)) {
       return;
     }
+    if (request.protocol !== PLAY_PROTOCOL_VERSION) {
+      this.refuseProtocol(socket, request.protocol ?? 0);
+      return;
+    }
+    connection.protocol = request.protocol;
     connection.admitting = true;
     connection.replaces = request.replaces;
     await this.admitWithPass(socket, connection, request.pass);
+  }
+
+  /*
+   * A page on another protocol never sees the table. An older one, a tab opened before a deploy, is told to refresh and stops.
+   * A newer one meets a Worker that is not updated yet, so it closes as a restart does and the page tries again.
+   */
+  private refuseProtocol(socket: WebSocket, protocol: number) {
+    this.disconnect(socket);
+    if (protocol < PLAY_PROTOCOL_VERSION) {
+      /* A page from before 4426 existed knows only that a frame it cannot read means refresh; a current page reads the close code. */
+      socket.send(JSON.stringify({ type: 'outdated-page' }));
+      socket.close(OUTDATED_PAGE_CLOSE_CODE, 'Refresh the page to continue.');
+      return;
+    }
+    socket.close(1012, 'The table is being updated.');
   }
 
   /*
@@ -1623,13 +1689,13 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.refuseRate(socket);
   }
 
-  /* A table command past its own bucket is refused on its own: the socket stays open, and the room spends no write or frame on it. */
+  /* Commands and nudges over budget are refused individually; the socket stays open. */
   private withinCommandBudget(socket: WebSocket, connection: Connection, message: ClientMessage) {
-    if (message.type !== 'command') {
+    if (message.type !== 'command' && message.type !== 'nudge') {
       return message;
     }
     if (connection.commandTokens < 1) {
-      this.send(socket, { type: 'rejected', requestId: message.commandId, message: COMMAND_RATE_REFUSAL });
+      this.send(socket, { type: 'rejected', requestId: messageId(message), message: COMMAND_RATE_REFUSAL });
       return;
     }
     connection.commandTokens--;
@@ -1644,6 +1710,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /* Reads that answer from the room's records alone, whatever the reader may do at the table. */
   private sendPage(socket: WebSocket, message: PageRead, connection: Connection) {
     switch (message.type) {
+      case 'history':
+        this.sendHistory(socket, message.step, message.requestId);
+        return;
       case 'log-history':
         this.send(socket, {
           type: 'log-history',
@@ -1688,11 +1757,19 @@ export class GameRoom extends DurableObject<GameEnv> {
       case 'sync':
         this.sendView(socket, connection);
         return;
-      case 'history':
-        this.sendHistory(socket, message.step, message.requestId);
-        return;
       case 'metrics':
         this.sendMetrics(socket);
+        return;
+      case 'nudge':
+        publishNudge(
+          {
+            session: this.session,
+            diagnostics: this.diagnostics,
+            convex: () => this.convex(),
+            waitUntil: (work) => this.ctx.waitUntil(work),
+          },
+          this.session.nudge(connection.viewer!, message.toSeat)
+        );
         return;
       case 'command':
       case 'drop':
@@ -2251,6 +2328,10 @@ export default {
       isApplicationSocket(request, env.APPLICATION_ORIGIN)
     ) {
       return env.HOMEPAGE_ROOMS.getByName('public-homepage').fetch(request);
+    }
+    const bidding = await biddingTableResponse(request, env);
+    if (bidding) {
+      return bidding;
     }
     const route = gameRequest(request, env.APPLICATION_ORIGIN);
     if (!route) {

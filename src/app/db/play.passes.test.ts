@@ -7,9 +7,9 @@ const mocks = vi.hoisted(() => ({ mutation: vi.fn() }));
 
 vi.mock('@db/core', () => ({ db: { mutation: mocks.mutation } }));
 
-import { runtime, Socket } from '../routes/_app/play/multiplayer/gameRuntime.test.fixture';
-import { GameSubscription } from '../routes/_app/play/multiplayer/GameSubscription';
 import { rememberSeatPass, requestPlayAdmission, watchSeatPass } from './play';
+import { runtime, Socket } from './tabletop/gameRuntime.test.fixture';
+import { GameSubscription } from './tabletop/GameSubscription';
 
 const called = () => mocks.mutation.mock.calls.map(([reference]) => getFunctionName(reference));
 const stops: (() => void)[] = [];
