@@ -517,8 +517,9 @@ export class GameRoom extends DurableObject<GameEnv> {
     this.restoreCarryHistory();
     this.reconcileViewers();
     /* Waking can move the game on by itself, as a trading deadline that passed while the room slept does. */
+    const frameFor = this.framePass();
     for (const socket of behind) {
-      this.sendView(socket, this.connections.get(socket)!);
+      this.sendView(socket, this.connections.get(socket)!, { frameFor });
     }
   }
 
@@ -910,8 +911,9 @@ export class GameRoom extends DurableObject<GameEnv> {
   /** Settles seat changes, then sends every connection its view of the result. */
   private refreshViews() {
     this.reconcileViewers();
+    const frameFor = this.framePass();
     for (const [socket, connection] of this.connections) {
-      this.sendView(socket, connection);
+      this.sendView(socket, connection, { frameFor });
     }
   }
   private advanceDeadlines() {
@@ -1405,7 +1407,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
       if (admitted.has(socket)) {
         /* A resumed connection leaves suspension only after receiving a full view. */
-        this.sendView(socket, connection);
+        this.sendView(socket, connection, { frameFor });
       } else {
         this.send(socket, this.delivery.update(socket, connection.viewer, frameFor(connection.viewer)));
       }
@@ -1676,7 +1678,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (this.session.alreadyCommitted(connection.viewer!, message)) {
-      this.sendView(socket, connection, message.commandId);
+      this.sendView(socket, connection, { completedCommandId: message.commandId });
       return;
     }
     const contents = await this.catalogue().capture(message.action);
@@ -2044,7 +2046,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const draw = this.describeDraw(connection, message);
     try {
       if (!this.session.execute(connection.viewer!, message, contents)) {
-        this.sendView(socket, connection, message.commandId);
+        this.sendView(socket, connection, { completedCommandId: message.commandId });
         return;
       }
     } finally {
@@ -2157,12 +2159,18 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
-  private sendView(socket: WebSocket, connection: Connection, completedCommandId?: string) {
-    if (connection.viewer && this.session.ready && this.authorized(socket)) {
-      this.send(
-        socket,
-        this.delivery.view(socket, connection.viewer, this.session.roomFrame(connection.viewer), completedCommandId)
-      );
+  private sendView(
+    socket: WebSocket,
+    connection: Connection,
+    {
+      completedCommandId,
+      frameFor,
+    }: { completedCommandId?: string; frameFor?: ReturnType<GameSession['roomFrames']> } = {}
+  ) {
+    const viewer = connection.viewer;
+    if (viewer && this.session.ready && this.authorized(socket)) {
+      const frame = frameFor ? frameFor(viewer) : this.session.roomFrame(viewer);
+      this.send(socket, this.delivery.view(socket, viewer, frame, completedCommandId));
     }
   }
 
