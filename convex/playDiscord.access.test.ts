@@ -60,6 +60,7 @@ test.each([false, undefined])(
       await ctx.db.patch(world.gameId, { discord_voice: discordVoice });
       await ctx.db.insert('play_game_discord_channels', {
         game_id: world.gameId,
+        creator_id: world.identity.userId,
         guild_id: '100',
         category_ids: ['200'],
         channel_id: '300',

@@ -644,6 +644,7 @@ describe('administrator account bans', () => {
       });
       return await ctx.db.insert('play_game_discord_channels', {
         game_id: gameId,
+        creator_id: source.userId,
         ban_operation_id: operationId,
         guild_id: 'guild',
         category_ids: [],

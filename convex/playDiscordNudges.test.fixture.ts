@@ -46,6 +46,5 @@ export async function nudgeWorld() {
   );
   const publishNudge = (overrides: Partial<PlaySendNudgeRequest> = {}) =>
     world.t.action(api.playDiscordNudges.sendNudge, request(overrides));
-  const rows = () => world.t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(20));
-  return { ...world, authAccountId, fetch, request, publishNudge, rows };
+  return { ...world, authAccountId, fetch, request, publishNudge };
 }

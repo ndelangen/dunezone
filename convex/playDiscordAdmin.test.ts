@@ -79,6 +79,7 @@ test('inventory uses bounded pages and does not expose game credentials', async 
         provision_expires_at: 0,
       });
       await ctx.db.insert('play_game_discord_channels', {
+        creator_id: null,
         game_id: game,
         guild_id: '100',
         category_ids: ['200'],
@@ -131,6 +132,7 @@ test('orphan removal rechecks the guild, category, type and tracking', async () 
       provision_expires_at: 0,
     });
     await ctx.db.insert('play_game_discord_channels', {
+      creator_id: null,
       game_id: game,
       guild_id: '100',
       category_ids: ['200'],
@@ -159,6 +161,7 @@ test('paused integration refuses manual channel deletion', async () => {
       provision_expires_at: 0,
     });
     return await ctx.db.insert('play_game_discord_channels', {
+      creator_id: null,
       game_id: game,
       guild_id: '100',
       category_ids: ['200'],
@@ -190,6 +193,7 @@ test('inventory reports cleanup deadlines', async () => {
       provision_expires_at: 0,
     });
     await ctx.db.insert('play_game_discord_channels', {
+      creator_id: null,
       game_id: game,
       guild_id: '100',
       category_ids: ['200'],
@@ -201,38 +205,6 @@ test('inventory reports cleanup deadlines', async () => {
   });
   const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
   expect(page.channels.page[0]).toMatchObject({ state: 'creating', cleanup_at: 42 });
-  /* The previous admin UI reads issues.length and maps the field without guarding its presence. */
-  expect(page.nudgeErrors.length).toBe(0);
-  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
-});
-
-test('old admin consumers receive an empty delivery list while legacy records await retirement', async () => {
-  const { t, admin } = await setup();
-  await t.run(async (ctx) => {
-    const gameId = await ctx.db.insert('play_games', {
-      name: 'Retired delivery',
-      slug: 'retired-delivery',
-      state: 'ready',
-      secret: 'secret',
-      attempt_id: 'attempt',
-      created_at: 0,
-      provision_expires_at: 0,
-    });
-    await ctx.db.insert('play_game_discord_nudges', {
-      game_id: gameId,
-      to_seat: 'seat-1',
-      nudge_id: 'legacy',
-      from_faction_name: 'Atreides',
-      at: Date.now(),
-      state: 'failed',
-      attempts: 1,
-      error: 'Legacy failure',
-    });
-  });
-  const page = await admin.query(api.playDiscordAdmin.dashboard, { paginationOpts: { numItems: 5, cursor: null } });
-  expect(page.nudgeErrors.length).toBe(0);
-  expect(page.nudgeErrors.map((issue) => issue.error)).toEqual([]);
-  expect(await t.run((ctx) => ctx.db.query('play_game_discord_nudges').take(2))).toHaveLength(1);
 });
 
 test('inventory reports an empty-voice wait only for hourly-eligible channels', async () => {
@@ -252,6 +224,7 @@ test('inventory reports an empty-voice wait only for hourly-eligible channels', 
       directory: { stage: 'finished', seatCount: 6, seats: [], phase: null, lastActivityAt: 0, result: null },
     });
     const channelId = await ctx.db.insert('play_game_discord_channels', {
+      creator_id: null,
       game_id: gameId,
       guild_id: '100',
       category_ids: ['200'],

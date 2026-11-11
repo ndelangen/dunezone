@@ -15,14 +15,3 @@ export const playSendNudgeRequestSchema = playNudgeSchema.extend(gameCredentialF
 export const playPublishNudgeResultSchema = z.object({ ok: z.boolean() });
 export type PlayNudge = z.infer<typeof playNudgeSchema>;
 export type PlaySendNudgeRequest = z.infer<typeof playSendNudgeRequestSchema>;
-
-/* The previous Worker calls this mutation until its rollout completes; those requests are acknowledged and dropped. */
-export const playPublishNudgeRequestSchema = z.strictObject({
-  ...gameCredentialFields,
-  nudgeId: identifier,
-  fromFactionId: identifier,
-  fromFactionName: z.string().min(1).max(160),
-  toSeat: identifier,
-  toUserId: identifier,
-  at: z.number().finite().nonnegative(),
-});

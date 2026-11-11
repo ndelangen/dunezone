@@ -5,7 +5,8 @@ import { afterEach, beforeEach, expect, test, vi } from 'vite-plus/test';
 import { api, internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { playRateLimiter } from './lib/playRateLimits';
-import { playPerson, playTest } from './play.test.fixture';
+import { playPerson } from './play.test.fixture';
+import type { playTest } from './play.test.fixture';
 import { configureDiscord, discordStub, voiceWorld } from './playDiscord.test.fixture';
 
 type TestWorld = ReturnType<typeof playTest>;
@@ -174,83 +175,4 @@ test('banning a merged owner removes the transferred game and voice channel unde
     })
   ).toEqual({ status: 'not_found' });
   expect(discord.calls.filter((call) => call.method === 'DELETE' && call.path === '/channels/300')).toHaveLength(1);
-});
-
-test('creator backfill preserves lifecycle and ban cleanup metadata on replay', async () => {
-  const t = playTest();
-  const { channelId, creatorId } = await t.run(async (ctx) => {
-    const creator = await playPerson(ctx, 'Banned');
-    const profile = await ctx.db
-      .query('profiles')
-      .withIndex('by_user_id', (q) => q.eq('user_id', creator.userId))
-      .unique();
-    const stamp = new Date().toISOString();
-    const operationId = await ctx.db.insert('account_deletion_operations', {
-      kind: 'ban',
-      source_user_id: creator.userId,
-      source_profile_id: profile!._id,
-      replacement_user_id: null,
-      state: 'completed',
-      phase: 'complete',
-      snapshot_kind: null,
-      snapshot_cursor: null,
-      retry_count: 0,
-      error: null,
-      created_at: stamp,
-      updated_at: stamp,
-      completed_at: stamp,
-    });
-    const gameId = await ctx.db.insert('play_games', {
-      name: 'Retired game',
-      slug: 'retired-game',
-      creator_id: creator.userId,
-      state: 'expired',
-      ban_operation_id: operationId,
-      secret: 'a'.repeat(64),
-      attempt_id: 'b'.repeat(64),
-      provision_expires_at: Date.now(),
-      created_at: Date.now(),
-    });
-    const channelId = await ctx.db.insert('play_game_discord_channels', {
-      game_id: gameId,
-      guild_id: '100',
-      category_ids: ['200'],
-      channel_id: '300',
-      state: 'deleting',
-      ban_operation_id: operationId,
-      created_at: Date.now() - 60_000,
-      ended_at: Date.now() - 30_000,
-      renamed_ended: true,
-      voice_checked_at: Date.now() - 20_000,
-      work_revision: 9,
-      lease_revision: 8,
-      deletion_requested_at: Date.now() - 10_000,
-      cleanup_at: Date.now(),
-      next_attempt_at: Date.now() + 300_000,
-      retry_after: Date.now() + 300_000,
-      lease: 'unfinished-delete',
-      lease_until: Date.now() + 600_000,
-      error: 'Discord voice work could not finish.',
-    });
-    await ctx.db.patch(creator.userId, { account_state: 'banned' });
-    await ctx.db.patch(profile!._id, { account_state: 'banned' });
-    return { channelId, creatorId: creator.userId };
-  });
-  const before = await t.run(async (ctx) => await ctx.db.get(channelId));
-  const ids = ['discord_channel_creators_v1', 'discord_channel_creators_verify_v1'];
-  for (let replay = 0; replay < 2; replay += 1) {
-    if (replay === 0) {
-      await t.mutation(internal.migrations.runRequired, { ids });
-      await t.finishAllScheduledFunctions(vi.runAllTimers);
-    } else {
-      await t.mutation(internal.discordMigrations.discord_channel_creators_v1, { reset: true });
-      await t.finishAllScheduledFunctions(vi.runAllTimers);
-      await t.mutation(internal.discordMigrations.discord_channel_creators_verify_v1, { reset: true });
-      await t.finishAllScheduledFunctions(vi.runAllTimers);
-    }
-    await expect(t.query(internal.migrations.assertReadyForNarrow, { required: ids })).resolves.toMatchObject({
-      ok: true,
-    });
-    expect(await t.run(async (ctx) => await ctx.db.get(channelId))).toEqual({ ...before, creator_id: creatorId });
-  }
 });

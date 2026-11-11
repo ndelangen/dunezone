@@ -30,9 +30,8 @@ that target, with automatic mention parsing disabled. Public names are escaped a
 Discord applies channel access and notification settings; an accepted message does not prove a
 phone or desktop notification.
 
-New Workers call the `sendNudge` action. During rollout, the old `publishNudge` mutation stays
-authenticated and acknowledges legacy events without sending them. A new Worker whose action is
-not deployed yet logs and drops that attempt while its chat message remains saved.
+Workers call the `sendNudge` action. An unavailable action logs and drops that attempt while its
+chat message remains saved.
 
 A nudge makes one POST. Discord errors, including 429 responses, are logged and dropped. There is
 no outbox, retry, nonce or per-nudge delivery record. An explicit global Discord 429 holds other bot
@@ -127,12 +126,9 @@ resume; pausing still blocks new requests. Rare observation mutations prune at m
 holds through an expiry index. No cleanup cron is added. The admin page does not read these holds
 for every displayed row.
 
-Finish transitions compare the previous and accepted directory stages in one transaction. The
-obsolete `ended_at` channel marker remains in the schema only for the retirement window.
-`discordMigrations:discord_channel_end_marker_retire_v1` removes that field in batches of 50, and
-`discord_channel_end_marker_verify_v1` checks completion. Run retirement only within the confirmed
-production scope, after the new transition code is deployed. No channel, game, invite, lease or
-ownership value changes in that retirement.
+Finish transitions compare the previous and accepted directory stages in one transaction.
+Channels store their creator for capacity checks; an orphan with no recoverable creator stores null.
+The schema requires that explicit value, so capacity checks need no legacy-owner scan.
 
 After a release, check both Worker health identities, create an opted-in game, and verify the invite
 and VC text message destination. Repeat a nudge inside its cooldown and check that no second
@@ -152,19 +148,3 @@ from automated delivery tests.
 - [Durable Object alarms](https://developers.cloudflare.com/durable-objects/api/alarms/)
 - [Discord voice events and intents](https://docs.discord.com/developers/events/gateway)
 - [Convex Node actions](https://docs.convex.dev/functions/runtimes#nodejs-runtime)
-
-## Retiring the old nudge table
-
-The first release stops all nudge-table writes and leaves the legacy schema in place. The internal
-`discordNudgeMigrations:retire` migration deletes only rows in `play_game_discord_nudges`, in batches
-of 100. It runs only after approval of that production cleanup; it is deliberately absent from the
-automatic migration manifest until then. `discordNudgeMigrations:verifyRetired` proves the table is
-empty. The dashboard returns an empty legacy `nudgeErrors` array so older admin tabs keep working.
-Keep its snapshot-policy and provisioning-contract entries during this compatibility window.
-
-After the new Worker has deployed and the approved retirement has finished, a separate narrowing
-release removes the table, its active provisioning entries, the dashboard compatibility field and the
-temporary migration module. Its snapshot exclusion moves to the retired-table list because Convex
-exports can retain removed tables. Deleting these delivery records does not affect games, seats, linked accounts or
-voice channels. The records are disposable;
-recovery means fixing forward while nudges continue as best-effort requests, not replaying old pings.

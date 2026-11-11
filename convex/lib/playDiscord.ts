@@ -22,7 +22,6 @@ export async function discordChannel(ctx: QueryCtx, gameId: Id<'play_games'>) {
     .unique();
 }
 
-/** Legacy rows without an owner block new reservations until the backfill has visited them. */
 export async function discordVoiceAtLimit(ctx: QueryCtx, creatorId: Id<'users'>) {
   /* A merge moves ownership in batches. Hold reservations until both accounts' rows have moved. */
   if ((await ctx.db.get(creatorId))?.account_merge_operation_id) {
@@ -30,13 +29,6 @@ export async function discordVoiceAtLimit(ctx: QueryCtx, creatorId: Id<'users'>)
   }
   let count = 0;
   for (const state of ['pending', 'creating', 'ready'] as const) {
-    const legacy = await ctx.db
-      .query('play_game_discord_channels')
-      .withIndex('by_creator_id_state', (q) => q.eq('creator_id', undefined).eq('state', state))
-      .first();
-    if (legacy) {
-      return true;
-    }
     const channels = await ctx.db
       .query('play_game_discord_channels')
       .withIndex('by_creator_id_state', (q) => q.eq('creator_id', creatorId).eq('state', state))

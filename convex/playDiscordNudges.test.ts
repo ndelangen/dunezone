@@ -46,7 +46,6 @@ test('posts once with only the target allowed to be mentioned, and stores no del
     content: '<@123456789> Atreides \\<@&777\\> \\[go\\](url) @here is waiting on you in Quiet Sietch.',
     allowed_mentions: { parse: [], users: ['123456789'], replied_user: false },
   });
-  expect(await world.rows()).toEqual([]);
 });
 
 test('the single target-seat cooldown lasts five minutes', async () => {
@@ -126,7 +125,6 @@ test.each([429, 503])('Discord %s is logged and dropped after one POST without s
   expect(world.fetch).toHaveBeenCalledTimes(1);
   expect(error).toHaveBeenCalledWith('Discord nudge dropped.', `Discord request failed (${status}).`);
   expect(await scheduled()).toEqual(before);
-  expect(await world.rows()).toEqual([]);
   expect(await world.t.run((ctx) => ctx.db.query('play_discord_cooldown').take(2))).toEqual([]);
 });
 
@@ -152,29 +150,6 @@ test('an activity-only directory update can be ahead or behind without dropping 
   );
   await world.publishNudge();
   expect(world.fetch).toHaveBeenCalledTimes(1);
-});
-
-test('an old Worker mutation remains valid after Convex deploys and drops queued legacy nudges', async () => {
-  const world = await nudgeWorld();
-  const args = {
-    gameId: world.gameId,
-    secret: world.credentials.secret,
-    nudgeId: 'legacy-event',
-    fromFactionId: 'atreides',
-    fromFactionName: 'Atreides',
-    toSeat: 'seat-1',
-    toUserId: world.identity.userId,
-    at: Date.now(),
-  };
-  const scheduled = () => world.t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect());
-  const before = await scheduled();
-  expect(await world.t.mutation(api.playDiscordNudges.publishNudge, args)).toEqual({ ok: true });
-  expect(await world.t.mutation(api.playDiscordNudges.publishNudge, { ...args, secret: '0'.repeat(64) })).toEqual({
-    ok: false,
-  });
-  expect(world.fetch).not.toHaveBeenCalled();
-  expect(await scheduled()).toEqual(before);
-  expect(await world.rows()).toEqual([]);
 });
 
 test.each(['body', 'global header', 'scope header'] as const)(
@@ -205,7 +180,6 @@ test.each(['body', 'global header', 'scope header'] as const)(
     });
     await expect(rest.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
     expect(world.fetch).toHaveBeenCalledTimes(1);
-    expect(await world.rows()).toEqual([]);
   }
 );
 

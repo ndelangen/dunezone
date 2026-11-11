@@ -129,32 +129,8 @@ export default defineSchema({
     .index('by_key', ['key'])
     .index('by_blocked_until', ['blocked_until']),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
-  /** Retired: kept for the approved retirement migration, then removed in a separate narrowing release. */
-  play_game_discord_nudges: defineTable({
-    game_id: v.id('play_games'),
-    to_seat: v.string(),
-    nudge_id: v.string(),
-    from_faction_name: v.string(),
-    to_user_id: v.optional(v.id('users')),
-    auth_account_id: v.optional(v.id('authAccounts')),
-    at: v.number(),
-    state: v.union(
-      v.literal('pending'),
-      v.literal('sending'),
-      v.literal('sent'),
-      v.literal('failed'),
-      v.literal('uncertain'),
-      v.literal('dropped')
-    ),
-    attempts: v.number(),
-    error: v.optional(v.string()),
-    message_id: v.optional(v.string()),
-  })
-    .index('by_game_id_to_seat', ['game_id', 'to_seat'])
-    .index('by_state_at', ['state', 'at'])
-    .index('by_at', ['at']),
   play_game_discord_channels: defineTable({
-    creator_id: v.optional(v.union(v.id('users'), v.null())),
+    creator_id: v.union(v.id('users'), v.null()),
     ban_operation_id: v.optional(v.id('account_deletion_operations')),
     game_id: v.id('play_games'),
     guild_id: v.string(),
@@ -173,8 +149,6 @@ export default defineSchema({
       v.literal('deleted')
     ),
     created_at: v.number(),
-    /* Retained until the approved finish-marker retirement has run; new writes use directory transitions. */
-    ended_at: v.optional(v.number()),
     renamed_ended: v.optional(v.boolean()),
     voice_checked_at: v.optional(v.number()),
     work_revision: v.optional(v.number()),

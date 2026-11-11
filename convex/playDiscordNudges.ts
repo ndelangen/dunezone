@@ -1,14 +1,10 @@
 import { zodToConvex } from 'convex-helpers/server/zod4';
 import { v } from 'convex/values';
 
-import {
-  playPublishNudgeRequestSchema,
-  playSendNudgeRequestSchema,
-  playPublishNudgeResultSchema,
-} from '../src/shared/play/nudges';
+import { playSendNudgeRequestSchema, playPublishNudgeResultSchema } from '../src/shared/play/nudges';
 import { internal } from './_generated/api';
 import { action } from './_generated/server';
-import { internalMutation, mutation } from './functions';
+import { internalMutation } from './functions';
 import { canonicalAccount } from './lib/accountIdentity';
 import { accountStateOf } from './lib/accountLifecycle';
 import { discordCooldown } from './lib/discordCooldown';
@@ -119,13 +115,4 @@ export const sendNudge = action({
       return { ok: true };
     }
   },
-});
-
-/** Older Workers keep their mutation endpoint during rollout; stale queued nudges are dropped. */
-export const publishNudge = mutation({
-  args: zodToConvex(playPublishNudgeRequestSchema),
-  returns: zodToConvex(playPublishNudgeResultSchema),
-  handler: async (ctx, input) => ({
-    ok: (await authenticatedPlayRequest(ctx, input, playPublishNudgeRequestSchema)) !== null,
-  }),
 });

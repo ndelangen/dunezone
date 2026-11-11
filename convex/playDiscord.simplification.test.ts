@@ -44,20 +44,3 @@ test('full batches in every state share one continuation and leave no due rows b
     })
   ).toEqual([]);
 });
-
-test('finish-marker retirement changes no channel ownership, lifecycle or lease fields and replays safely', async () => {
-  const world = await voiceWorld();
-  const row = (await world.channel())!;
-  await world.t.run((ctx) =>
-    ctx.db.patch(row._id, { ended_at: Date.now(), work_revision: 7, lease: 'held', lease_until: Date.now() + 60_000 })
-  );
-  const before = (await world.channel())!;
-  const { ended_at: _endedAt, ...expected } = before;
-  for (let pass = 0; pass < 2; pass += 1) {
-    await world.t.mutation(internal.discordMigrations.discord_channel_end_marker_retire_v1, { reset: true });
-    await world.t.finishAllScheduledFunctions(vi.runAllTimers);
-    await world.t.mutation(internal.discordMigrations.discord_channel_end_marker_verify_v1, { reset: true });
-    await world.t.finishAllScheduledFunctions(vi.runAllTimers);
-    expect(await world.channel()).toEqual(expected);
-  }
-});
