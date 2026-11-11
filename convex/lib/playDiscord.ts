@@ -3,6 +3,7 @@ import { internal } from '../_generated/api';
 import type { Doc, Id } from '../_generated/dataModel';
 import type { MutationCtx, QueryCtx } from '../_generated/server';
 import { discordConfiguration } from './discordRest';
+import { DISCORD_PARKED, discordNeedsAttention } from './discordRetry';
 import { discordEnabled } from './discordStatus';
 
 export const DISCORD_DAY = 24 * 60 * 60_000;
@@ -53,6 +54,9 @@ export async function reserveDiscordChannel(ctx: MutationCtx, game: Doc<'play_ga
 
 /** Manual retirement uses the same durable deletion path as an expired game channel. */
 export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
+  if (channel.state === 'deleted' || channel.state === 'deleting' || channel.deletion_requested_at !== undefined) {
+    return;
+  }
   await ctx.db.patch(channel._id, {
     /* Keep an in-flight create able to save its returned ID before the deletion request is applied. */
     state: channel.state === 'creating' ? 'creating' : 'deleting',
@@ -60,14 +64,32 @@ export async function requestDiscordDeletion(ctx: MutationCtx, channel: Doc<'pla
     cleanup_at: Date.now(),
     next_attempt_at: Date.now(),
     invite_url: undefined,
+    retry_after: undefined,
+    retry: undefined,
     error: undefined,
     work_revision: (channel.work_revision ?? 0) + 1,
   });
   await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });
 }
 
+/** A confirmed deletion or Unknown Channel response ends tracked work without another Discord request. */
+export async function markDiscordDeleted(ctx: MutationCtx, channel: Doc<'play_game_discord_channels'>) {
+  await ctx.db.patch(channel._id, {
+    state: 'deleted',
+    deleted_at: Date.now(),
+    invite_url: undefined,
+    retry_after: undefined,
+    retry: undefined,
+    error: undefined,
+  });
+}
+
 /** Accepted stage changes wake cleanup immediately, even when an earlier action still owns the lease. */
-export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_games'>) {
+export async function syncDiscordDirectory(
+  ctx: MutationCtx,
+  game: Doc<'play_games'>,
+  previousStage: Doc<'play_games'>['directory_stage']
+) {
   if (game.discord_voice !== true) {
     return;
   }
@@ -76,16 +98,28 @@ export async function syncDiscordDirectory(ctx: MutationCtx, game: Doc<'play_gam
     return;
   }
   const stage = game.directory?.stage;
-  const endedAt = stage === 'finished' ? (channel.ended_at ?? Date.now()) : undefined;
   const inactiveAt = (game.directory?.lastActivityAt ?? channel.created_at) + 14 * DISCORD_DAY;
   const cleanupAt = stage === 'discarded' ? Date.now() : inactiveAt;
-  const changed = stage === 'discarded' || (endedAt !== undefined) !== (channel.ended_at !== undefined);
+  const terminal = stage === 'finished' || stage === 'discarded';
+  const wasTerminal = previousStage === 'finished' || previousStage === 'discarded';
+  const changed = stage !== previousStage && (terminal || wasTerminal);
+  let next = Math.min(channel.next_attempt_at, cleanupAt);
+  if (discordNeedsAttention(channel)) {
+    next =
+      terminal || channel.state === 'creating' || (channel.retry && channel.retry.operation === 'delete')
+        ? DISCORD_PARKED
+        : cleanupAt;
+  }
   await ctx.db.patch(channel._id, {
-    ended_at: endedAt,
     cleanup_at: cleanupAt,
     ...(changed
-      ? { next_attempt_at: Date.now(), work_revision: (channel.work_revision ?? 0) + 1 }
-      : { next_attempt_at: Math.min(channel.next_attempt_at, cleanupAt) }),
+      ? {
+          next_attempt_at: Date.now(),
+          retry_after: undefined,
+          retry: undefined,
+          work_revision: (channel.work_revision ?? 0) + 1,
+        }
+      : { next_attempt_at: next }),
   });
   if (changed) {
     await ctx.scheduler.runAfter(0, internal.playDiscordActions.reconcile, { channelId: channel._id });

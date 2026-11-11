@@ -17,6 +17,7 @@ import { rulebookCoverImageSchema } from '../src/shared/rulebooks/coverImage';
 import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
+import { discordRetryState } from './lib/discordRetry';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
@@ -121,12 +122,20 @@ export default defineSchema({
   /** Each base has its own monotonically increasing suffix counter, never a global allocation lock. */
   play_game_slug_cursors: defineTable({ base: v.string(), next_suffix: v.number() }).index('by_base', ['base']),
   play_discord_cooldown: defineTable({ blocked_until: v.number() }),
+  play_discord_route_buckets: defineTable({ route: v.string(), bucket_id: v.string() }).index('by_route', ['route']),
+  play_discord_rate_limits: defineTable({ key: v.string(), blocked_until: v.number() })
+    .index('by_key', ['key'])
+    .index('by_blocked_until', ['blocked_until']),
   play_discord_settings: defineTable({ enabled: v.boolean(), updated_at: v.number() }),
   play_game_discord_channels: defineTable({
     game_id: v.id('play_games'),
     guild_id: v.string(),
     category_ids: v.array(v.string()),
     channel_id: v.optional(v.string()),
+    creation_marker: v.optional(v.string()),
+    creation_category_id: v.optional(v.string()),
+    creation_name_pending: v.optional(v.boolean()),
+    creation_attempt: v.optional(v.number()),
     invite_url: v.optional(v.string()),
     state: v.union(
       v.literal('pending'),
@@ -136,7 +145,6 @@ export default defineSchema({
       v.literal('deleted')
     ),
     created_at: v.number(),
-    ended_at: v.optional(v.number()),
     renamed_ended: v.optional(v.boolean()),
     voice_checked_at: v.optional(v.number()),
     work_revision: v.optional(v.number()),
@@ -146,6 +154,7 @@ export default defineSchema({
     cleanup_at: v.number(),
     next_attempt_at: v.number(),
     retry_after: v.optional(v.number()),
+    retry: v.optional(discordRetryState),
     lease: v.optional(v.string()),
     lease_until: v.optional(v.number()),
     error: v.optional(v.string()),

@@ -18,6 +18,10 @@ export function useDeleteDiscordChannel() {
   return useLiveMutation<{ channelId: Id<'play_game_discord_channels'> }, null>(api.playDiscordAdmin.requestDelete);
 }
 
+export function useRetryDiscordChannel() {
+  return useLiveMutation<{ channelId: Id<'play_game_discord_channels'> }, null>(api.playDiscordAdmin.requestRetry);
+}
+
 export function useRefreshDiscordOrphans() {
   const action = useAction(api.playDiscordAdmin.refreshOrphans);
   return useLiveOperation(useCallback(async () => await action({}), [action]));

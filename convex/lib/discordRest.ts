@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const snowflake = z.string().regex(/^\d+$/);
 const channel = z.object({ id: snowflake, type: z.number(), parent_id: snowflake.nullish() });
+const listedChannel = channel.extend({ name: z.string().max(100), guild_id: snowflake.optional() });
 const errorBody = z.object({
   code: z.number().optional(),
   retry_after: z.number().optional(),
@@ -13,13 +14,87 @@ const configuration = z.object({
   categoryIds: z.array(snowflake).min(1),
 });
 
+export const DISCORD_ROUTES = [
+  'guildChannels.read',
+  'guildChannels.create',
+  'channel.read',
+  'channel.rename',
+  'channel.delete',
+  'channelInvite.create',
+  'channelMessage.create',
+  'gatewayBot.read',
+] as const;
+export type DiscordRoute = (typeof DISCORD_ROUTES)[number];
+export type DiscordRequestScope = { route: DiscordRoute; major: string };
+export type DiscordRateLimitObservation = DiscordRequestScope & {
+  bucketId?: string;
+  limit?: { until: number; global: boolean };
+};
+export type DiscordRequestGate = {
+  inspect: (scope: DiscordRequestScope) => Promise<{
+    blockedUntil: number;
+    globalUntil: number;
+    bucketId?: string;
+  } | null>;
+  observe: (observation: DiscordRateLimitObservation) => Promise<unknown>;
+};
+
+const requestRoutes: Record<
+  DiscordRoute,
+  { method: string; path: RegExp; major: 'guild' | 'channel' } | { method: string; path: string; major: 'none' }
+> = {
+  'guildChannels.read': { method: 'GET', path: /^\/guilds\/(\d+)\/channels$/, major: 'guild' },
+  'guildChannels.create': { method: 'POST', path: /^\/guilds\/(\d+)\/channels$/, major: 'guild' },
+  'channel.read': { method: 'GET', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channel.rename': { method: 'PATCH', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channel.delete': { method: 'DELETE', path: /^\/channels\/(\d+)$/, major: 'channel' },
+  'channelInvite.create': { method: 'POST', path: /^\/channels\/(\d+)\/invites$/, major: 'channel' },
+  'channelMessage.create': { method: 'POST', path: /^\/channels\/(\d+)\/messages$/, major: 'channel' },
+  'gatewayBot.read': { method: 'GET', path: '/gateway/bot', major: 'none' },
+};
+
+function matchRequestScope(route: DiscordRoute, method: string, path: string): DiscordRequestScope | null {
+  const candidate = requestRoutes[route];
+  if (candidate.method !== method) {
+    return null;
+  }
+  if (typeof candidate.path === 'string') {
+    return candidate.path === path ? { route, major: candidate.major } : null;
+  }
+  const match = candidate.path.exec(path);
+  if (!match) {
+    return null;
+  }
+  return { route, major: `${candidate.major}:${match[1]}` };
+}
+
+/** Only the eight endpoints this integration uses can acquire persisted route aliases. */
+function requestScope(method: string, path: string): DiscordRequestScope {
+  for (const route of DISCORD_ROUTES) {
+    const scope = matchRequestScope(route, method, path);
+    if (scope) {
+      return scope;
+    }
+  }
+  throw new Error('Unsupported Discord request route.');
+}
+
+export function discordRouteHoldKey(scope: DiscordRequestScope) {
+  return JSON.stringify(['route', scope.route, scope.major]);
+}
+
+export function discordBucketHoldKey(bucketId: string, major: string) {
+  return JSON.stringify(['bucket', bucketId, major]);
+}
+
 /** A sanitized failure: neither Discord's response body nor credentials enter logs or stored diagnostics. */
 export class DiscordFailure extends Error {
   constructor(
     readonly status: number,
     readonly code: number | undefined,
     readonly retryAfterMs = 0,
-    readonly global = false
+    readonly global = false,
+    readonly retryAt?: number
   ) {
     super(status === 0 ? 'Discord did not return a confirmed response.' : `Discord request failed (${status}).`);
   }
@@ -57,31 +132,38 @@ async function responseData(response: Response): Promise<unknown> {
   }
 }
 
-function responseFailure(response: Response, data: unknown) {
+function responseFailure(response: Response, data: unknown, receivedAt: number) {
   const parsed = errorBody.safeParse(data);
   const headerDelay = Number(response.headers.get('Retry-After'));
   const seconds = Math.max(
     parsed.success ? (parsed.data.retry_after ?? 0) : 0,
     Number.isFinite(headerDelay) ? headerDelay : 0
   );
-  const delay = Math.max(1000, seconds * 1000);
+  const retryAt = response.status === 429 ? receivedAt + Math.max(1000, Math.ceil(seconds * 1000)) : undefined;
   return new DiscordFailure(
     response.status,
     parsed.success ? parsed.data.code : undefined,
-    response.status === 429 ? delay : 0,
+    retryAt === undefined ? 0 : Math.max(0, retryAt - Date.now()),
     response.status === 429 &&
       (response.headers.get('X-RateLimit-Global') === 'true' ||
         response.headers.get('X-RateLimit-Scope') === 'global' ||
-        (parsed.success && parsed.data.global === true))
+        (parsed.success && parsed.data.global === true)),
+    retryAt
   );
 }
 
-/** Discord REST is called only by the internal Play action; writes carry an audit reason. */
+/** Discord actions share one persisted request gate; writes carry an audit reason. */
 export class DiscordRest {
+  private sentRequests = 0;
+
+  get requestsMade() {
+    return this.sentRequests;
+  }
+
   constructor(
     private readonly token: string,
     private readonly reason: string,
-    private readonly cooldown: { until: () => Promise<number | null>; hold: (until: number) => Promise<unknown> },
+    private readonly cooldown: DiscordRequestGate,
     private readonly deadline?: number
   ) {}
 
@@ -91,6 +173,7 @@ export class DiscordRest {
       if (timeout <= 0) {
         throw new DiscordFailure(0, undefined);
       }
+      this.sentRequests += 1;
       return await fetch(`https://discord.com/api/v10${path}`, {
         method,
         headers: {
@@ -106,34 +189,51 @@ export class DiscordRest {
     }
   }
 
-  async request(method: string, path: string, body?: unknown, rateLimitRetries = 2): Promise<unknown> {
-    for (let attempt = 0; ; attempt += 1) {
-      if (!discordConfiguration()) {
-        throw new DiscordFailure(0, undefined);
-      }
-      const until = await this.cooldown.until();
-      if (until === null) {
-        throw new DiscordPaused();
-      }
-      const blocked = until - Date.now();
-      if (blocked > 0) {
-        throw new DiscordFailure(429, undefined, blocked);
-      }
-      const response = await this.fetchResponse(method, path, body);
-      const data = await responseData(response);
-      if (response.ok) {
-        return data;
-      }
-      const failure = responseFailure(response, data);
-      if (response.status === 429 && failure.global) {
-        await this.cooldown.hold(Date.now() + failure.retryAfterMs);
-      }
-      if (response.status === 429 && attempt < rateLimitRetries && failure.retryAfterMs <= 5000) {
-        await new Promise((resolve) => setTimeout(resolve, failure.retryAfterMs));
-        continue;
-      }
-      throw failure;
+  async request(method: string, path: string, body?: unknown): Promise<unknown> {
+    if (!discordConfiguration()) {
+      throw new DiscordFailure(0, undefined);
     }
+    const scope = requestScope(method, path);
+    const gate = await this.cooldown.inspect(scope);
+    if (gate === null) {
+      throw new DiscordPaused();
+    }
+    const blocked = gate.blockedUntil - Date.now();
+    if (blocked > 0) {
+      throw new DiscordFailure(429, undefined, blocked, gate.globalUntil > Date.now(), gate.blockedUntil);
+    }
+    const response = await this.fetchResponse(method, path, body);
+    const receivedAt = Date.now();
+    const data = await responseData(response);
+    const headerBucket = response.headers.get('X-RateLimit-Bucket')?.trim();
+    const bucketId = headerBucket && headerBucket.length <= 256 ? headerBucket : undefined;
+    if (response.ok) {
+      if (bucketId && bucketId !== gate.bucketId) {
+        await this.cooldown.observe({ ...scope, bucketId });
+      }
+      return data;
+    }
+    const failure = responseFailure(response, data, receivedAt);
+    if (response.status === 429) {
+      await this.cooldown.observe({
+        ...scope,
+        ...(bucketId ? { bucketId } : {}),
+        limit: { until: failure.retryAt!, global: failure.global },
+      });
+    }
+    throw failure;
+  }
+
+  /** Recovery needs the full visible list, including category names and exact channel markers. */
+  async listChannels(guildId: string) {
+    const channels = z
+      .array(listedChannel)
+      .max(500)
+      .parse(await this.request('GET', `/guilds/${guildId}/channels`));
+    if (channels.some((entry) => entry.guild_id !== undefined && entry.guild_id !== guildId)) {
+      throw new Error('Discord returned channels from a different server.');
+    }
+    return channels;
   }
 
   async categories(guildId: string, categoryIds: string[]) {
@@ -169,15 +269,10 @@ export class DiscordRest {
   /** One best-effort POST, with only the intended recipient allowed to be mentioned. */
   async nudge(channelId: string, userId: string, fromFactionName: string, gameName: string) {
     const plain = (value: string) => value.replace(/\s+/g, ' ').replace(/[\\`*_~|<>[\]]/g, '\\$&');
-    const result = await this.request(
-      'POST',
-      `/channels/${channelId}/messages`,
-      {
-        content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
-        allowed_mentions: { parse: [], users: [userId], replied_user: false },
-      },
-      0
-    );
+    const result = await this.request('POST', `/channels/${channelId}/messages`, {
+      content: `<@${userId}> ${plain(fromFactionName)} is waiting on you in ${plain(gameName)}.`,
+      allowed_mentions: { parse: [], users: [userId], replied_user: false },
+    });
     const parsed = z.object({ id: snowflake }).safeParse(result);
     if (!parsed.success) {
       throw new DiscordFailure(0, undefined);

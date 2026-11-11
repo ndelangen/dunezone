@@ -6,7 +6,7 @@ import type { Doc } from './_generated/dataModel';
 import type { MutationCtx, QueryCtx } from './_generated/server';
 import { internalMutation } from './functions';
 import { discordEnabled } from './lib/discordStatus';
-import { requestDiscordDeletion } from './lib/playDiscord';
+import { markDiscordDeleted, requestDiscordDeletion } from './lib/playDiscord';
 import {
   VOICE_BATCH,
   VOICE_OBSERVATION_MAX_AGE,
@@ -63,6 +63,22 @@ async function observedChannel(ctx: QueryCtx, observed: Infer<typeof voiceCandid
   return (await eligible(ctx, row)) ? row : null;
 }
 
+async function retireObservedChannel(
+  ctx: MutationCtx,
+  observed: Infer<typeof voiceCandidateValidator>,
+  outcome: 'empty' | 'missing'
+) {
+  const row = await observedChannel(ctx, observed);
+  if (!row) {
+    return;
+  }
+  if (outcome === 'missing') {
+    await markDiscordDeleted(ctx, row);
+    return;
+  }
+  await requestDiscordDeletion(ctx, row);
+}
+
 /** Empty or paused deployments do not start a Node action. */
 export const checkDue = internalMutation({
   args: {},
@@ -78,11 +94,15 @@ export const checkDue = internalMutation({
 
 /** A stale snapshot cannot retire a continued game or a later finish of that game. */
 export const reportEmpty = internalMutation({
-  args: { channels: v.array(voiceCandidateValidator), observedAt: v.number() },
+  args: {
+    channels: v.array(voiceCandidateValidator),
+    missingChannels: v.optional(v.array(voiceCandidateValidator)),
+    observedAt: v.number(),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const age = Date.now() - args.observedAt;
-    if (args.channels.length > VOICE_BATCH) {
+    if (args.channels.length + (args.missingChannels?.length ?? 0) > VOICE_BATCH) {
       return null;
     }
     if (!Number.isFinite(age)) {
@@ -95,10 +115,10 @@ export const reportEmpty = internalMutation({
       return null;
     }
     for (const channel of args.channels) {
-      const row = await observedChannel(ctx, channel);
-      if (row) {
-        await requestDiscordDeletion(ctx, row);
-      }
+      await retireObservedChannel(ctx, channel, 'empty');
+    }
+    for (const channel of args.missingChannels ?? []) {
+      await retireObservedChannel(ctx, channel, 'missing');
     }
     return null;
   },
