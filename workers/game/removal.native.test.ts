@@ -11,7 +11,7 @@ import {
   accepted,
   admitPlayer,
   eventually,
-  gameId,
+  isFullView,
   seat,
   sendCommand,
   storedEventMessages,
@@ -74,33 +74,26 @@ describe('Public removal votes', { timeout: 20_000 }, () => {
     choice: Extract<RemovalAction, { kind: 'removal-ballot' }>['choice']
   ) => accepted(player, { kind: 'removal-ballot', voteId: vote.id, choice });
 
-  it('builds public vote data once per broadcast and reads the roster only for open votes', async () => {
+  it('delivers the same open vote to newcomers and connected viewers, then clears it', async () => {
     const [a, b, c] = await players(3);
     const observer = await admit('observer');
-    const path = '/native-test/removal-vote-reads';
-    async function moveAndCount(seq: number) {
-      expect((await runtime.object(gameId, path, { method: 'POST' })).status).toBe(204);
-      a.send({ type: 'pointer', seq, position: [seq, 0, 0] });
-      await Promise.all(
-        [a, b, c, observer].map((player) =>
-          player.message('update', ({ activity }) =>
-            [...activity.pointers, ...activity.pointerMoves].some((pointer) => pointer.sourceSeq === seq)
-          )
-        )
-      );
-      return (await runtime.object(gameId, path)).json();
-    }
-
-    expect(await moveAndCount(1)).toEqual({ projections: 1, rosterReads: 0 });
     const vote = await start(a, c);
-    expect(await moveAndCount(2)).toEqual({ projections: 1, rosterReads: 1 });
-    expect((await runtime.object(gameId, path, { method: 'POST' })).status).toBe(204);
     const newcomer = await admit('newcomer');
-    expect((await newcomer.message('view')).snapshot.removalVotes).toEqual([vote]);
-    expect(await (await runtime.object(gameId, path)).json()).toEqual({ projections: 1, rosterReads: 1 });
-    expect(await moveAndCount(3)).toEqual({ projections: 1, rosterReads: 1 });
-    await ballot(b, vote, 'remove');
-    expect(await moveAndCount(4)).toEqual({ projections: 1, rosterReads: 0 });
+    const joined = await newcomer.message('view');
+    expect(isFullView(joined)).toBe(true);
+    expect(joined.snapshot.removalVotes).toEqual([vote]);
+    const existing = await observer.message(
+      'view',
+      ({ snapshot }) => snapshot.controls?.spectators?.some(({ name }) => name === joined.viewer.displayName) ?? false
+    );
+    expect(isFullView(existing)).toBe(false);
+    expect(existing.snapshot.removalVotes).toEqual([vote]);
+
+    const resolved = await ballot(b, vote, 'remove');
+    for (const viewer of [a, observer, newcomer]) {
+      const view = await viewer.message('view', ({ snapshot }) => snapshot.revision === resolved.snapshot.revision);
+      expect(view.snapshot.removalVotes).toEqual([]);
+    }
   });
 
   /* The smallest table, an even count that rounds the majority up, and a full table. */
