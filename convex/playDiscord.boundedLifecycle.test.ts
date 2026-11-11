@@ -71,16 +71,21 @@ function lostCreationRemote(world: World, discord: ReturnType<typeof discordStub
   return remote;
 }
 
+const transitions: Record<Operation, readonly ('finished' | 'discarded' | 'play')[]> = {
+  categories: [],
+  create: [],
+  invite: [],
+  'rename-ended': ['finished'],
+  'rename-active': ['finished', 'play'],
+  delete: ['finished', 'discarded'],
+};
+
 async function operationWorld(operation: Operation) {
   const discord = discordStub();
   const world = await voiceWorld();
-  if (operation === 'rename-ended' || operation === 'rename-active' || operation === 'delete') {
+  for (const [index, stage] of transitions[operation].entries()) {
     await world.reconcile();
-    await world.publish(2, world.summary(undefined, { stage: 'finished' }));
-    if (operation !== 'rename-ended') {
-      await world.reconcile();
-      await world.publish(3, world.summary(undefined, { stage: operation === 'delete' ? 'discarded' : 'play' }));
-    }
+    await world.publish(index + 2, world.summary(undefined, { stage }));
   }
   const attempts = rejectEndpoint(discord, operation);
   return { ...world, discord, attempts };

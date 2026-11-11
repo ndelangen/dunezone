@@ -146,6 +146,76 @@ test('orphan removal rechecks the guild, category, type and tracking', async () 
   expect(requests.some((request) => request.startsWith('DELETE'))).toBe(false);
 });
 
+test('orphan cleanup protects the exact creation marker before and after adoption', async () => {
+  const { t, admin } = await setup();
+  const id = '700000000000000000';
+  const { channelId, marker } = await t.run(async (ctx) => {
+    const gameId = await ctx.db.insert('play_games', {
+      name: 'Game',
+      slug: 'game',
+      state: 'ready',
+      secret: 'secret',
+      attempt_id: 'attempt',
+      created_at: 0,
+      provision_expires_at: 0,
+    });
+    const marker = `dune-play-${gameId}`;
+    const channelId = await ctx.db.insert('play_game_discord_channels', {
+      game_id: gameId,
+      guild_id: '100',
+      category_ids: ['200', '201'],
+      state: 'creating',
+      creation_marker: marker,
+      creation_category_id: '200',
+      created_at: 0,
+      cleanup_at: 0,
+      next_attempt_at: 0,
+    });
+    return { channelId, marker };
+  });
+  const candidate = { id, name: marker, type: 2, parent_id: '200', guild_id: '100' };
+  const wrongCategory = { ...candidate, id: '700000000000000001', parent_id: '201' };
+  const fetch = vi.fn(async (url: string, _options?: RequestInit) =>
+    Response.json(url.endsWith('/guilds/100/channels') ? [candidate, wrongCategory] : candidate)
+  );
+  vi.stubGlobal('fetch', fetch);
+  expect(await admin.action(api.playDiscordAdmin.refreshOrphans, {})).toEqual([
+    { id: wrongCategory.id, name: marker, parent_id: '201', guild_id: '100' },
+  ]);
+  await expect(admin.action(api.playDiscordAdmin.deleteOrphan, { channelId: id })).rejects.toThrow('tracked');
+  await t.run((ctx) => ctx.db.patch(channelId, { channel_id: id, state: 'pending' }));
+  candidate.name = 'Game';
+  await expect(admin.action(api.playDiscordAdmin.deleteOrphan, { channelId: id })).rejects.toThrow('tracked');
+  expect(fetch.mock.calls.some(([, options]) => options?.method === 'DELETE')).toBe(false);
+});
+
+test('orphan deletion rechecks the category after a Discord rate limit', async () => {
+  vi.useFakeTimers();
+  const { admin } = await setup();
+  const id = '700000000000000000';
+  const candidate = { id, name: 'room', type: 2, parent_id: '200', guild_id: '100' };
+  const requests: string[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (_url: string, options?: RequestInit) => {
+      const method = options?.method ?? 'GET';
+      requests.push(method);
+      if (method === 'DELETE') {
+        candidate.parent_id = '2010';
+        return Response.json({ retry_after: 1 }, { status: 429 });
+      }
+      return Response.json(candidate);
+    })
+  );
+  const deletion = expect(admin.action(api.playDiscordAdmin.deleteOrphan, { channelId: id })).rejects.toThrow(
+    'outside the configured Games categories'
+  );
+  await vi.waitFor(() => expect(requests).toContain('DELETE'));
+  await vi.advanceTimersByTimeAsync(1000);
+  await deletion;
+  expect(requests).toEqual(['GET', 'DELETE', 'GET']);
+});
+
 test('paused integration refuses manual channel deletion', async () => {
   const { t, admin } = await setup();
   const channelId = await t.run(async (ctx) => {

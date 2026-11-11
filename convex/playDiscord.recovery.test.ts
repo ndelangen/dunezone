@@ -190,45 +190,48 @@ test('an explicit retry can adopt a later visible marker without another POST', 
   expect(await world.channel()).toMatchObject({ state: 'ready', channel_id: '700' });
 });
 
-test.each(['duplicates', 'wrong type', 'wrong category', 'wrong guild', 'missing category', 'failed listing'] as const)(
-  '%s never authorizes a replacement POST',
-  async (condition) => {
-    const { world, remote } = await uncertainCreation();
-    const match = { id: '700', type: 2, name: `dune-play-${world.gameId}`, parent_id: '200', guild_id: '100' };
-    if (condition === 'duplicates') {
-      remote.channels.push(match, { ...match, id: '701' });
-    }
-    if (condition === 'wrong type') {
-      remote.channels.push({ ...match, type: 0 });
-    }
-    if (condition === 'wrong category') {
-      remote.channels.push({ ...match, parent_id: '201' });
-    }
-    if (condition === 'wrong guild') {
-      remote.channels.push({ ...match, guild_id: '101' });
-    }
-    if (condition === 'missing category') {
-      remote.channels = [];
-    }
-    if (condition === 'failed listing') {
-      remote.listingFails = true;
-    }
-    await retry(world);
-    expect(remote.creates).toBe(1);
-    expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
-    expect(await world.channel()).toMatchObject({ state: 'creating', creation_attempt: 1 });
-    expect((await world.channel())!.channel_id).toBeUndefined();
-    if (condition !== 'failed listing') {
-      expect(await world.channel()).toMatchObject({ next_attempt_at: DISCORD_PARKED, retry: { needsAttention: true } });
-    } else {
-      await retry(world);
-      expect(await world.channel()).toMatchObject({
-        next_attempt_at: DISCORD_PARKED,
-        retry: { attempts: 3, needsAttention: true },
-      });
-    }
-  }
-);
+const mismatchedListings: Record<string, (match: ListedChannel) => ListedChannel[]> = {
+  duplicates: (match) => [match, { ...match, id: '701' }],
+  'wrong type': (match) => [{ ...match, type: 0 }],
+  'wrong category': (match) => [{ ...match, parent_id: '201' }],
+  'wrong guild': (match) => [{ ...match, guild_id: '101' }],
+  'missing category': () => [],
+};
+
+test.each(Object.entries(mismatchedListings))('%s never authorizes a replacement POST', async (_reason, listing) => {
+  const { world, remote } = await uncertainCreation();
+  const match = { id: '700', type: 2, name: `dune-play-${world.gameId}`, parent_id: '200', guild_id: '100' };
+  const listed = listing(match);
+  remote.channels = listed.length ? [...remote.channels, ...listed] : [];
+  await retry(world);
+  expect(remote.creates).toBe(1);
+  expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
+  const channel = await world.channel();
+  expect(channel).toMatchObject({
+    state: 'creating',
+    creation_attempt: 1,
+    next_attempt_at: DISCORD_PARKED,
+    retry: { needsAttention: true },
+  });
+  expect(channel?.channel_id).toBeUndefined();
+});
+
+test('repeated listing failures park recovery without another create', async () => {
+  const { world, remote } = await uncertainCreation();
+  remote.listingFails = true;
+  await retry(world);
+  await retry(world);
+  expect(remote.creates).toBe(1);
+  expect(remote.calls.filter((call) => call.method === 'PATCH' || call.path.endsWith('/invites'))).toEqual([]);
+  const channel = await world.channel();
+  expect(channel).toMatchObject({
+    state: 'creating',
+    creation_attempt: 1,
+    next_attempt_at: DISCORD_PARKED,
+    retry: { attempts: 3, needsAttention: true },
+  });
+  expect(channel?.channel_id).toBeUndefined();
+});
 
 test('deployment guild and category switches cannot move adoption out of its saved target', async () => {
   const { world, remote } = await uncertainCreation({ kind: 'lost', visible: true });

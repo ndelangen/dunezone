@@ -60,16 +60,12 @@ export async function retryDiscordChannel(ctx: MutationCtx, channel: Doc<'play_g
 
 /** Reuse the saved category after Discord definitively rejects creation. */
 export function retryCreationCategory(channel: Doc<'play_game_discord_channels'>) {
-  const retry = channel.retry;
-  const knownRejection = retry?.operation === 'provision' && (channel.creation_attempt ?? 0) > 0;
-  if (
-    !knownRejection ||
-    !retry ||
-    retry.revision !== (channel.work_revision ?? 0) ||
-    channel.state !== 'pending' ||
-    channel.channel_id
-  ) {
+  if (channel.state !== 'pending' || channel.channel_id) {
     return undefined;
   }
-  return channel.creation_category_id;
+  const retry = channel.retry;
+  if (retry?.operation !== 'provision' || retry.revision !== (channel.work_revision ?? 0)) {
+    return undefined;
+  }
+  return (channel.creation_attempt ?? 0) > 0 ? channel.creation_category_id : undefined;
 }
