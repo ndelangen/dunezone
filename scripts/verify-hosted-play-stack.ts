@@ -20,6 +20,7 @@ import { syntheticHostedTarget } from './play-load/synthetic-target';
 import { backendCacheDirectory, cachedBackendArchive, spawnFailure } from './verify-hosted-backend-cache';
 import { browserFlows, flowsInShard, isBrowserFlow } from './verify-hosted-flows';
 import type { BrowserFlow } from './verify-hosted-flows';
+import { verifyProcess } from './verify-hosted-process';
 import { parseExpectedRenderer } from './verify-hosted-renderer';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -168,19 +169,13 @@ function start(invocation: Invocation & { logPath: string }): ChildProcess {
 /** Runs one verifier within its timeout, prints its log and reports whether it passed. */
 async function verify(invocation: Invocation & { logPath: string }, timeoutMs: number): Promise<boolean> {
   const verification = start(invocation);
-  let timedOut = false;
-  const timeout = setTimeout(() => {
-    timedOut = true;
-    verification.kill('SIGTERM');
-  }, timeoutMs);
-  await childExits.get(verification);
-  clearTimeout(timeout);
+  const result = await verifyProcess(verification, invocation.logPath, timeoutMs);
   console.log(readFileSync(invocation.logPath, 'utf8'));
   /* Stopping the verifier closes its browsers, so its own last error reads as a closed page rather than the time limit. */
-  if (timedOut) {
+  if (result.status === 'timed_out') {
     console.log(`${path.basename(invocation.logPath, '.log')} was stopped at its ${timeoutMs / 1000} s limit.`);
   }
-  return !timedOut && verification.exitCode === 0;
+  return result.status === 'passed';
 }
 
 async function ready(url: string, child: ChildProcess, timeoutMs: number): Promise<void> {
