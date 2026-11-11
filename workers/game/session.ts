@@ -1287,10 +1287,21 @@ export class GameSession {
     const current = this.actors.currentViewers(viewers);
     this.watching = current.flatMap((viewer) => (viewer?.viewerSeat === SPECTATOR_SEAT ? [viewer.userId] : []));
     viewers.forEach((viewer, index) => {
-      if (current[index]?.viewerSeat !== viewer.viewerSeat) {
+      const refreshed = current[index];
+      if (refreshed?.viewerSeat !== viewer.viewerSeat) {
         this.clearActivity(viewer.connectionId);
         if (this.room) {
           this.restampSeats(this.room);
+        }
+      } else {
+        const pointer = this.pointerFor(viewer.connectionId);
+        if (
+          pointer &&
+          (pointer.displayName !== refreshed.displayName ||
+            pointer.avatarUrl !== refreshed.avatarUrl ||
+            pointer.color !== refreshed.color)
+        ) {
+          this.pointer(refreshed, pointer.position, pointer.updatedAt, pointer.sourceSeq);
         }
       }
     });
@@ -1546,6 +1557,9 @@ export class GameSession {
   pointer(...args: Parameters<Room['pointer']>) {
     return this.room!.pointer(...args);
   }
+  pointerFor(connectionId: string) {
+    return this.room?.pointers.get(connectionId);
+  }
   pose(...args: Parameters<Room['pose']>) {
     return this.room!.pose(...args);
   }
@@ -1557,12 +1571,11 @@ export class GameSession {
     this.room?.disconnect(connectionId);
     this.finishSetupCleanup();
   }
-  /** Whether anything here expires on its own: a carry or a pointer. */
-  get hasActivity() {
-    return Boolean(this.room && (this.room.carries.size || this.room.pointers.size));
+  get hasCarries() {
+    return Boolean(this.room?.carries.size);
   }
   sweep() {
-    const swept = this.room?.sweep();
+    const swept = this.room?.sweepCarries();
     const cleaned = this.finishSetupCleanup();
     return Boolean(swept || cleaned);
   }

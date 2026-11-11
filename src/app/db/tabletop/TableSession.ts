@@ -242,6 +242,7 @@ export class TableSession {
   /* Sent turns the room has done whose new table is still on its way after a resync; they show until it arrives. */
   private readonly doneTurns = new Set<string>();
   private pointer: Vector3Tuple | null = null;
+  private sentPointer: Vector3Tuple | null = null;
   /* The table, board or rim surface under the cursor, where a ping lands so every viewer sees it at the same spot. */
   private pingPoint: Vector3Tuple | null = null;
   private cached: ConnectionView;
@@ -289,7 +290,8 @@ export class TableSession {
   constructor(
     readonly game: string,
     private readonly subscription: TableSubscription,
-    private readonly runtime: GameRuntime
+    private readonly runtime: GameRuntime,
+    private readonly options: { refreshStationaryPointer?: boolean } = {}
   ) {
     this.conversations = new ConversationSession(
       (message) => this.subscription.send(message),
@@ -1032,7 +1034,7 @@ export class TableSession {
       return true;
     }
     if (message.type === 'pointer' || message.type === 'ping') {
-      return this.canPoint();
+      return this.canPoint() || (message.type === 'pointer' && message.position === null);
     }
     return this.canAct() || this.canSendWhilePaused(message);
   }
@@ -1303,6 +1305,7 @@ export class TableSession {
   }
   private replaceActivity(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     if (this.epoch && message.epoch !== this.epoch) {
+      this.sentPointer = null;
       this.noteEndedCarry({
         held: 'The room resumed. Pick up the piece again to continue.',
         placing: 'The room resumed as you placed a piece. Check where it landed.',
@@ -1315,6 +1318,9 @@ export class TableSession {
   }
   private receiveView(message: Extract<TableSubscriptionEvent, { type: 'view' }>) {
     this.conversations.authority(message.snapshot, message.viewer);
+    if (message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat) {
+      this.sentPointer = null;
+    }
     if (
       message.previous?.snapshot.bank?.factionId !== message.snapshot.bank?.factionId ||
       message.previous?.viewer.viewerSeat !== message.viewer.viewerSeat
@@ -1376,6 +1382,7 @@ export class TableSession {
     }
   }
   private clearDisconnectedActivity() {
+    this.sentPointer = null;
     this.pages.disconnected();
     /* The Worker holds a capture for the connection, not the seat, so a seat change keeps it and a disconnect frees it. */
     this.captureInFlight = null;
@@ -1431,15 +1438,19 @@ export class TableSession {
     this.error = 'The checkpoint did not arrive. Try loading it again.';
     this.emit();
   }
-  /* Carries and pointers expire on the Worker, which broadcasts each removal; the tab keeps what the last frame held. */
+  /* Carries and homepage preview pointers expire on the Worker. */
   private readonly tickActivity = () => {
     this.conversations.tick();
     this.expireHistoryRequest();
     if (this.carry && !this.carry.pendingDrop) {
       this.send({ type: 'renew', carryId: this.carry.id });
     }
-    if (this.pointer !== null && this.canPoint()) {
-      this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
+    if (
+      this.options.refreshStationaryPointer &&
+      this.pointer !== null &&
+      this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer })
+    ) {
+      this.sentPointer = this.pointer;
     }
     if (this.table?.phaseCooling && !this.phaseCooling()) {
       this.emit();
@@ -2024,22 +2035,25 @@ export class TableSession {
   /** Publishes the cursor, and keeps `surface`, the table under it, for a ping to mark. */
   publishPointer = (position: Vector3Tuple | null, surface: Vector3Tuple | null = null) => {
     this.pingPoint = position ? onTable(surface) : null;
-    if (!this.canPoint()) {
-      this.pointer = null;
-      clearTimeout(this.pointerTimer);
-      this.pointerTimer = undefined;
-      return;
-    }
-    this.pointer = onTable(position);
+    this.pointer = this.canPoint() ? onTable(position) : null;
     if (this.pointer === null) {
       clearTimeout(this.pointerTimer);
-      this.pointerTimer = undefined;
-      this.send({ type: 'pointer', seq: ++this.seq, position: null });
-    } else if (!this.pointerTimer) {
-      this.pointerTimer = setTimeout(() => {
-        this.pointerTimer = undefined;
-        this.send({ type: 'pointer', seq: ++this.seq, position: this.pointer });
-      }, 50);
+      this.flushPointer();
+    } else if (this.pointerTimer === undefined) {
+      this.pointerTimer = setTimeout(this.flushPointer, 50);
+    }
+  };
+  private readonly flushPointer = () => {
+    this.pointerTimer = undefined;
+    const position = this.pointer;
+    const sent = this.sentPointer;
+    if (position === sent || (position && sent && position.every((value, index) => value === sent[index]))) {
+      return;
+    }
+    if (this.send({ type: 'pointer', seq: ++this.seq, position })) {
+      this.sentPointer = position;
+    } else if (position && this.canPoint() && !this.options.refreshStationaryPointer) {
+      this.pointerTimer = setTimeout(this.flushPointer, 50);
     }
   };
 }

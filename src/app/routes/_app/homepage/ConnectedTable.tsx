@@ -79,7 +79,9 @@ export default function ConnectedTable({
   const frameRef = useRef<HTMLDivElement>(null);
   const viewport = usePreviewViewport(frameRef, viewportRef);
   const [subscription] = useState(() => new HomepageSubscription(runtime, null));
-  const [session] = useState(() => new TableSession('homepage', subscription, runtime));
+  const [session] = useState(
+    () => new TableSession('homepage', subscription, runtime, { refreshStationaryPointer: true })
+  );
   useLayoutEffect(() => {
     subscription.setViewer(identity, identity ? requestHomepageTicket : null);
   }, [identity, subscription]);

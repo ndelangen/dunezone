@@ -48,8 +48,7 @@ Convex stores the fixture directory record, provisioning status, server-only gam
 accounts enrolled at each game, session cutoffs and account-deletion delivery records. It does not store table actions or seats.
 The game Worker owns one SQLite Durable Object per game. Its transactions save the table with
 command receipts and phase-boundary history. Seat changes have their own durable history.
-Carries and pointers are
-temporary and disappear on disconnect or cold restore.
+Carries and pointers belong to the live connection. Pointer positions stay out of game history.
 
 `workers/game/session.ts` owns the Room, durable metadata, domain stores and history boundary.
 Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
@@ -57,9 +56,12 @@ retained content. `workers/game/index.ts` owns authorization, sockets, external 
 installation. It asks the session for projections instead of reading or changing its stores.
 
 A room hibernates while its players think, so a paused table costs no Durable Object duration.
-The one-second sweep runs only while something can expire on its own: an admission, a carry or a
-pointer. Every message starts it again. When it stops, the room saves its used carry IDs, its
-unwritten summary interval and a quiet marker. While the room sleeps, the alarm covers the battle
+The room stops its one-second sweep once admissions and carries have settled and pending motion
+has gone out. Browsers send a hand position when it moves and clear it on leave. The room puts the
+last position on its WebSocket attachment before hibernating. On wake, it restores positions for
+authorized connections, so a joining player sees the current hands in their initial view. When the
+sweep stops, the room also saves its used carry IDs, its unwritten summary interval and a quiet
+marker. While the room sleeps, the alarm covers the battle
 deadline, the directory retry and the next seat pass to expire. A pass whose session ended cannot
 be renewed, so its alarm wakes the room to pause that table. Keepalive pings are answered by the
 runtime without waking the room. Each admitted connection keeps its identity, pass and admission
@@ -198,8 +200,8 @@ frame but `admission` carries the Worker's `serverNow`, and the browser keeps th
 from its monotonic clock since it last connected, so deadlines, vote ages and message times follow
 the Worker's clock. A Worker duration (the phase cooldown, the battle countdown) is measured on the
 monotonic clock from when it arrived. A tab that resumes after a deadline refreshes its controls on the next
-timer tick, and the Worker still checks its own deadlines when a command arrives. Carries and
-pointers expire on the Worker alone, which broadcasts each removal.
+timer tick, and the Worker still checks its own deadlines when a command arrives. The Worker expires
+carries and broadcasts the removal of hands when they leave the table or their socket closes.
 
 Account deletion has a durable Convex notification with acknowledgment after the SQLite change, so
 a disconnected account can lose its seat without reconnecting first.

@@ -368,10 +368,8 @@ export function ScenePresence({
     };
   }, [publishPointer]);
   useEffect(() => {
-    if (!canInteract) {
-      publishPointer(null);
-    }
-  }, [canInteract, publishPointer]);
+    publish.current();
+  }, [canInteract]);
   useFrame(() => {
     overlays.place();
     const last = lastCamera.current;

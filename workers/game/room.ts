@@ -1224,7 +1224,7 @@ export class Room {
     return carriesChanged || pointersChanged;
   }
 
-  private sweepCarries(now: number): boolean {
+  sweepCarries(now = Date.now()): boolean {
     let changed = false;
     for (const carry of this.carries.values()) {
       if (now - carry.lastSeen > 8000) {

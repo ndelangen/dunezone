@@ -138,6 +138,10 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect(connection.closed).toBe(false);
     expect(metrics.motionReceived + required(metrics.motionDropped)).toBe(200);
     expect(metrics.motionDropped).toBeGreaterThan(0);
+    await eventually(
+      async () => (await syncView(connection)).pointers.some((pointer) => pointer.sourceSeq === 199),
+      'the final pointer sample being delivered'
+    );
     for (let seq = 200; seq < 500; seq++) {
       connection.send({ type: 'pointer', seq, position: [seq / 100, 0, 0] });
     }
@@ -192,7 +196,7 @@ describe('GameRoom native SQLite and admission boundaries', () => {
       action: { kind: 'rotate', pieceId: piece.id, direction: 1 },
       expectedRevision: view.snapshot.revision,
     });
-    await connection.message('view', (message) => message.completedCommandId === 'durable-rotate');
+    const committed = await connection.message('view', (message) => message.completedCommandId === 'durable-rotate');
     await eventually(async () => {
       connection.messages.length = 0;
       connection.send({ type: 'metrics' });
@@ -205,10 +209,17 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     );
     expect(stalls).toEqual([]);
     /*
-     * The sweep runs only while something can expire, so a pointer keeps it going.
+     * The sweep runs while a held piece can expire.
      * Once a sweep has run, moving the room's clock two seconds on makes the next one late by as much.
      */
-    connection.send({ type: 'pointer', seq: 0, position: [0, 0, 0] });
+    connection.send({
+      type: 'begin',
+      carryId: 'stall-carry',
+      sourcePieceId: 'harkonnen-force-stack',
+      expectedVersion: committed.snapshot.versions['harkonnen-force-stack'],
+      pickup: 'top',
+    });
+    await connection.message('carry');
     await new Promise((resolve) => setTimeout(resolve, 1100));
     await runtime.clock(2000);
     await eventually(async () => {

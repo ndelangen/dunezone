@@ -20,6 +20,8 @@ const scheduler = vi.hoisted(() => ({
 const presence = vi.hoisted(() => ({
   pointers: [] as PublicPointer[],
   listeners: new Set<() => void>(),
+  canInteract: true,
+  publishPointer: vi.fn(),
 }));
 
 vi.mock('@react-three/fiber/webgpu', async () => {
@@ -49,10 +51,12 @@ vi.mock('@react-three/drei/webgpu', () => ({ Html: () => null }));
 
 vi.mock('./TabletopContext', () => {
   const table = {
-    canInteract: true,
+    get canInteract() {
+      return presence.canInteract;
+    },
     viewer: { color: '#abcdef', avatarUrl: '' },
   };
-  const commands = { publishPointer: () => {} };
+  const commands = { publishPointer: presence.publishPointer };
   const actions = {
     subscribePointers: (listener: () => void) => {
       presence.listeners.add(listener);
@@ -76,6 +80,8 @@ afterEach(() => {
   scheduler.invalidations = 0;
   presence.pointers = [];
   presence.listeners.clear();
+  presence.canInteract = true;
+  presence.publishPointer.mockClear();
   document.body.replaceChildren();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
@@ -396,11 +402,23 @@ function renderPresence(showLocal = false) {
     configurable: true,
     value: () => canvas,
   });
-  render(<ScenePresence showLocal={showLocal} />);
-  return camera;
+  const { rerender } = render(<ScenePresence showLocal={showLocal} />);
+  return { camera, rerender };
 }
 
 describe('the viewer cursor', () => {
+  test('publishes the stationary hand again when interaction resumes', () => {
+    const { rerender } = renderPresence(true);
+    window.dispatchEvent(new MouseEvent('pointermove', { clientX: 500, clientY: 220 }));
+    const position = presence.publishPointer.mock.lastCall?.[0];
+    expect(position).toEqual(expect.any(Array));
+    presence.canInteract = false;
+    rerender(<ScenePresence showLocal />);
+    expect(presence.publishPointer.mock.lastCall?.[0]).toBeNull();
+    presence.canInteract = true;
+    rerender(<ScenePresence showLocal />);
+    expect(presence.publishPointer.mock.lastCall?.[0]).toEqual(position);
+  });
   test.each([0, 15])('positions the avatar at the pointer with a %s px fixed-position origin', (gutter) => {
     let fixedOrigin = gutter;
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
@@ -512,7 +530,7 @@ describe("another player's hand", () => {
   });
 
   test('glides to each new place in its own frames, without drawing the scene, and then stops', () => {
-    const camera = renderPresence();
+    const { camera } = renderPresence();
     point([[0, 0, 0]]);
     runAnimationFrames(1);
     const invalidations = scheduler.invalidations;
@@ -534,7 +552,7 @@ describe("another player's hand", () => {
   });
 
   test('follows the camera in the scene frames', () => {
-    const camera = renderPresence();
+    const { camera } = renderPresence();
     point([[0, 0, 0]]);
     runAnimationFrames(1);
     camera.position.set(1, 0, 10);
@@ -560,7 +578,7 @@ describe('the table diagnostic that browser verification projects through', () =
   ] as const)('%s build installs it, and it projects through the rendered camera', (_build, dev, localAuth) => {
     vi.stubEnv('DEV', dev);
     vi.stubEnv('VITE_E2E_LOCAL_AUTH', localAuth);
-    const camera = renderPresence();
+    const { camera } = renderPresence();
 
     const centre = window.__duneTable?.worldToScreen([0, 0, 0]);
     expect(centre?.x).toBeCloseTo(500);
