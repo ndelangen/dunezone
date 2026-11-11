@@ -110,8 +110,12 @@ describe('GameRoom hibernation', () => {
     );
     await eventually(async () => !(await runtime.sweeping()), 'the sweep stopping before disconnect');
     await runtime.hibernateRoom();
+    const beforeClose = rejoined.messages.length;
     a.socket.close(1000);
-    await rejoined.message('view', (message) => message.pointers.length === 0);
+    await eventually(
+      () => rejoined.messages.slice(beforeClose).find((message) => isFullView(message) && !message.pointers.length),
+      'the restored hand disappearing after its socket closes'
+    );
   }, 20_000);
 
   it('writes the summary interval a hibernation interrupted, counting what came before it', async () => {

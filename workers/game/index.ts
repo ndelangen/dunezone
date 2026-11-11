@@ -522,6 +522,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Restores the hand only while its socket still holds the player's seat. */
   private restorePointer(socket: WebSocket, connection: Connection, pointer: RememberedConnection['pointer']) {
     if (!pointer || !this.session.ready) {
       return;
@@ -566,29 +567,34 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
   }
 
+  /** Samples the pointer when the room can sleep. Admission updates can reuse the attachment during motion. */
+  private connectionAttachment(connection: Connection, includePointers: boolean): RememberedConnection {
+    const pointer = includePointers ? this.session.pointerFor(connection.connectionId) : undefined;
+    return {
+      connectionId: connection.connectionId,
+      openedAt: connection.openedAt,
+      protocol: connection.protocol,
+      /* A long avatar address would outgrow the attachment. The actor directory keeps it. */
+      viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
+      seatLimitReached: connection.seatLimitReached,
+      pass: connection.pass,
+      expiryAnnounced: connection.expiryAnnounced,
+      sessionId: connection.sessionId,
+      announced: connection.announced,
+      suspensions: connection.suspensions,
+      ...(includePointers && { pointerSeq: connection.pointerSeq }),
+      pointer: pointer && { position: pointer.position, updatedAt: pointer.updatedAt },
+      ...(this.session.ready ? { epoch: this.session.epoch, revision: this.session.revision } : {}),
+    };
+  }
+
   /* Writes each admitted connection's attachment when what it remembers changed. */
   private remember(includePointers = !this.sweepTimer) {
     for (const [socket, connection] of this.connections) {
       if (!connection.everAuthorized) {
         continue;
       }
-      const pointer = includePointers ? this.session.pointerFor(connection.connectionId) : undefined;
-      const remembered: RememberedConnection = {
-        connectionId: connection.connectionId,
-        openedAt: connection.openedAt,
-        protocol: connection.protocol,
-        /* A long avatar address would outgrow the attachment; the actor directory keeps it. */
-        viewer: connection.viewer && { ...connection.viewer, avatarUrl: undefined },
-        seatLimitReached: connection.seatLimitReached,
-        pass: connection.pass,
-        expiryAnnounced: connection.expiryAnnounced,
-        sessionId: connection.sessionId,
-        announced: connection.announced,
-        suspensions: connection.suspensions,
-        ...(includePointers && { pointerSeq: connection.pointerSeq }),
-        pointer: pointer && { position: pointer.position, updatedAt: pointer.updatedAt },
-        ...(this.session.ready ? { epoch: this.session.epoch, revision: this.session.revision } : {}),
-      };
+      const remembered = this.connectionAttachment(connection, includePointers);
       const written = JSON.stringify(remembered);
       if (this.remembered.get(socket) === written) {
         continue;
@@ -1734,6 +1740,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     this.motionDropped++;
+    if (connection.announced !== 'authorized' || !this.authorized(socket)) {
+      return;
+    }
     /* Keep the latest deferred cursor so a hand that stops still parks at its final position. */
     if (message.type === 'pointer' && message.seq > (connection.deferredPointer?.seq ?? connection.pointerSeq)) {
       connection.deferredPointer = message;

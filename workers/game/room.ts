@@ -1210,6 +1210,7 @@ export class Room {
     return changed;
   }
 
+  /** Updates the label of a parked hand when its player changes their profile. */
   refreshPointerIdentity(identity: Identity) {
     const pointer = this.pointers.get(identity.connectionId);
     if (pointer && !samePointerIdentity(pointer, identity)) {

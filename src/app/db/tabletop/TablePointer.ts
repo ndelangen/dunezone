@@ -34,18 +34,21 @@ export class TablePointer {
     }
   }
 
+  /** The homepage preview still expires hands that stop sending. */
   refresh() {
     if (this.refreshStationary && this.position !== null) {
       this.sendPosition(this.position);
     }
   }
 
+  /** Discards movement waiting to send when the table changes. */
   cancel() {
     this.position = null;
     clearTimeout(this.timer);
     this.timer = undefined;
   }
 
+  /** A new connection, seat or epoch starts with no published hand. */
   forgetSent() {
     this.sent = null;
   }
