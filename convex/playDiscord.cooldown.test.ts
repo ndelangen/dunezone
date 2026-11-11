@@ -17,7 +17,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-test('one game rate limit pauses other games, including their already-running clients', async () => {
+test('a global rate limit pauses other games, including their already-running clients', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const cooldown = {
@@ -26,7 +26,7 @@ test('one game rate limit pauses other games, including their already-running cl
   };
   const first = new DiscordRest('test-token', 'First game', cooldown);
   const second = new DiscordRest('test-token', 'Second game', cooldown);
-  discord.fetch.mockResolvedValue(Response.json({ retry_after: 60 }, { status: 429 }));
+  discord.fetch.mockResolvedValue(Response.json({ retry_after: 60, global: true }, { status: 429 }));
   await expect(first.invite('300')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
   await expect(second.invite('301')).rejects.toMatchObject({ status: 429, retryAfterMs: 60_000 });
   expect(discord.fetch).toHaveBeenCalledTimes(1);
@@ -35,14 +35,14 @@ test('one game rate limit pauses other games, including their already-running cl
   expect(await world.t.mutation(internal.playDiscord.claim, { channelId: (await world.channel())!._id })).toBeNull();
 });
 
-test('a short rate limit waits, then retries with the shared deadline checked again', async () => {
+test('a short global rate limit waits, then retries with the shared deadline checked again', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const rest = new DiscordRest('test-token', 'First game', {
     until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
     hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
   });
-  discord.fetch.mockResolvedValueOnce(Response.json({ retry_after: 1 }, { status: 429 }));
+  discord.fetch.mockResolvedValueOnce(Response.json({ retry_after: 1, global: true }, { status: 429 }));
   const result = rest.invite('300');
   await vi.waitFor(async () =>
     expect(await world.t.query(internal.playDiscord.cooldownUntil, {})).toBeGreaterThan(Date.now())
@@ -70,14 +70,14 @@ test('a queued room cannot bypass its retry-after deadline', async () => {
   expect(await world.channel()).toMatchObject({ retry_after: Date.now() + 60_000 });
 });
 
-test('repeated short rate limits stop after three attempts and retain the cooldown', async () => {
+test('repeated short global rate limits stop after three attempts and retain the cooldown', async () => {
   const discord = discordStub();
   const world = await voiceWorld();
   const rest = new DiscordRest('test-token', 'Dune Play', {
     until: () => world.t.query(internal.playDiscord.cooldownUntil, {}),
     hold: (until) => world.t.mutation(internal.playDiscord.holdRequests, { until }),
   });
-  discord.fetch.mockImplementation(async () => Response.json({ retry_after: 1 }, { status: 429 }));
+  discord.fetch.mockImplementation(async () => Response.json({ retry_after: 1, global: true }, { status: 429 }));
   const result = expect(rest.invite('300')).rejects.toMatchObject({ status: 429, retryAfterMs: 1000 });
   await vi.waitFor(() => expect(discord.fetch).toHaveBeenCalledTimes(1));
   await vi.advanceTimersByTimeAsync(2000);

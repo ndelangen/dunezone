@@ -187,6 +187,7 @@ export function CreateGamePass({
     },
     []
   );
+  const voiceHintId = useId();
   const chosen = rulesets.find((ruleset) => ruleset.id === draft.rulesetId);
   const request = playCreateGameRequestSchema.safeParse({
     rulesetId: draft.rulesetId,
@@ -282,15 +283,21 @@ export function CreateGamePass({
                 />
                 {discordVoiceAvailable ? (
                   <Stack gap="xs">
-                    <Switch
-                      label="Discord voice chat"
-                      checked={draft.discordVoice}
-                      onChange={(event) =>
-                        dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
-                      }
-                      disabled={pending}
+                    <ControlBlock
+                      title="Discord voice chat"
+                      input={(field) => (
+                        <Switch
+                          {...field}
+                          aria-describedby={voiceHintId}
+                          checked={draft.discordVoice}
+                          onChange={(event) =>
+                            dispatch({ kind: 'patch', update: { discordVoice: event.currentTarget.checked } })
+                          }
+                          disabled={pending}
+                        />
+                      )}
                     />
-                    <Text size="sm" c="dimmed">
+                    <Text id={voiceHintId} size="sm" c="dimmed">
                       Give this game its own Discord voice channel. Anyone with its invite can join.
                     </Text>
                   </Stack>

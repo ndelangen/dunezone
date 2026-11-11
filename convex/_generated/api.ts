@@ -158,7 +158,6 @@ import type * as playDirectory from "../playDirectory.js";
 import type * as playDiscord from "../playDiscord.js";
 import type * as playDiscordActions from "../playDiscordActions.js";
 import type * as playDiscordAdmin from "../playDiscordAdmin.js";
-import type * as playDiscordNudgeActions from "../playDiscordNudgeActions.js";
 import type * as playDiscordNudges from "../playDiscordNudges.js";
 import type * as playDiscordVoice from "../playDiscordVoice.js";
 import type * as playDiscordVoiceActions from "../playDiscordVoiceActions.js";
@@ -354,7 +353,6 @@ const fullApi: ApiFromModules<{
   playDiscord: typeof playDiscord;
   playDiscordActions: typeof playDiscordActions;
   playDiscordAdmin: typeof playDiscordAdmin;
-  playDiscordNudgeActions: typeof playDiscordNudgeActions;
   playDiscordNudges: typeof playDiscordNudges;
   playDiscordVoice: typeof playDiscordVoice;
   playDiscordVoiceActions: typeof playDiscordVoiceActions;

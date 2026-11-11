@@ -1505,6 +1505,34 @@ export class TableSession {
   private canHandle() {
     return this.canAct() && tableHandlingOpen(this.snapshot.stage);
   }
+  /** Whether this viewer can request a nudge from the current live table. */
+  get canNudge(): boolean {
+    if (!this.canAct()) {
+      return false;
+    }
+    if (!['setup', 'play'].includes(this.snapshot.stage ?? '')) {
+      return false;
+    }
+    const sender = this.snapshot.roster?.seats.find((seat) => seat.id === this.viewer?.viewerSeat);
+    return Boolean(sender?.faction);
+  }
+  /** Sends one best-effort request; a disconnected table never queues it. */
+  nudge = (toSeat: string): boolean => {
+    if (!this.canNudge) {
+      return false;
+    }
+    if (toSeat === this.viewer?.viewerSeat) {
+      return false;
+    }
+    const target = this.snapshot.controls?.players.find((player) => player.seat === toSeat);
+    if (!target) {
+      return false;
+    }
+    if (!this.snapshot.roster?.seats.some((seat) => seat.id === toSeat)) {
+      return false;
+    }
+    return this.send({ type: 'nudge', requestId: crypto.randomUUID(), toSeat });
+  };
   requestHistory = (step: number) => {
     if (this.status !== 'authorized' || this.carry || this.reviewHolds()) {
       return;

@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 
-import { voiceParameters } from './_app/play/voice.stories.fixture';
+import { voiceParameters } from './discord.stories.fixture';
 import { pageStoryMeta } from './storybookConfig';
 
 const meta = preview.meta({
@@ -11,9 +11,4 @@ const meta = preview.meta({
 export const Dashboard = meta.story({
   args: { path: '/admin/discord' },
   parameters: voiceParameters(),
-});
-
-export const NudgeDeliveryIssue = meta.story({
-  args: { path: '/admin/discord' },
-  parameters: voiceParameters(true, true),
 });

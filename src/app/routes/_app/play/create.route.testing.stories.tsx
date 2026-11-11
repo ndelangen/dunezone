@@ -43,6 +43,9 @@ export const DiscordVoiceChosen = meta.story({
     const action = spyOn(creationDatabase.client!, 'action');
     const voice = page.getByRole('switch', { name: 'Discord voice chat' });
     await expect(voice).not.toBeChecked();
+    await expect(voice).toHaveAccessibleDescription(
+      'Give this game its own Discord voice channel. Anyone with its invite can join.'
+    );
     await userEvent.click(voice);
     await userEvent.click(page.getByRole('button', { name: 'Create game' }));
     await waitFor(
@@ -235,5 +238,21 @@ export const SignedOut = meta.story({
       '/auth/login?redirect=%2Fplay%2Fcreate'
     );
     await expect(page.queryByRole('button', { name: 'Create game' })).toBeNull();
+  },
+});
+
+export const DiscordVoicePhone = meta.story({
+  parameters: { ...creatable, database: db(creatableDatabase, { discordVoice: true }) },
+  globals: { viewport: { value: 'appMobileNarrow' } },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await chooseRuleset(page);
+    const voice = page.getByRole('switch', { name: 'Discord voice chat' });
+    await expect(voice).toHaveAccessibleDescription(
+      'Give this game its own Discord voice channel. Anyone with its invite can join.'
+    );
+    await expect(voice).not.toBeChecked();
+    await userEvent.click(voice);
+    await expect(voice).toBeChecked();
   },
 });

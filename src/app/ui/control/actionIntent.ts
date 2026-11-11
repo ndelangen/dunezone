@@ -24,6 +24,9 @@ export const INTENT_COLOR = {
   export: 'cyan',
 } as const satisfies Record<ActionIntent, string>;
 
+/** External destinations keep their provider's theme ramp. */
+export const PROVIDER_COLOR = { discord: 'discord' } as const;
+
 /*
  * A standard tile takes its colours from the tokens rather than Mantine's light variant, which in dark mode paints every glyph near-white and so makes a red Delete look like Back.
  * A pressed toggle keeps its tile: it wears the app's selected look, never a stronger fill, so being on never reads as another colour.
