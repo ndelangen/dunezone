@@ -3,7 +3,7 @@ import { publishedPath } from '@shared/asset-publishing/publicationTargets';
 import { signInReturnFrom } from '@shared/authDestination';
 import { resolveAsset } from '@shared/media/resolveAsset';
 import { PUBLIC_SITE_ORIGIN } from '@shared/publicDiscovery';
-import { createFileRoute, Link, useLocation } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { PageTitle } from '@ui/block/PageTitle';
 import { Section } from '@ui/block/Section';
 import { PublishedImage } from '@ui/content/PublishedImage';
@@ -80,7 +80,7 @@ function SeededIndexPage() {
 }
 
 function IndexPage() {
-  const invitation = useLocation({ select: (location) => location.hash === 'play-preview' });
+  const invitation = useSyncExternalStore(subscribeToHash, sneakPeekRequested, () => false);
   const viewer = useSessionViewer();
   const root = useRef<HTMLDivElement>(null);
   const motionAllowed = useMotionAllowed();
@@ -114,11 +114,7 @@ function IndexPage() {
             subtitle="Soon, your next game of Dune will be right here."
           />
           <Group justify="center">
-            <CallToAction
-              tone="artwork"
-              direction="down"
-              renderRoot={(props) => <Link {...props} to="/" hash="play-preview" />}
-            >
+            <CallToAction tone="artwork" direction="down" href="#play-preview">
               Take a sneak peek
             </CallToAction>
             <LabeledAction
@@ -137,6 +133,20 @@ function IndexPage() {
       </PageLayout.Content>
     </PageLayout>
   );
+}
+
+/*
+ * The sneak peek link is a plain hash link, so a click before hydration still lands on the preview. The invitation
+ * follows the browser's hash rather than the click or the router, which never sees a hash changed before hydration.
+ * The server and the hydrating render both read no hash, so they agree.
+ */
+function subscribeToHash(change: () => void) {
+  window.addEventListener('hashchange', change);
+  return () => window.removeEventListener('hashchange', change);
+}
+
+function sneakPeekRequested() {
+  return window.location.hash === '#play-preview';
 }
 
 function fanStyle(x: string, y: string, turn: string, delay: string): CSSProperties {
