@@ -101,6 +101,15 @@ import type { StoredSnapshot } from './state';
 import { territoryTintCommand } from './territoryTints';
 
 export type Identity = Viewer;
+
+function samePointerIdentity(pointer: PublicPointer, identity: Identity): boolean {
+  return (
+    pointer.viewerSeat === identity.viewerSeat &&
+    pointer.displayName === identity.displayName &&
+    pointer.avatarUrl === identity.avatarUrl &&
+    pointer.color === identity.color
+  );
+}
 /* The session routes the lifecycle families to their own modules; the room applies every other action. */
 type FactionSetting = BiddingAction | LastTurnAction | MovementAction | TerritoryTintAction;
 function isFactionSetting(action: { kind: string }): action is FactionSetting {
@@ -1186,10 +1195,7 @@ export class Room {
     const previous = this.pointers.get(identity.connectionId);
     const changed =
       !previous ||
-      previous.viewerSeat !== identity.viewerSeat ||
-      previous.displayName !== identity.displayName ||
-      previous.avatarUrl !== identity.avatarUrl ||
-      previous.color !== identity.color ||
+      !samePointerIdentity(previous, identity) ||
       previous.position.some((value, index) => value !== position[index]);
     this.pointers.set(identity.connectionId, {
       connectionId: identity.connectionId,
@@ -1202,6 +1208,13 @@ export class Room {
       ...(sourceSeq === undefined ? {} : { sourceSeq }),
     });
     return changed;
+  }
+
+  refreshPointerIdentity(identity: Identity) {
+    const pointer = this.pointers.get(identity.connectionId);
+    if (pointer && !samePointerIdentity(pointer, identity)) {
+      this.pointer(identity, pointer.position, pointer.updatedAt, pointer.sourceSeq);
+    }
   }
 
   clearActivity(connectionId: string) {

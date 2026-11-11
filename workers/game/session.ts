@@ -1288,21 +1288,13 @@ export class GameSession {
     this.watching = current.flatMap((viewer) => (viewer?.viewerSeat === SPECTATOR_SEAT ? [viewer.userId] : []));
     viewers.forEach((viewer, index) => {
       const refreshed = current[index];
-      if (refreshed?.viewerSeat !== viewer.viewerSeat) {
-        this.clearActivity(viewer.connectionId);
-        if (this.room) {
-          this.restampSeats(this.room);
-        }
-      } else {
-        const pointer = this.pointerFor(viewer.connectionId);
-        if (
-          pointer &&
-          (pointer.displayName !== refreshed.displayName ||
-            pointer.avatarUrl !== refreshed.avatarUrl ||
-            pointer.color !== refreshed.color)
-        ) {
-          this.pointer(refreshed, pointer.position, pointer.updatedAt, pointer.sourceSeq);
-        }
+      if (refreshed?.viewerSeat === viewer.viewerSeat) {
+        this.room?.refreshPointerIdentity(refreshed);
+        return;
+      }
+      this.clearActivity(viewer.connectionId);
+      if (this.room) {
+        this.restampSeats(this.room);
       }
     });
     return current;

@@ -169,6 +169,11 @@ function openConnection(
 }
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const refused = () => json({ error: 'Request refused.' }, 403);
+function isMovingPointer(
+  message: ClientMessage
+): message is Extract<ClientMessage, { type: 'pointer' }> & { position: PublicPointer['position'] } {
+  return message.type === 'pointer' && message.position !== null;
+}
 /* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
 const COMMAND_TIMINGS = 1024;
 /** Each connection's message buckets hold this many messages and refill at this rate. */
@@ -497,17 +502,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       const { epoch, revision, pointer, ...rememberedConnection } = remembered;
       const connection = openConnection({ ...rememberedConnection, everAuthorized: true });
       this.connections.set(socket, connection);
-      const viewer = connection.viewer;
-      if (
-        pointer &&
-        viewer &&
-        viewer.viewerSeat !== SPECTATOR_SEAT &&
-        connection.announced === 'authorized' &&
-        this.session.ready &&
-        this.authorized(socket)
-      ) {
-        this.session.pointer(viewer, pointer.position, pointer.updatedAt, connection.pointerSeq);
-      }
+      this.restorePointer(socket, connection, pointer);
       if (this.session.ready && epoch) {
         this.session.resumeEpoch(epoch);
       }
@@ -524,6 +519,19 @@ export class GameRoom extends DurableObject<GameEnv> {
     /* Waking can move the game on by itself, as a trading deadline that passed while the room slept does. */
     for (const socket of behind) {
       this.sendView(socket, this.connections.get(socket)!);
+    }
+  }
+
+  private restorePointer(socket: WebSocket, connection: Connection, pointer: RememberedConnection['pointer']) {
+    if (!pointer || !this.session.ready) {
+      return;
+    }
+    if (connection.announced !== 'authorized' || !this.authorized(socket)) {
+      return;
+    }
+    const viewer = connection.viewer!;
+    if (viewer.viewerSeat !== SPECTATOR_SEAT) {
+      this.session.pointer(viewer, pointer.position, pointer.updatedAt, connection.pointerSeq);
     }
   }
 
@@ -1698,28 +1706,38 @@ export class GameRoom extends DurableObject<GameEnv> {
       connection.commandTokens + (elapsed * COMMANDS_PER_SECOND) / 1000
     );
     connection.refilledAt = now;
-    /*
-     * The refill follows the room's clock, which stands still while the room runs code, so a busy room can see a steady mover's frames as a burst.
-     * Pointer and pose frames draw on their own bucket. When it runs dry they are dropped, since the next frame supersedes them, and only a second bucket's worth of dropped motion closes the socket.
-     */
-    if ((message.type === 'pointer' && message.position !== null) || message.type === 'pose') {
-      connection.motionTokens--;
-      if (connection.motionTokens >= 0) {
-        return message;
-      }
-      if (connection.motionTokens > -RATE_BURST) {
-        this.motionDropped++;
-        /* Under rate pressure, retain only the latest cursor so a hand that stops still parks at its final position. */
-        if (message.type === 'pointer' && message.seq > (connection.deferredPointer?.seq ?? connection.pointerSeq)) {
-          connection.deferredPointer = message;
-        }
-        return;
-      }
-    } else if (connection.tokens >= 1) {
+    if (isMovingPointer(message) || message.type === 'pose') {
+      return this.withinMotionBudget(socket, connection, message);
+    }
+    if (connection.tokens >= 1) {
       connection.tokens--;
       return this.withinCommandBudget(socket, connection, message);
     }
     this.refuseRate(socket);
+  }
+
+  /*
+   * The room's clock can bunch steady motion into a burst.
+   * Only a second bucket's worth of rate-limited motion closes the socket.
+   */
+  private withinMotionBudget(
+    socket: WebSocket,
+    connection: Connection,
+    message: Extract<ClientMessage, { type: 'pointer' | 'pose' }>
+  ) {
+    connection.motionTokens--;
+    if (connection.motionTokens >= 0) {
+      return message;
+    }
+    if (connection.motionTokens <= -RATE_BURST) {
+      this.refuseRate(socket);
+      return;
+    }
+    this.motionDropped++;
+    /* Keep the latest deferred cursor so a hand that stops still parks at its final position. */
+    if (message.type === 'pointer' && message.seq > (connection.deferredPointer?.seq ?? connection.pointerSeq)) {
+      connection.deferredPointer = message;
+    }
   }
 
   /* Commands and nudges over budget are refused individually; the socket stays open. */
