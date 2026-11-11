@@ -119,7 +119,11 @@ describe('Steam sign-in', () => {
         .query('profiles')
         .withIndex('by_user_id', (q) => q.eq('user_id', account!.userId))
         .unique();
-      expect(profile).toMatchObject({ username: 'Steam player', account_state: 'active' });
+      expect(profile).toMatchObject({
+        username: 'Steam player',
+        avatar_url: 'https://avatars.steamstatic.com/a_full.jpg',
+        account_state: 'active',
+      });
     });
   });
 
@@ -184,7 +188,7 @@ describe('Steam sign-in', () => {
 
   test('reports a name without an HTTPS avatar as an incomplete lookup', async () => {
     vi.stubEnv('STEAM_WEB_API_KEY', 'test-key');
-    stubSteam({ player: { personaname: 'Steam player', avatarfull: 'http://unsafe.example/avatar.jpg' } });
+    stubSteam({ player: { personaname: 'Steam player', avatarfull: 'https://' } });
     const t = applicationTest();
     const signedIn = await t.action(api.auth.signIn, { provider: 'steam', params: steamAssertion() });
     expect(signedIn.tokens?.token).toEqual(expect.any(String));

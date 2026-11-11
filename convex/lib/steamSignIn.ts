@@ -42,7 +42,10 @@ export async function verifySteamLogin(
 function playerProfile(player: Record<string, unknown> | undefined): { name?: string; image?: string } {
   const name = typeof player?.personaname === 'string' ? player.personaname.trim().slice(0, 64) : '';
   const avatar = typeof player?.avatarfull === 'string' ? player.avatarfull : '';
-  return { ...(name ? { name } : {}), ...(avatar.startsWith('https://') ? { image: avatar } : {}) };
+  return {
+    ...(name ? { name } : {}),
+    ...(avatar.startsWith('https://') && URL.canParse(avatar) ? { image: avatar } : {}),
+  };
 }
 
 /** Reads optional Steam profile defaults without making an unavailable Web API block sign-in. */
