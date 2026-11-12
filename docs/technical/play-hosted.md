@@ -55,7 +55,9 @@ Its operations coordinate commands, assignment, deadlines, account deletion, con
 retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
 installation. It asks the session for projections instead of reading or changing its stores.
 Beside it, `connection.ts` holds a socket's bookkeeping and rate limits, `roomHttp.ts` the HTTP
-helpers, `roomConversations.ts` the table-chat relay and `roomMetrics.ts` the room's counters. The
+helpers, `roomConversations.ts` the table-chat relay, `roomMetrics.ts` the room's counters,
+`roomProvisioning.ts` game creation and its confirmation, and `roomAlarm.ts` the one stored alarm
+they all share. The
 Room's spice reserve and public controls (readiness and spawn requests) live in
 `spiceReserveCommand.ts` and `publicControls.ts`.
 

@@ -12,19 +12,13 @@ import { api } from '../../convex/_generated/api';
 import { HOMEPAGE_SOCKET_PATH, HOMEPAGE_ACCOUNT_CUTOFF_PATH } from '../../src/shared/homepage/protocol';
 import {
   PLAY_AUTH_RECOVERY_MS,
-  PLAY_CONFIRMATION_RECOVERY_MS,
-  PLAY_CONFIRMATION_RETRY_MS,
   PLAY_PENDING_TIMEOUT_MS,
   playAccountDeletionRequestSchema,
-  playConfirmationSchema,
-  playProvisioningValidationSchema,
-  playProvisionRequestSchema,
   playSeatLimitResultSchema,
   playSessionCutoffRequestSchema,
 } from '../../src/shared/play/admission';
 import { bugReportIdSchema, bugReportRequestSchema } from '../../src/shared/play/bugReports';
 import type { BugReportBrowser, BugReportRequest } from '../../src/shared/play/bugReports';
-import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
@@ -70,18 +64,18 @@ import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
 import { DirectoryDelivery } from './directoryDelivery';
-import { FIXTURE_TREACHERY_DECK, hostedFixturePlan } from './fixture';
+import { hostedFixturePlan } from './fixture';
 import type { FixturePlan } from './fixture';
 import { gameHttpClient } from './gameHttpClient';
-import { isLocalIsolatedRuntime } from './localRuntime';
 import { publishNudge } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
-import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
+import { RoomAlarm } from './roomAlarm';
 import { RoomConversations } from './roomConversations';
 import { RoomDraft } from './roomDraft';
 import { credentialsMatch, gameRequest, isApplicationSocket, json, readRequest, refused } from './roomHttp';
 import { RoomMetrics } from './roomMetrics';
+import { RoomProvisioning } from './roomProvisioning';
 import type { SavedSummary } from './roomSummary';
 import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
@@ -100,16 +94,13 @@ const QUIET_KEY = 'quiet';
 const SUMMARY_KEY = 'room-summary';
 /* A normal close the page reconnects after, unlike a refusal. */
 const SEAT_CHANGED_CLOSE_CODE = 1012;
-type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
-/** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
-type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
   private readonly directory: DirectoryDelivery;
   private readonly draft: RoomDraft;
   protected readonly diagnostics: GameDiagnostics;
-  private confirmationEpoch = 0;
+  private readonly provisioning: RoomProvisioning;
   private readonly connections = new Map<WebSocket, Connection>();
   private readonly conversations: RoomConversations;
   private readonly delivery = new RoomDelivery();
@@ -119,8 +110,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private readonly savedCarryHistory = new Map<string, number>();
   private activityTimer: ReturnType<typeof setTimeout> | undefined;
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
-  /* The alarm this instance last set, or null for none; undefined until it sets one, since the stored alarm is then unknown. */
-  private alarmAt: number | null | undefined;
+  private readonly storedAlarm: RoomAlarm;
   private readonly metrics = new RoomMetrics();
   /* What this room did each interval, for measuring live sessions; see roomSummary.ts. */
   private readonly summary = new RoomSummary(() => ({
@@ -186,6 +176,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.loadFailure = error;
     }
     /* A room that did not load never reaches its directory or draft, so it may hold no session. */
+    this.storedAlarm = new RoomAlarm(ctx.storage);
     this.directory = new DirectoryDelivery({
       session: this.session,
       diagnostics: this.diagnostics,
@@ -205,6 +196,19 @@ export class GameRoom extends DurableObject<GameEnv> {
       dealt: () => this.directory.soon(),
       waitUntil: (work) => this.ctx.waitUntil(work),
     });
+    this.provisioning = new RoomProvisioning({
+      session: this.session,
+      diagnostics: this.diagnostics,
+      draft: this.draft,
+      alarm: this.storedAlarm,
+      fixturePlan,
+      env: this.env,
+      convex: () => this.convex(),
+      catalogue: () => this.catalogue(),
+      retainRulesetCapture: (rulesetId, options) => this.retainRulesetCapture(rulesetId, options),
+      advanceDeadlines: () => this.advanceDeadlines(),
+      directoryChanged: () => this.directory.soon(),
+    });
     this.conversations = new RoomConversations({
       session: this.session,
       connections: this.connections,
@@ -218,7 +222,9 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.directory.soon();
       }
       if (this.session.needsFixtureDeck) {
-        this.ctx.waitUntil(this.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error)));
+        this.ctx.waitUntil(
+          this.provisioning.adoptFixtureDeck().catch((error) => this.diagnostics.report('fixture-deck', error))
+        );
       }
       this.draft.changed();
     }
@@ -380,31 +386,6 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   /*
-   * The hosted fixture deals a real treachery deck from the catalogue when the catalogue can supply
-   * it, through the same capture the shared inventory spawns from. A catalogue that cannot (the
-   * native peer, a backend without the deck) leaves the fixture's placeholder cards in place.
-   */
-  private async captureFixtureDeck(): Promise<StoredSpawnContents | undefined> {
-    try {
-      const deck = await this.catalogue().capture(FIXTURE_TREACHERY_DECK);
-      /* The deal reads the pieces only; the definitions the inventory audits would bloat every metadata write. */
-      return { ...deck, definitions: [] };
-    } catch (error) {
-      /* A catalogue without the deck is the expected refusal; only a broken read is worth a report. */
-      if (!(error instanceof GameRejection)) {
-        this.diagnostics.report('fixture-deck', error);
-      }
-      return undefined;
-    }
-  }
-  private async adoptFixtureDeck() {
-    const deck = await this.captureFixtureDeck();
-    if (deck) {
-      this.session.adoptFixtureDeck(deck);
-    }
-  }
-
-  /*
    * The catalogue captures a game retains: the ruleset once at creation, each faction once at
    * public assignment.
    * A record already retained is read back without touching the catalogue, so a retry, a source
@@ -442,7 +423,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return refused();
     }
     if (operation === 'provision') {
-      return this.provision(request, gameId);
+      return this.provisioning.provision(request, gameId);
     }
     if (this.metadata?.gameId !== gameId) {
       return refused();
@@ -558,119 +539,6 @@ export class GameRoom extends DurableObject<GameEnv> {
         ...this.session.logPage('game', Number.MAX_SAFE_INTEGER),
       });
     }
-  }
-
-  private async provision(request: Request, gameId: string): Promise<Response> {
-    const args = await readRequest(request, playProvisionRequestSchema);
-    if (!args) {
-      return refused();
-    }
-    try {
-      if (args.gameId !== gameId || this.metadata) {
-        return refused();
-      }
-      const raw: unknown = await this.convex().mutation(api.playProvisioning.validateProvisioning, args);
-      const validation = playProvisioningValidationSchema.parse(raw);
-      if (!validation.ok) {
-        return refused();
-      }
-      this.requireLocalTestOverrides(validation);
-      if (!(await this.retainProvisionedRuleset(args, validation))) {
-        return refused();
-      }
-      const factions =
-        'game' in validation && !this.metadata ? await this.draft.factions(validation.game.rulesetId) : null;
-      /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
-      const fixtureDeck =
-        'fixtureKey' in validation && this.fixturePlan.hosted && !this.metadata
-          ? await this.captureFixtureDeck()
-          : undefined;
-      if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
-        return refused();
-      }
-      if ('game' in validation && validation.testStartStage === 'play') {
-        await provisionThroughSetup(validation.game, {
-          session: this.session,
-          advanceDeadlines: () => this.advanceDeadlines(),
-          settleDraft: () => this.draft.settle(),
-        });
-      }
-      await this.confirmProvisioning();
-      return this.metadata!.confirmed ? json({ ok: true }) : refused();
-    } catch (error) {
-      this.diagnostics.report('provision', error);
-      return refused();
-    }
-  }
-
-  /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
-  private requireLocalTestOverrides(validation: ProvisioningValidation) {
-    if (
-      (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
-      !isLocalIsolatedRuntime(this.env)
-    ) {
-      throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
-    }
-  }
-
-  /**
-   * A real game retains its ruleset before it exists, and a ruleset that is not ready never becomes a game.
-   * False when the ruleset was refused, after the refusal is reported unless another request already provisioned the room.
-   */
-  private async retainProvisionedRuleset(args: ProvisionArgs, validation: ProvisioningValidation): Promise<boolean> {
-    if (!('game' in validation) || this.metadata) {
-      return true;
-    }
-    try {
-      await this.retainRulesetCapture(validation.game.rulesetId, { provisional: validation.provisional === true });
-      return true;
-    } catch (error) {
-      if (!(error instanceof GameRejection)) {
-        throw error;
-      }
-      if (!this.metadata) {
-        await this.convex().mutation(api.playProvisioning.failProvisioning, {
-          ...args,
-          reason: error.message,
-        });
-      }
-      return false;
-    }
-  }
-
-  private initializeValidated(
-    args: ProvisionArgs,
-    validation: ProvisioningValidation,
-    factions: DraftFaction[] | null,
-    fixtureDeck?: StoredSpawnContents
-  ): boolean {
-    // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
-    if (this.metadata) {
-      return false;
-    }
-    if (validation.gameId !== args.gameId || validation.attemptId !== args.attemptId) {
-      return false;
-    }
-    if (validation.expiresAt <= Date.now()) {
-      return false;
-    }
-    this.session.initialize(
-      {
-        ...args,
-        expiresAt: validation.expiresAt,
-        confirmed: false,
-        ...('game' in validation ? { game: validation.game } : {}),
-        ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
-        ...(validation.testPhaseCooldownMs === undefined
-          ? {}
-          : { testPhaseCooldownMs: validation.testPhaseCooldownMs }),
-        ...(fixtureDeck ? { fixtureDeck } : {}),
-      },
-      factions
-    );
-    /* A catalogue read that failed at creation is read again at once rather than on the first command. */
-    this.draft.changed();
-    return true;
   }
 
   protected retainedCaptures() {
@@ -858,8 +726,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   override async alarm() {
-    /* The alarm that fired is no longer stored. */
-    this.alarmAt = undefined;
+    this.storedAlarm.fired();
     if (this.loadFailure !== undefined && !this.retired) {
       /* A failed alarm is retried a few times, so a deadline outlives a brief load failure. */
       throw this.loadFailure;
@@ -879,7 +746,7 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.rest();
       }
     } else {
-      await this.confirmProvisioning();
+      await this.provisioning.confirm();
     }
   }
 
@@ -896,16 +763,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     const due = [this.session.nextDeadline(), this.sweepTimer ? undefined : this.nextPassExpiry()].filter(
       (time) => time !== undefined
     );
-    const at = due.length ? Math.min(...due) : null;
-    if (at === this.alarmAt) {
-      return Promise.resolve();
-    }
-    this.alarmAt = at;
-    return (at === null ? this.ctx.storage.deleteAlarm() : this.ctx.storage.setAlarm(at)).catch((error: unknown) => {
-      /* A write that failed leaves the stored alarm unknown, so the next schedule writes again. */
-      this.alarmAt = undefined;
-      throw error;
-    });
+    return this.storedAlarm.schedule(due.length ? Math.min(...due) : null);
   }
 
   private nextPassExpiry() {
@@ -918,42 +776,6 @@ export class GameRoom extends DurableObject<GameEnv> {
       }
     }
     return next;
-  }
-
-  private async confirmProvisioning() {
-    const metadata = this.metadata;
-    if (!metadata || metadata.confirmed) {
-      return;
-    }
-    const epoch = ++this.confirmationEpoch;
-    const startedAt = Date.now();
-    /* Recovery stays durable while the request is pending, including when it crosses expiry. */
-    this.alarmAt = undefined;
-    await this.ctx.storage.setAlarm(
-      startedAt + (startedAt < metadata.expiresAt ? PLAY_CONFIRMATION_RETRY_MS : PLAY_CONFIRMATION_RECOVERY_MS)
-    );
-    try {
-      const raw: unknown = await this.convex().mutation(api.playProvisioning.confirmProvisioning, {
-        gameId: metadata.gameId,
-        secret: metadata.secret,
-        attemptId: metadata.attemptId,
-      });
-      if (epoch !== this.confirmationEpoch) {
-        return;
-      }
-      if (playConfirmationSchema.parse(raw).ok) {
-        this.session.confirm();
-      }
-      await this.ctx.storage.deleteAlarm();
-      this.alarmAt = null;
-      /* The opening summary waited for confirmation: only a confirmed game is listed. */
-      this.directory.soon();
-      this.diagnostics.recovered('confirmation');
-    } catch (error) {
-      /* A superseded attempt still reports, so a first request that outlives its alarm stays visible. */
-      this.diagnostics.report('confirmation', error, { durationMs: Date.now() - startedAt });
-      /* The pre-armed alarm retries the acknowledgement without reinitializing the game. */
-    }
   }
 
   /** Whether any admitted connection of this user reported them at the seat limit; a user with no connection here is not. */
