@@ -55,41 +55,11 @@ export class RoomProvisioning {
 
   async provision(request: Request, gameId: string): Promise<Response> {
     const args = await readRequest(request, playProvisionRequestSchema);
-    if (!args) {
+    if (!args || args.gameId !== gameId) {
       return refused();
     }
     try {
-      if (args.gameId !== gameId || this.metadata) {
-        return refused();
-      }
-      const raw: unknown = await this.room.convex().mutation(api.playProvisioning.validateProvisioning, args);
-      const validation = playProvisioningValidationSchema.parse(raw);
-      if (!validation.ok) {
-        return refused();
-      }
-      this.requireLocalTestOverrides(validation);
-      if (!(await this.retainProvisionedRuleset(args, validation))) {
-        return refused();
-      }
-      const factions =
-        'game' in validation && !this.metadata ? await this.room.draft.factions(validation.game.rulesetId) : null;
-      /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
-      const fixtureDeck =
-        'fixtureKey' in validation && this.room.fixturePlan.hosted && !this.metadata
-          ? await this.captureFixtureDeck()
-          : undefined;
-      if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
-        return refused();
-      }
-      if ('game' in validation && validation.testStartStage === 'play') {
-        await provisionThroughSetup(validation.game, {
-          session: this.room.session,
-          advanceDeadlines: () => this.room.advanceDeadlines(),
-          settleDraft: () => this.room.draft.settle(),
-        });
-      }
-      await this.confirm();
-      return this.metadata!.confirmed ? json({ ok: true }) : refused();
+      return (await this.create(args)) ? json({ ok: true }) : refused();
     } catch (error) {
       this.room.diagnostics.report('provision', error);
       return refused();
@@ -156,12 +126,57 @@ export class RoomProvisioning {
     }
   }
 
+  /** Whether this attempt created the room's game and Convex confirmed it. */
+  private async create(args: ProvisionArgs): Promise<boolean> {
+    if (this.metadata) {
+      return false;
+    }
+    const validation = await this.validate(args);
+    if (!validation || !(await this.retainProvisionedRuleset(args, validation))) {
+      return false;
+    }
+    const { factions, fixtureDeck } = await this.catalogueReads(validation);
+    if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
+      return false;
+    }
+    if ('game' in validation && validation.testStartStage === 'play') {
+      await provisionThroughSetup(validation.game, {
+        session: this.room.session,
+        advanceDeadlines: () => this.room.advanceDeadlines(),
+        settleDraft: () => this.room.draft.settle(),
+      });
+    }
+    await this.confirm();
+    return this.metadata!.confirmed;
+  }
+
+  /** The attempt as Convex validated it, or undefined when Convex refused it. */
+  private async validate(args: ProvisionArgs): Promise<ProvisioningValidation | undefined> {
+    const raw: unknown = await this.room.convex().mutation(api.playProvisioning.validateProvisioning, args);
+    const validation = playProvisioningValidationSchema.parse(raw);
+    if (!validation.ok) {
+      return undefined;
+    }
+    this.requireLocalTestOverrides(validation);
+    return validation;
+  }
+
+  /** What the new game reads from the catalogue: a real game's factions, the hosted fixture's deck. */
+  private async catalogueReads(validation: ProvisioningValidation) {
+    const factions =
+      'game' in validation && !this.metadata ? await this.room.draft.factions(validation.game.rulesetId) : null;
+    /* The hosted fixture asks the catalogue for its deck before it exists; a refusal costs nothing, a slow answer only time. */
+    const fixtureDeck =
+      'fixtureKey' in validation && this.room.fixturePlan.hosted && !this.metadata
+        ? await this.captureFixtureDeck()
+        : undefined;
+    return { factions, fixtureDeck };
+  }
+
   /* Fail closed: a game without the real phase cooldown, or provisioned past drafting, exists only in the isolated local stack. */
   private requireLocalTestOverrides(validation: ProvisioningValidation) {
-    if (
-      (validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined) &&
-      !isLocalIsolatedRuntime(this.room.env)
-    ) {
+    const overridden = validation.testPhaseCooldownMs !== undefined || validation.testStartStage !== undefined;
+    if (overridden && !isLocalIsolatedRuntime(this.room.env)) {
       throw new Error('A test phase cooldown or start stage is refused outside the isolated local runtime.');
     }
   }
@@ -203,31 +218,36 @@ export class RoomProvisioning {
      * Another request can finish while Convex validates this one and the ruleset is captured.
      * Keep the guard and initialization synchronous.
      */
-    if (this.metadata) {
+    if (this.metadata || !matchesAttempt(args, validation)) {
       return false;
     }
-    if (validation.gameId !== args.gameId || validation.attemptId !== args.attemptId) {
-      return false;
-    }
-    if (validation.expiresAt <= Date.now()) {
-      return false;
-    }
-    this.room.session.initialize(
-      {
-        ...args,
-        expiresAt: validation.expiresAt,
-        confirmed: false,
-        ...('game' in validation ? { game: validation.game } : {}),
-        ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
-        ...(validation.testPhaseCooldownMs === undefined
-          ? {}
-          : { testPhaseCooldownMs: validation.testPhaseCooldownMs }),
-        ...(fixtureDeck ? { fixtureDeck } : {}),
-      },
-      factions
-    );
+    this.room.session.initialize(provisionedMetadata(args, validation, fixtureDeck), factions);
     /* A catalogue read that failed at creation is read again at once rather than on the first command. */
     this.room.draft.changed();
     return true;
   }
+}
+
+/** Whether Convex validated this very attempt, and it has not expired since. */
+function matchesAttempt(args: ProvisionArgs, validation: ProvisioningValidation) {
+  return (
+    validation.gameId === args.gameId && validation.attemptId === args.attemptId && validation.expiresAt > Date.now()
+  );
+}
+
+/** The new game's metadata, unconfirmed until Convex acknowledges it. */
+function provisionedMetadata(
+  args: ProvisionArgs,
+  validation: ProvisioningValidation,
+  fixtureDeck: StoredSpawnContents | undefined
+) {
+  return {
+    ...args,
+    expiresAt: validation.expiresAt,
+    confirmed: false,
+    ...('game' in validation ? { game: validation.game } : {}),
+    ...('provisional' in validation && validation.provisional ? { provisional: true } : {}),
+    ...(validation.testPhaseCooldownMs === undefined ? {} : { testPhaseCooldownMs: validation.testPhaseCooldownMs }),
+    ...(fixtureDeck ? { fixtureDeck } : {}),
+  };
 }
