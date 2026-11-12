@@ -14,6 +14,7 @@ import { createRulebookStarterContents } from '../src/shared/rulebooks/fixtures'
 import { rulebookNameKey } from '../src/shared/rulebooks/metadata';
 import { api, internal } from './_generated/api';
 import { factionTest } from './factions.test.fixture';
+import { syncFactionFamily } from './lib/factionFamilies';
 import guards from './migration-guards.json';
 
 /** The migrations `migration-guards.ts dev-strict` starts after every snapshot load, in the order it starts them. */
@@ -89,17 +90,15 @@ describe('a snapshot load', () => {
         slug: 'moved-spice',
         data: { ...publishingSpiceCard, board: { asset_id: token, tints: [], tokens: [] } },
       });
-      return [
-        deck,
-        token,
-        spice,
-        ...(await Promise.all(modeRows)),
-        await ctx.db.insert('factions', {
-          ...owned,
-          slug: 'retuned',
-          data: { ...assetPublishingFaction, decals: [retunedDecal] },
-        }),
-      ];
+      const faction = await ctx.db.insert('factions', {
+        ...owned,
+        slug: 'retuned',
+        data: { ...assetPublishingFaction, decals: [retunedDecal] },
+      });
+      /* Production gave the faction its family and variant name before the snapshot was cut. */
+      await syncFactionFamily(ctx, faction, await ctx.db.get(faction));
+      const { family_id } = (await ctx.db.get(faction))!;
+      return [deck, token, spice, ...(await Promise.all(modeRows)), faction, family_id!];
     });
     const rows = () => t.run((ctx) => Promise.all(ids.map((id) => ctx.db.get(id))));
     const loaded = await rows();

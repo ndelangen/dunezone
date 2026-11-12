@@ -18,6 +18,7 @@ import { battleDialingSchema } from '../src/shared/rulesets/battleDialing';
 import { authProviderValidator } from './lib/accountMethods';
 import { directOwnershipKindValidator } from './lib/directOwnership';
 import { discordRetryState } from './lib/discordRetry';
+import { factionSharedValidator } from './lib/factionData';
 import { faqReferenceTargets } from './lib/faqReferenceTarget';
 import { faqTagValidator } from './lib/faqTags';
 import { formerSlugValidator } from './lib/formerSlugs';
@@ -311,6 +312,14 @@ export default defineSchema({
     updated_at: v.string(),
     is_deleted: v.boolean(),
     group_id: v.union(v.id('groups'), v.null()),
+    /**
+     * The Faction family this row is a variant of, with the variant's own name and slug.
+     * Optional while `faction_families_v1` gives every existing row its family;
+     * a faction write sets them through a trigger.
+     */
+    family_id: v.optional(v.id('faction_families')),
+    variant_name: v.optional(v.string()),
+    variant_slug: v.optional(v.string()),
   })
     .index('by_deleted', ['is_deleted'])
     .index('by_slug', ['slug'])
@@ -318,6 +327,24 @@ export default defineSchema({
     .index('by_group_id', ['group_id'])
     .index('by_owner_deleted', ['owner_id', 'is_deleted'])
     .index('by_group_deleted', ['group_id', 'is_deleted']),
+  /**
+   * A Faction family: the faction the catalogue shows, holding what its variants share (#2925).
+   * Every `factions` row is one variant of a family.
+   * While each family has a single variant, a trigger on that variant mirrors its owner, Group, slug, deletion and shared fields here;
+   * `data` is null while the variant's stored data does not parse, as with its card.
+   */
+  faction_families: defineTable({
+    slug: v.string(),
+    data: v.union(factionSharedValidator, v.null()),
+    owner_id: v.id('users'),
+    group_id: v.union(v.id('groups'), v.null()),
+    default_variant_id: v.id('factions'),
+    /** Whether people other than the faction's maintainers may add variants. Every family starts closed. */
+    is_open: v.boolean(),
+    is_deleted: v.boolean(),
+    created_at: v.string(),
+    updated_at: v.string(),
+  }).index('by_default_variant', ['default_variant_id']),
   /**
    * Community assets, one table for every Asset category (cards, decks, tokens, boards).
    * `type` is the flat Asset type discriminator (`card-treachery`, `deck`, `token-disc`, …);

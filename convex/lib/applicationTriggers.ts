@@ -6,6 +6,7 @@ import { registerBackgroundUseTriggers } from './backgroundUses';
 import { registerBoardReadinessTriggers } from './boardReadiness';
 import { registerCatalogueTriggers } from './catalogueEntries';
 import { registerFactionCardTriggers } from './factionCards';
+import { registerFactionFamilyTriggers } from './factionFamilies';
 import { registerProfileActivityTriggers } from './profileActivity';
 import { registerProfileDiscoveryTriggers } from './profileDiscovery';
 import { registerPublicationJobListingTriggers } from './publicationJobListings';
@@ -23,6 +24,7 @@ registerStandingsTriggers(applicationTriggers);
 registerBoardReadinessTriggers(applicationTriggers);
 registerCatalogueTriggers(applicationTriggers);
 registerFactionCardTriggers(applicationTriggers);
+registerFactionFamilyTriggers(applicationTriggers);
 
 registerBackgroundUseTriggers(applicationTriggers);
 registerPublicationJobListingTriggers(applicationTriggers);

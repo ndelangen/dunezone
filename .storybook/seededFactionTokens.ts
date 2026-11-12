@@ -7,11 +7,11 @@
  */
 export const SEEDED_FACTION_TOKENS = {
   '000000000000000000010006factions': 'house-atreides',
-  '000000000000000000010011factions': 'house-harkonnen',
-  '000000000000000000010015factions': 'emperor',
-  '000000000000000000010019factions': 'spacing-guild',
-  '000000000000000000010023factions': 'fremen',
-  '000000000000000000010027factions': 'bene-gesserit',
+  '000000000000000000010012factions': 'house-harkonnen',
+  '000000000000000000010017factions': 'emperor',
+  '000000000000000000010022factions': 'spacing-guild',
+  '000000000000000000010027factions': 'fremen',
+  '000000000000000000010032factions': 'bene-gesserit',
 } as const;
 
 /** Where the static build keeps a seeded faction's token. */
