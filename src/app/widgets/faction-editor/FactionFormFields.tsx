@@ -8,8 +8,10 @@ import { StatusBadge } from '@ui/content/StatusBadge';
 import { TopicIcon } from '@ui/content/TopicIcon';
 import { CanvasScale } from '@ui/layout/CanvasScale';
 import { ConnectedTabs } from '@ui/surface/ConnectedTabs';
+import type { ConnectedTabsItem } from '@ui/surface/ConnectedTabs';
 import { ListOrdered, PackagePlus, Swords } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import type { Faction, FactionCatalogueEntry } from '@db/factions';
 import type { BackgroundModeMemory } from '@app/widgets/background-composer/BackgroundComposer';
@@ -42,6 +44,25 @@ import type { FactionFormApi } from './factionFormTypes';
 import { FactionPhaseSequence } from './FactionPhaseSequence';
 
 export type { FactionFormApi } from './factionFormTypes';
+
+/**
+ * PROTOTYPE (#2926, the Faction tab): the editor's own pieces, handed to a route-owned arrangement.
+ * Remove with the prototype;
+ * nothing in production passes one.
+ */
+export type FactionEditorPrototypeParts = {
+  form: FactionFormApi;
+  /** The chapters as the rail shows them. */
+  chapters: ConnectedTabsItem<FactionAuthoringChapterId>[];
+  /** The shared fields, as the Identity chapter binds them: name, emblem, sheet theme and TTS colours, then the background. */
+  identityFields: ReactNode;
+  backgroundFields: ReactNode;
+  /** The Identity chapter's live proof: token, background and sheet colour. */
+  sharedProof: ReactNode;
+  /** The chapter rail beside its proof, over the given chapters. */
+  workbench: (chapters: ConnectedTabsItem<FactionAuthoringChapterId>[]) => ReactNode;
+};
+export type FactionEditorPrototype = (parts: FactionEditorPrototypeParts) => ReactNode;
 
 export interface FactionFormFieldsHandle {
   focusWarning: (warning: FactionAuthoringWarning) => void;
@@ -458,6 +479,8 @@ export const FactionFormFields = forwardRef<
     /** The switched-off manual rating, owned by the authoring session so a Reset discards it too. */
     retainedManualComplexity: number | null;
     onRetainedManualComplexityChange: (rating: number) => void;
+    /** PROTOTYPE (#2926): see `FactionEditorPrototypeParts`. */
+    prototype?: FactionEditorPrototype;
   } & StrengthRefusalProps
 >(function FactionFormFields(
   {
@@ -472,6 +495,7 @@ export const FactionFormFields = forwardRef<
     onRetainedManualComplexityChange,
     strengthRefusal,
     onStrengthRefusalChange,
+    prototype,
   },
   ref
 ) {
@@ -497,16 +521,23 @@ export const FactionFormFields = forwardRef<
 
   useImperativeHandle(ref, () => ({ focusWarning }));
 
+  const identityFields = (
+    <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
+  );
+  const backgroundFields = (
+    <FactionFormSectionBackground
+      form={form}
+      modeMemory={backgroundModeMemory}
+      onModeMemoryChange={onBackgroundModeMemoryChange}
+    />
+  );
+
   const chapterEditor = (chapter: FactionAuthoringChapterId) => (
     <>
       {chapter === 'identity' ? (
         <>
-          <FactionFormSectionIdentity form={form} nameError={nameError} nameField={nameField} showIntro={false} />
-          <FactionFormSectionBackground
-            form={form}
-            modeMemory={backgroundModeMemory}
-            onModeMemoryChange={onBackgroundModeMemoryChange}
-          />
+          {identityFields}
+          {backgroundFields}
         </>
       ) : null}
       {chapter === 'factionLeader' ? <FactionFormSectionFactionLeader form={form} showPreview={false} /> : null}
@@ -590,26 +621,40 @@ export const FactionFormFields = forwardRef<
     };
   });
 
-  return (
-    <div className={styles.workbench} onBlur={() => onSettle?.()}>
-      <ConnectedTabs
-        className={styles.connectedTabs}
-        value={activeChapter}
-        onValueChange={(chapter) => {
-          setActiveChapter(chapter);
-          onSettle?.();
-        }}
-        items={connectedTabItems}
-        ariaLabel="Faction editor sections"
-      />
-      <Box className={styles.artifactColumn}>
-        <ArtifactProof
-          activeChapter={activeChapter}
-          form={form}
-          selectedItem={selectedItem}
-          troopSide={troopSideByIndex}
+  const workbench = (chapters: ConnectedTabsItem<FactionAuthoringChapterId>[] = connectedTabItems) => {
+    /* A prototype arrangement may leave the active chapter out; the rail then opens on its first. */
+    const shown = chapters.some((chapter) => chapter.value === activeChapter) ? activeChapter : chapters[0]!.value;
+    return (
+      <div className={styles.workbench} onBlur={() => onSettle?.()}>
+        <ConnectedTabs
+          className={styles.connectedTabs}
+          value={shown}
+          onValueChange={(chapter) => {
+            setActiveChapter(chapter);
+            onSettle?.();
+          }}
+          items={chapters}
+          ariaLabel="Faction editor sections"
         />
-      </Box>
-    </div>
-  );
+        <Box className={styles.artifactColumn}>
+          <ArtifactProof activeChapter={shown} form={form} selectedItem={selectedItem} troopSide={troopSideByIndex} />
+        </Box>
+      </div>
+    );
+  };
+
+  if (prototype) {
+    return prototype({
+      form,
+      chapters: connectedTabItems,
+      identityFields,
+      backgroundFields,
+      sharedProof: (
+        <ArtifactProof activeChapter="identity" form={form} selectedItem={selectedItem} troopSide={troopSideByIndex} />
+      ),
+      workbench,
+    });
+  }
+
+  return workbench();
 });
