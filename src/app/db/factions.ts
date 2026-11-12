@@ -221,8 +221,7 @@ export function useFactionAccess(page: FactionDetailPageData) {
 }
 
 /**
- * Whether the current viewer may change the shared fields, which the variant's Faction holds:
- * its owner and its own Group may, a variant's Group alone may not (#2910).
+ * Whether the current viewer may change the shared fields, which the variant's Faction holds: its owner and its own Group may, a variant's Group alone may not (#2910).
  * A variant not yet given a Faction leaves them to its owner, as the server does.
  */
 export function useFactionSharedFieldsAccess(page: FactionDetailPageData) {

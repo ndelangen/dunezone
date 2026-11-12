@@ -384,7 +384,8 @@ export async function requireMembershipRequest(ctx: MutationCtx, groupId: Id<'gr
  */
 /**
  * The viewer's access to a Faction, the container of a variant's shared fields.
- * Its owner and its own Group maintain it; a variant's Group grants nothing on it (#2910).
+ * Its owner and its own Group maintain it;
+ * a variant's Group grants nothing on it (#2910).
  */
 export async function loadFactionFamilyAccess(ctx: AnyCtx, family: Doc<'faction_families'>) {
   const viewerId = await optionalActiveUserId(ctx);
@@ -432,8 +433,7 @@ export async function requireFactionUpdate(
 }
 
 /**
- * Authorizes a save of a variant's data, each side by who maintains it:
- * the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
+ * Authorizes a save of a variant's data, each side by who maintains it: the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
  * A save that changes nothing needs the variant's edit right, as before Factions existed.
  * Returns the access with the data as it will be stored.
  */
