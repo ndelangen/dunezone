@@ -453,7 +453,8 @@ export default defineSchema({
     .index('by_status_and_created_at', ['status', 'created_at'])
     .index('by_asset_type_status_created_at', ['asset_type', 'status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
-    .index('by_status_and_updated_at', ['status', 'updated_at']),
+    .index('by_status_and_updated_at', ['status', 'updated_at'])
+    .index('by_content_key_and_status', ['content_key', 'status']),
   /** Queue metadata for the admin listing, without the captured render payload. */
   publication_job_listings: defineTable(
     publicationJobFields.omit('asset_data', 'component_version', 'content_key').extend({

@@ -79,3 +79,16 @@ export async function reusableCapture(
   );
   return source ? { assetId: source.asset_id, cacheToken: source.cache_token } : null;
 }
+
+/** Whether another asset's capture of this exact content is in progress, so its file will be reusable once it lands. */
+export async function isBeingCaptured(
+  ctx: Pick<QueryCtx, 'db'>,
+  job: Pick<Doc<'publication_jobs'>, 'asset_id'>,
+  contentKey: string
+) {
+  const capturing = await ctx.db
+    .query('publication_jobs')
+    .withIndex('by_content_key_and_status', (q) => q.eq('content_key', contentKey).eq('status', 'in_progress'))
+    .take(4);
+  return capturing.some((candidate) => candidate.asset_id !== job.asset_id);
+}

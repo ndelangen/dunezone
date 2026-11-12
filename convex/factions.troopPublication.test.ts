@@ -15,9 +15,15 @@ const back = {
 async function troopFixture(revision: number | undefined) {
   const { t, owner } = await rulebookFixture();
   const { troops, ...rest } = structuredClone(assetPublishingFaction);
-  /* The elite troop copies the regular one without its identity, so the save assigns it a new one. */
+  /*
+   * The elite troop copies the regular one without its identity, so the save assigns it a new one.
+   * Its own hue keeps its front from drawing the same pixels as the regular one, which capture reuse would otherwise draw once.
+   */
   const { troopId: _regularId, ...unidentified } = troops[0]!;
-  const data = { ...rest, troops: [troops[0]!, { ...unidentified, name: 'Elite troop', count: 3, back }] };
+  const data = {
+    ...rest,
+    troops: [troops[0]!, { ...unidentified, name: 'Elite troop', count: 3, hue: '#2a6f4e', back }],
+  };
   const settingsId = await t.run(async (ctx) =>
     ctx.db.insert('admin_settings', {
       key: 'publication',

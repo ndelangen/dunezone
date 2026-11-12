@@ -152,4 +152,28 @@ describe('Capture reuse by drawn content', () => {
     }
     expect(faces(items, 'faction-leader').every((item) => item.reuse !== undefined)).toBe(true);
   });
+
+  test('identical content queued together is drawn once: the twin waits, then copies it', async () => {
+    const { t, complete, create } = await reuseFixture();
+    const first = await create('Atreides');
+    const second = await create('Atreides variant');
+    const take = async () => (await t.mutation(internal.publicationJobs.takeWork, {})).items as Item[];
+    const assigned: Item[] = [];
+    for (let batch = await take(); batch.length > 0; batch = await take()) {
+      assigned.push(...batch);
+    }
+    const ownedBy = (items: Item[], factionId: string) => items.filter((item) => item.assetId.startsWith(factionId));
+    expect(faces(ownedBy(assigned, first._id), 'faction-leader').length).toBeGreaterThan(0);
+    expect(faces(ownedBy(assigned, second._id), 'faction-leader')).toEqual([]);
+    expect(faces(ownedBy(assigned, second._id), 'faction-troop')).toEqual([]);
+
+    for (const item of assigned) {
+      await complete(item, 'first-capture');
+    }
+    const twins = await take();
+    expect(faces(twins, 'faction-leader').length).toBeGreaterThan(0);
+    expect(
+      twins.filter((item) => ['faction-leader', 'faction-troop'].includes(item.assetType)).every((item) => item.reuse)
+    ).toBe(true);
+  });
 });

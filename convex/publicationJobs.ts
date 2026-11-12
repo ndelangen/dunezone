@@ -16,7 +16,7 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { capturedBoardGeometry } from './lib/boardPublicationGeometry';
-import { captureContent, reusableCapture } from './lib/captureReuse';
+import { captureContent, isBeingCaptured, reusableCapture } from './lib/captureReuse';
 import {
   currentFactionComponentData,
   currentFactionLeaderData,
@@ -150,6 +150,7 @@ export const takeWork = internalMutation({
     /* Held jobs, such as successors waiting on their asset's capture, are read past rather than filling the batch, up to a bounded scan. */
     const expiresAt = now + PUBLICATION_JOB_EXPIRY_MS;
     const items = [];
+    const capturingKeys = new Set<string>();
     let scanned = 0;
     for await (const job of ctx.db
       .query('publication_jobs')
@@ -202,6 +203,13 @@ export const takeWork = internalMutation({
        */
       const content = captureContent(job.asset_type, settings?.renderer_revisions[job.asset_type], job.asset_data);
       const source = content ? await reusableCapture(ctx, job, content.key) : null;
+      /* Identical content already being drawn for another asset is held, so the next pickup copies that capture instead of drawing it twice. */
+      if (content && !source && (capturingKeys.has(content.key) || (await isBeingCaptured(ctx, job, content.key)))) {
+        continue;
+      }
+      if (content) {
+        capturingKeys.add(content.key);
+      }
       await ctx.db.patch(job._id, {
         status: 'in_progress',
         expires_at: expiresAt,
