@@ -6,6 +6,7 @@ import { componentGeometrySchema, isComponentAssetType } from '../src/shared/ass
 import { componentPublicationEnvelopeSchema } from '../src/shared/asset-publishing/componentPublication';
 import {
   parsePublicationAssetData,
+  publicationCaptureReuseSchema,
   PUBLICATION_JOB_EXPIRY_MS,
   PUBLICATION_MAX_ATTEMPTS,
   PUBLICATION_MAX_PICKUP,
@@ -60,13 +61,7 @@ const publicationJobResult = v.object({
   assetId: v.string(),
   expiresAt: v.number(),
   /** A finished capture of identical drawn content, which the publisher copies under this job's own id instead of rendering. */
-  reuse: v.optional(
-    v.object({
-      assetId: v.string(),
-      cacheToken: v.string(),
-      payloadHash: v.string(),
-    })
-  ),
+  reuse: v.optional(zodToConvex(publicationCaptureReuseSchema)),
 });
 
 const takeWorkResult = v.union(

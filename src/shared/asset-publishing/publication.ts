@@ -332,6 +332,13 @@ export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
  * The worker parses every response through these schemas;
  * the Convex mutation's id-branded validator stays the server-side authority, linked by a drift test in convex/publicationJobs.test.ts.
  */
+/** The finished capture a job may copy instead of rendering (#2922); Convex's take-work validator derives from this. */
+export const publicationCaptureReuseSchema = z.object({
+  assetId: z.string().min(1).max(110),
+  cacheToken: publicationCacheTokenSchema,
+  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
 const assignedPublicationJobSchema = z.object({
   jobId: z.string(),
   assetType: z.enum(PUBLICATION_ASSET_TYPES),
@@ -341,13 +348,7 @@ const assignedPublicationJobSchema = z.object({
    * A finished capture that draws exactly what this job draws (#2922): the Worker copies its file under this job's id instead of rendering, and falls back to rendering when the copy cannot be read.
    * Optional both ways: an older Worker ignores it and captures, and an older Convex never sends it.
    */
-  reuse: z
-    .object({
-      assetId: z.string().min(1).max(110),
-      cacheToken: publicationCacheTokenSchema,
-      payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
-    })
-    .optional(),
+  reuse: publicationCaptureReuseSchema.optional(),
 });
 
 export type AssignedPublicationJob = z.infer<typeof assignedPublicationJobSchema>;

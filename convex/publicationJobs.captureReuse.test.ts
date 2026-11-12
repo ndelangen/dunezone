@@ -1,18 +1,18 @@
 // @vitest-environment edge-runtime
 
+import type { FunctionReturnType } from 'convex/server';
 import { describe, expect, test } from 'vite-plus/test';
 
 import { ensureFactionComponentIds } from '../src/shared/factions/componentIdentity';
 import { assetPublishingFaction as legacyFaction } from '../src/shared/factions/fixtures/assetPublishingFaction';
 import { api, internal } from './_generated/api';
-import type { Id } from './_generated/dataModel';
 import { applicationTest } from './application.test.fixture';
 
 const assetPublishingFaction = ensureFactionComponentIds(legacyFaction);
 const REVISIONS = { 'faction-leader': 1, 'faction-troop': 1, 'faction-traitor': 1, 'faction-alliance': 1 };
 const LEADER_REVISION = '00000000-0000-4000-8000-000000000001';
 
-type Item = { jobId: Id<'publication_jobs'>; assetType: string; assetId: string; reuse?: unknown };
+type Item = FunctionReturnType<typeof internal.publicationJobs.takeWork>['items'][number];
 
 async function reuseFixture() {
   const t = applicationTest();
@@ -82,7 +82,7 @@ describe('Capture reuse by drawn content', () => {
     expect(leaders.length).toBeGreaterThan(0);
     expect(troops.length).toBeGreaterThan(0);
     for (const item of leaders) {
-      expect(item.reuse).toEqual({
+      expect(item.reuse).toMatchObject({
         assetId: ownId(item.assetId, first._id, second._id),
         cacheToken: LEADER_REVISION,
         payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
@@ -104,7 +104,7 @@ describe('Capture reuse by drawn content', () => {
     }
     await create('Atreides variant');
     const [leader] = faces(await takeAll(), 'faction-leader');
-    const reuse = leader!.reuse as { payloadHash: string; assetId: string };
+    const reuse = leader!.reuse!;
     const render = await t.query(internal.publicationJobs.readJobForRender, { jobId: leader!.jobId });
     expect(reuse.payloadHash).toBe(render!.payloadHash);
 
@@ -157,7 +157,7 @@ describe('Capture reuse by drawn content', () => {
     const { t, complete, create } = await reuseFixture();
     const first = await create('Atreides');
     const second = await create('Atreides variant');
-    const take = async () => (await t.mutation(internal.publicationJobs.takeWork, {})).items as Item[];
+    const take = async () => (await t.mutation(internal.publicationJobs.takeWork, {})).items;
     const assigned: Item[] = [];
     for (let batch = await take(); batch.length > 0; batch = await take()) {
       assigned.push(...batch);
