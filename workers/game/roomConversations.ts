@@ -19,7 +19,7 @@ export type ConversationsRoom = {
 
 /** Relays the room's faction conversations: pages, reads, clears, new messages, and each socket's summaries. */
 export class RoomConversations {
-  /* The summaries each socket last received, so a view that changed nothing in them doesn't send them again. */
+  /* The conversation summaries each socket last received, so a snapshot update that left them alone sends none. */
   private readonly sent = new WeakMap<WebSocket, string>();
 
   constructor(private readonly room: ConversationsRoom) {}

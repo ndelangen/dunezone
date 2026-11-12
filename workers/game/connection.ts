@@ -95,15 +95,15 @@ export function isMovingPointer(
 }
 /** Each connection's message buckets hold this many messages and refill at this rate. */
 export const RATE_BURST = 120;
-export const RATE_PER_SECOND = 60;
+const RATE_PER_SECOND = 60;
 /*
  * Table commands and Discord nudges draw on a smaller bucket because they trigger writes or external requests.
  * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
  */
-export const COMMAND_BURST = 30;
-export const COMMANDS_PER_SECOND = 10;
+const COMMAND_BURST = 30;
+const COMMANDS_PER_SECOND = 10;
 /* A held Tab rumbles after three seconds, so one connection rumbles at most that often. */
-export const RUMBLE_INTERVAL_MS = 3000;
+const RUMBLE_INTERVAL_MS = 3000;
 
 /* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
 export function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: PingSound | undefined, now: number) {
