@@ -95,6 +95,8 @@ describe('Faction families', () => {
     const { legacyRow, ruleset, link, variant, familyOf, migrate } = await familiesFixture();
     const linked = await legacyRow('linked');
     const unlinked = await legacyRow('unlinked');
+    const blank = await legacyRow('blank');
+    await link(await ruleset('  '), blank);
     const deleted = await legacyRow('deleted', true);
     await link(await ruleset('Retired rules', true), linked);
     await link(await ruleset('Advanced Dune'), linked);
@@ -104,6 +106,7 @@ describe('Faction families', () => {
 
     expect(await variant(linked)).toMatchObject({ variant_name: 'Advanced Dune', variant_slug: 'advanced-dune' });
     expect(await variant(unlinked)).toMatchObject({ variant_name: 'Original' });
+    expect(await variant(blank)).toMatchObject({ variant_name: 'Original', variant_slug: 'original' });
     expect(await familyOf(deleted)).toMatchObject({ is_deleted: true, default_variant_id: deleted });
     expect(await familyOf(linked)).toMatchObject({ slug: 'linked', data: { ...SHARED, name: 'linked' } });
   });

@@ -36,14 +36,14 @@ function mirroredFields(faction: Doc<'factions'>) {
   };
 }
 
-/** The name of the first live ruleset that links the faction, by when the link was made, or "Original" when none does. */
+/** The name of the first live ruleset that links the faction, by when the link was made, or "Original" when none does or its name is blank. */
 async function firstVariantName(ctx: Pick<QueryCtx, 'db'>, factionId: Id<'factions'>) {
   for await (const link of ctx.db
     .query('ruleset_factions')
     .withIndex('by_faction', (q) => q.eq('faction_id', factionId))) {
     const ruleset = await ctx.db.get(link.ruleset_id);
     if (ruleset && !ruleset.is_deleted) {
-      return ruleset.name;
+      return ruleset.name.trim() || ORIGINAL_VARIANT_NAME;
     }
   }
   return ORIGINAL_VARIANT_NAME;
