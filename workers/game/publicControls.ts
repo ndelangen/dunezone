@@ -39,7 +39,7 @@ export function publicControlsCommand(
       message = setReadiness(room, identity, action.ready, controls);
       break;
     case 'spawn-request':
-      message = requestSpawn(snapshot, identity, controls, table, contents);
+      message = requestSpawn({ revision: snapshot.revision, controls, table }, identity, contents);
       break;
     default:
       message = resolveSpawn(identity, action, controls, table);
@@ -58,17 +58,18 @@ function setReadiness(room: PublicControlsRoom, identity: Viewer, ready: boolean
   return `${seatSubject(identity.viewerSeat)} ${ready ? 'is ready' : 'withdrew readiness'}.`;
 }
 
+/** Where a spawn request lands: the table's revision, its shared controls and the table it may spawn onto. */
+type SpawnTarget = { revision: number; controls: StoredControls; table: TableState };
+
 function requestSpawn(
-  snapshot: StoredSnapshot,
+  { revision, controls, table }: SpawnTarget,
   identity: Viewer,
-  controls: StoredControls,
-  table: TableState,
   contents?: StoredSpawnContents
 ): string {
   if (!contents) {
     throw new GameRejection('Choose a complete published asset first.');
   }
-  const requestId = `spawn-${snapshot.revision + 1}`;
+  const requestId = `spawn-${revision + 1}`;
   if (controls.seats.length === 1) {
     table.pieces.push(...spawnPieces(contents, requestId));
     return `${contents.name} requested and spawned.`;
