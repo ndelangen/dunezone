@@ -132,6 +132,19 @@ A profile eligible for public discovery because it has a non-placeholder display
 **Faction slug**:
 The faction's public URL identifier, derived from its name. It is distinct from the faction's durable internal identity and may change when the faction is renamed.
 
+**Faction**:
+What the catalogue lists: a container of one or more Variants that share its name, emblem, background, theme colour and TTS colours. It has its own owner and Group, which co-owns it, and a Default variant. In code it is the Faction family (`faction_families`), because the `factions` table already names the variants.
+_Avoid_: Faction family (outside code), container
+
+**Variant**:
+One playable version of a Faction, holding everything the Faction does not share: leaders, troops, rules and the rest. It has its own owner, Group, name and slug, and is a `factions` row, so its id is the one rulesets, publications and games already point at. A faction that predates variants became the single Variant of its own Faction, named after the first live ruleset linking it, otherwise "Original".
+
+**Default variant**:
+The Variant a Faction's address opens and its catalogue card draws; the Faction's maintainers choose it.
+
+**Open faction**:
+A Faction anyone may add a Variant to, without approval. Every Faction starts closed, and closing it again keeps the Variants already in it.
+
 **Faction leader**:
 The single required primary leader who represents a faction, distinct from its supporting leaders. Among rendered game assets, the Faction leader is used on the faction shield.
 _Avoid_: Hero

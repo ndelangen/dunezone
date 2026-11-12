@@ -10,6 +10,7 @@ import { adminQuery, internalMutation, mutation } from './functions';
 import { syncBoardReadiness } from './lib/boardReadiness';
 import { assertCatalogueSourceExact, isCatalogueKindName, repairCatalogueEntry } from './lib/catalogueEntries';
 import { syncFactionCard } from './lib/factionCards';
+import { assertFactionFamily, syncFactionFamily } from './lib/factionFamilies';
 import { requireAdminUserId } from './lib/policy';
 import {
   reconcileAnswerActivity,
@@ -74,6 +75,8 @@ const MIGRATION_IDS: Record<string, MigrationRef> = {
   rulebook_contents_hash_editions_v1: internal.migrations.rulebook_contents_hash_editions_v1,
   board_readiness_listing_v1: internal.migrations.board_readiness_listing_v1,
   faction_cards_v1: internal.migrations.faction_cards_v1,
+  faction_families_v1: internal.migrations.faction_families_v1,
+  faction_families_verify_v1: internal.migrations.faction_families_verify_v1,
   standings_profiles_v1: internal.migrations.standings_profiles_v1,
   standings_groups_v1: internal.migrations.standings_groups_v1,
 };
@@ -661,5 +664,27 @@ export const faction_cards_v1 = migrations.define({
   batchSize: 10,
   migrateOne: async (ctx, faction) => {
     await syncFactionCard(ctx, faction._id, faction);
+  },
+});
+
+/**
+ * Gives every faction, deleted ones included, a family of its own and a variant name (#2925);
+ * rerunning it writes nothing.
+ * It is permanent like `faction_cards_v1`: a snapshot load carries no families, so every load rebuilds them through it.
+ */
+export const faction_families_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 10,
+  migrateOne: async (ctx, faction) => {
+    await syncFactionFamily(ctx, faction._id, faction);
+  },
+});
+
+/** Proves every faction is a variant of a family that exists and mirrors it, so a partial backfill cannot pass. */
+export const faction_families_verify_v1 = migrations.define({
+  table: 'factions',
+  batchSize: 25,
+  migrateOne: async (ctx, faction) => {
+    await assertFactionFamily(ctx, faction);
   },
 });
