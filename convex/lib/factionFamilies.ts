@@ -105,10 +105,8 @@ async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
 
 /** The family a faction names, provided the faction also carries its variant name. */
 async function namedFamily(ctx: Pick<QueryCtx, 'db'>, faction: Doc<'factions'>) {
-  if (!faction.family_id || !faction.variant_name || !faction.variant_slug) {
-    return null;
-  }
-  return await ctx.db.get(faction.family_id);
+  const named = Boolean(faction.variant_name) && Boolean(faction.variant_slug);
+  return named && faction.family_id ? await ctx.db.get(faction.family_id) : null;
 }
 
 /** Throws unless the faction is a variant of a family that exists and, while it is the only variant, mirrors it exactly. */
