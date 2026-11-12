@@ -18,6 +18,7 @@ vi.mock('convex/react', () => ({
 
 import { renderHook } from '@testing-library/react';
 
+import { storedAuthTokenKey } from './playTables';
 import { loadProfileBySlug, useAccountBanState, useSessionViewer } from './profiles';
 
 const profile = {
@@ -49,6 +50,7 @@ const serverPage = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   mocks.useAuth.mockReturnValue({ isAuthenticated: true, isLoading: false });
 });
 
@@ -111,6 +113,21 @@ describe('account access at the root', () => {
     mocks.useQuery.mockReturnValue(undefined);
     const { result } = renderHook(() => useAccountBanState());
     expect(result.current).toEqual({ pending: true, banned: false });
+  });
+
+  test('waits while Convex Auth reads a stored token', () => {
+    localStorage.setItem(storedAuthTokenKey(), 'stored-jwt');
+    mocks.useAuth.mockReturnValue({ isAuthenticated: false, isLoading: true });
+    mocks.useQuery.mockReturnValue(undefined);
+    const { result } = renderHook(() => useAccountBanState());
+    expect(result.current).toEqual({ pending: true, banned: false });
+  });
+
+  test('a browser without a stored token keeps the page while Convex Auth loads', () => {
+    mocks.useAuth.mockReturnValue({ isAuthenticated: false, isLoading: true });
+    mocks.useQuery.mockReturnValue(undefined);
+    const { result } = renderHook(() => useAccountBanState());
+    expect(result.current).toEqual({ pending: false, banned: false });
   });
 
   test('a live ban tells the root to replace access', () => {
