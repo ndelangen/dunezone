@@ -17,6 +17,10 @@ on:
       CODECOV_TOKEN:
         description: Codecov upload token; omitted on fork PRs (tokenless fallback)
         required: false
+    outputs:
+      stories_changed:
+        description: "true when the pull request changes a file the story suite reads, so a Chromatic build can show something main's has not"
+        value: ${{ jobs.chromatic_decision.outputs.stories_changed }}
 
 permissions:
   contents: read
@@ -159,6 +163,39 @@ jobs:
             true|false) ;;
             *) echo "::error::The Play closure returned no valid WebGPU decision"; exit 1 ;;
           esac
+
+  # Chromatic captures what the story suite renders. When the merge commit and the base branch give the
+  # story job the same input key (scripts/lib/ci-job-inputs.ts), every story renders as it does on main,
+  # whose own Chromatic build already holds it, so ci-pr.yml starts no build and bills no snapshot.
+  chromatic_decision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    if: ${{ !inputs.hosted_only && !inputs.draft }}
+    outputs:
+      stories_changed: ${{ steps.compare.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # The merge commit and its first parent, the base branch the pull request merges into.
+          fetch-depth: 2
+      # The key script imports nothing from node_modules; it needs no dependency install.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - name: Compare the story inputs with the base branch
+        id: compare
+        run: |
+          set -euo pipefail
+          # An empty GITHUB_OUTPUT keeps the key script from writing its own output.
+          head="$(git ls-tree -r -z HEAD | GITHUB_OUTPUT='' bun scripts/ci-job-key.ts storybook)"
+          base="$(git ls-tree -r -z HEAD^1 | GITHUB_OUTPUT='' bun scripts/ci-job-key.ts storybook)"
+          if [[ "$head" == "$base" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "The pull request changes no file the story suite reads, so Chromatic does not run." | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
   # The regular flow once more, on macOS, where full Chromium draws the Play table with WebGPU on the
   # runner's Metal device (#1322). The Linux shards draw WebGL2 on SwiftShader, so they pass a defect
@@ -430,25 +467,41 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only }}
+    permissions:
+      contents: read
+      # The unit prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           # A draft compares the merge commit with its first parent, the base branch, to pick the unit tests the change affects.
           fetch-depth: ${{ inputs.draft && 2 || 1 }}
+      # Skips the checks below when an earlier full run passed every unit test on the same inputs (scripts/lib/ci-job-inputs.ts).
+      # A draft may reuse such a pass too, since it ran every test the draft would pick.
+      - name: Reuse an earlier unit test pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: test
+          record: test
       # This job takes a full shallow checkout, so its size tracks the clone a contributor gets (#1888 aims for 40 MB or less).
       - name: Record shallow checkout size
+        if: steps.prior.outputs.reuse != 'true'
         run: echo "Shallow checkout $(du -sm --exclude=.git . | cut -f1) MB working tree, $(du -sm .git | cut -f1) MB .git" | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/generated-images
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/generated-images
       - name: Authoring tool tests
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run tool:test
       - name: Unit tests
-        if: ${{ !inputs.draft }}
+        if: ${{ !inputs.draft && steps.prior.outputs.reuse != 'true' }}
         run: bun run test --coverage --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
       # A draft runs the unit tests its changes affect and those that read files by path; the full run that ci_ok waits for runs every one.
       - name: Unit tests affected by the pull request
-        if: ${{ inputs.draft }}
+        if: ${{ inputs.draft && steps.prior.outputs.reuse != 'true' }}
         run: bun scripts/draft-unit-tests.ts HEAD^1 --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-unit.junit.xml
       # A draft's partial run would report most files as uncovered, so only the full run uploads unit coverage.
       - name: Upload coverage to Codecov
@@ -475,11 +528,21 @@ jobs:
           flags: unit
           disable_search: true
           fail_ci_if_error: false
+      # A draft's run is partial, so only a full run records a pass a later run may reuse.
+      - name: Record this unit test pass for runs on the same inputs
+        if: ${{ !inputs.draft }}
+        uses: ./.github/actions/record-pass
+        with:
+          files: coverage/lcov.info
 
   generate_and_build:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     if: ${{ !inputs.hosted_only && !inputs.draft }}
+    permissions:
+      contents: read
+      # The build prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     env:
       # Job-level so the bundle-upload step's `if` can test it. The secrets
       # context is not available in step-level `if` conditions.
@@ -488,23 +551,39 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Skips the checks below when an earlier run passed the build on the same inputs (scripts/lib/ci-job-inputs.ts).
+      # Same inputs build the same bundle, so a reused pass uploads no bundle stats; Codecov reports no bundle change.
+      - name: Reuse an earlier build pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: generate_and_build
+          record: generate_and_build
       - name: Pre-pull Convex images in background
+        if: steps.prior.outputs.reuse != 'true'
         # Overlaps the pull with the build; the wait step below serializes before the isolation proof.
         run: |
           (docker compose -f docker-compose.convex-local.yml pull -q > /tmp/convex-pull.log 2>&1 || true; touch /tmp/convex-pull.done) &
-      - uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
       - name: Generate app artifacts
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run generate
-      - uses: ./.github/actions/generated-images
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/generated-images
         with:
           regenerate-vectors: "true"
       - name: Verify generated images structurally
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run verify:images
       - name: Verify generated vectors structurally
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run verify:vectors
       - name: Generate OBJ pieces
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run generate:objs
       - name: Build app
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run app:build
         env:
           VITE_CONVEX_URL: https://example.convex.cloud
@@ -512,6 +591,7 @@ jobs:
       # media/vector source that is not pretty-printed. deploy-main.yml refuses a release whose build changed the
       # merged source, so a pull request that left one stale must fail here, before it merges, not at the deploy.
       - name: Require generated sources to be committed
+        if: steps.prior.outputs.reuse != 'true'
         run: |
           set -euo pipefail
           drift="$(git status --porcelain --untracked-files=all)"
@@ -524,8 +604,8 @@ jobs:
       - name: Upload bundle stats to Codecov (per category)
         # Direct Codecov core reporting avoids the analyzer CLI's vulnerable glob dependency;
         # one bundle per asset category so media regeneration can't bury an app-code
-        # regression. Skipped on fork PRs (no token); never fails the build.
-        if: ${{ env.CODECOV_TOKEN != '' }}
+        # regression. Skipped on fork PRs (no token) and on a reused pass; never fails the build.
+        if: ${{ env.CODECOV_TOKEN != '' && steps.prior.outputs.reuse != 'true' }}
         continue-on-error: true
         run: |
           set -uo pipefail
@@ -556,12 +636,14 @@ jobs:
       # of the e2e suite, so it runs once here rather than before every shard, and whatever the build
       # found (#1925).
       - name: Wait for Convex image pre-pull
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
         # Non-fatal on timeout or pull failure: the proof's compose up pulls whatever is missing.
         run: timeout 120 bash -c 'until [ -f /tmp/convex-pull.done ]; do sleep 1; done' || true
       - name: Prove concurrent local Convex isolation
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
         run: bun run test:local-convex-isolation
+      - name: Record this build pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
 
   publisher_release:
     runs-on: ubuntu-24.04
@@ -730,19 +812,33 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !inputs.hosted_only && !inputs.draft }}
+    permissions:
+      contents: read
+      # The browser checks prior-pass step lists and downloads the records of earlier passes.
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup
-      - uses: ./.github/actions/playwright-chromium
+      # Skips the checks below when an earlier run passed them on the same inputs (scripts/lib/ci-job-inputs.ts).
+      - name: Reuse an earlier browser checks pass on the same inputs
+        id: prior
+        uses: ./.github/actions/prior-pass
+        with:
+          job: browser_checks
+          record: browser_checks
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/setup
+      - if: steps.prior.outputs.reuse != 'true'
+        uses: ./.github/actions/playwright-chromium
         with:
           # The ubuntu-24.04 runner image already ships Chromium's shared libraries.
           with-deps: "false"
       - name: Authoring tool E2E
+        if: steps.prior.outputs.reuse != 'true'
         run: bun run tool:test:e2e
       - name: Browser-launching script tests
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
         run: bun run test:browser-launch --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-browser-launch.junit.xml
       - name: Upload test results to Codecov
         # Failure reports still upload; setup failures may produce no report.
@@ -758,10 +854,12 @@ jobs:
           disable_search: true
           fail_ci_if_error: false
       - uses: ./.github/actions/generated-images
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
       - name: Verify the public Storybook artifact
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.prior.outputs.reuse != 'true' }}
         run: bun run verify:storybook-publication
+      - name: Record this browser checks pass for runs on the same inputs
+        uses: ./.github/actions/record-pass
 
   e2e_docker:
     runs-on: ubuntu-24.04

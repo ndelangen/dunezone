@@ -297,8 +297,8 @@ dispatch through the same action, which skips them when `main`'s tree already ha
 from the last daily run that checked this commit or from the pull request that merged as it when
 that merge was up to date and its diff reached the closure. A red daily run opens or extends one
 issue labelled `hosted-play-daily`.
-Four other verify jobs (`game_release`, `publisher_release`, each story shard and each e2e shard)
-reuse an earlier pass instead of skipping on a diff. Each one hashes the git blobs of the files it
+Every other verify job but `lint` (`test`, `generate_and_build`, `browser_checks`, `game_release`,
+`publisher_release`, each story shard and each e2e shard) reuses an earlier pass instead of skipping on a diff. Each one hashes the git blobs of the files it
 reads, as
 [`scripts/lib/ci-job-inputs.ts`](../scripts/lib/ci-job-inputs.ts) lists them, and its last step
 uploads a `ci-pass-*` record named by that hash, holding its coverage report. On a pull request, a
@@ -307,6 +307,13 @@ skips its checks, and uploads the restored report under its usual flag. Codecov 
 every flag on every full run, and coverage never depends on carryforward from `main`, which uploads none.
 The unit test of that file holds each job's list to the import graph of its suites and entry
 points. A file a job reads without importing it must be listed by hand.
+Prose and the files only agents, editors and other services load (`.agents/`, `.claude/`,
+`skills-lock.json` and the like) count for no job but `lint`, so a pull request that changes only
+those reuses every other job's pass from `main`. The unit test also refuses a script, configuration
+or workflow that names one of those paths, unless it is a lint check or only leaves the path out.
+`test` records a pass only from a full run, since a draft runs only the affected unit tests.
+Chromatic runs only when the merge commit gives the story job another key than the base branch does;
+otherwise `main`'s own build already holds every story as it renders.
 On a draft pull request only `lint`, `test` and `game_release` run, and the closing job reports
 as `ci_draft` instead of `ci_ok`, so a draft's run never satisfies the required check. Codecov
 then receives only the `unit` and `game` flags. Marking the pull request ready for review starts

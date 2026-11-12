@@ -35,10 +35,11 @@ jobs:
       CODECOV_TOKEN: ${{ github.event_name == 'pull_request' && secrets.CODECOV_TOKEN || '' }}
 
   # Captures only after every verify job passed, so a failing run bills no snapshots (#2467). A draft
-  # or fork pull request and a merge group get no build; it is not part of ci_ok.
+  # or fork pull request and a merge group get no build, nor does a pull request that changes no file
+  # the story suite reads, since main's build already holds every story as it renders; it is not part of ci_ok.
   chromatic:
     needs: verify
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository && needs.verify.outputs.stories_changed == 'true' }}
     uses: ./.github/workflows/chromatic.yml
     permissions:
       contents: read
