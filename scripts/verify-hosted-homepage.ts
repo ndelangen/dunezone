@@ -523,6 +523,14 @@ export async function verifyHomepage({
       }));
       throw new Error(`${who.label}'s preview invitation did not appear: ${JSON.stringify(preview)}`, { cause });
     }
+    if (who === guest) {
+      /* A visitor without a token keeps the server's page through hydration; swapping it for the account check remounted the page and split this click across two links. */
+      const statuses = await who.page.evaluate(() => (window.hostedPlayConnection ?? []).map((entry) => entry.status));
+      assert.ok(
+        !statuses.includes('Checking account access…'),
+        "An unsigned visitor's homepage was replaced by the account check after hydration."
+      );
+    }
     if (who === member) {
       await who.page.locator('#play-preview [data-live-ready="true"]').waitFor();
       await until(() => artworkRequested, 'The homepage did not request its scene artwork.');
