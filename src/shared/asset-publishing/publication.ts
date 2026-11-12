@@ -26,7 +26,7 @@ import {
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
-import { factionLeaderAssetDataSchema } from './componentPublication';
+import { componentPublicationEnvelopeSchema, factionLeaderAssetDataSchema } from './componentPublication';
 import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import type { PublicationAssetType } from './publicationTargets';
@@ -332,11 +332,23 @@ export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
  * The worker parses every response through these schemas;
  * the Convex mutation's id-branded validator stays the server-side authority, linked by a drift test in convex/publicationJobs.test.ts.
  */
+/** The finished capture a job may copy instead of rendering (#2922); Convex's take-work validator derives from this. */
+export const publicationCaptureReuseSchema = z.object({
+  assetId: componentPublicationEnvelopeSchema.shape.assetId,
+  cacheToken: publicationCacheTokenSchema,
+  payloadHash: componentPublicationEnvelopeSchema.shape.payloadHash,
+});
+
 const assignedPublicationJobSchema = z.object({
   jobId: z.string(),
   assetType: z.enum(PUBLICATION_ASSET_TYPES),
   assetId: z.string(),
   expiresAt: z.number().finite(),
+  /**
+   * A finished capture that draws exactly what this job draws (#2922): the Worker copies its file under this job's id instead of rendering, and falls back to rendering when the copy cannot be read.
+   * Optional both ways: an older Worker ignores it and captures, and an older Convex never sends it.
+   */
+  reuse: publicationCaptureReuseSchema.optional(),
 });
 
 export type AssignedPublicationJob = z.infer<typeof assignedPublicationJobSchema>;

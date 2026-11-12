@@ -56,6 +56,7 @@ import type * as lib_boardListing from "../lib/boardListing.js";
 import type * as lib_boardPublicationGeometry from "../lib/boardPublicationGeometry.js";
 import type * as lib_boardReadiness from "../lib/boardReadiness.js";
 import type * as lib_canonicalJson from "../lib/canonicalJson.js";
+import type * as lib_captureReuse from "../lib/captureReuse.js";
 import type * as lib_cardFrontPresets from "../lib/cardFrontPresets.js";
 import type * as lib_cardPresetDefaults from "../lib/cardPresetDefaults.js";
 import type * as lib_cardbackPresets from "../lib/cardbackPresets.js";
@@ -256,6 +257,7 @@ const fullApi: ApiFromModules<{
   "lib/boardPublicationGeometry": typeof lib_boardPublicationGeometry;
   "lib/boardReadiness": typeof lib_boardReadiness;
   "lib/canonicalJson": typeof lib_canonicalJson;
+  "lib/captureReuse": typeof lib_captureReuse;
   "lib/cardFrontPresets": typeof lib_cardFrontPresets;
   "lib/cardPresetDefaults": typeof lib_cardPresetDefaults;
   "lib/cardbackPresets": typeof lib_cardbackPresets;

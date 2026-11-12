@@ -36,6 +36,8 @@ const accountStateValidator = v.union(
 
 const publicationJobFields = v.object({
   component_version: v.optional(v.number()),
+  /** What the capture draws, keyed with the renderer revision it was assigned under, so a finished capture with the same key can be reused instead of rendered again. */
+  content_key: v.optional(v.string()),
   asset_type: v.string(),
   asset_id: v.string(),
   asset_data: v.any(),
@@ -440,17 +442,22 @@ export default defineSchema({
     asset_type: v.string(),
     asset_id: v.string(),
     cache_token: v.string(),
+    /** The completed job's `content_key`: another publication with the same key reuses this capture's file. */
+    content_key: v.optional(v.string()),
     published_at: v.number(),
-  }).index('by_asset_type_and_asset_id', ['asset_type', 'asset_id']),
+  })
+    .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
+    .index('by_content_key', ['content_key']),
   publication_jobs: defineTable(publicationJobFields)
     .index('by_asset_type_and_asset_id', ['asset_type', 'asset_id'])
     .index('by_status_and_created_at', ['status', 'created_at'])
     .index('by_asset_type_status_created_at', ['asset_type', 'status', 'created_at'])
     .index('by_status_and_expires_at', ['status', 'expires_at'])
-    .index('by_status_and_updated_at', ['status', 'updated_at']),
+    .index('by_status_and_updated_at', ['status', 'updated_at'])
+    .index('by_content_key_and_status', ['content_key', 'status']),
   /** Queue metadata for the admin listing, without the captured render payload. */
   publication_job_listings: defineTable(
-    publicationJobFields.omit('asset_data', 'component_version').extend({
+    publicationJobFields.omit('asset_data', 'component_version', 'content_key').extend({
       job_id: v.id('publication_jobs'),
       job_creation_time: v.number(),
     })
