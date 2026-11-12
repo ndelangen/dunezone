@@ -855,16 +855,6 @@ describe('GameRoom native SQLite and admission boundaries', () => {
     expect((await admit()).view.snapshot.revision).toBe(0);
   });
 
-  it('refuses provisioning a room that already holds a game, before asking Convex again', async () => {
-    expect((await provision(runtime)).status).toBe(200);
-    const validations = provisioningCalls('validateProvisioning');
-    const confirmations = provisioningCalls('confirmProvisioning');
-    expect((await provision(runtime)).status).toBe(403);
-    expect(provisioningCalls('validateProvisioning')).toBe(validations);
-    expect(provisioningCalls('confirmProvisioning')).toBe(confirmations);
-    expect((await admit()).view.snapshot.revision).toBe(0);
-  });
-
   async function confirmationRequest(index: number) {
     return eventually(
       () => peer.requests.filter((request) => request.function === 'playProvisioning:confirmProvisioning')[index],

@@ -617,7 +617,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       for (const socket of this.ctx.getWebSockets()) {
         socket.close(1000, 'This table is closed.');
       }
-      await this.ctx.storage.deleteAlarm();
+      await this.storedAlarm.clear();
       await this.ctx.storage.deleteAll();
       return json({ ok: true });
     } catch (error) {

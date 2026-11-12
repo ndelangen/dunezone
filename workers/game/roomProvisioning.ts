@@ -33,7 +33,7 @@ export type ProvisioningHost = {
   readonly alarm: RoomAlarm;
   /* The production Worker provisions only the hosted fixture; a load entry passes the load fixture's plan. */
   readonly fixturePlan: FixturePlan;
-  readonly env: { GIT_SHA: string; APPLICATION_ORIGIN: string };
+  readonly env: Parameters<typeof isLocalIsolatedRuntime>[0];
   convex(): ReturnType<typeof gameHttpClient>;
   catalogue(): GameCatalogue;
   retainRulesetCapture(rulesetId: string, options: { provisional?: boolean }): Promise<unknown>;
@@ -199,7 +199,10 @@ export class RoomProvisioning {
     factions: DraftFaction[] | null,
     fixtureDeck?: StoredSpawnContents
   ): boolean {
-    // Another request can finish while Convex validates this one and the ruleset is captured. Keep the guard and initialization synchronous.
+    /*
+     * Another request can finish while Convex validates this one and the ruleset is captured.
+     * Keep the guard and initialization synchronous.
+     */
     if (this.metadata) {
       return false;
     }

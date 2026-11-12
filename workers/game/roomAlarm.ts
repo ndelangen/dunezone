@@ -30,6 +30,7 @@ export class RoomAlarm {
   async arm(at: number) {
     this.at = undefined;
     await this.storage.setAlarm(at);
+    this.at = at;
   }
 
   /** Clears the alarm once the work it guarded has settled. */

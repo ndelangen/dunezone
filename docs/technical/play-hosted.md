@@ -52,14 +52,13 @@ Carries and pointers belong to the live connection. Pointer positions stay out o
 
 `workers/game/session.ts` owns the Room, durable metadata, domain stores and history boundary.
 Its operations coordinate commands, assignment, deadlines, account deletion, conversations and
-retained content. `workers/game/index.ts` owns authorization, sockets, external requests and alarm
-installation. It asks the session for projections instead of reading or changing its stores.
-Beside it, `connection.ts` holds a socket's bookkeeping and rate limits, `roomHttp.ts` the HTTP
-helpers, `roomConversations.ts` the table-chat relay, `roomMetrics.ts` the room's counters,
-`roomProvisioning.ts` game creation and its confirmation, and `roomAlarm.ts` the one stored alarm
-they all share. The
-Room's spice reserve and public controls (readiness and spawn requests) live in
-`spiceReserveCommand.ts` and `publicControls.ts`.
+retained content. `workers/game/index.ts` owns authorization, sockets and external requests, and
+handles the alarm when it fires. It asks the session for projections instead of reading or changing
+its stores. Beside it, `connection.ts` holds a socket's bookkeeping and rate limits, `roomHttp.ts`
+the HTTP helpers, `roomConversations.ts` the table-chat relay, `roomMetrics.ts` the room's counters,
+`roomProvisioning.ts` game creation and its confirmation, and `roomAlarm.ts` the room's one stored
+alarm, which deadlines, delivery retries and confirmation share. The Room's spice reserve and public
+controls (readiness and spawn requests) live in `spiceReserveCommand.ts` and `publicControls.ts`.
 
 A room hibernates while its players think, so a paused table costs no Durable Object duration.
 The room stops its one-second sweep once admissions and carries have settled and pending motion
