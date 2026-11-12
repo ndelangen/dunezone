@@ -39,7 +39,7 @@ async function reuseFixture() {
     }
   };
   /* Completes a faction face the way the Worker does after a capture. */
-  const complete = async (item: Item, cacheToken: string) => {
+  const complete = async (item: Item) => {
     if (item.assetType === 'faction-leader') {
       const render = await t.query(internal.publicationJobs.readJobForRender, { jobId: item.jobId });
       return await t.mutation(internal.publicationJobs.completeJob, {
@@ -48,23 +48,29 @@ async function reuseFixture() {
         payloadHash: render!.payloadHash,
       });
     }
-    return await t.mutation(internal.publicationJobs.completeJob, { jobId: item.jobId, cacheToken });
+    return await t.mutation(internal.publicationJobs.completeJob, { jobId: item.jobId, cacheToken: FIRST_CAPTURE });
   };
   const create = async (name: string) =>
     await owner.mutation(api.factions.create, { data: { ...assetPublishingFaction, name }, group_id: null });
-  const publication = async (assetType: string, assetId: string) =>
+  const leaderPublication = async (assetId: string) =>
     await t.run(
       async (ctx) =>
         await ctx.db
           .query('publication_assets')
-          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', assetType).eq('asset_id', assetId))
+          .withIndex('by_asset_type_and_asset_id', (q) => q.eq('asset_type', 'faction-leader').eq('asset_id', assetId))
           .unique()
     );
-  return { t, settingsId, takeAll, complete, create, publication };
+  return { t, settingsId, takeAll, complete, create, leaderPublication };
 }
 
-const faces = (items: Item[], assetType: string) => items.filter((item) => item.assetType === assetType);
-const ownId = (assetId: string, factionId: string, otherId: string) => assetId.replace(otherId, factionId);
+const FIRST_CAPTURE = 'first-capture';
+const leaders = (items: Item[]) => items.filter((item) => item.assetType === 'faction-leader');
+const troops = (items: Item[]) => items.filter((item) => item.assetType === 'faction-troop');
+const traitors = (items: Item[]) => items.filter((item) => item.assetType === 'faction-traitor');
+const alliances = (items: Item[]) => items.filter((item) => item.assetType === 'faction-alliance');
+/* The same face of the first faction: asset ids lead with the faction's id. */
+const firstFactionFace = (item: Item, ids: { first: string; second: string }) =>
+  item.assetId.replace(ids.second, ids.first);
 
 describe('Capture reuse by drawn content', () => {
   test('a second faction drawing the same leaders and troops copies the first one’s captures', async () => {
@@ -72,38 +78,37 @@ describe('Capture reuse by drawn content', () => {
     const first = await create('Atreides');
     for (const item of await takeAll()) {
       expect(item.reuse).toBeUndefined();
-      await complete(item, 'first-capture');
+      await complete(item);
     }
 
     const second = await create('Atreides variant');
+    const ids = { first: first._id, second: second._id };
     const items = await takeAll();
-    const leaders = faces(items, 'faction-leader');
-    const troops = faces(items, 'faction-troop');
-    expect(leaders.length).toBeGreaterThan(0);
-    expect(troops.length).toBeGreaterThan(0);
-    for (const item of leaders) {
+    expect(leaders(items).length).toBeGreaterThan(0);
+    expect(troops(items).length).toBeGreaterThan(0);
+    for (const item of leaders(items)) {
       expect(item.reuse).toMatchObject({
-        assetId: ownId(item.assetId, first._id, second._id),
+        assetId: firstFactionFace(item, ids),
         cacheToken: LEADER_REVISION,
         payloadHash: expect.stringMatching(/^[0-9a-f]{64}$/),
       });
     }
-    for (const item of troops) {
+    for (const item of troops(items)) {
       expect(item.reuse).toMatchObject({
-        assetId: ownId(item.assetId, first._id, second._id),
-        cacheToken: 'first-capture',
+        assetId: firstFactionFace(item, ids),
+        cacheToken: FIRST_CAPTURE,
       });
     }
   });
 
   test('the reuse hash is the one the job’s own capture would report, so the copy completes', async () => {
-    const { t, takeAll, complete, create, publication } = await reuseFixture();
+    const { t, takeAll, complete, create, leaderPublication } = await reuseFixture();
     const first = await create('Atreides');
     for (const item of await takeAll()) {
-      await complete(item, 'first-capture');
+      await complete(item);
     }
     await create('Atreides variant');
-    const [leader] = faces(await takeAll(), 'faction-leader');
+    const [leader] = leaders(await takeAll());
     const reuse = leader!.reuse!;
     const render = await t.query(internal.publicationJobs.readJobForRender, { jobId: leader!.jobId });
     expect(reuse.payloadHash).toBe(render!.payloadHash);
@@ -115,8 +120,8 @@ describe('Capture reuse by drawn content', () => {
         payloadHash: reuse.payloadHash,
       })
     ).toMatchObject({ status: 'completed' });
-    const copied = await publication('faction-leader', leader!.assetId);
-    const source = await publication('faction-leader', reuse.assetId);
+    const copied = await leaderPublication(leader!.assetId);
+    const source = await leaderPublication(reuse.assetId);
     expect(copied?.content_key).toBeDefined();
     expect(copied?.content_key).toBe(source?.content_key);
     expect(reuse.assetId.startsWith(first._id)).toBe(true);
@@ -126,12 +131,12 @@ describe('Capture reuse by drawn content', () => {
     const { takeAll, complete, create } = await reuseFixture();
     await create('Atreides');
     for (const item of await takeAll()) {
-      await complete(item, 'first-capture');
+      await complete(item);
     }
     await create('Atreides variant');
     const items = await takeAll();
-    expect(faces(items, 'faction-traitor').length).toBeGreaterThan(0);
-    for (const item of [...faces(items, 'faction-traitor'), ...faces(items, 'faction-alliance')]) {
+    expect(traitors(items).length).toBeGreaterThan(0);
+    for (const item of [...traitors(items), ...alliances(items)]) {
       expect(item.reuse).toBeUndefined();
     }
   });
@@ -140,17 +145,17 @@ describe('Capture reuse by drawn content', () => {
     const { t, settingsId, takeAll, complete, create } = await reuseFixture();
     await create('Atreides');
     for (const item of await takeAll()) {
-      await complete(item, 'first-capture');
+      await complete(item);
     }
     await t.run(
       async (ctx) => await ctx.db.patch(settingsId, { renderer_revisions: { ...REVISIONS, 'faction-troop': 2 } })
     );
     await create('Atreides variant');
     const items = await takeAll();
-    for (const item of faces(items, 'faction-troop')) {
+    for (const item of troops(items)) {
       expect(item.reuse).toBeUndefined();
     }
-    expect(faces(items, 'faction-leader').every((item) => item.reuse !== undefined)).toBe(true);
+    expect(leaders(items).every((item) => item.reuse !== undefined)).toBe(true);
   });
 
   test('identical content queued together is drawn once: the twin waits, then copies it', async () => {
@@ -163,17 +168,15 @@ describe('Capture reuse by drawn content', () => {
       assigned.push(...batch);
     }
     const ownedBy = (items: Item[], factionId: string) => items.filter((item) => item.assetId.startsWith(factionId));
-    expect(faces(ownedBy(assigned, first._id), 'faction-leader').length).toBeGreaterThan(0);
-    expect(faces(ownedBy(assigned, second._id), 'faction-leader')).toEqual([]);
-    expect(faces(ownedBy(assigned, second._id), 'faction-troop')).toEqual([]);
+    expect(leaders(ownedBy(assigned, first._id)).length).toBeGreaterThan(0);
+    expect(leaders(ownedBy(assigned, second._id))).toEqual([]);
+    expect(troops(ownedBy(assigned, second._id))).toEqual([]);
 
     for (const item of assigned) {
-      await complete(item, 'first-capture');
+      await complete(item);
     }
     const twins = await take();
-    expect(faces(twins, 'faction-leader').length).toBeGreaterThan(0);
-    expect(
-      twins.filter((item) => ['faction-leader', 'faction-troop'].includes(item.assetType)).every((item) => item.reuse)
-    ).toBe(true);
+    expect(leaders(twins).length).toBeGreaterThan(0);
+    expect([...leaders(twins), ...troops(twins)].every((item) => item.reuse)).toBe(true);
   });
 });
