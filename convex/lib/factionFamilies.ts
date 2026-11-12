@@ -81,11 +81,15 @@ export async function syncFactionFamily(ctx: MutationCtx, id: Id<'factions'>, fa
   if (family.default_variant_id !== faction._id) {
     return;
   }
-  const fields = mirroredFields(faction);
-  const { _id, _creationTime, default_variant_id: _default, is_open: _open, ...stored } = family;
-  if (canonicalJson(stored) !== canonicalJson(fields)) {
-    await ctx.db.patch(_id, fields);
+  if (!mirrors(family, faction)) {
+    await ctx.db.patch(family._id, mirroredFields(faction));
   }
+}
+
+/** Whether the family already holds what its variant would mirror onto it. */
+function mirrors(family: Doc<'faction_families'>, faction: Doc<'factions'>) {
+  const { _id, _creationTime, default_variant_id: _default, is_open: _open, ...stored } = family;
+  return canonicalJson(stored) === canonicalJson(mirroredFields(faction));
 }
 
 /** A family goes with its single variant when that row is removed outright, such as by account deletion. */
@@ -102,11 +106,12 @@ async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
 /** Throws unless the faction is a variant of a family that exists and, while it is the only variant, mirrors it exactly. */
 export async function assertFactionFamily(ctx: Pick<QueryCtx, 'db'>, faction: Doc<'factions'>) {
   const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
-  if (!family || !faction.variant_name || !faction.variant_slug) {
+  const named = Boolean(faction.variant_name && faction.variant_slug);
+  if (!family || !named) {
     throw new Error(`Faction ${faction._id} has no family`);
   }
-  const { _id, _creationTime, default_variant_id: _default, is_open: _open, ...stored } = family;
-  if (family.default_variant_id === faction._id && canonicalJson(stored) !== canonicalJson(mirroredFields(faction))) {
+  const isDefault = family.default_variant_id === faction._id;
+  if (isDefault && !mirrors(family, faction)) {
     throw new Error(`Faction family ${family._id} does not mirror its variant ${faction._id}`);
   }
 }
