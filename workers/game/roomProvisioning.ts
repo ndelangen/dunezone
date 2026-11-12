@@ -74,9 +74,7 @@ export class RoomProvisioning {
     const epoch = ++this.confirmationEpoch;
     const startedAt = Date.now();
     /* Recovery stays durable while the request is pending, including when it crosses expiry. */
-    await this.room.alarm.arm(
-      startedAt + (startedAt < metadata.expiresAt ? PLAY_CONFIRMATION_RETRY_MS : PLAY_CONFIRMATION_RECOVERY_MS)
-    );
+    await this.room.alarm.arm(confirmationRetryAt(startedAt, metadata.expiresAt));
     try {
       const raw: unknown = await this.room.convex().mutation(api.playProvisioning.confirmProvisioning, {
         gameId: metadata.gameId,
@@ -139,6 +137,13 @@ export class RoomProvisioning {
     if (!this.initializeValidated(args, validation, factions, fixtureDeck)) {
       return false;
     }
+    await this.startPlayForTest(validation);
+    await this.confirm();
+    return this.metadata!.confirmed;
+  }
+
+  /* A local test game asked to start in play is drafted and set up before Convex confirms it. */
+  private async startPlayForTest(validation: ProvisioningValidation) {
     if ('game' in validation && validation.testStartStage === 'play') {
       await provisionThroughSetup(validation.game, {
         session: this.room.session,
@@ -146,8 +151,6 @@ export class RoomProvisioning {
         settleDraft: () => this.room.draft.settle(),
       });
     }
-    await this.confirm();
-    return this.metadata!.confirmed;
   }
 
   /** The attempt as Convex validated it, or undefined when Convex refused it. */
@@ -250,4 +253,9 @@ function provisionedMetadata(
     ...(validation.testPhaseCooldownMs === undefined ? {} : { testPhaseCooldownMs: validation.testPhaseCooldownMs }),
     ...(fixtureDeck ? { fixtureDeck } : {}),
   };
+}
+
+/** When an unconfirmed game asks Convex again: soon within its provisioning window, rarely after it. */
+function confirmationRetryAt(startedAt: number, expiresAt: number) {
+  return startedAt + (startedAt < expiresAt ? PLAY_CONFIRMATION_RETRY_MS : PLAY_CONFIRMATION_RECOVERY_MS);
 }
