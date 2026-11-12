@@ -159,14 +159,10 @@ describe('Capture reuse by drawn content', () => {
   });
 
   test('identical content queued together is drawn once: the twin waits, then copies it', async () => {
-    const { t, complete, create } = await reuseFixture();
+    const { takeAll, complete, create } = await reuseFixture();
     const first = await create('Atreides');
     const second = await create('Atreides variant');
-    const take = async () => (await t.mutation(internal.publicationJobs.takeWork, {})).items;
-    const assigned: Item[] = [];
-    for (let batch = await take(); batch.length > 0; batch = await take()) {
-      assigned.push(...batch);
-    }
+    const assigned = await takeAll();
     const ownedBy = (items: Item[], factionId: string) => items.filter((item) => item.assetId.startsWith(factionId));
     expect(leaders(ownedBy(assigned, first._id)).length).toBeGreaterThan(0);
     expect(leaders(ownedBy(assigned, second._id))).toEqual([]);
@@ -175,7 +171,7 @@ describe('Capture reuse by drawn content', () => {
     for (const item of assigned) {
       await complete(item);
     }
-    const twins = await take();
+    const twins = await takeAll();
     expect(leaders(twins).length).toBeGreaterThan(0);
     expect([...leaders(twins), ...troops(twins)].every((item) => item.reuse)).toBe(true);
   });

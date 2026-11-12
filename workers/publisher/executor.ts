@@ -4,7 +4,6 @@ import type { PublicationAssetType } from '../../src/shared/asset-publishing/pub
 import { TargetRenderError } from './browser';
 import type { CapturedArtifact, PublisherBrowserSession } from './browser';
 import { readReusableCapture } from './capture-reuse';
-import type { ReusedCapture } from './capture-reuse';
 import { putComponentEnvelope } from './component-r2';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
@@ -22,7 +21,7 @@ type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;
 
 export type ItemListDependencies = {
   /** Reading is optional: without it, a job Convex marks as reusable is rendered. */
-  bucket: AssetBucket & Partial<Pick<PublicAssetBucket, 'get' | 'head'>>;
+  bucket: AssetBucket & Partial<Pick<PublicAssetBucket, 'get'>>;
   client: PublisherClient;
   openBrowser: () => Promise<BrowserSession>;
   /**
@@ -112,31 +111,6 @@ async function publishableBytes(
   }
 }
 
-/**
- * The identical finished capture Convex pointed this job at, when the bucket can read it back.
- * Any failure to read it is a miss rather than a job failure: rendering still produces the same image.
- */
-async function reusedCapture(
-  bucket: ItemListDependencies['bucket'],
-  item: AssignedPublicationJob
-): Promise<ReusedCapture | null> {
-  if (!item.reuse || !bucket.get || !bucket.head) {
-    return null;
-  }
-  try {
-    return await readReusableCapture({ get: bucket.get.bind(bucket), head: bucket.head.bind(bucket) }, item);
-  } catch (error) {
-    console.warn(
-      JSON.stringify({
-        event: 'publisher.capture_reuse_failed',
-        jobId: item.jobId,
-        message: error instanceof Error ? error.message : String(error),
-      })
-    );
-    return null;
-  }
-}
-
 /** Processes one fixed Convex assignment in exactly one Browser session. */
 export async function executeItemList(
   config: PublisherConfig,
@@ -176,12 +150,8 @@ export async function executeItemList(
         break;
       }
       try {
-        const reused = await reusedCapture(dependencies.bucket, item);
-        let publishedBytes: Uint8Array;
-        let captured: Pick<CapturedArtifact, 'payloadHash' | 'componentGeometry'>;
-        if (reused) {
-          publishedBytes = reused.bytes;
-          captured = reused;
+        let published = await readReusableCapture(dependencies.bucket, item);
+        if (published) {
           result.reused += 1;
         } else {
           const artifact = await browser.capture(
@@ -190,34 +160,34 @@ export async function executeItemList(
             Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
           );
           result.rendered += 1;
-          publishedBytes = await publishableBytes(artifact, item.assetType, item.jobId, config, dependencies, result);
-          captured = artifact;
+          const bytes = await publishableBytes(artifact, item.assetType, item.jobId, config, dependencies, result);
+          published = { ...artifact, bytes };
         }
 
         const cacheToken = crypto.randomUUID();
         if (isComponentAssetType(item.assetType)) {
-          if (!captured.componentGeometry) {
+          if (!published.componentGeometry) {
             throw new TargetRenderError('Component capture has no geometry');
           }
           await putComponentEnvelope(
             dependencies.bucket,
             item,
-            captured.payloadHash,
+            published.payloadHash,
             cacheToken,
-            publishedBytes,
-            captured.componentGeometry
+            published.bytes,
+            published.componentGeometry
           );
         }
         if (item.assetType !== 'faction-leader') {
-          await putPublishedAsset(dependencies.bucket, item, captured.payloadHash, cacheToken, publishedBytes);
+          await putPublishedAsset(dependencies.bucket, item, published.payloadHash, cacheToken, published.bytes);
         }
         const completion = isComponentAssetType(item.assetType)
           ? await dependencies.client.complete(
               item.jobId,
               cacheToken,
               budget.requestDeadline(),
-              captured.payloadHash,
-              captured.componentGeometry
+              published.payloadHash,
+              published.componentGeometry
             )
           : await dependencies.client.complete(item.jobId, cacheToken, budget.requestDeadline());
         if (completion === 'completed') {

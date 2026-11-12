@@ -15,36 +15,47 @@ export type ReusedCapture = {
   componentGeometry?: ComponentGeometry;
 };
 
+type Reuse = NonNullable<AssignedPublicationJob['reuse']>;
+type ReadableBucket = Pick<PublicAssetBucket, 'get'>;
+
 /**
  * The finished file Convex named as drawing exactly this job's content (#2922), read back for publishing under the job's own id.
- * Null whenever the source no longer matches what Convex recorded, such as a plain image overwritten by a newer capture since;
- * the caller then renders as usual.
+ * Null when the bucket cannot read, or the source no longer matches what Convex recorded, such as a plain image overwritten by a newer capture since.
+ * A failure to read is a miss rather than a job failure: the caller renders, which produces the same image.
  */
 export async function readReusableCapture(
-  bucket: Pick<PublicAssetBucket, 'get' | 'head'>,
+  bucket: Partial<ReadableBucket>,
   item: AssignedPublicationJob
 ): Promise<ReusedCapture | null> {
-  if (!item.reuse) {
+  if (!item.reuse || !bucket.get) {
     return null;
   }
-  return item.assetType === FACTION_LEADER_ASSET_TYPE
-    ? await readLeaderCapture(bucket, item.reuse)
-    : await readImageCapture(bucket, item.assetType, item.reuse);
+  const source = { get: bucket.get.bind(bucket) };
+  try {
+    const copy =
+      item.assetType === FACTION_LEADER_ASSET_TYPE
+        ? await readLeaderCapture(source, item.reuse)
+        : await readImageCapture(source, item.assetType, item.reuse);
+    return copy && { ...copy, payloadHash: item.reuse.payloadHash };
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        event: 'publisher.capture_reuse_failed',
+        jobId: item.jobId,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    );
+    return null;
+  }
 }
 
-type Reuse = NonNullable<AssignedPublicationJob['reuse']>;
-
 /** A leader's envelope is immutable under its revision, so finding it is enough. */
-async function readLeaderCapture(bucket: Pick<PublicAssetBucket, 'get' | 'head'>, reuse: Reuse) {
+async function readLeaderCapture(bucket: ReadableBucket, reuse: Reuse) {
   const envelope = await readComponentEnvelope(bucket, reuse.assetId, reuse.cacheToken, FACTION_LEADER_ASSET_TYPE);
   if (!envelope) {
     return null;
   }
-  return {
-    bytes: new Uint8Array(Buffer.from(envelope.image.base64, 'base64')),
-    payloadHash: reuse.payloadHash,
-    componentGeometry: envelope.geometry,
-  };
+  return { bytes: new Uint8Array(Buffer.from(envelope.image.base64, 'base64')), componentGeometry: envelope.geometry };
 }
 
 /** A plain image is overwritten in place, so it is used only while it still carries the capture's cache token and an image's size. */
@@ -55,11 +66,7 @@ function isRecordedImage(object: R2Object, assetType: PublicationAssetType, cach
   return recorded && object.size > 0 && object.size <= maximum;
 }
 
-async function readImageCapture(
-  bucket: Pick<PublicAssetBucket, 'get'>,
-  assetType: PublicationAssetType,
-  reuse: Reuse
-): Promise<ReusedCapture | null> {
+async function readImageCapture(bucket: ReadableBucket, assetType: PublicationAssetType, reuse: Reuse) {
   const object = await bucket.get(publishedR2Key(assetType, reuse.assetId));
   if (!object || !('body' in object)) {
     return null;
@@ -68,5 +75,5 @@ async function readImageCapture(
     await object.body.cancel();
     return null;
   }
-  return { bytes: new Uint8Array(await new Response(object.body).arrayBuffer()), payloadHash: reuse.payloadHash };
+  return { bytes: new Uint8Array(await new Response(object.body).arrayBuffer()) };
 }

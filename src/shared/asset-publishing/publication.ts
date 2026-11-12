@@ -26,7 +26,7 @@ import {
 import { rulebookRenderPageV1Schema } from '../rulebooks/renderDocument';
 import { DEFAULT_RULEBOOK_SETTINGS, rulebookSettingsSchema } from '../rulebooks/settings';
 import { componentGeometrySchema } from './componentGeometry';
-import { factionLeaderAssetDataSchema } from './componentPublication';
+import { componentPublicationEnvelopeSchema, factionLeaderAssetDataSchema } from './componentPublication';
 import { factionAllianceAssetDataSchema, factionTraitorAssetDataSchema } from './factionCardPublication';
 import { factionTroopAssetDataSchema } from './factionTroopPublication';
 import type { PublicationAssetType } from './publicationTargets';
@@ -334,9 +334,9 @@ export type FactionSheetAssetData = z.infer<typeof factionSheetAssetDataSchema>;
  */
 /** The finished capture a job may copy instead of rendering (#2922); Convex's take-work validator derives from this. */
 export const publicationCaptureReuseSchema = z.object({
-  assetId: z.string().min(1).max(110),
+  assetId: componentPublicationEnvelopeSchema.shape.assetId,
   cacheToken: publicationCacheTokenSchema,
-  payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
+  payloadHash: componentPublicationEnvelopeSchema.shape.payloadHash,
 });
 
 const assignedPublicationJobSchema = z.object({

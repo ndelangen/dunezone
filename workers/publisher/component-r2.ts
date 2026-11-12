@@ -47,7 +47,7 @@ export async function putComponentEnvelope(
 
 /** The private envelope is bounded and validated before any contained image or named part is used. */
 export async function readComponentEnvelope(
-  bucket: PublicAssetBucket,
+  bucket: Pick<PublicAssetBucket, 'get'>,
   assetId: string,
   revision: string,
   assetType: ComponentAssetType = 'faction-leader'
