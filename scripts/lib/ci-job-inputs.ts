@@ -42,11 +42,44 @@ export const EVERY_JOB: readonly string[] = [
   'scripts/lib/hosted-play-closure.ts',
 ];
 
-/** Prose that no job's checks read; the lint job, which does read it, is never reused. */
-const NO_JOB_READS: readonly string[] = ['**/*.md', 'docs/**'];
+/*
+ * What no reused job reads: prose, and the files only coding agents, editors and other services load.
+ * The lint job reads them (the prose check, formatting, knip), so it is never reused.
+ * `scripts/ci-job-inputs.test.ts` holds this list to what the unit, story and build suites open while they run.
+ */
+export const NO_JOB_READS: readonly string[] = [
+  '**/*.md',
+  'docs/**',
+  /* Agent skills, their lock, and the agents' and editors' own settings. */
+  '.agents/**',
+  '.claude/**',
+  '.codex/**',
+  '.cursor/**',
+  '.vscode/**',
+  'skills-lock.json',
+  /* Read by GitHub's sponsor button, Renovate and the code-health workflow, which runs on its own paths. */
+  '.github/FUNDING.yml',
+  '.github/requirements/**',
+  '.semgrepignore',
+  'renovate.json',
+];
 
 /* Tests and stories outside a job's own suite, which it neither runs nor imports. */
 const OTHER_SUITES: readonly string[] = ['**/*.test.*', '**/*.spec.*'];
+
+/* What a build of the application never reads: the test suites, the stories and the tools beside it. */
+const NOT_THE_BUILD: readonly string[] = [
+  'tools/**',
+  'e2e/**',
+  'infra/**',
+  '.storybook/**',
+  '**/*.stories.*',
+  'vitest.storybook.config.ts',
+  'playwright.config.ts',
+  'src/**/*.test.*',
+  'convex/**/*.test.*',
+  'scripts/**/*.test.*',
+];
 
 interface JobInputs {
   /** Globs a file must match to count, besides those every job reads. */
@@ -70,20 +103,23 @@ export const JOB_INPUTS = {
   /* Builds the whole application for the publisher's assets, so everything counts but what no build or publisher check reads. */
   publisher_release: {
     include: ['**'],
-    exclude: [
-      'tools/**',
-      'e2e/**',
-      'infra/**',
-      '.storybook/**',
-      '**/*.stories.*',
-      'vitest.storybook.config.ts',
-      'playwright.config.ts',
-      'src/**/*.test.*',
-      'convex/**/*.test.*',
-      'scripts/**/*.test.*',
-      /* The tutorial runs the game Worker's table in the page, so the build reads workers/game too, all but its tests. */
-      'workers/game/**/*.test.*',
-    ],
+    /* The tutorial runs the game Worker's table in the page, so the build reads workers/game too, all but its tests. */
+    exclude: [...NOT_THE_BUILD, 'workers/game/**/*.test.*'],
+  },
+  /* The generators, the production build, the generated-source drift check and the local Convex isolation proof. */
+  generate_and_build: {
+    include: ['**'],
+    exclude: [...NOT_THE_BUILD, 'workers/**/*.test.*'],
+  },
+  /* Every unit test and the authoring tool's tests; many read files by path, so the job counts every file but what no job reads. */
+  test: {
+    include: ['**'],
+    exclude: [],
+  },
+  /* The authoring tool's end-to-end tests, the browser-launching script tests (some read files by path) and the static Storybook build. */
+  browser_checks: {
+    include: ['**'],
+    exclude: [],
   },
   /* Every story renders against the in-browser Convex, which globs the whole backend, so only the other suites and the other Workers stay out. */
   storybook: {
