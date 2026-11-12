@@ -337,6 +337,17 @@ const assignedPublicationJobSchema = z.object({
   assetType: z.enum(PUBLICATION_ASSET_TYPES),
   assetId: z.string(),
   expiresAt: z.number().finite(),
+  /**
+   * A finished capture that draws exactly what this job draws (#2922): the Worker copies its file under this job's id instead of rendering, and falls back to rendering when the copy cannot be read.
+   * Optional both ways: an older Worker ignores it and captures, and an older Convex never sends it.
+   */
+  reuse: z
+    .object({
+      assetId: z.string().min(1).max(110),
+      cacheToken: publicationCacheTokenSchema,
+      payloadHash: z.string().regex(/^[0-9a-f]{64}$/),
+    })
+    .optional(),
 });
 
 export type AssignedPublicationJob = z.infer<typeof assignedPublicationJobSchema>;

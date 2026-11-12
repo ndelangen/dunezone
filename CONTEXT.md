@@ -222,11 +222,15 @@ _Avoid_: Asset generation, desired Renderer version
 A temporary scan started by a Renderer-revision increase. It visits eligible non-soft-deleted assets and creates or reuses Publication jobs through exactly the same rules as a save. The scan itself is not stored as publication state; Publication jobs are the durable regeneration obligation. Restarting the scan is safe because pending work is deduplicated. Later creations and undeletes follow normal pending publication, while soft-deleting an asset does not cancel work already enqueued.
 There is no durable rollout or rollout-item state machine, and neither the triggering Renderer revision nor a scan identity belongs on a Publication job.
 
+**Capture reuse**:
+Publishing a leader, traitor or troop face by copying another publication's finished file instead of rendering it, because both draw identical content. When the Publisher starts such a job, Convex fixes its content key: a hash of the asset type, the Renderer revision active at that moment and the drawn payload, leaving out a leader's faction and member ids, which only label the capture. If a Publication asset of another identity holds the same key, the assignment names it, and the Publisher copies that file under the job's own identity and completes the job as if it had captured it. A source that no longer matches what Convex recorded is a miss, and the job renders as usual. The alliance card is never reused, since it mixes faction-specific text with its troop. The content key is a capture fingerprint, not a record of which scan or revision triggered the job.
+_Avoid_: Shared image, image inheritance
+
 **Asset publication state**:
 Whether the last successfully published asset is current or awaiting replacement. This is separate from Publication-job status: an existing publication remains available while a replacement job is pending, in progress, or in error, and a successful job atomically replaces its publication metadata.
 
 **Publication asset**:
-The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores only an application-facing cache buster and publication time; using that cache buster in the public URL is optional because delivery selects the current object by pathname and ignores query parameters. The asset bytes remain in object storage and render data remains on Publication jobs.
+The durable pointer to the latest successfully published object for one asset type and stable source-document identity. It stores an application-facing cache buster, the publication time and, for faces eligible for Capture reuse, the content key of the capture it points to; using that cache buster in the public URL is optional because delivery selects the current object by pathname and ignores query parameters. The asset bytes remain in object storage and render data remains on Publication jobs.
 
 **Publication cutover**:
 The one-time clean break from the legacy publication model to the current model. Legacy publication records and unfinished work are not imported or used as a compatibility read path. Temporary loss of public asset links is accepted; each link returns after a new Publication job successfully creates the current Publication asset. Legacy bytes that remain in object storage have no publication authority.

@@ -16,6 +16,7 @@ import type { Doc } from './_generated/dataModel';
 import { internalQuery } from './_generated/server';
 import { internalMutation } from './functions';
 import { capturedBoardGeometry } from './lib/boardPublicationGeometry';
+import { captureContent, reusableCapture } from './lib/captureReuse';
 import {
   currentFactionComponentData,
   currentFactionLeaderData,
@@ -58,6 +59,14 @@ const publicationJobResult = v.object({
   assetType: v.string(),
   assetId: v.string(),
   expiresAt: v.number(),
+  /** A finished capture of identical drawn content, which the publisher copies under this job's own id instead of rendering. */
+  reuse: v.optional(
+    v.object({
+      assetId: v.string(),
+      cacheToken: v.string(),
+      payloadHash: v.string(),
+    })
+  ),
 });
 
 const takeWorkResult = v.union(
@@ -187,17 +196,25 @@ export const takeWork = internalMutation({
         await ctx.db.delete(job._id);
         continue;
       }
+      /*
+       * The key is fixed under the revision active at assignment, which is the one the capture will be drawn with: a Worker deploys before its revision activates.
+       * Completion stores it on the publication, so a later job drawing the same content can copy the file rather than render it (#2922).
+       */
+      const content = captureContent(job.asset_type, settings?.renderer_revisions[job.asset_type], job.asset_data);
+      const source = content ? await reusableCapture(ctx, job, content.key) : null;
       await ctx.db.patch(job._id, {
         status: 'in_progress',
         expires_at: expiresAt,
         error: undefined,
         updated_at: now,
+        content_key: content?.key,
       });
       items.push({
         jobId: job._id,
         assetType: job.asset_type,
         assetId: job.asset_id,
         expiresAt,
+        ...(source && content ? { reuse: { ...source, payloadHash: renderPayloadHash(job, content.payload) } } : {}),
       });
     }
 
@@ -343,6 +360,7 @@ export const completeJob = internalMutation({
         cache_token: args.cacheToken,
         component_geometry: storedGeometry,
         component_version: job.component_version,
+        content_key: job.content_key,
         published_at: publishedAt,
       });
     } else {
@@ -352,6 +370,7 @@ export const completeJob = internalMutation({
         cache_token: args.cacheToken,
         component_geometry: storedGeometry,
         component_version: job.component_version,
+        content_key: job.content_key,
         published_at: publishedAt,
       });
     }

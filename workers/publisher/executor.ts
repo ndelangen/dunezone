@@ -3,10 +3,13 @@ import { PUBLICATION_TARGETS } from '../../src/shared/asset-publishing/publicati
 import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import { TargetRenderError } from './browser';
 import type { CapturedArtifact, PublisherBrowserSession } from './browser';
+import { readReusableCapture } from './capture-reuse';
+import type { ReusedCapture } from './capture-reuse';
 import { putComponentEnvelope } from './component-r2';
 import { publicationWorkBudget } from './config';
 import type { PublisherConfig } from './config';
 import type { AssignedPublicationJob, ConvexPublisherClient } from './convex';
+import type { PublicAssetBucket } from './delivery';
 import { assertPublishedJpeg } from './image-encode';
 import type { JpegEncoder } from './image-encode';
 import { ImageInspectionError, pngDimensions } from './image-inspection';
@@ -18,7 +21,8 @@ type BrowserSession = Pick<PublisherBrowserSession, 'capture' | 'close' | 'sessi
 type PublisherClient = Pick<ConvexPublisherClient, 'complete' | 'fail'>;
 
 export type ItemListDependencies = {
-  bucket: AssetBucket;
+  /** Reading is optional: without it, a job Convex marks as reusable is rendered. */
+  bucket: AssetBucket & Partial<Pick<PublicAssetBucket, 'get' | 'head'>>;
   client: PublisherClient;
   openBrowser: () => Promise<BrowserSession>;
   /**
@@ -31,6 +35,8 @@ export type ItemListDependencies = {
 export type ItemListExecution = {
   assigned: number;
   rendered: number;
+  /** Jobs published by copying an identical finished capture rather than rendering (#2922). */
+  reused: number;
   completed: number;
   failed: number;
   missing: number;
@@ -106,6 +112,31 @@ async function publishableBytes(
   }
 }
 
+/**
+ * The identical finished capture Convex pointed this job at, when the bucket can read it back.
+ * Any failure to read it is a miss rather than a job failure: rendering still produces the same image.
+ */
+async function reusedCapture(
+  bucket: ItemListDependencies['bucket'],
+  item: AssignedPublicationJob
+): Promise<ReusedCapture | null> {
+  if (!item.reuse || !bucket.get || !bucket.head) {
+    return null;
+  }
+  try {
+    return await readReusableCapture({ get: bucket.get.bind(bucket), head: bucket.head.bind(bucket) }, item);
+  } catch (error) {
+    console.warn(
+      JSON.stringify({
+        event: 'publisher.capture_reuse_failed',
+        jobId: item.jobId,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    );
+    return null;
+  }
+}
+
 /** Processes one fixed Convex assignment in exactly one Browser session. */
 export async function executeItemList(
   config: PublisherConfig,
@@ -120,6 +151,7 @@ export async function executeItemList(
   const result: ItemListExecution = {
     assigned: items.length,
     rendered: 0,
+    reused: 0,
     completed: 0,
     failed: 0,
     missing: 0,
@@ -144,20 +176,23 @@ export async function executeItemList(
         break;
       }
       try {
-        const captured = await browser.capture(
-          item.jobId,
-          item.assetType,
-          Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
-        );
-        result.rendered += 1;
-        const publishedBytes = await publishableBytes(
-          captured,
-          item.assetType,
-          item.jobId,
-          config,
-          dependencies,
-          result
-        );
+        const reused = await reusedCapture(dependencies.bucket, item);
+        let publishedBytes: Uint8Array;
+        let captured: Pick<CapturedArtifact, 'payloadHash' | 'componentGeometry'>;
+        if (reused) {
+          publishedBytes = reused.bytes;
+          captured = reused;
+          result.reused += 1;
+        } else {
+          const artifact = await browser.capture(
+            item.jobId,
+            item.assetType,
+            Math.min(config.browserCaptureTimeoutMs, budget.workDeadlineAt - now())
+          );
+          result.rendered += 1;
+          publishedBytes = await publishableBytes(artifact, item.assetType, item.jobId, config, dependencies, result);
+          captured = artifact;
+        }
 
         const cacheToken = crypto.randomUUID();
         if (isComponentAssetType(item.assetType)) {
