@@ -24,21 +24,11 @@ import {
 } from '../../src/shared/play/admission';
 import { bugReportIdSchema, bugReportRequestSchema } from '../../src/shared/play/bugReports';
 import type { BugReportBrowser, BugReportRequest } from '../../src/shared/play/bugReports';
-import { playGamePathPattern } from '../../src/shared/play/callbacks';
-import { conversationPeerFor } from '../../src/shared/play/conversations';
 import type { DraftFaction } from '../../src/shared/play/drafting';
 import { isDraftAction } from '../../src/shared/play/drafting';
 import type { StoredSpawnContents } from '../../src/shared/play/inventory';
 import { CLIENT_MESSAGE_LIMIT } from '../../src/shared/play/messageLimit';
-import type {
-  ClientMessage,
-  CommitMessage,
-  PingSound,
-  PublicPointer,
-  ServerClock,
-  ServerMessage,
-  Viewer,
-} from '../../src/shared/play/protocol';
+import type { ClientMessage, CommitMessage, ServerClock, ServerMessage, Viewer } from '../../src/shared/play/protocol';
 import {
   ADMISSION_REFUSED_CLOSE_CODE,
   OUTDATED_PAGE_CLOSE_CODE,
@@ -54,14 +44,28 @@ import { GameRejection } from '../../src/shared/play/rejection';
 import { playRetireFixtureRequestSchema } from '../../src/shared/play/retire';
 import { SPECTATOR_SEAT } from '../../src/shared/play/schema';
 import type { SeatPassPayload } from '../../src/shared/play/seatPass';
-import { SPECTATOR_COLOR, STORED_DISPLAY_NAME_LENGTH } from './actors';
-import type { PassProfile } from './actors';
+import { SPECTATOR_COLOR } from './actors';
 import { handleAlertWebhook } from './alerts';
 import type { AlertEnv } from './alerts';
 import { bugReportExport } from './bugReportExport';
-import { bugReportGamePathPattern, isBugReportRequest } from './bugReportHttp';
+import { isBugReportRequest } from './bugReportHttp';
 import { GameCatalogue } from './catalogue';
 import { clientAddress } from './clientAddress';
+import {
+  CLIENT_PENDING_LIMIT,
+  COMMAND_RATE_REFUSAL,
+  isConversationRequest,
+  isMovingPointer,
+  isPageRead,
+  messageId,
+  openConnection,
+  passProfile,
+  PENDING_CONNECTION_LIMIT,
+  pingSoundAllowed,
+  RATE_BURST,
+  refillBuckets,
+} from './connection';
+import type { Connection, PageRead, RememberedConnection } from './connection';
 import { RoomDelivery } from './delivery';
 import type { AdmissionRefusal } from './diagnostics';
 import { GameDiagnostics } from './diagnostics';
@@ -74,260 +78,31 @@ import { publishNudge } from './nudgeDelivery';
 import { forwardPrivacyRequest } from './privacyRequests';
 import { provisionThroughSetup } from './provisionThroughSetup';
 import { CarryHistoryExhausted } from './room';
+import { RoomConversations } from './roomConversations';
 import { RoomDraft } from './roomDraft';
+import { credentialsMatch, gameRequest, isApplicationSocket, json, readRequest, refused } from './roomHttp';
+import { RoomMetrics } from './roomMetrics';
 import type { SavedSummary } from './roomSummary';
 import { RoomSummary } from './roomSummary';
 import type { ConvexCall } from './roomSummary';
-import type { HeldPass } from './seatPasses';
 import { heldPass, SeatPasses } from './seatPasses';
 import { gameServiceResponse } from './serviceHttp';
 import type { Metadata } from './session';
 import { GameSession } from './session';
 
-type Connection = {
-  connectionId: string;
-  openedAt: number;
-  protocol?: number;
-  /* The visitor's address, which bounds how many waiting places one visitor holds; kept in memory only and never saved. */
-  client?: string;
-  admitting: boolean;
-  /* One catalogue capture per connection at a time; each capture is a Convex query. */
-  capturing: boolean;
-  viewer?: Viewer;
-  /*
-   * The player's name, avatar and profile slug as their pass carried them, with when that pass was issued; the actor directory keeps them.
-   * They stay apart from the viewer, which the room reconciles from the directory, so a paused tab's renewal still carries its rename to the directory when it resumes.
-   */
-  profile?: PassProfile;
-  /* Whether the player already held the most seats one player may when this connection was admitted. */
-  seatLimitReached?: boolean;
-  /* The seat pass this connection entered with, or its latest renewal. */
-  pass?: HeldPass;
-  /* The expiry of the pass this connection was last told had run out. */
-  expiryAnnounced?: number;
-  /* The connection the same page held before it reconnected; it is closed once this one is admitted. */
-  replaces?: string;
-  sessionId?: string;
-  announced: 'pending' | 'authorized' | 'suspended';
-  /* Counts the `suspended` frames the room sent. The page discards its unanswered requests on each one, so a message that arrived before the latest is dropped. */
-  suspensions: number;
-  everAuthorized: boolean;
-  pointerSeq: number;
-  deferredPointer?: Extract<ClientMessage, { type: 'pointer' }>;
-  /* When this connection last pinged, by the room's clock. */
-  pingedAt: number;
-  /* When this connection's last ping carried the rumble. */
-  rumbledAt: number;
-  tokens: number;
-  motionTokens: number;
-  commandTokens: number;
-  refilledAt: number;
-};
-/*
- * What an admitted connection keeps in its socket, so the room can hibernate between moves and wake with its players still connected.
- * The rest is either work in flight, which hibernation never interrupts, or a rate limit that refills while the room sleeps.
- */
-type RememberedConnection = Pick<
-  Connection,
-  | 'connectionId'
-  | 'openedAt'
-  | 'protocol'
-  | 'viewer'
-  | 'seatLimitReached'
-  | 'pass'
-  | 'expiryAnnounced'
-  | 'sessionId'
-  | 'announced'
-  | 'suspensions'
-> & {
-  /* The room's activity epoch and revision when this socket last heard from it, so a woken room keeps the epoch and resends a state it moved on from. */
-  epoch?: string;
-  revision?: number;
-  pointerSeq?: number;
-  pointer?: Pick<PublicPointer, 'position' | 'updatedAt'>;
-};
-function openConnection(
-  state: Pick<Connection, 'connectionId' | 'openedAt'> &
-    Partial<Pick<Connection, 'client'>> &
-    Partial<Pick<Connection, Extract<keyof RememberedConnection, keyof Connection> | 'everAuthorized'>>
-): Connection {
-  return {
-    admitting: false,
-    capturing: false,
-    announced: 'pending',
-    suspensions: 0,
-    everAuthorized: false,
-    pointerSeq: -1,
-    pingedAt: 0,
-    rumbledAt: 0,
-    tokens: RATE_BURST,
-    motionTokens: RATE_BURST,
-    commandTokens: COMMAND_BURST,
-    refilledAt: Date.now(),
-    ...state,
-  };
-}
-const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
-const refused = () => json({ error: 'Request refused.' }, 403);
-function isMovingPointer(
-  message: ClientMessage
-): message is Extract<ClientMessage, { type: 'pointer' }> & { position: PublicPointer['position'] } {
-  return message.type === 'pointer' && message.position !== null;
-}
-/* Above a steady load cell's 720 saved commands, so a cell's metrics request still finds its first. */
-const COMMAND_TIMINGS = 1024;
-/** Each connection's message buckets hold this many messages and refill at this rate. */
-const RATE_BURST = 120;
-const RATE_PER_SECOND = 60;
-/*
- * Table commands and Discord nudges draw on a smaller bucket because they trigger writes or external requests.
- * Play by hand stays well inside it; a command over it is refused on its own, so the room never spends a write or a frame on it.
- */
-const COMMAND_BURST = 30;
-const COMMANDS_PER_SECOND = 10;
-/* A held Tab rumbles after three seconds, so one connection rumbles at most that often. */
-const RUMBLE_INTERVAL_MS = 3000;
-
-/* A page rumbles only after Tab is held for seconds, so a rumble sooner than that after the last goes out as a plain ping. */
-function pingSoundAllowed(connection: Pick<Connection, 'rumbledAt'>, sound: PingSound | undefined, now: number) {
-  if (!sound || now - connection.rumbledAt < RUMBLE_INTERVAL_MS) {
-    return undefined;
-  }
-  connection.rumbledAt = now;
-  return sound;
-}
-/*
- * A room holds this many connections that have not been admitted yet, each for at most PLAY_PENDING_TIMEOUT_MS.
- * One address may hold only a quarter of them, so a visitor who knows a game's address needs four addresses to keep its players from reconnecting.
- */
-const PENDING_CONNECTION_LIMIT = 16;
-const CLIENT_PENDING_LIMIT = 4;
-const COMMAND_RATE_REFUSAL = 'You are acting too fast. Wait a moment, then try again.';
 const SWEEP_MS = 1000;
 /* Where a connection's used carry IDs wait out a hibernation; too many to fit its socket attachment. */
 const carryHistoryKey = (connectionId: string) => `carry-history:${connectionId}`;
 
-/** The profile a seat pass carries for its player, with when Convex issued the pass. */
-function passProfile(pass: SeatPassPayload): PassProfile {
-  return {
-    userId: pass.actorId,
-    displayName: pass.displayName.slice(0, STORED_DISPLAY_NAME_LENGTH),
-    avatarUrl: pass.avatarUrl,
-    profileSlug: pass.profileSlug,
-    issuedAt: pass.issuedAt,
-  };
-}
 /* Set while the room is quiet with its sweep stopped, the only state it hibernates in; a restart without it lost work in flight. */
 const QUIET_KEY = 'quiet';
 /* The summary interval a quiet room has not written yet, kept until it wakes. */
 const SUMMARY_KEY = 'room-summary';
 /* A normal close the page reconnects after, unlike a refusal. */
 const SEAT_CHANGED_CLOSE_CODE = 1012;
-/** A sweep this late counts as a stall, and the room keeps the most recent ones. */
-const STALL_MS = 250;
-const STALLS = 64;
-function isApplicationSocket(request: Request, applicationOrigin: string): boolean {
-  return (
-    request.headers.get('Origin') === applicationOrigin && request.headers.get('Upgrade')?.toLowerCase() === 'websocket'
-  );
-}
-function gameRequest(request: Request, applicationOrigin: string) {
-  const url = new URL(request.url);
-  if (url.origin !== applicationOrigin || url.search) {
-    return;
-  }
-  const match = playGamePathPattern.exec(url.pathname) ?? bugReportGamePathPattern.exec(url.pathname);
-  if (!match) {
-    return;
-  }
-  const [, gameId, operation] = match;
-  const method = operation === 'socket' ? 'GET' : 'POST';
-  if (request.method !== method) {
-    return;
-  }
-  return { gameId, operation };
-}
 type ProvisionArgs = ReturnType<typeof playProvisionRequestSchema.parse>;
 /** An attempt Convex validated: a hosted fixture or a real game. A refused one never reaches initialization. */
 type ProvisioningValidation = Extract<ReturnType<typeof playProvisioningValidationSchema.parse>, { ok: true }>;
-type PageRead = Extract<
-  ClientMessage,
-  { type: 'history' | 'log-history' | 'spice-history' | 'faction' | 'treachery-deck' }
->;
-const PAGE_READS: ReadonlySet<ClientMessage['type']> = new Set<PageRead['type']>([
-  'history',
-  'log-history',
-  'spice-history',
-  'faction',
-  'treachery-deck',
-]);
-const isPageRead = (message: ClientMessage): message is PageRead => PAGE_READS.has(message.type);
-type ConversationRequest = Extract<
-  ClientMessage,
-  { type: 'conversation-history' | 'conversation-send' | 'conversation-read' | 'conversation-clear' }
->;
-const isConversationRequest = (message: ClientMessage): message is ConversationRequest =>
-  message.type.startsWith('conversation-');
-
-function messageId(message: ClientMessage): string {
-  if ('commandId' in message) {
-    return message.commandId;
-  }
-  if ('requestId' in message) {
-    return message.requestId ?? 'message';
-  }
-  if ('carryId' in message) {
-    return message.carryId;
-  }
-  return 'message';
-}
-const credentialsMatch = (a: string, b: string) => {
-  if (a.length !== 64 || b.length !== 64) {
-    return false;
-  }
-  let difference = 0;
-  for (let index = 0; index < 64; index++) {
-    difference |= a.codePointAt(index)! ^ b.codePointAt(index)!;
-  }
-  return difference === 0;
-};
-/** A request body as its schema reads it, or undefined when it is missing, oversized, not JSON or not that shape. */
-async function readRequest<T>(
-  request: Request,
-  schema: { parse(value: unknown): T },
-  limit = 8192
-): Promise<T | undefined> {
-  if (!request.body || Number(request.headers.get('Content-Length') ?? 0) > limit) {
-    return undefined;
-  }
-  try {
-    return schema.parse(JSON.parse(await readLimitedBody(request.body, limit)));
-  } catch {
-    return undefined;
-  }
-}
-async function readLimitedBody(body: ReadableStream<Uint8Array>, limit: number): Promise<string> {
-  const reader = body.getReader();
-  let length = 0;
-  let text = '';
-  const decoder = new TextDecoder();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
-      length += value.byteLength;
-      if (length > limit) {
-        throw new Error('Request refused.');
-      }
-      text += decoder.decode(value, { stream: true });
-    }
-    return text + decoder.decode();
-  } finally {
-    await reader.cancel().catch(() => undefined);
-  }
-}
 
 /** A promise the room resolves by hand, once, for handlers that wait on an event. */
 export class GameRoom extends DurableObject<GameEnv> {
@@ -336,8 +111,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   protected readonly diagnostics: GameDiagnostics;
   private confirmationEpoch = 0;
   private readonly connections = new Map<WebSocket, Connection>();
-  /* The conversation summaries each socket last received, so a snapshot update that left them alone sends none. */
-  private readonly conversationsSent = new WeakMap<WebSocket, string>();
+  private readonly conversations: RoomConversations;
   private readonly delivery = new RoomDelivery();
   /* What each socket's attachment last held, so a handler that changed nothing writes none. */
   private readonly remembered = new WeakMap<WebSocket, string>();
@@ -347,21 +121,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   private sweepTimer: ReturnType<typeof setInterval> | undefined;
   /* The alarm this instance last set, or null for none; undefined until it sets one, since the stored alarm is then unknown. */
   private alarmAt: number | null | undefined;
-  private motionReceived = 0;
-  private motionForwarded = 0;
-  private motionDropped = 0;
-  private activityDeliveries = 0;
-  private messagesSent = 0;
-  private bytesSent = 0;
-  /*
-   * When this object began handling each recent saved command, by its own clock, for the load runner's metrics request.
-   * A Worker's clock stands still while code runs, so only when handling began is meaningful, not how long it took.
-   * A spawn request is timed after its catalogue read, so its entry includes that read.
-   */
-  private readonly commandTimings: { userId: string; commandId: string; handledAt: number; durableAt?: number }[] = [];
-  /* Recent sweeps that ran late by more than STALL_MS: a busy room fires its timers late, while a held output does not. */
-  private readonly stalls: { at: number; lateMs: number }[] = [];
-  private sweptAt: number | undefined;
+  private readonly metrics = new RoomMetrics();
   /* What this room did each interval, for measuring live sessions; see roomSummary.ts. */
   private readonly summary = new RoomSummary(() => ({
     roomId: this.ctx.id.toString(),
@@ -375,7 +135,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.resaveSummary ??= setTimeout(() => {
         this.resaveSummary = undefined;
         if (!this.sweepTimer && !this.closed) {
-          this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.counters()));
+          this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.metrics.counters()));
         }
       });
     }
@@ -444,6 +204,14 @@ export class GameRoom extends DurableObject<GameEnv> {
       refreshViews: () => this.refreshViews(),
       dealt: () => this.directory.soon(),
       waitUntil: (work) => this.ctx.waitUntil(work),
+    });
+    this.conversations = new RoomConversations({
+      session: this.session,
+      connections: this.connections,
+      authorized: (socket) => this.authorized(socket),
+      send: (socket, message) => this.send(socket, message),
+      announceGameLog: () => this.announceGameLog(),
+      directoryChanged: () => this.directory.soon(),
     });
     if (!this.closed && this.metadata) {
       if (this.metadata.confirmed && this.session.pendingDirectory()) {
@@ -1107,7 +875,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.remember();
       await this.directory.deliver();
       /* What the wake sent and called waits in the summary, which a running sweep writes; a quiet room saves it again. */
-      if (!this.sweepTimer && this.summary.pending(this.counters())) {
+      if (!this.sweepTimer && this.summary.pending(this.metrics.counters())) {
         this.rest();
       }
     } else {
@@ -1560,7 +1328,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     }
     if (message.type === 'pointer' || message.type === 'pose') {
       if (this.receiveMotion(socket, connection, message)) {
-        this.motionReceived++;
+        this.metrics.motionReceived++;
       }
       return true;
     }
@@ -1704,16 +1472,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.deny(socket);
       return;
     }
-    const now = Date.now();
-    const elapsed = Math.max(0, now - connection.refilledAt);
-    const refill = (tokens: number) => Math.min(RATE_BURST, tokens + (elapsed * RATE_PER_SECOND) / 1000);
-    connection.tokens = refill(connection.tokens);
-    connection.motionTokens = refill(connection.motionTokens);
-    connection.commandTokens = Math.min(
-      COMMAND_BURST,
-      connection.commandTokens + (elapsed * COMMANDS_PER_SECOND) / 1000
-    );
-    connection.refilledAt = now;
+    refillBuckets(connection, Date.now());
     if (isMovingPointer(message) || message.type === 'pose') {
       return this.withinMotionBudget(socket, connection, message);
     }
@@ -1741,7 +1500,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       this.refuseRate(socket);
       return;
     }
-    this.motionDropped++;
+    this.metrics.motionDropped++;
     if (connection.announced !== 'authorized' || !this.authorized(socket)) {
       return;
     }
@@ -1812,7 +1571,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       return;
     }
     if (isConversationRequest(message)) {
-      this.handleConversation(socket, connection.viewer!, message);
+      this.conversations.handle(socket, connection.viewer!, message);
       return;
     }
     switch (message.type) {
@@ -1841,102 +1600,6 @@ export class GameRoom extends DurableObject<GameEnv> {
         this.publishActivity(socket, connection, message);
     }
   }
-  private handleConversation(socket: WebSocket, viewer: Viewer, request: ConversationRequest) {
-    switch (request.type) {
-      case 'conversation-history':
-        this.send(socket, this.session.conversationPage(viewer, request));
-        return;
-      case 'conversation-read':
-        this.sendConversationReads(this.session.markConversationRead(viewer, request));
-        return;
-      case 'conversation-clear':
-        this.clearConversation(viewer, request);
-        return;
-      case 'conversation-send':
-        this.saveConversationMessage(socket, viewer, request);
-    }
-  }
-
-  /* The faction's other connections drop the cleared messages when their summaries arrive; everyone reads the clear in the log. */
-  private clearConversation(viewer: Viewer, request: Extract<ConversationRequest, { type: 'conversation-clear' }>) {
-    const { faction, logged } = this.session.clearConversation(viewer, request);
-    this.sendConversationReads(faction);
-    if (logged) {
-      this.announceGameLog();
-    }
-  }
-
-  private saveConversationMessage(
-    socket: WebSocket,
-    viewer: Viewer,
-    request: Extract<ConversationRequest, { type: 'conversation-send' }>
-  ) {
-    const saved = this.session.sendConversation(viewer, request);
-    if (saved.inserted) {
-      this.publishConversationMessage(request, saved.message);
-      this.directory.soon();
-      return;
-    }
-    /* A retried request was already delivered to every member; only the retrying connection needs its confirmation. */
-    this.send(socket, {
-      type: 'conversation-message',
-      factionId: request.factionId,
-      peerId: request.peerId,
-      message: saved.message,
-    });
-  }
-
-  private sendConversationReads(faction: string) {
-    for (const [peer, identity] of this.connections) {
-      if (identity.viewer && this.session.factionFor(identity.viewer.userId) === faction) {
-        this.sendConversations(peer, identity.viewer);
-      }
-    }
-  }
-
-  private publishConversationMessage(
-    request: Extract<ClientMessage, { type: 'conversation-send' }>,
-    message: Extract<ServerMessage, { type: 'conversation-message' }>['message']
-  ) {
-    const faction = request.factionId;
-    const members = this.session.conversationMembers(request);
-    /* Only current members receive the saved message, including the sender's other connections. */
-    for (const [peer, identity] of this.connections) {
-      if (!identity.viewer || !this.authorized(peer)) {
-        continue;
-      }
-      const own = this.session.conversationFaction(identity.viewer);
-      if (own && members.includes(own)) {
-        this.send(peer, {
-          type: 'conversation-message',
-          factionId: own,
-          peerId: conversationPeerFor(own, faction, request.peerId),
-          message,
-        });
-        this.sendConversations(peer, identity.viewer);
-      }
-    }
-  }
-
-  /** `ifChanged` holds back summaries the socket already has; a view and every conversation change send them regardless. */
-  private sendConversations(socket: WebSocket, viewer: Viewer, ifChanged = false) {
-    if (!this.session.ready || !this.authorized(socket)) {
-      return;
-    }
-    const message = this.session.conversationSummaries(viewer);
-    if (!message) {
-      this.conversationsSent.delete(socket);
-      return;
-    }
-    /* The seat goes with them, because a page clears its summaries whenever its own faction changes. */
-    const summaries = JSON.stringify([viewer.viewerSeat, message]);
-    if (ifChanged && this.conversationsSent.get(socket) === summaries) {
-      return;
-    }
-    this.conversationsSent.set(socket, summaries);
-    this.send(socket, message);
-  }
-
   private sendHistory(socket: WebSocket, step: number, requestId?: string) {
     this.send(socket, {
       ...this.session.historyFor(this.connections.get(socket)!.viewer!, step),
@@ -1951,16 +1614,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       revision: this.session.revision,
       historySteps: this.session.historySteps,
       receiptCount: this.session.receiptCount,
-      motionReceived: this.motionReceived,
-      motionForwarded: this.motionForwarded,
-      motionDropped: this.motionDropped,
-      activityDeliveries: this.activityDeliveries,
-      messagesSent: this.messagesSent,
-      bytesSent: this.bytesSent,
-      commands: this.commandTimings
-        .filter((timing) => timing.userId === userId)
-        .map(({ commandId, handledAt, durableAt }) => ({ commandId, handledAt, durableAt })),
-      stalls: this.stalls,
+      ...this.metrics.report(userId),
     });
   }
   private publishActivity(
@@ -1998,7 +1652,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     } else if (!this.session.pose(viewer, message)) {
       return;
     }
-    this.motionForwarded++;
+    this.metrics.motionForwarded++;
     this.activityTimer ??= setTimeout(() => {
       this.reconcileViewers();
       this.broadcastActivity();
@@ -2024,15 +1678,7 @@ export class GameRoom extends DurableObject<GameEnv> {
     });
   }
   private commit(socket: WebSocket, connection: Connection, message: CommitMessage, contents?: StoredSpawnContents) {
-    const timing: (typeof this.commandTimings)[number] = {
-      userId: connection.viewer!.userId,
-      commandId: message.commandId,
-      handledAt: Date.now(),
-    };
-    this.commandTimings.push(timing);
-    if (this.commandTimings.length > COMMAND_TIMINGS) {
-      this.commandTimings.shift();
-    }
+    const timing = this.metrics.command(connection.viewer!.userId, message.commandId, Date.now());
     if (this.reconcileViewers()) {
       this.broadcastActivity();
     }
@@ -2134,13 +1780,9 @@ export class GameRoom extends DurableObject<GameEnv> {
       );
       socket.send(data);
       if (message.type === 'view' || (message.type === 'update' && message.snapshot)) {
-        this.sendConversations(socket, this.connections.get(socket)!.viewer!, message.type === 'update');
+        this.conversations.sendSummaries(socket, this.connections.get(socket)!.viewer!, message.type === 'update');
       }
-      this.messagesSent++;
-      if (message.type === 'update' && !message.snapshot) {
-        this.activityDeliveries++;
-      }
-      this.bytesSent += Buffer.byteLength(data);
+      this.metrics.sent(Buffer.byteLength(data), message.type === 'update' && !message.snapshot);
     } catch (error) {
       this.diagnostics.report('socket-send', error);
       this.ctx.waitUntil(Promise.resolve().then(() => this.disconnect(socket)));
@@ -2148,8 +1790,7 @@ export class GameRoom extends DurableObject<GameEnv> {
   }
 
   private sendAdmission(socket: WebSocket, status: 'suspended' | 'denied' | 'pass-expired') {
-    /* A page that loses its admission drops its summaries, so whatever readmits it receives them again. */
-    this.conversationsSent.delete(socket);
+    this.conversations.forget(socket);
     if (socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify({ type: 'admission', status } satisfies ServerMessage));
@@ -2234,7 +1875,7 @@ export class GameRoom extends DurableObject<GameEnv> {
       clearInterval(this.sweepTimer);
     }
     this.sweepTimer = undefined;
-    this.sweptAt = undefined;
+    this.metrics.sweepStopped();
     /* The alarm takes over the pass expiries the sweep was watching. */
     this.ctx.waitUntil(this.scheduleAlarm().catch((error) => this.diagnostics.report('battle-alarm', error)));
   }
@@ -2274,8 +1915,8 @@ export class GameRoom extends DurableObject<GameEnv> {
   private rest() {
     this.saveCarryHistory();
     this.remember(true);
-    if (this.summary.pending(this.counters())) {
-      this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.counters()));
+    if (this.summary.pending(this.metrics.counters())) {
+      this.ctx.storage.kv.put(SUMMARY_KEY, this.summary.save(this.metrics.counters()));
     }
     this.ctx.storage.kv.put(QUIET_KEY, true);
     this.stopSweep();
@@ -2295,32 +1936,15 @@ export class GameRoom extends DurableObject<GameEnv> {
     return this.session.hasCarries || [...this.connections.values()].some((connection) => !connection.everAuthorized);
   }
 
-  private counters() {
-    return {
-      motionReceived: this.motionReceived,
-      motionForwarded: this.motionForwarded,
-      motionDropped: this.motionDropped,
-      activityDeliveries: this.activityDeliveries,
-      messagesSent: this.messagesSent,
-      bytesSent: this.bytesSent,
-    };
-  }
-
   private flushSummary(reason: 'interval' | 'empty') {
-    this.summary.flush(this.counters(), this.connections.size, reason);
+    this.summary.flush(this.metrics.counters(), this.connections.size, reason);
     this.ctx.storage.kv.delete(SUMMARY_KEY);
   }
 
   private noteStall() {
-    const now = Date.now();
-    const lateMs = this.sweptAt === undefined ? 0 : now - this.sweptAt - SWEEP_MS;
-    this.sweptAt = now;
-    if (lateMs > STALL_MS) {
+    const lateMs = this.metrics.swept(Date.now(), SWEEP_MS);
+    if (lateMs !== undefined) {
       this.summary.stall(lateMs);
-      this.stalls.push({ at: now, lateMs });
-      if (this.stalls.length > STALLS) {
-        this.stalls.shift();
-      }
     }
   }
 
