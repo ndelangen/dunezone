@@ -7,8 +7,9 @@ The skills agents can load in this repository, and how they are laid out.
 - `.agents/skills/<name>/` is the one home for every skill, vendored or ours.
 - `.claude/skills/<name>` is a relative symlink back into it, because Claude Code reads only
   `.claude/skills`. Add a link when you add a skill; never a copy, because a copy drifts.
-- [`skills-lock.json`](../../skills-lock.json) names the vendored skills, the Convex set from
-  `get-convex/agent-skills`. Those are refreshed from upstream, not edited here. Every other skill is
+- [`skills-lock.json`](../../skills-lock.json) names the vendored skills: the Convex set from
+  `get-convex/agent-skills` and the wayfinding set from `mattpocock/skills`. Those are refreshed from
+  upstream, not edited here. Every other skill is
   repo-authored, and `bun run check:prose` sweeps it like any other markdown.
 
 ## Conventions
@@ -27,6 +28,24 @@ The skills agents can load in this repository, and how they are laid out.
 - `design-an-interface` explores the shape of one module's interface.
 - `improve-codebase-architecture` finds coupling and frames a deep-module RFC.
 - `convex` routes an underspecified Convex request to the right Convex skill.
+- `wayfinder` plans an effort too big for one session as a map of decision tickets. It runs only
+  when asked by name. [`docs/agents/issue-tracker.md`](../../docs/agents/issue-tracker.md) says how
+  this repo stores maps, tickets, blockers and the frontier.
+- `grilling` is the vendored companion `wayfinder` calls for grilling tickets; `grill-me` stays the
+  general skill for stress-testing a plan outside a map.
+
+## Local adaptations of the wayfinding set
+
+The vendored files stay as upstream ships them. These repo rules apply on top of them:
+
+- `domain-modeling` looks for `GLOSSARY.md` and `docs/adr/`. This repo's glossary is
+  [`CONTEXT.md`](../../CONTEXT.md) for product terms and the Language section of
+  [`AGENTS.md`](../../AGENTS.md) for technical terms. ADRs live in [`docs/adr/`](../../docs/adr/).
+- `research` and the research tickets of `wayfinder` record findings as a resolution comment on the
+  ticket, or under [`docs/research/`](../../docs/research/) when the notes are long. They never push
+  a `research/*` branch, because agent sessions here push only to their assigned branch.
+- `prototype`: a variant switcher that handles the arrow keys leaves them alone while a `<select>`, or
+  any other control that uses arrow keys, has focus.
 
 ## Available skills
 
@@ -47,6 +66,11 @@ Vendored, named in `skills-lock.json`:
 - `convex-performance-audit`: Convex read/write hot-path and OCC performance audit workflow.
 - `convex-setup-auth`: Convex auth provider setup and authorization guidance.
 - `convex-quickstart`: Convex quickstart guidance, mostly for greenfield setup.
+- `wayfinder`: charts and works a map of decision tickets on GitHub issues.
+- `grilling`: relentless questioning of a plan, used by `wayfinder` grilling tickets.
+- `domain-modeling`: sharpens the domain vocabulary and records decisions as ADRs.
+- `research`: investigates a question against primary sources in a background agent.
+- `prototype`: builds a throwaway UI or logic prototype to answer a design question.
 
 ## Maintenance checklist
 
