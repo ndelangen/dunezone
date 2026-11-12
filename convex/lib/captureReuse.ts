@@ -6,6 +6,7 @@ import { FACTION_TRAITOR_ASSET_TYPE } from '../../src/shared/asset-publishing/fa
 import { FACTION_TROOP_ASSET_TYPE } from '../../src/shared/asset-publishing/factionTroopPublication';
 import { parsePublicationAssetData } from '../../src/shared/asset-publishing/publication';
 import { isPublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
+import type { PublicationAssetType } from '../../src/shared/asset-publishing/publicationTargets';
 import type { Doc } from '../_generated/dataModel';
 import type { QueryCtx } from '../_generated/server';
 import { canonicalJson } from './canonicalJson';
@@ -25,11 +26,16 @@ const componentRevisionSchema = z.uuid();
 
 /** What the renderer draws: a leader's ids only label the capture, so they are left out; the other faces carry no ids. */
 function drawnContent(assetType: string, payload: unknown): unknown {
-  if (assetType === FACTION_LEADER_ASSET_TYPE && payload && typeof payload === 'object') {
-    const { factionId: _factionId, memberId: _memberId, ...drawn } = payload as Record<string, unknown>;
-    return drawn;
+  if (assetType !== FACTION_LEADER_ASSET_TYPE) {
+    return payload;
   }
-  return payload;
+  const { factionId: _factionId, memberId: _memberId, ...drawn } = payload as Record<string, unknown>;
+  return drawn;
+}
+
+/** A type that is reused and has an active revision to key its captures by. */
+function isReusable(assetType: string, rendererRevision: number | undefined): assetType is PublicationAssetType {
+  return REUSABLE_ASSET_TYPES.has(assetType) && Boolean(rendererRevision) && isPublicationAssetType(assetType);
 }
 
 /**
@@ -37,7 +43,7 @@ function drawnContent(assetType: string, payload: unknown): unknown {
  * Null for a face that is never reused, a type with no active revision, or a payload that does not parse, which then captures as before.
  */
 export function captureContent(assetType: string, rendererRevision: number | undefined, assetData: unknown) {
-  if (!REUSABLE_ASSET_TYPES.has(assetType) || !rendererRevision || !isPublicationAssetType(assetType)) {
+  if (!isReusable(assetType, rendererRevision)) {
     return null;
   }
   let payload: unknown;
