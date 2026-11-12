@@ -15,7 +15,7 @@ import {
   assignedGroupSummary,
   liveGroupOrNull,
   requireFactionSoftDelete,
-  requireFactionUpdate,
+  requireFactionSave,
   requireGroupReassignment,
 } from './lib/collaborativeAccess';
 import { relatedFaqItemValidator } from './lib/collaborativeAccessValidators';
@@ -31,7 +31,6 @@ import { factionDataValidator } from './lib/factionData';
 import {
   factionInputForWrite,
   factionRowForClient,
-  parseFactionInput,
   parseStoredFactionForRead,
 } from './lib/factionInput';
 import { loadRelatedFaqPage } from './lib/faqReferences';
@@ -128,7 +127,22 @@ async function loadFactionDetailPage(ctx: QueryCtx, row: Doc<'factions'>) {
     owner: isActiveProfile(ownerProfile) ? ownerProfile : null,
     assetPublishing: await publicationStatusFor(ctx, 'faction_sheet', row._id),
     assignedGroup: await assignedGroupSummary(ctx, row.group_id),
+    family: await familyAccessFacts(ctx, row.family_id),
     rulesets: await listFactionRulesets(ctx, row._id),
+  };
+}
+
+/** The Faction's public access facts, from which the browser decides who may change the shared fields. */
+async function familyAccessFacts(ctx: QueryCtx, familyId: Id<'faction_families'> | undefined) {
+  const family = familyId ? await ctx.db.get('faction_families', familyId) : null;
+  if (!family) {
+    return null;
+  }
+  return {
+    _id: family._id,
+    owner_id: family.owner_id,
+    is_deleted: family.is_deleted,
+    assignedGroup: await assignedGroupSummary(ctx, family.group_id),
   };
 }
 
@@ -449,11 +463,7 @@ export const update = mutation({
     data: v.any(),
   },
   handler: async (ctx, args) => {
-    const data = parseFactionInput(args.data, {
-      requireAuthoringSemantics: true,
-    });
-    const access = await requireFactionUpdate(ctx, args.id, data);
-    const identifiedData = factionInputForWrite(data, access.subject.data);
+    const { data, ...access } = await requireFactionSave(ctx, args.id, args.data);
     await assertAddedFactionExtrasExist(ctx, data.extras, savedFactionExtras(access.subject.data));
     const slug = await resolveFactionSlug(ctx, data.name, access.subject);
     if (slug !== access.subject.slug) {
@@ -466,7 +476,7 @@ export const update = mutation({
     }
 
     await ctx.db.patch(access.subject._id, {
-      data: identifiedData,
+      data,
       slug,
       updated_at: nowIso(),
     });

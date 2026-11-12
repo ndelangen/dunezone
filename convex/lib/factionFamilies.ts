@@ -11,11 +11,27 @@ import { parseStoredFactionForRead } from './factionInput';
 export const ORIGINAL_VARIANT_NAME = 'Original';
 const ORIGINAL_VARIANT_SLUG = slugify(ORIGINAL_VARIANT_NAME);
 
+type FactionData = ReturnType<typeof parseStoredFactionForRead>;
+
+/** A faction's data split into what its Faction shares with every variant and what belongs to the variant alone (#2905). */
+export function splitSharedFields({ name, emblem, background, themeColor, colors, ...variant }: FactionData) {
+  return { shared: { name, emblem, background, themeColor, colors }, variant };
+}
+
+/** Which side of the split a save changes, so each side is authorized by whoever maintains it. */
+export function factionDataChange(stored: FactionData, proposed: FactionData) {
+  const before = splitSharedFields(stored);
+  const after = splitSharedFields(proposed);
+  return {
+    shared: canonicalJson(before.shared) !== canonicalJson(after.shared),
+    variant: canonicalJson(before.variant) !== canonicalJson(after.variant),
+  };
+}
+
 /** The shared fields of a variant's stored data, or null while that data does not parse, so a broken legacy faction never blocks its own write. */
 function sharedData(faction: Doc<'factions'>) {
   try {
-    const { name, emblem, background, themeColor, colors } = parseStoredFactionForRead(faction.data);
-    return { name, emblem, background, themeColor, colors };
+    return splitSharedFields(parseStoredFactionForRead(faction.data)).shared;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return null;
@@ -24,13 +40,15 @@ function sharedData(faction: Doc<'factions'>) {
   }
 }
 
-/** Mirrored from the family's single variant until shared fields move to the family (#2926). */
+/**
+ * Mirrored from the family's single variant until a Faction can hold several (#2927).
+ * The Group is not: a Faction keeps its own, which starts as its first variant's and then changes only on the Faction (#2910).
+ */
 function mirroredFields(faction: Doc<'factions'>) {
   return {
     slug: faction.slug,
     data: sharedData(faction),
     owner_id: faction.owner_id,
-    group_id: faction.group_id,
     is_deleted: faction.is_deleted,
     created_at: faction.created_at,
     updated_at: faction.updated_at,
@@ -53,6 +71,7 @@ async function firstVariantName(ctx: Pick<QueryCtx, 'db'>, factionId: Id<'factio
 async function createFamily(ctx: MutationCtx, faction: Doc<'factions'>) {
   const familyId = await ctx.db.insert('faction_families', {
     ...mirroredFields(faction),
+    group_id: faction.group_id,
     default_variant_id: faction._id,
     is_open: false,
   });
@@ -93,7 +112,7 @@ export async function syncFactionFamily(ctx: MutationCtx, id: Id<'factions'>, fa
  * Every family field that is not mirrored must be left out here, or each sync would patch it.
  */
 function mirrors(family: Doc<'faction_families'>, fields: ReturnType<typeof mirroredFields>) {
-  const { _id, _creationTime, default_variant_id: _default, is_open: _open, ...stored } = family;
+  const { _id, _creationTime, default_variant_id: _default, is_open: _open, group_id: _group, ...stored } = family;
   return canonicalJson(stored) === canonicalJson(fields);
 }
 

@@ -165,6 +165,16 @@ export const factionDetailPageValidator = v.object({
   owner: v.union(profileValidator, v.null()),
   assetPublishing: assetPublishingValidator,
   assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+  /** The Faction the variant belongs to, as its access facts: who maintains the shared fields. Null until the variant is given one. */
+  family: v.union(
+    v.object({
+      _id: v.id('faction_families'),
+      owner_id: v.id('users'),
+      is_deleted: v.boolean(),
+      assignedGroup: v.union(assignedGroupSummaryValidator, v.null()),
+    }),
+    v.null()
+  ),
   rulesets: v.array(rulesetSummaryValidator),
 });
 
