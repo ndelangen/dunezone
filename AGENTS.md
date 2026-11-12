@@ -594,8 +594,12 @@ holds markdown headings to sentence case; a proper noun it flags belongs in that
 The skills an agent can load here live in `.agents/skills/`, indexed by
 [`.agents/skills/README.md`](.agents/skills/README.md). `.claude/skills/<name>` is a symlink back
 into that folder, because Claude Code reads only `.claude/skills`; the vendored Convex set is the
-part [`skills-lock.json`](skills-lock.json) names, and the rest is repo-authored prose that
-`bun run check:prose` sweeps.
+parts [`skills-lock.json`](skills-lock.json) names (the Convex set and the wayfinding set), and the
+rest is repo-authored prose that `bun run check:prose` sweeps.
+
+Research findings, including those of `research` subagents that `wayfinder` dispatches, go in a
+resolution comment on the ticket or under `docs/research/`. Agent sessions never push a `research/*`
+branch, even when a vendored skill says to.
 
 ### Issue tracker
 

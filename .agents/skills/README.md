@@ -44,6 +44,8 @@ The vendored files stay as upstream ships them. These repo rules apply on top of
 - `research` and the research tickets of `wayfinder` record findings as a resolution comment on the
   ticket, or under [`docs/research/`](../../docs/research/) when the notes are long. They never push
   a `research/*` branch, because agent sessions here push only to their assigned branch.
+- `prototype`: a variant switcher that handles the arrow keys leaves them alone while a `<select>`, or
+  any other control that uses arrow keys, has focus.
 
 ## Available skills
 
