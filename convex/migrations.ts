@@ -670,7 +670,7 @@ export const faction_cards_v1 = migrations.define({
 /**
  * Gives every faction, deleted ones included, a family of its own and a variant name (#2925);
  * rerunning it writes nothing.
- * It is permanent like `faction_cards_v1`: a snapshot load carries no families, so every load rebuilds them through it.
+ * It is permanent like `faction_cards_v1`: a snapshot cut before families existed carries none, and a replay over a newer one writes nothing.
  */
 export const faction_families_v1 = migrations.define({
   table: 'factions',

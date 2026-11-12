@@ -367,18 +367,6 @@ export const CanonicalFactionStoredObject = z.strictObject({
   troops: z.array(Troop.extend({ troopId: FactionTroopIdSchema })),
 });
 
-/**
- * The fields every variant of a faction shows alike, kept on its Faction family (#2905).
- * Everything else belongs to the variant.
- */
-export const FactionSharedStoredObject = CanonicalFactionStoredObject.pick({
-  name: true,
-  emblem: true,
-  background: true,
-  themeColor: true,
-  colors: true,
-});
-
 /** Frozen sheet jobs and standalone previews may predate persistent member identity. Keep this decoder after live schema narrowing. */
 export const HistoricalFactionPublicationObject = z.strictObject({
   ...factionShape,

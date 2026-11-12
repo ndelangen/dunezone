@@ -130,6 +130,16 @@ describe('Faction families', () => {
     );
   });
 
+  test('the verify step refuses a family that no longer mirrors its variant', async () => {
+    const { t, owner, familyOf } = await familiesFixture();
+    const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
+    const family = (await familyOf(faction._id))!;
+    await t.run(async (ctx) => await ctx.db.patch(family._id, { slug: 'drifted' }));
+    await expect(
+      t.run(async (ctx) => await assertFactionFamily(ctx, (await ctx.db.get(faction._id))!))
+    ).rejects.toThrow(/does not mirror/);
+  });
+
   test('edits and deletion of the variant reach its family, and a later ruleset link keeps the variant name', async () => {
     const { owner, ruleset, link, variant, familyOf } = await familiesFixture();
     const faction = await owner.mutation(api.factions.create, { data: assetPublishingFaction, group_id: null });
