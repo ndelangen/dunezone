@@ -77,6 +77,7 @@ import type * as lib_discordVoiceSnapshot from "../lib/discordVoiceSnapshot.js";
 import type * as lib_factionCards from "../lib/factionCards.js";
 import type * as lib_factionCatalogue from "../lib/factionCatalogue.js";
 import type * as lib_factionData from "../lib/factionData.js";
+import type * as lib_factionFamilies from "../lib/factionFamilies.js";
 import type * as lib_factionInput from "../lib/factionInput.js";
 import type * as lib_faqCatalogue from "../lib/faqCatalogue.js";
 import type * as lib_faqGlobalSearch from "../lib/faqGlobalSearch.js";
@@ -278,6 +279,7 @@ const fullApi: ApiFromModules<{
   "lib/factionCards": typeof lib_factionCards;
   "lib/factionCatalogue": typeof lib_factionCatalogue;
   "lib/factionData": typeof lib_factionData;
+  "lib/factionFamilies": typeof lib_factionFamilies;
   "lib/factionInput": typeof lib_factionInput;
   "lib/faqCatalogue": typeof lib_faqCatalogue;
   "lib/faqGlobalSearch": typeof lib_faqGlobalSearch;
