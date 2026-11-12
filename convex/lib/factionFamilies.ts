@@ -103,15 +103,21 @@ async function deleteOrphanedFamily(ctx: MutationCtx, id: Id<'factions'>) {
   }
 }
 
+/** The family a faction names, provided the faction also carries its variant name. */
+async function namedFamily(ctx: Pick<QueryCtx, 'db'>, faction: Doc<'factions'>) {
+  if (!faction.family_id || !faction.variant_name || !faction.variant_slug) {
+    return null;
+  }
+  return await ctx.db.get(faction.family_id);
+}
+
 /** Throws unless the faction is a variant of a family that exists and, while it is the only variant, mirrors it exactly. */
 export async function assertFactionFamily(ctx: Pick<QueryCtx, 'db'>, faction: Doc<'factions'>) {
-  const family = faction.family_id ? await ctx.db.get(faction.family_id) : null;
-  const named = Boolean(faction.variant_name && faction.variant_slug);
-  if (!family || !named) {
+  const family = await namedFamily(ctx, faction);
+  if (!family) {
     throw new Error(`Faction ${faction._id} has no family`);
   }
-  const isDefault = family.default_variant_id === faction._id;
-  if (isDefault && !mirrors(family, faction)) {
+  if (family.default_variant_id === faction._id && !mirrors(family, faction)) {
     throw new Error(`Faction family ${family._id} does not mirror its variant ${faction._id}`);
   }
 }
