@@ -117,6 +117,11 @@ export async function assertFactionFamily(ctx: Pick<QueryCtx, 'db'>, faction: Do
   if (!faction.variant_name || !faction.variant_slug) {
     throw new Error(`Faction ${faction._id} has no variant name`);
   }
+  assertMirrorsDefaultVariant(family, faction);
+}
+
+/** Throws when the faction is its family's default variant and the family no longer mirrors it. */
+function assertMirrorsDefaultVariant(family: Doc<'faction_families'>, faction: Doc<'factions'>) {
   if (family.default_variant_id === faction._id && !mirrors(family, mirroredFields(faction))) {
     throw new Error(`Faction family ${family._id} does not mirror its variant ${faction._id}`);
   }
