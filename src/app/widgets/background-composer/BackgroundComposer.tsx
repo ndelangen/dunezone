@@ -644,7 +644,7 @@ export function BackgroundComposer({
     <Stack component="section" gap="md" aria-label="Background builder">
       <Divider />
 
-      {libraryOpen ? (
+      {libraryOpen && !disabled ? (
         <PatternCatalogue
           value={value.image}
           onChange={(image) => onChange({ ...value, image })}

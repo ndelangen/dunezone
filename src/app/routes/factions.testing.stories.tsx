@@ -26,6 +26,7 @@ import {
   withPlanets,
   expectLeaderLane,
   currentSheetWithAFailedReplacement,
+  variantMaintainerOutsideTheFactionGroup,
 } from './factions.stories.fixture';
 import { expectFieldValue, expectWithinWidth } from './pagePlay';
 import { StorybookPage } from './storybook';
@@ -722,5 +723,17 @@ export const DetailNotFoundIsThePageNotFound = meta.story({
     const page = within(canvasElement.ownerDocument.body);
     await expect(page.findByRole('heading', { name: 'Page not found' }, { timeout: 30_000 })).resolves.toBeVisible();
     await expect(page.queryByText('Back to factions')).toBeNull();
+  },
+});
+
+/** A variant Group member outside the Faction's Group may not change the shared fields, yet the variant's own chapters stay theirs (#2926). */
+export const EditVariantChaptersOutsideTheFactionGroup = meta.story({
+  args: { path: '/factions/house-atreides/edit' },
+  parameters: { database: variantMaintainerOutsideTheFactionGroup },
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(page.findByRole('textbox', { name: 'Faction name' }, { timeout: 30_000 })).resolves.toBeDisabled();
+    await userEvent.click(page.getByRole('tab', { name: /^Faction leader/ }));
+    await expect(page.findByRole('textbox', { name: 'Faction leader name' })).resolves.toBeEnabled();
   },
 });

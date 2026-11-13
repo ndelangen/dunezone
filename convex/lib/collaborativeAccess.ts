@@ -434,18 +434,21 @@ export async function requireFactionUpdate(
 
 /**
  * Authorizes a save of a variant's data, each side by who maintains it: the shared fields by the Faction's owner and Group, the rest by the variant's owner and Group.
- * A save that changes nothing needs the variant's edit right, as before Factions existed.
+ * A save that changes nothing needs either right, so a Faction's maintainer can press Save on an unchanged draft.
  * Returns the access with the data as it will be stored.
  */
 export async function requireFactionSave(ctx: MutationCtx, factionId: Id<'factions'>, proposedData: unknown) {
   const access = await loadFactionForSave(ctx, factionId);
   const data = factionInputForWrite(proposedData, access.subject.data);
   const change = factionDataChange(parseStoredFactionForRead(access.subject.data), data);
-  if (change.shared && !(await canEditSharedFields(ctx, access))) {
+  const canEditVariant = access.viewerAccess.capabilities.edit;
+  const unchanged = !change.shared && !change.variant;
+  const unchangedWithoutVariantRight = unchanged && !canEditVariant;
+  const needsSharedRight = change.shared || unchangedWithoutVariantRight;
+  if (needsSharedRight && !(await canEditSharedFields(ctx, access))) {
     throw new Error('Not authorized');
   }
-  const needsVariantRight = change.variant || !change.shared;
-  if (needsVariantRight && !access.viewerAccess.capabilities.edit) {
+  if (change.variant && !canEditVariant) {
     throw new Error('Not authorized');
   }
   return { ...access, data };

@@ -822,6 +822,11 @@ describe('collaborative access moderation commands', () => {
         data: { ...leaderRenamed, themeColor: '#123456', leaders: saved.leaders },
       })
     ).rejects.toThrow('Not authorized');
+    /* Saving an unchanged draft is open to either side's maintainers. */
+    await factionMember.mutation(api.factions.update, {
+      id: ids.factionId,
+      data: { ...leaderRenamed, themeColor: '#123456' },
+    });
   });
 
   test('add, owner-removal denial, and reassignment target eligibility are authoritative', async () => {

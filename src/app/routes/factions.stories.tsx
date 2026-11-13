@@ -1,6 +1,6 @@
 import preview from '@sb/preview';
 import { TREACHERY_TRACKER_RULE } from '@shared/factions/treacheryTrackerRule';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 
 import {
   withTreacheryTracker,
@@ -164,8 +164,6 @@ export const EditFactionChapterReadOnly = meta.story({
     for (const control of controls) {
       await expect(control).toBeDisabled();
     }
-    await userEvent.click(page.getByRole('tab', { name: /^Faction leader/ }));
-    await expect(page.findByRole('textbox', { name: 'Faction leader name' })).resolves.toBeEnabled();
   },
 });
 
